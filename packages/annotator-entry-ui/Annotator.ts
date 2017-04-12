@@ -31,9 +31,12 @@ export class Annotator {
 	dragControls
 	transformControls
 	hideTransformControlTimer
-	annotations :  Array<AnnotationUtils.Annotation>
+	annotations :  Array<AnnotationUtils.LaneAnnotation>
+	isAddMarkerKeyPressed : boolean
 	
-	constructor() {}
+	constructor() {
+		this.isAddMarkerKeyPressed = false
+	}
 	
 	initScene() {
 		log.info(`Building scene`)
@@ -41,7 +44,7 @@ export class Annotator {
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
 		this.annotations = []
-		this.annotations.push(new AnnotationUtils.Annotation())
+		this.annotations.push(new AnnotationUtils.LaneAnnotation())
 	
 		const [width,height] = this.getContainerSize()
 	
@@ -101,22 +104,20 @@ export class Annotator {
 		this.initTransformControls()
 		this.initDragControls()
 		
-		window.addEventListener( 'resize', this.onWindowResize, false );
-		
-		this.renderer.domElement.addEventListener('mouseup', (event) => {
-			let mouse = new THREE.Vector2()
-			mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
-			mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
-			this.raycaster.setFromCamera(mouse, this.camera)
-			let intersection = this.raycaster.intersectObject(this.plane)
-			if (intersection.length > 0) {
-				// Remember x-z is the horizontal plane, y is the up-down axis
-				let x = intersection[0].point.x
-				let y = intersection[0].point.y
-				let z = intersection[0].point.z
-				this.scene.add(this.annotations[0].addPoint(x, y, z))
+		window.addEventListener('resize', this.onWindowResize, false );
+		window.addEventListener('keydown', (event) => {
+			if (event.keyCode == 61) {
+				log.info("Add marker key pressed")
+				this.isAddMarkerKeyPressed = true
 			}
 		})
+		
+		window.addEventListener('keyup', (event) => {
+			this.isAddMarkerKeyPressed = false
+		})
+		
+		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
+		
 		
 	}
 	
@@ -151,6 +152,30 @@ export class Annotator {
 			this.scene.add(pointCloud)
 		} catch (err) {
 			log.error('It failed', err)
+		}
+	}
+	
+	private addLaneAnnotationMarker = (event) => {
+		if (this.isAddMarkerKeyPressed == false) {
+			return
+		}
+		
+		let mouse = new THREE.Vector2()
+		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
+		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		this.raycaster.setFromCamera(mouse, this.camera)
+		let intersection = this.raycaster.intersectObject(this.plane)
+		if (intersection.length > 0) {
+			// Remember x-z is the horizontal plane, y is the up-down axis
+			let x = intersection[0].point.x
+			let y = intersection[0].point.y
+			let z = intersection[0].point.z
+			let markers = this.annotations[0].addMarker(x,y,z)
+			
+			markers.forEach( (marker) => {
+				this.scene.add(marker)
+				//this.dragControls.addObject(marker)
+			})
 		}
 	}
 	
@@ -252,7 +277,7 @@ export class Annotator {
 	 */
 	private initDragControls() {
 		// Create a the drag control object and link it  to the objects we want to be able to edit
-		this.dragControls = new DragControls(this.annotations[0].waypoints, this.camera, this.renderer.domElement);
+		this.dragControls = new DragControls([], this.camera, this.renderer.domElement);
 		this.dragControls.enabled = false;
 		
 		// Add listeners.

@@ -87,7 +87,7 @@ THREE.DragControls = function ( _objects, _camera, _domElement ) {
 			}
 		}
 	}
-
+	
 	function onDocumentMouseDown( event ) {
 
 		event.preventDefault();
