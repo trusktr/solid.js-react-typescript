@@ -1,0 +1,154 @@
+@import "mixins.global";
+@import 'github-markdown';
+@import "tooltips";
+@import "elements";
+
+* {
+	box-sizing: border-box;
+	outline: none;
+
+	-webkit-user-select: none;
+	user-select: none;
+	
+	-webkit-font-smoothing: subpixel-antialiased;
+	-moz-osx-font-smoothing: auto;
+	font-smooth: auto;
+}
+
+.fill-height {
+	height: 100vh;
+	min-height: 100vh;
+	max-height: 100vh;
+}
+
+.fill-width {
+	width: 100vw;
+	min-width: 100vw;
+	max-width: 100vw;
+}
+
+.fixed-fill {
+	@extend .fill-height, .fill-width;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
+
+#root {
+	@extend .fixed-fill;
+	z-index: 0;
+}
+
+#loader-root {
+	@extend .fixed-fill;
+	z-index: 1;
+	transition: opacity 0.3s ease-out;
+	opacity: 0;
+	pointer-events: none;
+	
+	&.visible {
+		opacity: 1;
+		pointer-events: auto;
+	}
+}
+
+html,body {
+	margin: 0;
+	padding: 0;
+	border: 0;
+
+}
+
+html {
+	font-size: 10px;
+}
+body {
+	font-size: 1.2rem;
+}
+
+.window-controls {
+	position:absolute;
+	display: block;
+	top: 0;
+	left: 0;
+
+	button {
+		@include make-default-transition();
+		display: inline-flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+
+		//display: inline-block;
+		-webkit-app-region: no-drag;
+		background-color: white;
+		outline: none;
+		opacity: 1;
+		border: 0.2rem solid transparent;
+		padding: 0;
+
+		&:before {
+			@include make-default-transition();
+			opacity: 0;
+		}
+
+		&,&:before,* {
+			cursor: pointer !important;
+		}
+
+		&:hover {
+			cursor: pointer  !important;
+			background-color: transparent  !important;
+
+			&:before {
+				opacity: 1 !important;
+			}
+		}
+	}
+}
+
+
+#root {
+	overflow: hidden;
+
+	.root-content {
+		
+	}
+}
+
+::-webkit-scrollbar {
+	display: none;
+}
+
+
+
+@keyframes loader-logo {
+	0%{transform: translate(-50%,-50%) scale(0);
+		top: 50%;}
+	55%{transform: translate(-50%,-50%) scale(1.2);
+		top: 50%;
+		opacity: 1;
+		box-shadow: none;}
+	70%{transform: translate(-50%,-50%) scale(0.9);}
+	85%{transform: translate(-50%,-50%) scale(1);}
+	100%{transform: translate(-50%,-50%) scale(1);
+		top: 50%;
+		box-shadow: 0px 0.4rem 0.5rem 1.2rem #99DD58;
+		opacity: 1;
+	}
+}
+
+@keyframes loader-tagline {
+	0%{
+		transform: translate(-50%,-30%) scale(0.8);
+		opacity: 0;
+	}
+	100%{
+		transform: translate(-50%,-50%) scale(1);
+		opacity: 1;
+	}
+}
+
+

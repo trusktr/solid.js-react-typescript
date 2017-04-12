@@ -1,0 +1,45 @@
+-
+	var fontStyles = eval(require('!!css-loader!sass-loader!assets/fonts/fonts.global.scss'))
+	//var mainStyles = eval(require('!!css-loader!sass-loader!styles/MainEntry.global.scss'))
+
+doctype html
+html(lang="en")
+	head
+		meta(charset='utf-8')
+		meta(name="viewport" content="width=device-width, initial-scale=1")
+		style!=fontStyles
+		//style!=mainStyles
+		style!=eval(require('!!css-loader!sass-loader!styles/split-pane.global.scss'))
+		style!=eval(require('!!css-loader!animate.css/animate.css'))
+		style!=eval(require('!!css-loader!font-awesome/css/font-awesome.min.css'))
+		style.
+			html,body, #root {
+				height: 100vh;
+				min-height: 100vh;
+				max-height: 100vh;
+				margin:0;
+				border:0;
+				padding:0;
+				width: 100vw;
+				min-width: 100vw;
+				max-width: 100vw;
+			}
+
+		// Splash screen load
+		//script!=require('!!raw-loader!./BrowserEntry.js')
+		meta(name="viewport",content="width=device-width, initial-scale=1")
+		title!="Annotator"
+
+	body.fill-width.fill-height
+		#root
+		script.
+			require(process.cwd() + "/dist/app/annotator-entry-ui")
+
+
+
+
+
+
+
+
+
