@@ -41,11 +41,6 @@ export class Annotator {
 	initScene() {
 		log.info(`Building scene`)
 		
-		// Init empty annotation. This will have to be changed
-		// to work in response to a menu, panel or keyboard event.
-		this.annotations = []
-		this.annotations.push(new AnnotationUtils.LaneAnnotation())
-	
 		const [width,height] = this.getContainerSize()
 	
 		// Create scene and camera
@@ -71,18 +66,24 @@ export class Annotator {
 		let planeMaterial = new THREE.ShadowMaterial()
 		planeMaterial.opacity = 0.2
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
-		this.plane.position.y = -10
+		this.plane.position.y = -5
 		this.plane.receiveShadow = true
 		this.scene.add(this.plane)
 	
 		// Add grid on top of the plane
 		let grid = new THREE.GridHelper( 2000, 100 );
-		grid.position.y = - 9;
+		grid.position.y = - 4;
 		grid.material.opacity = 0.25;
 		grid.material.transparent = true;
 		this.scene.add( grid );
 		let axis = new THREE.AxisHelper(10);
 		this.scene.add( axis );
+		
+		// Init empty annotation. This will have to be changed
+		// to work in response to a menu, panel or keyboard event.
+		this.annotations = []
+		this.annotations.push(new AnnotationUtils.LaneAnnotation())
+		this.scene.add(this.annotations[0].laneMesh)
 		
 		// THe raycaster is used to compute where the waypoints will be dropped
 		this.raycaster = new THREE.Raycaster()
@@ -106,7 +107,7 @@ export class Annotator {
 		
 		window.addEventListener('resize', this.onWindowResize, false );
 		window.addEventListener('keydown', (event) => {
-			if (event.keyCode == 61) {
+			if (event.code == 'KeyA') {
 				log.info("Add marker key pressed")
 				this.isAddMarkerKeyPressed = true
 			}
@@ -117,8 +118,6 @@ export class Annotator {
 		})
 		
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
-		
-		
 	}
 	
 	/**
@@ -267,7 +266,7 @@ export class Annotator {
 		
 		// If the object attached to the transform object has changed, do something.
 		this.transformControls.addEventListener( 'objectChange', (event) => {
-			// TODO
+			this.annotations[0].generateMeshFromMarkers()
 		})
 	}
 	
@@ -277,7 +276,7 @@ export class Annotator {
 	 */
 	private initDragControls() {
 		// Create a the drag control object and link it  to the objects we want to be able to edit
-		this.dragControls = new DragControls([], this.camera, this.renderer.domElement);
+		this.dragControls = new DragControls(this.annotations[0].laneMarkers, this.camera, this.renderer.domElement);
 		this.dragControls.enabled = false;
 		
 		// Add listeners.
