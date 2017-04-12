@@ -111,6 +111,12 @@ export class Annotator {
 				log.info("Add marker key pressed")
 				this.isAddMarkerKeyPressed = true
 			}
+			
+			if (event.code == 'KeyD') {
+				log.info("Deleting last marker")
+				this.annotations[0].deleteLast(this.scene)
+				this.hideTransform()
+			}
 		})
 		
 		window.addEventListener('keyup', (event) => {
@@ -169,12 +175,7 @@ export class Annotator {
 			let x = intersection[0].point.x
 			let y = intersection[0].point.y
 			let z = intersection[0].point.z
-			let markers = this.annotations[0].addMarker(x,y,z)
-			
-			markers.forEach( (marker) => {
-				this.scene.add(marker)
-				//this.dragControls.addObject(marker)
-			})
+			this.annotations[0].addMarker(this.scene, x,y,z)
 		}
 	}
 	

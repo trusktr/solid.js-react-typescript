@@ -20,8 +20,7 @@ export class LaneAnnotation {
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), laneMaterial)
 	}
 	
-	addMarker(x:number, y:number, z:number) : Array<THREE.Mesh> {
-		let addedMarkers = []
+	addMarker(scene:THREE.Scene, x:number, y:number, z:number) {
 		
 		let marker = new THREE.Mesh( controlPointGeometry, markerMaterial)
 		marker.position.x = x
@@ -29,7 +28,7 @@ export class LaneAnnotation {
 		marker.position.z = z
 		
 		this.laneMarkers.push(marker)
-		addedMarkers.push(marker)
+		scene.add(marker)
 		
 		// From the third marker onwards, add markers in pairs by estimating the position
 		// of the left marker.
@@ -40,30 +39,41 @@ export class LaneAnnotation {
 			marker2.position.y = marker2Position.y
 			marker2.position.z = marker2Position.z
 			this.laneMarkers.push(marker2)
-			addedMarkers.push(marker2)
+			scene.add(marker2)
 		}
 		
 		this.generateMeshFromMarkers()
-		
-		return addedMarkers
 	}
 	
-	generateMeshFromMarkers = () => {
-		// We need at least 3 vertices to generate a mesh
-		if (this.laneMarkers.length < 3) {
+	deleteLast(scene : THREE.Scene)  {
+		if (this.laneMarkers.length == 0) {
 			return
 		}
 		
+		scene.remove(this.laneMarkers.pop())
+		
+		if (this.laneMarkers.length > 2) {
+			scene.remove(this.laneMarkers.pop())
+		}
+		
+		this.generateMeshFromMarkers()
+	}
+	
+	
+	generateMeshFromMarkers = () => {
 		let newGeometry = new THREE.Geometry()
 		
-		// Add all vertices
-		this.laneMarkers.forEach( (marker) => {
-			newGeometry.vertices.push(marker.position)
-		})
-		
-		// Add faces
-		for (let i=0; i < this.laneMarkers.length-2; i++) {
-			newGeometry.faces.push( new THREE.Face3(i, i+1, i+2))
+		// We need at least 3 vertices to generate a mesh
+		if (this.laneMarkers.length > 2) {
+			// Add all vertices
+			this.laneMarkers.forEach((marker) => {
+				newGeometry.vertices.push(marker.position)
+			})
+			
+			// Add faces
+			for (let i = 0; i < this.laneMarkers.length - 2; i++) {
+				newGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))
+			}
 		}
 		
 		this.laneMesh.geometry = newGeometry
