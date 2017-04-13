@@ -5,23 +5,28 @@
 import * as THREE from 'three'
 
 const controlPointGeometry = new THREE.BoxGeometry( 1, 1, 1 );
-const markerMaterial = new THREE.MeshLambertMaterial({color : 'red'})
-const laneMaterial = new THREE.MeshBasicMaterial({color : 'red', wireframe : true})
+
 
 
 export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	laneMarkers : Array<THREE.Mesh>
 	laneMesh : THREE.Mesh
+	markerMaterial :  THREE.MeshLambertMaterial
+	laneMaterial : THREE.MeshBasicMaterial
+	
 	
 	constructor() {
 		this.laneMarkers = []
-		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), laneMaterial)
+		let annotationColor = Math.random() * 0xffffff
+		this.markerMaterial = new THREE.MeshLambertMaterial({color : annotationColor})
+		this.laneMaterial = new THREE.MeshBasicMaterial({color : annotationColor, wireframe : true})
+		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.laneMaterial)
 	}
 	
 	addMarker(scene:THREE.Scene, x:number, y:number, z:number) {
 		
-		let marker = new THREE.Mesh( controlPointGeometry, markerMaterial)
+		let marker = new THREE.Mesh( controlPointGeometry, this.markerMaterial)
 		marker.position.x = x
 		marker.position.y = y
 		marker.position.z = z
@@ -33,7 +38,7 @@ export class LaneAnnotation {
 		// of the left marker.
 		if (this.laneMarkers.length >= 3) {
 			let marker2Position = this.computeLeftMarkerEstimatedPosition()
-			let marker2 = new THREE.Mesh( controlPointGeometry, markerMaterial)
+			let marker2 = new THREE.Mesh( controlPointGeometry, this.markerMaterial)
 			marker2.position.x = marker2Position.x
 			marker2.position.y = marker2Position.y
 			marker2.position.z = marker2Position.z
