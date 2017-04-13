@@ -2,217 +2,58 @@
  * Created by alonso on 4/11/17.
  */
 
-import * as THREE from 'three'
+import {LaneAnnotation} from 'annotator-entry-ui/LaneAnnotation'
+import * as TypeLogger from 'typelogger'
 
-const controlPointGeometry = new THREE.BoxGeometry( 1, 1, 1 );
+TypeLogger.setLoggerOutput(console as any)
+const log = TypeLogger.getLogger(__filename)
 
-
-
-export class LaneAnnotation {
-	// Lane markers are stored in an array as [right, left, right, left, ...]
-	laneMarkers : Array<THREE.Mesh>
-	laneMesh : THREE.Mesh
-	markerMaterial :  THREE.MeshLambertMaterial
-	laneMaterial : THREE.MeshBasicMaterial
-	
-	
-	constructor() {
-		this.laneMarkers = []
-		let annotationColor = Math.random() * 0xffffff
-		this.markerMaterial = new THREE.MeshLambertMaterial({color : annotationColor})
-		this.laneMaterial = new THREE.MeshBasicMaterial({color : annotationColor, wireframe : true})
-		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.laneMaterial)
-	}
-	
-	addMarker(scene:THREE.Scene, x:number, y:number, z:number) {
-		
-		let marker = new THREE.Mesh( controlPointGeometry, this.markerMaterial)
-		marker.position.x = x
-		marker.position.y = y
-		marker.position.z = z
-		
-		this.laneMarkers.push(marker)
-		scene.add(marker)
-		
-		// From the third marker onwards, add markers in pairs by estimating the position
-		// of the left marker.
-		if (this.laneMarkers.length >= 3) {
-			let marker2Position = this.computeLeftMarkerEstimatedPosition()
-			let marker2 = new THREE.Mesh( controlPointGeometry, this.markerMaterial)
-			marker2.position.x = marker2Position.x
-			marker2.position.y = marker2Position.y
-			marker2.position.z = marker2Position.z
-			this.laneMarkers.push(marker2)
-			scene.add(marker2)
-		}
-		
-		this.generateMeshFromMarkers()
-	}
-	
-	deleteLast(scene : THREE.Scene)  {
-		if (this.laneMarkers.length == 0) {
-			return
-		}
-		
-		scene.remove(this.laneMarkers.pop())
-		
-		if (this.laneMarkers.length > 2) {
-			scene.remove(this.laneMarkers.pop())
-		}
-		
-		this.generateMeshFromMarkers()
-	}
-	
-	
-	generateMeshFromMarkers = () => {
-		let newGeometry = new THREE.Geometry()
-		
-		// We need at least 3 vertices to generate a mesh
-		if (this.laneMarkers.length > 2) {
-			// Add all vertices
-			this.laneMarkers.forEach((marker) => {
-				newGeometry.vertices.push(marker.position)
-			})
-			
-			// Add faces
-			for (let i = 0; i < this.laneMarkers.length - 2; i++) {
-				newGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))
-			}
-		}
-		
-		this.laneMesh.geometry = newGeometry
-		this.laneMesh.geometry.verticesNeedUpdate = true
-	}
-	
-	/**
-	 *  Use the last two points to create a guess of the
-	 * location of the left marker
-	 * @param newRightMarker
-	 * @returns {THREE.Vector3}
-	 */
-	private computeLeftMarkerEstimatedPosition() : THREE.Vector3 {
-		//
-		let lastIndex = this.laneMarkers.length
-		let newRightMarker = this.laneMarkers[lastIndex-1].position
-		let lastRightMarker = this.laneMarkers[lastIndex-3].position
-		let lastLeftMarker = this.laneMarkers[lastIndex-2].position
-		let vectorRightToLeft = new THREE.Vector3()
-		vectorRightToLeft.subVectors(lastLeftMarker, lastRightMarker)
-		let vectorLastRightNewRight = new THREE.Vector3()
-		vectorLastRightNewRight.subVectors(newRightMarker, lastRightMarker)
-		
-		let newLeftMarker = new THREE.Vector3()
-		newLeftMarker.add(lastRightMarker)
-		newLeftMarker.add(vectorLastRightNewRight)
-		newLeftMarker.add(vectorRightToLeft)
-		
-		return newLeftMarker
-	}
-	
-}
 
 export class AnnotationManager {
 	annotations : Array<LaneAnnotation>
 	activeAnnotation : number
 	
-	addAnnotation() {
+	constructor() {
+		this.annotations = []
+		this.activeAnnotation = -1
+	}
+	
+	addLaneAnnotation(scene:THREE.Scene) {
 		this.activeAnnotation = this.annotations.length
 		this.annotations.push(new LaneAnnotation())
+		scene.add(this.annotations[this.activeAnnotation].laneMesh)
 	}
 	
-	deleteAnnotation() {
-	
+	addLaneMarker(scene:THREE.Scene, x:number, y:number, z:number) {
+		if (this.activeAnnotation < 0) {
+			log.info("No active annotation. Can't add marker")
+			return
+		}
+		this.annotations[this.activeAnnotation].addMarker(scene, x, y, z)
 	}
 	
+	deleteLastLaneMarker(scene:THREE.Scene) {
+		if (this.activeAnnotation < 0) {
+			log.info("No active annotation. Can't delete marker")
+			return
+		}
+		this.annotations[this.activeAnnotation].deleteLast(scene)
+	}
 	
+	activeMarkers() : Array<THREE.Mesh> {
+		if (this.activeAnnotation < 0) {
+			log.info("No active markers")
+			return []
+		}
+		return this.annotations[this.activeAnnotation].laneMarkers
+	}
+	
+	updateActiveLaneMesh() {
+		if (this.activeAnnotation < 0) {
+			log.info("No active annotation. Can't update mesh")
+			return
+		}
+		this.annotations[this.activeAnnotation].generateMeshFromMarkers()
+	}
 	
 }
-
-// export class LaneAnnotation {
-//
-// 	leftMarkers : Array<THREE.Mesh>
-// 	rightMarkers : Array<THREE.Mesh>
-// 	laneGeometry : THREE.Geometry
-// 	laneMesh : THREE.Mesh
-//
-// 	constructor() {
-// 		this.leftMarkers = []
-// 		this.rightMarkers = []
-// 		this.laneGeometry = new THREE.Geometry()
-// 		this.laneMesh = new THREE.Mesh(this.laneGeometry, laneMaterial)
-// 	}
-//
-// 	addMarker(x:number, y:number, z:number) : Array<THREE.Mesh> {
-// 		let addedMarkers = []
-//
-// 		let marker = new THREE.Mesh( controlPointGeometry, markerMaterial)
-// 		marker.position.x = x
-// 		marker.position.y = y
-// 		marker.position.z = z
-//
-// 		addedMarkers.push(marker)
-//
-// 		if (this.isFirstPoint()) {
-// 			this.rightMarkers.push(marker)
-// 		} else if (this.isSecondPoint()) {
-// 			this.leftMarkers.push(marker)
-// 		} else  {
-// 			let marker2Position = this.computeLeftMarkerEstimatedPosition(marker.position)
-// 			let marker2 = new THREE.Mesh( controlPointGeometry, markerMaterial)
-// 			marker2.position.x = marker2Position.x
-// 			marker2.position.y = marker2Position.y
-// 			marker2.position.z = marker2Position.z
-// 			this.rightMarkers.push(marker)
-// 			this.leftMarkers.push(marker2)
-//
-// 			addedMarkers.push(marker2)
-//
-// 		}
-//
-// 		return addedMarkers
-// 	}
-//
-// 	generateMeshFromMarkers = () => {
-// 		// We need at least 3 vertices to generate a mesh
-// 		if (this.rightMarkers.length < 1) {
-// 			return
-// 		}
-//
-// 		// After the first two markers are added there is always an even set of markers
-// 		for (let i=0; i)
-// 		this.laneGeometry.vertices.push(marker.position)
-// 	}
-//
-// 	private isFirstPoint() : boolean {
-// 		return this.leftMarkers.length == 0 && this.rightMarkers.length == 0;
-// 	}
-//
-// 	private isSecondPoint() : boolean {
-// 		return this.leftMarkers.length == 0 && this.rightMarkers.length > 0
-// 	}
-//
-// 	/**
-// 	 *  Use the last two points to create a guess of the
-// 	 * location of the left marker
-// 	 * @param newRightMarker
-// 	 * @returns {THREE.Vector3}
-// 	 */
-// 	private computeLeftMarkerEstimatedPosition(newRightMarker : THREE.Vector3) : THREE.Vector3 {
-// 		//
-// 		let lastIndex = this.rightMarkers.length
-// 		let lastRightMarker = this.rightMarkers[lastIndex-1].position
-// 		let lastLeftMarker = this.leftMarkers[lastIndex-1].position
-// 		let vectorRightToLeft = new THREE.Vector3()
-// 		vectorRightToLeft.subVectors(lastLeftMarker, lastRightMarker)
-// 		let vectorLastRightNewRight = new THREE.Vector3()
-// 		vectorLastRightNewRight.subVectors(newRightMarker, lastRightMarker)
-//
-// 		let newLeftMarker = new THREE.Vector3()
-// 		newLeftMarker.add(lastRightMarker)
-// 		newLeftMarker.add(vectorLastRightNewRight)
-// 		newLeftMarker.add(vectorRightToLeft)
-//
-// 		return newLeftMarker
-// 	}
-//
-// }

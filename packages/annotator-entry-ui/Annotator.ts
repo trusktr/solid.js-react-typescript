@@ -33,7 +33,7 @@ export class Annotator {
 	transformControls
 	hideTransformControlTimer
 	annotationManager : AnnotationUtils.AnnotationManager
-	annotations :  Array<AnnotationUtils.LaneAnnotation>
+	activeLaneMarkers : Array<THREE.Mesh>
 	isAddMarkerKeyPressed : boolean
 	settings
 	gui
@@ -43,6 +43,7 @@ export class Annotator {
 		this.settings = {
 			background: "#f0f0f0"
 		}
+		this.activeLaneMarkers = []
 	}
 	
 	
@@ -89,9 +90,9 @@ export class Annotator {
 		
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
-		this.annotations = []
-		this.annotations.push(new AnnotationUtils.LaneAnnotation())
-		this.scene.add(this.annotations[0].laneMesh)
+		this.annotationManager = new AnnotationUtils.AnnotationManager()
+		// this.annotations.push(new AnnotationUtils.LaneAnnotation())
+		// this.scene.add(this.annotations[0].laneMesh)
 		
 		// THe raycaster is used to compute where the waypoints will be dropped
 		this.raycaster = new THREE.Raycaster()
@@ -116,13 +117,18 @@ export class Annotator {
 		window.addEventListener('resize', this.onWindowResize, false );
 		window.addEventListener('keydown', (event) => {
 			if (event.code == 'KeyA') {
-				log.info("Add marker key pressed")
 				this.isAddMarkerKeyPressed = true
 			}
 			
 			if (event.code == 'KeyD') {
 				log.info("Deleting last marker")
-				this.annotations[0].deleteLast(this.scene)
+				this.annotationManager.deleteLastLaneMarker(this.scene)
+				this.hideTransform()
+			}
+			
+			if (event.code == 'KeyN') {
+				log.info("Added new annotation")
+				this.addLaneAnnotation()
 				this.hideTransform()
 			}
 		})
@@ -173,9 +179,14 @@ export class Annotator {
 		}
 	}
 	
-	// private addLaneAnnotation() {
-	//
-	// }
+	private addLaneAnnotation() {
+		// This creates a new lane and add it to the scene for display
+		this.annotationManager.addLaneAnnotation(this.scene)
+		// The new annotation is the active one. Here we set that only
+		// its markers can be modified (the activeLanesMarkers variable
+		// is tracked by DragControl).
+		this.activeLaneMarkers = this.annotationManager.activeMarkers()
+	}
 	
 	private addLaneAnnotationMarker = (event) => {
 		if (this.isAddMarkerKeyPressed == false) {
@@ -192,7 +203,7 @@ export class Annotator {
 			let x = intersection[0].point.x
 			let y = intersection[0].point.y
 			let z = intersection[0].point.z
-			this.annotations[0].addMarker(this.scene, x,y,z)
+			this.annotationManager.addLaneMarker(this.scene, x,y,z)
 		}
 	}
 	
@@ -283,7 +294,7 @@ export class Annotator {
 		
 		// If the object attached to the transform object has changed, do something.
 		this.transformControls.addEventListener( 'objectChange', (event) => {
-			this.annotations[0].generateMeshFromMarkers()
+			this.annotationManager.updateActiveLaneMesh()
 		})
 	}
 	
@@ -293,7 +304,7 @@ export class Annotator {
 	 */
 	private initDragControls() {
 		// Create a the drag control object and link it  to the objects we want to be able to edit
-		this.dragControls = new DragControls(this.annotations[0].laneMarkers, this.camera, this.renderer.domElement);
+		this.dragControls = new DragControls(this.activeLaneMarkers, this.camera, this.renderer.domElement);
 		this.dragControls.enabled = false;
 		
 		// Add listeners.
