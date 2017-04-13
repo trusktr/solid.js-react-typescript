@@ -112,36 +112,19 @@ export class Annotator {
 		this.initOrbitControls()
 		this.initTransformControls()
 		
-		window.addEventListener('resize', this.onWindowResize, false );
-		window.addEventListener('keydown', (event) => {
-			if (event.code == 'KeyA') {
-				this.isAddMarkerKeyPressed = true
-			}
-			
-			if (event.code == 'KeyD') {
-				log.info("Deleting last marker")
-				this.annotationManager.deleteLastLaneMarker(this.scene)
-				this.hideTransform()
-			}
-			
-			if (event.code == 'KeyN') {
-				log.info("Added new annotation")
-				this.addLaneAnnotation()
-				this.hideTransform()
-			}
-		})
-		
-		window.addEventListener('keyup', (event) => {
-			this.isAddMarkerKeyPressed = false
-		})
-		
-		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
-		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
-		
+		// Add panel to change the settings
 		this.gui = new datModule.GUI()
 		this.gui.addColor(this.settings, 'background').onChange( (value) => {
 			this.renderer.setClearColor(new THREE.Color(value))
 		})
+		
+		// Add listeners
+		window.addEventListener('resize', this.onWindowResize);
+		window.addEventListener('keydown',this.onKeyDown)
+		window.addEventListener('keyup', this.onKeyUp)
+		
+		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
+		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 	}
 	
 	/**
@@ -253,6 +236,28 @@ export class Annotator {
 		this.camera.aspect = width / height
 		this.camera.updateProjectionMatrix()
 		this.renderer.setSize( width , height )
+	}
+	
+	private onKeyDown = (event) => {
+		if (event.code == 'KeyA') {
+			this.isAddMarkerKeyPressed = true
+		}
+		
+		if (event.code == 'KeyD') {
+			log.info("Deleting last marker")
+			this.annotationManager.deleteLastLaneMarker(this.scene)
+			this.hideTransform()
+		}
+		
+		if (event.code == 'KeyN') {
+			log.info("Added new annotation")
+			this.addLaneAnnotation()
+			this.hideTransform()
+		}
+	}
+	
+	private onKeyUp = (event) => {
+		this.isAddMarkerKeyPressed = false
 	}
 	
 	private delayHideTransform = () => {
