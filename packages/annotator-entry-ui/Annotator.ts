@@ -6,7 +6,6 @@ import * as $ from 'jquery'
 import * as THREE from 'three'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import {DragControls} from 'annotator-entry-ui/controls/DragControls'
 import * as TileUtils from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import * as TypeLogger from 'typelogger'
@@ -29,12 +28,11 @@ export class Annotator {
 	plane : THREE.Mesh
 	stats
 	orbitControls
-	dragControls
 	transformControls
 	hideTransformControlTimer
 	annotationManager : AnnotationUtils.AnnotationManager
-	activeLaneMarkers : Array<THREE.Mesh>
 	isAddMarkerKeyPressed : boolean
+	hovered
 	settings
 	gui
 	
@@ -43,7 +41,7 @@ export class Annotator {
 		this.settings = {
 			background: "#f0f0f0"
 		}
-		this.activeLaneMarkers = []
+		this.hovered = null
 	}
 	
 	
@@ -112,7 +110,6 @@ export class Annotator {
 		// Initialize all control objects.
 		this.initOrbitControls()
 		this.initTransformControls()
-		this.initDragControls()
 		
 		window.addEventListener('resize', this.onWindowResize, false );
 		window.addEventListener('keydown', (event) => {
@@ -138,6 +135,7 @@ export class Annotator {
 		})
 		
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
+		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		
 		this.gui = new datModule.GUI()
 		this.gui.addColor(this.settings, 'background').onChange( (value) => {
@@ -182,10 +180,7 @@ export class Annotator {
 	private addLaneAnnotation() {
 		// This creates a new lane and add it to the scene for display
 		this.annotationManager.addLaneAnnotation(this.scene)
-		// The new annotation is the active one. Here we set that only
-		// its markers can be modified (the activeLanesMarkers variable
-		// is tracked by DragControl).
-		this.activeLaneMarkers = this.annotationManager.activeMarkers()
+		
 	}
 	
 	private addLaneAnnotationMarker = (event) => {
@@ -204,6 +199,39 @@ export class Annotator {
 			let y = intersection[0].point.y
 			let z = intersection[0].point.z
 			this.annotationManager.addLaneMarker(this.scene, x,y,z)
+		}
+	}
+	
+	private checkForActiveMarker = ( event ) => {
+		event.preventDefault();
+		let mouse = new THREE.Vector2()
+		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
+		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		
+		this.raycaster.setFromCamera( mouse, this.camera )
+		
+		let intersects = this.raycaster.intersectObjects( this.annotationManager.activeMarkers )
+		
+		if ( intersects.length > 0 ) {
+			let object = intersects[ 0 ].object
+			let plane = new THREE.Plane()
+			plane.setFromNormalAndCoplanarPoint( this.camera.getWorldDirection( plane.normal ), object.position )
+			
+			if ( this.hovered !== object ) {
+				this.renderer.domElement.style.cursor = 'pointer'
+				this.hovered = object;
+				// HOVER ON
+				this.transformControls.attach( this.hovered )
+				this.cancelHideTransform()
+			}
+			
+		} else {
+			if ( this.hovered !== null ) {
+				// HOVER OFF
+				this.renderer.domElement.style.cursor = 'auto'
+				this.hovered = null
+				this.delayHideTransform()
+			}
 		}
 	}
 	
@@ -295,30 +323,6 @@ export class Annotator {
 		// If the object attached to the transform object has changed, do something.
 		this.transformControls.addEventListener( 'objectChange', (event) => {
 			this.annotationManager.updateActiveLaneMesh()
-		})
-	}
-	
-	/**
-	 * Create drag control object. This object is in charge of attaching/detaching a 3D
-	 * object to the transform control object.
-	 */
-	private initDragControls() {
-		// Create a the drag control object and link it  to the objects we want to be able to edit
-		this.dragControls = new DragControls(this.activeLaneMarkers, this.camera, this.renderer.domElement);
-		this.dragControls.enabled = false;
-		
-		// Add listeners.
-		
-		// When we hover on an linked object attach the transform control to it to be able
-		// to move it.
-		this.dragControls.addEventListener( 'hoveron', (event) => {
-			this.transformControls.attach( event.object )
-			this.cancelHideTransform()
-		})
-		
-		// When we hover off a linked object hide the transform control.
-		this.dragControls.addEventListener( 'hoveroff', (event) => {
-			this.delayHideTransform()
 		})
 	}
 }

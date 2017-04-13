@@ -11,16 +11,19 @@ const log = TypeLogger.getLogger(__filename)
 
 export class AnnotationManager {
 	annotations : Array<LaneAnnotation>
+	activeMarkers : Array<THREE.Mesh>
 	activeAnnotation : number
 	
 	constructor() {
 		this.annotations = []
+		this.activeMarkers = []
 		this.activeAnnotation = -1
 	}
 	
 	addLaneAnnotation(scene:THREE.Scene) {
 		this.activeAnnotation = this.annotations.length
 		this.annotations.push(new LaneAnnotation())
+		this.activeMarkers = this.annotations[this.activeAnnotation].laneMarkers
 		scene.add(this.annotations[this.activeAnnotation].laneMesh)
 	}
 	
@@ -38,14 +41,6 @@ export class AnnotationManager {
 			return
 		}
 		this.annotations[this.activeAnnotation].deleteLast(scene)
-	}
-	
-	activeMarkers() : Array<THREE.Mesh> {
-		if (this.activeAnnotation < 0) {
-			log.info("No active markers")
-			return []
-		}
-		return this.annotations[this.activeAnnotation].laneMarkers
 	}
 	
 	updateActiveLaneMesh() {
