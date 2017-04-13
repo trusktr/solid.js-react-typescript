@@ -14,7 +14,8 @@ import {getValue} from "typeguard"
 
 TypeLogger.setLoggerOutput(console as any)
 
-let statsModule = require("stats.js")
+const statsModule = require("stats.js")
+const datModule = require("dat.gui/build/dat.gui")
 
 let root = $("#root")
 const log = TypeLogger.getLogger(__filename)
@@ -31,12 +32,19 @@ export class Annotator {
 	dragControls
 	transformControls
 	hideTransformControlTimer
+	annotationManager : AnnotationUtils.AnnotationManager
 	annotations :  Array<AnnotationUtils.LaneAnnotation>
 	isAddMarkerKeyPressed : boolean
+	settings
+	gui
 	
 	constructor() {
 		this.isAddMarkerKeyPressed = false
+		this.settings = {
+			background: "#f0f0f0"
+		}
 	}
+	
 	
 	initScene() {
 		log.info(`Building scene`)
@@ -90,7 +98,7 @@ export class Annotator {
 	
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer( {antialias: true} )
-		this.renderer.setClearColor( 0xf0f0f0 )
+		this.renderer.setClearColor( new THREE.Color(this.settings.background) )
 		this.renderer.setPixelRatio( window.devicePixelRatio )
 		this.renderer.setSize( width, height )
 		this.renderer.shadowMap.enabled = true
@@ -124,6 +132,11 @@ export class Annotator {
 		})
 		
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
+		
+		this.gui = new datModule.GUI()
+		this.gui.addColor(this.settings, 'background').onChange( (value) => {
+			this.renderer.setClearColor(new THREE.Color(value))
+		})
 	}
 	
 	/**
@@ -159,6 +172,10 @@ export class Annotator {
 			log.error('It failed', err)
 		}
 	}
+	
+	// private addLaneAnnotation() {
+	//
+	// }
 	
 	private addLaneAnnotationMarker = (event) => {
 		if (this.isAddMarkerKeyPressed == false) {
@@ -238,7 +255,6 @@ export class Annotator {
 			this.delayHideTransform()
 		})
 	}
-	
 	
 	/**
 	 * Create Transform controls object. This allows for the translation of an object in the scene.

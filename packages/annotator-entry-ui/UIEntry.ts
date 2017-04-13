@@ -18,7 +18,7 @@ export function onLoad() {
 	log.info('loading ')
 	let annotator = new Annotator()
 	annotator.initScene()
-	annotator.loadPointCloudData('/Users/alonso/Mapper/Data/Mapper/Alexandria/PointCloudTiles/')
+	//annotator.loadPointCloudData('/Users/alonso/Mapper/Data/Mapper/Alexandria/PointCloudTiles/')
 	annotator.animate()
 }
 

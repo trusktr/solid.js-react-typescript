@@ -6,7 +6,6 @@ import * as THREE from 'three'
 
 const controlPointGeometry = new THREE.BoxGeometry( 1, 1, 1 );
 const markerMaterial = new THREE.MeshLambertMaterial({color : 'red'})
-//const laneMaterial = new THREE.MeshLambertMaterial({color : 'red'})
 const laneMaterial = new THREE.MeshBasicMaterial({color : 'red', wireframe : true})
 
 
@@ -104,6 +103,23 @@ export class LaneAnnotation {
 		
 		return newLeftMarker
 	}
+	
+}
+
+export class AnnotationManager {
+	annotations : Array<LaneAnnotation>
+	activeAnnotation : number
+	
+	addAnnotation() {
+		this.activeAnnotation = this.annotations.length
+		this.annotations.push(new LaneAnnotation())
+	}
+	
+	deleteAnnotation() {
+	
+	}
+	
+	
 	
 }
 
