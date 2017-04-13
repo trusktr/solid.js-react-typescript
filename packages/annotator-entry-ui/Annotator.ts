@@ -24,7 +24,8 @@ export class Annotator {
 	scene : THREE.Scene
 	camera : THREE.PerspectiveCamera
 	renderer : THREE.WebGLRenderer
-	raycaster : THREE.Raycaster
+	raycaster_plane : THREE.Raycaster
+	raycaster_marker : THREE.Raycaster
 	plane : THREE.Mesh
 	stats
 	orbitControls
@@ -42,6 +43,11 @@ export class Annotator {
 			background: "#f0f0f0"
 		}
 		this.hovered = null
+		// THe raycaster is used to compute where the waypoints will be dropped
+		this.raycaster_plane = new THREE.Raycaster()
+		
+		// THe raycaster is used to compute which marker is active for editing
+		this.raycaster_marker = new THREE.Raycaster()
 	}
 	
 	
@@ -89,11 +95,6 @@ export class Annotator {
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
 		this.annotationManager = new AnnotationUtils.AnnotationManager()
-		// this.annotations.push(new AnnotationUtils.LaneAnnotation())
-		// this.scene.add(this.annotations[0].laneMesh)
-		
-		// THe raycaster is used to compute where the waypoints will be dropped
-		this.raycaster = new THREE.Raycaster()
 	
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer( {antialias: true} )
@@ -191,8 +192,8 @@ export class Annotator {
 		let mouse = new THREE.Vector2()
 		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
 		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
-		this.raycaster.setFromCamera(mouse, this.camera)
-		let intersection = this.raycaster.intersectObject(this.plane)
+		this.raycaster_plane.setFromCamera(mouse, this.camera)
+		let intersection = this.raycaster_plane.intersectObject(this.plane)
 		if (intersection.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
 			let x = intersection[0].point.x
@@ -203,14 +204,13 @@ export class Annotator {
 	}
 	
 	private checkForActiveMarker = ( event ) => {
-		event.preventDefault();
 		let mouse = new THREE.Vector2()
 		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
 		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
 		
-		this.raycaster.setFromCamera( mouse, this.camera )
+		this.raycaster_marker.setFromCamera( mouse, this.camera )
 		
-		let intersects = this.raycaster.intersectObjects( this.annotationManager.activeMarkers )
+		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.activeMarkers )
 		
 		if ( intersects.length > 0 ) {
 			let object = intersects[ 0 ].object
