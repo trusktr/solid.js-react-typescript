@@ -101,8 +101,8 @@ export function generatePointCloudFromRawData(points : Array<number>) : THREE.Po
 			positions[i] = -y
 			positions[i+1] = z
 			positions[i+2] = -x
-			colors[i] = 0
-			colors[i+1] = 0
+			colors[i] = 1
+			colors[i+1] = 1
 			colors[i+2] = 1
 		}
 

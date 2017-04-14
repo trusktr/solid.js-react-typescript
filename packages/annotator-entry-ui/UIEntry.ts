@@ -21,7 +21,10 @@ export function onLoad() {
 	log.info('loading ')
 	let annotator = new Annotator()
 	annotator.initScene()
-	//annotator.loadPointCloudData('/Users/alonso/Mapper/Data/Mapper/Alexandria/PointCloudTiles/')
+	
+	// TODO: THis needs to be change to take an input from a file dialog window
+	annotator.loadPointCloudData('/Users/alonso/Mapper/Data/Mapper/Alexandria/PointCloudTiles/')
+	
 	annotator.animate()
 }
 
