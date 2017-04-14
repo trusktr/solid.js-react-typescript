@@ -27,6 +27,7 @@ export class Annotator {
 	renderer : THREE.WebGLRenderer
 	raycaster_plane : THREE.Raycaster
 	raycaster_marker : THREE.Raycaster
+	raycaster_annotation : THREE.Raycaster
 	plane : THREE.Mesh
 	stats
 	orbitControls
@@ -41,14 +42,15 @@ export class Annotator {
 	constructor() {
 		this.isAddMarkerKeyPressed = false
 		this.settings = {
-			background: "#f0f0f0"
+			background: "#082839"
 		}
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
 		this.raycaster_plane = new THREE.Raycaster()
-		
 		// THe raycaster is used to compute which marker is active for editing
 		this.raycaster_marker = new THREE.Raycaster()
+		// THe raycaster is used to compute which selection should be active for editing
+		this.raycaster_annotation = new THREE.Raycaster()
 	}
 	
 	
@@ -125,6 +127,7 @@ export class Annotator {
 		window.addEventListener('keyup', this.onKeyUp)
 		
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
+		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 	}
 	
@@ -168,14 +171,19 @@ export class Annotator {
 		
 	}
 	
+	private getMouseCoordinates = (event) : THREE.Vector2 => {
+		let mouse = new THREE.Vector2()
+		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
+		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		return mouse
+	}
+	
 	private addLaneAnnotationMarker = (event) => {
 		if (this.isAddMarkerKeyPressed == false) {
 			return
 		}
 		
-		let mouse = new THREE.Vector2()
-		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
-		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		let mouse = this.getMouseCoordinates(event)
 		this.raycaster_plane.setFromCamera(mouse, this.camera)
 		let intersection = this.raycaster_plane.intersectObject(this.plane)
 		if (intersection.length > 0) {
@@ -187,10 +195,24 @@ export class Annotator {
 		}
 	}
 	
+	private checkForAnnotationSelection = (event) => {
+		let mouse = this.getMouseCoordinates(event)
+		this.raycaster_annotation.setFromCamera( mouse, this.camera )
+		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.annotationMeshes)
+		
+		if ( intersects.length > 0 ) {
+			let object = intersects[ 0 ].object
+			let index = this.annotationManager.checkForInactiveAnnotation(object)
+			
+			// We clicked an inactive annotation, make it active
+			if (index >= 0) {
+				this.annotationManager.changeActiveAnnotation(index)
+			}
+		}
+	}
+	
 	private checkForActiveMarker = ( event ) => {
-		let mouse = new THREE.Vector2()
-		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
-		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		let mouse = this.getMouseCoordinates(event)
 		
 		this.raycaster_marker.setFromCamera( mouse, this.camera )
 		

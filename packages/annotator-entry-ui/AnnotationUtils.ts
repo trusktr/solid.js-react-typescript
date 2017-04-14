@@ -12,44 +12,79 @@ const log = TypeLogger.getLogger(__filename)
 
 export class AnnotationManager {
 	annotations : Array<LaneAnnotation>
+	annotationMeshes : Array<THREE.Mesh>
 	activeMarkers : Array<THREE.Mesh>
-	activeAnnotation : number
+	activeAnnotationIndex : number
 	
 	constructor() {
 		this.annotations = []
+		this.annotationMeshes = []
 		this.activeMarkers = []
-		this.activeAnnotation = -1
+		this.activeAnnotationIndex = -1
+	}
+	
+	getAnnotationIndex(object) : number {
+		let index = this.annotations.findIndex( (element) => {
+			return element.laneMesh == object
+		})
+		
+		return index
+	}
+	
+	checkForInactiveAnnotation(object) : number {
+		let index = this.getAnnotationIndex(object)
+		if (index == this.activeAnnotationIndex) {
+			index = -1
+		}
+		return index
+	}
+	
+	changeActiveAnnotation(annotationIndex) {
+		
+		if (annotationIndex < 0 &&
+			annotationIndex >= this.annotations.length &&
+			annotationIndex == this.activeAnnotationIndex) {
+			return
+		}
+		
+		if (this.activeAnnotationIndex >= 0) {
+			this.annotations[this.activeAnnotationIndex].makeInactive()
+		}
+
+		this.activeAnnotationIndex = annotationIndex
+		this.annotations[this.activeAnnotationIndex].makeActive()
+		this.activeMarkers = this.annotations[this.activeAnnotationIndex].laneMarkers
 	}
 	
 	addLaneAnnotation(scene:THREE.Scene) {
-		this.activeAnnotation = this.annotations.length
 		this.annotations.push(new LaneAnnotation())
-		this.activeMarkers = this.annotations[this.activeAnnotation].laneMarkers
-		scene.add(this.annotations[this.activeAnnotation].laneMesh)
+		this.changeActiveAnnotation(this.annotations.length-1)
+		this.annotationMeshes.push(this.annotations[this.activeAnnotationIndex].laneMesh)
+		scene.add(this.annotations[this.activeAnnotationIndex].laneMesh)
 	}
 	
 	addLaneMarker(scene:THREE.Scene, x:number, y:number, z:number) {
-		if (this.activeAnnotation < 0) {
+		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't add marker")
 			return
 		}
-		this.annotations[this.activeAnnotation].addMarker(scene, x, y, z)
+		this.annotations[this.activeAnnotationIndex].addMarker(scene, x, y, z)
 	}
 	
 	deleteLastLaneMarker(scene:THREE.Scene) {
-		if (this.activeAnnotation < 0) {
+		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't delete marker")
 			return
 		}
-		this.annotations[this.activeAnnotation].deleteLast(scene)
+		this.annotations[this.activeAnnotationIndex].deleteLast(scene)
 	}
 	
 	updateActiveLaneMesh() {
-		if (this.activeAnnotation < 0) {
+		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't update mesh")
 			return
 		}
-		this.annotations[this.activeAnnotation].generateMeshFromMarkers()
+		this.annotations[this.activeAnnotationIndex].generateMeshFromMarkers()
 	}
 	
 }
