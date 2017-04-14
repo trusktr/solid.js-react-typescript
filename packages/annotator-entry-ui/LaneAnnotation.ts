@@ -85,10 +85,15 @@ export class LaneAnnotation {
 			
 			// Add faces
 			for (let i = 0; i < this.laneMarkers.length - 2; i++) {
-				newGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))
+				if (i % 2 == 0) {
+					newGeometry.faces.push(new THREE.Face3(i+2, i + 1, i))
+				} else {
+					newGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))
+				}
+				
 			}
 		}
-		
+		newGeometry.computeFaceNormals()
 		this.laneMesh.geometry = newGeometry
 		this.laneMesh.geometry.verticesNeedUpdate = true
 	}
