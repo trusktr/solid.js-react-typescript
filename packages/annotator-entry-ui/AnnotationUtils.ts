@@ -1,5 +1,6 @@
 /**
- * Created by alonso on 4/11/17.
+ *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
 import {LaneAnnotation} from 'annotator-entry-ui/LaneAnnotation'

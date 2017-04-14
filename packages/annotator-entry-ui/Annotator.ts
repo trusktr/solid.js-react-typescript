@@ -1,5 +1,6 @@
 /**
- * Created by alonso on 4/12/17.
+ *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
 import * as $ from 'jquery'
