@@ -20,7 +20,7 @@ export class LaneAnnotation {
 		this.laneMarkers = []
 		let annotationColor = Math.random() * 0xffffff
 		this.markerMaterial = new THREE.MeshLambertMaterial({color : annotationColor})
-		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : annotationColor, wireframe : true})
+		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
 		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: annotationColor})
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
 	}
@@ -28,8 +28,14 @@ export class LaneAnnotation {
 	addMarker(scene:THREE.Scene, x:number, y:number, z:number) {
 		
 		let marker = new THREE.Mesh( controlPointGeometry, this.markerMaterial)
+		
 		marker.position.x = x
-		marker.position.y = y
+		if (this.laneMarkers.length > 0) {
+			marker.position.y = this.laneMarkers[this.laneMarkers.length-1].position.y
+		} else {
+			marker.position.y = y
+		}
+		
 		marker.position.z = z
 		
 		this.laneMarkers.push(marker)
