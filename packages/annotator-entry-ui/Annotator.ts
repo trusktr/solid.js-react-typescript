@@ -307,6 +307,12 @@ export class Annotator {
 			this.hideTransform()
 		}
 		
+		if (event.code == 'KeyZ') {
+			log.info("Delete selected annotation")
+			this.annotationManager.deleteActiveAnnotation(this.scene)
+			this.hideTransform()
+		}
+		
 		if (event.code == "KeyF") {
 			log.info("Adding connected annotation to the front")
 			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
