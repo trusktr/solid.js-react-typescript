@@ -9,6 +9,7 @@ import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import * as TileUtils from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
+import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 
@@ -168,7 +169,7 @@ export class Annotator {
 	private addLaneAnnotation() {
 		// This creates a new lane and add it to the scene for display
 		this.annotationManager.addLaneAnnotation(this.scene)
-		
+		this.annotationManager.makeLastAnnotationActive()
 	}
 	
 	private getMouseCoordinates = (event) : THREE.Vector2 => {
@@ -276,6 +277,31 @@ export class Annotator {
 			log.info("Added new annotation")
 			this.addLaneAnnotation()
 			this.hideTransform()
+		}
+		
+		if (event.code == "KeyF") {
+			log.info("Adding connected annotation to the front")
+			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
+		}
+		
+		if (event.code == "KeyL") {
+			log.info("Adding connected annotation to the left - same direction")
+			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)
+		}
+		
+		if (event.code == "KeyK") {
+			log.info("Adding connected annotation to the left - reverse direction")
+			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)
+		}
+		
+		if (event.code == "KeyR") {
+			log.info("Adding connected annotation to the right - same direction")
+			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)
+		}
+		
+		if (event.code == "KeyE") {
+			log.info("Adding connected annotation to the right - same direction")
+			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)
 		}
 	}
 	
