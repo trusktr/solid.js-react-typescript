@@ -124,39 +124,43 @@ export class AnnotationManager {
 	 * the last four points of the current active annotation.
 	 */
 	private addFrontConnection(scene:THREE.Scene,) {
-		// this.addLaneAnnotation(scene)
-		// let newAnnotationIndex = this.annotations.length-1
-		//
-		// if (this.activeMarkers.length < 4) {
-		// 	log.warn("Current active lane doesn't have an area. Can't add neighbor")
-		// 	return
-		// }
-		//
-		// let lastMarkerIndex = this.activeMarkers.length-1
-		// let markerPostion1 = this.activeMarkers[lastMarkerIndex].position
-		// let markerPostion2 = this.activeMarkers[lastMarkerIndex-1].position
-		// let markerPostion3 = this.activeMarkers[lastMarkerIndex].position
-		// let markerPostion4 = this.activeMarkers[lastMarkerIndex-1].position
-		// markerPostion3.sub(this.activeMarkers[lastMarkerIndex-2].position)
-		// markerPostion4.sub(this.activeMarkers[lastMarkerIndex-3].position)
-		//
-		// this.annotations[newAnnotationIndex].addRawMarker(scene, markerPostion2)
-		// this.annotations[newAnnotationIndex].addRawMarker(scene, markerPostion1)
-		// this.annotations[newAnnotationIndex].addRawMarker(scene, markerPostion2.add(markerPostion4))
-		// this.annotations[newAnnotationIndex].addRawMarker(scene, markerPostion1.add(markerPostion3))
-		//
-		// this.annotations[newAnnotationIndex].neighbors.back.push(this.annotations[this.activeAnnotationIndex])
-		// this.annotations[this.activeAnnotationIndex].neighbors.front.push(this.annotations[newAnnotationIndex])
-		//
-		// this.annotations[newAnnotationIndex].generateMeshFromMarkers()
-		// this.annotations[newAnnotationIndex].makeInactive()
+		this.addLaneAnnotation(scene)
+		let newAnnotationIndex = this.annotations.length-1
+
+		if (this.activeMarkers.length < 4) {
+			log.warn("Current active lane doesn't have an area. Can't add neighbor")
+			return
+		}
+
+		let lastMarkerIndex = this.activeMarkers.length-1
+		let direction1 = new THREE.Vector3()
+		let direction2 = new THREE.Vector3()
+		direction1.subVectors(this.activeMarkers[lastMarkerIndex-1].position,
+							  this.activeMarkers[lastMarkerIndex-3].position)
+		direction2.subVectors(this.activeMarkers[lastMarkerIndex].position,
+			                  this.activeMarkers[lastMarkerIndex-2].position)
+		let thirdMarkerPosition = new THREE.Vector3()
+		let fourthMarkerPosition = new THREE.Vector3()
+		thirdMarkerPosition.addVectors(this.activeMarkers[lastMarkerIndex-1].position, direction1)
+		fourthMarkerPosition.addVectors(this.activeMarkers[lastMarkerIndex].position, direction2)
+
+		this.annotations[newAnnotationIndex].addRawMarker(scene, this.activeMarkers[lastMarkerIndex-1].position)
+		this.annotations[newAnnotationIndex].addRawMarker(scene, this.activeMarkers[lastMarkerIndex].position)
+		this.annotations[newAnnotationIndex].addRawMarker(scene, thirdMarkerPosition)
+		this.annotations[newAnnotationIndex].addRawMarker(scene, fourthMarkerPosition)
+
+		this.annotations[newAnnotationIndex].neighbors.back.push(this.annotations[this.activeAnnotationIndex])
+		this.annotations[this.activeAnnotationIndex].neighbors.front.push(this.annotations[newAnnotationIndex])
+
+		this.annotations[newAnnotationIndex].generateMeshFromMarkers()
+		this.annotations[newAnnotationIndex].makeInactive()
 	}
 	
 	/**
 	 * Adds a new lane annotation to the left of the current active annotation. It initializes its
 	 * lane markers as a mirror of the active annotation. The order of the markers depends on the
 	 * given direction of the neighbor.
-	 * @param neighborDirection
+	 * @param neighborDirection [SAME, REVERSE]
 	 */
 	private addLeftConnection(scene:THREE.Scene, neighborDirection : NeighborDirection) {
 		
@@ -172,7 +176,7 @@ export class AnnotationManager {
 			
 			case NeighborDirection.SAME:
 				for (let i=0; i < this.activeMarkers.length; i+=2) {
-					let rightMarkerPosition = this.activeMarkers[i+1].position
+					let rightMarkerPosition = this.activeMarkers[i+1].position.clone()
 					let direction = new THREE.Vector3()
 					direction.subVectors(this.activeMarkers[i].position, rightMarkerPosition)
 					let leftMarkerPosition = new THREE.Vector3()
@@ -190,7 +194,7 @@ export class AnnotationManager {
 			
 			case NeighborDirection.REVERSE:
 				for (let i=this.activeMarkers.length-1; i >= 0; i-=2) {
-					let leftMarkerPosition = this.activeMarkers[i].position
+					let leftMarkerPosition = this.activeMarkers[i].position.clone()
 					let direction = new THREE.Vector3()
 					direction.subVectors(this.activeMarkers[i-1].position, leftMarkerPosition)
 					let rightMarkerPosition = new THREE.Vector3()
@@ -218,7 +222,7 @@ export class AnnotationManager {
 	 * Adds a new lane annotation to the right of the current active annotation. It initializes its
 	 * lane markers as a mirror of the active annotation. The order of the markers depends on the
 	 * given direction of the neighbor.
-	 * @param neighborDirection
+	 * @param neighborDirection [SAME,REVERSE]
 	 */
 	private addRightConnection(scene:THREE.Scene, neighborDirection : NeighborDirection) {
 		if (this.annotations[this.activeAnnotationIndex].neighbors.right != null) {
@@ -233,7 +237,7 @@ export class AnnotationManager {
 			
 			case NeighborDirection.SAME:
 				for (let i=0; i < this.activeMarkers.length; i+=2) {
-					let leftMarkerPosition = this.activeMarkers[i].position
+					let leftMarkerPosition = this.activeMarkers[i].position.clone()
 					let direction = new THREE.Vector3()
 					direction.subVectors(this.activeMarkers[i+1].position, leftMarkerPosition)
 					let rightMarkerPosition = new THREE.Vector3()
@@ -251,7 +255,7 @@ export class AnnotationManager {
 			
 			case NeighborDirection.REVERSE:
 				for (let i=this.activeMarkers.length-1; i >= 0; i-=2) {
-					let rightMarkerPosition = this.activeMarkers[i-1].position
+					let rightMarkerPosition = this.activeMarkers[i-1].position.clone()
 					let direction = new THREE.Vector3()
 					direction.subVectors(this.activeMarkers[i].position, rightMarkerPosition)
 					let leftMarkerPosition = new THREE.Vector3()
