@@ -10,7 +10,11 @@ import * as TypeLogger from 'typelogger'
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-
+/**
+ * The AnnotationManager is in charge of maintaining a set of annotations and all operations
+ * to modify, add or delete them. It also keeps an index to the "active" annotation as well
+ * as it's markers. The "active" annotation is the only one that can be modified.
+ */
 export class AnnotationManager {
 	annotations : Array<LaneAnnotation>
 	annotationMeshes : Array<THREE.Mesh>
@@ -24,7 +28,12 @@ export class AnnotationManager {
 		this.activeAnnotationIndex = -1
 	}
 	
-	getAnnotationIndex(object) : number {
+	/**
+	 * Get the index of the annotation associated with the given mesh.
+	 * @param object
+	 * @returns {number}
+	 */
+	getAnnotationIndex(object : THREE.Mesh) : number {
 		let index = this.annotations.findIndex( (element) => {
 			return element.laneMesh == object
 		})
@@ -32,7 +41,13 @@ export class AnnotationManager {
 		return index
 	}
 	
-	checkForInactiveAnnotation(object) : number {
+	/**
+	 * Check if the passed mesh corresponds to an inactive lane
+	 * annotation. If so, return it's index in the manager.
+	 * @param object
+	 * @returns {number}
+	 */
+	checkForInactiveAnnotation(object : THREE.Mesh) : number {
 		let index = this.getAnnotationIndex(object)
 		if (index == this.activeAnnotationIndex) {
 			index = -1
@@ -40,6 +55,11 @@ export class AnnotationManager {
 		return index
 	}
 	
+	/**
+	 * Activate (i.e. make editable), the annotation indexed by the
+	 * given index.
+	 * @param annotationIndex
+	 */
 	changeActiveAnnotation(annotationIndex) {
 		
 		if (annotationIndex < 0 &&
@@ -57,10 +77,17 @@ export class AnnotationManager {
 		this.activeMarkers = this.annotations[this.activeAnnotationIndex].laneMarkers
 	}
 	
+	/**
+	 * Make the last annotation in the manager the "active" one.
+	 */
 	makeLastAnnotationActive() {
 		this.changeActiveAnnotation(this.annotations.length-1)
 	}
 	
+	/**
+	 * Add a new lane annotation and add it's mesh to the scene for display.
+	 * @param scene
+	 */
 	addLaneAnnotation(scene:THREE.Scene) {
 		this.annotations.push(new LaneAnnotation())
 		let newAnnotationIndex = this.annotations.length-1
@@ -68,6 +95,17 @@ export class AnnotationManager {
 		scene.add(this.annotations[newAnnotationIndex].laneMesh)
 	}
 	
+	/**
+	 * Add lane marker to the active annotation at the given position and add it
+	 * to the scene. After the first two markers of a new annotation this function
+	 * will add two markers subsequently. The second of those markers is computed
+	 * as a linear combination of the first marker (given position) and the
+	 * previous two markers.
+	 * @param scene
+	 * @param x
+	 * @param y
+	 * @param z
+	 */
 	addLaneMarker(scene:THREE.Scene, x:number, y:number, z:number) {
 		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't add marker")
@@ -76,6 +114,11 @@ export class AnnotationManager {
 		this.annotations[this.activeAnnotationIndex].addMarker(scene, x, y, z)
 	}
 	
+	/**
+	 * Remove last marker from the annotation. The marker is also removed from
+	 * the scene.
+	 * @param scene
+	 */
 	deleteLastLaneMarker(scene:THREE.Scene) {
 		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't delete marker")
@@ -84,6 +127,10 @@ export class AnnotationManager {
 		this.annotations[this.activeAnnotationIndex].deleteLast(scene)
 	}
 	
+	/**
+	 * Update the mesh of the active annotation. This is used if the lane marker positions
+	 * where changed externally (e.g. by the transform controls)
+	 */
 	updateActiveLaneMesh() {
 		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't update mesh")
@@ -92,13 +139,21 @@ export class AnnotationManager {
 		this.annotations[this.activeAnnotationIndex].generateMeshFromMarkers()
 	}
 	
-	addConnectedLaneAnnotation(scene:THREE.Scene, neigborLocation : NeighborLocation, neighborDirection : NeighborDirection) {
+	/**
+	 * Create a new lane annotation connected to the current active annotation at the given location and with
+	 * the given direction of traffic. The new annotation is added to the scene for display and set as
+	 * inactive.
+	 * @param scene
+	 * @param neighborLocation
+	 * @param neighborDirection
+	 */
+	addConnectedLaneAnnotation(scene:THREE.Scene, neighborLocation : NeighborLocation, neighborDirection : NeighborDirection) {
 		if (this.activeAnnotationIndex < 0) {
 			log.info("Can't add connected lane. No annotation is active.")
 			return
 		}
 		
-		switch (neigborLocation) {
+		switch (neighborLocation) {
 			case NeighborLocation.FRONT:
 				this.addFrontConnection(scene)
 				break
@@ -149,8 +204,8 @@ export class AnnotationManager {
 		this.annotations[newAnnotationIndex].addRawMarker(scene, thirdMarkerPosition)
 		this.annotations[newAnnotationIndex].addRawMarker(scene, fourthMarkerPosition)
 
-		this.annotations[newAnnotationIndex].neighbors.back.push(this.annotations[this.activeAnnotationIndex])
-		this.annotations[this.activeAnnotationIndex].neighbors.front.push(this.annotations[newAnnotationIndex])
+		this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex], NeighborLocation.BACK)
+		this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex], NeighborLocation.FRONT)
 
 		this.annotations[newAnnotationIndex].generateMeshFromMarkers()
 		this.annotations[newAnnotationIndex].makeInactive()
@@ -187,8 +242,8 @@ export class AnnotationManager {
 				
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].neighbors.right = this.annotations[this.activeAnnotationIndex]
-				this.annotations[this.activeAnnotationIndex].neighbors.left = this.annotations[newAnnotationIndex]
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex], NeighborLocation.RIGHT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex], NeighborLocation.LEFT)
 				
 				break
 			
@@ -204,8 +259,8 @@ export class AnnotationManager {
 				}
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].neighbors.left = this.annotations[this.activeAnnotationIndex]
-				this.annotations[this.activeAnnotationIndex].neighbors.left = this.annotations[newAnnotationIndex]
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex], NeighborLocation.LEFT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex], NeighborLocation.LEFT)
 				
 				break
 			
@@ -248,8 +303,8 @@ export class AnnotationManager {
 				
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].neighbors.left = this.annotations[this.activeAnnotationIndex]
-				this.annotations[this.activeAnnotationIndex].neighbors.right = this.annotations[newAnnotationIndex]
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex], NeighborLocation.LEFT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex], NeighborLocation.RIGHT)
 				
 				break
 			
@@ -265,8 +320,8 @@ export class AnnotationManager {
 				}
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].neighbors.right = this.annotations[this.activeAnnotationIndex]
-				this.annotations[this.activeAnnotationIndex].neighbors.right = this.annotations[newAnnotationIndex]
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex], NeighborLocation.RIGHT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex], NeighborLocation.RIGHT)
 				
 				break
 			
