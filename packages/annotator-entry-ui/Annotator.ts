@@ -337,6 +337,11 @@ export class Annotator {
 			log.info("Adding connected annotation to the right - same direction")
 			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)
 		}
+		
+		if (event.code == "KeyS") {
+			log.info("Saving annotations to JSON")
+			this.annotationManager.saveActiveAnnotationToJSON()
+		}
 	}
 	
 	private onKeyUp = (event) => {

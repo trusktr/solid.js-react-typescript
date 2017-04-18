@@ -37,18 +37,21 @@ class LaneNeighbors {
  */
 export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
+	id
 	laneMarkers : Array<THREE.Mesh>
 	laneMesh : THREE.Mesh
 	markerMaterial :  THREE.MeshLambertMaterial
 	activeLaneMaterial : THREE.MeshBasicMaterial
 	inactiveLaneMaterial : THREE.MeshLambertMaterial
 	neighbors : LaneNeighbors
+	annotationColor
 	
 	constructor() {
-		let annotationColor = Math.random() * 0xffffff
-		this.markerMaterial = new THREE.MeshLambertMaterial({color : annotationColor})
+		this.id = new Date().getUTCMilliseconds()
+		this.annotationColor = Math.random() * 0xffffff
+		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor})
 		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
-		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: annotationColor})
+		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: this.annotationColor})
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
 		
 		this.laneMarkers = []
@@ -197,6 +200,41 @@ export class LaneAnnotation {
 		this.laneMesh.geometry = newGeometry
 		this.laneMesh.geometry.verticesNeedUpdate = true
 	}
+	
+	toJSON() {
+		// Create data structure to export (this is the min amount of data
+		// needed to reconstruct this object from scratch)
+		let data = {
+			markerPositions: [], color: null,
+			rightNeighbor: null, leftNeighbor: null, frontNeighbors: [],
+			backNeighbors: []
+		}
+		
+		data.color = this.annotationColor
+		
+		this.laneMarkers.forEach((marker) => {
+			data.markerPositions.push(marker.position)
+		})
+		
+		if (this.neighbors.left != null) {
+			data.leftNeighbor = this.neighbors.left.id
+		}
+		
+		if (this.neighbors.right != null) {
+			data.rightNeighbor = this.neighbors.right.id
+		}
+		
+		this.neighbors.front.forEach( (neighbor) => {
+			data.frontNeighbors.push(neighbor.id)
+		})
+		
+		this.neighbors.back.forEach( (neighbor) => {
+			data.backNeighbors.push(neighbor.id)
+		})
+		
+		return data
+	}
+	
 	
 	/**
 	 *  Use the last two points to create a guess of the

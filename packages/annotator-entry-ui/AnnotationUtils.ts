@@ -6,7 +6,7 @@
 import * as THREE from 'three'
 import {LaneAnnotation, NeighborDirection, NeighborLocation} from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
-import {forEachComment} from "tslint"
+import * as AsyncFile from 'async-file'
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -212,6 +212,11 @@ export class AnnotationManager {
 				break
 		}
 		
+	}
+	
+	async saveActiveAnnotationToJSON() {
+		let strAnnotation = JSON.stringify(this.annotations[this.activeAnnotationIndex])
+		AsyncFile.writeTextFile('/Users/alonso/Desktop/annotation.txt', strAnnotation)
 	}
 	
 	/**
