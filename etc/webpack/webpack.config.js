@@ -10,7 +10,9 @@ module.exports = makeConfig('annotator-app', [], {
 		"annotator-entry-ui": makeHotEntry([
 			"./annotator-entry-ui/index"
 		]),
-		
+    	"annotator-control-ui": makeHotEntry([
+        	"./annotator-control-ui/index"
+    	]),
 	}, config => {
 		config.plugins.unshift(
 			new HtmlWebpackPlugin({

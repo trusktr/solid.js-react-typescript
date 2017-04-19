@@ -1,45 +1,102 @@
 -
-	var fontStyles = eval(require('!!css-loader!sass-loader!assets/fonts/fonts.global.scss'))
-	//var mainStyles = eval(require('!!css-loader!sass-loader!styles/MainEntry.global.scss'))
+    var fontStyles = eval(require('!!css-loader!sass-loader!assets/fonts/fonts.global.scss'))
+//var mainStyles = eval(require('!!css-loader!sass-loader!styles/MainEntry.global.scss'))
 
 doctype html
 html(lang="en")
-	head
-		meta(charset='utf-8')
-		meta(name="viewport" content="width=device-width, initial-scale=1")
-		style!=fontStyles
-		//style!=mainStyles
-		style!=eval(require('!!css-loader!sass-loader!styles/split-pane.global.scss'))
-		style!=eval(require('!!css-loader!animate.css/animate.css'))
-		style!=eval(require('!!css-loader!font-awesome/css/font-awesome.min.css'))
-		style.
-			html,body, #root {
-				height: 100vh;
-				min-height: 100vh;
-				max-height: 100vh;
-				margin:0;
-				border:0;
-				padding:0;
-				width: 100vw;
-				min-width: 100vw;
-				max-width: 100vw;
-			}
+    head
+        meta(charset='utf-8')
+        meta(name="viewport" content="width=device-width, initial-scale=1")
+        style!=fontStyles
+        //style!=mainStyles
+        style!=eval(require('!!css-loader!sass-loader!styles/split-pane.global.scss'))
+        style!=eval(require('!!css-loader!animate.css/animate.css'))
+        style!=eval(require('!!css-loader!font-awesome/css/font-awesome.min.css'))
+        style.
+            html, body {
+                height: 100%;
+                margin: 0;
+                border: 0;
+                padding: 0;
+                width: 100%;
+                background-color: #b0d1d6;
+            }
+        style.
+            #root {
+                height: 100%;
+                margin: 0.5%;
+                border: 0;
+                padding: 0;
+                width: 79%;
+                float: left;
+            }
+        style.
+            #menu {
+                height: 100%;
+                margin: 0.5%;
+                border: 0;
+                padding: 0;
+                width: 19%;
+                float: left;
+                background-color: transparent;
+            }
+        style.
+            .fieldset_style {
+                padding: 1%;
+                height: 32%;
+                width: 98%;
+            }
+        style.
+            .fieldset_content_style {
+                margin-top: 2px;
+                width: 100%;
+                height: 100%;
+            }
+        style.
+            .button_style {
+                margin: 3%;
+            }
+        style.
+            .label_style {
+                width: 49%;
+                text-align: left;
+                border: 0;
+                padding: 0;
+                margin: 0;
+                background-color: transparent;
+                float: left;
+            }
+        style.
+            .select_style {
+                width: 50%;
+                text-align: left;
+                padding: 0;
+                margin: 0;
+                float: left;
+            }
 
-		// Splash screen load
-		//script!=require('!!raw-loader!./BrowserEntry.js')
-		meta(name="viewport",content="width=device-width, initial-scale=1")
-		title!="Annotator"
+        // Splash screen load
+        //script!=require('!!raw-loader!./BrowserEntry.js')
+        meta(name="viewport",content="width=device-width, initial-scale=1")
+        title!="Annotator"
 
-	body.fill-width.fill-height
-		#root
-		script.
-			require(process.cwd() + "/dist/app/annotator-entry-ui")
+    body
+        #root
+            script.
+                require(process.cwd() + "/dist/app/annotator-entry-ui")
+        #menu
+            fieldset(class='fieldset_style')
+                legend Lane Properties
+                #lane_prop(class = 'fieldset_content_style')
 
+            fieldset(class='fieldset_style')
+                legend Lane Connections
+                #lane_conn(class = 'fieldset_content_style')
 
+            fieldset(class='fieldset_style')
+                legend Annotation Tools
+                #tools(class = 'fieldset_content_style')
 
-
-
-
-
-
+            script.
+                require(process.cwd() + "/dist/app/annotator-control-ui")
 
