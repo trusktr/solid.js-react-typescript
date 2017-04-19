@@ -23,6 +23,7 @@ export function onLoad() {
 	annotator.initScene()
 	
 	// TODO: THis needs to be change to take an input from a file dialog window
+	annotator.loadAnnotations('/Users/alonso/Desktop/annotations.txt')
 	//annotator.loadPointCloudData('/Users/alonso/Mapper/Data/Mapper/Alexandria/PointCloudTiles/')
 	
 	annotator.animate()

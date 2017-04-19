@@ -94,6 +94,13 @@ export class AnnotationManager {
 		scene.add(this.annotations[newAnnotationIndex].laneMesh)
 	}
 	
+	createNewAnnotationFromRaw(scene : THREE.Scene, data) {
+		this.annotations.push(new LaneAnnotation(scene, data))
+		let newAnnotationIndex = this.annotations.length-1
+		this.annotationMeshes.push(this.annotations[newAnnotationIndex].laneMesh)
+		scene.add(this.annotations[newAnnotationIndex].laneMesh)
+	}
+	
 	/**
 	 * Eliminate the current active annotation from the manager. Delete its associated
 	 * mesh and markers from the scene and reset any active annotation variables.

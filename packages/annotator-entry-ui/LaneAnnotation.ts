@@ -29,8 +29,21 @@ class LaneNeighborsIds {
 	left : number
 	front : Array<number>
 	back : Array<number>
+	
+	constructor() {
+		this.right = null
+		this.left = null
+		this.front = []
+		this.back = []
+	}
 }
 
+export interface LaneAnnotationInterface {
+	id
+	annotationColor
+	markerPositions
+	neighborsIds :LaneNeighborsIds
+}
 
 /**
  * LaneAnnotation class.
@@ -46,20 +59,39 @@ export class LaneAnnotation {
 	neighborsIds : LaneNeighborsIds
 	annotationColor
 	
-	constructor() {
-		this.id = new Date().getUTCMilliseconds()
-		this.annotationColor = Math.random() * 0xffffff
-		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor})
+	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
+		
+		if (scene && obj) {
+			log.info('Constructing annotation from interface.')
+			this.constructFromRaw(scene, obj)
+		} else {
+			this.id = new Date().getUTCMilliseconds()
+			this.annotationColor = Math.random() * 0xffffff
+			this.laneMarkers = []
+			this.neighborsIds = new LaneNeighborsIds()
+			this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor})
+		}
+		
 		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
 		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: this.annotationColor})
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
 		
+		if (scene && obj) {
+			this.generateMeshFromMarkers()
+			this.makeInactive()
+		}
+		
+	}
+	
+	private constructFromRaw(scene : THREE.Scene, obj : LaneAnnotationInterface) {
+		this.id = obj.id
+		this.annotationColor = obj.annotationColor
+		this.neighborsIds = obj.neighborsIds
+		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor})
 		this.laneMarkers = []
-		this.neighborsIds = new LaneNeighborsIds()
-		this.neighborsIds.front = []
-		this.neighborsIds.back = []
-		this.neighborsIds.left = null
-		this.neighborsIds.right = null
+		obj.markerPositions.forEach( (position) => {
+			this.addRawMarker(scene, new THREE.Vector3(position.x, position.y, position.z))
+		})
 	}
 	
 	/**
@@ -177,6 +209,10 @@ export class LaneAnnotation {
 	 * Recompute mesh from markers.
 	 */
 	generateMeshFromMarkers = () => {
+		if (this.laneMarkers.length == 0) {
+			return
+		}
+		
 		let newGeometry = new THREE.Geometry()
 		
 		// We need at least 3 vertices to generate a mesh
@@ -204,37 +240,16 @@ export class LaneAnnotation {
 	toJSON() {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		// let data = {
-		// 	markerPositions: [], color: null,
-		// 	rightNeighborId: null, leftNeighborId: null, frontNeighborsId: [],
-		// 	backNeighborsId: []
-		// }
-		
-		let data = {id:null, markerPositions: [], color: null,  neighborsIds : null}
-		
-		data.id = this.id
-		data.color = this.annotationColor
-		data.neighborsIds = this.neighborsIds
+		let data : LaneAnnotationInterface = {
+			id: this.id,
+			annotationColor : this.annotationColor,
+			neighborsIds : this.neighborsIds,
+			markerPositions : []
+		}
 		
 		this.laneMarkers.forEach((marker) => {
 			data.markerPositions.push(marker.position)
 		})
-		
-		// if (this.neighborsIds.left != null) {
-		// 	data.leftNeighborId = this.neighborsIds.left
-		// }
-		//
-		// if (this.neighborsIds.right != null) {
-		// 	data.rightNeighborId = this.neighborsIds.right
-		// }
-		//
-		// this.neighborsIds.front.forEach( (id) => {
-		// 	data.frontNeighborsId.push(id)
-		// })
-		//
-		// this.neighborsIds.back.forEach( (id) => {
-		// 	data.backNeighborsId.push(id)
-		// })
 		
 		return data
 	}

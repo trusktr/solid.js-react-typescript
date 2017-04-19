@@ -5,6 +5,7 @@
 
 import * as $ from 'jquery'
 import * as THREE from 'three'
+import * as AsyncFile from 'async-file'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import * as TileUtils from 'annotator-entry-ui/TileUtils'
@@ -169,7 +170,29 @@ export class Annotator {
 			let pointCloud = TileUtils.generatePointCloudFromRawData(points)
 			this.scene.add(pointCloud)
 		} catch (err) {
-			log.error('It failed', err)
+			log.error('Failed loading point cloud', err)
+		}
+	}
+	
+	/**
+	 * Load annotations from file. Add all annotations to the annotation manager
+	 * and to the scene
+	 * @param filename
+	 * @returns {Promise<void>}
+	 */
+	async loadAnnotations(filename : string) {
+		try {
+			log.info('Loading annotations')
+			let buffer = await AsyncFile.readFile(filename, 'ascii')
+			let data = JSON.parse(buffer as any)
+			
+			// Each element is an annotation
+			data.forEach( (element) => {
+				this.annotationManager.createNewAnnotationFromRaw(this.scene, element)
+			})
+			
+		} catch (err) {
+			log.error('Failed loading annotations', err)
 		}
 	}
 	
