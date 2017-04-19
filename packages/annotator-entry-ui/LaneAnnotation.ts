@@ -204,33 +204,37 @@ export class LaneAnnotation {
 	toJSON() {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		let data = {
-			markerPositions: [], color: null,
-			rightNeighbor: null, leftNeighbor: null, frontNeighbors: [],
-			backNeighbors: []
-		}
+		// let data = {
+		// 	markerPositions: [], color: null,
+		// 	rightNeighborId: null, leftNeighborId: null, frontNeighborsId: [],
+		// 	backNeighborsId: []
+		// }
 		
+		let data = {id:null, markerPositions: [], color: null,  neighborsIds : null}
+		
+		data.id = this.id
 		data.color = this.annotationColor
+		data.neighborsIds = this.neighborsIds
 		
 		this.laneMarkers.forEach((marker) => {
 			data.markerPositions.push(marker.position)
 		})
 		
-		if (this.neighborsIds.left != null) {
-			data.leftNeighbor = this.neighborsIds.left
-		}
-		
-		if (this.neighborsIds.right != null) {
-			data.rightNeighbor = this.neighborsIds.right
-		}
-		
-		this.neighborsIds.front.forEach( (id) => {
-			data.frontNeighbors.push(id)
-		})
-		
-		this.neighborsIds.back.forEach( (id) => {
-			data.backNeighbors.push(id)
-		})
+		// if (this.neighborsIds.left != null) {
+		// 	data.leftNeighborId = this.neighborsIds.left
+		// }
+		//
+		// if (this.neighborsIds.right != null) {
+		// 	data.rightNeighborId = this.neighborsIds.right
+		// }
+		//
+		// this.neighborsIds.front.forEach( (id) => {
+		// 	data.frontNeighborsId.push(id)
+		// })
+		//
+		// this.neighborsIds.back.forEach( (id) => {
+		// 	data.backNeighborsId.push(id)
+		// })
 		
 		return data
 	}

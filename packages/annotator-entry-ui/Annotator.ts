@@ -340,13 +340,19 @@ export class Annotator {
 		
 		if (event.code == "KeyS") {
 			log.info("Saving annotations to JSON")
-			this.annotationManager.saveActiveAnnotationToJSON()
+			this.saveAnnotations()
 		}
 	}
 	
 	private onKeyUp = (event) => {
 		this.isAddMarkerKeyPressed = false
 	}
+	
+	private async saveAnnotations() {
+		let filename = '/Users/alonso/Desktop/annotations.txt'
+		await this.annotationManager.saveAnnotationsToFile(filename)
+	}
+	
 	
 	private delayHideTransform = () => {
 		this.cancelHideTransform();

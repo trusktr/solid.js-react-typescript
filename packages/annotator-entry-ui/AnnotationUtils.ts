@@ -212,9 +212,9 @@ export class AnnotationManager {
 		
 	}
 	
-	async saveActiveAnnotationToJSON() {
-		let strAnnotation = JSON.stringify(this.annotations[this.activeAnnotationIndex])
-		AsyncFile.writeTextFile('/Users/alonso/Desktop/annotation.txt', strAnnotation)
+	async saveAnnotationsToFile(filename : string) {
+		let strAnnotations = JSON.stringify(this.annotations)
+		AsyncFile.writeTextFile(filename, strAnnotations)
 	}
 	
 	/**
