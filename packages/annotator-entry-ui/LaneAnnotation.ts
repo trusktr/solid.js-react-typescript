@@ -24,11 +24,11 @@ export enum NeighborLocation {
 }
 
 
-class LaneNeighbors {
-	right : LaneAnnotation
-	left : LaneAnnotation
-	front : Array<LaneAnnotation>
-	back : Array<LaneAnnotation>
+class LaneNeighborsIds {
+	right : number
+	left : number
+	front : Array<number>
+	back : Array<number>
 }
 
 
@@ -43,7 +43,7 @@ export class LaneAnnotation {
 	markerMaterial :  THREE.MeshLambertMaterial
 	activeLaneMaterial : THREE.MeshBasicMaterial
 	inactiveLaneMaterial : THREE.MeshLambertMaterial
-	neighbors : LaneNeighbors
+	neighborsIds : LaneNeighborsIds
 	annotationColor
 	
 	constructor() {
@@ -55,11 +55,11 @@ export class LaneAnnotation {
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
 		
 		this.laneMarkers = []
-		this.neighbors = new LaneNeighbors()
-		this.neighbors.front = []
-		this.neighbors.back = []
-		this.neighbors.left = null
-		this.neighbors.right = null
+		this.neighborsIds = new LaneNeighborsIds()
+		this.neighborsIds.front = []
+		this.neighborsIds.back = []
+		this.neighborsIds.left = null
+		this.neighborsIds.right = null
 	}
 	
 	/**
@@ -122,19 +122,19 @@ export class LaneAnnotation {
 	 * @param neighbor
 	 * @param neighborLocation
 	 */
-	addNeighbor(neighbor : LaneAnnotation, neighborLocation : NeighborLocation) {
+	addNeighbor(neighborId : number, neighborLocation : NeighborLocation) {
 		switch (neighborLocation) {
 			case NeighborLocation.FRONT:
-				this.neighbors.front.push(neighbor)
+				this.neighborsIds.front.push(neighborId)
 				break
 			case NeighborLocation.BACK:
-				this.neighbors.back.push(neighbor)
+				this.neighborsIds.back.push(neighborId)
 				break
 			case NeighborLocation.LEFT:
-				this.neighbors.left = neighbor
+				this.neighborsIds.left = neighborId
 				break
 			case NeighborLocation.RIGHT:
-				this.neighbors.right = neighbor
+				this.neighborsIds.right = neighborId
 				break
 			default:
 				log.warn('Neighbor location not recognized')
@@ -216,20 +216,20 @@ export class LaneAnnotation {
 			data.markerPositions.push(marker.position)
 		})
 		
-		if (this.neighbors.left != null) {
-			data.leftNeighbor = this.neighbors.left.id
+		if (this.neighborsIds.left != null) {
+			data.leftNeighbor = this.neighborsIds.left
 		}
 		
-		if (this.neighbors.right != null) {
-			data.rightNeighbor = this.neighbors.right.id
+		if (this.neighborsIds.right != null) {
+			data.rightNeighbor = this.neighborsIds.right
 		}
 		
-		this.neighbors.front.forEach( (neighbor) => {
-			data.frontNeighbors.push(neighbor.id)
+		this.neighborsIds.front.forEach( (id) => {
+			data.frontNeighbors.push(id)
 		})
 		
-		this.neighbors.back.forEach( (neighbor) => {
-			data.backNeighbors.push(neighbor.id)
+		this.neighborsIds.back.forEach( (id) => {
+			data.backNeighbors.push(id)
 		})
 		
 		return data

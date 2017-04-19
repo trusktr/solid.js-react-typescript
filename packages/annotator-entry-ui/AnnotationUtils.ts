@@ -35,11 +35,9 @@ export class AnnotationManager {
 	 * @returns {number}
 	 */
 	getAnnotationIndex(object : THREE.Mesh) : number {
-		let index = this.annotations.findIndex( (element) => {
+		return this.annotations.findIndex( (element) => {
 			return element.laneMesh == object
 		})
-		
-		return index
 	}
 	
 	/**
@@ -250,8 +248,8 @@ export class AnnotationManager {
 		this.annotations[newAnnotationIndex].addRawMarker(scene, thirdMarkerPosition)
 		this.annotations[newAnnotationIndex].addRawMarker(scene, fourthMarkerPosition)
 
-		this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex], NeighborLocation.BACK)
-		this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex], NeighborLocation.FRONT)
+		this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.BACK)
+		this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.FRONT)
 
 		this.annotations[newAnnotationIndex].generateMeshFromMarkers()
 		this.annotations[newAnnotationIndex].makeInactive()
@@ -261,11 +259,12 @@ export class AnnotationManager {
 	 * Adds a new lane annotation to the left of the current active annotation. It initializes its
 	 * lane markers as a mirror of the active annotation. The order of the markers depends on the
 	 * given direction of the neighbor.
+	 * @param scene
 	 * @param neighborDirection [SAME, REVERSE]
 	 */
 	private addLeftConnection(scene:THREE.Scene, neighborDirection : NeighborDirection) {
 		
-		if (this.annotations[this.activeAnnotationIndex].neighbors.left != null) {
+		if (this.annotations[this.activeAnnotationIndex].neighborsIds.left != null) {
 			log.warn('This lane already has a neighbor to the LEFT. Aborting new connection.')
 			return
 		}
@@ -288,8 +287,8 @@ export class AnnotationManager {
 				
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex], NeighborLocation.RIGHT)
-				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex], NeighborLocation.LEFT)
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.RIGHT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.LEFT)
 				
 				break
 			
@@ -305,8 +304,8 @@ export class AnnotationManager {
 				}
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex], NeighborLocation.LEFT)
-				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex], NeighborLocation.LEFT)
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.LEFT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.LEFT)
 				
 				break
 			
@@ -323,10 +322,11 @@ export class AnnotationManager {
 	 * Adds a new lane annotation to the right of the current active annotation. It initializes its
 	 * lane markers as a mirror of the active annotation. The order of the markers depends on the
 	 * given direction of the neighbor.
+	 * @param scene
 	 * @param neighborDirection [SAME,REVERSE]
 	 */
 	private addRightConnection(scene:THREE.Scene, neighborDirection : NeighborDirection) {
-		if (this.annotations[this.activeAnnotationIndex].neighbors.right != null) {
+		if (this.annotations[this.activeAnnotationIndex].neighborsIds.right != null) {
 			log.warn('This lane already has a neighbor to the RIGHT. Aborting new connection.')
 			return
 		}
@@ -349,8 +349,8 @@ export class AnnotationManager {
 				
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex], NeighborLocation.LEFT)
-				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex], NeighborLocation.RIGHT)
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.LEFT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.RIGHT)
 				
 				break
 			
@@ -366,8 +366,8 @@ export class AnnotationManager {
 				}
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex], NeighborLocation.RIGHT)
-				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex], NeighborLocation.RIGHT)
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.RIGHT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.RIGHT)
 				
 				break
 			
@@ -380,53 +380,79 @@ export class AnnotationManager {
 		this.annotations[newAnnotationIndex].makeInactive()
 	}
 	
+	private findAnnotationIndexById(id) : number {
+		return this.annotations.findIndex( (annotation) => {
+			return annotation.id == id
+		})
+	}
+	
 	private deleteConnectionToNeighbors(annotation : LaneAnnotation) {
-		let rightNeighbor = annotation.neighbors.right
-		let leftNeighbor = annotation.neighbors.left
-		let frontNeighbors = annotation.neighbors.front
-		let backNeighbors = annotation.neighbors.back
 		
-		if (rightNeighbor != null) {
-			if (rightNeighbor.neighbors.right == annotation) {
+		if (annotation.neighborsIds.right != null) {
+			let index = this.findAnnotationIndexById(annotation.neighborsIds.right)
+			if (index < 0) {
+				log.error("Couldn't find right neighbor. This should never happen.")
+			}
+			let rightNeighbor = this.annotations[index]
+			
+			if (rightNeighbor.neighborsIds.right == annotation.id) {
 				log.info("Deleted connection to right neighbor.")
-				rightNeighbor.neighbors.right = null
-			} else if (rightNeighbor.neighbors.left == annotation){
+				rightNeighbor.neighborsIds.right = null
+			} else if (rightNeighbor.neighborsIds.left == annotation.id){
 				log.info("Deleted connection to right neighbor.")
-				rightNeighbor.neighbors.left = null
+				rightNeighbor.neighborsIds.left = null
 			} else {
 				log.error("Non-reciprocal neighbor relation detected. This should never happen.")
 			}
 		}
 		
-		if (leftNeighbor != null) {
-			if (leftNeighbor.neighbors.right == annotation) {
+		if (annotation.neighborsIds.left != null) {
+			let index = this.findAnnotationIndexById(annotation.neighborsIds.left)
+			if (index < 0) {
+				log.error("Couldn't find left neighbor. This should never happen.")
+			}
+			let leftNeighbor = this.annotations[index]
+			
+			if (leftNeighbor.neighborsIds.right == annotation.id) {
 				log.info("Deleted connection to left neighbor.")
-				leftNeighbor.neighbors.right = null
-			} else if (leftNeighbor.neighbors.left == annotation){
+				leftNeighbor.neighborsIds.right = null
+			} else if (leftNeighbor.neighborsIds.left == annotation.id){
 				log.info("Deleted connection to left neighbor.")
-				leftNeighbor.neighbors.left = null
+				leftNeighbor.neighborsIds.left = null
 			} else {
 				log.error("Non-reciprocal neighbor relation detected. This should never happen.")
 			}
 		}
 		
-		for (let i=0; i < frontNeighbors.length; i++) {
-			let index = frontNeighbors[i].neighbors.back.findIndex( (element) => {
-				return element == annotation
+		for (let i=0; i < annotation.neighborsIds.front.length; i++) {
+			let index = this.findAnnotationIndexById(annotation.neighborsIds.front[i])
+			if (index < 0) {
+				log.error("Couldn't find front neighbor. This should never happen.")
+			}
+			let frontNeighbor = this.annotations[index]
+			
+			let index2 = frontNeighbor.neighborsIds.back.findIndex( (id) => {
+				return id == annotation.id
 			})
-			if (index >= 0) {
+			if (index2 >= 0) {
 				log.info("Deleted connection to front neighbor.")
-				frontNeighbors[i].neighbors.back.splice(index,1)
+				frontNeighbor.neighborsIds.back.splice(index2,1)
 			}
 		}
 		
-		for (let i=0; i < backNeighbors.length; i++) {
-			let index = backNeighbors[i].neighbors.front.findIndex( (element) => {
-				return element == annotation
+		for (let i=0; i < annotation.neighborsIds.back.length; i++) {
+			let index = this.findAnnotationIndexById(annotation.neighborsIds.back[i])
+			if (index < 0) {
+				log.error("Couldn't find back neighbor. This should never happen.")
+			}
+			let backNeighbor = this.annotations[index]
+			
+			let index2 = backNeighbor.neighborsIds.front.findIndex( (id) => {
+				return id == annotation.id
 			})
-			if (index >= 0) {
+			if (index2 >= 0) {
 				log.info("Deleted connection to back neighbor.")
-				backNeighbors[i].neighbors.front.splice(index,1)
+				backNeighbor.neighborsIds.front.splice(index2,1)
 			}
 		}
 	}
