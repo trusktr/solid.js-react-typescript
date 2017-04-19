@@ -6,6 +6,7 @@
 import * as THREE from 'three'
 import {LaneAnnotation, NeighborDirection, NeighborLocation} from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
+import {forEachComment} from "tslint"
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -93,6 +94,46 @@ export class AnnotationManager {
 		let newAnnotationIndex = this.annotations.length-1
 		this.annotationMeshes.push(this.annotations[newAnnotationIndex].laneMesh)
 		scene.add(this.annotations[newAnnotationIndex].laneMesh)
+	}
+	
+	/**
+	 * Eliminate the current active annotation from the manager. Delete its associated
+	 * mesh and markers from the scene and reset any active annotation variables.
+	 * @param scene
+	 */
+	deleteActiveAnnotation(scene:THREE.Scene) {
+		if (this.activeAnnotationIndex < 0) {
+			log.warn("Can't delete active annotation. No active annotation selected.")
+			return
+		}
+		
+		// Remove markers from scene.
+		this.activeMarkers.forEach( (marker) => {
+			scene.remove(marker)
+		})
+		
+		// Remove mesh from scene.
+		scene.remove(this.annotations[this.activeAnnotationIndex].laneMesh)
+		
+		// Remove mesh from internal array of meshes.
+		let index = this.annotationMeshes.findIndex( (mesh) => {
+			return mesh == this.annotations[this.activeAnnotationIndex].laneMesh
+		})
+		if (index < 0) {
+			log.error("Couldn't find associated mesh in internal mesh array. This should never happen")
+			return
+		}
+		this.annotationMeshes.splice(index, 1)
+		
+		// Make sure we remove references to this annotation from it's neighbors (if any).
+		this.deleteConnectionToNeighbors(this.annotations[this.activeAnnotationIndex])
+		
+		// Remove annotation from internal array of annotations.
+		this.annotations.splice(this.activeAnnotationIndex, 1)
+		
+		// Reset active markers and active annotation index.
+		this.activeAnnotationIndex = -1
+		this.activeMarkers = []
 	}
 	
 	/**
@@ -332,5 +373,56 @@ export class AnnotationManager {
 		
 		this.annotations[newAnnotationIndex].generateMeshFromMarkers()
 		this.annotations[newAnnotationIndex].makeInactive()
+	}
+	
+	private deleteConnectionToNeighbors(annotation : LaneAnnotation) {
+		let rightNeighbor = annotation.neighbors.right
+		let leftNeighbor = annotation.neighbors.left
+		let frontNeighbors = annotation.neighbors.front
+		let backNeighbors = annotation.neighbors.back
+		
+		if (rightNeighbor != null) {
+			if (rightNeighbor.neighbors.right == annotation) {
+				log.info("Deleted connection to right neighbor.")
+				rightNeighbor.neighbors.right = null
+			} else if (rightNeighbor.neighbors.left == annotation){
+				log.info("Deleted connection to right neighbor.")
+				rightNeighbor.neighbors.left = null
+			} else {
+				log.error("Non-reciprocal neighbor relation detected. This should never happen.")
+			}
+		}
+		
+		if (leftNeighbor != null) {
+			if (leftNeighbor.neighbors.right == annotation) {
+				log.info("Deleted connection to left neighbor.")
+				leftNeighbor.neighbors.right = null
+			} else if (leftNeighbor.neighbors.left == annotation){
+				log.info("Deleted connection to left neighbor.")
+				leftNeighbor.neighbors.left = null
+			} else {
+				log.error("Non-reciprocal neighbor relation detected. This should never happen.")
+			}
+		}
+		
+		for (let i=0; i < frontNeighbors.length; i++) {
+			let index = frontNeighbors[i].neighbors.back.findIndex( (element) => {
+				return element == annotation
+			})
+			if (index >= 0) {
+				log.info("Deleted connection to front neighbor.")
+				frontNeighbors[i].neighbors.back.splice(index,1)
+			}
+		}
+		
+		for (let i=0; i < backNeighbors.length; i++) {
+			let index = backNeighbors[i].neighbors.front.findIndex( (element) => {
+				return element == annotation
+			})
+			if (index >= 0) {
+				log.info("Deleted connection to back neighbor.")
+				backNeighbors[i].neighbors.front.splice(index,1)
+			}
+		}
 	}
 }
