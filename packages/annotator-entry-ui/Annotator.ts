@@ -9,6 +9,7 @@ import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import * as TileUtils from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
+import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 
@@ -20,7 +21,11 @@ const datModule = require("dat.gui/build/dat.gui")
 let root = $("#root")
 const log = TypeLogger.getLogger(__filename)
 
-
+/**
+ * The Annotator class is in charge of rendering the 3d Scene that includes the point clouds
+ * and the annotations. It also handles the mouse and keyboard events needed to select
+ * and modify the annotations.
+ */
 export class Annotator {
 	scene : THREE.Scene
 	camera : THREE.PerspectiveCamera
@@ -53,7 +58,10 @@ export class Annotator {
 		this.raycaster_annotation = new THREE.Raycaster()
 	}
 	
-	
+	/**
+	 * Create the 3D Scene and add some basic objects. It also initializes
+	 * several event listeners.
+	 */
 	initScene() {
 		log.info(`Building scene`)
 		
@@ -165,10 +173,13 @@ export class Annotator {
 		}
 	}
 	
+	/**
+	 * Create a new lane annotation.
+	 */
 	private addLaneAnnotation() {
 		// This creates a new lane and add it to the scene for display
 		this.annotationManager.addLaneAnnotation(this.scene)
-		
+		this.annotationManager.makeLastAnnotationActive()
 	}
 	
 	private getMouseCoordinates = (event) : THREE.Vector2 => {
@@ -178,6 +189,11 @@ export class Annotator {
 		return mouse
 	}
 	
+	/**
+	 * Used in combination with "keyA". If the mouse was clicked while pressing
+	 * the "a" key, drop a lane marker.
+	 * @param event
+	 */
 	private addLaneAnnotationMarker = (event) => {
 		if (this.isAddMarkerKeyPressed == false) {
 			return
@@ -195,6 +211,10 @@ export class Annotator {
 		}
 	}
 	
+	/**
+	 * Check if we clicked an annotation. If so, make it active for editing
+	 * @param event
+	 */
 	private checkForAnnotationSelection = (event) => {
 		let mouse = this.getMouseCoordinates(event)
 		this.raycaster_annotation.setFromCamera( mouse, this.camera )
@@ -202,7 +222,7 @@ export class Annotator {
 		
 		if ( intersects.length > 0 ) {
 			let object = intersects[ 0 ].object
-			let index = this.annotationManager.checkForInactiveAnnotation(object)
+			let index = this.annotationManager.checkForInactiveAnnotation(object as any)
 			
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
@@ -211,6 +231,11 @@ export class Annotator {
 		}
 	}
 	
+	/**
+	 * Check if the mouse is on top of an editable lane marker. If so, attach the
+	 * marker to the transform control for editing.
+	 * @param event
+	 */
 	private checkForActiveMarker = ( event ) => {
 		let mouse = this.getMouseCoordinates(event)
 		
@@ -261,6 +286,10 @@ export class Annotator {
 		this.renderer.setSize( width , height )
 	}
 	
+	/**
+	 * Handle keyboard events
+	 * @param event
+	 */
 	private onKeyDown = (event) => {
 		if (event.code == 'KeyA') {
 			this.isAddMarkerKeyPressed = true
@@ -276,6 +305,31 @@ export class Annotator {
 			log.info("Added new annotation")
 			this.addLaneAnnotation()
 			this.hideTransform()
+		}
+		
+		if (event.code == "KeyF") {
+			log.info("Adding connected annotation to the front")
+			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
+		}
+		
+		if (event.code == "KeyL") {
+			log.info("Adding connected annotation to the left - same direction")
+			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)
+		}
+		
+		if (event.code == "KeyK") {
+			log.info("Adding connected annotation to the left - reverse direction")
+			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)
+		}
+		
+		if (event.code == "KeyR") {
+			log.info("Adding connected annotation to the right - same direction")
+			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)
+		}
+		
+		if (event.code == "KeyE") {
+			log.info("Adding connected annotation to the right - same direction")
+			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)
 		}
 	}
 	
