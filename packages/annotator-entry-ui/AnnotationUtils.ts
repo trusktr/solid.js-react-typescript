@@ -4,7 +4,10 @@
  */
 
 import * as THREE from 'three'
-import {LaneAnnotation, NeighborDirection, NeighborLocation} from 'annotator-entry-ui/LaneAnnotation'
+import {
+	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
+	NeighborLocation
+} from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
 
@@ -87,15 +90,14 @@ export class AnnotationManager {
 	 * Add a new lane annotation and add it's mesh to the scene for display.
 	 * @param scene
 	 */
-	addLaneAnnotation(scene:THREE.Scene) {
-		this.annotations.push(new LaneAnnotation())
-		let newAnnotationIndex = this.annotations.length-1
-		this.annotationMeshes.push(this.annotations[newAnnotationIndex].laneMesh)
-		scene.add(this.annotations[newAnnotationIndex].laneMesh)
-	}
-	
-	createNewAnnotationFromRaw(scene : THREE.Scene, data) {
-		this.annotations.push(new LaneAnnotation(scene, data))
+	addLaneAnnotation(scene:THREE.Scene, obj? : LaneAnnotationInterface) {
+		if (obj) {
+			// Create an annotation with data
+			this.annotations.push(new LaneAnnotation(scene, obj))
+		} else {
+			// Create a clean annotation
+			this.annotations.push(new LaneAnnotation())
+		}
 		let newAnnotationIndex = this.annotations.length-1
 		this.annotationMeshes.push(this.annotations[newAnnotationIndex].laneMesh)
 		scene.add(this.annotations[newAnnotationIndex].laneMesh)

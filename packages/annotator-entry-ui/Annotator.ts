@@ -188,7 +188,7 @@ export class Annotator {
 			
 			// Each element is an annotation
 			data.forEach( (element) => {
-				this.annotationManager.createNewAnnotationFromRaw(this.scene, element)
+				this.annotationManager.addLaneAnnotation(this.scene, element)
 			})
 			
 		} catch (err) {

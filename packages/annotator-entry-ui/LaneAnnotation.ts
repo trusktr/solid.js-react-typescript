@@ -61,37 +61,22 @@ export class LaneAnnotation {
 	
 	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
 		
-		if (scene && obj) {
-			log.info('Constructing annotation from interface.')
-			this.constructFromRaw(scene, obj)
-		} else {
-			this.id = new Date().getUTCMilliseconds()
-			this.annotationColor = Math.random() * 0xffffff
-			this.laneMarkers = []
-			this.neighborsIds = new LaneNeighborsIds()
-			this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor})
-		}
-		
+		this.id = obj ? obj.id : new Date().getUTCMilliseconds()
+		this.annotationColor = obj? obj.annotationColor : Math.random() * 0xffffff
+		this.neighborsIds = obj? obj.neighborsIds : new LaneNeighborsIds()
+		this.laneMarkers = []
+		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor})
 		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
 		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: this.annotationColor})
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
 		
-		if (scene && obj) {
+		if (scene && obj && obj.markerPositions.length > 0) {
+			obj.markerPositions.forEach( (position) => {
+				this.addRawMarker(scene, new THREE.Vector3(position.x, position.y, position.z))
+			})
 			this.generateMeshFromMarkers()
 			this.makeInactive()
 		}
-		
-	}
-	
-	private constructFromRaw(scene : THREE.Scene, obj : LaneAnnotationInterface) {
-		this.id = obj.id
-		this.annotationColor = obj.annotationColor
-		this.neighborsIds = obj.neighborsIds
-		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor})
-		this.laneMarkers = []
-		obj.markerPositions.forEach( (position) => {
-			this.addRawMarker(scene, new THREE.Vector3(position.x, position.y, position.z))
-		})
 	}
 	
 	/**
@@ -151,7 +136,7 @@ export class LaneAnnotation {
 	
 	/**
 	 * Add neighbor to our list of neighbors
-	 * @param neighbor
+	 * @param neighborId
 	 * @param neighborLocation
 	 */
 	addNeighbor(neighborId : number, neighborLocation : NeighborLocation) {
