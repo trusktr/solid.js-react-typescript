@@ -15,7 +15,7 @@ import Models = MapperProtos.com.mapperai.models
  * @param filename
  * @returns {Promise<Buffer>}
  */
-function readFile(filename : string) : Promise<Buffer> {
+export function readFile(filename : string) : Promise<Buffer> {
 	return AsyncFile.readFile(filename)
 }
 

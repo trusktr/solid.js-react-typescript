@@ -24,39 +24,59 @@ export enum NeighborLocation {
 }
 
 
-class LaneNeighbors {
-	right : LaneAnnotation
-	left : LaneAnnotation
-	front : Array<LaneAnnotation>
-	back : Array<LaneAnnotation>
+class LaneNeighborsIds {
+	right : number
+	left : number
+	front : Array<number>
+	back : Array<number>
+	
+	constructor() {
+		this.right = null
+		this.left = null
+		this.front = []
+		this.back = []
+	}
 }
 
+export interface LaneAnnotationInterface {
+	id
+	annotationColor
+	markerPositions
+	neighborsIds :LaneNeighborsIds
+}
 
 /**
  * LaneAnnotation class.
  */
 export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
+	id
 	laneMarkers : Array<THREE.Mesh>
 	laneMesh : THREE.Mesh
 	markerMaterial :  THREE.MeshLambertMaterial
 	activeLaneMaterial : THREE.MeshBasicMaterial
 	inactiveLaneMaterial : THREE.MeshLambertMaterial
-	neighbors : LaneNeighbors
+	neighborsIds : LaneNeighborsIds
+	annotationColor
 	
-	constructor() {
-		let annotationColor = Math.random() * 0xffffff
-		this.markerMaterial = new THREE.MeshLambertMaterial({color : annotationColor})
+	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
+		
+		this.id = obj ? obj.id : new Date().getUTCMilliseconds()
+		this.annotationColor = obj? obj.annotationColor : Math.random() * 0xffffff
+		this.neighborsIds = obj? obj.neighborsIds : new LaneNeighborsIds()
+		this.laneMarkers = []
+		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor})
 		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
-		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: annotationColor})
+		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: this.annotationColor})
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
 		
-		this.laneMarkers = []
-		this.neighbors = new LaneNeighbors()
-		this.neighbors.front = []
-		this.neighbors.back = []
-		this.neighbors.left = null
-		this.neighbors.right = null
+		if (scene && obj && obj.markerPositions.length > 0) {
+			obj.markerPositions.forEach( (position) => {
+				this.addRawMarker(scene, new THREE.Vector3(position.x, position.y, position.z))
+			})
+			this.generateMeshFromMarkers()
+			this.makeInactive()
+		}
 	}
 	
 	/**
@@ -116,22 +136,22 @@ export class LaneAnnotation {
 	
 	/**
 	 * Add neighbor to our list of neighbors
-	 * @param neighbor
+	 * @param neighborId
 	 * @param neighborLocation
 	 */
-	addNeighbor(neighbor : LaneAnnotation, neighborLocation : NeighborLocation) {
+	addNeighbor(neighborId : number, neighborLocation : NeighborLocation) {
 		switch (neighborLocation) {
 			case NeighborLocation.FRONT:
-				this.neighbors.front.push(neighbor)
+				this.neighborsIds.front.push(neighborId)
 				break
 			case NeighborLocation.BACK:
-				this.neighbors.back.push(neighbor)
+				this.neighborsIds.back.push(neighborId)
 				break
 			case NeighborLocation.LEFT:
-				this.neighbors.left = neighbor
+				this.neighborsIds.left = neighborId
 				break
 			case NeighborLocation.RIGHT:
-				this.neighbors.right = neighbor
+				this.neighborsIds.right = neighborId
 				break
 			default:
 				log.warn('Neighbor location not recognized')
@@ -174,6 +194,10 @@ export class LaneAnnotation {
 	 * Recompute mesh from markers.
 	 */
 	generateMeshFromMarkers = () => {
+		if (this.laneMarkers.length == 0) {
+			return
+		}
+		
 		let newGeometry = new THREE.Geometry()
 		
 		// We need at least 3 vertices to generate a mesh
@@ -197,6 +221,24 @@ export class LaneAnnotation {
 		this.laneMesh.geometry = newGeometry
 		this.laneMesh.geometry.verticesNeedUpdate = true
 	}
+	
+	toJSON() {
+		// Create data structure to export (this is the min amount of data
+		// needed to reconstruct this object from scratch)
+		let data : LaneAnnotationInterface = {
+			id: this.id,
+			annotationColor : this.annotationColor,
+			neighborsIds : this.neighborsIds,
+			markerPositions : []
+		}
+		
+		this.laneMarkers.forEach((marker) => {
+			data.markerPositions.push(marker.position)
+		})
+		
+		return data
+	}
+	
 	
 	/**
 	 *  Use the last two points to create a guess of the
