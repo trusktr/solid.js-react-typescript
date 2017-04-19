@@ -1,12 +1,12 @@
 /**
- * Created by alonso on 4/12/17.
+ *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
 import * as $ from 'jquery'
 import * as THREE from 'three'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import {DragControls} from 'annotator-entry-ui/controls/DragControls'
 import * as TileUtils from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import * as TypeLogger from 'typelogger'
@@ -14,7 +14,8 @@ import {getValue} from "typeguard"
 
 TypeLogger.setLoggerOutput(console as any)
 
-let statsModule = require("stats.js")
+const statsModule = require("stats.js")
+const datModule = require("dat.gui/build/dat.gui")
 
 let root = $("#root")
 const log = TypeLogger.getLogger(__filename)
@@ -24,19 +25,34 @@ export class Annotator {
 	scene : THREE.Scene
 	camera : THREE.PerspectiveCamera
 	renderer : THREE.WebGLRenderer
-	raycaster : THREE.Raycaster
+	raycaster_plane : THREE.Raycaster
+	raycaster_marker : THREE.Raycaster
+	raycaster_annotation : THREE.Raycaster
 	plane : THREE.Mesh
 	stats
 	orbitControls
-	dragControls
 	transformControls
 	hideTransformControlTimer
-	annotations :  Array<AnnotationUtils.LaneAnnotation>
+	annotationManager : AnnotationUtils.AnnotationManager
 	isAddMarkerKeyPressed : boolean
+	hovered
+	settings
+	gui
 	
 	constructor() {
 		this.isAddMarkerKeyPressed = false
+		this.settings = {
+			background: "#082839"
+		}
+		this.hovered = null
+		// THe raycaster is used to compute where the waypoints will be dropped
+		this.raycaster_plane = new THREE.Raycaster()
+		// THe raycaster is used to compute which marker is active for editing
+		this.raycaster_marker = new THREE.Raycaster()
+		// THe raycaster is used to compute which selection should be active for editing
+		this.raycaster_annotation = new THREE.Raycaster()
 	}
+	
 	
 	initScene() {
 		log.info(`Building scene`)
@@ -81,16 +97,11 @@ export class Annotator {
 		
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
-		this.annotations = []
-		this.annotations.push(new AnnotationUtils.LaneAnnotation())
-		this.scene.add(this.annotations[0].laneMesh)
-		
-		// THe raycaster is used to compute where the waypoints will be dropped
-		this.raycaster = new THREE.Raycaster()
+		this.annotationManager = new AnnotationUtils.AnnotationManager()
 	
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer( {antialias: true} )
-		this.renderer.setClearColor( 0xf0f0f0 )
+		this.renderer.setClearColor( new THREE.Color(this.settings.background) )
 		this.renderer.setPixelRatio( window.devicePixelRatio )
 		this.renderer.setSize( width, height )
 		this.renderer.shadowMap.enabled = true
@@ -103,27 +114,21 @@ export class Annotator {
 		// Initialize all control objects.
 		this.initOrbitControls()
 		this.initTransformControls()
-		this.initDragControls()
 		
-		window.addEventListener('resize', this.onWindowResize, false );
-		window.addEventListener('keydown', (event) => {
-			if (event.code == 'KeyA') {
-				log.info("Add marker key pressed")
-				this.isAddMarkerKeyPressed = true
-			}
-			
-			if (event.code == 'KeyD') {
-				log.info("Deleting last marker")
-				this.annotations[0].deleteLast(this.scene)
-				this.hideTransform()
-			}
+		// Add panel to change the settings
+		this.gui = new datModule.GUI()
+		this.gui.addColor(this.settings, 'background').onChange( (value) => {
+			this.renderer.setClearColor(new THREE.Color(value))
 		})
 		
-		window.addEventListener('keyup', (event) => {
-			this.isAddMarkerKeyPressed = false
-		})
+		// Add listeners
+		window.addEventListener('resize', this.onWindowResize);
+		window.addEventListener('keydown',this.onKeyDown)
+		window.addEventListener('keyup', this.onKeyUp)
 		
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
+		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
+		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 	}
 	
 	/**
@@ -160,22 +165,79 @@ export class Annotator {
 		}
 	}
 	
+	private addLaneAnnotation() {
+		// This creates a new lane and add it to the scene for display
+		this.annotationManager.addLaneAnnotation(this.scene)
+		
+	}
+	
+	private getMouseCoordinates = (event) : THREE.Vector2 => {
+		let mouse = new THREE.Vector2()
+		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
+		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		return mouse
+	}
+	
 	private addLaneAnnotationMarker = (event) => {
 		if (this.isAddMarkerKeyPressed == false) {
 			return
 		}
 		
-		let mouse = new THREE.Vector2()
-		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
-		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
-		this.raycaster.setFromCamera(mouse, this.camera)
-		let intersection = this.raycaster.intersectObject(this.plane)
+		let mouse = this.getMouseCoordinates(event)
+		this.raycaster_plane.setFromCamera(mouse, this.camera)
+		let intersection = this.raycaster_plane.intersectObject(this.plane)
 		if (intersection.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
 			let x = intersection[0].point.x
 			let y = intersection[0].point.y
 			let z = intersection[0].point.z
-			this.annotations[0].addMarker(this.scene, x,y,z)
+			this.annotationManager.addLaneMarker(this.scene, x,y,z)
+		}
+	}
+	
+	private checkForAnnotationSelection = (event) => {
+		let mouse = this.getMouseCoordinates(event)
+		this.raycaster_annotation.setFromCamera( mouse, this.camera )
+		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.annotationMeshes)
+		
+		if ( intersects.length > 0 ) {
+			let object = intersects[ 0 ].object
+			let index = this.annotationManager.checkForInactiveAnnotation(object)
+			
+			// We clicked an inactive annotation, make it active
+			if (index >= 0) {
+				this.annotationManager.changeActiveAnnotation(index)
+			}
+		}
+	}
+	
+	private checkForActiveMarker = ( event ) => {
+		let mouse = this.getMouseCoordinates(event)
+		
+		this.raycaster_marker.setFromCamera( mouse, this.camera )
+		
+		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.activeMarkers )
+		
+		if ( intersects.length > 0 ) {
+			let object = intersects[ 0 ].object
+			let plane = new THREE.Plane()
+			plane.setFromNormalAndCoplanarPoint( this.camera.getWorldDirection( plane.normal ), object.position )
+			
+			if ( this.hovered !== object ) {
+				this.renderer.domElement.style.cursor = 'pointer'
+				this.hovered = object;
+				// HOVER ON
+				this.transformControls.attach( this.hovered )
+				this.cancelHideTransform()
+			}
+			
+		} else {
+			if ( this.hovered !== null ) {
+				// HOVER OFF
+				this.renderer.domElement.style.cursor = 'auto'
+				this.hovered = null
+				this.delayHideTransform()
+			}
 		}
 	}
 	
@@ -197,6 +259,28 @@ export class Annotator {
 		this.camera.aspect = width / height
 		this.camera.updateProjectionMatrix()
 		this.renderer.setSize( width , height )
+	}
+	
+	private onKeyDown = (event) => {
+		if (event.code == 'KeyA') {
+			this.isAddMarkerKeyPressed = true
+		}
+		
+		if (event.code == 'KeyD') {
+			log.info("Deleting last marker")
+			this.annotationManager.deleteLastLaneMarker(this.scene)
+			this.hideTransform()
+		}
+		
+		if (event.code == 'KeyN') {
+			log.info("Added new annotation")
+			this.addLaneAnnotation()
+			this.hideTransform()
+		}
+	}
+	
+	private onKeyUp = (event) => {
+		this.isAddMarkerKeyPressed = false
 	}
 	
 	private delayHideTransform = () => {
@@ -239,7 +323,6 @@ export class Annotator {
 		})
 	}
 	
-	
 	/**
 	 * Create Transform controls object. This allows for the translation of an object in the scene.
 	 */
@@ -267,31 +350,7 @@ export class Annotator {
 		
 		// If the object attached to the transform object has changed, do something.
 		this.transformControls.addEventListener( 'objectChange', (event) => {
-			this.annotations[0].generateMeshFromMarkers()
-		})
-	}
-	
-	/**
-	 * Create drag control object. This object is in charge of attaching/detaching a 3D
-	 * object to the transform control object.
-	 */
-	private initDragControls() {
-		// Create a the drag control object and link it  to the objects we want to be able to edit
-		this.dragControls = new DragControls(this.annotations[0].laneMarkers, this.camera, this.renderer.domElement);
-		this.dragControls.enabled = false;
-		
-		// Add listeners.
-		
-		// When we hover on an linked object attach the transform control to it to be able
-		// to move it.
-		this.dragControls.addEventListener( 'hoveron', (event) => {
-			this.transformControls.attach( event.object )
-			this.cancelHideTransform()
-		})
-		
-		// When we hover off a linked object hide the transform control.
-		this.dragControls.addEventListener( 'hoveroff', (event) => {
-			this.delayHideTransform()
+			this.annotationManager.updateActiveLaneMesh()
 		})
 	}
 }

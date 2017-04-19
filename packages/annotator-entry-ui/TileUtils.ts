@@ -1,5 +1,6 @@
 /**
- * Created by alonso on 4/9/17.
+ *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
 import * as Fs from 'fs'
@@ -100,8 +101,8 @@ export function generatePointCloudFromRawData(points : Array<number>) : THREE.Po
 			positions[i] = -y
 			positions[i+1] = z
 			positions[i+2] = -x
-			colors[i] = 0
-			colors[i+1] = 0
+			colors[i] = 1
+			colors[i+1] = 1
 			colors[i+2] = 1
 		}
 
