@@ -4,27 +4,105 @@
  */
 
 import * as THREE from 'three'
+import * as TypeLogger from 'typelogger'
+
+TypeLogger.setLoggerOutput(console as any)
+const log = TypeLogger.getLogger(__filename)
 
 const controlPointGeometry = new THREE.BoxGeometry( 1, 1, 1 );
 
+export enum NeighborDirection {
+	SAME = 1,
+	REVERSE
+}
 
+export enum NeighborLocation {
+	FRONT = 1,
+	BACK,
+	LEFT,
+	RIGHT
+}
+
+
+class LaneNeighborsIds {
+	right : number
+	left : number
+	front : Array<number>
+	back : Array<number>
+	
+	constructor() {
+		this.right = null
+		this.left = null
+		this.front = []
+		this.back = []
+	}
+}
+
+export interface LaneAnnotationInterface {
+	id
+	annotationColor
+	markerPositions
+	neighborsIds :LaneNeighborsIds
+}
+
+/**
+ * LaneAnnotation class.
+ */
 export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
+	id
 	laneMarkers : Array<THREE.Mesh>
 	laneMesh : THREE.Mesh
 	markerMaterial :  THREE.MeshLambertMaterial
 	activeLaneMaterial : THREE.MeshBasicMaterial
 	inactiveLaneMaterial : THREE.MeshLambertMaterial
+	neighborsIds : LaneNeighborsIds
+	annotationColor
 	
-	constructor() {
+	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
+		
+		this.id = obj ? obj.id : new Date().getUTCMilliseconds()
+		this.annotationColor = obj? obj.annotationColor : Math.random() * 0xffffff
+		this.neighborsIds = obj? obj.neighborsIds : new LaneNeighborsIds()
 		this.laneMarkers = []
-		let annotationColor = Math.random() * 0xffffff
-		this.markerMaterial = new THREE.MeshLambertMaterial({color : annotationColor})
+		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor})
 		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
-		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: annotationColor})
+		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: this.annotationColor})
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
+		
+		if (scene && obj && obj.markerPositions.length > 0) {
+			obj.markerPositions.forEach( (position) => {
+				this.addRawMarker(scene, new THREE.Vector3(position.x, position.y, position.z))
+			})
+			this.generateMeshFromMarkers()
+			this.makeInactive()
+		}
 	}
 	
+	/**
+	 * Add a single marker to the annotation and the scene.
+	 * @param scene
+	 * @param position
+	 */
+	addRawMarker(scene:THREE.Scene, position : THREE.Vector3) {
+		let marker = new THREE.Mesh( controlPointGeometry, this.markerMaterial)
+		marker.position.set(position.x, position.y, position.z)
+		this.laneMarkers.push(marker)
+		scene.add(marker)
+	}
+	
+	/**
+	 * Add marker. The behavior of this functions changes depending if this is the
+	 * first, second, or higher indexed marker.
+	 *      - First marker: is equivalent as calling addRawMarker
+	 *      - Second marker: has it's height modified to match the height of the first marker
+	 *      - Third and onwards: Two markers are added using the passed position and the
+	 *                           position of the last two markers.
+	 * @param scene
+	 * @param x
+	 * @param y
+	 * @param z
+	 */
 	addMarker(scene:THREE.Scene, x:number, y:number, z:number) {
 		
 		let marker = new THREE.Mesh( controlPointGeometry, this.markerMaterial)
@@ -56,6 +134,34 @@ export class LaneAnnotation {
 		this.generateMeshFromMarkers()
 	}
 	
+	/**
+	 * Add neighbor to our list of neighbors
+	 * @param neighborId
+	 * @param neighborLocation
+	 */
+	addNeighbor(neighborId : number, neighborLocation : NeighborLocation) {
+		switch (neighborLocation) {
+			case NeighborLocation.FRONT:
+				this.neighborsIds.front.push(neighborId)
+				break
+			case NeighborLocation.BACK:
+				this.neighborsIds.back.push(neighborId)
+				break
+			case NeighborLocation.LEFT:
+				this.neighborsIds.left = neighborId
+				break
+			case NeighborLocation.RIGHT:
+				this.neighborsIds.right = neighborId
+				break
+			default:
+				log.warn('Neighbor location not recognized')
+		}
+	}
+	
+	/**
+	 * Delete last marker(s).
+	 * @param scene
+	 */
 	deleteLast(scene : THREE.Scene)  {
 		if (this.laneMarkers.length == 0) {
 			return
@@ -70,16 +176,28 @@ export class LaneAnnotation {
 		this.generateMeshFromMarkers()
 	}
 	
+	/**
+	 * Make this annotation active. This changes the displayed material.
+	 */
 	makeActive() {
 		this.laneMesh.material = this.activeLaneMaterial
 	}
 	
+	/**
+	 * Make this annotation inactive. This changes the displayed material.
+	 */
 	makeInactive() {
 		this.laneMesh.material = this.inactiveLaneMaterial
 	}
 	
-	
+	/**
+	 * Recompute mesh from markers.
+	 */
 	generateMeshFromMarkers = () => {
+		if (this.laneMarkers.length == 0) {
+			return
+		}
+		
 		let newGeometry = new THREE.Geometry()
 		
 		// We need at least 3 vertices to generate a mesh
@@ -104,10 +222,27 @@ export class LaneAnnotation {
 		this.laneMesh.geometry.verticesNeedUpdate = true
 	}
 	
+	toJSON() {
+		// Create data structure to export (this is the min amount of data
+		// needed to reconstruct this object from scratch)
+		let data : LaneAnnotationInterface = {
+			id: this.id,
+			annotationColor : this.annotationColor,
+			neighborsIds : this.neighborsIds,
+			markerPositions : []
+		}
+		
+		this.laneMarkers.forEach((marker) => {
+			data.markerPositions.push(marker.position)
+		})
+		
+		return data
+	}
+	
+	
 	/**
 	 *  Use the last two points to create a guess of the
 	 * location of the left marker
-	 * @param newRightMarker
 	 * @returns {THREE.Vector3}
 	 */
 	private computeLeftMarkerEstimatedPosition() : THREE.Vector3 {
