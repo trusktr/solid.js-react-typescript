@@ -15,83 +15,100 @@ import Models = MapperProtos.com.mapperai.models
  * @param filename
  * @returns {Promise<Buffer>}
  */
-export function readFile(filename : string) : Promise<Buffer> {
+function readFile(filename : string) : Promise<Buffer> {
 	return AsyncFile.readFile(filename)
 }
-
 
 /**
  * Load a point cloud tile message from a proto binary file
  * @param filename
  * @returns {Promise<com.mapperai.models.PointCloudTileMessage>}
  */
-export async function loadTile(filename : string) :  Promise<Models.PointCloudTileMessage> {
+async function loadTile(filename : string) :  Promise<Models.PointCloudTileMessage> {
 	let buffer = await readFile(filename)
-	
-	let tile_message = Models.PointCloudTileMessage.decode(buffer as any)
-	
-	return tile_message
+	return Models.PointCloudTileMessage.decode(buffer as any)
 }
 
-const TranslateAndSamplePoints = (points : Array<number>, offset : Array<number>, step : number) : Array<number> => {
-	let point_step = step * 3
-	let transformed_points : Array<number> = []
-	for (let i=0; i < points.length; i+=point_step) {
-		transformed_points.push(points[i]-offset[0])
-		transformed_points.push(points[i+1]-offset[1])
-		transformed_points.push(points[i+2]-offset[2])
+const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
+	let sampledPoints : Array<number> = []
+	let sampledColors : Array<number> = []
+	let stride = step * 3
+	for (let i=0; i < msg.points.length; i+=stride) {
+		sampledPoints.push(msg.points[i])
+		sampledPoints.push(msg.points[i+1])
+		sampledPoints.push(msg.points[i+2])
+		sampledColors.push(msg.intensities[i/3]/50)
+		sampledColors.push(msg.intensities[i/3]/50)
+		sampledColors.push(msg.intensities[i/3]/50)
+		// sampledColors.push(msg.colors[i]/255)
+		// sampledColors.push(msg.colors[i+1]/255)
+		// sampledColors.push(msg.colors[i+2]/255)
+	}
+	return [sampledPoints, sampledColors]
+}
+
+export class SuperTile {
+	
+	origin : THREE.Vector3
+	pointCloud : THREE.Points
+	maxTilesToLoad : number
+	samplingStep : number
+	
+	constructor() {
+		this.maxTilesToLoad = 2000
+		this.samplingStep = 15
+		this.origin = null
 	}
 	
-	return transformed_points
-}
-
-/**
- * Given a path to a dataset it loads all PointCloudTiles computed for display and
- * merges them into a single tile.
- * @param dataset_path
- * @returns {Array<number>}
- */
-export async function loadFullDataset(dataset_path : string) : Promise<Array<number>> {
-	let all_points : Array<number> = []
-
-	let files = Fs.readdirSync(dataset_path)
-	let map_origin : Array<number> = []
-	let tile_message
-	let total_active_tiles = 5000
-	
-	for (let i=0; i < files.length; i++) {
-		if (i >= total_active_tiles) {
-			break
-		}
+	/**
+	 * Given a path to a dataset it loads all PointCloudTiles computed for display and
+	 * merges them into a single super tile.
+	 * @param dataset_path
+	 */
+	async loadFromDataset( datasetPath : string) {
+		let points : Array<number> = []
+		let colors : Array<number> = []
+		let files = Fs.readdirSync(datasetPath)
+		let count = 0
 		
-		if (files[i] != 'tile_index.md' && files[i] != '.DS_Store') {
-			tile_message  = await loadTile(Path.join(dataset_path, files[i]))
-			
-			if (map_origin.length == 0) {
-				map_origin = [tile_message.originX, tile_message.originY, tile_message.originZ]
+		for (let i=0; i < files.length; i++) {
+			if (count >= this.maxTilesToLoad) {
+				break
 			}
 			
-			let new_points = TranslateAndSamplePoints(tile_message.points, map_origin, 15)
-			all_points = all_points.concat(new_points)
+			if (files[i] == 'tile_index.md' || files[i] == '.DS_Store') {
+				continue
+			}
+			
+			let msg  = await loadTile(Path.join(datasetPath, files[i]))
+			
+			if (msg.points.length == 0) {
+				continue
+			}
+			if (this.origin == null) {
+				this.origin = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
+			}
+			
+			let [sampledPoints, sampledColors] = sampleData(msg, this.samplingStep)
+			
+			points = points.concat(sampledPoints)
+			colors = colors.concat(sampledColors)
+			count++
 		}
 		
+		this.generatePointCloudFromRawData(points, colors)
 	}
 	
-	return all_points
-}
-
-
-/**
- * Convert tile message to Points object
- * @param tile_message
- * @returns {THREE.Points}
- */
-export function generatePointCloudFromRawData(points : Array<number>) : THREE.Points {
+	/**
+	 * Convert array of 3d points into a THREE.Point object
+	 * @param tile_message
+	 */
+	generatePointCloudFromRawData(points : Array<number>, inputColors : Array<number>) {
 		let geometry = new THREE.BufferGeometry()
 		let points_size = points.length
 		let positions = new Float32Array(points_size)
-		let colors = new Float32Array(points_size)
-	
+		let colors = new Float32Array(inputColors)
+		
 		let base_point : Array<number> = [points[0], points[1], points[2]]
 		
 		for (let i=0; i < points_size; i+=3) {
@@ -101,17 +118,17 @@ export function generatePointCloudFromRawData(points : Array<number>) : THREE.Po
 			positions[i] = -y
 			positions[i+1] = z
 			positions[i+2] = -x
-			colors[i] = 1
-			colors[i+1] = 1
-			colors[i+2] = 1
 		}
-
+		
 		geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 		geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
 		geometry.computeBoundingBox();
-	
-		const material = new THREE.PointsMaterial( { size: 0.05, vertexColors: THREE.VertexColors } )
-		let particles = new THREE.Points( geometry, material )
 		
-		return particles
+		const material = new THREE.PointsMaterial( { size: 0.05, vertexColors: THREE.VertexColors } )
+		this.pointCloud = new THREE.Points( geometry, material )
+	}
 }
+
+
+
+

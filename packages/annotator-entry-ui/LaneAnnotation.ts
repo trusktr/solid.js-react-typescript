@@ -9,7 +9,7 @@ import * as TypeLogger from 'typelogger'
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-const controlPointGeometry = new THREE.BoxGeometry( 1, 1, 1 );
+const controlPointGeometry = new THREE.BoxGeometry( 0.5, 0.5, 0.5 );
 
 export enum NeighborDirection {
 	SAME = 1,

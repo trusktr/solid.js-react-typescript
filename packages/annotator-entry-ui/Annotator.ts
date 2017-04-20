@@ -8,7 +8,7 @@ import * as THREE from 'three'
 import * as AsyncFile from 'async-file'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import * as TileUtils from 'annotator-entry-ui/TileUtils'
+import {SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
@@ -34,6 +34,7 @@ export class Annotator {
 	raycaster_plane : THREE.Raycaster
 	raycaster_marker : THREE.Raycaster
 	raycaster_annotation : THREE.Raycaster
+	mapTile : SuperTile
 	plane : THREE.Mesh
 	stats
 	orbitControls
@@ -44,6 +45,7 @@ export class Annotator {
 	hovered
 	settings
 	gui
+	usePlane
 	
 	constructor() {
 		this.isAddMarkerKeyPressed = false
@@ -57,6 +59,10 @@ export class Annotator {
 		this.raycaster_marker = new THREE.Raycaster()
 		// THe raycaster is used to compute which selection should be active for editing
 		this.raycaster_annotation = new THREE.Raycaster()
+		
+		this.mapTile = new SuperTile()
+		
+		this.usePlane = true
 	}
 	
 	/**
@@ -166,9 +172,8 @@ export class Annotator {
 	async loadPointCloudData(pathToTiles : string) {
 		try {
 			log.info('loading dataset')
-			let points = await TileUtils.loadFullDataset(pathToTiles)
-			let pointCloud = TileUtils.generatePointCloudFromRawData(points)
-			this.scene.add(pointCloud)
+			await this.mapTile.loadFromDataset(pathToTiles)
+			this.scene.add(this.mapTile.pointCloud)
 		} catch (err) {
 			log.error('Failed loading point cloud', err)
 		}
@@ -224,12 +229,19 @@ export class Annotator {
 		
 		let mouse = this.getMouseCoordinates(event)
 		this.raycaster_plane.setFromCamera(mouse, this.camera)
-		let intersection = this.raycaster_plane.intersectObject(this.plane)
-		if (intersection.length > 0) {
+		let intersections
+		
+		if (this.usePlane) {
+			intersections = this.raycaster_plane.intersectObject(this.plane)
+		} else {
+			intersections = this.raycaster_plane.intersectObject(this.mapTile.pointCloud)
+		}
+		
+		if (intersections.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
-			let x = intersection[0].point.x
-			let y = intersection[0].point.y
-			let z = intersection[0].point.z
+			let x = intersections[0].point.x
+			let y = intersections[0].point.y
+			let z = intersections[0].point.z
 			this.annotationManager.addLaneMarker(this.scene, x,y,z)
 		}
 	}
