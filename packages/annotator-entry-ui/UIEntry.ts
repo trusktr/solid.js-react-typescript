@@ -5,7 +5,7 @@
 
 import * as $ from 'jquery'
 import * as TypeLogger from 'typelogger'
-import {Annotator} from 'annotator-entry-ui/Annotator'
+import {annotator} from 'annotator-entry-ui/Annotator'
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -14,19 +14,13 @@ declare global {
 	type Long = number
 }
 
-let root = $("#root")
-
+const root = $("#root");
 
 export function onLoad() {
+	require("annotator-control-ui/UIControl")
 	log.info('loading ')
-	let annotator = new Annotator()
-	annotator.initScene()
-	
-	// TODO: THis needs to be change to take an input from a file dialog window
-	//annotator.loadAnnotations('/Users/alonso/Desktop/annotations.txt')
-	annotator.loadPointCloudData('/Users/alonso/Mapper/Data/Mapper/Alexandria/PointCloudTiles/')
-	
-	annotator.animate()
+	annotator.initScene();
+	annotator.animate();
 }
 
 $(onLoad)

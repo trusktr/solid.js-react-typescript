@@ -1,0 +1,106 @@
+/**
+ *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
+import * as $ from 'jquery'
+
+// Get html elements
+///////////////////////////////////////////////////////////////////////////////
+let menu = $("#menu");
+let lane_prop = document.getElementById('lane_prop_1');
+let lane_conn = document.getElementById('lane_conn');
+let tools = document.getElementById('tools');
+
+// Define new elements
+///////////////////////////////////////////////////////////////////////////////
+let lp_labels_text = [ 'Lane ID:', 'Left Side:', 'Right Side:', 'Entry Type:', 'Exit Type:'];
+let lp_labels_id = ['lp_id', 'lp_left_side', 'lp_right_side', 'lp_entry', 'lp_exit'];
+let lp_labels = [];
+for (let i in lp_labels_text) {
+    let elm = document.createElement('text');
+    elm.textContent = lp_labels_text[i];
+    elm.id = lp_labels_id[i];
+    elm.className = 'label_style';
+    lp_labels.push(elm);
+}
+
+let lp_selects_id = ['lp_select_left', 'lp_select_right', 'lp_select_entry', 'lp_select_exit'];
+let lp_selects_items = [
+    ['unknown', '––––––––––––', '–  –  –  –  –  –  –', '• • • • • • •'],
+    ['unknown', '––––––––––––', '–  –  –  –  –  –  –', '• • • • • • •'],
+    ['unknown', 'continue ––»»»––', 'stop ––||––'],
+    ['unknown', 'continue ––»»»––', 'stop ––||––']];
+let lp_selects = [];
+let elm = document.createElement('text');
+elm.textContent = 'UNKNOWN';
+elm.id = 'lp_id_value';
+elm.className = 'select_style';
+lp_selects.push(elm);
+
+for (let i in lp_selects_id) {
+    let elm = document.createElement('select');
+    elm.id = lp_selects_id[i];
+    elm.className = 'select_style';
+    for (let j in lp_selects_items[i]) {
+        let option = document.createElement("option");
+        option.value = lp_selects_items[i][j];
+        option.text = lp_selects_items[i][j];
+        elm.appendChild(option);
+    }
+    lp_selects.push(elm);
+}
+
+let lc_labels_text = ['From Lane:', 'To Lane:', 'Relation:'];
+let lc_labels_id = ['lc_from', 'lc_to', 'lc_relation'];
+let lc_labels = [];
+for (let i in lc_labels_text) {
+    let elm = document.createElement('text');
+    elm.textContent = lc_labels_text[i];
+    elm.id = lc_labels_id[i];
+    elm.className = 'label_style';
+    lc_labels.push(elm);
+}
+
+let lc_selects_id = ['lc_select_from', 'lc_select_tp', 'lc_select_relation'];
+let lc_selects_items = [
+    [],//getIds(),
+    [],//getIds(),
+    ['left', 'right', 'front', 'back']];
+let lc_selects = [];
+for (let i in lc_selects_id) {
+    let elm = document.createElement('select');
+    elm.id = lc_selects_id[i];
+    elm.className = 'select_style';
+    for (let j in lc_selects_items[i]) {
+        let option = document.createElement("option");
+        option.value = lc_selects_items[i][j];
+        option.text = lc_selects_items[i][j];
+        elm.appendChild(option);
+    }
+    lc_selects.push(elm);
+}
+
+let lc_cancel = document.createElement('button');
+lc_cancel.textContent = 'Cancel';
+lc_cancel.id = 'lc_cancel';
+lc_cancel.className = 'button_style';
+
+let lc_add = document.createElement('button');
+lc_add.id = 'lp_add';
+lc_add.textContent = 'Add';
+lc_add.className = 'button_style';
+
+// Add elements to the menu panel
+///////////////////////////////////////////////////////////////////////////////
+for (let i in lp_selects) {
+    lane_prop.appendChild(lp_labels[i]);
+    lane_prop.appendChild(lp_selects[i]);
+}
+
+for (let i in lc_selects) {
+    lane_conn.appendChild(lc_labels[i]);
+    lane_conn.appendChild(lc_selects[i]);
+}
+lane_conn.appendChild(lc_add);
+
