@@ -163,59 +163,6 @@ class Annotator {
 		this.renderer.render(this.scene, this.camera)
 	}
 
-	DeleteLane() {
-		log.info("Delete selected annotation")
-		this.annotationManager.deleteActiveAnnotation(this.scene)
-		this.deactivateLaneProp()
-		this.hideTransform()
-	}
-
-	AddLane() {
-		log.info("Added new annotation")
-		this.addLaneAnnotation()
-		this.resetLaneProp()
-		this.hideTransform()
-	}
-
-	SaveToFile() {
-		log.info("Saving annotations to JSON")
-		this.saveAnnotations()
-	}
-
-	LoadFromFile() {
-
-		let path_electron = dialog.showOpenDialog({
-			properties: ['openDirectory']
-		});
-
-		log.info('Loadding point cloud from ' + path_electron[0]);
-		this.loadPointCloudData(path_electron[0]);
-	}
-
-	AddFront() {
-		log.info("Adding connected annotation to the front")
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
-	}
-
-	AddLeftSame() {
-		log.info("Adding connected annotation to the left - same direction")
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)
-	}
-
-	AddLeftReverse() {
-		log.info("Adding connected annotation to the left - reverse direction")
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)
-	}
-
-	AddRightSame() {
-		log.info("Adding connected annotation to the right - same direction")
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)
-	}
-
-	AddRightReverse() {
-		log.info("Adding connected annotation to the right - same direction")
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)
-	}
 	/**
 	 * Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	 * @param pathToTiles
@@ -508,62 +455,123 @@ class Annotator {
 	}
 
 	/**
+	 * Functions to bind
+	 */
+	 deleteLane() {
+		log.info("Delete selected annotation")
+		this.annotationManager.deleteActiveAnnotation(this.scene)
+		this.deactivateLaneProp()
+		this.hideTransform()
+	}
+
+	 addLane() {
+		log.info("Added new annotation")
+		this.addLaneAnnotation()
+		this.resetLaneProp()
+		this.hideTransform()
+	}
+
+	 saveToFile() {
+		log.info("Saving annotations to JSON")
+		this.saveAnnotations()
+	}
+
+	 loadFromFile() {
+
+		let path_electron = dialog.showOpenDialog({
+			properties: ['openDirectory']
+		});
+
+		log.info('Loadding point cloud from ' + path_electron[0]);
+		this.loadPointCloudData(path_electron[0]);
+	}
+
+	 addFront() {
+		log.info("Adding connected annotation to the front")
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
+	}
+
+	 addLeftSame() {
+		log.info("Adding connected annotation to the left - same direction")
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)
+
+		 // Deactivate buttons
+		 this.deactivateLeftSideNeighbours();
+	 }
+
+	 addLeftReverse() {
+		log.info("Adding connected annotation to the left - reverse direction")
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)
+
+		 // Deactivate buttons
+		 this.deactivateLeftSideNeighbours();
+	 }
+
+	 addRightSame() {
+		log.info("Adding connected annotation to the right - same direction")
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)
+
+		 // Deactivate buttons
+		 this.deactivateRightSideNeighbours();
+	 }
+
+	 addRightReverse() {
+		log.info("Adding connected annotation to the right - same direction")
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)
+
+		 // Deactivate buttons
+		 this.deactivateRightSideNeighbours();
+	 }
+
+	/**
 	 * Bind functions events to interface elements
 	 */
 	private bind() {
 
 		let tools_delete = document.getElementById('tools_delete');
-		tools_delete.addEventListener('click', function () {
-			annotator.DeleteLane();
+		tools_delete.addEventListener('click', _ => {
+			this.deleteLane();
 		});
 
 		let tools_add = document.getElementById('tools_add');
-		tools_add.addEventListener('click', function () {
-			annotator.AddLane();
+		tools_add.addEventListener('click', _ => {
+			this.addLane();
 		});
 
 		let tools_load = document.getElementById('tools_load');
 		let tools_input_folder = document.getElementById('tools_input_folder');
 		tools_load.addEventListener('click', _ => {
-			annotator.LoadFromFile();
+			this.loadFromFile();
 		});
 
 		let tools_save = document.getElementById('tools_save');
-		tools_save.addEventListener('click', function () {
-			annotator.SaveToFile();
+		tools_save.addEventListener('click', _ => {
+			this.saveToFile();
 		});
 
 		let lp_add_left_opsoite = document.getElementById('lp_add_left_opsoite');
-		lp_add_left_opsoite.addEventListener('click', function() {
-			annotator.AddLeftReverse();
-			lp_add_left_same.setAttribute('disabled', 'disabled');
-			lp_add_left_opsoite.setAttribute('disabled', 'disabled');
+		lp_add_left_opsoite.addEventListener('click', _ => {
+			this.addLeftReverse();
 		});
 
 		let lp_add_left_same = document.getElementById('lp_add_left_same');
-		lp_add_left_same.addEventListener('click', function() {
-			annotator.AddLeftSame();
-			lp_add_left_same.setAttribute('disabled', 'disabled');
-			lp_add_left_opsoite.setAttribute('disabled', 'disabled');
+		lp_add_left_same.addEventListener('click', _ => {
+			this.addLeftSame();
 		});
 
 		let lp_add_right_oposite = document.getElementById('lp_add_right_oposite');
-		lp_add_right_oposite.addEventListener('click', function() {
-			annotator.AddRightReverse();
-			lp_add_right_oposite.setAttribute('disabled', 'disabled');
-			lp_add_right_same.setAttribute('disabled', 'disabled');
+		lp_add_right_oposite.addEventListener('click', _ => {
+			this.addRightReverse();
 		});
 
 		let lp_add_right_same = document.getElementById('lp_add_right_same');
-		lp_add_right_same.addEventListener('click', function() {
-			annotator.AddRightSame();
-			lp_add_right_same.setAttribute('disabled', 'disabled');
-			lp_add_right_oposite.setAttribute('disabled', 'disabled');
+		lp_add_right_same.addEventListener('click', _ => {
+			this.addRightSame();
 		});
 
 		let lp_add_front = document.getElementById('lp_add_forward');
-		lp_add_front.addEventListener('click', function() {
-			annotator.AddFront();
+		lp_add_front.addEventListener('click', _ => {
+			this.addFront();
 			lp_add_front.setAttribute('disabled', 'disabled');
 		});
 	}
@@ -581,8 +589,7 @@ class Annotator {
 		let lp_add_left_same = document.getElementById('lp_add_left_same');
 		let lp_add_left_opsoite = document.getElementById('lp_add_left_opsoite');
 		if (active_annotation.neighborsIds.left != null) {
-			lp_add_left_same.setAttribute('disabled', 'disabled');
-			lp_add_left_opsoite.setAttribute('disabled', 'disabled');
+			this.deactivateLeftSideNeighbours();
 		}else {
 			lp_add_left_same.removeAttribute('disabled');
 			lp_add_left_opsoite.removeAttribute('disabled');
@@ -591,8 +598,7 @@ class Annotator {
 		let lp_add_right_same = document.getElementById('lp_add_right_same');
 		let lp_add_right_oposite = document.getElementById('lp_add_right_oposite');
 		if (active_annotation.neighborsIds.right != null) {
-			lp_add_right_same.setAttribute('disabled', 'disabled');
-			lp_add_right_oposite.setAttribute('disabled', 'disabled');
+			this.deactivateRightSideNeighbours();
 		}else {
 			lp_add_right_same.removeAttribute('disabled');
 			lp_add_right_oposite.removeAttribute('disabled');
@@ -609,17 +615,13 @@ class Annotator {
 		lp_id.textContent = active_annotation.id;
 	}
 
+	/**
+	 * Deactivate lane properties menu panel
+	 */
 	deactivateLaneProp() {
 
-		let lp_add_left_same = document.getElementById('lp_add_left_same');
-		let lp_add_left_opsoite = document.getElementById('lp_add_left_opsoite');
-		lp_add_left_same.setAttribute('disabled', 'disabled');
-		lp_add_left_opsoite.setAttribute('disabled', 'disabled');
-
-		let lp_add_right_same = document.getElementById('lp_add_right_same');
-		let lp_add_right_oposite = document.getElementById('lp_add_right_oposite');
-		lp_add_right_same.setAttribute('disabled', 'disabled');
-		lp_add_right_oposite.setAttribute('disabled', 'disabled');
+		this.deactivateLeftSideNeighbours();
+		this.deactivateRightSideNeighbours();
 
 		let lp_add_front = document.getElementById('lp_add_forward');
 		lp_add_front.setAttribute('disabled', 'disabled');
@@ -631,6 +633,26 @@ class Annotator {
 		for (let i = 0; i < selects.length; ++i) {
 			selects.item(i).setAttribute('disabled', 'disabled');
 		}
+	}
+
+	/**
+	 * Deactivate left side neighbours
+	 */
+	deactivateLeftSideNeighbours() {
+		let lp_add_left_opsoite = document.getElementById('lp_add_left_opsoite');
+		let lp_add_left_same = document.getElementById('lp_add_left_same');
+		lp_add_left_same.setAttribute('disabled', 'disabled');
+		lp_add_left_opsoite.setAttribute('disabled', 'disabled');
+	}
+
+	/**
+	 * Deactivate right side neighbours
+	 */
+	deactivateRightSideNeighbours() {
+		let lp_add_right_oposite = document.getElementById('lp_add_right_oposite');
+		let lp_add_right_same = document.getElementById('lp_add_right_same');
+		lp_add_right_same.setAttribute('disabled', 'disabled');
+		lp_add_right_oposite.setAttribute('disabled', 'disabled');
 	}
 }
 
