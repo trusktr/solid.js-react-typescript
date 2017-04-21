@@ -41,6 +41,7 @@ export class Annotator {
 	hideTransformControlTimer
 	annotationManager : AnnotationUtils.AnnotationManager
 	isAddMarkerKeyPressed : boolean
+	isMouseButtonPressed : boolean
 	hovered
 	settings
 	gui
@@ -48,6 +49,8 @@ export class Annotator {
 	
 	constructor() {
 		this.isAddMarkerKeyPressed = false
+		this.isMouseButtonPressed = false
+		
 		this.settings = {
 			background: "#082839"
 		}
@@ -143,6 +146,13 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
+		this.renderer.domElement.addEventListener('mouseup', (event) => {
+			this.isMouseButtonPressed = false
+		})
+		this.renderer.domElement.addEventListener('mousedown', (event) => {
+			this.isMouseButtonPressed = true
+		})
+		
 	}
 	
 	/**
@@ -275,6 +285,11 @@ export class Annotator {
 	 * @param event
 	 */
 	private checkForActiveMarker = ( event ) => {
+		// If the mouse is down we might be dragging a marker so avoid
+		// picking another marker
+		if (this.isMouseButtonPressed) {
+			return
+		}
 		let mouse = this.getMouseCoordinates(event)
 		
 		this.raycaster_marker.setFromCamera( mouse, this.camera )
