@@ -42,19 +42,47 @@ html(lang="en")
             }
         style.
             .fieldset_style {
+                margin: 1%;
                 padding: 1%;
-                height: 32%;
-                width: 98%;
+                /*height: 32%;*/
+                width: 95%;
             }
         style.
             .fieldset_content_style {
                 margin-top: 2px;
                 width: 100%;
                 height: 100%;
+                text-align: center;
+            }
+        style.
+            .div_buttons_group {
+                margin-top: 2px;
+                text-align: center;
+            }
+        style.
+            .div_properties {
+                margin-top: 2px;
+                text-align: center;
+            }
+        style.
+            .div_glue {
+                margin-top: 2px;
+                text-align: left;
+                font-size: small;
+            }
+        style.
+            .div_help {
+                margin-top: 2px;
+                text-align: left;
+                font-size: x-small;
             }
         style.
             .button_style {
                 margin: 3%;
+            }
+        style.
+            .button_group {
+                widh: 100%;
             }
         style.
             .label_style {
@@ -65,6 +93,7 @@ html(lang="en")
                 margin: 0;
                 background-color: transparent;
                 float: left;
+                font-size: small;
             }
         style.
             .select_style {
@@ -73,10 +102,9 @@ html(lang="en")
                 padding: 0;
                 margin: 0;
                 float: left;
+                font-size: small;
             }
 
-        // Splash screen load
-        //script!=require('!!raw-loader!./BrowserEntry.js')
         meta(name="viewport",content="width=device-width, initial-scale=1")
         title!="Annotator"
 
@@ -85,18 +113,36 @@ html(lang="en")
             script.
                 require(process.cwd() + "/dist/app/annotator-entry-ui")
         #menu
-            fieldset(class='fieldset_style')
-                legend Lane Properties
-                #lane_prop(class = 'fieldset_content_style')
+            #tools(class = 'div_buttons_group')
+                button#tools_add.button_style() +
+                button#tools_delete.button_style() -
+                button#tools_load.button_style() Load Cloud
+                input#tools_input_folder(type="file" style="display: none" multiple)
+                button#tools_save.button_style() Save Annotation
 
             fieldset(class='fieldset_style')
-                legend Lane Connections
-                #lane_conn(class = 'fieldset_content_style')
+                //legend Lane Properties
+                #lane_prop.fieldset_content_style
+                    #lane_prop_1.div_properties
+                    #lane_prop_2.div_glue Add Neighbor:
+                    #lane_prop_3.div_buttons_group
+                        button#lp_add_forward.button_group() &uarr;
+                    #lane_prop_4.div_buttons_group
+                        button#lp_add_left_opsoite.button_group() &darr;
+                        button#lp_add_left_same.button_group() &uarr;
+                        button#lp_current.button_group(disabled) C
+                        button#lp_add_right_same.button_group() &uarr;
+                        button#lp_add_right_oposite.button_group() &darr;
 
             fieldset(class='fieldset_style')
-                legend Annotation Tools
-                #tools(class = 'fieldset_content_style')
+                //legend Lane Connections
+                #lane_conn.fieldset_content_style
 
-            script.
-                require(process.cwd() + "/dist/app/annotator-control-ui")
+            fieldset(class='fieldset_style')
+                #lane_help.div_help
+                    p.
+                        Help:<br>
+                        A - Keep pressed to add more markers<br>
+                        D - Press to delete last marker
+
 
