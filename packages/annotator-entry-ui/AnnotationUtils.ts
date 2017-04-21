@@ -42,7 +42,20 @@ export class AnnotationManager {
 			return element.laneMesh == object
 		})
 	}
-	
+
+	/**
+ 	 * Get current active annotation
+	 */
+	getActiveAnnotation() {
+
+		if (this.activeAnnotationIndex < 0 &&
+			this.activeAnnotationIndex >= this.annotations.length) {
+			return null;
+		}
+
+		return this.annotations[this.activeAnnotationIndex];
+	}
+
 	/**
 	 * Check if the passed mesh corresponds to an inactive lane
 	 * annotation. If so, return it's index in the manager.

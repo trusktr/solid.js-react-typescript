@@ -18,6 +18,7 @@ TypeLogger.setLoggerOutput(console as any)
 
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
+const {dialog} = require('electron').remote
 
 let root = $("#root")
 const log = TypeLogger.getLogger(__filename)
@@ -27,7 +28,7 @@ const log = TypeLogger.getLogger(__filename)
  * and the annotations. It also handles the mouse and keyboard events needed to select
  * and modify the annotations.
  */
-export class Annotator {
+class Annotator {
 	scene : THREE.Scene
 	camera : THREE.PerspectiveCamera
 	renderer : THREE.WebGLRenderer
@@ -138,6 +139,10 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
+
+		// Bind events
+		this.bind();
+		this.deactivateLaneProp();
 	}
 	
 	/**
@@ -157,7 +162,7 @@ export class Annotator {
 	render = () => {
 		this.renderer.render(this.scene, this.camera)
 	}
-	
+
 	/**
 	 * Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	 * @param pathToTiles
@@ -250,6 +255,7 @@ export class Annotator {
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
 				this.annotationManager.changeActiveAnnotation(index)
+				this.resetLaneProp()
 			}
 		}
 	}
@@ -325,45 +331,35 @@ export class Annotator {
 		}
 		
 		if (event.code == 'KeyN') {
-			log.info("Added new annotation")
-			this.addLaneAnnotation()
-			this.hideTransform()
+			this.addLane();
 		}
 		
 		if (event.code == 'KeyZ') {
-			log.info("Delete selected annotation")
-			this.annotationManager.deleteActiveAnnotation(this.scene)
-			this.hideTransform()
+			this.deleteLane();
 		}
 		
 		if (event.code == "KeyF") {
-			log.info("Adding connected annotation to the front")
-			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
+			this.addFront();
 		}
 		
 		if (event.code == "KeyL") {
-			log.info("Adding connected annotation to the left - same direction")
-			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)
+			this.addLeftSame();
 		}
 		
 		if (event.code == "KeyK") {
-			log.info("Adding connected annotation to the left - reverse direction")
-			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)
+			this.addLeftReverse();
 		}
 		
 		if (event.code == "KeyR") {
-			log.info("Adding connected annotation to the right - same direction")
-			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)
+			this.addRightSame();
 		}
 		
 		if (event.code == "KeyE") {
-			log.info("Adding connected annotation to the right - same direction")
-			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)
+			this.addRightReverse();
 		}
 		
 		if (event.code == "KeyS") {
-			log.info("Saving annotations to JSON")
-			this.saveAnnotations()
+			this.saveToFile();
 		}
 	}
 	
@@ -372,7 +368,7 @@ export class Annotator {
 	}
 	
 	private async saveAnnotations() {
-		let filename = '/Users/alonso/Desktop/annotations.txt'
+		let filename = './data/annotations.txt'
 		await this.annotationManager.saveAnnotationsToFile(filename)
 	}
 	
@@ -447,4 +443,224 @@ export class Annotator {
 			this.annotationManager.updateActiveLaneMesh()
 		})
 	}
+
+	/**
+	 * Functions to bind
+	 */
+	 deleteLane() {
+		log.info("Delete selected annotation");
+		this.annotationManager.deleteActiveAnnotation(this.scene);
+		this.deactivateLaneProp();
+		this.hideTransform();
+	}
+
+	 addLane() {
+		log.info("Added new annotation");
+		this.addLaneAnnotation();
+		this.resetLaneProp();
+		this.hideTransform();
+	}
+
+	 saveToFile() {
+		log.info("Saving annotations to JSON");
+		this.saveAnnotations();
+	}
+
+	 loadFromFile() {
+
+		let path_electron = dialog.showOpenDialog({
+			properties: ['openDirectory']
+		});
+
+		log.info('Loadding point cloud from ' + path_electron[0]);
+		this.loadPointCloudData(path_electron[0]);
+	 }
+
+	 addFront() {
+		log.info("Adding connected annotation to the front");
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
+	 
+		 // Deactivate button
+		 this.deactivateFrontSideNeighbours();
+	 }
+
+	 addLeftSame() {
+		log.info("Adding connected annotation to the left - same direction");
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME);
+
+		 // Deactivate buttons
+		 this.deactivateLeftSideNeighbours();
+	 }
+
+	 addLeftReverse() {
+		log.info("Adding connected annotation to the left - reverse direction");
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE);
+
+		 // Deactivate buttons
+		 this.deactivateLeftSideNeighbours();
+	 }
+
+	 addRightSame() {
+		log.info("Adding connected annotation to the right - same direction");
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME);
+
+		 // Deactivate buttons
+		 this.deactivateRightSideNeighbours();
+	 }
+
+	 addRightReverse() {
+		log.info("Adding connected annotation to the right - reverse direction");
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE);
+
+		 // Deactivate buttons
+		 this.deactivateRightSideNeighbours();
+	 }
+
+	/**
+	 * Bind functions events to interface elements
+	 */
+	private bind() {
+
+		let tools_delete = document.getElementById('tools_delete');
+		tools_delete.addEventListener('click', _ => {
+			this.deleteLane();
+		});
+
+		let tools_add = document.getElementById('tools_add');
+		tools_add.addEventListener('click', _ => {
+			this.addLane();
+		});
+
+		let tools_load = document.getElementById('tools_load');
+		tools_load.addEventListener('click', _ => {
+			this.loadFromFile();
+		});
+
+		let tools_save = document.getElementById('tools_save');
+		tools_save.addEventListener('click', _ => {
+			this.saveToFile();
+		});
+
+		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
+		lp_add_left_opposite.addEventListener('click', _ => {
+			this.addLeftReverse();
+		});
+
+		let lp_add_left_same = document.getElementById('lp_add_left_same');
+		lp_add_left_same.addEventListener('click', _ => {
+			this.addLeftSame();
+		});
+
+		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
+		lp_add_right_opposite.addEventListener('click', _ => {
+			this.addRightReverse();
+		});
+
+		let lp_add_right_same = document.getElementById('lp_add_right_same');
+		lp_add_right_same.addEventListener('click', _ => {
+			this.addRightSame();
+		});
+
+		let lp_add_front = document.getElementById('lp_add_forward');
+		lp_add_front.addEventListener('click', _ => {
+			this.addFront();
+		});
+	}
+
+	/**
+	 * Reset lane properties elements based on the current active lane
+	 */
+	private resetLaneProp() {
+
+		let active_annotation = this.annotationManager.getActiveAnnotation();
+		if (active_annotation == null) {
+			return;
+		}
+
+		if (active_annotation.neighborsIds.left != null) {
+			this.deactivateLeftSideNeighbours();
+		}else {
+			this.activateLeftSideNeighbours();
+		}
+
+		if (active_annotation.neighborsIds.right != null) {
+			this.deactivateRightSideNeighbours();
+		}else {
+			this.activateRightSideNeighbours();
+		}
+
+		if (active_annotation.neighborsIds.front.length != 0) {
+			this.deactivateFrontSideNeighbours();
+		}else {
+			this.activateFrontSideNeighbours();
+		}
+
+		let lp_id = document.getElementById('lp_id_value');
+		lp_id.textContent = active_annotation.id;
+	}
+
+	/**
+	 * Deactivate lane properties menu panel
+	 */
+	deactivateLaneProp() {
+
+		this.deactivateLeftSideNeighbours();
+		this.deactivateRightSideNeighbours();
+		this.deactivateFrontSideNeighbours();
+
+		let lp_id = document.getElementById('lp_id_value');
+		lp_id.textContent = 'UNKNOWN';
+
+		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select');
+		for (let i = 0; i < selects.length; ++i) {
+			selects.item(i).setAttribute('disabled', 'disabled');
+		}
+	}
+
+	/**
+	 * Deactivate/activate left side neighbours
+	 */
+	deactivateLeftSideNeighbours() {
+		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
+		let lp_add_left_same = document.getElementById('lp_add_left_same');
+		lp_add_left_same.setAttribute('disabled', 'disabled');
+		lp_add_left_opposite.setAttribute('disabled', 'disabled');
+	}
+	activateLeftSideNeighbours() {
+		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
+		let lp_add_left_same = document.getElementById('lp_add_left_same');
+		lp_add_left_same.removeAttribute('disabled');
+		lp_add_left_opposite.removeAttribute('disabled');
+	}
+
+	/**
+	 * Deactivate right side neighbours
+	 */
+	deactivateRightSideNeighbours() {
+		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
+		let lp_add_right_same = document.getElementById('lp_add_right_same');
+		lp_add_right_same.setAttribute('disabled', 'disabled');
+		lp_add_right_opposite.setAttribute('disabled', 'disabled');
+	}
+	activateRightSideNeighbours() {
+		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
+		let lp_add_right_same = document.getElementById('lp_add_right_same');
+		lp_add_right_same.removeAttribute('disabled');
+		lp_add_right_opposite.removeAttribute('disabled');
+	}
+	
+	/**
+	 * Deactivate/activate front side neighbours
+	 */
+	deactivateFrontSideNeighbours() {
+		let lp_add_front = document.getElementById('lp_add_forward');
+		lp_add_front.setAttribute('disabled', 'disabled');
+	}
+	activateFrontSideNeighbours() {
+		let lp_add_front = document.getElementById('lp_add_forward');
+		lp_add_front.removeAttribute('disabled');
+	}
 }
+
+
+export const annotator = new Annotator();
