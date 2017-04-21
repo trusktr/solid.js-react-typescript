@@ -143,9 +143,9 @@ export class Annotator {
 		window.addEventListener('keydown',this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
 		
+		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mouseup', (event) => {
 			this.isMouseButtonPressed = false
 		})
@@ -153,6 +153,15 @@ export class Annotator {
 			this.isMouseButtonPressed = true
 		})
 		
+		// Test info
+		// let text = document.createElement('div')
+		// text.style.position = 'absolute'
+		// text.style.fontSize = '12px'
+		// text.style.color = '#ffffff'
+		// text.innerHTML = 'Test data display'
+		// text.style.top = 200 + 'px'
+		// text.style.left = 200 + 'px'
+		// document.body.appendChild(text)
 	}
 	
 	/**
@@ -405,7 +414,6 @@ export class Annotator {
 		let filename = '/Users/alonso/Desktop/annotations.txt'
 		await this.annotationManager.saveAnnotationsToFile(filename)
 	}
-	
 	
 	private delayHideTransform = () => {
 		this.cancelHideTransform();
