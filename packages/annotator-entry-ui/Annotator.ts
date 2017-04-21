@@ -147,10 +147,10 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mouseup', (event) => {
+		this.renderer.domElement.addEventListener('mouseup', () => {
 			this.isMouseButtonPressed = false
 		})
-		this.renderer.domElement.addEventListener('mousedown', (event) => {
+		this.renderer.domElement.addEventListener('mousedown', () => {
 			this.isMouseButtonPressed = true
 		})
 		
@@ -402,7 +402,7 @@ class Annotator {
 		}
 	}
 	
-	private onKeyUp = (event) => {
+	private onKeyUp = () => {
 		this.isAddMarkerKeyPressed = false
 	}
 	
@@ -419,7 +419,7 @@ class Annotator {
 	private hideTransform = () => {
 		this.hideTransformControlTimer = setTimeout( () => {
 			this.transformControls.detach( this.transformControls.object )
-		}, 2500 )
+		}, 1500 )
 	}
 	
 	private cancelHideTransform = () => {
@@ -462,22 +462,22 @@ class Annotator {
 		// Add listeners.
 		
 		// If we are interacting with the transform object don't hide it.
-		this.transformControls.addEventListener( 'change', (event) => {
+		this.transformControls.addEventListener( 'change', () => {
 			this.cancelHideTransform()
 		})
 		
 		// If we just clicked on a transform object don't hide it.
-		this.transformControls.addEventListener( 'mouseDown', (event) => {
+		this.transformControls.addEventListener( 'mouseDown', () => {
 			this.cancelHideTransform()
 		})
 		
 		// If we are done interacting with a transform object start hiding process.
-		this.transformControls.addEventListener( 'mouseUp', (event) => {
+		this.transformControls.addEventListener( 'mouseUp', () => {
 			this.delayHideTransform()
 		})
 		
 		// If the object attached to the transform object has changed, do something.
-		this.transformControls.addEventListener( 'objectChange', (event) => {
+		this.transformControls.addEventListener( 'objectChange', () => {
 			this.annotationManager.updateActiveLaneMesh()
 		})
 	}
