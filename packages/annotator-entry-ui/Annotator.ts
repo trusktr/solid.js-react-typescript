@@ -14,13 +14,12 @@ import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnota
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 
-TypeLogger.setLoggerOutput(console as any)
-
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
 
-let root = $("#root")
+TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
+let root = $("#root")
 
 /**
  * The Annotator class is in charge of rendering the 3d Scene that includes the point clouds
@@ -205,6 +204,10 @@ export class Annotator {
 	 * Create a new lane annotation.
 	 */
 	private addLaneAnnotation() {
+		if (this.annotationManager.activeAnnotationIndex >=0 &&
+			this.annotationManager.activeMarkers.length == 0) {
+			return
+		}
 		// This creates a new lane and add it to the scene for display
 		this.annotationManager.addLaneAnnotation(this.scene)
 		this.annotationManager.makeLastAnnotationActive()
