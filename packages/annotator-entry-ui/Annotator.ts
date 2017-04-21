@@ -331,45 +331,35 @@ class Annotator {
 		}
 		
 		if (event.code == 'KeyN') {
-			log.info("Added new annotation")
-			this.addLaneAnnotation()
-			this.hideTransform()
+			this.addLane();
 		}
 		
 		if (event.code == 'KeyZ') {
-			log.info("Delete selected annotation")
-			this.annotationManager.deleteActiveAnnotation(this.scene)
-			this.hideTransform()
+			this.deleteLane();
 		}
 		
 		if (event.code == "KeyF") {
-			log.info("Adding connected annotation to the front")
-			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
+			this.addFront();
 		}
 		
 		if (event.code == "KeyL") {
-			log.info("Adding connected annotation to the left - same direction")
-			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)
+			this.addLeftSame();
 		}
 		
 		if (event.code == "KeyK") {
-			log.info("Adding connected annotation to the left - reverse direction")
-			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)
+			this.addLeftReverse();
 		}
 		
 		if (event.code == "KeyR") {
-			log.info("Adding connected annotation to the right - same direction")
-			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)
+			this.addRightSame();
 		}
 		
 		if (event.code == "KeyE") {
-			log.info("Adding connected annotation to the right - same direction")
-			this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)
+			this.addRightReverse();
 		}
 		
 		if (event.code == "KeyS") {
-			log.info("Saving annotations to JSON")
-			this.saveAnnotations()
+			this.saveToFile();
 		}
 	}
 	
@@ -458,22 +448,22 @@ class Annotator {
 	 * Functions to bind
 	 */
 	 deleteLane() {
-		log.info("Delete selected annotation")
-		this.annotationManager.deleteActiveAnnotation(this.scene)
-		this.deactivateLaneProp()
-		this.hideTransform()
+		log.info("Delete selected annotation");
+		this.annotationManager.deleteActiveAnnotation(this.scene);
+		this.deactivateLaneProp();
+		this.hideTransform();
 	}
 
 	 addLane() {
-		log.info("Added new annotation")
-		this.addLaneAnnotation()
-		this.resetLaneProp()
-		this.hideTransform()
+		log.info("Added new annotation");
+		this.addLaneAnnotation();
+		this.resetLaneProp();
+		this.hideTransform();
 	}
 
 	 saveToFile() {
-		log.info("Saving annotations to JSON")
-		this.saveAnnotations()
+		log.info("Saving annotations to JSON");
+		this.saveAnnotations();
 	}
 
 	 loadFromFile() {
@@ -484,40 +474,43 @@ class Annotator {
 
 		log.info('Loadding point cloud from ' + path_electron[0]);
 		this.loadPointCloudData(path_electron[0]);
-	}
+	 }
 
 	 addFront() {
-		log.info("Adding connected annotation to the front")
+		log.info("Adding connected annotation to the front");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
-	}
+	 
+		 // Deactivate button
+		 this.deactivateFrontSideNeighbours();
+	 }
 
 	 addLeftSame() {
-		log.info("Adding connected annotation to the left - same direction")
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)
+		log.info("Adding connected annotation to the left - same direction");
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME);
 
 		 // Deactivate buttons
 		 this.deactivateLeftSideNeighbours();
 	 }
 
 	 addLeftReverse() {
-		log.info("Adding connected annotation to the left - reverse direction")
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)
+		log.info("Adding connected annotation to the left - reverse direction");
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE);
 
 		 // Deactivate buttons
 		 this.deactivateLeftSideNeighbours();
 	 }
 
 	 addRightSame() {
-		log.info("Adding connected annotation to the right - same direction")
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)
+		log.info("Adding connected annotation to the right - same direction");
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME);
 
 		 // Deactivate buttons
 		 this.deactivateRightSideNeighbours();
 	 }
 
 	 addRightReverse() {
-		log.info("Adding connected annotation to the right - same direction")
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)
+		log.info("Adding connected annotation to the right - reverse direction");
+		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE);
 
 		 // Deactivate buttons
 		 this.deactivateRightSideNeighbours();
@@ -539,7 +532,6 @@ class Annotator {
 		});
 
 		let tools_load = document.getElementById('tools_load');
-		let tools_input_folder = document.getElementById('tools_input_folder');
 		tools_load.addEventListener('click', _ => {
 			this.loadFromFile();
 		});
@@ -549,8 +541,8 @@ class Annotator {
 			this.saveToFile();
 		});
 
-		let lp_add_left_opsoite = document.getElementById('lp_add_left_opsoite');
-		lp_add_left_opsoite.addEventListener('click', _ => {
+		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
+		lp_add_left_opposite.addEventListener('click', _ => {
 			this.addLeftReverse();
 		});
 
@@ -559,8 +551,8 @@ class Annotator {
 			this.addLeftSame();
 		});
 
-		let lp_add_right_oposite = document.getElementById('lp_add_right_oposite');
-		lp_add_right_oposite.addEventListener('click', _ => {
+		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
+		lp_add_right_opposite.addEventListener('click', _ => {
 			this.addRightReverse();
 		});
 
@@ -572,7 +564,6 @@ class Annotator {
 		let lp_add_front = document.getElementById('lp_add_forward');
 		lp_add_front.addEventListener('click', _ => {
 			this.addFront();
-			lp_add_front.setAttribute('disabled', 'disabled');
 		});
 	}
 
@@ -580,35 +571,28 @@ class Annotator {
 	 * Reset lane properties elements based on the current active lane
 	 */
 	private resetLaneProp() {
-		let active_annotation = this.annotationManager.getActiveAnnotation();
 
+		let active_annotation = this.annotationManager.getActiveAnnotation();
 		if (active_annotation == null) {
 			return;
 		}
 
-		let lp_add_left_same = document.getElementById('lp_add_left_same');
-		let lp_add_left_opsoite = document.getElementById('lp_add_left_opsoite');
 		if (active_annotation.neighborsIds.left != null) {
 			this.deactivateLeftSideNeighbours();
 		}else {
-			lp_add_left_same.removeAttribute('disabled');
-			lp_add_left_opsoite.removeAttribute('disabled');
+			this.activateLeftSideNeighbours();
 		}
 
-		let lp_add_right_same = document.getElementById('lp_add_right_same');
-		let lp_add_right_oposite = document.getElementById('lp_add_right_oposite');
 		if (active_annotation.neighborsIds.right != null) {
 			this.deactivateRightSideNeighbours();
 		}else {
-			lp_add_right_same.removeAttribute('disabled');
-			lp_add_right_oposite.removeAttribute('disabled');
+			this.activateRightSideNeighbours();
 		}
 
-		let lp_add_front = document.getElementById('lp_add_forward');
 		if (active_annotation.neighborsIds.front.length != 0) {
-			lp_add_front.setAttribute('disabled', 'disabled');
+			this.deactivateFrontSideNeighbours();
 		}else {
-			lp_add_front.removeAttribute('disabled');
+			this.activateFrontSideNeighbours();
 		}
 
 		let lp_id = document.getElementById('lp_id_value');
@@ -622,9 +606,7 @@ class Annotator {
 
 		this.deactivateLeftSideNeighbours();
 		this.deactivateRightSideNeighbours();
-
-		let lp_add_front = document.getElementById('lp_add_forward');
-		lp_add_front.setAttribute('disabled', 'disabled');
+		this.deactivateFrontSideNeighbours();
 
 		let lp_id = document.getElementById('lp_id_value');
 		lp_id.textContent = 'UNKNOWN';
@@ -636,25 +618,49 @@ class Annotator {
 	}
 
 	/**
-	 * Deactivate left side neighbours
+	 * Deactivate/activate left side neighbours
 	 */
 	deactivateLeftSideNeighbours() {
-		let lp_add_left_opsoite = document.getElementById('lp_add_left_opsoite');
+		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
 		let lp_add_left_same = document.getElementById('lp_add_left_same');
 		lp_add_left_same.setAttribute('disabled', 'disabled');
-		lp_add_left_opsoite.setAttribute('disabled', 'disabled');
+		lp_add_left_opposite.setAttribute('disabled', 'disabled');
+	}
+	activateLeftSideNeighbours() {
+		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
+		let lp_add_left_same = document.getElementById('lp_add_left_same');
+		lp_add_left_same.removeAttribute('disabled');
+		lp_add_left_opposite.removeAttribute('disabled');
 	}
 
 	/**
 	 * Deactivate right side neighbours
 	 */
 	deactivateRightSideNeighbours() {
-		let lp_add_right_oposite = document.getElementById('lp_add_right_oposite');
+		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
 		let lp_add_right_same = document.getElementById('lp_add_right_same');
 		lp_add_right_same.setAttribute('disabled', 'disabled');
-		lp_add_right_oposite.setAttribute('disabled', 'disabled');
+		lp_add_right_opposite.setAttribute('disabled', 'disabled');
+	}
+	activateRightSideNeighbours() {
+		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
+		let lp_add_right_same = document.getElementById('lp_add_right_same');
+		lp_add_right_same.removeAttribute('disabled');
+		lp_add_right_opposite.removeAttribute('disabled');
+	}
+	
+	/**
+	 * Deactivate/activate front side neighbours
+	 */
+	deactivateFrontSideNeighbours() {
+		let lp_add_front = document.getElementById('lp_add_forward');
+		lp_add_front.setAttribute('disabled', 'disabled');
+	}
+	activateFrontSideNeighbours() {
+		let lp_add_front = document.getElementById('lp_add_forward');
+		lp_add_front.removeAttribute('disabled');
 	}
 }
 
 
-export const annotator = new Annotator()
+export const annotator = new Annotator();
