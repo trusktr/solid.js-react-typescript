@@ -154,16 +154,6 @@ class Annotator {
 			this.isMouseButtonPressed = true
 		})
 		
-		// Test info
-		// let text = document.createElement('div')
-		// text.style.position = 'absolute'
-		// text.style.fontSize = '12px'
-		// text.style.color = '#ffffff'
-		// text.innerHTML = 'Test data display'
-		// text.style.top = 200 + 'px'
-		// text.style.left = 200 + 'px'
-		// document.body.appendChild(text)
-
 		// Bind events
 		this.bind();
 		this.deactivateLaneProp();
