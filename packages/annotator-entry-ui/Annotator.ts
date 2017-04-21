@@ -18,6 +18,7 @@ TypeLogger.setLoggerOutput(console as any)
 
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
+const {dialog} = require('electron').remote
 
 let root = $("#root")
 const log = TypeLogger.getLogger(__filename)
@@ -181,8 +182,14 @@ class Annotator {
 		this.saveAnnotations()
 	}
 
-	LoadFromFile(path : string) {
-		this.loadPointCloudData(path);
+	LoadFromFile() {
+
+		let path_electron = dialog.showOpenDialog({
+			properties: ['openDirectory']
+		});
+
+		log.info('Loadding point cloud from ' + path_electron[0]);
+		this.loadPointCloudData(path_electron[0]);
 	}
 
 	AddFront() {
@@ -518,10 +525,7 @@ class Annotator {
 		let tools_load = document.getElementById('tools_load');
 		let tools_input_folder = document.getElementById('tools_input_folder');
 		tools_load.addEventListener('click', _ => {
-			tools_input_folder.click();
-		});
-		tools_input_folder.addEventListener('change', function(e) {
-			//annotator.LoadFromFile(tools_input_folder);
+			annotator.LoadFromFile();
 		});
 
 		let tools_save = document.getElementById('tools_save');
