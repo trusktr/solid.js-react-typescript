@@ -7,6 +7,7 @@ html(lang="en")
     head
         meta(charset='utf-8')
         meta(name="viewport" content="width=device-width, initial-scale=1")
+        link(rel="stylesheet" href='https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css')
         style!=fontStyles
         //style!=mainStyles
         style!=eval(require('!!css-loader!sass-loader!styles/split-pane.global.scss'))
@@ -19,7 +20,8 @@ html(lang="en")
                 border: 0;
                 padding: 0;
                 width: 100%;
-                background-color: #b0d1d6;
+                background-color: rgba(193, 195, 193, 0.55);
+                font-family: Verdana, Geneva, sans-serif;
             }
         style.
             #root {
@@ -114,10 +116,10 @@ html(lang="en")
                 require(process.cwd() + "/dist/app/annotator-entry-ui")
         #menu
             #tools(class = 'div_buttons_group')
-                button#tools_add.button_style() +
-                button#tools_delete.button_style() -
-                button#tools_load.button_style() Load Cloud
-                button#tools_save.button_style() Save Annotation
+                button#tools_add.ui-btn.ui-icon-plus.ui-btn-icon-left.button_style()() New Lane
+                button#tools_delete.ui-btn.ui-icon-delete.ui-btn-icon-left.button_style()() Delete Lane
+                button#tools_load.ui-btn.ui-icon-cloud.ui-btn-icon-left.button_style()() Load Cloud
+                button#tools_save.ui-btn.ui-icon-lock.ui-btn-icon-left.button_style()() Save Annotation
 
             fieldset(class='fieldset_style')
                 //legend Lane Properties
