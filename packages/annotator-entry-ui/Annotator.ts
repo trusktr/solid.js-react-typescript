@@ -8,20 +8,19 @@ import * as THREE from 'three'
 import * as AsyncFile from 'async-file'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import * as TileUtils from 'annotator-entry-ui/TileUtils'
+import {SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 
-TypeLogger.setLoggerOutput(console as any)
-
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
 const {dialog} = require('electron').remote
 
-let root = $("#root")
+TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
+let root = $("#root")
 
 /**
  * The Annotator class is in charge of rendering the 3d Scene that includes the point clouds
@@ -35,6 +34,7 @@ class Annotator {
 	raycaster_plane : THREE.Raycaster
 	raycaster_marker : THREE.Raycaster
 	raycaster_annotation : THREE.Raycaster
+	mapTile : SuperTile
 	plane : THREE.Mesh
 	stats
 	orbitControls
@@ -42,12 +42,16 @@ class Annotator {
 	hideTransformControlTimer
 	annotationManager : AnnotationUtils.AnnotationManager
 	isAddMarkerKeyPressed : boolean
+	isMouseButtonPressed : boolean
 	hovered
 	settings
 	gui
+	usePlane
 	
 	constructor() {
 		this.isAddMarkerKeyPressed = false
+		this.isMouseButtonPressed = false
+		
 		this.settings = {
 			background: "#082839"
 		}
@@ -58,6 +62,10 @@ class Annotator {
 		this.raycaster_marker = new THREE.Raycaster()
 		// THe raycaster is used to compute which selection should be active for editing
 		this.raycaster_annotation = new THREE.Raycaster()
+		
+		this.mapTile = new SuperTile()
+		
+		this.usePlane = true
 	}
 	
 	/**
@@ -136,10 +144,16 @@ class Annotator {
 		window.addEventListener('keydown',this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
 		
+		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
-
+		this.renderer.domElement.addEventListener('mouseup', () => {
+			this.isMouseButtonPressed = false
+		})
+		this.renderer.domElement.addEventListener('mousedown', () => {
+			this.isMouseButtonPressed = true
+		})
+		
 		// Bind events
 		this.bind();
 		this.deactivateLaneProp();
@@ -171,9 +185,8 @@ class Annotator {
 	async loadPointCloudData(pathToTiles : string) {
 		try {
 			log.info('loading dataset')
-			let points = await TileUtils.loadFullDataset(pathToTiles)
-			let pointCloud = TileUtils.generatePointCloudFromRawData(points)
-			this.scene.add(pointCloud)
+			await this.mapTile.loadFromDataset(pathToTiles)
+			this.scene.add(this.mapTile.pointCloud)
 		} catch (err) {
 			log.error('Failed loading point cloud', err)
 		}
@@ -205,6 +218,10 @@ class Annotator {
 	 * Create a new lane annotation.
 	 */
 	private addLaneAnnotation() {
+		if (this.annotationManager.activeAnnotationIndex >=0 &&
+			this.annotationManager.activeMarkers.length == 0) {
+			return
+		}
 		// This creates a new lane and add it to the scene for display
 		this.annotationManager.addLaneAnnotation(this.scene)
 		this.annotationManager.makeLastAnnotationActive()
@@ -229,12 +246,19 @@ class Annotator {
 		
 		let mouse = this.getMouseCoordinates(event)
 		this.raycaster_plane.setFromCamera(mouse, this.camera)
-		let intersection = this.raycaster_plane.intersectObject(this.plane)
-		if (intersection.length > 0) {
+		let intersections
+		
+		if (this.usePlane) {
+			intersections = this.raycaster_plane.intersectObject(this.plane)
+		} else {
+			intersections = this.raycaster_plane.intersectObject(this.mapTile.pointCloud)
+		}
+		
+		if (intersections.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
-			let x = intersection[0].point.x
-			let y = intersection[0].point.y
-			let z = intersection[0].point.z
+			let x = intersections[0].point.x
+			let y = intersections[0].point.y
+			let z = intersections[0].point.z
 			this.annotationManager.addLaneMarker(this.scene, x,y,z)
 		}
 	}
@@ -266,6 +290,11 @@ class Annotator {
 	 * @param event
 	 */
 	private checkForActiveMarker = ( event ) => {
+		// If the mouse is down we might be dragging a marker so avoid
+		// picking another marker
+		if (this.isMouseButtonPressed) {
+			return
+		}
 		let mouse = this.getMouseCoordinates(event)
 		
 		this.raycaster_marker.setFromCamera( mouse, this.camera )
@@ -363,7 +392,7 @@ class Annotator {
 		}
 	}
 	
-	private onKeyUp = (event) => {
+	private onKeyUp = () => {
 		this.isAddMarkerKeyPressed = false
 	}
 	
@@ -371,7 +400,6 @@ class Annotator {
 		let filename = './data/annotations.txt'
 		await this.annotationManager.saveAnnotationsToFile(filename)
 	}
-	
 	
 	private delayHideTransform = () => {
 		this.cancelHideTransform();
@@ -381,7 +409,7 @@ class Annotator {
 	private hideTransform = () => {
 		this.hideTransformControlTimer = setTimeout( () => {
 			this.transformControls.detach( this.transformControls.object )
-		}, 2500 )
+		}, 1500 )
 	}
 	
 	private cancelHideTransform = () => {
@@ -424,22 +452,22 @@ class Annotator {
 		// Add listeners.
 		
 		// If we are interacting with the transform object don't hide it.
-		this.transformControls.addEventListener( 'change', (event) => {
+		this.transformControls.addEventListener( 'change', () => {
 			this.cancelHideTransform()
 		})
 		
 		// If we just clicked on a transform object don't hide it.
-		this.transformControls.addEventListener( 'mouseDown', (event) => {
+		this.transformControls.addEventListener( 'mouseDown', () => {
 			this.cancelHideTransform()
 		})
 		
 		// If we are done interacting with a transform object start hiding process.
-		this.transformControls.addEventListener( 'mouseUp', (event) => {
+		this.transformControls.addEventListener( 'mouseUp', () => {
 			this.delayHideTransform()
 		})
 		
 		// If the object attached to the transform object has changed, do something.
-		this.transformControls.addEventListener( 'objectChange', (event) => {
+		this.transformControls.addEventListener( 'objectChange', () => {
 			this.annotationManager.updateActiveLaneMesh()
 		})
 	}

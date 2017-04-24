@@ -9,7 +9,7 @@ import * as TypeLogger from 'typelogger'
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-const controlPointGeometry = new THREE.BoxGeometry( 1, 1, 1 );
+const controlPointGeometry = new THREE.BoxGeometry( 0.5, 0.5, 0.5 );
 
 export enum NeighborDirection {
 	SAME = 1,
@@ -21,6 +21,18 @@ export enum NeighborLocation {
 	BACK,
 	LEFT,
 	RIGHT
+}
+
+export enum LaneSideType {
+	UNKNOWN = 0,
+	SOLID,
+	BROKEN
+}
+
+export enum LaneEntryExitType {
+	UNKNOWN = 0,
+	CONTINUE,
+	STOP
 }
 
 
@@ -57,6 +69,10 @@ export class LaneAnnotation {
 	activeLaneMaterial : THREE.MeshBasicMaterial
 	inactiveLaneMaterial : THREE.MeshLambertMaterial
 	neighborsIds : LaneNeighborsIds
+	leftSideType : LaneSideType
+	rightSideType : LaneSideType
+	entryType : LaneEntryExitType
+	exitType : LaneEntryExitType
 	annotationColor
 	
 	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
@@ -65,10 +81,14 @@ export class LaneAnnotation {
 		this.annotationColor = obj? obj.annotationColor : Math.random() * 0xffffff
 		this.neighborsIds = obj? obj.neighborsIds : new LaneNeighborsIds()
 		this.laneMarkers = []
-		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor})
+		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor, side : THREE.DoubleSide})
 		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
-		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: this.annotationColor})
+		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: this.annotationColor, side : THREE.DoubleSide})
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
+		this.leftSideType = LaneSideType.UNKNOWN
+		this.rightSideType = LaneSideType.UNKNOWN
+		this.entryType = LaneEntryExitType.UNKNOWN
+		this.exitType = LaneEntryExitType.UNKNOWN
 		
 		if (scene && obj && obj.markerPositions.length > 0) {
 			obj.markerPositions.forEach( (position) => {
