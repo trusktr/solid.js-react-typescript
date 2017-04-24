@@ -57,6 +57,17 @@ export class AnnotationManager {
 	}
 
 	/**
+	 * Get all existing ids
+	 */
+	getValidIds() {
+		let list = [];
+		for (let i = 0; i < this.annotations.length; ++i) {
+			list.push(this.annotations[i].id);
+		}
+		return list;
+	}
+
+	/**
 	 * Check if the passed mesh corresponds to an inactive lane
 	 * annotation. If so, return it's index in the manager.
 	 * @param object

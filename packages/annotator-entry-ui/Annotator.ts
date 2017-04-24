@@ -565,6 +565,55 @@ class Annotator {
 		lp_add_front.addEventListener('click', _ => {
 			this.addFront();
 		});
+
+		let lc_select_from = document.getElementById('lc_select_from');
+		lc_select_from.addEventListener('mousedown', _ => {
+
+			// Get ids
+			let ids = this.annotationManager.getValidIds();
+			// Add ids
+			let selectbox = $('#lc_select_from');
+			selectbox.empty();
+			let list = '';
+			for (let j = 0; j < ids.length; j++){
+				list += "<option value='" +ids[j] + "'>" +ids[j] + "</option>";
+			}
+			selectbox.html(list);
+		});
+
+		let lc_select_to = document.getElementById('lc_select_to');
+		lc_select_to.addEventListener('mousedown', _ => {
+
+			// Get ids
+			let ids = this.annotationManager.getValidIds();
+			// Add ids
+			let selectbox = $('#lc_select_to');
+			selectbox.empty();
+			let list = '';
+			for (let j = 0; j < ids.length; j++){
+				list += "<option value='" +ids[j] + "'>" +ids[j] + "</option>";
+			}
+			selectbox.html(list);
+		});
+
+		let lc_add = document.getElementById('lc_add');
+		lc_add.addEventListener('click', _ => {
+			let lc_to = $('#lc_select_to').val();
+			let lc_from = $('#lc_select_from').val();
+			let lc_relation = $('#lc_select_relation').val();
+
+			if (lc_to == null || lc_from == null) {
+				log.error("You have to select the lanes to be connected.");
+				return;
+			}
+
+			if (lc_to == lc_from) {
+				log.error("You can't connect a lane to itself. The 2 ids should be unique.");
+				return;
+			}
+
+			log.info("Add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
+		});
 	}
 
 	/**
@@ -597,6 +646,17 @@ class Annotator {
 
 		let lp_id = document.getElementById('lp_id_value');
 		lp_id.textContent = active_annotation.id;
+
+		let lc_select_to = $('#lc_select_to');
+		lc_select_to.empty();
+		lc_select_to.removeAttr('disabled');
+
+		let lc_select_from = $('#lc_select_from');
+		lc_select_from.empty();
+		lc_select_from.removeAttr('disabled');
+
+		let lc_select_relation = $('#lc_select_relation');
+		lc_select_relation.removeAttr('disabled');
 	}
 
 	/**
@@ -612,6 +672,11 @@ class Annotator {
 		lp_id.textContent = 'UNKNOWN';
 
 		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select');
+		for (let i = 0; i < selects.length; ++i) {
+			selects.item(i).setAttribute('disabled', 'disabled');
+		}
+
+		selects = document.getElementById('lane_conn').getElementsByTagName('select');
 		for (let i = 0; i < selects.length; ++i) {
 			selects.item(i).setAttribute('disabled', 'disabled');
 		}

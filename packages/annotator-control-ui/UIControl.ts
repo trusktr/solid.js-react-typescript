@@ -62,7 +62,7 @@ for (let i in lc_labels_text) {
     lc_labels.push(elm);
 }
 
-let lc_selects_id = ['lc_select_from', 'lc_select_tp', 'lc_select_relation'];
+let lc_selects_id = ['lc_select_from', 'lc_select_to', 'lc_select_relation'];
 let lc_selects_items = [
     [],//getIds(),
     [],//getIds(),
@@ -81,13 +81,8 @@ for (let i in lc_selects_id) {
     lc_selects.push(elm);
 }
 
-let lc_cancel = document.createElement('button');
-lc_cancel.textContent = 'Cancel';
-lc_cancel.id = 'lc_cancel';
-lc_cancel.className = 'button_style';
-
 let lc_add = document.createElement('button');
-lc_add.id = 'lp_add';
+lc_add.id = 'lc_add';
 lc_add.textContent = 'Add';
 lc_add.className = 'button_style';
 
