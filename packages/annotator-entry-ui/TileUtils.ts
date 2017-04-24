@@ -9,6 +9,10 @@ import * as AsyncFile from 'async-file'
 import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
+import * as TypeLogger from 'typelogger'
+
+TypeLogger.setLoggerOutput(console as any)
+const log = TypeLogger.getLogger(__filename)
 
 /**
  * This opens a binary file for reading
@@ -30,6 +34,12 @@ async function loadTile(filename : string) :  Promise<Models.PointCloudTileMessa
 }
 
 const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
+	if (step <= 0) {
+		log.error("Can't sample data. Step should be > 0.")
+		return
+	}
+	
+	
 	let sampledPoints : Array<number> = []
 	let sampledColors : Array<number> = []
 	let stride = step * 3
@@ -37,12 +47,9 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 		sampledPoints.push(msg.points[i])
 		sampledPoints.push(msg.points[i+1])
 		sampledPoints.push(msg.points[i+2])
-		sampledColors.push(msg.intensities[i/3]/50)
-		sampledColors.push(msg.intensities[i/3]/50)
-		sampledColors.push(msg.intensities[i/3]/50)
-		// sampledColors.push(msg.colors[i]/255)
-		// sampledColors.push(msg.colors[i+1]/255)
-		// sampledColors.push(msg.colors[i+2]/255)
+		sampledColors.push(msg.colors[i])
+		sampledColors.push(msg.colors[i+1])
+		sampledColors.push(msg.colors[i+2])
 	}
 	return [sampledPoints, sampledColors]
 }
