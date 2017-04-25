@@ -73,7 +73,7 @@ let lc_selects_id = ['lc_select_from', 'lc_select_to', 'lc_select_relation'];
 let lc_selects_items = [
     [],//getIds(),
     [],//getIds(),
-    ['left', 'right', 'front', 'back']];
+    ['left', 'left reverse', 'right', 'front', 'back']];
 let lc_selects = [];
 for (let i in lc_selects_id) {
     let elm = document.createElement('select');

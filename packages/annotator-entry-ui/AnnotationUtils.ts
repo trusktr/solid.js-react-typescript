@@ -95,20 +95,44 @@ export class AnnotationManager {
 
 		switch (relation) {
 			case 'left':
-				lane_from.neighborsIds.left = to_id;
-				lane_to.neighborsIds.right = from_id;
+				if (lane_from.neighborsIds.left == null &&
+					lane_to.neighborsIds.right == null) {
+
+					lane_from.neighborsIds.left = to_id;
+					lane_to.neighborsIds.right = from_id;
+				}
+				break;
+			case 'left reverse':
+				if (lane_from.neighborsIds.left == null &&
+					lane_to.neighborsIds.left == null) {
+
+					lane_from.neighborsIds.left = to_id;
+					lane_to.neighborsIds.left = from_id;
+				}
 				break;
 			case 'right':
-				lane_from.neighborsIds.right = to_id;
-				lane_to.neighborsIds.left = from_id; // TODO: fix this
+				if (lane_from.neighborsIds.right == null &&
+					lane_to.neighborsIds.left == null) {
+
+					lane_from.neighborsIds.right = to_id;
+					lane_to.neighborsIds.left = from_id; // TODO: fix this
+				}
 				break;
 			case 'front':
-				lane_from.neighborsIds.front.push(to_id);
-				lane_to.neighborsIds.back.push(from_id);
+				if (lane_from.neighborsIds.front == null &&
+					lane_to.neighborsIds.back == null) {
+
+					lane_from.neighborsIds.front.push(to_id);
+					lane_to.neighborsIds.back.push(from_id);
+				}
 				break;
 			case 'back':
-				lane_from.neighborsIds.back.push(to_id);
-				lane_to.neighborsIds.front.push(from_id);
+				if (lane_from.neighborsIds.back == null &&
+					lane_to.neighborsIds.front == null) {
+
+					lane_from.neighborsIds.back.push(to_id);
+					lane_to.neighborsIds.front.push(from_id);
+				}
 				break;
 			default:
 				log.error("Unknown relation to be added: " + relation);
