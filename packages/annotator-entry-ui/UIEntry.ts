@@ -17,13 +17,10 @@ declare global {
 const root = $("#root");
 
 export function onLoad() {
-
 	require("annotator-control-ui/UIControl")
-
 	log.info('loading ')
 	annotator.initScene();
 	annotator.animate();
-
 }
 
 $(onLoad)
