@@ -4,6 +4,7 @@
  */
 
 import * as $ from 'jquery'
+import {LaneSideType, LaneEntryExitType} from 'annotator-entry-ui/LaneAnnotation'
 
 // Get html elements
 ///////////////////////////////////////////////////////////////////////////////
@@ -26,11 +27,17 @@ for (let i in lp_labels_text) {
 }
 
 let lp_selects_id = ['lp_select_left', 'lp_select_right', 'lp_select_entry', 'lp_select_exit'];
-let lp_selects_items = [
-    ['unknown', '––––––––––––', '–  –  –  –  –  –  –', '• • • • • • •'],
-    ['unknown', '––––––––––––', '–  –  –  –  –  –  –', '• • • • • • •'],
+let lp_selects_text = [
+    ['unknown', '––––––––––––', '–  –  –  –  –  –  –'],
+    ['unknown', '––––––––––––', '–  –  –  –  –  –  –'],
     ['unknown', 'continue ––»»»––', 'stop ––||––'],
     ['unknown', 'continue ––»»»––', 'stop ––||––']];
+let lp_select_value = [
+    [LaneSideType.UNKNOWN.toString(), LaneSideType.SOLID.toString(), LaneSideType.BROKEN.toString()],
+    [LaneSideType.UNKNOWN.toString(), LaneSideType.SOLID.toString(), LaneSideType.BROKEN.toString()],
+    [LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()],
+    [LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()]];
+
 let lp_selects = [];
 let elm = document.createElement('text');
 elm.textContent = 'UNKNOWN';
@@ -42,10 +49,10 @@ for (let i in lp_selects_id) {
     let elm = document.createElement('select');
     elm.id = lp_selects_id[i];
     elm.className = 'select_style';
-    for (let j in lp_selects_items[i]) {
+    for (let j = 0; j < lp_selects_text[i].length; ++j) {
         let option = document.createElement("option");
-        option.value = lp_selects_items[i][j];
-        option.text = lp_selects_items[i][j];
+        option.value = lp_select_value[i][j];
+        option.text = lp_selects_text[i][j];
         elm.appendChild(option);
     }
     lp_selects.push(elm);
@@ -62,11 +69,11 @@ for (let i in lc_labels_text) {
     lc_labels.push(elm);
 }
 
-let lc_selects_id = ['lc_select_from', 'lc_select_tp', 'lc_select_relation'];
+let lc_selects_id = ['lc_select_from', 'lc_select_to', 'lc_select_relation'];
 let lc_selects_items = [
     [],//getIds(),
     [],//getIds(),
-    ['left', 'right', 'front', 'back']];
+    ['left', 'left reverse', 'right', 'front', 'back']];
 let lc_selects = [];
 for (let i in lc_selects_id) {
     let elm = document.createElement('select');
@@ -81,13 +88,8 @@ for (let i in lc_selects_id) {
     lc_selects.push(elm);
 }
 
-let lc_cancel = document.createElement('button');
-lc_cancel.textContent = 'Cancel';
-lc_cancel.id = 'lc_cancel';
-lc_cancel.className = 'button_style';
-
 let lc_add = document.createElement('button');
-lc_add.id = 'lp_add';
+lc_add.id = 'lc_add';
 lc_add.textContent = 'Add';
 lc_add.className = 'button_style';
 

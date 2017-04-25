@@ -11,6 +11,7 @@ import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
+import {LaneSideType, LaneEntryExitType} from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 
@@ -593,6 +594,101 @@ class Annotator {
 		lp_add_front.addEventListener('click', _ => {
 			this.addFront();
 		});
+
+		let lc_select_from = document.getElementById('lc_select_from');
+		lc_select_from.addEventListener('mousedown', _ => {
+
+			// Get ids
+			let ids = this.annotationManager.getValidIds();
+			// Add ids
+			let selectbox = $('#lc_select_from');
+			selectbox.empty();
+			let list = '';
+			for (let j = 0; j < ids.length; j++){
+				list += "<option value='" +ids[j] + "'>" +ids[j] + "</option>";
+			}
+			selectbox.html(list);
+		});
+
+		let lc_select_to = document.getElementById('lc_select_to');
+		lc_select_to.addEventListener('mousedown', _ => {
+
+			// Get ids
+			let ids = this.annotationManager.getValidIds();
+			// Add ids
+			let selectbox = $('#lc_select_to');
+			selectbox.empty();
+			let list = '';
+			for (let j = 0; j < ids.length; j++){
+				list += "<option value='" +ids[j] + "'>" +ids[j] + "</option>";
+			}
+			selectbox.html(list);
+		});
+
+		let lc_add = document.getElementById('lc_add');
+		lc_add.addEventListener('click', _ => {
+			let lc_to = $('#lc_select_to').val();
+			let lc_from = $('#lc_select_from').val();
+			let lc_relation = $('#lc_select_relation').val();
+
+			if (lc_to == null || lc_from == null) {
+				log.error("You have to select the lanes to be connected.");
+				return;
+			}
+
+			if (lc_to == lc_from) {
+				log.error("You can't connect a lane to itself. The 2 ids should be unique.");
+				return;
+			}
+
+			log.info("Add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
+			this.annotationManager.addRelation(lc_from, lc_to, lc_relation);
+			this.resetLaneProp();
+		});
+
+		let lc_left = $('#lp_select_left');
+		lc_left.on('change', _ => {
+
+			let active_annotation = this.annotationManager.getActiveAnnotation();
+			if (active_annotation == null) {
+				return;
+			}
+			log.info("Adding left side type: " + lc_left.children("option").filter(":selected").text());
+			active_annotation.leftSideType = lc_left.val();
+		});
+
+		let lc_right = $('#lp_select_right');
+		lc_right.on('change', _ => {
+
+			let active_annotation = this.annotationManager.getActiveAnnotation();
+			if (active_annotation == null) {
+				return;
+			}
+			log.info("Adding right side type: " + lc_right.children("option").filter(":selected").text());
+			active_annotation.rightSideType = lc_right.val();
+		});
+
+		let lc_entry = $('#lp_select_entry');
+		lc_entry.on('change', _ => {
+
+			let active_annotation = this.annotationManager.getActiveAnnotation();
+			if (active_annotation == null) {
+				return;
+			}
+			log.info("Adding entry type: " + lc_entry.children("option").filter(":selected").text());
+			active_annotation.entryType = lc_entry.val();
+		});
+
+		let lc_exit = $('#lp_select_exit');
+		lc_exit.on('change', _ => {
+
+			let active_annotation = this.annotationManager.getActiveAnnotation();
+			if (active_annotation == null) {
+				return;
+			}
+			log.info("Adding exit type: " + lc_exit.children("option").filter(":selected").text());
+			active_annotation.exitType = lc_exit.val();
+		});
 	}
 
 	/**
@@ -625,6 +721,36 @@ class Annotator {
 
 		let lp_id = document.getElementById('lp_id_value');
 		lp_id.textContent = active_annotation.id;
+
+		let lc_select_to = $('#lc_select_to');
+		lc_select_to.empty();
+		lc_select_to.removeAttr('disabled');
+
+		let lc_select_from = $('#lc_select_from');
+		lc_select_from.empty();
+		lc_select_from.removeAttr('disabled');
+
+		let lc_select_relation = $('#lc_select_relation');
+		lc_select_relation.removeAttr('disabled');
+
+		let lp_select_left = $('#lp_select_left');
+		lp_select_left.removeAttr('disabled');
+		lp_select_left.val(active_annotation.leftSideType.toString());
+
+		let lp_add_relation = $('#lc_add');
+		lp_add_relation.removeAttr('disabled');
+
+		let lp_select_right = $('#lp_select_right');
+		lp_select_right.removeAttr('disabled');
+		lp_select_right.val(active_annotation.rightSideType.toString());
+
+		let lp_select_entry = $('#lp_select_entry');
+		lp_select_entry.removeAttr('disabled');
+		lp_select_entry.val(active_annotation.entryType.toString());
+
+		let lp_select_exit = $('#lp_select_exit');
+		lp_select_exit.removeAttr('disabled');
+		lp_select_exit.val(active_annotation.exitType.toString());
 	}
 
 	/**
@@ -641,8 +767,17 @@ class Annotator {
 
 		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select');
 		for (let i = 0; i < selects.length; ++i) {
+			selects.item(i).selectedIndex = 0;
 			selects.item(i).setAttribute('disabled', 'disabled');
 		}
+
+		selects = document.getElementById('lane_conn').getElementsByTagName('select');
+		for (let i = 0; i < selects.length; ++i) {
+			selects.item(i).setAttribute('disabled', 'disabled');
+		}
+
+		let lc_add = document.getElementById('lc_add');
+		lc_add.setAttribute('disabled', 'disabled');
 	}
 
 	/**

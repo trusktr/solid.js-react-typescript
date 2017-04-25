@@ -57,6 +57,90 @@ export class AnnotationManager {
 	}
 
 	/**
+	 * Get all existing ids
+	 */
+	getValidIds() {
+		let list = [];
+		for (let i = 0; i < this.annotations.length; ++i) {
+			list.push(this.annotations[i].id);
+		}
+		return list;
+	}
+
+	/**
+	 * Add a new realion between two existing lanes
+	 */
+	addRelation(from_id : number, to_id : number, relation : string) {
+
+		let lane_from = null;
+		for (let annotation of this.annotations) {
+			if (annotation.id == from_id) {
+				lane_from = annotation;
+				break;
+			}
+		}
+
+		let lane_to = null;
+		for (let annotation of this.annotations) {
+			if (annotation.id == to_id) {
+				lane_to = annotation;
+				break;
+			}
+		}
+
+		if (lane_to == null || lane_to == null) {
+			log.info("Given lane ids are not valid.");
+			return;
+		}
+
+		switch (relation) {
+			case 'left':
+				if (lane_from.neighborsIds.left == null &&
+					lane_to.neighborsIds.right == null) {
+
+					lane_from.neighborsIds.left = to_id;
+					lane_to.neighborsIds.right = from_id;
+				}
+				break;
+			case 'left reverse':
+				if (lane_from.neighborsIds.left == null &&
+					lane_to.neighborsIds.left == null) {
+
+					lane_from.neighborsIds.left = to_id;
+					lane_to.neighborsIds.left = from_id;
+				}
+				break;
+			case 'right':
+				if (lane_from.neighborsIds.right == null &&
+					lane_to.neighborsIds.left == null) {
+
+					lane_from.neighborsIds.right = to_id;
+					lane_to.neighborsIds.left = from_id; // TODO: fix this
+				}
+				break;
+			case 'front':
+				if (lane_from.neighborsIds.front == null &&
+					lane_to.neighborsIds.back == null) {
+
+					lane_from.neighborsIds.front.push(to_id);
+					lane_to.neighborsIds.back.push(from_id);
+				}
+				break;
+			case 'back':
+				if (lane_from.neighborsIds.back == null &&
+					lane_to.neighborsIds.front == null) {
+
+					lane_from.neighborsIds.back.push(to_id);
+					lane_to.neighborsIds.front.push(from_id);
+				}
+				break;
+			default:
+				log.error("Unknown relation to be added: " + relation);
+				break;
+		}
+	}
+
+	/**
 	 * Check if the passed mesh corresponds to an inactive lane
 	 * annotation. If so, return it's index in the manager.
 	 * @param object
