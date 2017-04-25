@@ -642,6 +642,8 @@ class Annotator {
 			}
 
 			log.info("Add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
+			this.annotationManager.addRelation(lc_from, lc_to, lc_relation);
+			this.resetLaneProp();
 		});
 
 		let lc_left = $('#lp_select_left');
@@ -731,21 +733,24 @@ class Annotator {
 		let lc_select_relation = $('#lc_select_relation');
 		lc_select_relation.removeAttr('disabled');
 
-		let selects = $('#lp_select_left');
-		selects.removeAttr('disabled');
-		selects.val(active_annotation.leftSideType.toString());
+		let lp_select_left = $('#lp_select_left');
+		lp_select_left.removeAttr('disabled');
+		lp_select_left.val(active_annotation.leftSideType.toString());
 
-		selects = $('#lp_select_right');
-		selects.removeAttr('disabled');
-		selects.val(active_annotation.rightSideType.toString());
+		let lp_add_relation = $('#lc_add');
+		lp_add_relation.removeAttr('disabled');
 
-		selects = $('#lp_select_entry');
-		selects.removeAttr('disabled');
-		selects.val(active_annotation.entryType.toString());
+		let lp_select_right = $('#lp_select_right');
+		lp_select_right.removeAttr('disabled');
+		lp_select_right.val(active_annotation.rightSideType.toString());
 
-		selects = $('#lp_select_exit');
-		selects.removeAttr('disabled');
-		selects.val(active_annotation.exitType.toString());
+		let lp_select_entry = $('#lp_select_entry');
+		lp_select_entry.removeAttr('disabled');
+		lp_select_entry.val(active_annotation.entryType.toString());
+
+		let lp_select_exit = $('#lp_select_exit');
+		lp_select_exit.removeAttr('disabled');
+		lp_select_exit.val(active_annotation.exitType.toString());
 	}
 
 	/**
@@ -770,6 +775,9 @@ class Annotator {
 		for (let i = 0; i < selects.length; ++i) {
 			selects.item(i).setAttribute('disabled', 'disabled');
 		}
+
+		let lc_add = document.getElementById('lc_add');
+		lc_add.setAttribute('disabled', 'disabled');
 	}
 
 	/**
