@@ -11,6 +11,7 @@ import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
+import {LaneSideType, LaneEntryExitType} from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 
@@ -642,6 +643,50 @@ class Annotator {
 
 			log.info("Add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
 		});
+
+		let lc_left = $('#lp_select_left');
+		lc_left.on('change', _ => {
+
+			let active_annotation = this.annotationManager.getActiveAnnotation();
+			if (active_annotation == null) {
+				return;
+			}
+			log.info("Adding left side type: " + lc_left.children("option").filter(":selected").text());
+			active_annotation.leftSideType = lc_left.val();
+		});
+
+		let lc_right = $('#lp_select_right');
+		lc_right.on('change', _ => {
+
+			let active_annotation = this.annotationManager.getActiveAnnotation();
+			if (active_annotation == null) {
+				return;
+			}
+			log.info("Adding right side type: " + lc_right.children("option").filter(":selected").text());
+			active_annotation.rightSideType = lc_right.val();
+		});
+
+		let lc_entry = $('#lp_select_entry');
+		lc_entry.on('change', _ => {
+
+			let active_annotation = this.annotationManager.getActiveAnnotation();
+			if (active_annotation == null) {
+				return;
+			}
+			log.info("Adding entry type: " + lc_entry.children("option").filter(":selected").text());
+			active_annotation.entryType = lc_entry.val();
+		});
+
+		let lc_exit = $('#lp_select_exit');
+		lc_exit.on('change', _ => {
+
+			let active_annotation = this.annotationManager.getActiveAnnotation();
+			if (active_annotation == null) {
+				return;
+			}
+			log.info("Adding exit type: " + lc_exit.children("option").filter(":selected").text());
+			active_annotation.exitType = lc_exit.val();
+		});
 	}
 
 	/**
@@ -685,6 +730,22 @@ class Annotator {
 
 		let lc_select_relation = $('#lc_select_relation');
 		lc_select_relation.removeAttr('disabled');
+
+		let selects = $('#lp_select_left');
+		selects.removeAttr('disabled');
+		selects.val(active_annotation.leftSideType.toString());
+
+		selects = $('#lp_select_right');
+		selects.removeAttr('disabled');
+		selects.val(active_annotation.rightSideType.toString());
+
+		selects = $('#lp_select_entry');
+		selects.removeAttr('disabled');
+		selects.val(active_annotation.entryType.toString());
+
+		selects = $('#lp_select_exit');
+		selects.removeAttr('disabled');
+		selects.val(active_annotation.exitType.toString());
 	}
 
 	/**
@@ -701,6 +762,7 @@ class Annotator {
 
 		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select');
 		for (let i = 0; i < selects.length; ++i) {
+			selects.item(i).selectedIndex = 0;
 			selects.item(i).setAttribute('disabled', 'disabled');
 		}
 
