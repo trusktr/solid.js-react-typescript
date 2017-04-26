@@ -291,7 +291,7 @@ export class LaneAnnotation {
 			entryType : this.entryType,
 			exitType : this.exitType,
 			neighborsIds : this.neighborsIds,
-			markerPositions : [],
+			markerPositions : []
 		}
 		
 		this.laneMarkers.forEach((marker) => {
