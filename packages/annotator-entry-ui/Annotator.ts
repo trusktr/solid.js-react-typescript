@@ -398,7 +398,7 @@ class Annotator {
 	}
 	
 	private async saveAnnotations() {
-		let filename = './data/annotations.js'
+		let filename = './data/annotations.json'
 		await this.annotationManager.saveAnnotationsToFile(filename)
 	}
 	
