@@ -64,6 +64,9 @@ export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	id
 	laneMarkers : Array<THREE.Mesh>
+	laneCenterLine : THREE.Line
+	laneDirectionMarkers : Array<THREE.Mesh>
+	laneDirection : THREE.Object3D
 	laneMesh : THREE.Mesh
 	markerMaterial :  THREE.MeshLambertMaterial
 	activeLaneMaterial : THREE.MeshBasicMaterial
@@ -73,6 +76,7 @@ export class LaneAnnotation {
 	rightSideType : LaneSideType
 	entryType : LaneEntryExitType
 	exitType : LaneEntryExitType
+	waypoints : Array<THREE.Vector3>
 	annotationColor
 	
 	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
@@ -85,6 +89,9 @@ export class LaneAnnotation {
 		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
 		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: this.annotationColor, side : THREE.DoubleSide})
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
+		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), new THREE.LineDashedMaterial( { color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2 } ) )
+		this.laneDirection = new THREE.Object3D()
+		this.laneDirection.add(this.laneCenterLine)
 		this.leftSideType = LaneSideType.UNKNOWN
 		this.rightSideType = LaneSideType.UNKNOWN
 		this.entryType = LaneEntryExitType.UNKNOWN
@@ -94,7 +101,7 @@ export class LaneAnnotation {
 			obj.markerPositions.forEach( (position) => {
 				this.addRawMarker(scene, new THREE.Vector3(position.x, position.y, position.z))
 			})
-			this.generateMeshFromMarkers()
+			this.updateVisualization()
 			this.makeInactive()
 		}
 	}
@@ -151,7 +158,7 @@ export class LaneAnnotation {
 			scene.add(marker2)
 		}
 		
-		this.generateMeshFromMarkers()
+		this.updateVisualization()
 	}
 	
 	/**
@@ -193,7 +200,7 @@ export class LaneAnnotation {
 			scene.remove(this.laneMarkers.pop())
 		}
 		
-		this.generateMeshFromMarkers()
+		this.updateVisualization()
 	}
 	
 	/**
@@ -201,6 +208,7 @@ export class LaneAnnotation {
 	 */
 	makeActive() {
 		this.laneMesh.material = this.activeLaneMaterial
+		this.laneDirection.visible = false
 	}
 	
 	/**
@@ -208,12 +216,13 @@ export class LaneAnnotation {
 	 */
 	makeInactive() {
 		this.laneMesh.material = this.inactiveLaneMaterial
+		this.laneDirection.visible = true
 	}
 	
 	/**
 	 * Recompute mesh from markers.
 	 */
-	generateMeshFromMarkers = () => {
+	updateVisualization = () => {
 		if (this.laneMarkers.length == 0) {
 			return
 		}
@@ -240,6 +249,9 @@ export class LaneAnnotation {
 		newGeometry.computeFaceNormals()
 		this.laneMesh.geometry = newGeometry
 		this.laneMesh.geometry.verticesNeedUpdate = true
+		
+		// Generate center lane indication and direction markers
+		this.computeWaypoints()
 	}
 	
 	toJSON() {
@@ -283,5 +295,52 @@ export class LaneAnnotation {
 		
 		return newLeftMarker
 	}
+	
+	private computeWaypoints() {
+		// There must be at least 4 markers to compute waypoints
+		if (this.laneMarkers.length < 4) {
+			return;
+		}
+		
+		let points : Array<THREE.Vector3> = [];
+		for (let i = 0; i < this.laneMarkers.length-1; i+=2) {
+			let waypoint = this.laneMarkers[i].position.clone();
+			waypoint.add(this.laneMarkers[i+1].position).divideScalar(2);
+			points.push(waypoint);
+		}
+		
+		let distanceBetweenMarkers  = 0.5 // in meters
+		let spline = new THREE.CatmullRomCurve3(points);
+		let numPoints = spline.getLength() / distanceBetweenMarkers;
+		this.waypoints = spline.getPoints(numPoints);
+		
+		// // Remove points from lineDirection object
+		// this.laneDirectionMarkers.forEach( (marker) => {
+		// 	this.laneDirection.remove(marker)
+		// })
+		//
+		// // Create new markers for each newly estimated waypoint
+		// this.waypoints.forEach( (waypoint) => {
+		// 	let waypointMarker = this.createWaypointMarker(waypoint)
+		// 	this.laneDirectionMarkers.push(waypointMarker)
+		// 	this.laneDirection.add(waypointMarker)
+		// })
+		
+		// Change the line geometry
+		let lineGeometry  = new THREE.Geometry()
+		let centerPoints = spline.getPoints(100)
+		for (let i=0; centerPoints.length; i++) {
+			lineGeometry.vertices[i] = centerPoints[i]
+		}
+		this.laneCenterLine.geometry = lineGeometry
+		this.laneCenterLine.geometry.verticesNeedUpdate = true
+		
+	}
+	
+	// private createWaypointMarker( position : THREE.Vector3) : THREE.Mesh {
+	// 	let geometry = new THREE.Geometry()
+	// 	let marker = new THREE.Mesh()
+	// 	return marker
+	// }
 	
 }
