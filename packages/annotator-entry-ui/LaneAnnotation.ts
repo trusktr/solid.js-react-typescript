@@ -9,13 +9,16 @@ import * as TypeLogger from 'typelogger'
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
+// Some constants for rendering
 const controlPointGeometry = new THREE.BoxGeometry( 0.5, 0.5, 0.5 );
+
 const directionGeometry = new THREE.Geometry()
 directionGeometry.vertices.push(new THREE.Vector3(-0.5, 1,  1))
 directionGeometry.vertices.push(new THREE.Vector3( 0.5, 1,  0))
 directionGeometry.vertices.push(new THREE.Vector3(-0.5, 1, -1))
 directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
 directionGeometry.computeFaceNormals()
+
 const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, side : THREE.DoubleSide})
 
 export enum NeighborDirection {
@@ -62,6 +65,10 @@ export interface LaneAnnotationInterface {
 	annotationColor
 	markerPositions
 	neighborsIds :LaneNeighborsIds
+	leftSideType : LaneSideType
+	rightSideType : LaneSideType
+	entryType : LaneEntryExitType
+	exitType : LaneEntryExitType
 }
 
 /**
@@ -70,11 +77,12 @@ export interface LaneAnnotationInterface {
 export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	id
+	waypoints : Array<THREE.Vector3>
 	laneMarkers : Array<THREE.Mesh>
 	laneCenterLine : THREE.Line
 	laneDirectionMarkers : Array<THREE.Mesh>
-	laneDirection : THREE.Object3D
 	laneMesh : THREE.Mesh
+	laneDirection : THREE.Object3D
 	markerMaterial :  THREE.MeshLambertMaterial
 	activeLaneMaterial : THREE.MeshBasicMaterial
 	inactiveLaneMaterial : THREE.MeshLambertMaterial
@@ -83,7 +91,6 @@ export class LaneAnnotation {
 	rightSideType : LaneSideType
 	entryType : LaneEntryExitType
 	exitType : LaneEntryExitType
-	waypoints : Array<THREE.Vector3>
 	annotationColor
 	
 	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
@@ -91,6 +98,10 @@ export class LaneAnnotation {
 		this.id = obj ? obj.id : new Date().getUTCMilliseconds()
 		this.annotationColor = obj? obj.annotationColor : Math.random() * 0xffffff
 		this.neighborsIds = obj? obj.neighborsIds : new LaneNeighborsIds()
+		this.leftSideType = obj ? obj.leftSideType : LaneSideType.UNKNOWN
+		this.rightSideType = obj ? obj.rightSideType : LaneSideType.UNKNOWN
+		this.entryType =  obj ? obj.entryType : LaneEntryExitType.UNKNOWN
+		this.exitType =  obj ? obj.exitType : LaneEntryExitType.UNKNOWN
 		this.laneMarkers = []
 		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor, side : THREE.DoubleSide})
 		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
@@ -100,10 +111,6 @@ export class LaneAnnotation {
 		this.laneDirection = new THREE.Object3D()
 		this.laneDirectionMarkers = []
 		this.laneDirection.add(this.laneCenterLine)
-		this.leftSideType = LaneSideType.UNKNOWN
-		this.rightSideType = LaneSideType.UNKNOWN
-		this.entryType = LaneEntryExitType.UNKNOWN
-		this.exitType = LaneEntryExitType.UNKNOWN
 		
 		if (scene && obj && obj.markerPositions.length > 0) {
 			obj.markerPositions.forEach( (position) => {
@@ -268,8 +275,12 @@ export class LaneAnnotation {
 		let data : LaneAnnotationInterface = {
 			id: this.id,
 			annotationColor : this.annotationColor,
+			leftSideType : this.leftSideType,
+			rightSideType : this.rightSideType,
+			entryType : this.entryType,
+			exitType : this.exitType,
 			neighborsIds : this.neighborsIds,
-			markerPositions : []
+			markerPositions : [],
 		}
 		
 		this.laneMarkers.forEach((marker) => {
