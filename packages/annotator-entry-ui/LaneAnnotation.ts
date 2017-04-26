@@ -10,6 +10,13 @@ TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
 const controlPointGeometry = new THREE.BoxGeometry( 0.5, 0.5, 0.5 );
+const directionGeometry = new THREE.Geometry()
+directionGeometry.vertices.push(new THREE.Vector3(-0.5, 1,  1))
+directionGeometry.vertices.push(new THREE.Vector3( 0.5, 1,  0))
+directionGeometry.vertices.push(new THREE.Vector3(-0.5, 1, -1))
+directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
+directionGeometry.computeFaceNormals()
+const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, side : THREE.DoubleSide})
 
 export enum NeighborDirection {
 	SAME = 1,
@@ -91,6 +98,7 @@ export class LaneAnnotation {
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), new THREE.LineDashedMaterial( { color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2 } ) )
 		this.laneDirection = new THREE.Object3D()
+		this.laneDirectionMarkers = []
 		this.laneDirection.add(this.laneCenterLine)
 		this.leftSideType = LaneSideType.UNKNOWN
 		this.rightSideType = LaneSideType.UNKNOWN
@@ -309,38 +317,48 @@ export class LaneAnnotation {
 			points.push(waypoint);
 		}
 		
-		let distanceBetweenMarkers  = 0.5 // in meters
+		let distanceBetweenMarkers  = 5.0 // in meters
 		let spline = new THREE.CatmullRomCurve3(points);
 		let numPoints = spline.getLength() / distanceBetweenMarkers;
-		this.waypoints = spline.getPoints(numPoints);
+		this.waypoints = spline.getSpacedPoints(numPoints)
 		
-		// // Remove points from lineDirection object
-		// this.laneDirectionMarkers.forEach( (marker) => {
-		// 	this.laneDirection.remove(marker)
-		// })
-		//
-		// // Create new markers for each newly estimated waypoint
-		// this.waypoints.forEach( (waypoint) => {
-		// 	let waypointMarker = this.createWaypointMarker(waypoint)
-		// 	this.laneDirectionMarkers.push(waypointMarker)
-		// 	this.laneDirection.add(waypointMarker)
-		// })
+		this.updateLaneDirectionMarkers()
 		
 		// Change the line geometry
 		let lineGeometry  = new THREE.Geometry()
 		let centerPoints = spline.getPoints(100)
-		for (let i=0; centerPoints.length; i++) {
+		for (let i=0; i < centerPoints.length; i++) {
 			lineGeometry.vertices[i] = centerPoints[i]
+			lineGeometry.vertices[i].y += 0.2
 		}
+		lineGeometry.computeLineDistances()
 		this.laneCenterLine.geometry = lineGeometry
 		this.laneCenterLine.geometry.verticesNeedUpdate = true
 		
 	}
 	
-	// private createWaypointMarker( position : THREE.Vector3) : THREE.Mesh {
-	// 	let geometry = new THREE.Geometry()
-	// 	let marker = new THREE.Mesh()
-	// 	return marker
-	// }
+	private updateLaneDirectionMarkers()  {
+		// Remove points from lineDirection object
+		this.laneDirectionMarkers.forEach( (marker) => {
+			this.laneDirection.remove(marker)
+		})
+		
+		if (this.waypoints.length < 3) {
+			return;
+		}
+		
+		for (let i = 1; i < this.waypoints.length - 1; i++) {
+			
+			let angle = Math.atan2(this.waypoints[i+1].z - this.waypoints[i].z,
+				                   this.waypoints[i+1].x - this.waypoints[i].x)
+			
+			let marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
+			marker.position.set(this.waypoints[i].x, this.waypoints[i].y, this.waypoints[i].z)
+			marker.rotateY(-angle)
+			this.laneDirection.add(marker)
+			this.laneDirectionMarkers.push(marker)
+		}
+		
+	}
 	
 }
