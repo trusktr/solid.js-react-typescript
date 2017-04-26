@@ -10,6 +10,7 @@ import {
 } from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
+import * as MkDirP from 'mkdirp'
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -318,9 +319,16 @@ export class AnnotationManager {
 		
 	}
 	
-	async saveAnnotationsToFile(filename : string) {
-		let strAnnotations = JSON.stringify(this.annotations)
-		AsyncFile.writeTextFile(filename, strAnnotations)
+	async saveAnnotationsToFile(fileName : string) {
+		let self = this
+		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
+		let writeFile = function (er, _) {
+			if (!er) {
+				let strAnnotations = JSON.stringify(self.annotations)
+				AsyncFile.writeTextFile(fileName, strAnnotations)
+			}
+		}
+		MkDirP.mkdirP(dirName, writeFile)
 	}
 	
 	/**
