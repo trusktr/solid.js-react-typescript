@@ -333,14 +333,14 @@ export class LaneAnnotation {
 		
 		let points : Array<THREE.Vector3> = [];
 		for (let i = 0; i < this.laneMarkers.length-1; i+=2) {
-			let waypoint = this.laneMarkers[i].position.clone();
-			waypoint.add(this.laneMarkers[i+1].position).divideScalar(2);
-			points.push(waypoint);
+			let waypoint = this.laneMarkers[i].position.clone()
+			waypoint.add(this.laneMarkers[i+1].position).divideScalar(2)
+			points.push(waypoint)
 		}
 		
 		let distanceBetweenMarkers  = 5.0 // in meters
-		let spline = new THREE.CatmullRomCurve3(points);
-		let numPoints = spline.getLength() / distanceBetweenMarkers;
+		let spline = new THREE.CatmullRomCurve3(points)
+		let numPoints = spline.getLength() / distanceBetweenMarkers
 		this.waypoints = spline.getSpacedPoints(numPoints)
 		
 		this.updateLaneDirectionMarkers()
