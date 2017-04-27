@@ -5,6 +5,18 @@
 import * as THREE from 'three'
 import * as AsyncFile from 'async-file'
 
+/**
+ * This class is used to facilitate the creation KML files. At the moment just Paths
+ * can be added but other elements will be enabled as needed.
+ * Example:
+ *  let kml = new SimpleKML()
+ *  let points = []
+ *  points.push(new THREE.Vector3(0, 0, 0))
+ *  points.push(new THREE.Vector3(1, 1, 1))
+ *  points.push(new THREE.Vector3(2, 2, 2))
+ *  kml.addPath(points)
+ *  kml.saveToFile("MyOutputFilename.kml")
+ */
 export class SimpleKML {
 	header : string
 	content : string
