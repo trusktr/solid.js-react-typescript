@@ -9,7 +9,17 @@ import * as TypeLogger from 'typelogger'
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
+// Some constants for rendering
 const controlPointGeometry = new THREE.BoxGeometry( 0.5, 0.5, 0.5 );
+
+const directionGeometry = new THREE.Geometry()
+directionGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5,  1))
+directionGeometry.vertices.push(new THREE.Vector3( 0.5, 0.5,  0))
+directionGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -1))
+directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
+directionGeometry.computeFaceNormals()
+
+const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, side : THREE.DoubleSide})
 
 export enum NeighborDirection {
 	SAME = 1,
@@ -50,11 +60,31 @@ class LaneNeighborsIds {
 	}
 }
 
+class LaneRenderingProperties {
+	color
+	markerMaterial : THREE.MeshLambertMaterial
+	activeMaterial : THREE.MeshBasicMaterial
+	inactiveMaterial : THREE.MeshLambertMaterial
+	centerLineMaterial : THREE.LineDashedMaterial
+	
+	constructor (color) {
+		this.color = color
+		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.color, side : THREE.DoubleSide})
+		this.activeMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
+		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side : THREE.DoubleSide})
+		this.centerLineMaterial = new THREE.LineDashedMaterial( { color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2 } )
+	}
+}
+
 export interface LaneAnnotationInterface {
 	id
-	annotationColor
+	color
 	markerPositions
 	neighborsIds :LaneNeighborsIds
+	leftSideType : LaneSideType
+	rightSideType : LaneSideType
+	entryType : LaneEntryExitType
+	exitType : LaneEntryExitType
 }
 
 /**
@@ -63,38 +93,41 @@ export interface LaneAnnotationInterface {
 export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	id
+	renderingProperties : LaneRenderingProperties
+	waypoints : Array<THREE.Vector3>
 	laneMarkers : Array<THREE.Mesh>
+	laneCenterLine : THREE.Line
+	laneDirectionMarkers : Array<THREE.Mesh>
 	laneMesh : THREE.Mesh
-	markerMaterial :  THREE.MeshLambertMaterial
-	activeLaneMaterial : THREE.MeshBasicMaterial
-	inactiveLaneMaterial : THREE.MeshLambertMaterial
+	laneDirection : THREE.Object3D
 	neighborsIds : LaneNeighborsIds
 	leftSideType : LaneSideType
 	rightSideType : LaneSideType
 	entryType : LaneEntryExitType
 	exitType : LaneEntryExitType
-	annotationColor
 	
 	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
 		
 		this.id = obj ? obj.id : new Date().getUTCMilliseconds()
-		this.annotationColor = obj? obj.annotationColor : Math.random() * 0xffffff
+		let color = obj? obj.color : Math.random() * 0xffffff
 		this.neighborsIds = obj? obj.neighborsIds : new LaneNeighborsIds()
+		this.leftSideType = obj ? obj.leftSideType : LaneSideType.UNKNOWN
+		this.rightSideType = obj ? obj.rightSideType : LaneSideType.UNKNOWN
+		this.entryType =  obj ? obj.entryType : LaneEntryExitType.UNKNOWN
+		this.exitType =  obj ? obj.exitType : LaneEntryExitType.UNKNOWN
+		this.renderingProperties = new LaneRenderingProperties(color)
 		this.laneMarkers = []
-		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.annotationColor, side : THREE.DoubleSide})
-		this.activeLaneMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
-		this.inactiveLaneMaterial = new THREE.MeshLambertMaterial({color: this.annotationColor, side : THREE.DoubleSide})
-		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.activeLaneMaterial)
-		this.leftSideType = LaneSideType.UNKNOWN
-		this.rightSideType = LaneSideType.UNKNOWN
-		this.entryType = LaneEntryExitType.UNKNOWN
-		this.exitType = LaneEntryExitType.UNKNOWN
+		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
+		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
+		this.laneDirection = new THREE.Object3D()
+		this.laneDirection.add(this.laneCenterLine)
+		this.laneDirectionMarkers = []
 		
 		if (scene && obj && obj.markerPositions.length > 0) {
 			obj.markerPositions.forEach( (position) => {
 				this.addRawMarker(scene, new THREE.Vector3(position.x, position.y, position.z))
 			})
-			this.generateMeshFromMarkers()
+			this.updateVisualization()
 			this.makeInactive()
 		}
 	}
@@ -105,7 +138,7 @@ export class LaneAnnotation {
 	 * @param position
 	 */
 	addRawMarker(scene:THREE.Scene, position : THREE.Vector3) {
-		let marker = new THREE.Mesh( controlPointGeometry, this.markerMaterial)
+		let marker = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.laneMarkers.push(marker)
 		scene.add(marker)
@@ -125,7 +158,7 @@ export class LaneAnnotation {
 	 */
 	addMarker(scene:THREE.Scene, x:number, y:number, z:number) {
 		
-		let marker = new THREE.Mesh( controlPointGeometry, this.markerMaterial)
+		let marker = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
 		
 		marker.position.x = x
 		if (this.laneMarkers.length > 0) {
@@ -143,7 +176,7 @@ export class LaneAnnotation {
 		// of the left marker.
 		if (this.laneMarkers.length >= 3) {
 			let marker2Position = this.computeLeftMarkerEstimatedPosition()
-			let marker2 = new THREE.Mesh( controlPointGeometry, this.markerMaterial)
+			let marker2 = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
 			marker2.position.x = marker2Position.x
 			marker2.position.y = marker2Position.y
 			marker2.position.z = marker2Position.z
@@ -151,7 +184,7 @@ export class LaneAnnotation {
 			scene.add(marker2)
 		}
 		
-		this.generateMeshFromMarkers()
+		this.updateVisualization()
 	}
 	
 	/**
@@ -193,27 +226,29 @@ export class LaneAnnotation {
 			scene.remove(this.laneMarkers.pop())
 		}
 		
-		this.generateMeshFromMarkers()
+		this.updateVisualization()
 	}
 	
 	/**
 	 * Make this annotation active. This changes the displayed material.
 	 */
 	makeActive() {
-		this.laneMesh.material = this.activeLaneMaterial
+		this.laneMesh.material = this.renderingProperties.activeMaterial
+		this.laneDirection.visible = false
 	}
 	
 	/**
 	 * Make this annotation inactive. This changes the displayed material.
 	 */
 	makeInactive() {
-		this.laneMesh.material = this.inactiveLaneMaterial
+		this.laneMesh.material = this.renderingProperties.inactiveMaterial
+		this.laneDirection.visible = true
 	}
 	
 	/**
 	 * Recompute mesh from markers.
 	 */
-	generateMeshFromMarkers = () => {
+	updateVisualization = () => {
 		if (this.laneMarkers.length == 0) {
 			return
 		}
@@ -240,6 +275,9 @@ export class LaneAnnotation {
 		newGeometry.computeFaceNormals()
 		this.laneMesh.geometry = newGeometry
 		this.laneMesh.geometry.verticesNeedUpdate = true
+		
+		// Generate center lane indication and direction markers
+		this.computeWaypoints()
 	}
 	
 	toJSON() {
@@ -247,7 +285,11 @@ export class LaneAnnotation {
 		// needed to reconstruct this object from scratch)
 		let data : LaneAnnotationInterface = {
 			id: this.id,
-			annotationColor : this.annotationColor,
+			color : this.renderingProperties.color,
+			leftSideType : this.leftSideType,
+			rightSideType : this.rightSideType,
+			entryType : this.entryType,
+			exitType : this.exitType,
 			neighborsIds : this.neighborsIds,
 			markerPositions : []
 		}
@@ -258,7 +300,6 @@ export class LaneAnnotation {
 		
 		return data
 	}
-	
 	
 	/**
 	 *  Use the last two points to create a guess of the
@@ -284,4 +325,59 @@ export class LaneAnnotation {
 		return newLeftMarker
 	}
 	
+	private computeWaypoints() {
+		// There must be at least 4 markers to compute waypoints
+		if (this.laneMarkers.length < 4) {
+			return;
+		}
+		
+		let points : Array<THREE.Vector3> = [];
+		for (let i = 0; i < this.laneMarkers.length-1; i+=2) {
+			let waypoint = this.laneMarkers[i].position.clone()
+			waypoint.add(this.laneMarkers[i+1].position).divideScalar(2)
+			points.push(waypoint)
+		}
+		
+		let distanceBetweenMarkers  = 5.0 // in meters
+		let spline = new THREE.CatmullRomCurve3(points)
+		let numPoints = spline.getLength() / distanceBetweenMarkers
+		this.waypoints = spline.getSpacedPoints(numPoints)
+		
+		this.updateLaneDirectionMarkers()
+		
+		// Change the line geometry
+		let lineGeometry  = new THREE.Geometry()
+		let centerPoints = spline.getPoints(100)
+		for (let i=0; i < centerPoints.length; i++) {
+			lineGeometry.vertices[i] = centerPoints[i]
+			lineGeometry.vertices[i].y += 0.2
+		}
+		lineGeometry.computeLineDistances()
+		this.laneCenterLine.geometry = lineGeometry
+		this.laneCenterLine.geometry.verticesNeedUpdate = true
+		
+	}
+	
+	private updateLaneDirectionMarkers()  {
+		// Remove points from lineDirection object
+		this.laneDirectionMarkers.forEach( (marker) => {
+			this.laneDirection.remove(marker)
+		})
+		
+		if (this.waypoints.length < 3) {
+			return;
+		}
+		
+		for (let i = 1; i < this.waypoints.length - 1; i++) {
+			
+			let angle = Math.atan2(this.waypoints[i+1].z - this.waypoints[i].z,
+				                   this.waypoints[i+1].x - this.waypoints[i].x)
+			
+			let marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
+			marker.position.set(this.waypoints[i].x, this.waypoints[i].y, this.waypoints[i].z)
+			marker.rotateY(-angle)
+			this.laneDirection.add(marker)
+			this.laneDirectionMarkers.push(marker)
+		}
+	}
 }

@@ -199,6 +199,7 @@ export class AnnotationManager {
 		let newAnnotationIndex = this.annotations.length-1
 		this.annotationMeshes.push(this.annotations[newAnnotationIndex].laneMesh)
 		scene.add(this.annotations[newAnnotationIndex].laneMesh)
+		scene.add(this.annotations[newAnnotationIndex].laneDirection)
 	}
 	
 	/**
@@ -219,6 +220,7 @@ export class AnnotationManager {
 		
 		// Remove mesh from scene.
 		scene.remove(this.annotations[this.activeAnnotationIndex].laneMesh)
+		scene.remove(this.annotations[this.activeAnnotationIndex].laneDirection)
 		
 		// Remove mesh from internal array of meshes.
 		let index = this.annotationMeshes.findIndex( (mesh) => {
@@ -282,7 +284,7 @@ export class AnnotationManager {
 			log.info("No active annotation. Can't update mesh")
 			return
 		}
-		this.annotations[this.activeAnnotationIndex].generateMeshFromMarkers()
+		this.annotations[this.activeAnnotationIndex].updateVisualization()
 	}
 	
 	/**
@@ -365,7 +367,7 @@ export class AnnotationManager {
 		this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.BACK)
 		this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.FRONT)
 
-		this.annotations[newAnnotationIndex].generateMeshFromMarkers()
+		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
 	}
 	
@@ -428,7 +430,7 @@ export class AnnotationManager {
 				break
 		}
 		
-		this.annotations[newAnnotationIndex].generateMeshFromMarkers()
+		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
 	}
 	
@@ -490,7 +492,7 @@ export class AnnotationManager {
 				break
 		}
 		
-		this.annotations[newAnnotationIndex].generateMeshFromMarkers()
+		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
 	}
 	
