@@ -13,9 +13,9 @@ const log = TypeLogger.getLogger(__filename)
 const controlPointGeometry = new THREE.BoxGeometry( 0.5, 0.5, 0.5 );
 
 const directionGeometry = new THREE.Geometry()
-directionGeometry.vertices.push(new THREE.Vector3(-0.5, 1,  1))
-directionGeometry.vertices.push(new THREE.Vector3( 0.5, 1,  0))
-directionGeometry.vertices.push(new THREE.Vector3(-0.5, 1, -1))
+directionGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5,  1))
+directionGeometry.vertices.push(new THREE.Vector3( 0.5, 0.5,  0))
+directionGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -1))
 directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
 directionGeometry.computeFaceNormals()
 
