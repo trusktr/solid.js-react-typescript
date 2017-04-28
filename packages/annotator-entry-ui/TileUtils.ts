@@ -64,7 +64,7 @@ export class SuperTile {
 	constructor() {
 		this.maxTilesToLoad = 2000
 		this.samplingStep = 15
-		this.origin = null
+		this.origin = new THREE.Vector3()
 	}
 	
 	/**
@@ -92,8 +92,8 @@ export class SuperTile {
 			if (msg.points.length == 0) {
 				continue
 			}
-			if (this.origin == null) {
-				this.origin = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
+			if (count == 0) {
+				this.origin.set(msg.originX, msg.originY, msg.originZ)
 			}
 			
 			let [sampledPoints, sampledColors] = sampleData(msg, this.samplingStep)
@@ -116,18 +116,11 @@ export class SuperTile {
 		let positions = new Float32Array(points_size)
 		let colors = new Float32Array(inputColors)
 		
-		//let base_point : Array<number> = [points[0], points[1], points[2]]
-		
 		for (let i=0; i < points_size; i+=3) {
-			// const x = points[i] - base_point[0]
-			// const y = points[i+1] - base_point[1]
-			// const z = points[i+2] - base_point[2]
-			const x = points[i] - this.origin.x
-			const y = points[i+1] - this.origin.y
-			const z = points[i+2] - this.origin.z
-			positions[i] = -y
-			positions[i+1] = z
-			positions[i+2] = -x
+			let p = this.utmToThreejs(points[i], points[i+1], points[i+2])
+			positions[i] = p.x
+			positions[i+1] = p.y
+			positions[i+2] = p.z
 		}
 		
 		geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -137,6 +130,23 @@ export class SuperTile {
 		const material = new THREE.PointsMaterial( { size: 0.05, vertexColors: THREE.VertexColors } )
 		this.pointCloud = new THREE.Points( geometry, material )
 	}
+	
+	
+	
+	threejsToUtm(point : THREE.Vector3) : THREE.Vector3 {
+		let utmPoint = new THREE.Vector3(-point.z, -point.x, point.y)
+		 utmPoint.add(this.origin)
+		return utmPoint
+	}
+	
+	utmToThreejs(x:number, y:number, z:number) : THREE.Vector3 {
+		let tmp = new THREE.Vector3(x, y, z)
+		tmp.sub(this.origin)
+		return new THREE.Vector3(-tmp.y, tmp.z, -tmp.x)
+	}
+	
+	
+	
 }
 
 

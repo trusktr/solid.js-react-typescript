@@ -11,6 +11,7 @@ import {
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
+import {SuperTile} from "./TileUtils"
 
 const utmObj = require('utm-latlng');
 
@@ -328,7 +329,7 @@ export class AnnotationManager {
 		AsyncFile.writeTextFile(filename, strAnnotations)
 	}
 	
-	saveToKML(filename : string, origin : THREE.Vector3) {
+	saveToKML(filename : string, tile : SuperTile) {
 		// Get all the points
 		let points = []
 		this.annotations.forEach( (annotation) => {
@@ -339,10 +340,8 @@ export class AnnotationManager {
 		let geopoints = []
 		let utm = new utmObj()
 		points.forEach( (p) => {
-			// First change coordinate frame from THREE js to World
-			let wp = new THREE.Vector3(-p.z, -p.x, p.y)
-			// Shift from local to UTM
-			wp.add(origin)
+			// First change coordinate frame from THREE js to UTM
+			let wp = tile.threejsToUtm(p)
 			// Get latitude longitude
 			let tmp  = utm.convertUtmToLatLng(wp.x, wp.y, 18, 'S')
 			geopoints.push(new THREE.Vector3(tmp.lng, tmp.lat, wp.z))

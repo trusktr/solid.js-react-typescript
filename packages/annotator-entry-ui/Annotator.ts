@@ -393,11 +393,11 @@ class Annotator {
 		}
 		
 		if (event.code == 'KeyM') {
-			this.annotationManager.saveToKML("/Users/alonso/Desktop/path.kml", this.mapTile.origin)
+			this.annotationManager.saveToKML("./data/path.kml", this.mapTile)
 		}
 	}
 	
-	private onKeyUp = () => {P
+	private onKeyUp = () => {
 		this.isAddMarkerKeyPressed = false
 	}
 	
