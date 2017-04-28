@@ -13,6 +13,7 @@ import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
 import * as MkDirP from 'mkdirp'
+import Vector3 = THREE.Vector3
 
 const utmObj = require('utm-latlng')
 
@@ -217,10 +218,42 @@ export class AnnotationManager {
 	}
 	
 	/**
-	 * Saves car path to file
+	 * Saves car path to CSV file
 	 */
-	saveCarPath() {
-	
+	convertAnnotationToCSV(args) : string {
+		
+		let data : LaneAnnotation[] = args.data || null;
+		if (data === null) {
+			log.warn("Empty annotation.")
+			return ''
+		}
+		
+		let columnDelimiter = args.columnDelimiter || ',';
+		let lineDelimiter = args.lineDelimiter || '\n';
+		let result : string = ''
+		data.forEach( (lane) => {
+			lane.waypoints.forEach( (marker) => {
+				result += marker.x.toString();
+				result += columnDelimiter;
+				result += marker.y.toString();
+				result += columnDelimiter;
+				result += marker.z.toString();
+				result += lineDelimiter;
+				});
+			});
+		
+		return result
+	}
+	saveCarPath(fileName : string) {
+		let self = this
+		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
+		let writeFile = function (er, _) {
+			if (!er) {
+				let strAnnotations = self.convertAnnotationToCSV({data : self.annotations});
+				AsyncFile.writeTextFile(fileName, strAnnotations)
+			}
+		}
+		MkDirP.mkdirP(dirName, writeFile)
 	}
 
 	/**

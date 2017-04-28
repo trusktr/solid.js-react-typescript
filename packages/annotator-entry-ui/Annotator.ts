@@ -393,7 +393,7 @@ class Annotator {
 			this.saveToFile();
 		}
 		
-		if (event.code == 'KeyM') {
+		if (event.code === 'KeyM') {
 			this.annotationManager.saveToKML("./data/path.kml", this.mapTile)
 		}
 	}
@@ -730,8 +730,10 @@ class Annotator {
 		
 		let save_path = $('#save_path')
 		save_path.on('click', _ => {
+			
 			log.info("Save car path to file.")
-			this.annotationManager.saveCarPath()
+			let filename : string = './data/trajectory.csv'
+			this.annotationManager.saveCarPath(filename)
 		})
 	}
 

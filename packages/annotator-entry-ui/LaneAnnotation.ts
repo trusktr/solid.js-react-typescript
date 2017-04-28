@@ -107,7 +107,7 @@ export class LaneAnnotation {
 	rightSideType : LaneSideType
 	entryType : LaneEntryExitType
 	exitType : LaneEntryExitType
-	trajectory: bool
+	trajectory: boolean
 	
 	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
 		
