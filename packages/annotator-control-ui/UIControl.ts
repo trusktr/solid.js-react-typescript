@@ -104,7 +104,7 @@ let icons = {
     header: "ui-icon-circle-arrow-e",
     activeHeader: "ui-icon-circle-arrow-s"
 };
-$('#menu_1').accordion({collapsible : true, icons : icons, heightStyle : "content"})
-$('#menu_2').accordion({collapsible : true, icons : icons, heightStyle : "content"})
-$('#menu_3').accordion({collapsible : true, icons : icons, heightStyle : "content"})
-$('#menu_4').accordion({collapsible : true, icons : icons, heightStyle : "content"})
+$('#menu_1').accordion({collapsible : true, heightStyle : "content"})
+$('#menu_2').accordion({collapsible : true, heightStyle : "content"})
+$('#menu_3').accordion({collapsible : true, heightStyle : "content"})
+$('#menu_4').accordion({collapsible : true, heightStyle : "content"})

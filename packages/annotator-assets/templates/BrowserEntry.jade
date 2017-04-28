@@ -43,13 +43,6 @@ html(lang="en")
                 background-color: transparent;
             }
         style.
-            .fieldset_style {
-                margin: 1%;
-                padding: 1%;
-                /*height: 32%;*/
-                width: 95%;
-            }
-        style.
             .fieldset_content_style {
                 margin-top: 2px;
                 width: 100%;
@@ -80,19 +73,44 @@ html(lang="en")
                 font-size: x-small;
             }
         style.
-            .button_style {
-            }
-        style.
             .button_inline {
                 width: 90px;
                 text-align: center;
                 margin: 0;
                 font-size: small;
                 cursor: pointer;
+                background-color: white;
+                color: #4CAF50;
+                border: 2px solid #4CAF50;
+                border-radius: 12px;
             }
         style.
-            .button_inline:hover {
-                background-color: #1883ba;
+            button.button_inline:disabled {
+                color: #999999;
+                border: 2px solid #999999;
+            }
+        style.
+            button.button_inline:hover {
+                background-color: white;
+            }
+        style.
+            button {
+                width: 30px;
+                text-decoration: none;
+                outline: none;
+                color: #fff;
+                background-color: #4CAF50;
+                border: none;
+                border-radius: 15px;
+            }
+        style.
+            button:hover {
+                background-color: #3e8e41
+            }
+        style.
+            button:active {
+                background-color: #3e8e41;
+                transform: translateY(4px);
             }
         style.
             .label_style {
@@ -116,20 +134,17 @@ html(lang="en")
             }
         style.
             .accordion {
-                background-color: #eee;
-                color: #444;
-                cursor: pointer;
-                padding: 0;
-                width: 100%;
-                text-align: left;
-                border: none;
                 outline: none;
+                border-radius: 4px;
+                background-color: #f4511e;
+                border: none;
+                color: #FFFFFF;
+                text-align: left;
                 font-size: 15px;
-                transition: 0.4s;
-            }
-        style.
-            .accordion.active, .accordion:hover {
-                background-color: #1883ba;
+                padding: 0;
+                width: auto;
+                transition: all 0.5s;
+                cursor: pointer;
             }
         style.
             .dropdown_head {
@@ -137,10 +152,22 @@ html(lang="en")
                 padding-left: 2px;
             }
         style.
+            .dropdown_head:after {
+                content: '\02795'; /* Unicode character for "plus" sign (+) */
+                font-size: 15px;
+                float: right;
+            }
+        style.
+            .dropdown_head:active:after {
+                content: '\002B';
+            }
+        style.
             .dropdown_body {
                 height: auto;
                 padding: 5px;
+                -webkit-padding-after: 10px;
                 background-color: white;
+                color: black;
                 display: none;
             }
 
@@ -153,10 +180,10 @@ html(lang="en")
                 require(process.cwd() + "/dist/app/annotator-entry-ui")
         #menu
             #tools.div_buttons_group
-                button#tools_add.ui-btn.ui-icon-plus.ui-btn-icon-left.button_style() New Lane
-                button#tools_delete.ui-btn.ui-icon-delete.ui-btn-icon-left.button_style() Delete Lane
-                button#tools_load.ui-btn.ui-icon-cloud.ui-btn-icon-left.button_style() Load Cloud
-                button#tools_save.ui-btn.ui-icon-lock.ui-btn-icon-left.button_style() Save Annotation
+                button#tools_add.ui-btn.ui-icon-plus.ui-btn-icon-left New Lane
+                button#tools_delete.ui-btn.ui-icon-delete.ui-btn-icon-left Delete Lane
+                button#tools_load.ui-btn.ui-icon-cloud.ui-btn-icon-left Load Cloud
+                button#tools_save.ui-btn.ui-icon-lock.ui-btn-icon-left Save Annotation
 
             #menu_1.accordion
                 h3#exp_head_1.dropdown_head Annotation
@@ -167,11 +194,11 @@ html(lang="en")
                         #lane_prop_3.div_buttons_group
                             button#lp_add_forward &uarr;
                         #lane_prop_4.div_buttons_group
-                            button#lp_add_left_opposite() &darr;
-                            button#lp_add_left_same() &uarr;
+                            button#lp_add_left_opposite &darr;
+                            button#lp_add_left_same &uarr;
                             button#lp_current(disabled) C
-                            button#lp_add_right_same() &uarr;
-                            button#lp_add_right_opposite() &darr;
+                            button#lp_add_right_same &uarr;
+                            button#lp_add_right_opposite &darr;
             #menu_2.accordion
                 h3#exp_head_2.dropdown_head Neighbours
                 #exp_body_2.dropdown_body
