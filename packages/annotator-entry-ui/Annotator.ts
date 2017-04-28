@@ -391,6 +391,10 @@ class Annotator {
 		if (event.code == "KeyS") {
 			this.saveToFile();
 		}
+		
+		if (event.code == 'KeyM') {
+			this.annotationManager.saveToKML("./data/path.kml", this.mapTile)
+		}
 	}
 	
 	private onKeyUp = () => {
