@@ -66,12 +66,14 @@ class LaneRenderingProperties {
 	activeMaterial : THREE.MeshBasicMaterial
 	inactiveMaterial : THREE.MeshLambertMaterial
 	centerLineMaterial : THREE.LineDashedMaterial
+	trajectoryMaterial : THREE.MeshLambertMaterial
 	
 	constructor (color) {
 		this.color = color
 		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.color, side : THREE.DoubleSide})
 		this.activeMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
 		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side : THREE.DoubleSide})
+		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side : THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial( { color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2 } )
 	}
 }
@@ -92,7 +94,7 @@ export interface LaneAnnotationInterface {
  */
 export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
-	id
+	id : number
 	renderingProperties : LaneRenderingProperties
 	waypoints : Array<THREE.Vector3>
 	laneMarkers : Array<THREE.Mesh>
@@ -105,6 +107,7 @@ export class LaneAnnotation {
 	rightSideType : LaneSideType
 	entryType : LaneEntryExitType
 	exitType : LaneEntryExitType
+	trajectory: bool
 	
 	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
 		
@@ -122,6 +125,7 @@ export class LaneAnnotation {
 		this.laneDirection = new THREE.Object3D()
 		this.laneDirection.add(this.laneCenterLine)
 		this.laneDirectionMarkers = []
+		this.trajectory = false
 		
 		if (scene && obj && obj.markerPositions.length > 0) {
 			obj.markerPositions.forEach( (position) => {
@@ -216,7 +220,7 @@ export class LaneAnnotation {
 	 * @param scene
 	 */
 	deleteLast(scene : THREE.Scene)  {
-		if (this.laneMarkers.length == 0) {
+		if (this.laneMarkers.length === 0) {
 			return
 		}
 		
@@ -241,15 +245,39 @@ export class LaneAnnotation {
 	 * Make this annotation inactive. This changes the displayed material.
 	 */
 	makeInactive() {
-		this.laneMesh.material = this.renderingProperties.inactiveMaterial
+		if (this.trajectory) {
+			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
+		}
+		else {
+			this.laneMesh.material = this.renderingProperties.inactiveMaterial
+		}
 		this.laneDirection.visible = true
+	}
+	
+	/**
+	 * Make this annotation part of the car path
+	 */
+	setTrajectory(isTrajectoryActive : boolean) {
+		this.trajectory = isTrajectoryActive
+		
+		// Do not change the active lane
+		if (!this.laneDirection.visible) {
+			return
+		}
+		
+		if (this.trajectory) {
+			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
+		}
+		else {
+			this.laneMesh.material = this.renderingProperties.inactiveMaterial
+		}
 	}
 	
 	/**
 	 * Recompute mesh from markers.
 	 */
 	updateVisualization = () => {
-		if (this.laneMarkers.length == 0) {
+		if (this.laneMarkers.length === 0) {
 			return
 		}
 		
@@ -264,7 +292,7 @@ export class LaneAnnotation {
 			
 			// Add faces
 			for (let i = 0; i < this.laneMarkers.length - 2; i++) {
-				if (i % 2 == 0) {
+				if (i % 2 === 0) {
 					newGeometry.faces.push(new THREE.Face3(i+2, i + 1, i))
 				} else {
 					newGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))

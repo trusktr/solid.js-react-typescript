@@ -139,6 +139,7 @@ class Annotator {
 		this.gui.addColor(this.settings, 'background').onChange( (value) => {
 			this.renderer.setClearColor(new THREE.Color(value))
 		})
+		this.gui.domElement.className = 'threeJs_gui'
 		
 		// Add listeners
 		window.addEventListener('resize', this.onWindowResize);
@@ -220,7 +221,7 @@ class Annotator {
 	 */
 	private addLaneAnnotation() {
 		if (this.annotationManager.activeAnnotationIndex >=0 &&
-			this.annotationManager.activeMarkers.length == 0) {
+			this.annotationManager.activeMarkers.length === 0) {
 			return
 		}
 		// This creates a new lane and add it to the scene for display
@@ -241,7 +242,7 @@ class Annotator {
 	 * @param event
 	 */
 	private addLaneAnnotationMarker = (event) => {
-		if (this.isAddMarkerKeyPressed == false) {
+		if (this.isAddMarkerKeyPressed === false) {
 			return
 		}
 		
@@ -350,45 +351,45 @@ class Annotator {
 	 * @param event
 	 */
 	private onKeyDown = (event) => {
-		if (event.code == 'KeyA') {
+		if (event.code === 'KeyA') {
 			this.isAddMarkerKeyPressed = true
 		}
 		
-		if (event.code == 'KeyD') {
+		if (event.code === 'KeyD') {
 			log.info("Deleting last marker")
 			this.annotationManager.deleteLastLaneMarker(this.scene)
 			this.hideTransform()
 		}
 		
-		if (event.code == 'KeyN') {
+		if (event.code === 'KeyN') {
 			this.addLane();
 		}
 		
-		if (event.code == 'KeyZ') {
+		if (event.code === 'KeyZ') {
 			this.deleteLane();
 		}
 		
-		if (event.code == "KeyF") {
+		if (event.code === "KeyF") {
 			this.addFront();
 		}
 		
-		if (event.code == "KeyL") {
+		if (event.code === "KeyL") {
 			this.addLeftSame();
 		}
 		
-		if (event.code == "KeyK") {
+		if (event.code === "KeyK") {
 			this.addLeftReverse();
 		}
 		
-		if (event.code == "KeyR") {
+		if (event.code === "KeyR") {
 			this.addRightSame();
 		}
 		
-		if (event.code == "KeyE") {
+		if (event.code === "KeyE") {
 			this.addRightReverse();
 		}
 		
-		if (event.code == "KeyS") {
+		if (event.code === "KeyS") {
 			this.saveToFile();
 		}
 	}
@@ -477,14 +478,17 @@ class Annotator {
 	 * Functions to bind
 	 */
 	 deleteLane() {
+		// Delete lane from scene
 		log.info("Delete selected annotation");
+		this.annotationManager.deleteLaneFromPath();
 		this.annotationManager.deleteActiveAnnotation(this.scene);
 		this.deactivateLaneProp();
 		this.hideTransform();
 	}
 
 	 addLane() {
-		log.info("Added new annotation");
+		// Add lane to scene
+	 	log.info("Added new annotation");
 		this.addLaneAnnotation();
 		this.resetLaneProp();
 		this.hideTransform();
@@ -631,12 +635,12 @@ class Annotator {
 			let lc_from = $('#lc_select_from').val();
 			let lc_relation = $('#lc_select_relation').val();
 
-			if (lc_to == null || lc_from == null) {
+			if (lc_to === null || lc_from === null) {
 				log.error("You have to select the lanes to be connected.");
 				return;
 			}
 
-			if (lc_to == lc_from) {
+			if (lc_to === lc_from) {
 				log.error("You can't connect a lane to itself. The 2 ids should be unique.");
 				return;
 			}
@@ -650,7 +654,7 @@ class Annotator {
 		lc_left.on('change', _ => {
 
 			let active_annotation = this.annotationManager.getActiveAnnotation();
-			if (active_annotation == null) {
+			if (active_annotation === null) {
 				return;
 			}
 			log.info("Adding left side type: " + lc_left.children("option").filter(":selected").text());
@@ -661,7 +665,7 @@ class Annotator {
 		lc_right.on('change', _ => {
 
 			let active_annotation = this.annotationManager.getActiveAnnotation();
-			if (active_annotation == null) {
+			if (active_annotation === null) {
 				return;
 			}
 			log.info("Adding right side type: " + lc_right.children("option").filter(":selected").text());
@@ -672,7 +676,7 @@ class Annotator {
 		lc_entry.on('change', _ => {
 
 			let active_annotation = this.annotationManager.getActiveAnnotation();
-			if (active_annotation == null) {
+			if (active_annotation === null) {
 				return;
 			}
 			log.info("Adding entry type: " + lc_entry.children("option").filter(":selected").text());
@@ -683,12 +687,48 @@ class Annotator {
 		lc_exit.on('change', _ => {
 
 			let active_annotation = this.annotationManager.getActiveAnnotation();
-			if (active_annotation == null) {
+			if (active_annotation === null) {
 				return;
 			}
 			log.info("Adding exit type: " + lc_exit.children("option").filter(":selected").text());
 			active_annotation.exitType = lc_exit.val();
 		});
+
+		let tr_add = $('#tr_add');
+		tr_add.on('click', _ => {
+
+			log.info("Add/remove lane to/from car path.");
+			this.annotationManager.addLaneToPath();
+			if (tr_add.text() === "Add") {
+				tr_add.text("Remove");
+			}
+			else {
+				tr_add.text("Add");
+			}
+		});
+		
+		let tr_show = $('#tr_show');
+		tr_show.on('click', _ => {
+			
+			log.info("Show/hide car path.");
+			if (!this.annotationManager.showPath()) {
+				return
+			}
+			
+			// Change button text only if showPath succeed
+			if (tr_show.text() === "Show") {
+				tr_show.text("Hide");
+			}
+			else {
+				tr_show.text("Show");
+			}
+		});
+		
+		let save_path = $('#save_path')
+		save_path.on('click', _ => {
+			log.info("Save car path to file.")
+			this.annotationManager.saveCarPath()
+		})
 	}
 
 	/**
@@ -697,7 +737,7 @@ class Annotator {
 	private resetLaneProp() {
 
 		let active_annotation = this.annotationManager.getActiveAnnotation();
-		if (active_annotation == null) {
+		if (active_annotation === null) {
 			return;
 		}
 
@@ -720,7 +760,7 @@ class Annotator {
 		}
 
 		let lp_id = document.getElementById('lp_id_value');
-		lp_id.textContent = active_annotation.id;
+		lp_id.textContent = active_annotation.id.toString();
 
 		let lc_select_to = $('#lc_select_to');
 		lc_select_to.empty();
@@ -751,6 +791,18 @@ class Annotator {
 		let lp_select_exit = $('#lp_select_exit');
 		lp_select_exit.removeAttr('disabled');
 		lp_select_exit.val(active_annotation.exitType.toString());
+
+		let tr_add = $('#tr_add');
+		tr_add.removeAttr('disabled');
+		if (this.annotationManager.laneIndexInPath(active_annotation.id) === -1) {
+			tr_add.text("Add");
+		}
+		else {
+			tr_add.text("Remove");
+		}
+
+		let tr_show = $('#tr_show');
+		tr_show.removeAttr('disabled');
 	}
 
 	/**
@@ -778,6 +830,9 @@ class Annotator {
 
 		let lc_add = document.getElementById('lc_add');
 		lc_add.setAttribute('disabled', 'disabled');
+
+		let tr_add = document.getElementById('tr_add');
+		tr_add.setAttribute('disabled', 'disabled');
 	}
 
 	/**

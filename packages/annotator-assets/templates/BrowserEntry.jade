@@ -20,13 +20,18 @@ html(lang="en")
                 border: 0;
                 padding: 0;
                 width: 100%;
-                background-color: rgba(193, 195, 193, 0.55);
+                background-color: white;
                 font-family: Verdana, Geneva, sans-serif;
+            }
+        style.
+            #threeJs_gui {
+                position: absolute;
+                top: 100%;
+                left: 100%;
             }
         style.
             #root {
                 height: 100%;
-                margin: 0.5%;
                 border: 0;
                 padding: 0;
                 width: 79%;
@@ -35,7 +40,7 @@ html(lang="en")
         style.
             #menu {
                 height: 100%;
-                margin: 0.5%;
+                margin-left: 1%;
                 border: 0;
                 padding: 0;
                 width: 19%;
@@ -135,7 +140,8 @@ html(lang="en")
         style.
             .accordion {
                 outline: none;
-                border-radius: 4px;
+                border-radius: 10px;
+                margin-bottom: 2px;
                 background-color: #f4511e;
                 border: none;
                 color: #FFFFFF;
@@ -149,7 +155,7 @@ html(lang="en")
         style.
             .dropdown_head {
                 margin : 1px;
-                padding-left: 2px;
+                padding-left: 5px;
             }
         style.
             .dropdown_head:after {
@@ -159,14 +165,15 @@ html(lang="en")
             }
         style.
             .dropdown_head:active:after {
-                content: '\002B';
+                content: '-';
             }
         style.
             .dropdown_body {
                 height: auto;
                 padding: 5px;
+                border-radius: 5px;
                 -webkit-padding-after: 10px;
-                background-color: white;
+                background-color: antiquewhite;
                 color: black;
                 display: none;
             }

@@ -83,16 +83,16 @@ export class SuperTile {
 				break
 			}
 			
-			if (files[i] == 'tile_index.md' || files[i] == '.DS_Store') {
+			if (files[i] === 'tile_index.md' || files[i] === '.DS_Store') {
 				continue
 			}
 			
 			let msg  = await loadTile(Path.join(datasetPath, files[i]))
 			
-			if (msg.points.length == 0) {
+			if (msg.points.length === 0) {
 				continue
 			}
-			if (this.origin == null) {
+			if (this.origin === null) {
 				this.origin = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
 			}
 			
