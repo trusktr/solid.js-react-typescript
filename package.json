@@ -1,6 +1,6 @@
 {
   "name": "mapper-annotator",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Mapper.AI Annotator",
   "scripts": {
     "dev:start": "NODE_ENV=development ./node_modules/.bin/webpack-dev-server --config etc/webpack/webpack.config.js --env development",
@@ -116,6 +116,7 @@
     "css-loader": "^0.27.3",
     "debug": "^2.2.0",
     "del": "^2.2.0",
+    "electron": "^1.6.6",
     "eslint": "^3.2.2",
     "exports-loader": "^0.6.3",
     "extract-text-webpack-plugin": "^2.1.0",
@@ -235,6 +236,7 @@
     "typelogger": "^1.0.29",
     "urlsearchparams": "densebrain/URLSearchParams",
     "utf8-encoding": "^0.1.2",
+    "utm-latlng": "^1.0.3",
     "uuid": "^3.0.1",
     "whatwg-fetch": "^2.0.3",
     "winston": "^2.2.0"

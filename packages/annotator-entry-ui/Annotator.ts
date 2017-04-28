@@ -392,6 +392,10 @@ class Annotator {
 		if (event.code === "KeyS") {
 			this.saveToFile();
 		}
+		
+		if (event.code == 'KeyM') {
+			this.annotationManager.saveToKML("./data/path.kml", this.mapTile)
+		}
 	}
 	
 	private onKeyUp = () => {
@@ -399,7 +403,7 @@ class Annotator {
 	}
 	
 	private async saveAnnotations() {
-		let filename = './data/annotations.txt'
+		let filename = './data/annotations.json'
 		await this.annotationManager.saveAnnotationsToFile(filename)
 	}
 	

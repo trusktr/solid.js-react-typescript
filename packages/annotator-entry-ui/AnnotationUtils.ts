@@ -8,8 +8,13 @@ import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
 	NeighborLocation
 } from 'annotator-entry-ui/LaneAnnotation'
+import {SuperTile} from "annotator-entry-ui/TileUtils"
+import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
+import * as MkDirP from 'mkdirp'
+
+const utmObj = require('utm-latlng')
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -72,7 +77,7 @@ export class AnnotationManager {
 	}
 
 	/**
-	 * Add a new realion between two existing lanes
+	 * Add a new relation between two existing lanes
 	 */
 	addRelation(from_id : number, to_id : number, relation : string) {
 
@@ -398,9 +403,40 @@ export class AnnotationManager {
 		
 	}
 	
-	async saveAnnotationsToFile(filename : string) {
-		let strAnnotations = JSON.stringify(this.annotations)
-		AsyncFile.writeTextFile(filename, strAnnotations)
+	async saveAnnotationsToFile(fileName : string) {
+		let self = this
+		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
+		let writeFile = function (er, _) {
+			if (!er) {
+				let strAnnotations = JSON.stringify(self.annotations)
+				AsyncFile.writeTextFile(fileName, strAnnotations)
+			}
+		}
+		MkDirP.mkdirP(dirName, writeFile)
+	}
+	
+	saveToKML(filename : string, tile : SuperTile) {
+		// Get all the points
+		let points = []
+		this.annotations.forEach( (annotation) => {
+			points = points.concat(annotation.waypoints)
+		})
+		
+		// Convert points to lat lon
+		let geopoints = []
+		let utm = new utmObj()
+		points.forEach( (p) => {
+			// First change coordinate frame from THREE js to UTM
+			let wp = tile.threejsToUtm(p)
+			// Get latitude longitude
+			let tmp  = utm.convertUtmToLatLng(wp.x, wp.y, 18, 'S')
+			geopoints.push(new THREE.Vector3(tmp.lng, tmp.lat, wp.z))
+		})
+		
+		// Save file
+		let kml = new SimpleKML()
+		kml.addPath(geopoints)
+		kml.saveToFile(filename)
 	}
 	
 	/**
