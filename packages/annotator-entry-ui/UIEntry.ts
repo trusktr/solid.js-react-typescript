@@ -2,8 +2,15 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
+const $ = require('jquery')
+Object.assign(global,{
+	jQuery: $,
+	$: $
+})
+require('jquery-ui-dist/jquery-ui')
+require('!!css-loader!jquery-ui-dist/jquery-ui.css')
+// require('jquery-mobile/dist/jquery.mobile.css')
 
-import * as $ from 'jquery'
 import * as TypeLogger from 'typelogger'
 import {annotator} from 'annotator-entry-ui/Annotator'
 

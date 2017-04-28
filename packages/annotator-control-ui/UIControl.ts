@@ -3,8 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as $ from 'jquery'
 import {LaneSideType, LaneEntryExitType} from 'annotator-entry-ui/LaneAnnotation'
+
 
 // Get html elements
 ///////////////////////////////////////////////////////////////////////////////
@@ -88,11 +88,6 @@ for (let i in lc_selects_id) {
     lc_selects.push(elm);
 }
 
-let lc_add = document.createElement('button');
-lc_add.id = 'lc_add';
-lc_add.textContent = 'Add';
-lc_add.className = 'button_style';
-
 // Add elements to the menu panel
 ///////////////////////////////////////////////////////////////////////////////
 for (let i in lp_selects) {
@@ -104,5 +99,12 @@ for (let i in lc_selects) {
     lane_conn.appendChild(lc_labels[i]);
     lane_conn.appendChild(lc_selects[i]);
 }
-lane_conn.appendChild(lc_add);
 
+let icons = {
+    header: "ui-icon-circle-arrow-e",
+    activeHeader: "ui-icon-circle-arrow-s"
+};
+$('#menu_1').accordion({collapsible : true, icons : icons, heightStyle : "content"})
+$('#menu_2').accordion({collapsible : true, icons : icons, heightStyle : "content"})
+$('#menu_3').accordion({collapsible : true, icons : icons, heightStyle : "content"})
+$('#menu_4').accordion({collapsible : true, icons : icons, heightStyle : "content"})
