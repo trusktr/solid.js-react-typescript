@@ -33,6 +33,7 @@ export class SimpleKML {
 	addPath(points : Array<THREE.Vector3>) {
 		let path = "    <Placemark>\n " +
 			       "      <LineString>\n" +
+				   "        <altitudeMode>clampToGround</altitudeMode>\n" +
 			       "        <coordinates>\n"
 		points.forEach( (point) => {
 			let strPoint =  "          " + point.x.toString() + "," + point.y.toString() + "," + point.z.toString() + "\n"

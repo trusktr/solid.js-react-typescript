@@ -8,8 +8,11 @@ import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
 	NeighborLocation
 } from 'annotator-entry-ui/LaneAnnotation'
+import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
+
+const utmObj = require('utm-latlng');
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -323,6 +326,32 @@ export class AnnotationManager {
 	async saveAnnotationsToFile(filename : string) {
 		let strAnnotations = JSON.stringify(this.annotations)
 		AsyncFile.writeTextFile(filename, strAnnotations)
+	}
+	
+	saveToKML(filename : string, origin : THREE.Vector3) {
+		// Get all the points
+		let points = []
+		this.annotations.forEach( (annotation) => {
+			points = points.concat(annotation.waypoints)
+		})
+		
+		// Convert points to lat lon
+		let geopoints = []
+		let utm = new utmObj()
+		points.forEach( (p) => {
+			// First change coordinate frame from THREE js to World
+			let wp = new THREE.Vector3(-p.z, -p.x, p.y)
+			// Shift from local to UTM
+			wp.add(origin)
+			// Get latitude longitude
+			let tmp  = utm.convertUtmToLatLng(wp.x, wp.y, 18, 'S')
+			geopoints.push(new THREE.Vector3(tmp.lng, tmp.lat, wp.z))
+		})
+		
+		// Save file
+		let kml = new SimpleKML()
+		kml.addPath(geopoints)
+		kml.saveToFile(filename)
 	}
 	
 	/**

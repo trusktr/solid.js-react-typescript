@@ -116,12 +116,15 @@ export class SuperTile {
 		let positions = new Float32Array(points_size)
 		let colors = new Float32Array(inputColors)
 		
-		let base_point : Array<number> = [points[0], points[1], points[2]]
+		//let base_point : Array<number> = [points[0], points[1], points[2]]
 		
 		for (let i=0; i < points_size; i+=3) {
-			const x = points[i] - base_point[0]
-			const y = points[i+1] - base_point[1]
-			const z = points[i+2] - base_point[2]
+			// const x = points[i] - base_point[0]
+			// const y = points[i+1] - base_point[1]
+			// const z = points[i+2] - base_point[2]
+			const x = points[i] - this.origin.x
+			const y = points[i+1] - this.origin.y
+			const z = points[i+2] - this.origin.z
 			positions[i] = -y
 			positions[i+1] = z
 			positions[i+2] = -x
