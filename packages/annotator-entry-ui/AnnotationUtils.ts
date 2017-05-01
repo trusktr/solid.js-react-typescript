@@ -224,7 +224,13 @@ export class AnnotationManager {
 		
 		let data : LaneAnnotation[] = args.data || null;
 		if (data === null) {
-			log.warn("Empty annotation.")
+			log.error("Empty annotation.")
+			return ''
+		}
+		
+		let tile : SuperTile = args.tile || null;
+		if (tile === null) {
+			log.error('No tile given.')
 			return ''
 		}
 		
@@ -233,23 +239,24 @@ export class AnnotationManager {
 		let result : string = ''
 		data.forEach( (lane) => {
 			lane.waypoints.forEach( (marker) => {
-				result += marker.x.toString();
+				// Get latitude longitude
+				let lat_lng_pt  = tile.threejsToLatLng(marker)
+				result += lat_lng_pt.lng.toString();
 				result += columnDelimiter;
-				result += marker.y.toString();
-				result += columnDelimiter;
-				result += marker.z.toString();
+				result += lat_lng_pt.lat.toString();
 				result += lineDelimiter;
-				});
 			});
+		});
 		
 		return result
 	}
-	saveCarPath(fileName : string) {
+	saveCarPath(fileName : string, tile : SuperTile) {
 		let self = this
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
 			if (!er) {
-				let strAnnotations = self.convertAnnotationToCSV({data : self.annotations});
+				let strAnnotations = self.convertAnnotationToCSV({data : self.annotations,
+				tile : tile});
 				AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}

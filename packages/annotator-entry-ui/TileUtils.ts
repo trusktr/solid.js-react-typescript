@@ -13,6 +13,7 @@ import * as TypeLogger from 'typelogger'
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
+const utmObj = require('utm-latlng')
 
 /**
  * This opens a binary file for reading
@@ -60,11 +61,13 @@ export class SuperTile {
 	pointCloud : THREE.Points
 	maxTilesToLoad : number
 	samplingStep : number
+	utm
 	
 	constructor() {
 		this.maxTilesToLoad = 2000
 		this.samplingStep = 15
 		this.origin = new THREE.Vector3()
+		this.utm = new utmObj()
 	}
 	
 	/**
@@ -145,7 +148,14 @@ export class SuperTile {
 		return new THREE.Vector3(-tmp.y, tmp.z, -tmp.x)
 	}
 	
-	
+	threejsToLatLng(point : THREE.Vector3) {
+		const zoneNum : number = 18
+		const zoneLet : string = 'S'
+		// First change coordinate frame from THREE js to UTM
+		let wp = this.threejsToUtm(point)
+		// Get latitude longitude
+		return this.utm.convertUtmToLatLng(wp.x, wp.y, zoneNum, zoneLet)
+	}
 	
 }
 
