@@ -11,9 +11,9 @@ import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
-import {LaneSideType, LaneEntryExitType} from 'annotator-entry-ui/LaneAnnotation'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
+import {isUndefined} from "util"
 
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
@@ -190,7 +190,9 @@ class Annotator {
 			await this.mapTile.loadFromDataset(pathToTiles)
 			this.scene.add(this.mapTile.pointCloud)
 		} catch (err) {
-			log.error('Failed loading point cloud', err)
+			dialog.showErrorBox("Tiles Load Error",
+				"Annotator failed to load tiles from given folder.")
+			//log.error('Annotator failed loading point cloud', err)
 		}
 	}
 	
@@ -212,7 +214,9 @@ class Annotator {
 			})
 			
 		} catch (err) {
-			log.error('Failed loading annotations', err)
+			dialog.showErrorBox("Annotation Load Error",
+				"Annotator failed to load annotation file.")
+			//log.error('Failed loading annotations', err)
 		}
 	}
 	
@@ -509,7 +513,11 @@ class Annotator {
 			properties: ['openDirectory']
 		});
 
-		log.info('Loadding point cloud from ' + path_electron[0]);
+		if (isUndefined(path_electron)) {
+			return
+		}
+		
+		log.info('Loading point cloud from ' + path_electron[0]);
 		this.loadPointCloudData(path_electron[0]);
 	 }
 
@@ -640,7 +648,9 @@ class Annotator {
 			let lc_relation = $('#lc_select_relation').val();
 
 			if (lc_to === null || lc_from === null) {
-				log.error("You have to select the lanes to be connected.");
+				dialog.showErrorBox("Add Relation Error",
+					"You have to select the lanes to be connected.")
+				//log.error("You have to select the lanes to be connected.");
 				return;
 			}
 
@@ -733,7 +743,7 @@ class Annotator {
 			
 			log.info("Save car path to file.")
 			let filename : string = './data/trajectory.csv'
-			this.annotationManager.saveCarPath(filename)
+			this.annotationManager.saveCarPath(filename, this.mapTile)
 		})
 	}
 
