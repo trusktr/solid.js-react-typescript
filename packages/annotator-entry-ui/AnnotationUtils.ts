@@ -29,12 +29,16 @@ export class AnnotationManager {
 	annotationMeshes : Array<THREE.Mesh>
 	activeMarkers : Array<THREE.Mesh>
 	activeAnnotationIndex : number
+	carPath : Array<number>
+	carPathActivation : boolean
 	
 	constructor() {
 		this.annotations = []
 		this.annotationMeshes = []
 		this.activeMarkers = []
 		this.activeAnnotationIndex = -1
+		this.carPath = []
+		this.carPathActivation = false
 	}
 	
 	/**
@@ -44,7 +48,7 @@ export class AnnotationManager {
 	 */
 	getAnnotationIndex(object : THREE.Mesh) : number {
 		return this.annotations.findIndex( (element) => {
-			return element.laneMesh == object
+			return element.laneMesh === object
 		})
 	}
 
@@ -79,7 +83,7 @@ export class AnnotationManager {
 
 		let lane_from = null;
 		for (let annotation of this.annotations) {
-			if (annotation.id == from_id) {
+			if (annotation.id === from_id) {
 				lane_from = annotation;
 				break;
 			}
@@ -87,53 +91,53 @@ export class AnnotationManager {
 
 		let lane_to = null;
 		for (let annotation of this.annotations) {
-			if (annotation.id == to_id) {
+			if (annotation.id === to_id) {
 				lane_to = annotation;
 				break;
 			}
 		}
 
-		if (lane_to == null || lane_to == null) {
+		if (lane_to === null || lane_to === null) {
 			log.info("Given lane ids are not valid.");
 			return;
 		}
 
 		switch (relation) {
 			case 'left':
-				if (lane_from.neighborsIds.left == null &&
-					lane_to.neighborsIds.right == null) {
+				if (lane_from.neighborsIds.left === null &&
+					lane_to.neighborsIds.right === null) {
 
 					lane_from.neighborsIds.left = to_id;
 					lane_to.neighborsIds.right = from_id;
 				}
 				break;
 			case 'left reverse':
-				if (lane_from.neighborsIds.left == null &&
-					lane_to.neighborsIds.left == null) {
+				if (lane_from.neighborsIds.left === null &&
+					lane_to.neighborsIds.left === null) {
 
 					lane_from.neighborsIds.left = to_id;
 					lane_to.neighborsIds.left = from_id;
 				}
 				break;
 			case 'right':
-				if (lane_from.neighborsIds.right == null &&
-					lane_to.neighborsIds.left == null) {
+				if (lane_from.neighborsIds.right === null &&
+					lane_to.neighborsIds.left === null) {
 
 					lane_from.neighborsIds.right = to_id;
 					lane_to.neighborsIds.left = from_id; // TODO: fix this
 				}
 				break;
 			case 'front':
-				if (lane_from.neighborsIds.front == null &&
-					lane_to.neighborsIds.back == null) {
+				if (lane_from.neighborsIds.front === null &&
+					lane_to.neighborsIds.back === null) {
 
 					lane_from.neighborsIds.front.push(to_id);
 					lane_to.neighborsIds.back.push(from_id);
 				}
 				break;
 			case 'back':
-				if (lane_from.neighborsIds.back == null &&
-					lane_to.neighborsIds.front == null) {
+				if (lane_from.neighborsIds.back === null &&
+					lane_to.neighborsIds.front === null) {
 
 					lane_from.neighborsIds.back.push(to_id);
 					lane_to.neighborsIds.front.push(from_id);
@@ -146,6 +150,80 @@ export class AnnotationManager {
 	}
 
 	/**
+	 * Add current lane to the car path
+	 */
+	laneIndexInPath(lane_id : number) {
+		return this.carPath.findIndex( (id) => {return lane_id === id})
+	}
+	addLaneToPath() {
+
+		if (this.activeAnnotationIndex === -1){
+			log.error('No lane is active.');
+			return;
+		}
+		
+		// Check if lane already added
+		let index = this.laneIndexInPath(this.annotations[this.activeAnnotationIndex].id)
+		if (index === -1) {
+			this.carPath.push(this.annotations[this.activeAnnotationIndex].id)
+			this.annotations[this.activeAnnotationIndex].setTrajectory(this.carPathActivation)
+			log.info("Lane added to the car path.")
+		}
+		else {
+			this.annotations[this.activeAnnotationIndex].setTrajectory(false)
+			this.carPath.splice(index, 1)
+			log.info("Lane removed from the car path.")
+		}
+	}
+	
+	deleteLaneFromPath() {
+		
+		if (this.activeAnnotationIndex === -1){
+			log.error('No lane is active.');
+			return;
+		}
+		
+		let index = this.laneIndexInPath(this.annotations[this.activeAnnotationIndex].id)
+		if (index !== -1) {
+			this.annotations[index].setTrajectory(false)
+			this.carPath.splice(index, 1)
+			log.info("Lane removed from the car path.")
+		}
+	}
+	
+	/**
+	 * Show the car path in the visualizer
+	 */
+	showPath() : boolean{
+	
+		if (this.carPath.length === 0) {
+			log.info("Empty car path.")
+			return false
+		}
+		
+		this.carPathActivation = !this.carPathActivation
+		this.carPath.forEach((id) => {
+			let index = this.annotations.findIndex( (annotation) => {
+				return annotation.id === id
+			})
+			if (index !== -1) {
+				this.annotations[index].setTrajectory(this.carPathActivation)
+			}
+			else {
+				log.warn("Trajectory contains invalid lane id.")
+			}
+		})
+		return true
+	}
+	
+	/**
+	 * Saves car path to file
+	 */
+	saveCarPath() {
+	
+	}
+
+	/**
 	 * Check if the passed mesh corresponds to an inactive lane
 	 * annotation. If so, return it's index in the manager.
 	 * @param object
@@ -153,7 +231,7 @@ export class AnnotationManager {
 	 */
 	checkForInactiveAnnotation(object : THREE.Mesh) : number {
 		let index = this.getAnnotationIndex(object)
-		if (index == this.activeAnnotationIndex) {
+		if (index === this.activeAnnotationIndex) {
 			index = -1
 		}
 		return index
@@ -168,7 +246,7 @@ export class AnnotationManager {
 		
 		if (annotationIndex < 0 &&
 			annotationIndex >= this.annotations.length &&
-			annotationIndex == this.activeAnnotationIndex) {
+			annotationIndex === this.activeAnnotationIndex) {
 			return
 		}
 		
@@ -228,7 +306,7 @@ export class AnnotationManager {
 		
 		// Remove mesh from internal array of meshes.
 		let index = this.annotationMeshes.findIndex( (mesh) => {
-			return mesh == this.annotations[this.activeAnnotationIndex].laneMesh
+			return mesh === this.annotations[this.activeAnnotationIndex].laneMesh
 		})
 		if (index < 0) {
 			log.error("Couldn't find associated mesh in internal mesh array. This should never happen")
@@ -526,7 +604,7 @@ export class AnnotationManager {
 	
 	private findAnnotationIndexById(id) : number {
 		return this.annotations.findIndex( (annotation) => {
-			return annotation.id == id
+			return annotation.id === id
 		})
 	}
 	
@@ -539,10 +617,10 @@ export class AnnotationManager {
 			}
 			let rightNeighbor = this.annotations[index]
 			
-			if (rightNeighbor.neighborsIds.right == annotation.id) {
+			if (rightNeighbor.neighborsIds.right === annotation.id) {
 				log.info("Deleted connection to right neighbor.")
 				rightNeighbor.neighborsIds.right = null
-			} else if (rightNeighbor.neighborsIds.left == annotation.id){
+			} else if (rightNeighbor.neighborsIds.left === annotation.id){
 				log.info("Deleted connection to right neighbor.")
 				rightNeighbor.neighborsIds.left = null
 			} else {
@@ -557,10 +635,10 @@ export class AnnotationManager {
 			}
 			let leftNeighbor = this.annotations[index]
 			
-			if (leftNeighbor.neighborsIds.right == annotation.id) {
+			if (leftNeighbor.neighborsIds.right === annotation.id) {
 				log.info("Deleted connection to left neighbor.")
 				leftNeighbor.neighborsIds.right = null
-			} else if (leftNeighbor.neighborsIds.left == annotation.id){
+			} else if (leftNeighbor.neighborsIds.left === annotation.id){
 				log.info("Deleted connection to left neighbor.")
 				leftNeighbor.neighborsIds.left = null
 			} else {
@@ -576,7 +654,7 @@ export class AnnotationManager {
 			let frontNeighbor = this.annotations[index]
 			
 			let index2 = frontNeighbor.neighborsIds.back.findIndex( (id) => {
-				return id == annotation.id
+				return id === annotation.id
 			})
 			if (index2 >= 0) {
 				log.info("Deleted connection to front neighbor.")
@@ -592,7 +670,7 @@ export class AnnotationManager {
 			let backNeighbor = this.annotations[index]
 			
 			let index2 = backNeighbor.neighborsIds.front.findIndex( (id) => {
-				return id == annotation.id
+				return id === annotation.id
 			})
 			if (index2 >= 0) {
 				log.info("Deleted connection to back neighbor.")

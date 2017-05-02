@@ -83,16 +83,16 @@ export class SuperTile {
 				break
 			}
 			
-			if (files[i] == 'tile_index.md' || files[i] == '.DS_Store') {
+			if (files[i] === 'tile_index.md' || files[i] === '.DS_Store') {
 				continue
 			}
 			
 			let msg  = await loadTile(Path.join(datasetPath, files[i]))
 			
-			if (msg.points.length == 0) {
+			if (msg.points.length === 0) {
 				continue
 			}
-			if (count == 0) {
+			if (count === 0) {
 				this.origin.set(msg.originX, msg.originY, msg.originZ)
 			}
 			
