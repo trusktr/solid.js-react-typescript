@@ -11,6 +11,7 @@ import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
+import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isUndefined} from "util"
@@ -621,7 +622,7 @@ class Annotator {
 			selectbox.empty();
 			let list = '';
 			for (let j = 0; j < ids.length; j++){
-				list += "<option value='" +ids[j] + "'>" +ids[j] + "</option>";
+				list += "<option value=" + ids[j] + ">" +ids[j] + "</option>";
 			}
 			selectbox.html(list);
 		});
@@ -636,30 +637,30 @@ class Annotator {
 			selectbox.empty();
 			let list = '';
 			for (let j = 0; j < ids.length; j++){
-				list += "<option value='" +ids[j] + "'>" +ids[j] + "</option>";
+				list += "<option value=" + ids[j] + ">" +ids[j] + "</option>";
 			}
 			selectbox.html(list);
 		});
 
 		let lc_add = document.getElementById('lc_add');
 		lc_add.addEventListener('click', _ => {
-			let lc_to = $('#lc_select_to').val();
-			let lc_from = $('#lc_select_from').val();
+			let lc_to : number = Number($('#lc_select_to').val());
+			let lc_from : number = Number($('#lc_select_from').val());
 			let lc_relation = $('#lc_select_relation').val();
 
 			if (lc_to === null || lc_from === null) {
-				dialog.showErrorBox("Add Relation Error",
-					"You have to select the lanes to be connected.")
-				//log.error("You have to select the lanes to be connected.");
+				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
+					"You have to select both lanes to be connected.")
 				return;
 			}
 
 			if (lc_to === lc_from) {
-				log.error("You can't connect a lane to itself. The 2 ids should be unique.");
+				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
+					"You can't connect a lane to itself. The 2 ids should be unique.");
 				return;
 			}
 
-			log.info("Add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
+			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
 			this.annotationManager.addRelation(lc_from, lc_to, lc_relation);
 			this.resetLaneProp();
 		});
