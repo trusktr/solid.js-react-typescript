@@ -410,8 +410,8 @@ export class AnnotationManager {
 	 */
 	convertAnnotationToCSV(args) : string {
 		
-		let data : LaneAnnotation[] = args.data || null;
-		if (data === null) {
+		let data : Array<Vector3> = args.data || null;
+		if (data.length === 0) {
 			log.error("Empty annotation.")
 			return ''
 		}
@@ -425,15 +425,13 @@ export class AnnotationManager {
 		let columnDelimiter = args.columnDelimiter || ',';
 		let lineDelimiter = args.lineDelimiter || '\n';
 		let result : string = ''
-		data.forEach( (lane) => {
-			lane.waypoints.forEach( (marker) => {
-				// Get latitude longitude
-				let lat_lng_pt  = tile.threejsToLatLng(marker)
-				result += lat_lng_pt.lng.toString();
-				result += columnDelimiter;
-				result += lat_lng_pt.lat.toString();
-				result += lineDelimiter;
-			});
+		data.forEach( (marker) => {
+			// Get latitude longitude
+			let lat_lng_pt  = tile.threejsToLatLng(marker)
+			result += lat_lng_pt.lng.toString();
+			result += columnDelimiter;
+			result += lat_lng_pt.lat.toString();
+			result += lineDelimiter;
 		});
 		
 		return result
@@ -444,7 +442,7 @@ export class AnnotationManager {
 		let writeFile = function (er, _) {
 			if (!er) {
 				let trajectory_data = self.getFullInterpolatedTrajectory(0.2)
-				let strAnnotations = self.convertAnnotationToCSV({data : self.annotations,
+				let strAnnotations = self.convertAnnotationToCSV({data : trajectory_data,
 				tile : tile});
 				AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
