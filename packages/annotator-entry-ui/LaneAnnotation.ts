@@ -107,7 +107,7 @@ export class LaneAnnotation {
 	rightSideType : LaneSideType
 	entryType : LaneEntryExitType
 	exitType : LaneEntryExitType
-	trajectory: boolean
+	inTrajectory: boolean
 	
 	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
 		
@@ -125,7 +125,7 @@ export class LaneAnnotation {
 		this.laneDirection = new THREE.Object3D()
 		this.laneDirection.add(this.laneCenterLine)
 		this.laneDirectionMarkers = []
-		this.trajectory = false
+		this.inTrajectory = false
 		
 		if (scene && obj && obj.markerPositions.length > 0) {
 			obj.markerPositions.forEach( (position) => {
@@ -245,7 +245,7 @@ export class LaneAnnotation {
 	 * Make this annotation inactive. This changes the displayed material.
 	 */
 	makeInactive() {
-		if (this.trajectory) {
+		if (this.inTrajectory) {
 			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
 		}
 		else {
@@ -258,14 +258,14 @@ export class LaneAnnotation {
 	 * Make this annotation part of the car path
 	 */
 	setTrajectory(isTrajectoryActive : boolean) {
-		this.trajectory = isTrajectoryActive
+		this.inTrajectory = isTrajectoryActive
 		
 		// Do not change the active lane
 		if (!this.laneDirection.visible) {
 			return
 		}
 		
-		if (this.trajectory) {
+		if (this.inTrajectory) {
 			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
 		}
 		else {
