@@ -408,4 +408,27 @@ export class LaneAnnotation {
 			this.laneDirectionMarkers.push(marker)
 		}
 	}
+	
+	tryTrajectory(trajectory : Array<THREE.Vector3>)  {
+		// Remove points from lineDirection object
+		this.laneDirectionMarkers.forEach( (marker) => {
+			this.laneDirection.remove(marker)
+		})
+		
+		if (trajectory.length < 3) {
+			return;
+		}
+		
+		for (let i = 1; i < trajectory.length - 1; i++) {
+			
+			let angle = Math.atan2(trajectory[i+1].z - trajectory[i].z,
+				trajectory[i+1].x - trajectory[i].x)
+			
+			let marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
+			marker.position.set(trajectory[i].x, trajectory[i].y, trajectory[i].z)
+			marker.rotateY(-angle)
+			this.laneDirection.add(marker)
+			this.laneDirectionMarkers.push(marker)
+		}
+	}
 }

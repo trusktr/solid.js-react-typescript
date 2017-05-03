@@ -11,9 +11,10 @@ import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
-import {LaneSideType, LaneEntryExitType} from 'annotator-entry-ui/LaneAnnotation'
+import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
+import {isUndefined} from "util"
 
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
@@ -190,7 +191,8 @@ class Annotator {
 			await this.mapTile.loadFromDataset(pathToTiles)
 			this.scene.add(this.mapTile.pointCloud)
 		} catch (err) {
-			log.error('Failed loading point cloud', err)
+			dialog.showErrorBox("Tiles Load Error",
+				"Annotator failed to load tiles from given folder.")
 		}
 	}
 	
@@ -212,7 +214,8 @@ class Annotator {
 			})
 			
 		} catch (err) {
-			log.error('Failed loading annotations', err)
+			dialog.showErrorBox("Annotation Load Error",
+				"Annotator failed to load annotation file.")
 		}
 	}
 	
@@ -393,7 +396,7 @@ class Annotator {
 			this.saveToFile();
 		}
 		
-		if (event.code == 'KeyM') {
+		if (event.code === 'KeyM') {
 			this.annotationManager.saveToKML("./data/path.kml", this.mapTile)
 		}
 	}
@@ -509,7 +512,11 @@ class Annotator {
 			properties: ['openDirectory']
 		});
 
-		log.info('Loadding point cloud from ' + path_electron[0]);
+		if (isUndefined(path_electron)) {
+			return
+		}
+		
+		log.info('Loading point cloud from ' + path_electron[0]);
 		this.loadPointCloudData(path_electron[0]);
 	 }
 
@@ -613,7 +620,7 @@ class Annotator {
 			selectbox.empty();
 			let list = '';
 			for (let j = 0; j < ids.length; j++){
-				list += "<option value='" +ids[j] + "'>" +ids[j] + "</option>";
+				list += "<option value=" + ids[j] + ">" +ids[j] + "</option>";
 			}
 			selectbox.html(list);
 		});
@@ -628,28 +635,30 @@ class Annotator {
 			selectbox.empty();
 			let list = '';
 			for (let j = 0; j < ids.length; j++){
-				list += "<option value='" +ids[j] + "'>" +ids[j] + "</option>";
+				list += "<option value=" + ids[j] + ">" +ids[j] + "</option>";
 			}
 			selectbox.html(list);
 		});
 
 		let lc_add = document.getElementById('lc_add');
 		lc_add.addEventListener('click', _ => {
-			let lc_to = $('#lc_select_to').val();
-			let lc_from = $('#lc_select_from').val();
+			let lc_to : number = Number($('#lc_select_to').val());
+			let lc_from : number = Number($('#lc_select_from').val());
 			let lc_relation = $('#lc_select_relation').val();
 
 			if (lc_to === null || lc_from === null) {
-				log.error("You have to select the lanes to be connected.");
+				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
+					"You have to select both lanes to be connected.")
 				return;
 			}
 
 			if (lc_to === lc_from) {
-				log.error("You can't connect a lane to itself. The 2 ids should be unique.");
+				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
+					"You can't connect a lane to itself. The 2 ids should be unique.");
 				return;
 			}
 
-			log.info("Add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
+			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
 			this.annotationManager.addRelation(lc_from, lc_to, lc_relation);
 			this.resetLaneProp();
 		});
@@ -730,8 +739,10 @@ class Annotator {
 		
 		let save_path = $('#save_path')
 		save_path.on('click', _ => {
+			
 			log.info("Save car path to file.")
-			this.annotationManager.saveCarPath()
+			let filename : string = './data/trajectory.csv'
+			this.annotationManager.saveCarPath(filename, this.mapTile)
 		})
 	}
 
