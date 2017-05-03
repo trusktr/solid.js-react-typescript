@@ -161,8 +161,8 @@ export class AnnotationManager {
 					return neighbor === lane_from.id
 				})
 				if (index_1 === -1 && index_2 === -1) {
-						lane_to.neighborsIds.back.push(lane_from.id);
-						lane_from.neighborsIds.front.push(lane_to.id);
+					lane_to.neighborsIds.back.push(lane_from.id);
+					lane_from.neighborsIds.front.push(lane_to.id);
 				}
 				else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Front relation already exist.")
@@ -287,7 +287,6 @@ export class AnnotationManager {
 	 */
 	tryGoStraight(neighbors) : number {
 		for (let neighbor of neighbors.front) {
-			//log.info('Check front lane ' + neighbor)
 			if (neighbor !== null &&
 				this.checkLaneIdInList(this.carPath, neighbor)) {
 				return this.getLaneIndexFromId(this.annotations, neighbor)
@@ -311,13 +310,11 @@ export class AnnotationManager {
 				
 				let front_lane = this.annotations[this.getLaneIndexFromId(this.annotations, neighbor)]
 				let front_lane_neighbors = front_lane.neighborsIds
-				//log.info('Check ' + front_lane_neighbors.left + ' from ' + neighbor)
 				if (front_lane_neighbors.left !== null &&
 					this.checkLaneIdInList(this.carPath, front_lane_neighbors.left)) {
 					return this.getLaneIndexFromId(this.annotations, front_lane_neighbors.left)
 				}
 				
-				//log.info('Check ' + front_lane_neighbors.right + ' from ' + neighbor)
 				if (front_lane_neighbors.right !== null &&
 					this.checkLaneIdInList(this.carPath, front_lane_neighbors.right)) {
 					return this.getLaneIndexFromId(this.annotations, front_lane_neighbors.right)
@@ -373,6 +370,12 @@ export class AnnotationManager {
 		return trajectory_as_ordered_lane_indices
 	}
 	
+	/**
+	 * Generate trajectory points from sorted lanes of the car path
+	 * @param sorted_car_path       Trajectory sorted lanes
+	 * @param min_dist_lane_change  Minimum distance to interpolate lane change
+	 * @returns {Array<Vector3>} Points along the trajectory
+	 */
 	generatePointsFromSortedCarPath(sorted_car_path : Array<Link>, min_dist_lane_change : number) : Array<Vector3> {
 		
 		let points : Array<Vector3> = []

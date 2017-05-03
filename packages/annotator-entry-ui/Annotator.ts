@@ -193,7 +193,6 @@ class Annotator {
 		} catch (err) {
 			dialog.showErrorBox("Tiles Load Error",
 				"Annotator failed to load tiles from given folder.")
-			//log.error('Annotator failed loading point cloud', err)
 		}
 	}
 	
@@ -217,7 +216,6 @@ class Annotator {
 		} catch (err) {
 			dialog.showErrorBox("Annotation Load Error",
 				"Annotator failed to load annotation file.")
-			//log.error('Failed loading annotations', err)
 		}
 	}
 	
