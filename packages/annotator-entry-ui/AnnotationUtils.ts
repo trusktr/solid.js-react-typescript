@@ -16,11 +16,25 @@ import * as AsyncFile from 'async-file'
 import * as MkDirP from 'mkdirp'
 import Vector3 = THREE.Vector3
 
-const utmObj = require('utm-latlng')
-
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const {dialog} = require('electron').remote
+const utmObj = require('utm-latlng')
+
+enum LinkType {
+	FORWARD = 1,
+	SIDE = 2,
+	OTHER = 3
+}
+class Link {
+	index : number
+	type : LinkType
+	
+	constructor() {
+		this.index = -1
+		this.type = LinkType.OTHER
+	}
+}
 
 /**
  * The AnnotationManager is in charge of maintaining a set of annotations and all operations
@@ -319,70 +333,75 @@ export class AnnotationManager {
 	 * The list consist of lane indices from the list of annotations, for easy access
 	 * @returns Sorted list of lane indices
 	 */
-	sortCarPath() : Array<number> {
-		let trajectory_as_ordered_lane_indices : Array<number> = []
-		let next_index : number = this.getLaneIndexFromId(this.annotations, this.carPath[0])
-		trajectory_as_ordered_lane_indices.push(next_index)
-		while (next_index !== -1 &&
+	sortCarPath() : Array<Link> {
+		let trajectory_as_ordered_lane_indices : Array<Link> = []
+		let new_link : Link = new Link()
+		new_link.index = this.getLaneIndexFromId(this.annotations, this.carPath[0])
+		new_link.type = LinkType.FORWARD
+		trajectory_as_ordered_lane_indices.push(new_link)
+		while (new_link.index !== -1 &&
 		       trajectory_as_ordered_lane_indices.length <= this.carPath.length) {
 			
 			// Try to go straight
-			let neighbors = this.annotations[next_index].neighborsIds;
+			let neighbors = this.annotations[new_link.index].neighborsIds;
 			let next_front_index = this.tryGoStraight(neighbors)
 			if (next_front_index !== -1) {
-				next_index = next_front_index
-				trajectory_as_ordered_lane_indices.push(next_index)
+				new_link = new Link()
+				new_link.index = next_front_index
+				new_link.type = LinkType.FORWARD
+				trajectory_as_ordered_lane_indices.push(new_link)
 				continue
 			}
 			
 			// Try to go sides
 			let next_side_index = this.tryGoSides(neighbors)
 			if (next_side_index !== -1) {
-				next_index = next_side_index
-				trajectory_as_ordered_lane_indices.push(next_index)
+				new_link = new Link()
+				new_link.index = next_side_index
+				new_link.type = LinkType.SIDE
+				trajectory_as_ordered_lane_indices.push(new_link)
 				continue
 			}
 			
 			// If no valid next lane
-			next_index = -1
-			trajectory_as_ordered_lane_indices.push(next_index)
+			new_link = new Link()
+			new_link.index = -1
+			new_link.type = LinkType.OTHER
+			trajectory_as_ordered_lane_indices.push(new_link)
 		}
 		
 		return trajectory_as_ordered_lane_indices
 	}
 	
-	/**
-	 * Compute car trajectory by connecting all lane segments form the car path
-	 * @param step  Distance between waypoints in meters
-	 * @returns Car trajectory from car path
-	 */
-	getFullInterpolatedTrajectory(step : number) : Array<Vector3> {
-
-		// Check for car path size (at least one lane)
-		if (this.carPath.length === 0) {
-			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL, "Empty car path.")
-			return []
-		}
+	generatePointsFromSortedCarPath(sorted_car_path : Array<Link>, min_dist_lane_change : number) : Array<Vector3> {
 		
-		// Sort lanes
-		let sorted_car_path : Array<number> = this.sortCarPath()
-		if (sorted_car_path.length !== this.carPath.length + 1) {
-			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
-				"Annotator failed to sort car path. Possible reasons: path may have gaps.")
-			return []
-		}
-		
-		// Take out last index
-		sorted_car_path.pop()
-		
-		// Create spline
 		let points : Array<Vector3> = []
-		sorted_car_path.forEach((lane_index) => {
+		sorted_car_path.forEach((lane_link) => {
 			
+			let lane_index : number = lane_link.index
 			if (lane_index === null || lane_index < 0 || lane_index >= this.annotations.length) {
 				dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
 					"Sorted car path contains invalid index: " + lane_index)
 				return []
+			}
+			
+			if (points.length > 0) {
+				// If side link: make sure there is enough distance between first point of the link
+				// and previous link last point added
+				if (lane_link.type === LinkType.SIDE) {
+					let first_pt = this.annotations[lane_index].laneMarkers[0].position.clone()
+					first_pt.add(this.annotations[lane_index].laneMarkers[1].position).divideScalar(2)
+					let distance:number = first_pt.distanceTo(points[points.length - 1])
+					while (points.length > 0 && distance < min_dist_lane_change) {
+						points.pop()
+						distance = first_pt.distanceTo(points[points.length - 1])
+					}
+				}
+				else {
+					// Delete the last point from lane since this is usually duplicated at the
+					// beginning of the next lane
+					points.pop()
+				}
 			}
 			
 			let lane : LaneAnnotation = this.annotations[lane_index]
@@ -393,6 +412,35 @@ export class AnnotationManager {
 			}
 		})
 		
+		return points
+	}
+	/**
+	 * Compute car trajectory by connecting all lane segments form the car path
+	 * @param step  Distance between waypoints in meters
+	 * @param min_dist_lane_change Minimum distance between points when changing lane
+	 * @returns Car trajectory from car path
+	 */
+	getFullInterpolatedTrajectory(step : number, min_dist_lane_change : number) : Array<Vector3> {
+
+		// Check for car path size (at least one lane)
+		if (this.carPath.length === 0) {
+			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL, "Empty car path.")
+			return []
+		}
+		
+		// Sort lanes
+		let sorted_car_path : Array<Link> = this.sortCarPath()
+		if (sorted_car_path.length !== this.carPath.length + 1) {
+			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
+				"Annotator failed to sort car path. Possible reasons: path may have gaps.")
+			return []
+		}
+		
+		// Take out last index
+		sorted_car_path.pop()
+		
+		// Create spline
+		let points : Array<Vector3> = this.generatePointsFromSortedCarPath(sorted_car_path, min_dist_lane_change)
 		if (points.length === 0) {
 			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
 				"There are no waypoints in the selected car path lanes.")
@@ -412,7 +460,7 @@ export class AnnotationManager {
 		
 		let data : Array<Vector3> = args.data || null;
 		if (data.length === 0) {
-			log.error("Empty annotation.")
+			log.warn("Empty annotation.")
 			return ''
 		}
 		
@@ -441,7 +489,9 @@ export class AnnotationManager {
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
 			if (!er) {
-				let trajectory_data = self.getFullInterpolatedTrajectory(0.2)
+				let trajectory_data = self.getFullInterpolatedTrajectory(0.2, 5)
+				// Debug only
+				// self.annotations[0].tryTrajectory(trajectory_data)
 				let strAnnotations = self.convertAnnotationToCSV({data : trajectory_data,
 				tile : tile});
 				AsyncFile.writeTextFile(fileName, strAnnotations)
