@@ -5,12 +5,13 @@
 
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
+import * as $ from 'jquery'
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
 // Some constants for rendering
-const controlPointGeometry = new THREE.BoxGeometry( 0.5, 0.5, 0.5 );
+const controlPointGeometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
 
 const directionGeometry = new THREE.Geometry()
 directionGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5,  1))
@@ -277,6 +278,10 @@ export class LaneAnnotation {
 	 * Recompute mesh from markers.
 	 */
 	updateVisualization = () => {
+
+		// First thing first, update lane width
+		this.updateLaneWidth()
+
 		if (this.laneMarkers.length === 0) {
 			return
 		}
@@ -430,5 +435,24 @@ export class LaneAnnotation {
 			this.laneDirection.add(marker)
 			this.laneDirectionMarkers.push(marker)
 		}
+	}
+
+	getLaneWidth() : number {
+		// If just one point or non --> lane width is 0
+		if (this.laneMarkers.length < 2) {
+			return 0.0
+		}
+
+		let sum : number = 0.0
+		let markers = this.laneMarkers
+		for (let i = 0; i < markers.length-1; i+=2) {
+			sum += markers[i].position.distanceTo(markers[i+1].position)
+		}
+		return sum / (markers.length/2)
+	}
+
+	updateLaneWidth() {
+		let lane_width = $('#lp_width_value')
+		lane_width.text(this.getLaneWidth().toFixed(3) + " m")
 	}
 }

@@ -82,7 +82,8 @@ class Annotator {
 		// Create scene and camera
 		this.scene = new THREE.Scene()
 		this.camera = new THREE.PerspectiveCamera(70, width/height, 0.1, 10010)
-		this.camera.position.z = 100
+		this.camera.position.z = 10
+		this.camera.position.y = 30
 		this.scene.add(this.camera)
 	
 		// Add some lights
@@ -102,17 +103,16 @@ class Annotator {
 		let planeMaterial = new THREE.ShadowMaterial()
 		planeMaterial.opacity = 0.2
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
-		this.plane.position.y = -5
 		this.plane.receiveShadow = true
 		this.scene.add(this.plane)
 	
 		// Add grid on top of the plane
-		let grid = new THREE.GridHelper( 2000, 100 );
-		grid.position.y = - 4;
+		let grid = new THREE.GridHelper(2000, 1000);
+		grid.position.y = -0.01;
 		grid.material.opacity = 0.25;
 		grid.material.transparent = true;
 		this.scene.add( grid );
-		let axis = new THREE.AxisHelper(10);
+		let axis = new THREE.AxisHelper(1);
 		this.scene.add( axis );
 		
 		// Init empty annotation. This will have to be changed
@@ -776,6 +776,7 @@ class Annotator {
 
 		let lp_id = document.getElementById('lp_id_value');
 		lp_id.textContent = active_annotation.id.toString();
+		active_annotation.updateLaneWidth()
 
 		let lc_select_to = $('#lc_select_to');
 		lc_select_to.empty();
@@ -831,6 +832,8 @@ class Annotator {
 
 		let lp_id = document.getElementById('lp_id_value');
 		lp_id.textContent = 'UNKNOWN';
+		let lp_width = document.getElementById('lp_width_value')
+		lp_width.textContent = 'UNKNOWN'
 
 		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select');
 		for (let i = 0; i < selects.length; ++i) {
