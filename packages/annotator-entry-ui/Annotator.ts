@@ -481,7 +481,7 @@ class Annotator {
 	/**
 	 * Functions to bind
 	 */
-	 deleteLane() {
+	deleteLane() {
 		// Delete lane from scene
 		log.info("Delete selected annotation");
 		this.annotationManager.deleteLaneFromPath();
@@ -490,20 +490,20 @@ class Annotator {
 		this.hideTransform();
 	}
 
-	 addLane() {
+	addLane() {
 		// Add lane to scene
-	 	log.info("Added new annotation");
+		log.info("Added new annotation");
 		this.addLaneAnnotation();
 		this.resetLaneProp();
 		this.hideTransform();
 	}
 
-	 saveToFile() {
+	saveToFile() {
 		log.info("Saving annotations to JSON");
 		this.saveAnnotations();
 	}
 
-	 loadFromFile() {
+	loadFromFile() {
 
 		let path_electron = dialog.showOpenDialog({
 			properties: ['openDirectory']
@@ -511,47 +511,47 @@ class Annotator {
 
 		log.info('Loadding point cloud from ' + path_electron[0]);
 		this.loadPointCloudData(path_electron[0]);
-	 }
+	}
 
-	 addFront() {
+	addFront() {
 		log.info("Adding connected annotation to the front");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
-	 
-		 // Deactivate button
-		 this.deactivateFrontSideNeighbours();
-	 }
+	
+		// Deactivate button
+		this.deactivateFrontSideNeighbours();
+	}
 
-	 addLeftSame() {
+	addLeftSame() {
 		log.info("Adding connected annotation to the left - same direction");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME);
 
-		 // Deactivate buttons
-		 this.deactivateLeftSideNeighbours();
-	 }
+		// Deactivate buttons
+		this.deactivateLeftSideNeighbours();
+	}
 
-	 addLeftReverse() {
+	addLeftReverse() {
 		log.info("Adding connected annotation to the left - reverse direction");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE);
 
-		 // Deactivate buttons
-		 this.deactivateLeftSideNeighbours();
-	 }
+		// Deactivate buttons
+		this.deactivateLeftSideNeighbours();
+	}
 
-	 addRightSame() {
+	addRightSame() {
 		log.info("Adding connected annotation to the right - same direction");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME);
 
-		 // Deactivate buttons
-		 this.deactivateRightSideNeighbours();
-	 }
+		// Deactivate buttons
+		this.deactivateRightSideNeighbours();
+	}
 
-	 addRightReverse() {
+	addRightReverse() {
 		log.info("Adding connected annotation to the right - reverse direction");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE);
 
-		 // Deactivate buttons
-		 this.deactivateRightSideNeighbours();
-	 }
+		// Deactivate buttons
+		this.deactivateRightSideNeighbours();
+	}
 
 	/**
 	 * Bind functions events to interface elements
