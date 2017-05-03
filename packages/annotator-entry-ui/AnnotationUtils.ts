@@ -10,14 +10,31 @@ import {
 } from 'annotator-entry-ui/LaneAnnotation'
 import {SuperTile} from "annotator-entry-ui/TileUtils"
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
+import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
 import * as MkDirP from 'mkdirp'
-
-const utmObj = require('utm-latlng')
+import Vector3 = THREE.Vector3
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
+const {dialog} = require('electron').remote
+const utmObj = require('utm-latlng')
+
+enum LinkType {
+	FORWARD = 1,
+	SIDE = 2,
+	OTHER = 3
+}
+class Link {
+	index : number
+	type : LinkType
+	
+	constructor() {
+		this.index = -1
+		this.type = LinkType.OTHER
+	}
+}
 
 /**
  * The AnnotationManager is in charge of maintaining a set of annotations and all operations
@@ -97,8 +114,8 @@ export class AnnotationManager {
 			}
 		}
 
-		if (lane_to === null || lane_to === null) {
-			log.info("Given lane ids are not valid.");
+		if (lane_to === null || lane_from === null) {
+			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Given lane ids are not valid.");
 			return;
 		}
 
@@ -110,6 +127,9 @@ export class AnnotationManager {
 					lane_from.neighborsIds.left = to_id;
 					lane_to.neighborsIds.right = from_id;
 				}
+				else {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Left relation already exist.")
+				}
 				break;
 			case 'left reverse':
 				if (lane_from.neighborsIds.left === null &&
@@ -118,33 +138,53 @@ export class AnnotationManager {
 					lane_from.neighborsIds.left = to_id;
 					lane_to.neighborsIds.left = from_id;
 				}
+				else {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Left relation already exist.")
+				}
 				break;
 			case 'right':
 				if (lane_from.neighborsIds.right === null &&
 					lane_to.neighborsIds.left === null) {
 
 					lane_from.neighborsIds.right = to_id;
-					lane_to.neighborsIds.left = from_id; // TODO: fix this
+					lane_to.neighborsIds.left = from_id;
+				}
+				else {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Right relation already exist.")
 				}
 				break;
 			case 'front':
-				if (lane_from.neighborsIds.front === null &&
-					lane_to.neighborsIds.back === null) {
-
-					lane_from.neighborsIds.front.push(to_id);
-					lane_to.neighborsIds.back.push(from_id);
+				let index_1 = lane_from.neighborsIds.front.findIndex((neighbor) => {
+					return neighbor === lane_to.id
+				})
+				let index_2 = lane_to.neighborsIds.back.findIndex((neighbor) => {
+					return neighbor === lane_from.id
+				})
+				if (index_1 === -1 && index_2 === -1) {
+					lane_to.neighborsIds.back.push(lane_from.id);
+					lane_from.neighborsIds.front.push(lane_to.id);
+				}
+				else {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Front relation already exist.")
 				}
 				break;
 			case 'back':
-				if (lane_from.neighborsIds.back === null &&
-					lane_to.neighborsIds.front === null) {
-
-					lane_from.neighborsIds.back.push(to_id);
-					lane_to.neighborsIds.front.push(from_id);
+				index_1 = lane_from.neighborsIds.back.findIndex((neighbor) => {
+					return neighbor === lane_to.id
+				})
+				index_2 = lane_to.neighborsIds.front.findIndex((neighbor) => {
+					return neighbor === lane_from.id
+				})
+				if (index_1 === -1 && index_2 === -1) {
+					lane_from.neighborsIds.back.push(lane_to.id);
+					lane_to.neighborsIds.front.push(lane_from.id);
+				}
+				else {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Back relation already exist.")
 				}
 				break;
 			default:
-				log.error("Unknown relation to be added: " + relation);
+				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unknown relation to be added: " + relation);
 				break;
 		}
 	}
@@ -215,12 +255,252 @@ export class AnnotationManager {
 		})
 		return true
 	}
+
+	/**
+	 * Gets lane index given the list of lanes and the id of the desired lane
+	 * @param lanes List of lanes
+	 * @param id    Desired lane id
+	 * @returns Lane index, or -1 if lane id not found
+	 */
+	getLaneIndexFromId(lanes : Array<LaneAnnotation>, id : number) : number {
+		return lanes.findIndex( (item) => {
+			return item.id === id
+		})
+	}
 	
 	/**
-	 * Saves car path to file
+	 * Checks if the given is within a list of given ids
+	 * @param lane_ids  List of ids
+	 * @param id        Desired id
+	 * @returns True if the id is within the list, false otherwise
 	 */
-	saveCarPath() {
+	checkLaneIdInList(lane_ids : Array<number>, id : number) : boolean {
+		return lane_ids.findIndex( (lane_id) => {
+			return lane_id === id
+		}) !== -1
+	}
 	
+	/**
+	 * Tries to connect a forward lane with current lane
+	 * @param neighbors   Current lane neighbors
+	 * @returns Connected lane index from the list of annotations, or -1 if no connection found
+	 */
+	tryGoStraight(neighbors) : number {
+		for (let neighbor of neighbors.front) {
+			if (neighbor !== null &&
+				this.checkLaneIdInList(this.carPath, neighbor)) {
+				return this.getLaneIndexFromId(this.annotations, neighbor)
+			}
+		}
+		return -1
+	}
+	
+	/**
+	 * Tries to connect a side-forward lane with the current lane
+	 * @param neighbors Current lane neighbors
+	 * @returns Connected lane index from the list of annotations, or -1 if no connection found
+	 */
+	tryGoSides(neighbors) : number {
+		
+		// Try left and right neighbors of the front lane
+		for (let neighbor of neighbors.front) {
+			
+			// check for valid front neighbor
+			if (neighbor !== null) {
+				
+				let front_lane = this.annotations[this.getLaneIndexFromId(this.annotations, neighbor)]
+				let front_lane_neighbors = front_lane.neighborsIds
+				if (front_lane_neighbors.right !== null &&
+					this.checkLaneIdInList(this.carPath, front_lane_neighbors.right)) {
+					return this.getLaneIndexFromId(this.annotations, front_lane_neighbors.right)
+				}
+
+				if (front_lane_neighbors.left !== null &&
+					this.checkLaneIdInList(this.carPath, front_lane_neighbors.left)) {
+					return this.getLaneIndexFromId(this.annotations, front_lane_neighbors.left)
+				}
+			}
+		}
+		
+		return -1
+	}
+
+	/**
+	 * Sort car path such that each lane connects to the next in the list
+	 * The list consist of lane indices from the list of annotations, for easy access
+	 * @returns Sorted list of lane indices
+	 */
+	sortCarPath() : Array<Link> {
+		let trajectory_as_ordered_lane_indices : Array<Link> = []
+		let new_link : Link = new Link()
+		new_link.index = this.getLaneIndexFromId(this.annotations, this.carPath[0])
+		new_link.type = LinkType.FORWARD
+		trajectory_as_ordered_lane_indices.push(new_link)
+		while (new_link.index !== -1 &&
+		       trajectory_as_ordered_lane_indices.length <= this.carPath.length) {
+			
+			// Try to go straight
+			let neighbors = this.annotations[new_link.index].neighborsIds;
+			let next_front_index = this.tryGoStraight(neighbors)
+			if (next_front_index !== -1) {
+				new_link = new Link()
+				new_link.index = next_front_index
+				new_link.type = LinkType.FORWARD
+				trajectory_as_ordered_lane_indices.push(new_link)
+				continue
+			}
+			
+			// Try to go sides
+			let next_side_index = this.tryGoSides(neighbors)
+			if (next_side_index !== -1) {
+				new_link = new Link()
+				new_link.index = next_side_index
+				new_link.type = LinkType.SIDE
+				trajectory_as_ordered_lane_indices.push(new_link)
+				continue
+			}
+			
+			// If no valid next lane
+			new_link = new Link()
+			new_link.index = -1
+			new_link.type = LinkType.OTHER
+			trajectory_as_ordered_lane_indices.push(new_link)
+		}
+		
+		return trajectory_as_ordered_lane_indices
+	}
+	
+	/**
+	 * Generate trajectory points from sorted lanes of the car path
+	 * @param sorted_car_path       Trajectory sorted lanes
+	 * @param min_dist_lane_change  Minimum distance to interpolate lane change
+	 * @returns {Array<Vector3>} Points along the trajectory
+	 */
+	generatePointsFromSortedCarPath(sorted_car_path : Array<Link>, min_dist_lane_change : number) : Array<Vector3> {
+		
+		let points : Array<Vector3> = []
+		sorted_car_path.forEach((lane_link) => {
+			
+			let lane_index : number = lane_link.index
+			if (lane_index === null || lane_index < 0 || lane_index >= this.annotations.length) {
+				dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
+					"Sorted car path contains invalid index: " + lane_index)
+				return []
+			}
+			
+			if (points.length > 0) {
+				// If side link: make sure there is enough distance between first point of the link
+				// and previous link last point added
+				if (lane_link.type === LinkType.SIDE) {
+					let first_pt = this.annotations[lane_index].laneMarkers[0].position.clone()
+					first_pt.add(this.annotations[lane_index].laneMarkers[1].position).divideScalar(2)
+					let distance:number = first_pt.distanceTo(points[points.length - 1])
+					while (points.length > 0 && distance < min_dist_lane_change) {
+						points.pop()
+						distance = first_pt.distanceTo(points[points.length - 1])
+					}
+				}
+				else {
+					// Delete the last point from lane since this is usually duplicated at the
+					// beginning of the next lane
+					points.pop()
+				}
+			}
+			
+			let lane : LaneAnnotation = this.annotations[lane_index]
+			for (let i = 0; i < lane.laneMarkers.length-1; i+=2) {
+				let waypoint = lane.laneMarkers[i].position.clone()
+				waypoint.add(lane.laneMarkers[i+1].position).divideScalar(2)
+				points.push(waypoint)
+			}
+		})
+		
+		return points
+	}
+	/**
+	 * Compute car trajectory by connecting all lane segments form the car path
+	 * @param step  Distance between waypoints in meters
+	 * @param min_dist_lane_change Minimum distance between points when changing lane
+	 * @returns Car trajectory from car path
+	 */
+	getFullInterpolatedTrajectory(step : number, min_dist_lane_change : number) : Array<Vector3> {
+
+		// Check for car path size (at least one lane)
+		if (this.carPath.length === 0) {
+			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL, "Empty car path.")
+			return []
+		}
+		
+		// Sort lanes
+		let sorted_car_path : Array<Link> = this.sortCarPath()
+		if (sorted_car_path.length !== this.carPath.length + 1) {
+			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
+				"Annotator failed to sort car path. Possible reasons: path may have gaps.")
+			return []
+		}
+		
+		// Take out last index
+		sorted_car_path.pop()
+		
+		// Create spline
+		let points : Array<Vector3> = this.generatePointsFromSortedCarPath(sorted_car_path, min_dist_lane_change)
+		if (points.length === 0) {
+			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
+				"There are no waypoints in the selected car path lanes.")
+			return []
+		}
+		let spline = new THREE.CatmullRomCurve3(points)
+		let numPoints = spline.getLength() / step
+
+		// Generate trajectory from spline
+		return spline.getSpacedPoints(numPoints)
+	}
+
+	/**
+	 * Saves car path to CSV file
+	 */
+	convertAnnotationToCSV(args) : string {
+		
+		let data : Array<Vector3> = args.data || null;
+		if (data.length === 0) {
+			log.warn("Empty annotation.")
+			return ''
+		}
+		
+		let tile : SuperTile = args.tile || null;
+		if (tile === null) {
+			log.error('No tile given.')
+			return ''
+		}
+		
+		let columnDelimiter = args.columnDelimiter || ',';
+		let lineDelimiter = args.lineDelimiter || '\n';
+		let result : string = ''
+		data.forEach( (marker) => {
+			// Get latitude longitude
+			let lat_lng_pt  = tile.threejsToLatLng(marker)
+			result += lat_lng_pt.lng.toString();
+			result += columnDelimiter;
+			result += lat_lng_pt.lat.toString();
+			result += lineDelimiter;
+		});
+		
+		return result
+	}
+	saveCarPath(fileName : string, tile : SuperTile) {
+		let self = this
+		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
+		let writeFile = function (er, _) {
+			if (!er) {
+				let trajectory_data = self.getFullInterpolatedTrajectory(0.2, 5)
+				// Debug only
+				// self.annotations[0].tryTrajectory(trajectory_data)
+				let strAnnotations = self.convertAnnotationToCSV({data : trajectory_data,
+				tile : tile});
+				AsyncFile.writeTextFile(fileName, strAnnotations)
+			}
+		}
+		MkDirP.mkdirP(dirName, writeFile)
 	}
 
 	/**
