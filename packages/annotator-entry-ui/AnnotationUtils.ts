@@ -310,14 +310,14 @@ export class AnnotationManager {
 				
 				let front_lane = this.annotations[this.getLaneIndexFromId(this.annotations, neighbor)]
 				let front_lane_neighbors = front_lane.neighborsIds
-				if (front_lane_neighbors.left !== null &&
-					this.checkLaneIdInList(this.carPath, front_lane_neighbors.left)) {
-					return this.getLaneIndexFromId(this.annotations, front_lane_neighbors.left)
-				}
-				
 				if (front_lane_neighbors.right !== null &&
 					this.checkLaneIdInList(this.carPath, front_lane_neighbors.right)) {
 					return this.getLaneIndexFromId(this.annotations, front_lane_neighbors.right)
+				}
+
+				if (front_lane_neighbors.left !== null &&
+					this.checkLaneIdInList(this.carPath, front_lane_neighbors.left)) {
+					return this.getLaneIndexFromId(this.annotations, front_lane_neighbors.left)
 				}
 			}
 		}
