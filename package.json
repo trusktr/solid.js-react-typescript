@@ -1,5 +1,5 @@
 {
-  "name": "mapper-annotator",
+  "name": "@mapperai/mapper-annotator",
   "version": "0.0.1",
   "description": "Mapper.AI Annotator",
   "scripts": {
@@ -11,6 +11,7 @@
     "release:stage": "MAPPER_ENV=stage npm run build && npm run deploy:stage",
     "toolbox": "react-toolbox-themr"
   },
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "https://github.com/"
