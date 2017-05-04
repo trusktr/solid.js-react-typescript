@@ -580,6 +580,20 @@ class Annotator {
 			this.loadFromFile();
 		});
 
+		let tools_load_annotation = document.getElementById('tools_load_annotation')
+		tools_load_annotation.addEventListener('click', _ => {
+			let path_electron = dialog.showOpenDialog({
+				filters: [{ name: 'json', extensions: ['json'] }]
+			})
+			
+			if (isUndefined(path_electron)) {
+				return
+			}
+			
+			log.info('Loading annotations from ' + path_electron[0]);
+			this.loadAnnotations(path_electron[0])
+		})
+
 		let tools_save = document.getElementById('tools_save');
 		tools_save.addEventListener('click', _ => {
 			this.saveToFile();
