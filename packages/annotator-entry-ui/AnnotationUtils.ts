@@ -97,23 +97,23 @@ export class AnnotationManager {
 	
 	/**
 	 * Get point in between at a specific distance
-	 * @param marker_1
-	 * @param marker_2
-	 * @param at_distance
+	 * @param marker1
+	 * @param marker2
+	 * @param atDistance
 	 * @returns {Vector3}
 	 */
-	getMarkerInBetween(marker_1 : Vector3, marker_2 : Vector3, at_distance : number) : Vector3 {
-		return marker_2.clone().sub(marker_1).multiplyScalar(at_distance).add(marker_1)
+	getMarkerInBetween(marker1 : Vector3, marker2 : Vector3, atDistance : number) : Vector3 {
+		return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
 	}
 	
 	/**
 	 * Create a new lane connection between given lanes
-	 * @param lane_from
-	 * @param lane_to
+	 * @param laneFrom
+	 * @param laneTo
 	 */
-	addForwardLaneConnection(scene:THREE.Scene, lane_from : LaneAnnotation, lane_to : LaneAnnotation) {
+	addForwardLaneConnection(scene:THREE.Scene, laneFrom : LaneAnnotation, laneTo : LaneAnnotation) {
 
-		if (lane_from.laneMarkers.length < 4 || lane_to.laneMarkers.length < 4) {
+		if (laneFrom.laneMarkers.length < 4 || laneTo.laneMarkers.length < 4) {
 			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unable to generate forward relation." +
 			"Possible reasons: one of the two lanes connected does not have at least 4 markers.")
 			return
@@ -125,32 +125,24 @@ export class AnnotationManager {
 		this.annotations.push(connection)
 
 		// Glue neighbors
-		connection.neighborsIds.front.push(lane_to.id)
-		connection.neighborsIds.back.push(lane_from.id)
-		lane_from.neighborsIds.front.push(connection.id)
-		lane_to.neighborsIds.back.push(connection.id)
+		connection.neighborsIds.front.push(laneTo.id)
+		connection.neighborsIds.back.push(laneFrom.id)
+		laneFrom.neighborsIds.front.push(connection.id)
+		laneTo.neighborsIds.back.push(connection.id)
 
 		// Compute path
-		let last_index = lane_from.laneMarkers.length - 1
+		let last_index = laneFrom.laneMarkers.length - 1
 		let points_right : Array<Vector3> = []
-		points_right.push(lane_from.laneMarkers[last_index - 3].position)
-		log.info(lane_from.laneMarkers[last_index - 3].position)
-		points_right.push(lane_from.laneMarkers[last_index - 1].position)
-		log.info(lane_from.laneMarkers[last_index - 1].position)
-		points_right.push(lane_to.laneMarkers[0].position)
-		log.info(lane_to.laneMarkers[0].position)
-		points_right.push(lane_to.laneMarkers[2].position)
-		log.info(lane_to.laneMarkers[2].position)
+		points_right.push(laneFrom.laneMarkers[last_index - 3].position)
+		points_right.push(laneFrom.laneMarkers[last_index - 1].position)
+		points_right.push(laneTo.laneMarkers[0].position)
+		points_right.push(laneTo.laneMarkers[2].position)
 		let points_left : Array<Vector3> = []
-		points_left.push(lane_from.laneMarkers[last_index - 2].position)
-		log.info(lane_from.laneMarkers[last_index - 2].position)
-		points_left.push(lane_from.laneMarkers[last_index].position)
-		log.info(lane_from.laneMarkers[last_index].position)
-		points_left.push(lane_to.laneMarkers[1].position)
-		log.info(lane_to.laneMarkers[1].position)
-		points_left.push(lane_to.laneMarkers[3].position)
-		log.info(lane_to.laneMarkers[3].position)
-
+		points_left.push(laneFrom.laneMarkers[last_index - 2].position)
+		points_left.push(laneFrom.laneMarkers[last_index].position)
+		points_left.push(laneTo.laneMarkers[1].position)
+		points_left.push(laneTo.laneMarkers[3].position)
+		
 		let spline_left = new THREE.CatmullRomCurve3(points_left)
 		let spline_right = new THREE.CatmullRomCurve3(points_right)
 
@@ -279,8 +271,8 @@ export class AnnotationManager {
 	/**
 	 * Add current lane to the car path
 	 */
-	laneIndexInPath(lane_id : number) {
-		return this.carPath.findIndex( (id) => {return lane_id === id})
+	laneIndexInPath(laneId : number) {
+		return this.carPath.findIndex( (id) => {return laneId === id})
 	}
 	addLaneToPath() {
 
@@ -357,12 +349,12 @@ export class AnnotationManager {
 	
 	/**
 	 * Checks if the given is within a list of given ids
-	 * @param lane_ids  List of ids
-	 * @param id        Desired id
+	 * @param laneIds  List of ids
+	 * @param id       Desired id
 	 * @returns True if the id is within the list, false otherwise
 	 */
-	checkLaneIdInList(lane_ids : Array<number>, id : number) : boolean {
-		return lane_ids.findIndex( (lane_id) => {
+	checkLaneIdInList(laneIds : Array<number>, id : number) : boolean {
+		return laneIds.findIndex( (lane_id) => {
 			return lane_id === id
 		}) !== -1
 	}
@@ -507,10 +499,10 @@ export class AnnotationManager {
 	/**
 	 * Compute car trajectory by connecting all lane segments form the car path
 	 * @param step  Distance between waypoints in meters
-	 * @param min_dist_lane_change Minimum distance between points when changing lane
+	 * @param minDistanceLaneChange Minimum distance between points when changing lane
 	 * @returns Car trajectory from car path
 	 */
-	getFullInterpolatedTrajectory(step : number, min_dist_lane_change : number) : Array<Vector3> {
+	getFullInterpolatedTrajectory(step : number, minDistanceLaneChange : number) : Array<Vector3> {
 
 		// Check for car path size (at least one lane)
 		if (this.carPath.length === 0) {
@@ -530,7 +522,7 @@ export class AnnotationManager {
 		sorted_car_path.pop()
 		
 		// Create spline
-		let points : Array<Vector3> = this.generatePointsFromSortedCarPath(sorted_car_path, min_dist_lane_change)
+		let points : Array<Vector3> = this.generatePointsFromSortedCarPath(sorted_car_path, minDistanceLaneChange)
 		if (points.length === 0) {
 			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
 				"There are no waypoints in the selected car path lanes.")
