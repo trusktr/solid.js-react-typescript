@@ -398,7 +398,7 @@ class Annotator {
 		}
 		
 		if (event.code === 'KeyM') {
-			this.annotationManager.saveToKML("./data/path.kml", this.mapTile)
+			this.annotationManager.saveToKML(config.get('output.kml.path'), this.mapTile)
 		}
 	}
 	
@@ -407,10 +407,44 @@ class Annotator {
 	}
 	
 	private async saveAnnotations() {
-		const filename = config.get('output.json.path')
-		await this.annotationManager.saveAnnotationsToFile(filename)
+		await this.annotationManager.saveAnnotationsToFile(config.get('output.json.path'))
 	}
-	
+
+	private async exportAnnotationsToKml() {
+		const jar = config.get('conversion.kml.jar')
+		const main = config.get('conversion.kml.main_class')
+		let input = config.get('output.json.path')
+		let output = config.get('conversion.kml.output.path')
+		if (!jar || !main || !input || !output) {
+			console.warn("incomplete configuration for KML conversion; aborting")
+		} else {
+			await this.annotationManager.saveAnnotationsToFile(input)
+
+			if (!(input.substr(0, 1) === '/')) {
+				input = process.env.PWD + '/' + input
+			}
+			if (!(output.substr(0, 1) === '/')) {
+				output = process.env.PWD + '/' + output
+			}
+
+			const command = [jar, main, input, output].join(' ')
+			console.log('executing child process: ' + command)
+			const exec = require('child_process').exec
+			exec(command, (error, stdout, stderr) => {
+				if (error) {
+					console.error(`exec error: ${error}`)
+					return
+				}
+				if (stdout) {
+					console.log(`stdout: ${stdout}`)
+				}
+				if (stderr) {
+					console.log(`stderr: ${stderr}`)
+				}
+			})
+		}
+	}
+
 	private delayHideTransform = () => {
 		this.cancelHideTransform();
 		this.hideTransform();
@@ -507,6 +541,11 @@ class Annotator {
 		this.saveAnnotations();
 	}
 
+	exportKml() {
+		log.info("Exporting annotations to KML");
+		this.exportAnnotationsToKml();
+	}
+
 	loadFromFile() {
 
 		let path_electron = dialog.showOpenDialog({
@@ -584,6 +623,11 @@ class Annotator {
 		let tools_save = document.getElementById('tools_save');
 		tools_save.addEventListener('click', _ => {
 			this.saveToFile();
+		});
+
+		let tools_export_kml = document.getElementById('tools_export_kml');
+		tools_export_kml.addEventListener('click', _ => {
+			this.exportKml();
 		});
 
 		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');

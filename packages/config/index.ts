@@ -10,6 +10,7 @@ const fs = require('fs')
 
 const required = [
     'output.json.path',
+    'output.kml.path',
 ]
 
 const envInput = process.env.MAPPER_ENV.toLowerCase()
@@ -36,7 +37,6 @@ nconf
     // config files
     .file({ file: envFile, format: nconf.formats.yaml })
     .defaults({
-        'output.json.path': './data/annotations.json'
     })
 
 required.forEach((key) => {
