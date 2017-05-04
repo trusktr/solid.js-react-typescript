@@ -418,30 +418,13 @@ class Annotator {
 		if (!jar || !main || !input || !output) {
 			console.warn("incomplete configuration for KML conversion; aborting")
 		} else {
-			await this.annotationManager.saveAnnotationsToFile(input)
-
 			if (!(input.substr(0, 1) === '/')) {
 				input = process.env.PWD + '/' + input
 			}
 			if (!(output.substr(0, 1) === '/')) {
 				output = process.env.PWD + '/' + output
 			}
-
-			const command = [jar, main, input, output].join(' ')
-			console.log('executing child process: ' + command)
-			const exec = require('child_process').exec
-			exec(command, (error, stdout, stderr) => {
-				if (error) {
-					console.error(`exec error: ${error}`)
-					return
-				}
-				if (stdout) {
-					console.log(`stdout: ${stdout}`)
-				}
-				if (stderr) {
-					console.log(`stderr: ${stderr}`)
-				}
-			})
+			this.annotationManager.saveAndExportToKml(jar, main, input, output)
 		}
 	}
 
