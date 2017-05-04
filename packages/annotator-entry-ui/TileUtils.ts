@@ -82,20 +82,20 @@ export class SuperTile {
 		let colors : Array<number> = []
 		let files = Fs.readdirSync(datasetPath)
 		let count = 0
-		let fileCount = files.length
-		if (fileCount > this.maxTilesToLoad) fileCount = this.maxTilesToLoad
+		let maxFileCount = files.length
+		if (maxFileCount > this.maxTilesToLoad) maxFileCount = this.maxTilesToLoad
 
 		let printProgress = function (current: number, total: number, stepSize: number) {
 			if (total <= (stepSize * 2)) return
-			if (current % stepSize === 0) console.log(`processing ${current} of ${total} files`)
+			if (current % stepSize === 0) log.info(`processing ${current} of ${total} files`)
 		}
 
-		for (let i=0; i < fileCount; i++) {
+		for (let i=0; i < maxFileCount; i++) {
 			if (count >= this.maxTilesToLoad) {
 				break
 			}
-			printProgress(count + 1, fileCount, this.progressStepSize)
-			
+			printProgress(count + 1, maxFileCount, this.progressStepSize)
+
 			if (files[i] === 'tile_index.md' || files[i] === '.DS_Store') {
 				continue
 			}

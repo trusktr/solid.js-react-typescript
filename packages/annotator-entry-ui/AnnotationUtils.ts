@@ -698,15 +698,15 @@ export class AnnotationManager {
 	saveAndExportToKml(jar: string, main: string, input: string, output: string) {
 		let exportToKml = function () {
 			const command = [jar, main, input, output].join(' ')
-			console.log('executing child process: ' + command)
+			log.debug('executing child process: ' + command)
 			const exec = require('child_process').exec
 			exec(command, (error, stdout, stderr) => {
 				if (error) {
-					console.error(`exec error: ${error}`)
+					log.error(`exec error: ${error}`)
 					return
 				}
-				if (stdout) console.log(`stdout: ${stdout}`)
-				if (stderr) console.log(`stderr: ${stderr}`)
+				if (stdout) log.debug(`stdout: ${stdout}`)
+				if (stderr) log.debug(`stderr: ${stderr}`)
 			})
 		}
 
