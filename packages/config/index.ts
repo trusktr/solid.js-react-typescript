@@ -13,7 +13,7 @@ const required = [
     'output.kml.path',
 ]
 
-const envInput = process.env.MAPPER_ENV.toLowerCase()
+const envInput = (process.env.MAPPER_ENV || '').toLowerCase()
 let deployEnv
 if (envInput === 'prod' || envInput === 'production') {
     deployEnv = 'prod'
