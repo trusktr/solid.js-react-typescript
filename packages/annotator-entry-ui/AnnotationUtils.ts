@@ -94,7 +94,18 @@ export class AnnotationManager {
 		}
 		return list;
 	}
-
+	
+	/**
+	 * Get point in between at a specific distance
+	 * @param marker_1
+	 * @param marker_2
+	 * @param at_distance
+	 * @returns {Vector3}
+	 */
+	getMarkerInBetween(marker_1 : Vector3, marker_2 : Vector3, at_distance : number) : Vector3 {
+		return marker_2.clone().sub(marker_1).multiplyScalar(at_distance).add(marker_1)
+	}
+	
 	/**
 	 * Create a new lane connection between given lanes
 	 * @param lane_from
@@ -136,15 +147,23 @@ export class AnnotationManager {
 		let spline_right = new THREE.CatmullRomCurve3(points_right)
 
 		// Add path to the connection
-		connection.addRawMarker(scene, points_right[1])
-		connection.addRawMarker(scene, points_left[1])
-		connection.addRawMarker(scene, spline_right.getPoint(0.45))
-		connection.addRawMarker(scene, spline_left.getPoint(0.45))
-		connection.addRawMarker(scene, spline_right.getPoint(0.55))
-		connection.addRawMarker(scene, spline_left.getPoint(0.55))
-		connection.addRawMarker(scene, points_right[2])
-		connection.addRawMarker(scene, points_left[2])
-
+		// connection.addRawMarker(scene, points_right[1])
+		// connection.addRawMarker(scene, points_left[1])
+		// connection.addRawMarker(scene, spline_right.getPoint(0.45))
+		// connection.addRawMarker(scene, spline_left.getPoint(0.45))
+		// connection.addRawMarker(scene, spline_right.getPoint(0.55))
+		// connection.addRawMarker(scene, spline_left.getPoint(0.55))
+		// connection.addRawMarker(scene, points_right[2])
+		// connection.addRawMarker(scene, points_left[2])
+		connection.addRawMarker(scene, this.getMarkerInBetween(points_right[1], points_left[1], 0.4))
+		connection.addRawMarker(scene, this.getMarkerInBetween(points_right[1], points_left[1], 0.6))
+		connection.addRawMarker(scene, this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.4))
+		connection.addRawMarker(scene, this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.6))
+		connection.addRawMarker(scene, this.getMarkerInBetween(spline_right.getPoint(0.55), spline_left.getPoint(0.55), 0.4))
+		connection.addRawMarker(scene, this.getMarkerInBetween(spline_right.getPoint(0.55), spline_left.getPoint(0.55), 0.6))
+		connection.addRawMarker(scene, this.getMarkerInBetween(points_right[2], points_left[2], 0.4))
+		connection.addRawMarker(scene, this.getMarkerInBetween(points_right[2], points_left[2], 0.6))
+		
 		// Add annotation to the scene
 		this.annotationMeshes.push(connection.laneMesh)
 		scene.add(connection.laneMesh)
