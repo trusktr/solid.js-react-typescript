@@ -134,32 +134,39 @@ export class AnnotationManager {
 		let last_index = lane_from.laneMarkers.length - 1
 		let points_right : Array<Vector3> = []
 		points_right.push(lane_from.laneMarkers[last_index - 3].position)
+		log.info(lane_from.laneMarkers[last_index - 3].position)
 		points_right.push(lane_from.laneMarkers[last_index - 1].position)
+		log.info(lane_from.laneMarkers[last_index - 1].position)
 		points_right.push(lane_to.laneMarkers[0].position)
+		log.info(lane_to.laneMarkers[0].position)
 		points_right.push(lane_to.laneMarkers[2].position)
+		log.info(lane_to.laneMarkers[2].position)
 		let points_left : Array<Vector3> = []
 		points_left.push(lane_from.laneMarkers[last_index - 2].position)
+		log.info(lane_from.laneMarkers[last_index - 2].position)
 		points_left.push(lane_from.laneMarkers[last_index].position)
+		log.info(lane_from.laneMarkers[last_index].position)
 		points_left.push(lane_to.laneMarkers[1].position)
+		log.info(lane_to.laneMarkers[1].position)
 		points_left.push(lane_to.laneMarkers[3].position)
+		log.info(lane_to.laneMarkers[3].position)
 
 		let spline_left = new THREE.CatmullRomCurve3(points_left)
 		let spline_right = new THREE.CatmullRomCurve3(points_right)
 
 		// Add path to the connection
-		connection.addRawMarker(scene, this.getMarkerInBetween(points_right[1], points_left[1], 0.4))
-		connection.addRawMarker(scene, this.getMarkerInBetween(points_right[1], points_left[1], 0.6))
-		connection.addRawMarker(scene, this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.4))
-		connection.addRawMarker(scene, this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.6))
-		connection.addRawMarker(scene, this.getMarkerInBetween(spline_right.getPoint(0.55), spline_left.getPoint(0.55), 0.4))
-		connection.addRawMarker(scene, this.getMarkerInBetween(spline_right.getPoint(0.55), spline_left.getPoint(0.55), 0.6))
-		connection.addRawMarker(scene, this.getMarkerInBetween(points_right[2], points_left[2], 0.4))
-		connection.addRawMarker(scene, this.getMarkerInBetween(points_right[2], points_left[2], 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(points_right[1], points_left[1], 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(points_right[1], points_left[1], 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.55), spline_left.getPoint(0.55), 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.55), spline_left.getPoint(0.55), 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(points_right[2], points_left[2], 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(points_right[2], points_left[2], 0.6))
 		
 		// Add annotation to the scene
 		this.annotationMeshes.push(connection.laneMesh)
-		scene.add(connection.laneMesh)
-		scene.add(connection.laneDirection)
+		scene.add(connection.laneRenderingObject)
 		connection.makeInactive()
 		connection.updateVisualization()
 	}
@@ -627,22 +634,21 @@ export class AnnotationManager {
 	}
 	
 	/**
-	 * Add a new lane annotation and add it's mesh to the scene for display.
-	 * @param scene
-	 */
-	addLaneAnnotation(scene:THREE.Scene, obj? : LaneAnnotationInterface) {
+    * Add a new lane annotation and add it's mesh to the scene for display.
+    * @param scene
+    */
+	addLaneAnnotation(scene:THREE.Scene, obj?:LaneAnnotationInterface) {
 		if (obj) {
 			// Create an annotation with data
-			this.annotations.push(new LaneAnnotation(scene, obj))
+			this.annotations.push(new LaneAnnotation(obj))
 		} else {
 			// Create a clean annotation
 			this.annotations.push(new LaneAnnotation())
 			this.annotations[this.annotations.length-1].setType(AnnotationType.LANE)
 		}
-		let newAnnotationIndex = this.annotations.length-1
+		let newAnnotationIndex = this.annotations.length - 1
 		this.annotationMeshes.push(this.annotations[newAnnotationIndex].laneMesh)
-		scene.add(this.annotations[newAnnotationIndex].laneMesh)
-		scene.add(this.annotations[newAnnotationIndex].laneDirection)
+		scene.add(this.annotations[newAnnotationIndex].laneRenderingObject)
 	}
 	
 	/**
@@ -651,15 +657,9 @@ export class AnnotationManager {
 	 */
 	deleteLaneAnnotation(scene:THREE.Scene, lane : LaneAnnotation) {
 
-		// Remove markers from scene.
-		lane.laneMarkers.forEach( (marker) => {
-			scene.remove(marker)
-		})
-
-		// Remove mesh from scene.
-		scene.remove(lane.laneMesh)
-		scene.remove(lane.laneDirection)
-
+		// Remove lane from scene.
+		scene.remove(this.annotations[this.activeAnnotationIndex].laneRenderingObject)
+		
 		// Remove mesh from internal array of meshes.
 		let index = this.annotationMeshes.findIndex( (mesh) => {
 			return mesh === lane.laneMesh
@@ -703,30 +703,28 @@ export class AnnotationManager {
 	 * will add two markers subsequently. The second of those markers is computed
 	 * as a linear combination of the first marker (given position) and the
 	 * previous two markers.
-	 * @param scene
 	 * @param x
 	 * @param y
 	 * @param z
 	 */
-	addLaneMarker(scene:THREE.Scene, x:number, y:number, z:number) {
+	addLaneMarker(x:number, y:number, z:number) {
 		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't add marker")
 			return
 		}
-		this.annotations[this.activeAnnotationIndex].addMarker(scene, x, y, z)
+		this.annotations[this.activeAnnotationIndex].addMarker(x, y, z)
 	}
 	
 	/**
 	 * Remove last marker from the annotation. The marker is also removed from
 	 * the scene.
-	 * @param scene
 	 */
-	deleteLastLaneMarker(scene:THREE.Scene) {
+	deleteLastLaneMarker() {
 		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't delete marker")
 			return
 		}
-		this.annotations[this.activeAnnotationIndex].deleteLast(scene)
+		this.annotations[this.activeAnnotationIndex].deleteLast()
 	}
 	
 	/**
@@ -837,10 +835,10 @@ export class AnnotationManager {
 		thirdMarkerPosition.addVectors(this.activeMarkers[lastMarkerIndex-1].position, direction1)
 		fourthMarkerPosition.addVectors(this.activeMarkers[lastMarkerIndex].position, direction2)
 
-		this.annotations[newAnnotationIndex].addRawMarker(scene, this.activeMarkers[lastMarkerIndex-1].position)
-		this.annotations[newAnnotationIndex].addRawMarker(scene, this.activeMarkers[lastMarkerIndex].position)
-		this.annotations[newAnnotationIndex].addRawMarker(scene, thirdMarkerPosition)
-		this.annotations[newAnnotationIndex].addRawMarker(scene, fourthMarkerPosition)
+		this.annotations[newAnnotationIndex].addRawMarker(this.activeMarkers[lastMarkerIndex-1].position)
+		this.annotations[newAnnotationIndex].addRawMarker(this.activeMarkers[lastMarkerIndex].position)
+		this.annotations[newAnnotationIndex].addRawMarker(thirdMarkerPosition)
+		this.annotations[newAnnotationIndex].addRawMarker(fourthMarkerPosition)
 
 		this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.BACK)
 		this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.FRONT)
@@ -875,8 +873,8 @@ export class AnnotationManager {
 					direction.subVectors(this.activeMarkers[i].position, rightMarkerPosition)
 					let leftMarkerPosition = new THREE.Vector3()
 					leftMarkerPosition.subVectors(rightMarkerPosition, direction)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, rightMarkerPosition)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, leftMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(rightMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(leftMarkerPosition)
 				}
 				
 				
@@ -893,8 +891,8 @@ export class AnnotationManager {
 					direction.subVectors(this.activeMarkers[i-1].position, leftMarkerPosition)
 					let rightMarkerPosition = new THREE.Vector3()
 					rightMarkerPosition.subVectors(leftMarkerPosition, direction)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, rightMarkerPosition)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, leftMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(rightMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(leftMarkerPosition)
 				}
 				
 				// Record connection
@@ -937,8 +935,8 @@ export class AnnotationManager {
 					direction.subVectors(this.activeMarkers[i+1].position, leftMarkerPosition)
 					let rightMarkerPosition = new THREE.Vector3()
 					rightMarkerPosition.subVectors(leftMarkerPosition, direction)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, rightMarkerPosition)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, leftMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(rightMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(leftMarkerPosition)
 				}
 				
 				
@@ -955,8 +953,8 @@ export class AnnotationManager {
 					direction.subVectors(this.activeMarkers[i].position, rightMarkerPosition)
 					let leftMarkerPosition = new THREE.Vector3()
 					leftMarkerPosition.subVectors(rightMarkerPosition, direction)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, rightMarkerPosition)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, leftMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(rightMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(leftMarkerPosition)
 				}
 				
 				// Record connection

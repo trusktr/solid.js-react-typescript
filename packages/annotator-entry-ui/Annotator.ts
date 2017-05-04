@@ -264,7 +264,7 @@ class Annotator {
 			let x = intersections[0].point.x
 			let y = intersections[0].point.y
 			let z = intersections[0].point.z
-			this.annotationManager.addLaneMarker(this.scene, x,y,z)
+			this.annotationManager.addLaneMarker(x,y,z)
 		}
 	}
 	
@@ -360,7 +360,7 @@ class Annotator {
 		
 		if (event.code === 'KeyD') {
 			log.info("Deleting last marker")
-			this.annotationManager.deleteLastLaneMarker(this.scene)
+			this.annotationManager.deleteLastLaneMarker()
 			this.hideTransform()
 		}
 		
