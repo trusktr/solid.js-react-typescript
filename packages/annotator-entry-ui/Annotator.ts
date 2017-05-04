@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+const config = require('../config')
 import * as $ from 'jquery'
 import * as THREE from 'three'
 import * as AsyncFile from 'async-file'
@@ -406,7 +407,7 @@ class Annotator {
 	}
 	
 	private async saveAnnotations() {
-		let filename = './data/annotations.json'
+		const filename = config.get('output.json.path')
 		await this.annotationManager.saveAnnotationsToFile(filename)
 	}
 	
