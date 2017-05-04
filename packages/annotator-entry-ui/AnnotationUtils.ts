@@ -147,14 +147,6 @@ export class AnnotationManager {
 		let spline_right = new THREE.CatmullRomCurve3(points_right)
 
 		// Add path to the connection
-		// connection.addRawMarker(scene, points_right[1])
-		// connection.addRawMarker(scene, points_left[1])
-		// connection.addRawMarker(scene, spline_right.getPoint(0.45))
-		// connection.addRawMarker(scene, spline_left.getPoint(0.45))
-		// connection.addRawMarker(scene, spline_right.getPoint(0.55))
-		// connection.addRawMarker(scene, spline_left.getPoint(0.55))
-		// connection.addRawMarker(scene, points_right[2])
-		// connection.addRawMarker(scene, points_left[2])
 		connection.addRawMarker(scene, this.getMarkerInBetween(points_right[1], points_left[1], 0.4))
 		connection.addRawMarker(scene, this.getMarkerInBetween(points_right[1], points_left[1], 0.6))
 		connection.addRawMarker(scene, this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.4))
