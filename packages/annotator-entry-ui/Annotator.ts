@@ -659,7 +659,7 @@ class Annotator {
 			}
 
 			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
-			this.annotationManager.addRelation(lc_from, lc_to, lc_relation);
+			this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation);
 			this.resetLaneProp();
 		});
 

@@ -14,9 +14,9 @@ const log = TypeLogger.getLogger(__filename)
 const controlPointGeometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
 
 const directionGeometry = new THREE.Geometry()
-directionGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5,  1))
-directionGeometry.vertices.push(new THREE.Vector3( 0.5, 0.5,  0))
-directionGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -1))
+directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25,  0.5))
+directionGeometry.vertices.push(new THREE.Vector3( 0.25, 0.25,  0))
+directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, -0.5))
 directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
 directionGeometry.computeFaceNormals()
 
@@ -46,6 +46,11 @@ export enum LaneEntryExitType {
 	STOP
 }
 
+export enum AnnotationType {
+	UNKNOWN = 0,
+	LANE = 1,
+	CONNECTION = 2
+}
 
 class LaneNeighborsIds {
 	right : number
@@ -68,6 +73,7 @@ class LaneRenderingProperties {
 	inactiveMaterial : THREE.MeshLambertMaterial
 	centerLineMaterial : THREE.LineDashedMaterial
 	trajectoryMaterial : THREE.MeshLambertMaterial
+	connectionMaterial : THREE.MeshLambertMaterial
 	
 	constructor (color) {
 		this.color = color
@@ -76,11 +82,13 @@ class LaneRenderingProperties {
 		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side : THREE.DoubleSide})
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side : THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial( { color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2 } )
+		this.connectionMaterial = new THREE.MeshLambertMaterial( {color: 0x00ff00, side : THREE.DoubleSide})
 	}
 }
 
 export interface LaneAnnotationInterface {
 	id
+	type
 	color
 	markerPositions
 	neighborsIds :LaneNeighborsIds
@@ -96,6 +104,7 @@ export interface LaneAnnotationInterface {
 export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	id : number
+	type : AnnotationType
 	renderingProperties : LaneRenderingProperties
 	waypoints : Array<THREE.Vector3>
 	laneMarkers : Array<THREE.Mesh>
@@ -113,7 +122,8 @@ export class LaneAnnotation {
 	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
 		
 		this.id = obj ? obj.id : new Date().getUTCMilliseconds()
-		let color = obj? obj.color : Math.random() * 0xffffff
+		this.type = obj ? obj.type : AnnotationType.UNKNOWN
+		let color = obj ? obj.color : Math.random() * 0xffffff
 		this.neighborsIds = obj? obj.neighborsIds : new LaneNeighborsIds()
 		this.leftSideType = obj ? obj.leftSideType : LaneSideType.UNKNOWN
 		this.rightSideType = obj ? obj.rightSideType : LaneSideType.UNKNOWN
@@ -135,6 +145,10 @@ export class LaneAnnotation {
 			this.updateVisualization()
 			this.makeInactive()
 		}
+	}
+	
+	setType(type : AnnotationType) {
+		this.type = type
 	}
 	
 	/**
@@ -250,7 +264,16 @@ export class LaneAnnotation {
 			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
 		}
 		else {
-			this.laneMesh.material = this.renderingProperties.inactiveMaterial
+			if (this.type === AnnotationType.LANE) {
+				this.laneMesh.material = this.renderingProperties.inactiveMaterial
+			}
+			else if (this.type === AnnotationType.CONNECTION) {
+				this.laneMesh.material = this.renderingProperties.connectionMaterial
+			}
+			else {
+				// UNKNOWN
+				log.error("Unknown lane type. This shows an improper annotation creation.")
+			}
 		}
 		this.laneDirection.visible = true
 	}
@@ -270,7 +293,16 @@ export class LaneAnnotation {
 			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
 		}
 		else {
-			this.laneMesh.material = this.renderingProperties.inactiveMaterial
+			if (this.type === AnnotationType.LANE) {
+				this.laneMesh.material = this.renderingProperties.inactiveMaterial
+			}
+			else if (this.type === AnnotationType.CONNECTION) {
+				this.laneMesh.material = this.renderingProperties.connectionMaterial
+			}
+			else {
+				// UNKNOWN
+				log.error("Unknown lane type. This shows an improper annotation creation.")
+			}
 		}
 	}
 	
@@ -318,6 +350,7 @@ export class LaneAnnotation {
 		// needed to reconstruct this object from scratch)
 		let data : LaneAnnotationInterface = {
 			id: this.id,
+			type: this.type,
 			color : this.renderingProperties.color,
 			leftSideType : this.leftSideType,
 			rightSideType : this.rightSideType,
