@@ -96,12 +96,12 @@ export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	id : number
 	renderingProperties : LaneRenderingProperties
+	laneRenderingObject : THREE.Object3D
 	waypoints : Array<THREE.Vector3>
 	laneMarkers : Array<THREE.Mesh>
 	laneCenterLine : THREE.Line
 	laneDirectionMarkers : Array<THREE.Mesh>
 	laneMesh : THREE.Mesh
-	laneDirection : THREE.Object3D
 	neighborsIds : LaneNeighborsIds
 	leftSideType : LaneSideType
 	rightSideType : LaneSideType
@@ -109,7 +109,7 @@ export class LaneAnnotation {
 	exitType : LaneEntryExitType
 	inTrajectory: boolean
 	
-	constructor(scene? : THREE.Scene, obj? : LaneAnnotationInterface) {
+	constructor(obj? : LaneAnnotationInterface) {
 		
 		this.id = obj ? obj.id : new Date().getUTCMilliseconds()
 		let color = obj? obj.color : Math.random() * 0xffffff
@@ -122,30 +122,32 @@ export class LaneAnnotation {
 		this.laneMarkers = []
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
-		this.laneDirection = new THREE.Object3D()
-		this.laneDirection.add(this.laneCenterLine)
+		this.laneRenderingObject = new THREE.Object3D()
 		this.laneDirectionMarkers = []
 		this.inTrajectory = false
 		
-		if (scene && obj && obj.markerPositions.length > 0) {
+		if (obj && obj.markerPositions.length > 0) {
 			obj.markerPositions.forEach( (position) => {
-				this.addRawMarker(scene, new THREE.Vector3(position.x, position.y, position.z))
+				this.addRawMarker(new THREE.Vector3(position.x, position.y, position.z))
 			})
 			this.updateVisualization()
 			this.makeInactive()
 		}
+		
+		// Group display objects so we can easily add them to the screen
+		this.laneRenderingObject.add(this.laneMesh)
+		this.laneRenderingObject.add(this.laneCenterLine)
 	}
 	
 	/**
 	 * Add a single marker to the annotation and the scene.
-	 * @param scene
 	 * @param position
 	 */
-	addRawMarker(scene:THREE.Scene, position : THREE.Vector3) {
+	addRawMarker(position : THREE.Vector3) {
 		let marker = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.laneMarkers.push(marker)
-		scene.add(marker)
+		this.laneRenderingObject.add(marker)
 	}
 	
 	/**
@@ -155,12 +157,11 @@ export class LaneAnnotation {
 	 *      - Second marker: has it's height modified to match the height of the first marker
 	 *      - Third and onwards: Two markers are added using the passed position and the
 	 *                           position of the last two markers.
-	 * @param scene
 	 * @param x
 	 * @param y
 	 * @param z
 	 */
-	addMarker(scene:THREE.Scene, x:number, y:number, z:number) {
+	addMarker(x:number, y:number, z:number) {
 		
 		let marker = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
 		
@@ -174,7 +175,7 @@ export class LaneAnnotation {
 		marker.position.z = z
 		
 		this.laneMarkers.push(marker)
-		scene.add(marker)
+		this.laneRenderingObject.add(marker)
 		
 		// From the third marker onwards, add markers in pairs by estimating the position
 		// of the left marker.
@@ -185,7 +186,7 @@ export class LaneAnnotation {
 			marker2.position.y = marker2Position.y
 			marker2.position.z = marker2Position.z
 			this.laneMarkers.push(marker2)
-			scene.add(marker2)
+			this.laneRenderingObject.add(marker2)
 		}
 		
 		this.updateVisualization()
@@ -217,17 +218,16 @@ export class LaneAnnotation {
 	
 	/**
 	 * Delete last marker(s).
-	 * @param scene
 	 */
-	deleteLast(scene : THREE.Scene)  {
+	deleteLast()  {
 		if (this.laneMarkers.length === 0) {
 			return
 		}
 		
-		scene.remove(this.laneMarkers.pop())
+		this.laneRenderingObject.remove(this.laneMarkers.pop())
 		
 		if (this.laneMarkers.length > 2) {
-			scene.remove(this.laneMarkers.pop())
+			this.laneRenderingObject.remove(this.laneMarkers.pop())
 		}
 		
 		this.updateVisualization()
@@ -238,7 +238,7 @@ export class LaneAnnotation {
 	 */
 	makeActive() {
 		this.laneMesh.material = this.renderingProperties.activeMaterial
-		this.laneDirection.visible = false
+		this.laneCenterLine.visible = false
 	}
 	
 	/**
@@ -251,7 +251,7 @@ export class LaneAnnotation {
 		else {
 			this.laneMesh.material = this.renderingProperties.inactiveMaterial
 		}
-		this.laneDirection.visible = true
+		this.laneCenterLine.visible = true
 	}
 	
 	/**
@@ -261,7 +261,7 @@ export class LaneAnnotation {
 		this.inTrajectory = isTrajectoryActive
 		
 		// Do not change the active lane
-		if (!this.laneDirection.visible) {
+		if (!this.laneCenterLine.visible) {
 			return
 		}
 		
@@ -389,7 +389,7 @@ export class LaneAnnotation {
 	private updateLaneDirectionMarkers()  {
 		// Remove points from lineDirection object
 		this.laneDirectionMarkers.forEach( (marker) => {
-			this.laneDirection.remove(marker)
+			this.laneRenderingObject.remove(marker)
 		})
 		
 		if (this.waypoints.length < 3) {
@@ -404,7 +404,7 @@ export class LaneAnnotation {
 			let marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
 			marker.position.set(this.waypoints[i].x, this.waypoints[i].y, this.waypoints[i].z)
 			marker.rotateY(-angle)
-			this.laneDirection.add(marker)
+			this.laneRenderingObject.add(marker)
 			this.laneDirectionMarkers.push(marker)
 		}
 	}
@@ -412,7 +412,7 @@ export class LaneAnnotation {
 	tryTrajectory(trajectory : Array<THREE.Vector3>)  {
 		// Remove points from lineDirection object
 		this.laneDirectionMarkers.forEach( (marker) => {
-			this.laneDirection.remove(marker)
+			this.laneRenderingObject.remove(marker)
 		})
 		
 		if (trajectory.length < 3) {
@@ -427,7 +427,7 @@ export class LaneAnnotation {
 			let marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
 			marker.position.set(trajectory[i].x, trajectory[i].y, trajectory[i].z)
 			marker.rotateY(-angle)
-			this.laneDirection.add(marker)
+			this.laneRenderingObject.add(marker)
 			this.laneDirectionMarkers.push(marker)
 		}
 	}
