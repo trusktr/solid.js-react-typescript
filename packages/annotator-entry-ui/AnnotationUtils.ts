@@ -6,7 +6,7 @@
 import * as THREE from 'three'
 import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
-	NeighborLocation
+	NeighborLocation, AnnotationType
 } from 'annotator-entry-ui/LaneAnnotation'
 import {SuperTile} from "annotator-entry-ui/TileUtils"
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
@@ -88,15 +88,85 @@ export class AnnotationManager {
 	getValidIds() {
 		let list = [];
 		for (let i = 0; i < this.annotations.length; ++i) {
-			list.push(this.annotations[i].id);
+			if (this.annotations[i].type === AnnotationType.LANE) {
+				list.push(this.annotations[i].id);
+			}
 		}
 		return list;
+	}
+	
+	/**
+	 * Get point in between at a specific distance
+	 * @param marker1
+	 * @param marker2
+	 * @param atDistance
+	 * @returns {Vector3}
+	 */
+	getMarkerInBetween(marker1 : Vector3, marker2 : Vector3, atDistance : number) : Vector3 {
+		return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
+	}
+	
+	/**
+	 * Create a new lane connection between given lanes
+	 * @param laneFrom
+	 * @param laneTo
+	 */
+	addForwardLaneConnection(scene:THREE.Scene, laneFrom : LaneAnnotation, laneTo : LaneAnnotation) {
+
+		if (laneFrom.laneMarkers.length < 4 || laneTo.laneMarkers.length < 4) {
+			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unable to generate forward relation." +
+			"Possible reasons: one of the two lanes connected does not have at least 4 markers.")
+			return
+		}
+
+		// Create new connection
+		let connection = new LaneAnnotation()
+		connection.setType(AnnotationType.CONNECTION)
+		this.annotations.push(connection)
+
+		// Glue neighbors
+		connection.neighborsIds.front.push(laneTo.id)
+		connection.neighborsIds.back.push(laneFrom.id)
+		laneFrom.neighborsIds.front.push(connection.id)
+		laneTo.neighborsIds.back.push(connection.id)
+
+		// Compute path
+		let last_index = laneFrom.laneMarkers.length - 1
+		let points_right : Array<Vector3> = []
+		points_right.push(laneFrom.laneMarkers[last_index - 3].position)
+		points_right.push(laneFrom.laneMarkers[last_index - 1].position)
+		points_right.push(laneTo.laneMarkers[0].position)
+		points_right.push(laneTo.laneMarkers[2].position)
+		let points_left : Array<Vector3> = []
+		points_left.push(laneFrom.laneMarkers[last_index - 2].position)
+		points_left.push(laneFrom.laneMarkers[last_index].position)
+		points_left.push(laneTo.laneMarkers[1].position)
+		points_left.push(laneTo.laneMarkers[3].position)
+		
+		let spline_left = new THREE.CatmullRomCurve3(points_left)
+		let spline_right = new THREE.CatmullRomCurve3(points_right)
+
+		// Add path to the connection
+		connection.addRawMarker(this.getMarkerInBetween(points_right[1], points_left[1], 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(points_right[1], points_left[1], 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.55), spline_left.getPoint(0.55), 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.55), spline_left.getPoint(0.55), 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(points_right[2], points_left[2], 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(points_right[2], points_left[2], 0.6))
+		
+		// Add annotation to the scene
+		this.annotationMeshes.push(connection.laneMesh)
+		scene.add(connection.laneRenderingObject)
+		connection.makeInactive()
+		connection.updateVisualization()
 	}
 
 	/**
 	 * Add a new relation between two existing lanes
 	 */
-	addRelation(from_id : number, to_id : number, relation : string) {
+	addRelation(scene : THREE.Scene, from_id : number, to_id : number, relation : string) {
 
 		let lane_from = null;
 		for (let annotation of this.annotations) {
@@ -161,8 +231,17 @@ export class AnnotationManager {
 					return neighbor === lane_from.id
 				})
 				if (index_1 === -1 && index_2 === -1) {
-					lane_to.neighborsIds.back.push(lane_from.id);
-					lane_from.neighborsIds.front.push(lane_to.id);
+					// check if close enough
+					let lane_from_pt = lane_from.laneMarkers[lane_from.laneMarkers.length-1].position
+					let lane_to_pt = lane_to.laneMarkers[1].position
+					if (lane_from_pt.distanceTo(lane_to_pt) < 1.0) {
+						lane_to.neighborsIds.back.push(lane_from.id);
+						lane_from.neighborsIds.front.push(lane_to.id);
+					}
+					else {
+						// Connection lane needed
+						this.addForwardLaneConnection(scene, lane_from, lane_to)
+					}
 				}
 				else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Front relation already exist.")
@@ -192,8 +271,8 @@ export class AnnotationManager {
 	/**
 	 * Add current lane to the car path
 	 */
-	laneIndexInPath(lane_id : number) {
-		return this.carPath.findIndex( (id) => {return lane_id === id})
+	laneIndexInPath(laneId : number) {
+		return this.carPath.findIndex( (id) => {return laneId === id})
 	}
 	addLaneToPath() {
 
@@ -270,12 +349,12 @@ export class AnnotationManager {
 	
 	/**
 	 * Checks if the given is within a list of given ids
-	 * @param lane_ids  List of ids
-	 * @param id        Desired id
+	 * @param laneIds  List of ids
+	 * @param id       Desired id
 	 * @returns True if the id is within the list, false otherwise
 	 */
-	checkLaneIdInList(lane_ids : Array<number>, id : number) : boolean {
-		return lane_ids.findIndex( (lane_id) => {
+	checkLaneIdInList(laneIds : Array<number>, id : number) : boolean {
+		return laneIds.findIndex( (lane_id) => {
 			return lane_id === id
 		}) !== -1
 	}
@@ -420,10 +499,10 @@ export class AnnotationManager {
 	/**
 	 * Compute car trajectory by connecting all lane segments form the car path
 	 * @param step  Distance between waypoints in meters
-	 * @param min_dist_lane_change Minimum distance between points when changing lane
+	 * @param minDistanceLaneChange Minimum distance between points when changing lane
 	 * @returns Car trajectory from car path
 	 */
-	getFullInterpolatedTrajectory(step : number, min_dist_lane_change : number) : Array<Vector3> {
+	getFullInterpolatedTrajectory(step : number, minDistanceLaneChange : number) : Array<Vector3> {
 
 		// Check for car path size (at least one lane)
 		if (this.carPath.length === 0) {
@@ -443,7 +522,7 @@ export class AnnotationManager {
 		sorted_car_path.pop()
 		
 		// Create spline
-		let points : Array<Vector3> = this.generatePointsFromSortedCarPath(sorted_car_path, min_dist_lane_change)
+		let points : Array<Vector3> = this.generatePointsFromSortedCarPath(sorted_car_path, minDistanceLaneChange)
 		if (points.length === 0) {
 			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
 				"There are no waypoints in the selected car path lanes.")
@@ -547,23 +626,50 @@ export class AnnotationManager {
 	}
 	
 	/**
-	 * Add a new lane annotation and add it's mesh to the scene for display.
-	 * @param scene
-	 */
-	addLaneAnnotation(scene:THREE.Scene, obj? : LaneAnnotationInterface) {
+    * Add a new lane annotation and add it's mesh to the scene for display.
+    * @param scene
+    */
+	addLaneAnnotation(scene:THREE.Scene, obj?:LaneAnnotationInterface) {
 		if (obj) {
 			// Create an annotation with data
-			this.annotations.push(new LaneAnnotation(scene, obj))
+			this.annotations.push(new LaneAnnotation(obj))
 		} else {
 			// Create a clean annotation
 			this.annotations.push(new LaneAnnotation())
+			this.annotations[this.annotations.length-1].setType(AnnotationType.LANE)
 		}
-		let newAnnotationIndex = this.annotations.length-1
+		let newAnnotationIndex = this.annotations.length - 1
 		this.annotationMeshes.push(this.annotations[newAnnotationIndex].laneMesh)
-		scene.add(this.annotations[newAnnotationIndex].laneMesh)
-		scene.add(this.annotations[newAnnotationIndex].laneDirection)
+		scene.add(this.annotations[newAnnotationIndex].laneRenderingObject)
 	}
 	
+	/**
+	 * Delete given lane annotation
+	 * @param lane
+	 */
+	deleteLaneAnnotation(scene:THREE.Scene, lane : LaneAnnotation) {
+
+		// Remove lane from scene.
+		scene.remove(lane.laneRenderingObject)
+		
+		// Remove mesh from internal array of meshes.
+		let index = this.annotationMeshes.findIndex( (mesh) => {
+			return mesh === lane.laneMesh
+		})
+		if (index < 0) {
+			log.error("Couldn't find associated mesh in internal mesh array. This should never happen")
+			return
+		}
+		this.annotationMeshes.splice(index, 1)
+
+		// Make sure we remove references to this annotation from it's neighbors (if any).
+		this.deleteConnectionToNeighbors(scene, lane)
+
+		// Remove annotation from internal array of annotations.
+		let lane_index = this.getLaneIndexFromId(this.annotations, lane.id)
+		this.annotations.splice(lane_index, 1)
+	}
+
 	/**
 	 * Eliminate the current active annotation from the manager. Delete its associated
 	 * mesh and markers from the scene and reset any active annotation variables.
@@ -574,31 +680,9 @@ export class AnnotationManager {
 			log.warn("Can't delete active annotation. No active annotation selected.")
 			return
 		}
-		
-		// Remove markers from scene.
-		this.activeMarkers.forEach( (marker) => {
-			scene.remove(marker)
-		})
-		
-		// Remove mesh from scene.
-		scene.remove(this.annotations[this.activeAnnotationIndex].laneMesh)
-		scene.remove(this.annotations[this.activeAnnotationIndex].laneDirection)
-		
-		// Remove mesh from internal array of meshes.
-		let index = this.annotationMeshes.findIndex( (mesh) => {
-			return mesh === this.annotations[this.activeAnnotationIndex].laneMesh
-		})
-		if (index < 0) {
-			log.error("Couldn't find associated mesh in internal mesh array. This should never happen")
-			return
-		}
-		this.annotationMeshes.splice(index, 1)
-		
-		// Make sure we remove references to this annotation from it's neighbors (if any).
-		this.deleteConnectionToNeighbors(this.annotations[this.activeAnnotationIndex])
-		
-		// Remove annotation from internal array of annotations.
-		this.annotations.splice(this.activeAnnotationIndex, 1)
+
+		// Delete lane annotation
+		this.deleteLaneAnnotation(scene, this.annotations[this.activeAnnotationIndex])
 		
 		// Reset active markers and active annotation index.
 		this.activeAnnotationIndex = -1
@@ -611,30 +695,28 @@ export class AnnotationManager {
 	 * will add two markers subsequently. The second of those markers is computed
 	 * as a linear combination of the first marker (given position) and the
 	 * previous two markers.
-	 * @param scene
 	 * @param x
 	 * @param y
 	 * @param z
 	 */
-	addLaneMarker(scene:THREE.Scene, x:number, y:number, z:number) {
+	addLaneMarker(x:number, y:number, z:number) {
 		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't add marker")
 			return
 		}
-		this.annotations[this.activeAnnotationIndex].addMarker(scene, x, y, z)
+		this.annotations[this.activeAnnotationIndex].addMarker(x, y, z)
 	}
 	
 	/**
 	 * Remove last marker from the annotation. The marker is also removed from
 	 * the scene.
-	 * @param scene
 	 */
-	deleteLastLaneMarker(scene:THREE.Scene) {
+	deleteLastLaneMarker() {
 		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't delete marker")
 			return
 		}
-		this.annotations[this.activeAnnotationIndex].deleteLast(scene)
+		this.annotations[this.activeAnnotationIndex].deleteLast()
 	}
 	
 	/**
@@ -768,10 +850,10 @@ export class AnnotationManager {
 		thirdMarkerPosition.addVectors(this.activeMarkers[lastMarkerIndex-1].position, direction1)
 		fourthMarkerPosition.addVectors(this.activeMarkers[lastMarkerIndex].position, direction2)
 
-		this.annotations[newAnnotationIndex].addRawMarker(scene, this.activeMarkers[lastMarkerIndex-1].position)
-		this.annotations[newAnnotationIndex].addRawMarker(scene, this.activeMarkers[lastMarkerIndex].position)
-		this.annotations[newAnnotationIndex].addRawMarker(scene, thirdMarkerPosition)
-		this.annotations[newAnnotationIndex].addRawMarker(scene, fourthMarkerPosition)
+		this.annotations[newAnnotationIndex].addRawMarker(this.activeMarkers[lastMarkerIndex-1].position)
+		this.annotations[newAnnotationIndex].addRawMarker(this.activeMarkers[lastMarkerIndex].position)
+		this.annotations[newAnnotationIndex].addRawMarker(thirdMarkerPosition)
+		this.annotations[newAnnotationIndex].addRawMarker(fourthMarkerPosition)
 
 		this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.BACK)
 		this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.FRONT)
@@ -806,8 +888,8 @@ export class AnnotationManager {
 					direction.subVectors(this.activeMarkers[i].position, rightMarkerPosition)
 					let leftMarkerPosition = new THREE.Vector3()
 					leftMarkerPosition.subVectors(rightMarkerPosition, direction)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, rightMarkerPosition)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, leftMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(rightMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(leftMarkerPosition)
 				}
 				
 				
@@ -824,8 +906,8 @@ export class AnnotationManager {
 					direction.subVectors(this.activeMarkers[i-1].position, leftMarkerPosition)
 					let rightMarkerPosition = new THREE.Vector3()
 					rightMarkerPosition.subVectors(leftMarkerPosition, direction)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, rightMarkerPosition)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, leftMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(rightMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(leftMarkerPosition)
 				}
 				
 				// Record connection
@@ -868,8 +950,8 @@ export class AnnotationManager {
 					direction.subVectors(this.activeMarkers[i+1].position, leftMarkerPosition)
 					let rightMarkerPosition = new THREE.Vector3()
 					rightMarkerPosition.subVectors(leftMarkerPosition, direction)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, rightMarkerPosition)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, leftMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(rightMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(leftMarkerPosition)
 				}
 				
 				
@@ -886,8 +968,8 @@ export class AnnotationManager {
 					direction.subVectors(this.activeMarkers[i].position, rightMarkerPosition)
 					let leftMarkerPosition = new THREE.Vector3()
 					leftMarkerPosition.subVectors(rightMarkerPosition, direction)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, rightMarkerPosition)
-					this.annotations[newAnnotationIndex].addRawMarker(scene, leftMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(rightMarkerPosition)
+					this.annotations[newAnnotationIndex].addRawMarker(leftMarkerPosition)
 				}
 				
 				// Record connection
@@ -911,7 +993,7 @@ export class AnnotationManager {
 		})
 	}
 	
-	private deleteConnectionToNeighbors(annotation : LaneAnnotation) {
+	private deleteConnectionToNeighbors(scene:THREE.Scene, annotation : LaneAnnotation) {
 		
 		if (annotation.neighborsIds.right != null) {
 			let index = this.findAnnotationIndexById(annotation.neighborsIds.right)
@@ -960,8 +1042,14 @@ export class AnnotationManager {
 				return id === annotation.id
 			})
 			if (index2 >= 0) {
+				// delete the forward connection
 				log.info("Deleted connection to front neighbor.")
-				frontNeighbor.neighborsIds.back.splice(index2,1)
+				frontNeighbor.neighborsIds.back.splice(index2, 1)
+				if (annotation.type === AnnotationType.LANE &&
+						frontNeighbor.type === AnnotationType.CONNECTION) {
+					// delete the connection LANE
+					this.deleteLaneAnnotation(scene, frontNeighbor)
+				}
 			}
 		}
 		
@@ -976,8 +1064,14 @@ export class AnnotationManager {
 				return id === annotation.id
 			})
 			if (index2 >= 0) {
+				// delete the backward connection
 				log.info("Deleted connection to back neighbor.")
 				backNeighbor.neighborsIds.front.splice(index2,1)
+				if (annotation.type === AnnotationType.LANE &&
+					  backNeighbor.type === AnnotationType.CONNECTION) {
+					// delete the backward connection LANE
+					this.deleteLaneAnnotation(scene, backNeighbor)
+				}
 			}
 		}
 	}
