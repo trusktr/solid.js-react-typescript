@@ -162,7 +162,9 @@ export class LaneAnnotation {
 		let marker = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.laneMarkers.push(marker)
-		this.laneRenderingObject.add(marker)
+		if (this.type === AnnotationType.LANE) {
+			this.laneRenderingObject.add(marker)
+		}
 	}
 	
 	/**
@@ -178,30 +180,16 @@ export class LaneAnnotation {
 	 */
 	addMarker(x:number, y:number, z:number) {
 		
-		let marker = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
-		
-		marker.position.x = x
+		let marker : THREE.Vector3 = new THREE.Vector3(x,y,z)// = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
 		if (this.laneMarkers.length > 0) {
-			marker.position.y = this.laneMarkers[this.laneMarkers.length-1].position.y
-		} else {
-			marker.position.y = y
+			marker.y = this.laneMarkers[this.laneMarkers.length-1].position.y
 		}
-		
-		marker.position.z = z
-		
-		this.laneMarkers.push(marker)
-		this.laneRenderingObject.add(marker)
+		this.addRawMarker(marker)
 		
 		// From the third marker onwards, add markers in pairs by estimating the position
 		// of the left marker.
 		if (this.laneMarkers.length >= 3) {
-			let marker2Position = this.computeLeftMarkerEstimatedPosition()
-			let marker2 = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
-			marker2.position.x = marker2Position.x
-			marker2.position.y = marker2Position.y
-			marker2.position.z = marker2Position.z
-			this.laneMarkers.push(marker2)
-			this.laneRenderingObject.add(marker2)
+			this.addRawMarker(this.computeLeftMarkerEstimatedPosition())
 		}
 		
 		this.updateVisualization()

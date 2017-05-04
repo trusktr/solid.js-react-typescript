@@ -658,7 +658,7 @@ export class AnnotationManager {
 	deleteLaneAnnotation(scene:THREE.Scene, lane : LaneAnnotation) {
 
 		// Remove lane from scene.
-		scene.remove(this.annotations[this.activeAnnotationIndex].laneRenderingObject)
+		scene.remove(lane.laneRenderingObject)
 		
 		// Remove mesh from internal array of meshes.
 		let index = this.annotationMeshes.findIndex( (mesh) => {
