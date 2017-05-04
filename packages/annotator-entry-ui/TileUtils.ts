@@ -60,11 +60,13 @@ export class SuperTile {
 	origin : THREE.Vector3
 	pointCloud : THREE.Points
 	maxTilesToLoad : number
+	progressStepSize: number
 	samplingStep : number
 	utm
-	
+
 	constructor() {
 		this.maxTilesToLoad = 2000
+		this.progressStepSize = 100
 		this.samplingStep = 15
 		this.origin = new THREE.Vector3()
 		this.utm = new utmObj()
@@ -80,11 +82,19 @@ export class SuperTile {
 		let colors : Array<number> = []
 		let files = Fs.readdirSync(datasetPath)
 		let count = 0
-		
-		for (let i=0; i < files.length; i++) {
+		let fileCount = files.length
+		if (fileCount > this.maxTilesToLoad) fileCount = this.maxTilesToLoad
+
+		let printProgress = function (current: number, total: number, stepSize: number) {
+			if (total <= (stepSize * 2)) return
+			if (current % stepSize === 0) console.log(`processing ${current} of ${total} files`)
+		}
+
+		for (let i=0; i < fileCount; i++) {
 			if (count >= this.maxTilesToLoad) {
 				break
 			}
+			printProgress(count + 1, fileCount, this.progressStepSize)
 			
 			if (files[i] === 'tile_index.md' || files[i] === '.DS_Store') {
 				continue

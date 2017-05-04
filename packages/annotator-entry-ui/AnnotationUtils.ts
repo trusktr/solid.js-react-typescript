@@ -705,12 +705,8 @@ export class AnnotationManager {
 					console.error(`exec error: ${error}`)
 					return
 				}
-				if (stdout) {
-					console.log(`stdout: ${stdout}`)
-				}
-				if (stderr) {
-					console.log(`stderr: ${stderr}`)
-				}
+				if (stdout) console.log(`stdout: ${stdout}`)
+				if (stderr) console.log(`stderr: ${stderr}`)
 			})
 		}
 

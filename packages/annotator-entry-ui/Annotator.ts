@@ -418,12 +418,10 @@ class Annotator {
 		if (!jar || !main || !input || !output) {
 			console.warn("incomplete configuration for KML conversion; aborting")
 		} else {
-			if (!(input.substr(0, 1) === '/')) {
+			if (!(input.substr(0, 1) === '/'))
 				input = process.env.PWD + '/' + input
-			}
-			if (!(output.substr(0, 1) === '/')) {
+			if (!(output.substr(0, 1) === '/'))
 				output = process.env.PWD + '/' + output
-			}
 			this.annotationManager.saveAndExportToKml(jar, main, input, output)
 		}
 	}
