@@ -91,6 +91,7 @@ export interface LaneAnnotationInterface {
 	type
 	color
 	markerPositions
+	waypoints
 	neighborsIds :LaneNeighborsIds
 	leftSideType : LaneSideType
 	rightSideType : LaneSideType
@@ -345,7 +346,8 @@ export class LaneAnnotation {
 			entryType : this.entryType,
 			exitType : this.exitType,
 			neighborsIds : this.neighborsIds,
-			markerPositions : []
+			markerPositions : [],
+			waypoints: this.waypoints
 		}
 		
 		this.laneMarkers.forEach((marker) => {

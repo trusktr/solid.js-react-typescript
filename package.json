@@ -1,5 +1,5 @@
 {
-  "name": "mapper-annotator",
+  "name": "@mapperai/mapper-annotator",
   "version": "0.0.1",
   "description": "Mapper.AI Annotator",
   "scripts": {
@@ -11,6 +11,7 @@
     "release:stage": "MAPPER_ENV=stage npm run build && npm run deploy:stage",
     "toolbox": "react-toolbox-themr"
   },
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "https://github.com/"
@@ -71,7 +72,6 @@
     "@types/node": "^7.0.8",
     "@types/radium": "^0.18.19",
     "@types/react": "^15.0.12",
-    "@types/react-addons-css-transition-group": "^15.0.1",
     "@types/react-addons-perf": "^0.14.16",
     "@types/react-addons-pure-render-mixin": "^0.14.13",
     "@types/react-addons-shallow-compare": "^0.14.16",
@@ -196,10 +196,11 @@
     "jquery-ui-dist": "^1.12.1",
     "lodash": "^4.17.4",
     "moment": "^2.13.0",
+    "nconf": "^0.8.4",
+    "nconf-yaml": "^1.0.2",
     "protobufjs": "^6.7.1",
     "react": "^15.4.2",
     "react-addons-create-fragment": "^15.4.2",
-    "react-addons-css-transition-group": "^15.4.2",
     "react-addons-pure-render-mixin": "^15.4.2",
     "react-addons-shallow-compare": "^15.4.2",
     "react-addons-transition-group": "^15.4.2",

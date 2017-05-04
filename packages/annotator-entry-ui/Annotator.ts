@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+const config = require('../config')
 import * as $ from 'jquery'
 import * as THREE from 'three'
 import * as AsyncFile from 'async-file'
@@ -397,7 +398,7 @@ class Annotator {
 		}
 		
 		if (event.code === 'KeyM') {
-			this.annotationManager.saveToKML("./data/path.kml", this.mapTile)
+			this.annotationManager.saveToKML(config.get('output.kml.path'), this.mapTile)
 		}
 	}
 	
@@ -406,10 +407,25 @@ class Annotator {
 	}
 	
 	private async saveAnnotations() {
-		let filename = './data/annotations.json'
-		await this.annotationManager.saveAnnotationsToFile(filename)
+		await this.annotationManager.saveAnnotationsToFile(config.get('output.json.path'))
 	}
-	
+
+	private async exportAnnotationsToKml() {
+		const jar = config.get('conversion.kml.jar')
+		const main = config.get('conversion.kml.main_class')
+		let input = config.get('output.json.path')
+		let output = config.get('conversion.kml.output.path')
+		if (!jar || !main || !input || !output) {
+			console.warn("incomplete configuration for KML conversion; aborting")
+		} else {
+			if (!(input.substr(0, 1) === '/'))
+				input = process.env.PWD + '/' + input
+			if (!(output.substr(0, 1) === '/'))
+				output = process.env.PWD + '/' + output
+			this.annotationManager.saveAndExportToKml(jar, main, input, output)
+		}
+	}
+
 	private delayHideTransform = () => {
 		this.cancelHideTransform();
 		this.hideTransform();
@@ -484,7 +500,7 @@ class Annotator {
 	/**
 	 * Functions to bind
 	 */
-	 deleteLane() {
+	deleteLane() {
 		// Delete lane from scene
 		log.info("Delete selected annotation");
 		this.annotationManager.deleteLaneFromPath();
@@ -493,20 +509,25 @@ class Annotator {
 		this.hideTransform();
 	}
 
-	 addLane() {
+	addLane() {
 		// Add lane to scene
-	 	log.info("Added new annotation");
+		log.info("Added new annotation");
 		this.addLaneAnnotation();
 		this.resetLaneProp();
 		this.hideTransform();
 	}
 
-	 saveToFile() {
+	saveToFile() {
 		log.info("Saving annotations to JSON");
 		this.saveAnnotations();
 	}
 
-	 loadFromFile() {
+	exportKml() {
+		log.info("Exporting annotations to KML");
+		this.exportAnnotationsToKml();
+	}
+
+	loadFromFile() {
 
 		let path_electron = dialog.showOpenDialog({
 			properties: ['openDirectory']
@@ -518,47 +539,47 @@ class Annotator {
 		
 		log.info('Loading point cloud from ' + path_electron[0]);
 		this.loadPointCloudData(path_electron[0]);
-	 }
+	}
 
-	 addFront() {
+	addFront() {
 		log.info("Adding connected annotation to the front");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
-	 
-		 // Deactivate button
-		 this.deactivateFrontSideNeighbours();
-	 }
+	
+		// Deactivate button
+		this.deactivateFrontSideNeighbours();
+	}
 
-	 addLeftSame() {
+	addLeftSame() {
 		log.info("Adding connected annotation to the left - same direction");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME);
 
-		 // Deactivate buttons
-		 this.deactivateLeftSideNeighbours();
-	 }
+		// Deactivate buttons
+		this.deactivateLeftSideNeighbours();
+	}
 
-	 addLeftReverse() {
+	addLeftReverse() {
 		log.info("Adding connected annotation to the left - reverse direction");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE);
 
-		 // Deactivate buttons
-		 this.deactivateLeftSideNeighbours();
-	 }
+		// Deactivate buttons
+		this.deactivateLeftSideNeighbours();
+	}
 
-	 addRightSame() {
+	addRightSame() {
 		log.info("Adding connected annotation to the right - same direction");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME);
 
-		 // Deactivate buttons
-		 this.deactivateRightSideNeighbours();
-	 }
+		// Deactivate buttons
+		this.deactivateRightSideNeighbours();
+	}
 
-	 addRightReverse() {
+	addRightReverse() {
 		log.info("Adding connected annotation to the right - reverse direction");
 		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE);
 
-		 // Deactivate buttons
-		 this.deactivateRightSideNeighbours();
-	 }
+		// Deactivate buttons
+		this.deactivateRightSideNeighbours();
+	}
 
 	/**
 	 * Bind functions events to interface elements
@@ -609,6 +630,11 @@ class Annotator {
 		let tools_save = document.getElementById('tools_save');
 		tools_save.addEventListener('click', _ => {
 			this.saveToFile();
+		});
+
+		let tools_export_kml = document.getElementById('tools_export_kml');
+		tools_export_kml.addEventListener('click', _ => {
+			this.exportKml();
 		});
 
 		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');

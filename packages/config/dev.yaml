@@ -1,0 +1,10 @@
+# persistence of a data file
+output.json.path: ./data/annotations.json
+output.kml.path: ./data/path.kml
+
+# convert a data file to another format
+# You'll need to build the MapAccumulator project to get the jar file onto your system.
+# https://github.com/Signafy/Sandbox/tree/master/CloudServices/MapAccumulator#build
+conversion.kml.jar: java -classpath /Users/clyde/dev/mapper/Sandbox/CloudServices/MapAccumulator/target/scala-2.11/strabo-assembly-0.0.1-SNAPSHOT.jar
+conversion.kml.main_class: ai.mapper.app.AnnotatorToTiles
+conversion.kml.output.path: ./data/annotator-tiles.kml

@@ -764,19 +764,42 @@ export class AnnotationManager {
 		}
 		
 	}
-	
+
 	async saveAnnotationsToFile(fileName : string) {
 		let self = this
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
 			if (!er) {
 				let strAnnotations = JSON.stringify(self.annotations)
-				AsyncFile.writeTextFile(fileName, strAnnotations)
+				return AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
 		MkDirP.mkdirP(dirName, writeFile)
 	}
-	
+
+	saveAndExportToKml(jar: string, main: string, input: string, output: string) {
+		let exportToKml = function () {
+			const command = [jar, main, input, output].join(' ')
+			log.debug('executing child process: ' + command)
+			const exec = require('child_process').exec
+			exec(command, (error, stdout, stderr) => {
+				if (error) {
+					log.error(`exec error: ${error}`)
+					return
+				}
+				if (stdout) log.debug(`stdout: ${stdout}`)
+				if (stderr) log.debug(`stderr: ${stderr}`)
+			})
+		}
+
+		this.saveAnnotationsToFile(input).then(function () {
+			exportToKml()
+		}, function () {
+			console.warn("save-to-JSON failed for KML conversion; aborting")
+		})
+
+	}
+
 	saveToKML(filename : string, tile : SuperTile) {
 		// Get all the points
 		let points = []
