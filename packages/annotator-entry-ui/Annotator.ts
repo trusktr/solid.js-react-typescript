@@ -565,6 +565,18 @@ class Annotator {
 	 */
 	private bind() {
 
+		let menu_btn = document.getElementById('menu_control_btn')
+		menu_btn.addEventListener('click', _ => {
+			log.info("Menu icon clicked. Close/Open menu bar.")
+			let menu = document.getElementById('menu')
+			if (menu.style.visibility === 'hidden') {
+				menu.style.visibility = 'visible'
+			}
+			else {
+				menu.style.visibility = 'hidden'
+			}
+		})
+
 		let tools_delete = document.getElementById('tools_delete');
 		tools_delete.addEventListener('click', _ => {
 			this.deleteLane();

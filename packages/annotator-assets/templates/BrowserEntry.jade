@@ -42,13 +42,40 @@ html(lang="en")
                 width: 250px;
                 position: fixed;
                 z-index: 1;
-                top: 0;
+                top: 50px;
                 right: 0;
                 background-color: transparent;
                 overflow-x: hidden;
-                transition: 0.5s;
-                padding-top: 5px;
+                padding-top: 0;
                 padding-right: 5px;
+            }
+        style.
+            #menu_control {
+                height: 50px;
+                width:50px;
+                position: fixed;
+                z-index: 1;
+                top: 0;
+                right: 0;
+                background-color: transparent;
+                padding-right: 5px;
+            }
+        style.
+            .menu_btn{
+                height: 40px;
+                width: 40px;
+                font-size: x-large;
+                background-color: transparent;
+                border: none;
+            }
+        style.
+            button.menu_btn:hover {
+                font-size:xx-large;
+                background-color: transparent;
+            }
+        style.
+            button.menu_btn:active {
+                font-size: xx-large;
             }
         style.
             .fieldset_content_style {
@@ -156,7 +183,6 @@ html(lang="en")
                 font-size: 15px;
                 padding: 0;
                 width: auto;
-                transition: all 0.5s;
                 cursor: pointer;
             }
         style.
@@ -195,6 +221,8 @@ html(lang="en")
         #root
             script.
                 require(process.cwd() + "/dist/app/annotator-entry-ui")
+        #menu_control
+            button#menu_control_btn.menu_btn &#9776;
         #menu
             #tools.div_buttons_group
                 button#tools_add.ui-btn.ui-icon-plus.ui-btn-icon-left New Lane
