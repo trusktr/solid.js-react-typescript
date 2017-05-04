@@ -5,17 +5,18 @@
 
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
+import * as $ from 'jquery'
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
 // Some constants for rendering
-const controlPointGeometry = new THREE.BoxGeometry( 0.5, 0.5, 0.5 );
+const controlPointGeometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
 
 const directionGeometry = new THREE.Geometry()
-directionGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5,  1))
-directionGeometry.vertices.push(new THREE.Vector3( 0.5, 0.5,  0))
-directionGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -1))
+directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25,  0.5))
+directionGeometry.vertices.push(new THREE.Vector3( 0.25, 0.25,  0))
+directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, -0.5))
 directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
 directionGeometry.computeFaceNormals()
 
@@ -45,6 +46,11 @@ export enum LaneEntryExitType {
 	STOP
 }
 
+export enum AnnotationType {
+	UNKNOWN = 0,
+	LANE = 1,
+	CONNECTION = 2
+}
 
 class LaneNeighborsIds {
 	right : number
@@ -67,6 +73,7 @@ class LaneRenderingProperties {
 	inactiveMaterial : THREE.MeshLambertMaterial
 	centerLineMaterial : THREE.LineDashedMaterial
 	trajectoryMaterial : THREE.MeshLambertMaterial
+	connectionMaterial : THREE.MeshLambertMaterial
 	
 	constructor (color) {
 		this.color = color
@@ -75,11 +82,13 @@ class LaneRenderingProperties {
 		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side : THREE.DoubleSide})
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side : THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial( { color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2 } )
+		this.connectionMaterial = new THREE.MeshLambertMaterial( {color: 0x00ff00, side : THREE.DoubleSide})
 	}
 }
 
 export interface LaneAnnotationInterface {
 	id
+	type
 	color
 	markerPositions
 	neighborsIds :LaneNeighborsIds
@@ -95,6 +104,7 @@ export interface LaneAnnotationInterface {
 export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	id : number
+	type : AnnotationType
 	renderingProperties : LaneRenderingProperties
 	laneRenderingObject : THREE.Object3D
 	waypoints : Array<THREE.Vector3>
@@ -112,7 +122,8 @@ export class LaneAnnotation {
 	constructor(obj? : LaneAnnotationInterface) {
 		
 		this.id = obj ? obj.id : new Date().getUTCMilliseconds()
-		let color = obj? obj.color : Math.random() * 0xffffff
+		this.type = obj ? obj.type : AnnotationType.UNKNOWN
+		let color = obj ? obj.color : Math.random() * 0xffffff
 		this.neighborsIds = obj? obj.neighborsIds : new LaneNeighborsIds()
 		this.leftSideType = obj ? obj.leftSideType : LaneSideType.UNKNOWN
 		this.rightSideType = obj ? obj.rightSideType : LaneSideType.UNKNOWN
@@ -139,6 +150,10 @@ export class LaneAnnotation {
 		this.laneRenderingObject.add(this.laneCenterLine)
 	}
 	
+	setType(type : AnnotationType) {
+		this.type = type
+	}
+	
 	/**
 	 * Add a single marker to the annotation and the scene.
 	 * @param position
@@ -147,7 +162,9 @@ export class LaneAnnotation {
 		let marker = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.laneMarkers.push(marker)
-		this.laneRenderingObject.add(marker)
+		if (this.type === AnnotationType.LANE) {
+			this.laneRenderingObject.add(marker)
+		}
 	}
 	
 	/**
@@ -163,30 +180,16 @@ export class LaneAnnotation {
 	 */
 	addMarker(x:number, y:number, z:number) {
 		
-		let marker = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
-		
-		marker.position.x = x
+		let marker : THREE.Vector3 = new THREE.Vector3(x,y,z)// = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
 		if (this.laneMarkers.length > 0) {
-			marker.position.y = this.laneMarkers[this.laneMarkers.length-1].position.y
-		} else {
-			marker.position.y = y
+			marker.y = this.laneMarkers[this.laneMarkers.length-1].position.y
 		}
-		
-		marker.position.z = z
-		
-		this.laneMarkers.push(marker)
-		this.laneRenderingObject.add(marker)
+		this.addRawMarker(marker)
 		
 		// From the third marker onwards, add markers in pairs by estimating the position
 		// of the left marker.
 		if (this.laneMarkers.length >= 3) {
-			let marker2Position = this.computeLeftMarkerEstimatedPosition()
-			let marker2 = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
-			marker2.position.x = marker2Position.x
-			marker2.position.y = marker2Position.y
-			marker2.position.z = marker2Position.z
-			this.laneMarkers.push(marker2)
-			this.laneRenderingObject.add(marker2)
+			this.addRawMarker(this.computeLeftMarkerEstimatedPosition())
 		}
 		
 		this.updateVisualization()
@@ -249,7 +252,16 @@ export class LaneAnnotation {
 			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
 		}
 		else {
-			this.laneMesh.material = this.renderingProperties.inactiveMaterial
+			if (this.type === AnnotationType.LANE) {
+				this.laneMesh.material = this.renderingProperties.inactiveMaterial
+			}
+			else if (this.type === AnnotationType.CONNECTION) {
+				this.laneMesh.material = this.renderingProperties.connectionMaterial
+			}
+			else {
+				// UNKNOWN
+				log.error("Unknown lane type. This shows an improper annotation creation.")
+			}
 		}
 		this.laneCenterLine.visible = true
 	}
@@ -269,7 +281,16 @@ export class LaneAnnotation {
 			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
 		}
 		else {
-			this.laneMesh.material = this.renderingProperties.inactiveMaterial
+			if (this.type === AnnotationType.LANE) {
+				this.laneMesh.material = this.renderingProperties.inactiveMaterial
+			}
+			else if (this.type === AnnotationType.CONNECTION) {
+				this.laneMesh.material = this.renderingProperties.connectionMaterial
+			}
+			else {
+				// UNKNOWN
+				log.error("Unknown lane type. This shows an improper annotation creation.")
+			}
 		}
 	}
 	
@@ -277,6 +298,10 @@ export class LaneAnnotation {
 	 * Recompute mesh from markers.
 	 */
 	updateVisualization = () => {
+
+		// First thing first, update lane width
+		this.updateLaneWidth()
+
 		if (this.laneMarkers.length === 0) {
 			return
 		}
@@ -313,6 +338,7 @@ export class LaneAnnotation {
 		// needed to reconstruct this object from scratch)
 		let data : LaneAnnotationInterface = {
 			id: this.id,
+			type: this.type,
 			color : this.renderingProperties.color,
 			leftSideType : this.leftSideType,
 			rightSideType : this.rightSideType,
@@ -430,5 +456,24 @@ export class LaneAnnotation {
 			this.laneRenderingObject.add(marker)
 			this.laneDirectionMarkers.push(marker)
 		}
+	}
+
+	getLaneWidth() : number {
+		// If just one point or non --> lane width is 0
+		if (this.laneMarkers.length < 2) {
+			return 0.0
+		}
+
+		let sum : number = 0.0
+		let markers = this.laneMarkers
+		for (let i = 0; i < markers.length-1; i+=2) {
+			sum += markers[i].position.distanceTo(markers[i+1].position)
+		}
+		return sum / (markers.length/2)
+	}
+
+	updateLaneWidth() {
+		let lane_width = $('#lp_width_value')
+		lane_width.text(this.getLaneWidth().toFixed(3) + " m")
 	}
 }

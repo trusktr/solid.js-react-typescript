@@ -15,8 +15,8 @@ let tools = document.getElementById('tools');
 
 // Define new elements
 ///////////////////////////////////////////////////////////////////////////////
-let lp_labels_text = [ 'Lane ID:', 'Left Side:', 'Right Side:', 'Entry Type:', 'Exit Type:'];
-let lp_labels_id = ['lp_id', 'lp_left_side', 'lp_right_side', 'lp_entry', 'lp_exit'];
+let lp_labels_text = [ 'Lane ID:', 'Lane Width', 'Left Side:', 'Right Side:', 'Entry Type:', 'Exit Type:'];
+let lp_labels_id = ['lp_id', 'lp_width', 'lp_left_side', 'lp_right_side', 'lp_entry', 'lp_exit'];
 let lp_labels = [];
 for (let i in lp_labels_text) {
     let elm = document.createElement('text');
@@ -44,6 +44,11 @@ elm.textContent = 'UNKNOWN';
 elm.id = 'lp_id_value';
 elm.className = 'select_style';
 lp_selects.push(elm);
+let elm_width = document.createElement('text')
+elm_width.textContent = 'UNKNOWN'
+elm_width.id = 'lp_width_value'
+elm_width.className = 'select_style'
+lp_selects.push(elm_width)
 
 for (let i in lp_selects_id) {
     let elm = document.createElement('select');

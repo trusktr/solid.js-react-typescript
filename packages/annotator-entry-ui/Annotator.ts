@@ -82,7 +82,8 @@ class Annotator {
 		// Create scene and camera
 		this.scene = new THREE.Scene()
 		this.camera = new THREE.PerspectiveCamera(70, width/height, 0.1, 10010)
-		this.camera.position.z = 100
+		this.camera.position.z = 10
+		this.camera.position.y = 30
 		this.scene.add(this.camera)
 	
 		// Add some lights
@@ -102,17 +103,16 @@ class Annotator {
 		let planeMaterial = new THREE.ShadowMaterial()
 		planeMaterial.opacity = 0.2
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
-		this.plane.position.y = -5
 		this.plane.receiveShadow = true
 		this.scene.add(this.plane)
 	
 		// Add grid on top of the plane
-		let grid = new THREE.GridHelper( 2000, 100 );
-		grid.position.y = - 4;
+		let grid = new THREE.GridHelper(2000, 1000);
+		grid.position.y = -0.01;
 		grid.material.opacity = 0.25;
 		grid.material.transparent = true;
 		this.scene.add( grid );
-		let axis = new THREE.AxisHelper(10);
+		let axis = new THREE.AxisHelper(1);
 		this.scene.add( axis );
 		
 		// Init empty annotation. This will have to be changed
@@ -565,6 +565,18 @@ class Annotator {
 	 */
 	private bind() {
 
+		let menu_btn = document.getElementById('menu_control_btn')
+		menu_btn.addEventListener('click', _ => {
+			log.info("Menu icon clicked. Close/Open menu bar.")
+			let menu = document.getElementById('menu')
+			if (menu.style.visibility === 'hidden') {
+				menu.style.visibility = 'visible'
+			}
+			else {
+				menu.style.visibility = 'hidden'
+			}
+		})
+
 		let tools_delete = document.getElementById('tools_delete');
 		tools_delete.addEventListener('click', _ => {
 			this.deleteLane();
@@ -579,6 +591,20 @@ class Annotator {
 		tools_load.addEventListener('click', _ => {
 			this.loadFromFile();
 		});
+
+		let tools_load_annotation = document.getElementById('tools_load_annotation')
+		tools_load_annotation.addEventListener('click', _ => {
+			let path_electron = dialog.showOpenDialog({
+				filters: [{ name: 'json', extensions: ['json'] }]
+			})
+			
+			if (isUndefined(path_electron)) {
+				return
+			}
+			
+			log.info('Loading annotations from ' + path_electron[0]);
+			this.loadAnnotations(path_electron[0])
+		})
 
 		let tools_save = document.getElementById('tools_save');
 		tools_save.addEventListener('click', _ => {
@@ -659,7 +685,7 @@ class Annotator {
 			}
 
 			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
-			this.annotationManager.addRelation(lc_from, lc_to, lc_relation);
+			this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation);
 			this.resetLaneProp();
 		});
 
@@ -776,6 +802,7 @@ class Annotator {
 
 		let lp_id = document.getElementById('lp_id_value');
 		lp_id.textContent = active_annotation.id.toString();
+		active_annotation.updateLaneWidth()
 
 		let lc_select_to = $('#lc_select_to');
 		lc_select_to.empty();
@@ -831,6 +858,8 @@ class Annotator {
 
 		let lp_id = document.getElementById('lp_id_value');
 		lp_id.textContent = 'UNKNOWN';
+		let lp_width = document.getElementById('lp_width_value')
+		lp_width.textContent = 'UNKNOWN'
 
 		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select');
 		for (let i = 0; i < selects.length; ++i) {
