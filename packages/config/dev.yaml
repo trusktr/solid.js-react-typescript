@@ -7,4 +7,5 @@ output.kml.path: ./data/path.kml
 # https://github.com/Signafy/Sandbox/tree/master/CloudServices/MapAccumulator#build
 conversion.kml.jar: java -classpath /Users/clyde/dev/mapper/Sandbox/CloudServices/MapAccumulator/target/scala-2.11/strabo-assembly-0.0.1-SNAPSHOT.jar
 conversion.kml.main_class: ai.mapper.app.AnnotatorToTiles
+conversion.kml.input.path: ./data/annotations-lla.json
 conversion.kml.output.path: ./data/annotator-tiles.kml

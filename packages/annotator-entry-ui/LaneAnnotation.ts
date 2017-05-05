@@ -333,8 +333,8 @@ export class LaneAnnotation {
 		// Generate center lane indication and direction markers
 		this.computeWaypoints()
 	}
-	
-	toJSON() {
+
+	toJSON(pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
 		let data : LaneAnnotationInterface = {
@@ -347,13 +347,25 @@ export class LaneAnnotation {
 			exitType : this.exitType,
 			neighborsIds : this.neighborsIds,
 			markerPositions : [],
-			wayPoints: this.wayPoints
+			wayPoints: []
 		}
-		
+
+		if (pointConverter) {
+			this.wayPoints.forEach((p) => {
+				data.wayPoints.push(pointConverter(p))
+			})
+		} else {
+			data.wayPoints = this.wayPoints
+		}
+
 		this.laneMarkers.forEach((marker) => {
-			data.markerPositions.push(marker.position)
+			if (pointConverter) {
+				data.markerPositions.push(pointConverter(marker.position))
+			} else {
+				data.markerPositions.push(marker.position)
+			}
 		})
-		
+
 		return data
 	}
 	

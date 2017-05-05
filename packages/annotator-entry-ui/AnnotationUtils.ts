@@ -557,7 +557,7 @@ export class AnnotationManager {
 		let result : string = ''
 		data.forEach( (marker) => {
 			// Get latitude longitude
-			let lat_lng_pt  = tile.threejsToLatLng(marker)
+			let lat_lng_pt  = tile.threeJsToLatLng(marker)
 			result += lat_lng_pt.lng.toString();
 			result += columnDelimiter;
 			result += lat_lng_pt.lat.toString();
@@ -765,19 +765,27 @@ export class AnnotationManager {
 		
 	}
 
-	async saveAnnotationsToFile(fileName : string) {
+	async saveAnnotationsToFile(fileName: string, pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
 		let self = this
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
 			if (!er) {
-				let strAnnotations = JSON.stringify(self.annotations)
+				let strAnnotations = self.exportJson(pointConverter)
 				return AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
 		MkDirP.mkdirP(dirName, writeFile)
 	}
 
-	saveAndExportToKml(jar: string, main: string, input: string, output: string) {
+	exportJson(pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
+		let converted = []
+		this.annotations.forEach((annotation) => {
+			converted = converted.concat(annotation.toJSON(pointConverter))
+		})
+		return JSON.stringify(converted)
+	}
+
+	saveAndExportToKml(jar: string, main: string, input: string, output: string, tile: SuperTile) {
 		let exportToKml = function () {
 			const command = [jar, main, input, output].join(' ')
 			log.debug('executing child process: ' + command)
@@ -792,7 +800,8 @@ export class AnnotationManager {
 			})
 		}
 
-		this.saveAnnotationsToFile(input).then(function () {
+		let pointConverter = tile.threeJsToLlaPartialFunction()
+		this.saveAnnotationsToFile(input, pointConverter).then(function () {
 			exportToKml()
 		}, function () {
 			console.warn("save-to-JSON failed for KML conversion; aborting")
@@ -811,11 +820,7 @@ export class AnnotationManager {
 		let geopoints = []
 		let utm = new utmObj()
 		points.forEach( (p) => {
-			// First change coordinate frame from THREE js to UTM
-			let wp = tile.threejsToUtm(p)
-			// Get latitude longitude
-			let tmp  = utm.convertUtmToLatLng(wp.x, wp.y, 18, 'S')
-			geopoints.push(new THREE.Vector3(tmp.lng, tmp.lat, wp.z))
+			geopoints.push(tile.threeJsToLla(p))
 		})
 		
 		// Save file
