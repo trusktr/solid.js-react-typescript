@@ -350,21 +350,25 @@ export class LaneAnnotation {
 			wayPoints: []
 		}
 
-		if (pointConverter) {
-			this.wayPoints.forEach((p) => {
-				data.wayPoints.push(pointConverter(p))
-			})
-		} else {
-			data.wayPoints = this.wayPoints
+		if (this.wayPoints) {
+			if (pointConverter) {
+				this.wayPoints.forEach((p) => {
+					data.wayPoints.push(pointConverter(p))
+				})
+			} else {
+				data.wayPoints = this.wayPoints
+			}
 		}
 
-		this.laneMarkers.forEach((marker) => {
-			if (pointConverter) {
-				data.markerPositions.push(pointConverter(marker.position))
-			} else {
-				data.markerPositions.push(marker.position)
-			}
-		})
+		if (this.laneMarkers) {
+			this.laneMarkers.forEach((marker) => {
+				if (pointConverter) {
+					data.markerPositions.push(pointConverter(marker.position))
+				} else {
+					data.markerPositions.push(marker.position)
+				}
+			})
+		}
 
 		return data
 	}
