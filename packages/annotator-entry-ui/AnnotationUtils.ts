@@ -813,7 +813,7 @@ export class AnnotationManager {
 		// Get all the points
 		let points = []
 		this.annotations.forEach( (annotation) => {
-			points = points.concat(annotation.wayPoints)
+			points = points.concat(annotation.waypoints)
 		})
 		
 		// Convert points to lat lon

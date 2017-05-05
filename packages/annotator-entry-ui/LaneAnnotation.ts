@@ -91,7 +91,7 @@ export interface LaneAnnotationInterface {
 	type
 	color
 	markerPositions
-	wayPoints
+	waypoints
 	neighborsIds :LaneNeighborsIds
 	leftSideType : LaneSideType
 	rightSideType : LaneSideType
@@ -108,7 +108,7 @@ export class LaneAnnotation {
 	type : AnnotationType
 	renderingProperties : LaneRenderingProperties
 	laneRenderingObject : THREE.Object3D
-	wayPoints : Array<THREE.Vector3>
+	waypoints : Array<THREE.Vector3>
 	laneMarkers : Array<THREE.Mesh>
 	laneCenterLine : THREE.Line
 	laneDirectionMarkers : Array<THREE.Mesh>
@@ -347,16 +347,16 @@ export class LaneAnnotation {
 			exitType : this.exitType,
 			neighborsIds : this.neighborsIds,
 			markerPositions : [],
-			wayPoints: []
+			waypoints: []
 		}
 
-		if (this.wayPoints) {
+		if (this.waypoints) {
 			if (pointConverter) {
-				this.wayPoints.forEach((p) => {
-					data.wayPoints.push(pointConverter(p))
+				this.waypoints.forEach((p) => {
+					data.waypoints.push(pointConverter(p))
 				})
 			} else {
-				data.wayPoints = this.wayPoints
+				data.waypoints = this.waypoints
 			}
 		}
 
@@ -398,7 +398,7 @@ export class LaneAnnotation {
 	}
 	
 	private computeWaypoints() {
-		// There must be at least 4 markers to compute wayPoints
+		// There must be at least 4 markers to compute waypoints
 		if (this.laneMarkers.length < 4) {
 			return;
 		}
@@ -413,7 +413,7 @@ export class LaneAnnotation {
 		let distanceBetweenMarkers  = 5.0 // in meters
 		let spline = new THREE.CatmullRomCurve3(points)
 		let numPoints = spline.getLength() / distanceBetweenMarkers
-		this.wayPoints = spline.getSpacedPoints(numPoints)
+		this.waypoints = spline.getSpacedPoints(numPoints)
 		
 		this.updateLaneDirectionMarkers()
 		
@@ -436,17 +436,17 @@ export class LaneAnnotation {
 			this.laneRenderingObject.remove(marker)
 		})
 		
-		if (this.wayPoints.length < 3) {
+		if (this.waypoints.length < 3) {
 			return;
 		}
 		
-		for (let i = 1; i < this.wayPoints.length - 1; i++) {
+		for (let i = 1; i < this.waypoints.length - 1; i++) {
 			
-			let angle = Math.atan2(this.wayPoints[i+1].z - this.wayPoints[i].z,
-				                   this.wayPoints[i+1].x - this.wayPoints[i].x)
+			let angle = Math.atan2(this.waypoints[i+1].z - this.waypoints[i].z,
+				                   this.waypoints[i+1].x - this.waypoints[i].x)
 			
 			let marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
-			marker.position.set(this.wayPoints[i].x, this.wayPoints[i].y, this.wayPoints[i].z)
+			marker.position.set(this.waypoints[i].x, this.waypoints[i].y, this.waypoints[i].z)
 			marker.rotateY(-angle)
 			this.laneRenderingObject.add(marker)
 			this.laneDirectionMarkers.push(marker)
