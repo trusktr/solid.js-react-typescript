@@ -3,6 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+const config = require('../config')
+const vsprintf = require("sprintf-js").vsprintf
 import * as THREE from 'three'
 import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
@@ -48,7 +50,8 @@ export class AnnotationManager {
 	activeAnnotationIndex : number
 	carPath : Array<number>
 	carPathActivation : boolean
-	
+	metadataState: AnnotationState
+
 	constructor() {
 		this.annotations = []
 		this.annotationMeshes = []
@@ -56,6 +59,7 @@ export class AnnotationManager {
 		this.activeAnnotationIndex = -1
 		this.carPath = []
 		this.carPathActivation = false
+		this.metadataState = new AnnotationState(this)
 	}
 	
 	/**
@@ -161,6 +165,8 @@ export class AnnotationManager {
 		scene.add(connection.laneRenderingObject)
 		connection.makeInactive()
 		connection.updateVisualization()
+
+		this.metadataState.trackModelDelta()
 	}
 
 	/**
@@ -266,6 +272,8 @@ export class AnnotationManager {
 				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unknown relation to be added: " + relation);
 				break;
 		}
+
+		this.metadataState.trackModelDelta()
 	}
 
 	/**
@@ -293,6 +301,8 @@ export class AnnotationManager {
 			this.carPath.splice(index, 1)
 			log.info("Lane removed from the car path.")
 		}
+
+		this.metadataState.trackModelDelta()
 	}
 	
 	deleteLaneFromPath() {
@@ -307,6 +317,7 @@ export class AnnotationManager {
 			this.annotations[index].setTrajectory(false)
 			this.carPath.splice(index, 1)
 			log.info("Lane removed from the car path.")
+			this.metadataState.trackModelDelta()
 		}
 	}
 	
@@ -641,6 +652,7 @@ export class AnnotationManager {
 		let newAnnotationIndex = this.annotations.length - 1
 		this.annotationMeshes.push(this.annotations[newAnnotationIndex].laneMesh)
 		scene.add(this.annotations[newAnnotationIndex].laneRenderingObject)
+		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -668,6 +680,8 @@ export class AnnotationManager {
 		// Remove annotation from internal array of annotations.
 		let lane_index = this.getLaneIndexFromId(this.annotations, lane.id)
 		this.annotations.splice(lane_index, 1)
+
+		this.metadataState.trackModelDelta()
 	}
 
 	/**
@@ -687,6 +701,8 @@ export class AnnotationManager {
 		// Reset active markers and active annotation index.
 		this.activeAnnotationIndex = -1
 		this.activeMarkers = []
+
+		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -705,6 +721,7 @@ export class AnnotationManager {
 			return
 		}
 		this.annotations[this.activeAnnotationIndex].addMarker(x, y, z)
+		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -717,6 +734,7 @@ export class AnnotationManager {
 			return
 		}
 		this.annotations[this.activeAnnotationIndex].deleteLast()
+		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -762,7 +780,8 @@ export class AnnotationManager {
 				log.warn("Unrecognized neighbor location")
 				break
 		}
-		
+
+		this.metadataState.trackModelDelta()
 	}
 
 	async saveAnnotationsToFile(fileName: string, pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
@@ -865,6 +884,8 @@ export class AnnotationManager {
 
 		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
+
+		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -928,6 +949,8 @@ export class AnnotationManager {
 		
 		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
+
+		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -990,6 +1013,8 @@ export class AnnotationManager {
 		
 		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
+
+		this.metadataState.trackModelDelta()
 	}
 	
 	private findAnnotationIndexById(id) : number {
@@ -1079,5 +1104,63 @@ export class AnnotationManager {
 				}
 			}
 		}
+	}
+}
+
+/**
+ * This tracks transient metadata for the data model, for the duration of a user session.
+ */
+export class AnnotationState {
+	private annotationManager: AnnotationManager
+	private autoSaveDirtyBit: boolean
+	private autoSaveDirectory: string
+	private autoSaveEventInterval: number
+	private autoSaveTimer
+
+	constructor(annotationManager: AnnotationManager) {
+		this.annotationManager = annotationManager
+		this.autoSaveDirtyBit = false
+		this.autoSaveDirectory = config.get('output.autosave.directory.path')
+		this.autoSaveEventInterval = config.get('output.autosave.interval.seconds') * 1000
+		if (this.doAutoSave()) this.setAutoSaveTimeout()
+	}
+
+	private doAutoSave() {
+		return this.annotationManager && this.autoSaveDirectory && this.autoSaveEventInterval
+	}
+
+	trackModelDelta() {
+		if (this.doAutoSave()) this.autoSaveDirtyBit = true
+	}
+
+	private setAutoSaveTimeout = () => {
+		this.autoSaveTimer = setTimeout(() => {
+			this.checkAutoSaveDirty()
+			this.setAutoSaveTimeout()
+		}, this.autoSaveEventInterval)
+	}
+
+	private checkAutoSaveDirty() {
+		if (this.autoSaveDirtyBit) {
+			this.autoSaveDirtyBit = false
+			return this.saveAnnotations()
+		}
+	}
+
+	private saveAnnotations() {
+		const now = new Date()
+		const nowElements = [
+			now.getUTCFullYear(),
+			now.getUTCMonth() + 1,
+			now.getUTCDay(),
+			now.getUTCHours(),
+			now.getUTCMinutes(),
+			now.getUTCSeconds(),
+			now.getUTCMilliseconds(),
+		]
+		const fileName = vsprintf("%04d-%02d-%02dT%02d-%02d-%02d.%03dZ.json", nowElements)
+		const savePath = this.autoSaveDirectory + '/' + fileName
+		log.info("auto-saving annotations to: " + savePath)
+		return this.annotationManager.saveAnnotationsToFile(savePath)
 	}
 }
