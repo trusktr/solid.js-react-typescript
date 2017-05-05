@@ -413,7 +413,7 @@ class Annotator {
 	private async exportAnnotationsToKml() {
 		const jar = config.get('conversion.kml.jar')
 		const main = config.get('conversion.kml.main_class')
-		let input = config.get('output.json.path')
+		let input = config.get('conversion.kml.input.path')
 		let output = config.get('conversion.kml.output.path')
 		if (!jar || !main || !input || !output) {
 			console.warn("incomplete configuration for KML conversion; aborting")
@@ -422,7 +422,7 @@ class Annotator {
 				input = process.env.PWD + '/' + input
 			if (!(output.substr(0, 1) === '/'))
 				output = process.env.PWD + '/' + output
-			this.annotationManager.saveAndExportToKml(jar, main, input, output)
+			this.annotationManager.saveAndExportToKml(jar, main, input, output, this.mapTile)
 		}
 	}
 
