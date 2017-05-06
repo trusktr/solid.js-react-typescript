@@ -19,6 +19,8 @@ if (envInput === 'prod' || envInput === 'production') {
     deployEnv = 'prod'
 } else if (envInput === 'dev' || envInput === 'development' || envInput === '') {
     deployEnv = 'dev'
+} else if (envInput === 'test') {
+    deployEnv = 'test'
 } else {
     throw new Error('Unknown environment name: MAPPER_ENV=' + envInput)
 }

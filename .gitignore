@@ -34,3 +34,6 @@ jspm_packages/
 
 # Annotator application output
 data
+
+# developer config file
+test.yaml
