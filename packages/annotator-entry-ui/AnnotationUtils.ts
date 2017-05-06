@@ -19,7 +19,6 @@ import Vector3 = THREE.Vector3
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const {dialog} = require('electron').remote
-const utmObj = require('utm-latlng')
 
 enum LinkType {
 	FORWARD = 1,
@@ -818,7 +817,6 @@ export class AnnotationManager {
 		
 		// Convert points to lat lon
 		let geopoints = []
-		let utm = new utmObj()
 		points.forEach( (p) => {
 			geopoints.push(tile.threeJsToLla(p))
 		})
