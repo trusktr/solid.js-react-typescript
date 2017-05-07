@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+const config = require('../config')
 import * as THREE from 'three'
 import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
@@ -15,6 +16,7 @@ import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
 import * as MkDirP from 'mkdirp'
 import Vector3 = THREE.Vector3
+import {UtmInterface} from "./UtmInterface"
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -35,12 +37,19 @@ class Link {
 	}
 }
 
+export interface AnnotationManagerInterface {
+	utmZoneNumber: number
+	utmZoneLetter: string
+	offset: THREE.Vector3
+	annotations: Array<LaneAnnotationInterface>
+}
+
 /**
  * The AnnotationManager is in charge of maintaining a set of annotations and all operations
  * to modify, add or delete them. It also keeps an index to the "active" annotation as well
  * as it's markers. The "active" annotation is the only one that can be modified.
  */
-export class AnnotationManager {
+export class AnnotationManager extends UtmInterface {
 	annotations : Array<LaneAnnotation>
 	annotationMeshes : Array<THREE.Mesh>
 	activeMarkers : Array<THREE.Mesh>
@@ -49,6 +58,7 @@ export class AnnotationManager {
 	carPathActivation : boolean
 	
 	constructor() {
+		super()
 		this.annotations = []
 		this.annotationMeshes = []
 		this.activeMarkers = []
@@ -56,7 +66,17 @@ export class AnnotationManager {
 		this.carPath = []
 		this.carPathActivation = false
 	}
-	
+
+	toString(): string {
+		let offsetStr
+		if (this.offset === undefined) {
+			offsetStr = 'undefined'
+		} else {
+			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
+		}
+		return 'AnnotationManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])';
+	}
+
 	/**
 	 * Get the index of the annotation associated with the given mesh.
 	 * @param object
@@ -628,7 +648,7 @@ export class AnnotationManager {
     * Add a new lane annotation and add it's mesh to the scene for display.
     * @param scene
     */
-	addLaneAnnotation(scene:THREE.Scene, obj?:LaneAnnotationInterface) {
+	addLaneAnnotation(scene:THREE.Scene, obj?:LaneAnnotationInterface): THREE.Box3 {
 		if (obj) {
 			// Create an annotation with data
 			this.annotations.push(new LaneAnnotation(obj))
@@ -638,8 +658,11 @@ export class AnnotationManager {
 			this.annotations[this.annotations.length-1].setType(AnnotationType.LANE)
 		}
 		let newAnnotationIndex = this.annotations.length - 1
-		this.annotationMeshes.push(this.annotations[newAnnotationIndex].laneMesh)
+		const mesh = this.annotations[newAnnotationIndex].laneMesh
+		this.annotationMeshes.push(mesh)
 		scene.add(this.annotations[newAnnotationIndex].laneRenderingObject)
+		mesh.geometry.computeBoundingBox()
+		return mesh.geometry.boundingBox
 	}
 	
 	/**
@@ -764,24 +787,75 @@ export class AnnotationManager {
 		
 	}
 
-	async saveAnnotationsToFile(fileName: string, pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
+	private checkCoordinateSystem(data: Object): boolean {
+		const number = data['utmZoneNumber']
+		const letter = data['utmZoneLetter']
+		let offset = new THREE.Vector3(data['offset']['x'], data['offset']['y'], data['offset']['z'])
+		return this.setOrigin(number, letter, offset)
+	}
+
+	/**
+	 * Load annotations from file. Store all annotations and add them to the Annotator scene.
+	 * @returns the center point of the bounding box of the data; hopefully
+	 *   there will be something to look at there
+	 */
+	loadAnnotationsFromFile(fileName: string, scene: THREE.Scene): Promise<THREE.Vector3> {
+		const self = this
+		return new Promise(function (resolve, reject) {
+			AsyncFile.readFile(fileName, 'ascii').then(function (text) {
+				const data = JSON.parse(text as any)
+				if (self.checkCoordinateSystem(data)) {
+					let boundingBox = new THREE.Box3()
+					// Each element is an annotation
+					data['annotations'].forEach((element) => {
+						const box = self.addLaneAnnotation(scene, element)
+						boundingBox = boundingBox.union(box)
+					})
+					if (boundingBox.isEmpty()) {
+						resolve()
+					} else {
+						resolve(boundingBox.getCenter())
+					}
+				} else {
+					reject(Error(`UTM Zone for new annotations (${data['utmZoneNumber']}${data['utmZoneLetter']}) does not match existing zone in ${self.getOrigin()}`));
+				}
+			}, function (error) {
+				reject(error)
+			})
+		})
+	}
+
+	async saveAnnotationsToFile(fileName: string, pointConverter?: (p: THREE.Vector3) => THREE.Vector3): Promise<void> {
+		if (this.annotations.length === 0) {
+			return Promise.reject(new Error('failed to save empty set of annotations'))
+		}
+		if (!this.hasOrigin() && !config.get('output.debug.allow_annotations_without_utm_origin')) {
+			return Promise.reject(new Error('failed to save annotations: UTM origin is not set'))
+		}
 		let self = this
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
 			if (!er) {
-				let strAnnotations = self.exportJson(pointConverter)
+				let strAnnotations = JSON.stringify(self.toJSON(pointConverter))
 				return AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
-		MkDirP.mkdirP(dirName, writeFile)
+		return MkDirP.mkdirP(dirName, writeFile)
 	}
 
-	exportJson(pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
-		let converted = []
+	toJSON(pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
+		let data: AnnotationManagerInterface = {
+			utmZoneNumber: this.utmZoneNumber,
+			utmZoneLetter: this.utmZoneLetter,
+			offset: this.offset,
+			annotations: [],
+		}
+
 		this.annotations.forEach((annotation) => {
-			converted = converted.concat(annotation.toJSON(pointConverter))
+			data.annotations = data.annotations.concat(annotation.toJSON(pointConverter))
 		})
-		return JSON.stringify(converted)
+
+		return data
 	}
 
 	saveAndExportToKml(jar: string, main: string, input: string, output: string, tile: SuperTile) {
@@ -802,10 +876,9 @@ export class AnnotationManager {
 		let pointConverter = tile.threeJsToLlaPartialFunction()
 		this.saveAnnotationsToFile(input, pointConverter).then(function () {
 			exportToKml()
-		}, function () {
-			console.warn("save-to-JSON failed for KML conversion; aborting")
+		}, function (error) {
+			console.warn('save-to-JSON failed for KML conversion; aborting: ' + error.message)
 		})
-
 	}
 
 	saveToKML(filename : string, tile : SuperTile) {

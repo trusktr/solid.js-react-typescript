@@ -188,7 +188,7 @@ class Annotator {
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
-	private setStage(x: number, y: number, z: number) {
+	private setStage(x: number, y: number, z: number): void {
 		this.axis.geometry.center()
 		this.axis.geometry.translate(x, y, z)
 		this.plane.geometry.center()
@@ -202,29 +202,38 @@ class Annotator {
 	}
 
 	/**
+	 * Set some point as the center of the visible world.
+	 */
+	private setStageByVector(point: THREE.Vector3): void {
+		if (point) this.setStage(point.x, point.y, point.z)
+	}
+
+	/**
 	 * Set the point cloud as the center of the visible world.
 	 */
-	private focusOnPointCloud() {
-		if (this.mapTile.pointCloud) {
-			const center = this.mapTile.pointCloud.geometry.boundingBox.getCenter()
-			this.setStage(center.x, center.y, center.z)
-		} else {
-			log.warn('pointCloud is not initialized')
-		}
+	private focusOnPointCloud(): void {
+		const center = this.mapTile.centerPoint()
+		if (center) this.setStageByVector(center)
+		else log.warn('point cloud has not been initialized')
 	}
 
 	/**
 	 * Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
+	 * Center the stage and the camera on the point cloud.
 	 * @param pathToTiles
 	 * @returns {Promise<void>}
 	 */
 	async loadPointCloudData(pathToTiles : string) {
 		try {
 			log.info('loading dataset')
-			await this.mapTile.loadFromDataset(pathToTiles)
+			const focalPoint = await this.mapTile.loadFromDataset(pathToTiles)
+			if (!this.annotationManager.setOriginWithInterface(this.mapTile)) {
+				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.mapTile.getOrigin()}`)
+			}
 			this.scene.add(this.mapTile.pointCloud)
-			this.focusOnPointCloud()
+			this.setStageByVector(focalPoint)
 		} catch (err) {
+			log.warn(err.message)
 			dialog.showErrorBox("Tiles Load Error",
 				"Annotator failed to load tiles from given folder.")
 		}
@@ -232,22 +241,19 @@ class Annotator {
 	
 	/**
 	 * Load annotations from file. Add all annotations to the annotation manager
-	 * and to the scene
-	 * @param filename
-	 * @returns {Promise<void>}
+	 * and to the scene.
+	 * Center the stage and the camera on the annotations model.
 	 */
-	async loadAnnotations(filename : string) {
+	async loadAnnotations(fileName: string): Promise<void> {
 		try {
 			log.info('Loading annotations')
-			let buffer = await AsyncFile.readFile(filename, 'ascii')
-			let data = JSON.parse(buffer as any)
-			
-			// Each element is an annotation
-			data.forEach( (element) => {
-				this.annotationManager.addLaneAnnotation(this.scene, element)
-			})
-			
+			const focalPoint = await this.annotationManager.loadAnnotationsFromFile(fileName, this.scene)
+			if (!this.mapTile.setOriginWithInterface(this.annotationManager)) {
+				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.mapTile.getOrigin()}`)
+			}
+			this.setStageByVector(focalPoint)
 		} catch (err) {
+			log.warn(err.message)
 			dialog.showErrorBox("Annotation Load Error",
 				"Annotator failed to load annotation file.")
 		}
@@ -444,7 +450,10 @@ class Annotator {
 	}
 	
 	private async saveAnnotations() {
-		await this.annotationManager.saveAnnotationsToFile(config.get('output.json.path'))
+		await this.annotationManager.saveAnnotationsToFile(config.get('output.json.path')).then(function () {
+		}, function (error) {
+			console.warn('save annotations failed: ' + error.message)
+		})
 	}
 
 	private async exportAnnotationsToKml() {

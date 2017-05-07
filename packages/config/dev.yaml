@@ -1,5 +1,5 @@
 # persistence of a data file
-output.json.path: ./data/annotations.json
+output.json.path: ./data/annotations-utm-offset.json
 output.kml.path: ./data/path.kml
 
 # convert a data file to another format

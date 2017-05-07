@@ -10,6 +10,7 @@ import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
 import * as TypeLogger from 'typelogger'
+import {UtmInterface} from "./UtmInterface"
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -55,55 +56,29 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 	return [sampledPoints, sampledColors]
 }
 
-export class SuperTile {
+export class SuperTile extends UtmInterface {
 
-	// origin is an offset for display purposes; three.js rendering breaks down on high-valued coordinates
-	origin : THREE.Vector3
 	// all points are UTM
 	pointCloud : THREE.Points
 	maxTilesToLoad : number
 	progressStepSize: number
 	samplingStep : number
-	private defaultUtmZoneNumber: number
-	private defaultUtmZoneLetter: string
-	private currentUtmZoneNumber: number
-	private currentUtmZoneLetter: string
 
 	constructor() {
+		super()
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
 		this.samplingStep = 15
-		this.defaultUtmZoneNumber = 18 // Washington, DC
-		this.defaultUtmZoneLetter = 'S' // Washington, DC
 	}
 
-	hasOrigin(): boolean {
-		return this.origin !== null && SuperTile.isValidUtmZone(this.currentUtmZoneNumber, this.currentUtmZoneLetter)
-	}
-
-	setOrigin(origin: THREE.Vector3, number: number, letter: string): boolean {
-		if (this.hasOrigin()) {
-			return false
+	toString(): string {
+		let offsetStr
+		if (this.offset === undefined) {
+			offsetStr = 'undefined'
 		} else {
-			this.origin = origin
-			if (SuperTile.isValidUtmZone(number, letter)) {
-				this.currentUtmZoneNumber = number
-				this.currentUtmZoneLetter = letter
-			} else {
-				this.currentUtmZoneNumber = this.defaultUtmZoneNumber
-				this.currentUtmZoneLetter = this.defaultUtmZoneLetter
-			}
-			log.info('setting UTM zone: ' + this.currentUtmZoneNumber + this.currentUtmZoneLetter)
-			log.info('setting origin: ' + this.origin.x + ', ' + this.origin.y + ', ' + this.origin.z)
-			return true
+			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
 		}
-	}
-
-	private static isValidUtmZone(number: number, letter: string): boolean {
-		return number >= 1 && number <= 60 &&
-			letter.length == 1 &&
-			letter >= "C" && letter <= "X" &&
-			letter != "I" && letter != "O"
+		return 'SuperTile(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])';
 	}
 
 	// "default" according to protobuf rules for default values
@@ -116,11 +91,11 @@ export class SuperTile {
 	private checkCoordinateSystem(msg: Models.PointCloudTileMessage): boolean {
 		const number = msg.utmZoneNumber
 		const letter = msg.utmZoneLetter
-		if (this.setOrigin(new THREE.Vector3(msg.originX, msg.originY, msg.originZ), number, letter)) {
+		if (this.setOrigin(number, letter, new THREE.Vector3(msg.originX, msg.originY, msg.originZ))) {
 			return true
 		} else {
 			return SuperTile.isDefaultUtmZone(number, letter)
-				|| this.currentUtmZoneNumber == number && this.currentUtmZoneLetter == letter
+				|| this.utmZoneNumber == number && this.utmZoneLetter == letter
 		}
 	}
 
@@ -128,9 +103,10 @@ export class SuperTile {
 	 * Given a path to a dataset it loads all PointCloudTiles computed for display and
 	 * merges them into a single super tile.
 	 * The (X, Y, Z) coordinates in PointCloudTiles are (UTM Easting, UTM Northing, UTM Zone).
-	 * @param dataset_path
+	 * @returns the center point of the bounding box of the data; hopefully
+	 *   there will be something to look at there
 	 */
-	async loadFromDataset( datasetPath : string) {
+	async loadFromDataset(datasetPath: string): Promise<THREE.Vector3> {
 		let points : Array<number> = []
 		let colors : Array<number> = []
 		let files = Fs.readdirSync(datasetPath)
@@ -170,14 +146,13 @@ export class SuperTile {
 		}
 		if (coordsFailed) log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
 
-		this.generatePointCloudFromRawData(points, colors)
+		return Promise.resolve(this.generatePointCloudFromRawData(points, colors))
 	}
 	
 	/**
 	 * Convert array of 3d points into a THREE.Point object
-	 * @param tile_message
 	 */
-	generatePointCloudFromRawData(points : Array<number>, inputColors : Array<number>) {
+	generatePointCloudFromRawData(points : Array<number>, inputColors : Array<number>): THREE.Vector3 {
 		let geometry = new THREE.BufferGeometry()
 		let points_size = points.length
 		let positions = new Float32Array(points_size)
@@ -192,21 +167,33 @@ export class SuperTile {
 		
 		geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 		geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
-		geometry.computeBoundingBox();
-		
+
 		const material = new THREE.PointsMaterial( { size: 0.05, vertexColors: THREE.VertexColors } )
 		this.pointCloud = new THREE.Points( geometry, material )
+
+		geometry.computeBoundingBox()
+		return geometry.boundingBox.getCenter()
+	}
+
+	centerPoint(): THREE.Vector3 {
+		if (this.pointCloud) {
+			const geometry = this.pointCloud.geometry
+			geometry.computeBoundingBox()
+			return geometry.boundingBox.getCenter()
+		} else {
+			return
+		}
 	}
 
 	threeJsToUtm(point: THREE.Vector3): THREE.Vector3 {
 		let utmPoint = new THREE.Vector3(-point.z, -point.x, point.y)
-		utmPoint.add(this.origin)
+		utmPoint.add(this.offset)
 		return utmPoint
 	}
 
 	utmToThreeJs(x: number, y: number, z: number): THREE.Vector3 {
 		let tmp = new THREE.Vector3(x, y, z)
-		tmp.sub(this.origin)
+		tmp.sub(this.offset)
 		return new THREE.Vector3(-tmp.y, tmp.z, -tmp.x)
 	}
 
@@ -214,7 +201,7 @@ export class SuperTile {
 		// First change coordinate frame from THREE js to UTM
 		let utm = this.threeJsToUtm(point)
 		// Get latitude longitude
-		return utmObj.convertUtmToLatLng(utm.x, utm.y, this.currentUtmZoneNumber, this.currentUtmZoneLetter)
+		return utmObj.convertUtmToLatLng(utm.x, utm.y, this.utmZoneNumber, this.utmZoneLetter)
 	}
 
 	threeJsToLla(p: THREE.Vector3): THREE.Vector3 {
@@ -227,7 +214,7 @@ export class SuperTile {
 			// First change coordinate frame from THREE js to UTM
 			let utm = self.threeJsToUtm(p)
 			// Get latitude longitude
-			let latLon = utmObj.convertUtmToLatLng(utm.x, utm.y, this.currentUtmZoneNumber, this.currentUtmZoneLetter)
+			let latLon = utmObj.convertUtmToLatLng(utm.x, utm.y, this.utmZoneNumber, this.utmZoneLetter)
 			return new THREE.Vector3(latLon.lng, latLon.lat, utm.z)
 		}
 	}
