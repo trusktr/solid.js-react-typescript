@@ -76,8 +76,9 @@ class Annotator {
 	 * several event listeners.
 	 */
 	initScene() {
+		const self = this
 		log.info(`Building scene`)
-		
+
 		const [width,height] = this.getContainerSize()
 	
 		// Create scene and camera
@@ -142,7 +143,12 @@ class Annotator {
 			this.renderer.setClearColor(new THREE.Color(value))
 		})
 		this.gui.domElement.className = 'threeJs_gui'
-		
+
+		// Set up for auto-save
+		const body = $(document.body)
+		body.focusin(function () {self.annotationManager.enableAutoSave()})
+		body.focusout(function () {self.annotationManager.disableAutoSave()})
+
 		// Add listeners
 		window.addEventListener('resize', this.onWindowResize);
 		window.addEventListener('keydown',this.onKeyDown)
@@ -157,7 +163,7 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mousedown', () => {
 			this.isMouseButtonPressed = true
 		})
-		
+
 		// Bind events
 		this.bind();
 		this.deactivateLaneProp();

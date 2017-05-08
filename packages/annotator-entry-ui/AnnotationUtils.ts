@@ -3,6 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+const config = require('../config')
+const vsprintf = require("sprintf-js").vsprintf
 import * as THREE from 'three'
 import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
@@ -48,7 +50,8 @@ export class AnnotationManager {
 	activeAnnotationIndex : number
 	carPath : Array<number>
 	carPathActivation : boolean
-	
+	metadataState: AnnotationState
+
 	constructor() {
 		this.annotations = []
 		this.annotationMeshes = []
@@ -56,6 +59,7 @@ export class AnnotationManager {
 		this.activeAnnotationIndex = -1
 		this.carPath = []
 		this.carPathActivation = false
+		this.metadataState = new AnnotationState(this)
 	}
 	
 	/**
@@ -762,8 +766,11 @@ export class AnnotationManager {
 				log.warn("Unrecognized neighbor location")
 				break
 		}
-		
 	}
+
+	enableAutoSave(): void {this.metadataState.enableAutoSave()}
+
+	disableAutoSave(): void {this.metadataState.disableAutoSave()}
 
 	async saveAnnotationsToFile(fileName: string, pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
 		let self = this
@@ -1079,5 +1086,47 @@ export class AnnotationManager {
 				}
 			}
 		}
+	}
+}
+
+/**
+ * This tracks transient metadata for the data model, for the duration of a user session.
+ */
+export class AnnotationState {
+	private annotationManager: AnnotationManager
+	private autoSaveEnabled: boolean
+	private autoSaveDirectory: string
+
+	constructor(annotationManager: AnnotationManager) {
+		const self = this
+		this.annotationManager = annotationManager
+		this.autoSaveDirectory = config.get('output.autosave.directory.path')
+		const autoSaveEventInterval = config.get('output.autosave.interval.seconds') * 1000
+		if (this.annotationManager && this.autoSaveDirectory && autoSaveEventInterval) {
+			setInterval(function () {
+				if (self.autoSaveEnabled) self.saveAnnotations()
+			}, autoSaveEventInterval)
+		}
+	}
+
+	enableAutoSave(): void {this.autoSaveEnabled = true}
+
+	disableAutoSave(): void {this.autoSaveEnabled = false}
+
+	private saveAnnotations() {
+		const now = new Date()
+		const nowElements = [
+			now.getUTCFullYear(),
+			now.getUTCMonth() + 1,
+			now.getUTCDay(),
+			now.getUTCHours(),
+			now.getUTCMinutes(),
+			now.getUTCSeconds(),
+			now.getUTCMilliseconds(),
+		]
+		const fileName = vsprintf("%04d-%02d-%02dT%02d-%02d-%02d.%03dZ.json", nowElements)
+		const savePath = this.autoSaveDirectory + '/' + fileName
+		log.info("auto-saving annotations to: " + savePath)
+		return this.annotationManager.saveAnnotationsToFile(savePath)
 	}
 }
