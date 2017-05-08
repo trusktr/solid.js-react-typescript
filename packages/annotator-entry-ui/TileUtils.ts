@@ -171,15 +171,18 @@ export class SuperTile extends UtmInterface {
 		const material = new THREE.PointsMaterial( { size: 0.05, vertexColors: THREE.VertexColors } )
 		this.pointCloud = new THREE.Points( geometry, material )
 
-		geometry.computeBoundingBox()
-		return geometry.boundingBox.getCenter()
+		return this.centerPoint()
 	}
 
+	/**
+	 * Finds the center of the bottom of the bounding box, so that when we view the model
+	 * the whole thing appears above the ground plane.
+	 */
 	centerPoint(): THREE.Vector3 {
 		if (this.pointCloud) {
 			const geometry = this.pointCloud.geometry
 			geometry.computeBoundingBox()
-			return geometry.boundingBox.getCenter()
+			return geometry.boundingBox.getCenter().setY(geometry.boundingBox.min.y)
 		} else {
 			return
 		}

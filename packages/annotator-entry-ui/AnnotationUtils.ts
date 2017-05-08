@@ -807,7 +807,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Load annotations from file. Store all annotations and add them to the Annotator scene.
 	 * This assumes UTM as the input format.
-	 * @returns the center point of the bounding box of the data; hopefully
+	 * @returns the center point of the bottom of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
 	loadAnnotationsFromFile(fileName: string, scene: THREE.Scene): Promise<THREE.Vector3> {
@@ -825,7 +825,7 @@ export class AnnotationManager extends UtmInterface {
 					if (boundingBox.isEmpty()) {
 						resolve()
 					} else {
-						resolve(boundingBox.getCenter())
+						resolve(boundingBox.getCenter().setY(boundingBox.min.y))
 					}
 				} else {
 					reject(Error(`UTM Zone for new annotations (${data['utmZoneNumber']}${data['utmZoneLetter']}) does not match existing zone in ${self.getOrigin()}`));
