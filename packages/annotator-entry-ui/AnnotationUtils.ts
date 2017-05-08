@@ -17,6 +17,7 @@ import * as AsyncFile from 'async-file'
 import * as MkDirP from 'mkdirp'
 import Vector3 = THREE.Vector3
 import {UtmInterface} from "./UtmInterface"
+import * as CRS from "./CoordinateReferenceSystem"
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -37,10 +38,13 @@ class Link {
 	}
 }
 
-export interface AnnotationManagerInterface {
-	utmZoneNumber: number
-	utmZoneLetter: string
-	offset: THREE.Vector3
+export enum OutputFormat {
+	UTM = 1,
+	LLA = 2,
+}
+
+interface AnnotationManagerInterface {
+	crs: CRS.CoordinateReferenceSystem
 	annotations: Array<LaneAnnotationInterface>
 }
 
@@ -50,6 +54,7 @@ export interface AnnotationManagerInterface {
  * as it's markers. The "active" annotation is the only one that can be modified.
  */
 export class AnnotationManager extends UtmInterface {
+	datum: string = 'WGS84'
 	annotations : Array<LaneAnnotation>
 	annotationMeshes : Array<THREE.Mesh>
 	activeMarkers : Array<THREE.Mesh>
@@ -787,15 +792,21 @@ export class AnnotationManager extends UtmInterface {
 		
 	}
 
+	/**
+	 * This expects the serialized UtmCrs structure produced by toJSON().
+	 */
 	private checkCoordinateSystem(data: Object): boolean {
-		const number = data['utmZoneNumber']
-		const letter = data['utmZoneLetter']
-		let offset = new THREE.Vector3(data['offset']['x'], data['offset']['y'], data['offset']['z'])
+		const crs = data['crs']
+		if (crs['datum'] !== this.datum) return false
+		const number = crs['utmZoneNumber']
+		const letter = crs['utmZoneLetter']
+		let offset = new THREE.Vector3(crs['offset']['x'], crs['offset']['y'], crs['offset']['z'])
 		return this.setOrigin(number, letter, offset)
 	}
 
 	/**
 	 * Load annotations from file. Store all annotations and add them to the Annotator scene.
+	 * This assumes UTM as the input format.
 	 * @returns the center point of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
@@ -825,7 +836,7 @@ export class AnnotationManager extends UtmInterface {
 		})
 	}
 
-	async saveAnnotationsToFile(fileName: string, pointConverter?: (p: THREE.Vector3) => THREE.Vector3): Promise<void> {
+	async saveAnnotationsToFile(fileName: string, format: OutputFormat, pointConverter?: (p: THREE.Vector3) => THREE.Vector3): Promise<void> {
 		if (this.annotations.length === 0) {
 			return Promise.reject(new Error('failed to save empty set of annotations'))
 		}
@@ -836,18 +847,31 @@ export class AnnotationManager extends UtmInterface {
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
 			if (!er) {
-				let strAnnotations = JSON.stringify(self.toJSON(pointConverter))
+				let strAnnotations = JSON.stringify(self.toJSON(format, pointConverter))
 				return AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
 		return MkDirP.mkdirP(dirName, writeFile)
 	}
 
-	toJSON(pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
-		let data: AnnotationManagerInterface = {
-			utmZoneNumber: this.utmZoneNumber,
-			utmZoneLetter: this.utmZoneLetter,
-			offset: this.offset,
+	toJSON(format: OutputFormat, pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
+		let crs
+		if (format === OutputFormat.UTM) {
+			const utm: CRS.UtmCrs = {
+				datum: this.datum,
+				utmZoneNumber: this.utmZoneNumber,
+				utmZoneLetter: this.utmZoneLetter,
+				offset: this.offset,
+			}
+			crs = utm
+		} else if (format === OutputFormat.LLA) {
+			const lla: CRS.LlaCrs = {
+				datum: this.datum,
+			}
+			crs = lla
+		}
+		const data: AnnotationManagerInterface = {
+			crs: crs,
 			annotations: [],
 		}
 
@@ -874,7 +898,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		let pointConverter = tile.threeJsToLlaPartialFunction()
-		this.saveAnnotationsToFile(input, pointConverter).then(function () {
+		this.saveAnnotationsToFile(input, OutputFormat.LLA, pointConverter).then(function () {
 			exportToKml()
 		}, function (error) {
 			console.warn('save-to-JSON failed for KML conversion; aborting: ' + error.message)

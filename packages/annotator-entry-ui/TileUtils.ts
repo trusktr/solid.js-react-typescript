@@ -214,7 +214,7 @@ export class SuperTile extends UtmInterface {
 			// First change coordinate frame from THREE js to UTM
 			let utm = self.threeJsToUtm(p)
 			// Get latitude longitude
-			let latLon = utmObj.convertUtmToLatLng(utm.x, utm.y, this.utmZoneNumber, this.utmZoneLetter)
+			let latLon = utmObj.convertUtmToLatLng(utm.x, utm.y, self.utmZoneNumber, self.utmZoneLetter)
 			return new THREE.Vector3(latLon.lng, latLon.lat, utm.z)
 		}
 	}

@@ -6,7 +6,6 @@
 const config = require('../config')
 import * as $ from 'jquery'
 import * as THREE from 'three'
-import * as AsyncFile from 'async-file'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {SuperTile}  from 'annotator-entry-ui/TileUtils'
@@ -16,6 +15,7 @@ import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isUndefined} from "util"
+import {OutputFormat} from "./AnnotationUtils"
 
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
@@ -450,7 +450,7 @@ class Annotator {
 	}
 	
 	private async saveAnnotations() {
-		await this.annotationManager.saveAnnotationsToFile(config.get('output.json.path')).then(function () {
+		await this.annotationManager.saveAnnotationsToFile(config.get('output.json.path'), OutputFormat.UTM).then(function () {
 		}, function (error) {
 			console.warn('save annotations failed: ' + error.message)
 		})
