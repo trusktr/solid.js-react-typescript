@@ -165,8 +165,6 @@ export class AnnotationManager {
 		scene.add(connection.laneRenderingObject)
 		connection.makeInactive()
 		connection.updateVisualization()
-
-		this.metadataState.trackModelDelta()
 	}
 
 	/**
@@ -272,8 +270,6 @@ export class AnnotationManager {
 				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unknown relation to be added: " + relation);
 				break;
 		}
-
-		this.metadataState.trackModelDelta()
 	}
 
 	/**
@@ -301,8 +297,6 @@ export class AnnotationManager {
 			this.carPath.splice(index, 1)
 			log.info("Lane removed from the car path.")
 		}
-
-		this.metadataState.trackModelDelta()
 	}
 	
 	deleteLaneFromPath() {
@@ -317,7 +311,6 @@ export class AnnotationManager {
 			this.annotations[index].setTrajectory(false)
 			this.carPath.splice(index, 1)
 			log.info("Lane removed from the car path.")
-			this.metadataState.trackModelDelta()
 		}
 	}
 	
@@ -652,7 +645,6 @@ export class AnnotationManager {
 		let newAnnotationIndex = this.annotations.length - 1
 		this.annotationMeshes.push(this.annotations[newAnnotationIndex].laneMesh)
 		scene.add(this.annotations[newAnnotationIndex].laneRenderingObject)
-		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -680,8 +672,6 @@ export class AnnotationManager {
 		// Remove annotation from internal array of annotations.
 		let lane_index = this.getLaneIndexFromId(this.annotations, lane.id)
 		this.annotations.splice(lane_index, 1)
-
-		this.metadataState.trackModelDelta()
 	}
 
 	/**
@@ -701,8 +691,6 @@ export class AnnotationManager {
 		// Reset active markers and active annotation index.
 		this.activeAnnotationIndex = -1
 		this.activeMarkers = []
-
-		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -721,7 +709,6 @@ export class AnnotationManager {
 			return
 		}
 		this.annotations[this.activeAnnotationIndex].addMarker(x, y, z)
-		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -734,7 +721,6 @@ export class AnnotationManager {
 			return
 		}
 		this.annotations[this.activeAnnotationIndex].deleteLast()
-		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -780,9 +766,11 @@ export class AnnotationManager {
 				log.warn("Unrecognized neighbor location")
 				break
 		}
-
-		this.metadataState.trackModelDelta()
 	}
+
+	enableAutoSave(): void {this.metadataState.enableAutoSave()}
+
+	disableAutoSave(): void {this.metadataState.disableAutoSave()}
 
 	async saveAnnotationsToFile(fileName: string, pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
 		let self = this
@@ -884,8 +872,6 @@ export class AnnotationManager {
 
 		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
-
-		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -949,8 +935,6 @@ export class AnnotationManager {
 		
 		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
-
-		this.metadataState.trackModelDelta()
 	}
 	
 	/**
@@ -1013,8 +997,6 @@ export class AnnotationManager {
 		
 		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
-
-		this.metadataState.trackModelDelta()
 	}
 	
 	private findAnnotationIndexById(id) : number {
@@ -1112,40 +1094,24 @@ export class AnnotationManager {
  */
 export class AnnotationState {
 	private annotationManager: AnnotationManager
-	private autoSaveDirtyBit: boolean
+	private autoSaveEnabled: boolean
 	private autoSaveDirectory: string
-	private autoSaveEventInterval: number
-	private autoSaveTimer
 
 	constructor(annotationManager: AnnotationManager) {
+		const self = this
 		this.annotationManager = annotationManager
-		this.autoSaveDirtyBit = false
 		this.autoSaveDirectory = config.get('output.autosave.directory.path')
-		this.autoSaveEventInterval = config.get('output.autosave.interval.seconds') * 1000
-		if (this.doAutoSave()) this.setAutoSaveTimeout()
-	}
-
-	private doAutoSave() {
-		return this.annotationManager && this.autoSaveDirectory && this.autoSaveEventInterval
-	}
-
-	trackModelDelta() {
-		if (this.doAutoSave()) this.autoSaveDirtyBit = true
-	}
-
-	private setAutoSaveTimeout = () => {
-		this.autoSaveTimer = setTimeout(() => {
-			this.checkAutoSaveDirty()
-			this.setAutoSaveTimeout()
-		}, this.autoSaveEventInterval)
-	}
-
-	private checkAutoSaveDirty() {
-		if (this.autoSaveDirtyBit) {
-			this.autoSaveDirtyBit = false
-			return this.saveAnnotations()
+		const autoSaveEventInterval = config.get('output.autosave.interval.seconds') * 1000
+		if (this.annotationManager && this.autoSaveDirectory && autoSaveEventInterval) {
+			setInterval(function () {
+				if (self.autoSaveEnabled) self.saveAnnotations()
+			}, autoSaveEventInterval)
 		}
 	}
+
+	enableAutoSave(): void {this.autoSaveEnabled = true}
+
+	disableAutoSave(): void {this.autoSaveEnabled = false}
 
 	private saveAnnotations() {
 		const now = new Date()
