@@ -810,11 +810,8 @@ export class AnnotationManager extends UtmInterface {
 		}
 		if (!first) return false
 
-		if (this.setOrigin(number, letter, first)) {
-			return true
-		} else {
-			return this.utmZoneNumber === number && this.utmZoneLetter === letter
-		}
+		return this.setOrigin(number, letter, first) ||
+			this.utmZoneNumber === number && this.utmZoneLetter === letter
 	}
 
 	/**
