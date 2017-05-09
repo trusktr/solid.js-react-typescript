@@ -1,5 +1,5 @@
 # persistence of a data file
-output.annotations.json.path: ./data/annotations-utm-offset.json
+output.annotations.json.path: ./data/annotations-utm.json
 output.annotations.kml.path: ./data/path.kml
 output.annotations.autosave.directory.path: ./data/autosave
 output.annotations.autosave.interval.seconds: 300
