@@ -120,7 +120,7 @@ export class LaneAnnotation {
 	exitType : LaneEntryExitType
 	inTrajectory: boolean
 	
-	constructor(obj? : LaneAnnotationInterface) {
+	constructor(obj? : LaneAnnotationInterface, delta?: THREE.Vector3) {
 		
 		this.id = obj ? obj.id : new Date().getUTCMilliseconds()
 		this.type = obj ? obj.type : AnnotationType.UNKNOWN
@@ -334,7 +334,7 @@ export class LaneAnnotation {
 		this.computeWaypoints()
 	}
 
-	toJSON(pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
+	toJSON(pointConverter?: (p: THREE.Vector3) => Object) {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
 		let data : LaneAnnotationInterface = {

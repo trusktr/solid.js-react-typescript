@@ -1,8 +1,11 @@
 # persistence of a data file
-output.json.path: ./data/annotations-utm-offset.json
-output.kml.path: ./data/path.kml
-output.autosave.directory.path: ./data/autosave
-output.autosave.interval.seconds: 300
+output.annotations.json.path: ./data/annotations-utm-offset.json
+output.annotations.kml.path: ./data/path.kml
+output.annotations.autosave.directory.path: ./data/autosave
+output.annotations.autosave.interval.seconds: 300
+
+# persist trajectories
+output.trajectory.csv.path: ./data/trajectory.csv
 
 # convert a data file to another format
 # You'll need to build the MapAccumulator project to get the jar file onto your system.

@@ -447,7 +447,7 @@ class Annotator {
 		}
 		
 		if (event.code === 'KeyM') {
-			this.annotationManager.saveToKML(config.get('output.kml.path'), this.mapTile)
+			this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
 		}
 	}
 	
@@ -456,10 +456,12 @@ class Annotator {
 	}
 	
 	private async saveAnnotations() {
-		await this.annotationManager.saveAnnotationsToFile(config.get('output.json.path'), OutputFormat.UTM).then(function () {
-		}, function (error) {
-			console.warn('save annotations failed: ' + error.message)
-		})
+		await this.annotationManager.saveAnnotationsToFile(config.get('output.annotations.json.path'), OutputFormat.UTM).then(
+			function () {},
+			function (error) {
+				console.warn('save annotations failed: ' + error.message)
+			}
+		)
 	}
 
 	private async exportAnnotationsToKml() {
@@ -474,7 +476,7 @@ class Annotator {
 				input = process.env.PWD + '/' + input
 			if (!(output.substr(0, 1) === '/'))
 				output = process.env.PWD + '/' + output
-			this.annotationManager.saveAndExportToKml(jar, main, input, output, this.mapTile)
+			this.annotationManager.saveAndExportToKml(jar, main, input, output)
 		}
 	}
 
@@ -845,8 +847,7 @@ class Annotator {
 		save_path.on('click', _ => {
 			
 			log.info("Save car path to file.")
-			let filename : string = './data/trajectory.csv'
-			this.annotationManager.saveCarPath(filename, this.mapTile)
+			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
 	}
 

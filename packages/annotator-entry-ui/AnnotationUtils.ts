@@ -45,7 +45,7 @@ export enum OutputFormat {
 }
 
 interface AnnotationManagerInterface {
-	crs: CRS.CoordinateReferenceSystem
+	coordinateReferenceSystem: CRS.CoordinateReferenceSystem
 	annotations: Array<LaneAnnotationInterface>
 }
 
@@ -566,16 +566,9 @@ export class AnnotationManager extends UtmInterface {
 	 * Saves car path to CSV file
 	 */
 	convertAnnotationToCSV(args) : string {
-		
 		let data : Array<Vector3> = args.data || null;
 		if (data.length === 0) {
 			log.warn("Empty annotation.")
-			return ''
-		}
-		
-		let tile : SuperTile = args.tile || null;
-		if (tile === null) {
-			log.error('No tile given.')
 			return ''
 		}
 		
@@ -584,7 +577,7 @@ export class AnnotationManager extends UtmInterface {
 		let result : string = ''
 		data.forEach( (marker) => {
 			// Get latitude longitude
-			let lat_lng_pt  = tile.threeJsToLatLng(marker)
+			let lat_lng_pt = this.threeJsToLatLng(marker)
 			result += lat_lng_pt.lng.toString();
 			result += columnDelimiter;
 			result += lat_lng_pt.lat.toString();
@@ -593,7 +586,8 @@ export class AnnotationManager extends UtmInterface {
 		
 		return result
 	}
-	saveCarPath(fileName : string, tile : SuperTile) {
+
+	saveCarPath(fileName: string) {
 		let self = this
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
@@ -601,8 +595,7 @@ export class AnnotationManager extends UtmInterface {
 				let trajectory_data = self.getFullInterpolatedTrajectory(0.2, 5)
 				// Debug only
 				// self.annotations[0].tryTrajectory(trajectory_data)
-				let strAnnotations = self.convertAnnotationToCSV({data : trajectory_data,
-				tile : tile});
+				let strAnnotations = self.convertAnnotationToCSV({data : trajectory_data});
 				AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
@@ -654,9 +647,8 @@ export class AnnotationManager extends UtmInterface {
 	
 	/**
     * Add a new lane annotation and add it's mesh to the scene for display.
-    * @param scene
     */
-	addLaneAnnotation(scene:THREE.Scene, obj?:LaneAnnotationInterface): THREE.Box3 {
+	addLaneAnnotation(scene: THREE.Scene, obj?: LaneAnnotationInterface): THREE.Box3 {
 		if (obj) {
 			// Create an annotation with data
 			this.annotations.push(new LaneAnnotation(obj))
@@ -798,17 +790,50 @@ export class AnnotationManager extends UtmInterface {
 	 * This expects the serialized UtmCrs structure produced by toJSON().
 	 */
 	private checkCoordinateSystem(data: Object): boolean {
-		const crs = data['crs']
+		const crs = data['coordinateReferenceSystem']
+		if (crs['coordinateSystem'] !== 'UTM') return false
 		if (crs['datum'] !== this.datum) return false
-		const number = crs['utmZoneNumber']
-		const letter = crs['utmZoneLetter']
-		let offset = new THREE.Vector3(crs['offset']['x'], crs['offset']['y'], crs['offset']['z'])
-		return this.setOrigin(number, letter, offset)
+		const number = crs['parameters']['utmZoneNumber']
+		const letter = crs['parameters']['utmZoneLetter']
+
+		if (!data['annotations']) return false
+		// generate an arbitrary offset for internal use, given the first point in the data set
+		let first
+		// and round off the values for nicer debug output
+		const trunc = function (x) {return Math.trunc(x / 10) * 10}
+		for (let i = 0; !first && i < data['annotations'].length; i++) {
+			const annotation = data['annotations'][i]
+			if (annotation['markerPositions'] && annotation['markerPositions'].length > 0) {
+				const pos = annotation['markerPositions'][0]
+				first = new THREE.Vector3(trunc(pos['E']), trunc(pos['N']), trunc(pos['alt']))
+			}
+		}
+		if (!first) return false
+
+		if (this.setOrigin(number, letter, first)) {
+			return true
+		} else {
+			return this.utmZoneNumber === number && this.utmZoneLetter === letter
+		}
+	}
+
+	/**
+	 * Convert markerPositions from UTM objects to vectors in local coordinates, for downstream consumption.
+	 */
+	private convertCoordinates(data: Object): void {
+		data['annotations'].forEach((annotation) => {
+			if (annotation['markerPositions']) {
+				for (let i = 0; i < annotation['markerPositions'].length; i++) {
+					const pos = annotation['markerPositions'][i]
+					annotation['markerPositions'][i] = this.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
+				}
+			}
+		})
 	}
 
 	/**
 	 * Load annotations from file. Store all annotations and add them to the Annotator scene.
-	 * This assumes UTM as the input format.
+	 * This requires UTM as the input format.
 	 * @returns the center point of the bottom of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
@@ -818,6 +843,7 @@ export class AnnotationManager extends UtmInterface {
 			AsyncFile.readFile(fileName, 'ascii').then(function (text) {
 				const data = JSON.parse(text as any)
 				if (self.checkCoordinateSystem(data)) {
+					self.convertCoordinates(data)
 					let boundingBox = new THREE.Box3()
 					// Each element is an annotation
 					data['annotations'].forEach((element) => {
@@ -830,7 +856,7 @@ export class AnnotationManager extends UtmInterface {
 						resolve(boundingBox.getCenter().setY(boundingBox.min.y))
 					}
 				} else {
-					reject(Error(`UTM Zone for new annotations (${data['utmZoneNumber']}${data['utmZoneLetter']}) does not match existing zone in ${self.getOrigin()}`));
+					reject(Error(`UTM Zone for new annotations (${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneLetter']}) does not match existing zone in ${self.getOrigin()}`));
 				}
 			}, function (error) {
 				reject(error)
@@ -842,42 +868,66 @@ export class AnnotationManager extends UtmInterface {
 
 	disableAutoSave(): void {this.metadataState.disableAutoSave()}
 
-	async saveAnnotationsToFile(fileName: string, format: OutputFormat, pointConverter?: (p: THREE.Vector3) => THREE.Vector3): Promise<void> {
+	async saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
 		if (this.annotations.length === 0) {
 			return Promise.reject(new Error('failed to save empty set of annotations'))
 		}
-		if (!this.hasOrigin() && !config.get('output.debug.allow_annotations_without_utm_origin')) {
+		if (!this.hasOrigin() && !config.get('output.annotations.debug.allow_annotations_without_utm_origin')) {
 			return Promise.reject(new Error('failed to save annotations: UTM origin is not set'))
 		}
 		let self = this
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
 			if (!er) {
-				let strAnnotations = JSON.stringify(self.toJSON(format, pointConverter))
+				let strAnnotations = JSON.stringify(self.toJSON(format))
 				return AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
 		return MkDirP.mkdirP(dirName, writeFile)
 	}
 
-	toJSON(format: OutputFormat, pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
+	private threeJsToUtmJsonObject(): (p: THREE.Vector3) => Object {
+		let self = this
+		return function (p: THREE.Vector3): Object {
+			const utm = self.threeJsToUtm(p)
+			return {'E': utm.x, 'N': utm.y, 'alt': utm.z}
+		}
+	}
+
+	private threeJsToLlaJsonObject(): (p: THREE.Vector3) => Object {
+		let self = this
+		return function (p: THREE.Vector3): Object {
+			const lla = self.threeJsToLla(p)
+			return {'lon': lla.x, 'lat': lla.y, 'alt': lla.z}
+		}
+	}
+
+	toJSON(format: OutputFormat) {
 		let crs
+		let pointConverter
 		if (format === OutputFormat.UTM) {
 			const utm: CRS.UtmCrs = {
+				coordinateSystem: 'UTM',
 				datum: this.datum,
-				utmZoneNumber: this.utmZoneNumber,
-				utmZoneLetter: this.utmZoneLetter,
-				offset: this.offset,
+				parameters: {
+					utmZoneNumber: this.utmZoneNumber,
+					utmZoneLetter: this.utmZoneLetter,
+				}
 			}
 			crs = utm
+			pointConverter = this.threeJsToUtmJsonObject()
 		} else if (format === OutputFormat.LLA) {
 			const lla: CRS.LlaCrs = {
+				coordinateSystem: 'LLA',
 				datum: this.datum,
 			}
 			crs = lla
+			pointConverter = this.threeJsToLlaJsonObject()
+		} else {
+			throw new Error('unknown OutputFormat: ' + format)
 		}
 		const data: AnnotationManagerInterface = {
-			crs: crs,
+			coordinateReferenceSystem: crs,
 			annotations: [],
 		}
 
@@ -888,7 +938,7 @@ export class AnnotationManager extends UtmInterface {
 		return data
 	}
 
-	saveAndExportToKml(jar: string, main: string, input: string, output: string, tile: SuperTile) {
+	saveAndExportToKml(jar: string, main: string, input: string, output: string) {
 		let exportToKml = function () {
 			const command = [jar, main, input, output].join(' ')
 			log.debug('executing child process: ' + command)
@@ -903,15 +953,14 @@ export class AnnotationManager extends UtmInterface {
 			})
 		}
 
-		let pointConverter = tile.threeJsToLlaPartialFunction()
-		this.saveAnnotationsToFile(input, OutputFormat.LLA, pointConverter).then(function () {
+		this.saveAnnotationsToFile(input, OutputFormat.LLA).then(function () {
 			exportToKml()
 		}, function (error) {
 			console.warn('save-to-JSON failed for KML conversion; aborting: ' + error.message)
 		})
 	}
 
-	saveToKML(filename : string, tile : SuperTile) {
+	saveToKML(fileName: string) {
 		// Get all the points
 		let points = []
 		this.annotations.forEach( (annotation) => {
@@ -921,13 +970,13 @@ export class AnnotationManager extends UtmInterface {
 		// Convert points to lat lon
 		let geopoints = []
 		points.forEach( (p) => {
-			geopoints.push(tile.threeJsToLla(p))
+			geopoints.push(this.threeJsToLla(p))
 		})
 		
 		// Save file
 		let kml = new SimpleKML()
 		kml.addPath(geopoints)
-		kml.saveToFile(filename)
+		return kml.saveToFile(fileName)
 	}
 	
 	/**
@@ -1194,11 +1243,11 @@ export class AnnotationState {
 	constructor(annotationManager: AnnotationManager) {
 		const self = this
 		this.annotationManager = annotationManager
-		this.autoSaveDirectory = config.get('output.autosave.directory.path')
-		const autoSaveEventInterval = config.get('output.autosave.interval.seconds') * 1000
+		this.autoSaveDirectory = config.get('output.annotations.autosave.directory.path')
+		const autoSaveEventInterval = config.get('output.annotations.autosave.interval.seconds') * 1000
 		if (this.annotationManager && this.autoSaveDirectory && autoSaveEventInterval) {
 			setInterval(function () {
-				if (self.autoSaveEnabled) self.saveAnnotations()
+				if (self.doAutoSave()) self.saveAnnotations()
 			}, autoSaveEventInterval)
 		}
 	}
@@ -1207,7 +1256,11 @@ export class AnnotationState {
 
 	disableAutoSave(): void {this.autoSaveEnabled = false}
 
-	private saveAnnotations() {
+	private doAutoSave(): boolean {
+		return this.autoSaveEnabled && this.annotationManager.annotations.length > 0
+	}
+
+	private saveAnnotations(): void {
 		const now = new Date()
 		const nowElements = [
 			now.getUTCFullYear(),
@@ -1221,6 +1274,11 @@ export class AnnotationState {
 		const fileName = vsprintf("%04d-%02d-%02dT%02d-%02d-%02d.%03dZ.json", nowElements)
 		const savePath = this.autoSaveDirectory + '/' + fileName
 		log.info("auto-saving annotations to: " + savePath)
-		return this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM)
+		this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM).then(
+			function () {},
+			function (error) {
+				console.warn('save annotations failed: ' + error.message)
+			}
+		)
 	}
 }

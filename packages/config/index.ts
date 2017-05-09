@@ -9,8 +9,9 @@ const path = require('path')
 const fs = require('fs')
 
 const required = [
-    'output.json.path',
-    'output.kml.path',
+    'output.annotations.json.path',
+    'output.annotations.kml.path',
+    'output.trajectory.csv.path',
 ]
 
 const envInput = (process.env.MAPPER_ENV || '').toLowerCase()

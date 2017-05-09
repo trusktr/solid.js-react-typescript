@@ -8,6 +8,7 @@ import * as TypeLogger from 'typelogger'
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
+const utmObj = new (require('utm-latlng'))()
 
 export interface UtmLocalOrigin {
     utmZoneNumber: number
@@ -28,7 +29,7 @@ export class UtmInterface implements UtmLocalOrigin {
     utmZoneLetter: string
     // this is an offset from UTM origin for display purposes:
     // three.js rendering breaks down on coordinates with high absolute value
-    offset: THREE.Vector3
+    offset: THREE.Vector3 = new THREE.Vector3(0, 0, 0)
 
     static isValidUtmZone(number: number, letter: string): boolean {
         return number >= 1 && number <= 60 &&
@@ -73,5 +74,32 @@ export class UtmInterface implements UtmLocalOrigin {
             log.info('setting UTM origin offset: ' + this.offset.x + ', ' + this.offset.y + ', ' + this.offset.z)
             return true
         }
+    }
+
+	threeJsToUtm(p: THREE.Vector3): THREE.Vector3 {
+        let utmPoint = new THREE.Vector3(-p.z, -p.x, p.y)
+        utmPoint.add(this.offset)
+        return utmPoint
+    }
+
+	utmToThreeJs(x: number, y: number, z: number): THREE.Vector3 {
+		let tmp = new THREE.Vector3(x, y, z)
+		tmp.sub(this.offset)
+		return new THREE.Vector3(-tmp.y, tmp.z, -tmp.x)
+	}
+
+	threeJsToLatLng(p: THREE.Vector3) {
+		// First change coordinate frame from THREE js to UTM
+		let utm = this.threeJsToUtm(p)
+		// Get latitude longitude
+		return utmObj.convertUtmToLatLng(utm.x, utm.y, this.utmZoneNumber, this.utmZoneLetter)
+	}
+
+	threeJsToLla(p: THREE.Vector3): THREE.Vector3 {
+        // First change coordinate frame from THREE js to UTM
+        let utm = this.threeJsToUtm(p)
+        // Get latitude longitude
+        let latLon = utmObj.convertUtmToLatLng(utm.x, utm.y, this.utmZoneNumber, this.utmZoneLetter)
+        return new THREE.Vector3(latLon.lng, latLon.lat, utm.z)
     }
 }
