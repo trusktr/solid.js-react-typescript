@@ -61,6 +61,7 @@ class Annotator {
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
 		this.raycaster_plane = new THREE.Raycaster()
+		this.raycaster_plane.params.Points.threshold = 0.1
 		// THe raycaster is used to compute which marker is active for editing
 		this.raycaster_marker = new THREE.Raycaster()
 		// THe raycaster is used to compute which selection should be active for editing
@@ -68,7 +69,7 @@ class Annotator {
 		
 		this.mapTile = new SuperTile()
 		
-		this.usePlane = true
+		this.usePlane = false
 	}
 	
 	/**
@@ -109,7 +110,7 @@ class Annotator {
 		this.scene.add(this.plane)
 	
 		// Add grid on top of the plane
-		let grid = new THREE.GridHelper(2000, 1000);
+		let grid = new THREE.GridHelper(200, 100);
 		grid.position.y = -0.01;
 		grid.material.opacity = 0.25;
 		grid.material.transparent = true;
