@@ -491,6 +491,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 	
 	function handleMouseUp( event ) {
+		event
 		
 		// console.log( 'handleMouseUp' );
 		
@@ -640,6 +641,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 	
 	function handleTouchEnd( event ) {
+		event
 		
 		//console.log( 'handleTouchEnd' );
 		

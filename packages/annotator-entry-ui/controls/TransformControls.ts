@@ -444,6 +444,7 @@ declare global {
 		};
 		
 		this.update = function ( rotation, eye2 ) {
+			rotation
 			
 			THREE.TransformGizmo.prototype.update.apply( this, arguments );
 			

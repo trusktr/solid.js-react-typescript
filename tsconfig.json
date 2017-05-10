@@ -1,10 +1,12 @@
 {
     "compilerOptions": {
         "allowSyntheticDefaultImports": true,
+        "alwaysStrict": true,
         "baseUrl": "./packages",
         "declaration": false,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
+        "forceConsistentCasingInFileNames": true,
         "jsx": "react",
         "lib": [
             "es6",
@@ -15,6 +17,10 @@
         ],
         "module": "commonjs",
         "moduleResolution": "node",
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
         "outDir": "./dist/out",
         "paths": { "*": [ "*" ] },
         "preserveConstEnums": true,
