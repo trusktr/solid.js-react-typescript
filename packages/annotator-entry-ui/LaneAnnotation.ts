@@ -6,6 +6,7 @@
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 import * as $ from 'jquery'
+import * as UUID from 'uuid'
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -21,6 +22,9 @@ directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
 directionGeometry.computeFaceNormals()
 
 const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, side : THREE.DoubleSide})
+
+export type LaneUuid = string // a UUID, for use across distributed applications
+export type LaneId = number   // a small integer, for use in the UI during one session
 
 export enum NeighborDirection {
 	SAME = 1,
@@ -52,12 +56,12 @@ export enum AnnotationType {
 	CONNECTION = 2
 }
 
-class LaneNeighborsIds {
-	right : number
-	left : number
-	front : Array<number>
-	back : Array<number>
-	
+export class LaneNeighborsIds {
+	right: LaneUuid
+	left: LaneUuid
+	front: Array<LaneUuid>
+	back: Array<LaneUuid>
+
 	constructor() {
 		this.right = null
 		this.left = null
@@ -86,8 +90,15 @@ class LaneRenderingProperties {
 	}
 }
 
+namespace LaneCounter {
+	let i = 0
+	export function nextId(): number {
+		return ++i
+	}
+}
+
 export interface LaneAnnotationInterface {
-	id
+	uuid: LaneUuid
 	type
 	color
 	markerPositions
@@ -104,7 +115,8 @@ export interface LaneAnnotationInterface {
  */
 export class LaneAnnotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
-	id : number
+	id: LaneId
+	uuid: LaneUuid
 	type : AnnotationType
 	renderingProperties : LaneRenderingProperties
 	laneRenderingObject : THREE.Object3D
@@ -120,9 +132,10 @@ export class LaneAnnotation {
 	exitType : LaneEntryExitType
 	inTrajectory: boolean
 	
-	constructor(obj? : LaneAnnotationInterface, delta?: THREE.Vector3) {
+	constructor(obj? : LaneAnnotationInterface) {
 		
-		this.id = obj ? obj.id : new Date().getUTCMilliseconds()
+		this.id = LaneCounter.nextId()
+		this.uuid = obj ? obj.uuid : UUID.v1()
 		this.type = obj ? obj.type : AnnotationType.UNKNOWN
 		let color = obj ? obj.color : Math.random() * 0xffffff
 		this.neighborsIds = obj? obj.neighborsIds : new LaneNeighborsIds()
@@ -145,7 +158,7 @@ export class LaneAnnotation {
 			this.updateVisualization()
 			this.makeInactive()
 		}
-		
+
 		// Group display objects so we can easily add them to the screen
 		this.laneRenderingObject.add(this.laneMesh)
 		this.laneRenderingObject.add(this.laneCenterLine)
@@ -201,7 +214,7 @@ export class LaneAnnotation {
 	 * @param neighborId
 	 * @param neighborLocation
 	 */
-	addNeighbor(neighborId : number, neighborLocation : NeighborLocation) {
+	addNeighbor(neighborId: LaneUuid, neighborLocation: NeighborLocation) {
 		switch (neighborLocation) {
 			case NeighborLocation.FRONT:
 				this.neighborsIds.front.push(neighborId)
@@ -338,7 +351,7 @@ export class LaneAnnotation {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
 		let data : LaneAnnotationInterface = {
-			id: this.id,
+			uuid: this.uuid,
 			type: this.type,
 			color : this.renderingProperties.color,
 			leftSideType : this.leftSideType,

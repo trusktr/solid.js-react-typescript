@@ -10,7 +10,7 @@ import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
-import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
+import {NeighborLocation, NeighborDirection, LaneId} from 'annotator-entry-ui/LaneAnnotation'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
@@ -748,8 +748,8 @@ class Annotator {
 
 		let lc_add = document.getElementById('lc_add');
 		lc_add.addEventListener('click', _ => {
-			let lc_to : number = Number($('#lc_select_to').val());
-			let lc_from : number = Number($('#lc_select_from').val());
+			let lc_to: LaneId = Number($('#lc_select_to').val());
+			let lc_from: LaneId = Number($('#lc_select_from').val());
 			let lc_relation = $('#lc_select_relation').val();
 
 			if (lc_to === null || lc_from === null) {
@@ -915,7 +915,7 @@ class Annotator {
 
 		let tr_add = $('#tr_add');
 		tr_add.removeAttr('disabled');
-		if (this.annotationManager.laneIndexInPath(active_annotation.id) === -1) {
+		if (this.annotationManager.laneIndexInPath(active_annotation.uuid) === -1) {
 			tr_add.text("Add");
 		}
 		else {
