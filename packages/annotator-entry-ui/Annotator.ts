@@ -5,7 +5,7 @@
 
 const config = require('../config')
 import * as $ from 'jquery'
-import * as THREE from 'three'
+//import * as THREE from 'three'
 import * as AsyncFile from 'async-file'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
@@ -17,9 +17,12 @@ import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isUndefined} from "util"
 
+let THREE = require('three')
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
 const {dialog} = require('electron').remote
+const OBJLoader = require("three-obj-loader")
+OBJLoader(THREE)
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -37,6 +40,7 @@ class Annotator {
 	raycaster_plane : THREE.Raycaster
 	raycaster_marker : THREE.Raycaster
 	raycaster_annotation : THREE.Raycaster
+	carModel: THREE.Object3D
 	mapTile : SuperTile
 	plane : THREE.Mesh
 	stats
@@ -163,6 +167,8 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mousedown', () => {
 			this.isMouseButtonPressed = true
 		})
+		
+		this.loadCarModel()
 
 		// Bind events
 		this.bind();
@@ -953,6 +959,21 @@ class Annotator {
 	activateFrontSideNeighbours() {
 		let lp_add_front = document.getElementById('lp_add_forward');
 		lp_add_front.removeAttribute('disabled');
+	}
+	
+	private loadCarModel() {
+		let manager = new THREE.LoadingManager()
+		let loader = new THREE.OBJLoader(manager)
+		loader.load('/Users/alonso/Mapper/CodeBase/Perception/data/BMW_X5_4.obj', (object) => {
+			let boundingBox = new THREE.Box3().setFromObject(object)
+			let boxSize = boundingBox.getSize().toArray()
+			let modelLength = Math.max(...boxSize)
+			const carLength = 4.5 // approx in meters
+			const scaleFactor = carLength / modelLength
+			this.carModel = object
+			this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
+			this.scene.add(object)
+		})
 	}
 }
 
