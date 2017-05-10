@@ -1,14 +1,9 @@
 import Electron = require("electron")
-import {getLogger} from "typelogger"
-
 
 const
-	log = getLogger(__filename),
 	{app,BrowserWindow} = Electron,
 	url = require('url'),
 	Path = require('path')
-
-
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.

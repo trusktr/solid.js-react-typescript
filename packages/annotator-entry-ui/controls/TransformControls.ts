@@ -90,9 +90,7 @@ declare global {
 	
 	
 	THREE.TransformGizmo = function () {
-		
-		let scope = this;
-		
+
 		this.init = function () {
 			
 			THREE.Object3D.call( this );
@@ -449,13 +447,6 @@ declare global {
 			
 			THREE.TransformGizmo.prototype.update.apply( this, arguments );
 			
-			let group = {
-				
-				handles: this[ "handles" ],
-				pickers: this[ "pickers" ]
-				
-			};
-			
 			let tempMatrix = new THREE.Matrix4();
 			let worldRotation = new THREE.Euler( 0, 0, 1 );
 			let tempQuaternion = new THREE.Quaternion();
@@ -633,7 +624,6 @@ declare global {
 		
 		let _mode = "translate";
 		let _dragging = false;
-		let _plane = "XY";
 		let _gizmo = {
 			
 			"translate": new THREE.TransformGizmoTranslate(),

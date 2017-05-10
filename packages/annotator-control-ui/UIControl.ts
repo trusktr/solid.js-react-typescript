@@ -8,10 +8,8 @@ import {LaneSideType, LaneEntryExitType} from 'annotator-entry-ui/LaneAnnotation
 
 // Get html elements
 ///////////////////////////////////////////////////////////////////////////////
-let menu = $("#menu");
 let lane_prop = document.getElementById('lane_prop_1');
 let lane_conn = document.getElementById('lane_conn');
-let tools = document.getElementById('tools');
 
 // Define new elements
 ///////////////////////////////////////////////////////////////////////////////
@@ -105,10 +103,6 @@ for (let i in lc_selects) {
     lane_conn.appendChild(lc_selects[i]);
 }
 
-let icons = {
-    header: "ui-icon-circle-arrow-e",
-    activeHeader: "ui-icon-circle-arrow-s"
-};
 $('#menu_1').accordion({collapsible : true, heightStyle : "content"})
 $('#menu_2').accordion({collapsible : true, heightStyle : "content"})
 $('#menu_3').accordion({collapsible : true, heightStyle : "content"})
