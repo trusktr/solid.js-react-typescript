@@ -37,7 +37,7 @@ async function loadTile(filename : string) :  Promise<Models.PointCloudTileMessa
 const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 	if (step <= 0) {
 		log.error("Can't sample data. Step should be > 0.")
-		return
+		return []
 	}
 	
 	
@@ -184,7 +184,7 @@ export class SuperTile extends UtmInterface {
 			geometry.computeBoundingBox()
 			return geometry.boundingBox.getCenter().setY(geometry.boundingBox.min.y)
 		} else {
-			return
+			return null
 		}
 	}
 }

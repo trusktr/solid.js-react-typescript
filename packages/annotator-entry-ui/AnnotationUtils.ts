@@ -487,39 +487,42 @@ export class AnnotationManager extends UtmInterface {
 	generatePointsFromSortedCarPath(sorted_car_path : Array<Link>, min_dist_lane_change : number) : Array<Vector3> {
 		
 		let points : Array<Vector3> = []
+		let hasValidIndexes = true
 		sorted_car_path.forEach((lane_link) => {
-			
-			let lane_index : number = lane_link.index
-			if (lane_index === null || lane_index < 0 || lane_index >= this.annotations.length) {
-				dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
-					"Sorted car path contains invalid index: " + lane_index)
-				return []
-			}
-			
-			if (points.length > 0) {
-				// If side link: make sure there is enough distance between first point of the link
-				// and previous link last point added
-				if (lane_link.type === LinkType.SIDE) {
-					let first_pt = this.annotations[lane_index].laneMarkers[0].position.clone()
-					first_pt.add(this.annotations[lane_index].laneMarkers[1].position).divideScalar(2)
-					let distance:number = first_pt.distanceTo(points[points.length - 1])
-					while (points.length > 0 && distance < min_dist_lane_change) {
+			if (hasValidIndexes) {
+				let lane_index: number = lane_link.index
+				if (lane_index === null || lane_index < 0 || lane_index >= this.annotations.length) {
+					dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
+						"Sorted car path contains invalid index: " + lane_index)
+					points = []
+					hasValidIndexes = false
+				}
+
+				if (points.length > 0) {
+					// If side link: make sure there is enough distance between first point of the link
+					// and previous link last point added
+					if (lane_link.type === LinkType.SIDE) {
+						let first_pt = this.annotations[lane_index].laneMarkers[0].position.clone()
+						first_pt.add(this.annotations[lane_index].laneMarkers[1].position).divideScalar(2)
+						let distance: number = first_pt.distanceTo(points[points.length - 1])
+						while (points.length > 0 && distance < min_dist_lane_change) {
+							points.pop()
+							distance = first_pt.distanceTo(points[points.length - 1])
+						}
+					}
+					else {
+						// Delete the last point from lane since this is usually duplicated at the
+						// beginning of the next lane
 						points.pop()
-						distance = first_pt.distanceTo(points[points.length - 1])
 					}
 				}
-				else {
-					// Delete the last point from lane since this is usually duplicated at the
-					// beginning of the next lane
-					points.pop()
+
+				let lane: LaneAnnotation = this.annotations[lane_index]
+				for (let i = 0; i < lane.laneMarkers.length-1; i+=2) {
+					let waypoint = lane.laneMarkers[i].position.clone()
+					waypoint.add(lane.laneMarkers[i+1].position).divideScalar(2)
+					points.push(waypoint)
 				}
-			}
-			
-			let lane : LaneAnnotation = this.annotations[lane_index]
-			for (let i = 0; i < lane.laneMarkers.length-1; i+=2) {
-				let waypoint = lane.laneMarkers[i].position.clone()
-				waypoint.add(lane.laneMarkers[i+1].position).divideScalar(2)
-				points.push(waypoint)
 			}
 		})
 		
@@ -876,8 +879,10 @@ export class AnnotationManager extends UtmInterface {
 		}
 		let self = this
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
-		let writeFile = function (er, _) {
-			if (!er) {
+		let writeFile = function (er, _): Promise<void> {
+			if (er) {
+				return Promise.reject(er)
+			} else {
 				let strAnnotations = JSON.stringify(self.toJSON(format))
 				return AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
