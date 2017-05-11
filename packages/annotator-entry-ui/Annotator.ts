@@ -77,7 +77,7 @@ class Annotator {
 		
 		this.usePlane = true
 		
-		this.liveSubscribeSocket = zmq.socket('sub')
+		this.initClient()
 	}
 	
 	/**
@@ -119,7 +119,7 @@ class Annotator {
 	
 		// Add grid on top of the plane
 		let grid = new THREE.GridHelper(2000, 1000);
-		grid.position.y = -0.01;
+		grid.position.y = -3.0;
 		grid.material.opacity = 0.25;
 		grid.material.transparent = true;
 		this.scene.add( grid );
@@ -417,6 +417,15 @@ class Annotator {
 		if (event.code === 'KeyM') {
 			this.annotationManager.saveToKML(config.get('output.kml.path'), this.mapTile)
 		}
+		
+		if (event.code == 'KeyO') {
+			this.listen()
+		}
+		
+		if (event.code == 'KeyP') {
+			this.stopListening()
+		}
+		
 	}
 	
 	private onKeyUp = () => {
@@ -977,21 +986,50 @@ class Annotator {
 			const scaleFactor = carLength / modelLength
 			this.carModel = object
 			this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
+			this.carModel.rotateY(1.5708)
+			this.carModel.visible = false
 			this.scene.add(object)
+		})
+	}
+	
+	initClient() {
+		this.liveSubscribeSocket = zmq.socket('sub')
+		
+		this.liveSubscribeSocket.on('message', (msg) => {
+			let state =  Models.InertialStateMessage.decode(msg)
+			log.info("Received message: " + state.pose.timestamp)
+			
+			// Move the car and the camera
+			let position = this.mapTile.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
+			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
+			rotation.normalize()
+			this.updateCarPose(position, rotation)
+			
 		})
 	}
 	
 	listen() {
 		log.info('Listening for messages...')
-		
-		this.liveSubscribeSocket.on('message', (msg) => {
-			let state =  Models.InertialStateMessage.decode(msg)
-			log.info("Received message: " + state.pose.timestamp)
-		})
-		
-		
 		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
 		this.liveSubscribeSocket.subscribe("")
+		this.carModel.visible = true
+	}
+	
+	stopListening() {
+		log.info('Stopped listening for messages...')
+		this.carModel.visible = false
+		this.liveSubscribeSocket.close()
+	}
+	
+	
+	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion) {
+		this.carModel.position.set(position.x, position.y, position.z)
+		this.carModel.setRotationFromQuaternion(rotation)
+		// This is because the car model is rotated 90 degrees
+		this.carModel.rotateY(-1.5708)
+		// Bring the model close to the ground (approx height of the sensors)
+		let p = this.carModel.getWorldPosition()
+		this.carModel.position.set(p.x, p.y-1.5, p.z)
 	}
 	
 }

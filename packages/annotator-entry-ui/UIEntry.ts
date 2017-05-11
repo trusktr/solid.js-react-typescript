@@ -27,7 +27,6 @@ export function onLoad() {
 	require("annotator-control-ui/UIControl")
 	log.info('loading ')
 	annotator.initScene();
-	annotator.listen();
 	annotator.animate();
 }
 
