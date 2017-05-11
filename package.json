@@ -242,6 +242,7 @@
     "utm-latlng": "^1.0.3",
     "uuid": "^3.0.1",
     "whatwg-fetch": "^2.0.3",
-    "winston": "^2.2.0"
+    "winston": "^2.2.0",
+    "zmq": "^2.15.3"
   }
 }

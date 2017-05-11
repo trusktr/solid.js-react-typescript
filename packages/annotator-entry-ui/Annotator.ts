@@ -5,7 +5,6 @@
 
 const config = require('../config')
 import * as $ from 'jquery'
-//import * as THREE from 'three'
 import * as AsyncFile from 'async-file'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
@@ -16,11 +15,14 @@ import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isUndefined} from "util"
+import * as MapperProtos from '@mapperai/mapper-models'
+import Models = MapperProtos.com.mapperai.models
 
 let THREE = require('three')
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
 const {dialog} = require('electron').remote
+const zmq = require('zmq')
 const OBJLoader = require("three-obj-loader")
 OBJLoader(THREE)
 
@@ -50,6 +52,7 @@ class Annotator {
 	annotationManager : AnnotationUtils.AnnotationManager
 	isAddMarkerKeyPressed : boolean
 	isMouseButtonPressed : boolean
+	liveSubscribeSocket
 	hovered
 	settings
 	gui
@@ -73,6 +76,8 @@ class Annotator {
 		this.mapTile = new SuperTile()
 		
 		this.usePlane = true
+		
+		this.liveSubscribeSocket = zmq.socket('sub')
 	}
 	
 	/**
@@ -975,6 +980,15 @@ class Annotator {
 			this.scene.add(object)
 		})
 	}
+	
+	listen() {
+		this.liveSubscribeSocket.connect('tcp://localhost:5564')
+		this.liveSubscribeSocket.on('message', (msg) => {
+			let state =  Models.InertialStateMessage.decode(msg)
+			log.info("Received message: " + state.pose.timestamp)
+		})
+	}
+	
 }
 
 
