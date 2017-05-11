@@ -177,7 +177,7 @@
     "webpack-node-externals": "^1.2.0"
   },
   "dependencies": {
-    "@mapperai/mapper-models": "0.0.34",
+    "@mapperai/mapper-models": "0.0.46",
     "@types/three": "^0.84.3",
     "animate.css": "^3.5.1",
     "async-file": "^2.0.2",

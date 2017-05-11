@@ -76,26 +76,26 @@ export class UtmInterface implements UtmLocalOrigin {
         }
     }
 
-	threeJsToUtm(p: THREE.Vector3): THREE.Vector3 {
-        let utmPoint = new THREE.Vector3(-p.z, -p.x, p.y)
+    threeJsToUtm(p: THREE.Vector3): THREE.Vector3 {
+        let utmPoint = new THREE.Vector3(p.x, -p.y, -p.z)
         utmPoint.add(this.offset)
         return utmPoint
     }
 
-	utmToThreeJs(x: number, y: number, z: number): THREE.Vector3 {
-		let tmp = new THREE.Vector3(x, y, z)
-		tmp.sub(this.offset)
-		return new THREE.Vector3(-tmp.y, tmp.z, -tmp.x)
-	}
+    utmToThreeJs(x: number, y: number, z: number): THREE.Vector3 {
+        let tmp = new THREE.Vector3(x, y, z)
+        tmp.sub(this.offset)
+        return new THREE.Vector3(tmp.x, -tmp.y, -tmp.z)
+    }
 
-	threeJsToLatLng(p: THREE.Vector3) {
-		// First change coordinate frame from THREE js to UTM
-		let utm = this.threeJsToUtm(p)
-		// Get latitude longitude
-		return utmObj.convertUtmToLatLng(utm.x, utm.y, this.utmZoneNumber, this.utmZoneLetter)
-	}
+    threeJsToLatLng(p: THREE.Vector3) {
+        // First change coordinate frame from THREE js to UTM
+        let utm = this.threeJsToUtm(p)
+        // Get latitude longitude
+        return utmObj.convertUtmToLatLng(utm.x, utm.y, this.utmZoneNumber, this.utmZoneLetter)
+    }
 
-	threeJsToLla(p: THREE.Vector3): THREE.Vector3 {
+    threeJsToLla(p: THREE.Vector3): THREE.Vector3 {
         // First change coordinate frame from THREE js to UTM
         let utm = this.threeJsToUtm(p)
         // Get latitude longitude

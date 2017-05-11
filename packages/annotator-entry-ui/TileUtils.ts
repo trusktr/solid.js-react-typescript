@@ -68,7 +68,7 @@ export class SuperTile extends UtmInterface {
 		super()
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
-		this.samplingStep = 15
+		this.samplingStep = 5
 	}
 
 	toString(): string {

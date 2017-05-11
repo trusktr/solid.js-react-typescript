@@ -195,9 +195,6 @@ export class LaneAnnotation {
 	addMarker(x:number, y:number, z:number) {
 		
 		let marker : THREE.Vector3 = new THREE.Vector3(x,y,z)// = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
-		if (this.laneMarkers.length > 0) {
-			marker.y = this.laneMarkers[this.laneMarkers.length-1].position.y
-		}
 		this.addRawMarker(marker)
 		
 		// From the third marker onwards, add markers in pairs by estimating the position
