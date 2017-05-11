@@ -982,11 +982,16 @@ class Annotator {
 	}
 	
 	listen() {
-		this.liveSubscribeSocket.connect('tcp://localhost:5564')
+		log.info('Listening for messages...')
+		
 		this.liveSubscribeSocket.on('message', (msg) => {
 			let state =  Models.InertialStateMessage.decode(msg)
 			log.info("Received message: " + state.pose.timestamp)
 		})
+		
+		
+		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
+		this.liveSubscribeSocket.subscribe("")
 	}
 	
 }
