@@ -14,7 +14,6 @@ import {UtmInterface} from "./UtmInterface"
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-const utmObj = new (require('utm-latlng'))()
 
 /**
  * This opens a binary file for reading
@@ -58,7 +57,8 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 
 export class SuperTile extends UtmInterface {
 
-	// all points are UTM
+	// All points are stored with reference to UTM origin and offset,
+	// but using the local coordinate system which has different axes.
 	pointCloud : THREE.Points
 	maxTilesToLoad : number
 	progressStepSize: number
@@ -95,14 +95,14 @@ export class SuperTile extends UtmInterface {
 			return true
 		} else {
 			return SuperTile.isDefaultUtmZone(number, letter)
-				|| this.utmZoneNumber == number && this.utmZoneLetter == letter
+				|| this.utmZoneNumber === number && this.utmZoneLetter === letter
 		}
 	}
 
 	/**
 	 * Given a path to a dataset it loads all PointCloudTiles computed for display and
 	 * merges them into a single super tile.
-	 * The (X, Y, Z) coordinates in PointCloudTiles are (UTM Easting, UTM Northing, UTM Zone).
+	 * The (X, Y, Z) coordinates in PointCloudTiles are (UTM Easting, UTM Northing, altitude).
 	 * @returns the center point of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
@@ -185,40 +185,6 @@ export class SuperTile extends UtmInterface {
 			return geometry.boundingBox.getCenter().setY(geometry.boundingBox.min.y)
 		} else {
 			return
-		}
-	}
-
-	threeJsToUtm(point: THREE.Vector3): THREE.Vector3 {
-		let utmPoint = new THREE.Vector3(point.x, -point.y, -point.z)
-		utmPoint.add(this.offset)
-		return utmPoint
-	}
-
-	utmToThreeJs(x: number, y: number, z: number): THREE.Vector3 {
-		let tmp = new THREE.Vector3(x, y, z)
-		tmp.sub(this.offset)
-		return new THREE.Vector3(tmp.x, -tmp.y, -tmp.z)
-	}
-
-	threeJsToLatLng(point: THREE.Vector3) {
-		// First change coordinate frame from THREE js to UTM
-		let utm = this.threeJsToUtm(point)
-		// Get latitude longitude
-		return utmObj.convertUtmToLatLng(utm.x, utm.y, this.utmZoneNumber, this.utmZoneLetter)
-	}
-
-	threeJsToLla(p: THREE.Vector3): THREE.Vector3 {
-		return this.threeJsToLlaPartialFunction()(p)
-	}
-
-	threeJsToLlaPartialFunction(): (p: THREE.Vector3) => THREE.Vector3 {
-		let self = this
-		return function (p: THREE.Vector3): THREE.Vector3 {
-			// First change coordinate frame from THREE js to UTM
-			let utm = self.threeJsToUtm(p)
-			// Get latitude longitude
-			let latLon = utmObj.convertUtmToLatLng(utm.x, utm.y, self.utmZoneNumber, self.utmZoneLetter)
-			return new THREE.Vector3(latLon.lng, latLon.lat, utm.z)
 		}
 	}
 }

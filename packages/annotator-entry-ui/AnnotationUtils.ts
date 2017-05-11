@@ -8,9 +8,8 @@ const vsprintf = require("sprintf-js").vsprintf
 import * as THREE from 'three'
 import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
-	NeighborLocation, AnnotationType
+	NeighborLocation, AnnotationType, LaneId, LaneUuid, LaneNeighborsIds
 } from 'annotator-entry-ui/LaneAnnotation'
-import {SuperTile} from "annotator-entry-ui/TileUtils"
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -45,7 +44,7 @@ export enum OutputFormat {
 }
 
 interface AnnotationManagerInterface {
-	crs: CRS.CoordinateReferenceSystem
+	coordinateReferenceSystem: CRS.CoordinateReferenceSystem
 	annotations: Array<LaneAnnotationInterface>
 }
 
@@ -60,7 +59,7 @@ export class AnnotationManager extends UtmInterface {
 	annotationMeshes : Array<THREE.Mesh>
 	activeMarkers : Array<THREE.Mesh>
 	activeAnnotationIndex : number
-	carPath : Array<number>
+	carPath: Array<LaneUuid>
 	carPathActivation : boolean
 	metadataState: AnnotationState
 
@@ -152,10 +151,10 @@ export class AnnotationManager extends UtmInterface {
 		this.annotations.push(connection)
 
 		// Glue neighbors
-		connection.neighborsIds.front.push(laneTo.id)
-		connection.neighborsIds.back.push(laneFrom.id)
-		laneFrom.neighborsIds.front.push(connection.id)
-		laneTo.neighborsIds.back.push(connection.id)
+		connection.neighborsIds.front.push(laneTo.uuid)
+		connection.neighborsIds.back.push(laneFrom.uuid)
+		laneFrom.neighborsIds.front.push(connection.uuid)
+		laneTo.neighborsIds.back.push(connection.uuid)
 
 		// Compute path
 		let last_index = laneFrom.laneMarkers.length - 1
@@ -193,9 +192,9 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Add a new relation between two existing lanes
 	 */
-	addRelation(scene : THREE.Scene, from_id : number, to_id : number, relation : string) {
+	addRelation(scene: THREE.Scene, from_id: LaneId, to_id: LaneId, relation: string) {
 
-		let lane_from = null;
+		let lane_from: LaneAnnotation = null
 		for (let annotation of this.annotations) {
 			if (annotation.id === from_id) {
 				lane_from = annotation;
@@ -203,7 +202,7 @@ export class AnnotationManager extends UtmInterface {
 			}
 		}
 
-		let lane_to = null;
+		let lane_to: LaneAnnotation = null
 		for (let annotation of this.annotations) {
 			if (annotation.id === to_id) {
 				lane_to = annotation;
@@ -221,8 +220,8 @@ export class AnnotationManager extends UtmInterface {
 				if (lane_from.neighborsIds.left === null &&
 					lane_to.neighborsIds.right === null) {
 
-					lane_from.neighborsIds.left = to_id;
-					lane_to.neighborsIds.right = from_id;
+					lane_from.neighborsIds.left = lane_to.uuid;
+					lane_to.neighborsIds.right = lane_from.uuid;
 				}
 				else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Left relation already exist.")
@@ -232,8 +231,8 @@ export class AnnotationManager extends UtmInterface {
 				if (lane_from.neighborsIds.left === null &&
 					lane_to.neighborsIds.left === null) {
 
-					lane_from.neighborsIds.left = to_id;
-					lane_to.neighborsIds.left = from_id;
+					lane_from.neighborsIds.left = lane_to.uuid;
+					lane_to.neighborsIds.left = lane_from.uuid;
 				}
 				else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Left relation already exist.")
@@ -243,8 +242,8 @@ export class AnnotationManager extends UtmInterface {
 				if (lane_from.neighborsIds.right === null &&
 					lane_to.neighborsIds.left === null) {
 
-					lane_from.neighborsIds.right = to_id;
-					lane_to.neighborsIds.left = from_id;
+					lane_from.neighborsIds.right = lane_to.uuid;
+					lane_to.neighborsIds.left = lane_from.uuid;
 				}
 				else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Right relation already exist.")
@@ -252,18 +251,18 @@ export class AnnotationManager extends UtmInterface {
 				break;
 			case 'front':
 				let index_1 = lane_from.neighborsIds.front.findIndex((neighbor) => {
-					return neighbor === lane_to.id
+					return neighbor === lane_to.uuid
 				})
 				let index_2 = lane_to.neighborsIds.back.findIndex((neighbor) => {
-					return neighbor === lane_from.id
+					return neighbor === lane_from.uuid
 				})
 				if (index_1 === -1 && index_2 === -1) {
 					// check if close enough
 					let lane_from_pt = lane_from.laneMarkers[lane_from.laneMarkers.length-1].position
 					let lane_to_pt = lane_to.laneMarkers[1].position
 					if (lane_from_pt.distanceTo(lane_to_pt) < 1.0) {
-						lane_to.neighborsIds.back.push(lane_from.id);
-						lane_from.neighborsIds.front.push(lane_to.id);
+						lane_to.neighborsIds.back.push(lane_from.uuid);
+						lane_from.neighborsIds.front.push(lane_to.uuid);
 					}
 					else {
 						// Connection lane needed
@@ -276,14 +275,14 @@ export class AnnotationManager extends UtmInterface {
 				break;
 			case 'back':
 				index_1 = lane_from.neighborsIds.back.findIndex((neighbor) => {
-					return neighbor === lane_to.id
+					return neighbor === lane_to.uuid
 				})
 				index_2 = lane_to.neighborsIds.front.findIndex((neighbor) => {
-					return neighbor === lane_from.id
+					return neighbor === lane_from.uuid
 				})
 				if (index_1 === -1 && index_2 === -1) {
-					lane_from.neighborsIds.back.push(lane_to.id);
-					lane_to.neighborsIds.front.push(lane_from.id);
+					lane_from.neighborsIds.back.push(lane_to.uuid);
+					lane_to.neighborsIds.front.push(lane_from.uuid);
 				}
 				else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Back relation already exist.")
@@ -298,9 +297,10 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Add current lane to the car path
 	 */
-	laneIndexInPath(laneId : number) {
-		return this.carPath.findIndex( (id) => {return laneId === id})
+	laneIndexInPath(laneUuid: LaneUuid): number {
+		return this.carPath.findIndex( (uuid) => {return laneUuid === uuid})
 	}
+
 	addLaneToPath() {
 
 		if (this.activeAnnotationIndex === -1){
@@ -309,9 +309,9 @@ export class AnnotationManager extends UtmInterface {
 		}
 		
 		// Check if lane already added
-		let index = this.laneIndexInPath(this.annotations[this.activeAnnotationIndex].id)
+		let index = this.laneIndexInPath(this.annotations[this.activeAnnotationIndex].uuid)
 		if (index === -1) {
-			this.carPath.push(this.annotations[this.activeAnnotationIndex].id)
+			this.carPath.push(this.annotations[this.activeAnnotationIndex].uuid)
 			this.annotations[this.activeAnnotationIndex].setTrajectory(this.carPathActivation)
 			log.info("Lane added to the car path.")
 		}
@@ -329,7 +329,7 @@ export class AnnotationManager extends UtmInterface {
 			return;
 		}
 		
-		let index = this.laneIndexInPath(this.annotations[this.activeAnnotationIndex].id)
+		let index = this.laneIndexInPath(this.annotations[this.activeAnnotationIndex].uuid)
 		if (index !== -1) {
 			this.annotations[index].setTrajectory(false)
 			this.carPath.splice(index, 1)
@@ -348,9 +348,9 @@ export class AnnotationManager extends UtmInterface {
 		}
 		
 		this.carPathActivation = !this.carPathActivation
-		this.carPath.forEach((id) => {
+		this.carPath.forEach((uuid) => {
 			let index = this.annotations.findIndex( (annotation) => {
-				return annotation.id === id
+				return annotation.uuid === uuid
 			})
 			if (index !== -1) {
 				this.annotations[index].setTrajectory(this.carPathActivation)
@@ -365,24 +365,24 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Gets lane index given the list of lanes and the id of the desired lane
 	 * @param lanes List of lanes
-	 * @param id    Desired lane id
+	 * @param uuid  Desired lane id
 	 * @returns Lane index, or -1 if lane id not found
 	 */
-	getLaneIndexFromId(lanes : Array<LaneAnnotation>, id : number) : number {
+	getLaneIndexFromUuid(lanes: Array<LaneAnnotation>, uuid: LaneUuid): number {
 		return lanes.findIndex( (item) => {
-			return item.id === id
+			return item.uuid === uuid
 		})
 	}
 	
 	/**
 	 * Checks if the given is within a list of given ids
-	 * @param laneIds  List of ids
-	 * @param id       Desired id
+	 * @param laneUuids  List of ids
+	 * @param uuid       Desired id
 	 * @returns True if the id is within the list, false otherwise
 	 */
-	checkLaneIdInList(laneIds : Array<number>, id : number) : boolean {
-		return laneIds.findIndex( (lane_id) => {
-			return lane_id === id
+	checkLaneUuidInList(laneUuids: Array<LaneUuid>, uuid: LaneUuid) : boolean {
+		return laneUuids.findIndex( (laneUuid) => {
+			return laneUuid === uuid
 		}) !== -1
 	}
 	
@@ -391,11 +391,12 @@ export class AnnotationManager extends UtmInterface {
 	 * @param neighbors   Current lane neighbors
 	 * @returns Connected lane index from the list of annotations, or -1 if no connection found
 	 */
-	tryGoStraight(neighbors) : number {
-		for (let neighbor of neighbors.front) {
+	tryGoStraight(neighbors: LaneNeighborsIds): number {
+		let neighbor: LaneUuid
+		for (neighbor of neighbors.front) {
 			if (neighbor !== null &&
-				this.checkLaneIdInList(this.carPath, neighbor)) {
-				return this.getLaneIndexFromId(this.annotations, neighbor)
+				this.checkLaneUuidInList(this.carPath, neighbor)) {
+				return this.getLaneIndexFromUuid(this.annotations, neighbor)
 			}
 		}
 		return -1
@@ -406,24 +407,25 @@ export class AnnotationManager extends UtmInterface {
 	 * @param neighbors Current lane neighbors
 	 * @returns Connected lane index from the list of annotations, or -1 if no connection found
 	 */
-	tryGoSides(neighbors) : number {
-		
+	tryGoSides(neighbors: LaneNeighborsIds): number {
+
 		// Try left and right neighbors of the front lane
-		for (let neighbor of neighbors.front) {
+		let neighbor: LaneUuid
+		for (neighbor of neighbors.front) {
 			
 			// check for valid front neighbor
 			if (neighbor !== null) {
-				
-				let front_lane = this.annotations[this.getLaneIndexFromId(this.annotations, neighbor)]
+
+				let front_lane = this.annotations[this.getLaneIndexFromUuid(this.annotations, neighbor)]
 				let front_lane_neighbors = front_lane.neighborsIds
 				if (front_lane_neighbors.right !== null &&
-					this.checkLaneIdInList(this.carPath, front_lane_neighbors.right)) {
-					return this.getLaneIndexFromId(this.annotations, front_lane_neighbors.right)
+					this.checkLaneUuidInList(this.carPath, front_lane_neighbors.right)) {
+					return this.getLaneIndexFromUuid(this.annotations, front_lane_neighbors.right)
 				}
 
 				if (front_lane_neighbors.left !== null &&
-					this.checkLaneIdInList(this.carPath, front_lane_neighbors.left)) {
-					return this.getLaneIndexFromId(this.annotations, front_lane_neighbors.left)
+					this.checkLaneUuidInList(this.carPath, front_lane_neighbors.left)) {
+					return this.getLaneIndexFromUuid(this.annotations, front_lane_neighbors.left)
 				}
 			}
 		}
@@ -439,7 +441,7 @@ export class AnnotationManager extends UtmInterface {
 	sortCarPath() : Array<Link> {
 		let trajectory_as_ordered_lane_indices : Array<Link> = []
 		let new_link : Link = new Link()
-		new_link.index = this.getLaneIndexFromId(this.annotations, this.carPath[0])
+		new_link.index = this.getLaneIndexFromUuid(this.annotations, this.carPath[0])
 		new_link.type = LinkType.FORWARD
 		trajectory_as_ordered_lane_indices.push(new_link)
 		while (new_link.index !== -1 &&
@@ -472,7 +474,7 @@ export class AnnotationManager extends UtmInterface {
 			new_link.type = LinkType.OTHER
 			trajectory_as_ordered_lane_indices.push(new_link)
 		}
-		
+
 		return trajectory_as_ordered_lane_indices
 	}
 	
@@ -566,25 +568,18 @@ export class AnnotationManager extends UtmInterface {
 	 * Saves car path to CSV file
 	 */
 	convertAnnotationToCSV(args) : string {
-		
 		let data : Array<Vector3> = args.data || null;
 		if (data.length === 0) {
 			log.warn("Empty annotation.")
 			return ''
 		}
-		
-		let tile : SuperTile = args.tile || null;
-		if (tile === null) {
-			log.error('No tile given.')
-			return ''
-		}
-		
+
 		let columnDelimiter = args.columnDelimiter || ',';
 		let lineDelimiter = args.lineDelimiter || '\n';
 		let result : string = ''
 		data.forEach( (marker) => {
 			// Get latitude longitude
-			let lat_lng_pt  = tile.threeJsToLatLng(marker)
+			let lat_lng_pt = this.threeJsToLatLng(marker)
 			result += lat_lng_pt.lng.toString();
 			result += columnDelimiter;
 			result += lat_lng_pt.lat.toString();
@@ -593,7 +588,8 @@ export class AnnotationManager extends UtmInterface {
 		
 		return result
 	}
-	saveCarPath(fileName : string, tile : SuperTile) {
+
+	saveCarPath(fileName: string) {
 		let self = this
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
@@ -601,8 +597,7 @@ export class AnnotationManager extends UtmInterface {
 				let trajectory_data = self.getFullInterpolatedTrajectory(0.2, 5)
 				// Debug only
 				// self.annotations[0].tryTrajectory(trajectory_data)
-				let strAnnotations = self.convertAnnotationToCSV({data : trajectory_data,
-				tile : tile});
+				let strAnnotations = self.convertAnnotationToCSV({data : trajectory_data});
 				AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
@@ -654,9 +649,8 @@ export class AnnotationManager extends UtmInterface {
 	
 	/**
     * Add a new lane annotation and add it's mesh to the scene for display.
-    * @param scene
     */
-	addLaneAnnotation(scene:THREE.Scene, obj?:LaneAnnotationInterface): THREE.Box3 {
+	addLaneAnnotation(scene: THREE.Scene, obj?: LaneAnnotationInterface): THREE.Box3 {
 		if (obj) {
 			// Create an annotation with data
 			this.annotations.push(new LaneAnnotation(obj))
@@ -696,7 +690,7 @@ export class AnnotationManager extends UtmInterface {
 		this.deleteConnectionToNeighbors(scene, lane)
 
 		// Remove annotation from internal array of annotations.
-		let lane_index = this.getLaneIndexFromId(this.annotations, lane.id)
+		let lane_index = this.getLaneIndexFromUuid(this.annotations, lane.uuid)
 		this.annotations.splice(lane_index, 1)
 	}
 
@@ -798,17 +792,47 @@ export class AnnotationManager extends UtmInterface {
 	 * This expects the serialized UtmCrs structure produced by toJSON().
 	 */
 	private checkCoordinateSystem(data: Object): boolean {
-		const crs = data['crs']
+		const crs = data['coordinateReferenceSystem']
+		if (crs['coordinateSystem'] !== 'UTM') return false
 		if (crs['datum'] !== this.datum) return false
-		const number = crs['utmZoneNumber']
-		const letter = crs['utmZoneLetter']
-		let offset = new THREE.Vector3(crs['offset']['x'], crs['offset']['y'], crs['offset']['z'])
-		return this.setOrigin(number, letter, offset)
+		const number = crs['parameters']['utmZoneNumber']
+		const letter = crs['parameters']['utmZoneLetter']
+
+		if (!data['annotations']) return false
+		// generate an arbitrary offset for internal use, given the first point in the data set
+		let first
+		// and round off the values for nicer debug output
+		const trunc = function (x) {return Math.trunc(x / 10) * 10}
+		for (let i = 0; !first && i < data['annotations'].length; i++) {
+			const annotation = data['annotations'][i]
+			if (annotation['markerPositions'] && annotation['markerPositions'].length > 0) {
+				const pos = annotation['markerPositions'][0]
+				first = new THREE.Vector3(trunc(pos['E']), trunc(pos['N']), trunc(pos['alt']))
+			}
+		}
+		if (!first) return false
+
+		return this.setOrigin(number, letter, first) ||
+			this.utmZoneNumber === number && this.utmZoneLetter === letter
+	}
+
+	/**
+	 * Convert markerPositions from UTM objects to vectors in local coordinates, for downstream consumption.
+	 */
+	private convertCoordinates(data: Object): void {
+		data['annotations'].forEach((annotation) => {
+			if (annotation['markerPositions']) {
+				for (let i = 0; i < annotation['markerPositions'].length; i++) {
+					const pos = annotation['markerPositions'][i]
+					annotation['markerPositions'][i] = this.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
+				}
+			}
+		})
 	}
 
 	/**
 	 * Load annotations from file. Store all annotations and add them to the Annotator scene.
-	 * This assumes UTM as the input format.
+	 * This requires UTM as the input format.
 	 * @returns the center point of the bottom of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
@@ -818,6 +842,7 @@ export class AnnotationManager extends UtmInterface {
 			AsyncFile.readFile(fileName, 'ascii').then(function (text) {
 				const data = JSON.parse(text as any)
 				if (self.checkCoordinateSystem(data)) {
+					self.convertCoordinates(data)
 					let boundingBox = new THREE.Box3()
 					// Each element is an annotation
 					data['annotations'].forEach((element) => {
@@ -830,7 +855,7 @@ export class AnnotationManager extends UtmInterface {
 						resolve(boundingBox.getCenter().setY(boundingBox.min.y))
 					}
 				} else {
-					reject(Error(`UTM Zone for new annotations (${data['utmZoneNumber']}${data['utmZoneLetter']}) does not match existing zone in ${self.getOrigin()}`));
+					reject(Error(`UTM Zone for new annotations (${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneLetter']}) does not match existing zone in ${self.getOrigin()}`));
 				}
 			}, function (error) {
 				reject(error)
@@ -842,42 +867,66 @@ export class AnnotationManager extends UtmInterface {
 
 	disableAutoSave(): void {this.metadataState.disableAutoSave()}
 
-	async saveAnnotationsToFile(fileName: string, format: OutputFormat, pointConverter?: (p: THREE.Vector3) => THREE.Vector3): Promise<void> {
+	async saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
 		if (this.annotations.length === 0) {
 			return Promise.reject(new Error('failed to save empty set of annotations'))
 		}
-		if (!this.hasOrigin() && !config.get('output.debug.allow_annotations_without_utm_origin')) {
+		if (!this.hasOrigin() && !config.get('output.annotations.debug.allow_annotations_without_utm_origin')) {
 			return Promise.reject(new Error('failed to save annotations: UTM origin is not set'))
 		}
 		let self = this
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
 			if (!er) {
-				let strAnnotations = JSON.stringify(self.toJSON(format, pointConverter))
+				let strAnnotations = JSON.stringify(self.toJSON(format))
 				return AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
 		return MkDirP.mkdirP(dirName, writeFile)
 	}
 
-	toJSON(format: OutputFormat, pointConverter?: (p: THREE.Vector3) => THREE.Vector3) {
+	private threeJsToUtmJsonObject(): (p: THREE.Vector3) => Object {
+		let self = this
+		return function (p: THREE.Vector3): Object {
+			const utm = self.threeJsToUtm(p)
+			return {'E': utm.x, 'N': utm.y, 'alt': utm.z}
+		}
+	}
+
+	private threeJsToLlaJsonObject(): (p: THREE.Vector3) => Object {
+		let self = this
+		return function (p: THREE.Vector3): Object {
+			const lla = self.threeJsToLla(p)
+			return {'lon': lla.x, 'lat': lla.y, 'alt': lla.z}
+		}
+	}
+
+	toJSON(format: OutputFormat) {
 		let crs
+		let pointConverter
 		if (format === OutputFormat.UTM) {
 			const utm: CRS.UtmCrs = {
+				coordinateSystem: 'UTM',
 				datum: this.datum,
-				utmZoneNumber: this.utmZoneNumber,
-				utmZoneLetter: this.utmZoneLetter,
-				offset: this.offset,
+				parameters: {
+					utmZoneNumber: this.utmZoneNumber,
+					utmZoneLetter: this.utmZoneLetter,
+				}
 			}
 			crs = utm
+			pointConverter = this.threeJsToUtmJsonObject()
 		} else if (format === OutputFormat.LLA) {
 			const lla: CRS.LlaCrs = {
+				coordinateSystem: 'LLA',
 				datum: this.datum,
 			}
 			crs = lla
+			pointConverter = this.threeJsToLlaJsonObject()
+		} else {
+			throw new Error('unknown OutputFormat: ' + format)
 		}
 		const data: AnnotationManagerInterface = {
-			crs: crs,
+			coordinateReferenceSystem: crs,
 			annotations: [],
 		}
 
@@ -888,7 +937,7 @@ export class AnnotationManager extends UtmInterface {
 		return data
 	}
 
-	saveAndExportToKml(jar: string, main: string, input: string, output: string, tile: SuperTile) {
+	saveAndExportToKml(jar: string, main: string, input: string, output: string) {
 		let exportToKml = function () {
 			const command = [jar, main, input, output].join(' ')
 			log.debug('executing child process: ' + command)
@@ -903,15 +952,14 @@ export class AnnotationManager extends UtmInterface {
 			})
 		}
 
-		let pointConverter = tile.threeJsToLlaPartialFunction()
-		this.saveAnnotationsToFile(input, OutputFormat.LLA, pointConverter).then(function () {
+		this.saveAnnotationsToFile(input, OutputFormat.LLA).then(function () {
 			exportToKml()
 		}, function (error) {
 			console.warn('save-to-JSON failed for KML conversion; aborting: ' + error.message)
 		})
 	}
 
-	saveToKML(filename : string, tile : SuperTile) {
+	saveToKML(fileName: string) {
 		// Get all the points
 		let points = []
 		this.annotations.forEach( (annotation) => {
@@ -921,13 +969,13 @@ export class AnnotationManager extends UtmInterface {
 		// Convert points to lat lon
 		let geopoints = []
 		points.forEach( (p) => {
-			geopoints.push(tile.threeJsToLla(p))
+			geopoints.push(this.threeJsToLla(p))
 		})
 		
 		// Save file
 		let kml = new SimpleKML()
 		kml.addPath(geopoints)
-		kml.saveToFile(filename)
+		return kml.saveToFile(fileName)
 	}
 	
 	/**
@@ -961,8 +1009,8 @@ export class AnnotationManager extends UtmInterface {
 		this.annotations[newAnnotationIndex].addRawMarker(thirdMarkerPosition)
 		this.annotations[newAnnotationIndex].addRawMarker(fourthMarkerPosition)
 
-		this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.BACK)
-		this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.FRONT)
+		this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].uuid, NeighborLocation.BACK)
+		this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].uuid, NeighborLocation.FRONT)
 
 		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
@@ -1000,8 +1048,8 @@ export class AnnotationManager extends UtmInterface {
 				
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.RIGHT)
-				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.LEFT)
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].uuid, NeighborLocation.RIGHT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].uuid, NeighborLocation.LEFT)
 				
 				break
 			
@@ -1017,8 +1065,8 @@ export class AnnotationManager extends UtmInterface {
 				}
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.LEFT)
-				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.LEFT)
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].uuid, NeighborLocation.LEFT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].uuid, NeighborLocation.LEFT)
 				
 				break
 			
@@ -1062,8 +1110,8 @@ export class AnnotationManager extends UtmInterface {
 				
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.LEFT)
-				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.RIGHT)
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].uuid, NeighborLocation.LEFT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].uuid, NeighborLocation.RIGHT)
 				
 				break
 			
@@ -1079,8 +1127,8 @@ export class AnnotationManager extends UtmInterface {
 				}
 				
 				// Record connection
-				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].id, NeighborLocation.RIGHT)
-				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].id, NeighborLocation.RIGHT)
+				this.annotations[newAnnotationIndex].addNeighbor(this.annotations[this.activeAnnotationIndex].uuid, NeighborLocation.RIGHT)
+				this.annotations[this.activeAnnotationIndex].addNeighbor(this.annotations[newAnnotationIndex].uuid, NeighborLocation.RIGHT)
 				
 				break
 			
@@ -1093,25 +1141,25 @@ export class AnnotationManager extends UtmInterface {
 		this.annotations[newAnnotationIndex].makeInactive()
 	}
 	
-	private findAnnotationIndexById(id) : number {
+	private findAnnotationIndexByUuid(uuid: LaneUuid): number {
 		return this.annotations.findIndex( (annotation) => {
-			return annotation.id === id
+			return annotation.uuid === uuid
 		})
 	}
 	
 	private deleteConnectionToNeighbors(scene:THREE.Scene, annotation : LaneAnnotation) {
 		
 		if (annotation.neighborsIds.right != null) {
-			let index = this.findAnnotationIndexById(annotation.neighborsIds.right)
+			let index = this.findAnnotationIndexByUuid(annotation.neighborsIds.right)
 			if (index < 0) {
 				log.error("Couldn't find right neighbor. This should never happen.")
 			}
 			let rightNeighbor = this.annotations[index]
 			
-			if (rightNeighbor.neighborsIds.right === annotation.id) {
+			if (rightNeighbor.neighborsIds.right === annotation.uuid) {
 				log.info("Deleted connection to right neighbor.")
 				rightNeighbor.neighborsIds.right = null
-			} else if (rightNeighbor.neighborsIds.left === annotation.id){
+			} else if (rightNeighbor.neighborsIds.left === annotation.uuid){
 				log.info("Deleted connection to right neighbor.")
 				rightNeighbor.neighborsIds.left = null
 			} else {
@@ -1120,16 +1168,16 @@ export class AnnotationManager extends UtmInterface {
 		}
 		
 		if (annotation.neighborsIds.left != null) {
-			let index = this.findAnnotationIndexById(annotation.neighborsIds.left)
+			let index = this.findAnnotationIndexByUuid(annotation.neighborsIds.left)
 			if (index < 0) {
 				log.error("Couldn't find left neighbor. This should never happen.")
 			}
 			let leftNeighbor = this.annotations[index]
 			
-			if (leftNeighbor.neighborsIds.right === annotation.id) {
+			if (leftNeighbor.neighborsIds.right === annotation.uuid) {
 				log.info("Deleted connection to left neighbor.")
 				leftNeighbor.neighborsIds.right = null
-			} else if (leftNeighbor.neighborsIds.left === annotation.id){
+			} else if (leftNeighbor.neighborsIds.left === annotation.uuid){
 				log.info("Deleted connection to left neighbor.")
 				leftNeighbor.neighborsIds.left = null
 			} else {
@@ -1138,14 +1186,14 @@ export class AnnotationManager extends UtmInterface {
 		}
 		
 		for (let i=0; i < annotation.neighborsIds.front.length; i++) {
-			let index = this.findAnnotationIndexById(annotation.neighborsIds.front[i])
+			let index = this.findAnnotationIndexByUuid(annotation.neighborsIds.front[i])
 			if (index < 0) {
 				log.error("Couldn't find front neighbor. This should never happen.")
 			}
 			let frontNeighbor = this.annotations[index]
 			
-			let index2 = frontNeighbor.neighborsIds.back.findIndex( (id) => {
-				return id === annotation.id
+			let index2 = frontNeighbor.neighborsIds.back.findIndex( (uuid) => {
+				return uuid === annotation.uuid
 			})
 			if (index2 >= 0) {
 				// delete the forward connection
@@ -1160,14 +1208,14 @@ export class AnnotationManager extends UtmInterface {
 		}
 		
 		for (let i=0; i < annotation.neighborsIds.back.length; i++) {
-			let index = this.findAnnotationIndexById(annotation.neighborsIds.back[i])
+			let index = this.findAnnotationIndexByUuid(annotation.neighborsIds.back[i])
 			if (index < 0) {
 				log.error("Couldn't find back neighbor. This should never happen.")
 			}
 			let backNeighbor = this.annotations[index]
 			
-			let index2 = backNeighbor.neighborsIds.front.findIndex( (id) => {
-				return id === annotation.id
+			let index2 = backNeighbor.neighborsIds.front.findIndex( (uuid) => {
+				return uuid === annotation.uuid
 			})
 			if (index2 >= 0) {
 				// delete the backward connection
@@ -1194,11 +1242,11 @@ export class AnnotationState {
 	constructor(annotationManager: AnnotationManager) {
 		const self = this
 		this.annotationManager = annotationManager
-		this.autoSaveDirectory = config.get('output.autosave.directory.path')
-		const autoSaveEventInterval = config.get('output.autosave.interval.seconds') * 1000
+		this.autoSaveDirectory = config.get('output.annotations.autosave.directory.path')
+		const autoSaveEventInterval = config.get('output.annotations.autosave.interval.seconds') * 1000
 		if (this.annotationManager && this.autoSaveDirectory && autoSaveEventInterval) {
 			setInterval(function () {
-				if (self.autoSaveEnabled) self.saveAnnotations()
+				if (self.doAutoSave()) self.saveAnnotations()
 			}, autoSaveEventInterval)
 		}
 	}
@@ -1207,7 +1255,11 @@ export class AnnotationState {
 
 	disableAutoSave(): void {this.autoSaveEnabled = false}
 
-	private saveAnnotations() {
+	private doAutoSave(): boolean {
+		return this.autoSaveEnabled && this.annotationManager.annotations.length > 0
+	}
+
+	private saveAnnotations(): void {
 		const now = new Date()
 		const nowElements = [
 			now.getUTCFullYear(),
@@ -1221,6 +1273,11 @@ export class AnnotationState {
 		const fileName = vsprintf("%04d-%02d-%02dT%02d-%02d-%02d.%03dZ.json", nowElements)
 		const savePath = this.autoSaveDirectory + '/' + fileName
 		log.info("auto-saving annotations to: " + savePath)
-		return this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM)
+		this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM).then(
+			function () {},
+			function (error) {
+				console.warn('save annotations failed: ' + error.message)
+			}
+		)
 	}
 }

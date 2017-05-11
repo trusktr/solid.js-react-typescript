@@ -3,16 +3,18 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as THREE from 'three'
-
 export interface CoordinateReferenceSystem {
+    coordinateSystem: string
     datum: string
 }
 
-export interface UtmCrs extends CoordinateReferenceSystem {
+export interface UtmCrsParameters {
     utmZoneNumber: number
     utmZoneLetter: string
-    offset: THREE.Vector3
+}
+
+export interface UtmCrs extends CoordinateReferenceSystem {
+    parameters: UtmCrsParameters
 }
 
 export interface LlaCrs extends CoordinateReferenceSystem {
