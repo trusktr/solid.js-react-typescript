@@ -6,16 +6,16 @@
 const config = require('../config')
 import * as $ from 'jquery'
 import * as THREE from 'three'
-import * as AsyncFile from 'async-file'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
-import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/LaneAnnotation'
+import {NeighborLocation, NeighborDirection, LaneId} from 'annotator-entry-ui/LaneAnnotation'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isUndefined} from "util"
+import {OutputFormat} from "./AnnotationUtils"
 
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
@@ -39,6 +39,9 @@ class Annotator {
 	raycaster_annotation : THREE.Raycaster
 	mapTile : SuperTile
 	plane : THREE.Mesh
+	grid: THREE.GridHelper
+	axis: THREE.AxisHelper
+	light: THREE.SpotLight
 	stats
 	orbitControls
 	transformControls
@@ -56,7 +59,9 @@ class Annotator {
 		this.isMouseButtonPressed = false
 		
 		this.settings = {
-			background: "#082839"
+			background: "#082839",
+			cameraOffset: new THREE.Vector3(10, 30, 10),
+			lightOffset: new THREE.Vector3(0, 1500, 200),
 		}
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
@@ -85,21 +90,18 @@ class Annotator {
 		// Create scene and camera
 		this.scene = new THREE.Scene()
 		this.camera = new THREE.PerspectiveCamera(70, width/height, 0.1, 10010)
-		this.camera.position.z = 10
-		this.camera.position.y = 30
 		this.scene.add(this.camera)
 	
 		// Add some lights
 		this.scene.add(new THREE.AmbientLight( 0xf0f0f0 ))
-		let light = new THREE.SpotLight(0xffffff, 1.5)
-		light.position.set(0, 1500, 200)
-		light.castShadow = true;
-		light.shadow = new THREE.SpotLightShadow(new THREE.PerspectiveCamera(70,1,200,2000))
-		light.shadow.mapSize.width = 1024
-		light.shadow.bias = -0.000222
-		light.shadow.mapSize.height = 1024
-		this.scene.add(light)
-	
+		this.light = new THREE.SpotLight(0xffffff, 1.5)
+		this.light.castShadow = true;
+		this.light.shadow = new THREE.SpotLightShadow(new THREE.PerspectiveCamera(70,1,200,2000))
+		this.light.shadow.mapSize.width = 1024
+		this.light.shadow.bias = -0.000222
+		this.light.shadow.mapSize.height = 1024
+		this.scene.add(this.light)
+
 		// Add a "ground plane" to facilitate annotations
 		let planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI/2)
@@ -110,14 +112,13 @@ class Annotator {
 		this.scene.add(this.plane)
 	
 		// Add grid on top of the plane
-		let grid = new THREE.GridHelper(200, 100);
-		grid.position.y = -0.01;
-		grid.material.opacity = 0.25;
-		grid.material.transparent = true;
-		this.scene.add( grid );
-		let axis = new THREE.AxisHelper(1);
-		this.scene.add( axis );
-		
+		this.grid = new THREE.GridHelper(200, 100);
+		this.grid.material.opacity = 0.25;
+		this.grid.material.transparent = true;
+		this.scene.add(this.grid);
+		this.axis = new THREE.AxisHelper(1);
+		this.scene.add(this.axis);
+
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
 		this.annotationManager = new AnnotationUtils.AnnotationManager()
@@ -137,7 +138,10 @@ class Annotator {
 		// Initialize all control objects.
 		this.initOrbitControls()
 		this.initTransformControls()
-		
+
+		// Move everything into position.
+		this.setStage(0, 0, 0)
+
 		// Add panel to change the settings
 		this.gui = new datModule.GUI()
 		this.gui.addColor(this.settings, 'background').onChange( (value) => {
@@ -189,16 +193,54 @@ class Annotator {
 	}
 
 	/**
+	 * Move all visible elements into position, centered on a coordinate.
+	 */
+	private setStage(x: number, y: number, z: number): void {
+		this.axis.geometry.center()
+		this.axis.geometry.translate(x, y, z)
+		this.plane.geometry.center()
+		this.plane.geometry.translate(x, y, z)
+		this.grid.geometry.center()
+		this.grid.geometry.translate(x, y, z)
+		this.grid.position.y -= 0.01;
+		this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
+		this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
+		this.orbitControls.target.set(x, y, z)
+	}
+
+	/**
+	 * Set some point as the center of the visible world.
+	 */
+	private setStageByVector(point: THREE.Vector3): void {
+		if (point) this.setStage(point.x, point.y, point.z)
+	}
+
+	/**
+	 * Set the point cloud as the center of the visible world.
+	 */
+	private focusOnPointCloud(): void {
+		const center = this.mapTile.centerPoint()
+		if (center) this.setStageByVector(center)
+		else log.warn('point cloud has not been initialized')
+	}
+
+	/**
 	 * Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
+	 * Center the stage and the camera on the point cloud.
 	 * @param pathToTiles
 	 * @returns {Promise<void>}
 	 */
 	async loadPointCloudData(pathToTiles : string) {
 		try {
 			log.info('loading dataset')
-			await this.mapTile.loadFromDataset(pathToTiles)
+			const focalPoint = await this.mapTile.loadFromDataset(pathToTiles)
+			if (!this.annotationManager.setOriginWithInterface(this.mapTile)) {
+				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.mapTile.getOrigin()}`)
+			}
 			this.scene.add(this.mapTile.pointCloud)
+			this.setStageByVector(focalPoint)
 		} catch (err) {
+			log.warn(err.message)
 			dialog.showErrorBox("Tiles Load Error",
 				"Annotator failed to load tiles from given folder.")
 		}
@@ -206,22 +248,19 @@ class Annotator {
 	
 	/**
 	 * Load annotations from file. Add all annotations to the annotation manager
-	 * and to the scene
-	 * @param filename
-	 * @returns {Promise<void>}
+	 * and to the scene.
+	 * Center the stage and the camera on the annotations model.
 	 */
-	async loadAnnotations(filename : string) {
+	async loadAnnotations(fileName: string): Promise<void> {
 		try {
 			log.info('Loading annotations')
-			let buffer = await AsyncFile.readFile(filename, 'ascii')
-			let data = JSON.parse(buffer as any)
-			
-			// Each element is an annotation
-			data.forEach( (element) => {
-				this.annotationManager.addLaneAnnotation(this.scene, element)
-			})
-			
+			const focalPoint = await this.annotationManager.loadAnnotationsFromFile(fileName, this.scene)
+			if (!this.mapTile.setOriginWithInterface(this.annotationManager)) {
+				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.mapTile.getOrigin()}`)
+			}
+			this.setStageByVector(focalPoint)
 		} catch (err) {
+			log.warn(err.message)
 			dialog.showErrorBox("Annotation Load Error",
 				"Annotator failed to load annotation file.")
 		}
@@ -365,7 +404,11 @@ class Annotator {
 		if (event.code === 'KeyA') {
 			this.isAddMarkerKeyPressed = true
 		}
-		
+
+		if (event.code === 'KeyC') {
+			this.focusOnPointCloud()
+		}
+
 		if (event.code === 'KeyD') {
 			log.info("Deleting last marker")
 			this.annotationManager.deleteLastLaneMarker()
@@ -405,7 +448,7 @@ class Annotator {
 		}
 		
 		if (event.code === 'KeyM') {
-			this.annotationManager.saveToKML(config.get('output.kml.path'), this.mapTile)
+			this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
 		}
 	}
 	
@@ -414,7 +457,12 @@ class Annotator {
 	}
 	
 	private async saveAnnotations() {
-		await this.annotationManager.saveAnnotationsToFile(config.get('output.json.path'))
+		await this.annotationManager.saveAnnotationsToFile(config.get('output.annotations.json.path'), OutputFormat.UTM).then(
+			function () {},
+			function (error) {
+				console.warn('save annotations failed: ' + error.message)
+			}
+		)
 	}
 
 	private async exportAnnotationsToKml() {
@@ -429,7 +477,7 @@ class Annotator {
 				input = process.env.PWD + '/' + input
 			if (!(output.substr(0, 1) === '/'))
 				output = process.env.PWD + '/' + output
-			this.annotationManager.saveAndExportToKml(jar, main, input, output, this.mapTile)
+			this.annotationManager.saveAndExportToKml(jar, main, input, output)
 		}
 	}
 
@@ -701,8 +749,8 @@ class Annotator {
 
 		let lc_add = document.getElementById('lc_add');
 		lc_add.addEventListener('click', _ => {
-			let lc_to : number = Number($('#lc_select_to').val());
-			let lc_from : number = Number($('#lc_select_from').val());
+			let lc_to: LaneId = Number($('#lc_select_to').val());
+			let lc_from: LaneId = Number($('#lc_select_from').val());
 			let lc_relation = $('#lc_select_relation').val();
 
 			if (lc_to === null || lc_from === null) {
@@ -800,8 +848,7 @@ class Annotator {
 		save_path.on('click', _ => {
 			
 			log.info("Save car path to file.")
-			let filename : string = './data/trajectory.csv'
-			this.annotationManager.saveCarPath(filename, this.mapTile)
+			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
 	}
 
@@ -869,7 +916,7 @@ class Annotator {
 
 		let tr_add = $('#tr_add');
 		tr_add.removeAttr('disabled');
-		if (this.annotationManager.laneIndexInPath(active_annotation.id) === -1) {
+		if (this.annotationManager.laneIndexInPath(active_annotation.uuid) === -1) {
 			tr_add.text("Add");
 		}
 		else {

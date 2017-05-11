@@ -10,10 +10,10 @@ import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
 import * as TypeLogger from 'typelogger'
+import {UtmInterface} from "./UtmInterface"
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-const utmObj = new (require('utm-latlng'))()
 
 /**
  * This opens a binary file for reading
@@ -55,31 +55,63 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 	return [sampledPoints, sampledColors]
 }
 
-export class SuperTile {
-	
-	origin : THREE.Vector3
+export class SuperTile extends UtmInterface {
+
+	// All points are stored with reference to UTM origin and offset,
+	// but using the local coordinate system which has different axes.
 	pointCloud : THREE.Points
 	maxTilesToLoad : number
 	progressStepSize: number
 	samplingStep : number
 
 	constructor() {
+		super()
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
 		this.samplingStep = 5
-		this.origin = new THREE.Vector3()
 	}
-	
+
+	toString(): string {
+		let offsetStr
+		if (this.offset === undefined) {
+			offsetStr = 'undefined'
+		} else {
+			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
+		}
+		return 'SuperTile(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])';
+	}
+
+	// "default" according to protobuf rules for default values
+	private static isDefaultUtmZone(number: number, letter: string): boolean {
+		return number === 0 && letter === ""
+	}
+
+	// The first tile we see defines the local origin and UTM zone for the lifetime of the application.
+	// All other data is expected to lie in the same zone.
+	private checkCoordinateSystem(msg: Models.PointCloudTileMessage): boolean {
+		const number = msg.utmZoneNumber
+		const letter = msg.utmZoneLetter
+		if (this.setOrigin(number, letter, new THREE.Vector3(msg.originX, msg.originY, msg.originZ))) {
+			return true
+		} else {
+			return SuperTile.isDefaultUtmZone(number, letter)
+				|| this.utmZoneNumber === number && this.utmZoneLetter === letter
+		}
+	}
+
 	/**
 	 * Given a path to a dataset it loads all PointCloudTiles computed for display and
 	 * merges them into a single super tile.
-	 * @param dataset_path
+	 * The (X, Y, Z) coordinates in PointCloudTiles are (UTM Easting, UTM Northing, altitude).
+	 * @returns the center point of the bounding box of the data; hopefully
+	 *   there will be something to look at there
 	 */
-	async loadFromDataset( datasetPath : string) {
+	async loadFromDataset(datasetPath: string): Promise<THREE.Vector3> {
 		let points : Array<number> = []
 		let colors : Array<number> = []
 		let files = Fs.readdirSync(datasetPath)
 		let count = 0
+		let coordsFailed = 0
 		let maxFileCount = files.length
 		if (maxFileCount > this.maxTilesToLoad) maxFileCount = this.maxTilesToLoad
 
@@ -89,9 +121,6 @@ export class SuperTile {
 		}
 
 		for (let i=0; i < maxFileCount; i++) {
-			if (count >= this.maxTilesToLoad) {
-				break
-			}
 			printProgress(count + 1, maxFileCount, this.progressStepSize)
 
 			if (files[i] === 'tile_index.md' || files[i] === '.DS_Store') {
@@ -103,25 +132,27 @@ export class SuperTile {
 			if (msg.points.length === 0) {
 				continue
 			}
-			if (count === 0) {
-				this.origin.set(msg.originX, msg.originY, msg.originZ)
+
+			if (!this.checkCoordinateSystem(msg)) {
+				coordsFailed++
+				continue
 			}
-			
+
 			let [sampledPoints, sampledColors] = sampleData(msg, this.samplingStep)
 			
 			points = points.concat(sampledPoints)
 			colors = colors.concat(sampledColors)
 			count++
 		}
-		
-		this.generatePointCloudFromRawData(points, colors)
+		if (coordsFailed) log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
+
+		return Promise.resolve(this.generatePointCloudFromRawData(points, colors))
 	}
 	
 	/**
 	 * Convert array of 3d points into a THREE.Point object
-	 * @param tile_message
 	 */
-	generatePointCloudFromRawData(points : Array<number>, inputColors : Array<number>) {
+	generatePointCloudFromRawData(points : Array<number>, inputColors : Array<number>): THREE.Vector3 {
 		let geometry = new THREE.BufferGeometry()
 		let points_size = points.length
 		let positions = new Float32Array(points_size)
@@ -136,48 +167,24 @@ export class SuperTile {
 		
 		geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 		geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
-		geometry.computeBoundingBox();
-		
+
 		const material = new THREE.PointsMaterial( { size: 0.05, vertexColors: THREE.VertexColors } )
 		this.pointCloud = new THREE.Points( geometry, material )
+
+		return this.centerPoint()
 	}
 
-	threeJsToUtm(point: THREE.Vector3): THREE.Vector3 {
-		let utmPoint = new THREE.Vector3(point.x, -point.y, -point.z)
-		utmPoint.add(this.origin)
-		return utmPoint
-	}
-
-	utmToThreeJs(x: number, y: number, z: number): THREE.Vector3 {
-		let tmp = new THREE.Vector3(x, y, z)
-		tmp.sub(this.origin)
-		return new THREE.Vector3(tmp.x, -tmp.y, -tmp.z)
-	}
-
-	threeJsToLatLng(point: THREE.Vector3) {
-		const zoneNum: number = 18
-		const zoneLet: string = 'S'
-		// First change coordinate frame from THREE js to UTM
-		let utm = this.threeJsToUtm(point)
-		// Get latitude longitude
-		return utmObj.convertUtmToLatLng(utm.x, utm.y, zoneNum, zoneLet)
-	}
-
-	threeJsToLla(p: THREE.Vector3): THREE.Vector3 {
-		return this.threeJsToLlaPartialFunction()(p)
-	}
-
-	threeJsToLlaPartialFunction(): (p: THREE.Vector3) => THREE.Vector3 {
-		let self = this
-		return function (p: THREE.Vector3): THREE.Vector3 {
-			const zoneNum: number = 18
-			const zoneLet: string = 'S'
-
-			// First change coordinate frame from THREE js to UTM
-			let utm = self.threeJsToUtm(p)
-			// Get latitude longitude
-			let latLon = utmObj.convertUtmToLatLng(utm.x, utm.y, zoneNum, zoneLet)
-			return new THREE.Vector3(latLon.lng, latLon.lat, utm.z)
+	/**
+	 * Finds the center of the bottom of the bounding box, so that when we view the model
+	 * the whole thing appears above the ground plane.
+	 */
+	centerPoint(): THREE.Vector3 {
+		if (this.pointCloud) {
+			const geometry = this.pointCloud.geometry
+			geometry.computeBoundingBox()
+			return geometry.boundingBox.getCenter().setY(geometry.boundingBox.min.y)
+		} else {
+			return
 		}
 	}
 }
