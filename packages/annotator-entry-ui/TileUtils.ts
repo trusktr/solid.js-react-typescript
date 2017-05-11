@@ -66,7 +66,7 @@ export class SuperTile {
 	constructor() {
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
-		this.samplingStep = 15
+		this.samplingStep = 5
 		this.origin = new THREE.Vector3()
 	}
 	
@@ -143,7 +143,7 @@ export class SuperTile {
 	}
 
 	threeJsToUtm(point: THREE.Vector3): THREE.Vector3 {
-		let utmPoint = new THREE.Vector3(-point.z, -point.x, point.y)
+		let utmPoint = new THREE.Vector3(point.x, -point.y, -point.z)
 		utmPoint.add(this.origin)
 		return utmPoint
 	}
@@ -151,7 +151,7 @@ export class SuperTile {
 	utmToThreeJs(x: number, y: number, z: number): THREE.Vector3 {
 		let tmp = new THREE.Vector3(x, y, z)
 		tmp.sub(this.origin)
-		return new THREE.Vector3(-tmp.y, tmp.z, -tmp.x)
+		return new THREE.Vector3(tmp.x, -tmp.y, -tmp.z)
 	}
 
 	threeJsToLatLng(point: THREE.Vector3) {
