@@ -5,7 +5,6 @@
 
 const config = require('../config')
 import * as $ from 'jquery'
-import * as AsyncFile from 'async-file'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {SuperTile}  from 'annotator-entry-ui/TileUtils'
@@ -56,6 +55,7 @@ class Annotator {
 	annotationManager : AnnotationUtils.AnnotationManager
 	isAddMarkerKeyPressed : boolean
 	isMouseButtonPressed : boolean
+	isLiveMode : boolean
 	liveSubscribeSocket
 	hovered
 	settings
@@ -81,8 +81,12 @@ class Annotator {
 		this.raycaster_annotation = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
 		this.mapTile = new SuperTile()
-		// Initialize socket for "live mode" operation
+		
+		this.isLiveMode = false
+		
+		// Initialize socket for use when "live mode" operation is on
 		this.initClient()
+		
 		this.usePlane = false
 	}
 	
@@ -1044,6 +1048,10 @@ class Annotator {
 		this.liveSubscribeSocket = zmq.socket('sub')
 		
 		this.liveSubscribeSocket.on('message', (msg) => {
+			if (this.isLiveMode === false) {
+				return
+			}
+			
 			let state =  Models.InertialStateMessage.decode(msg)
 			log.info("Received message: " + state.pose.timestamp)
 			
@@ -1054,19 +1062,29 @@ class Annotator {
 			this.updateCarPose(position, rotation)
 			this.updateCameraPose()
 		})
+		
+		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
+		this.liveSubscribeSocket.subscribe("")
 	}
 	
 	listen() {
+		if (this.isLiveMode) {
+			return
+		}
+		
 		log.info('Listening for messages...')
-		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
-		this.liveSubscribeSocket.subscribe("")
+		this.isLiveMode = true
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
 	}
 	
 	stopListening() {
+		if (this.isLiveMode === false) {
+			return
+		}
+		
 		log.info('Stopped listening for messages...')
-		this.liveSubscribeSocket.close()
+		this.isLiveMode = false
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 	}
