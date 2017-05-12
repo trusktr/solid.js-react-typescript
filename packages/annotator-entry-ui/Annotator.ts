@@ -987,7 +987,6 @@ class Annotator {
 			this.carModel = object
 			this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
 			this.carModel.rotateY(1.5708)
-			this.carModel.visible = false
 			this.scene.add(object)
 		})
 	}
@@ -1004,7 +1003,7 @@ class Annotator {
 			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
 			rotation.normalize()
 			this.updateCarPose(position, rotation)
-			
+			this.updateCameraPose()
 		})
 	}
 	
@@ -1012,15 +1011,16 @@ class Annotator {
 		log.info('Listening for messages...')
 		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
 		this.liveSubscribeSocket.subscribe("")
-		this.carModel.visible = true
+		this.orbitControls.enabled = false
+		this.camera.matrixAutoUpdate = false
 	}
 	
 	stopListening() {
 		log.info('Stopped listening for messages...')
-		this.carModel.visible = false
 		this.liveSubscribeSocket.close()
+		this.orbitControls.enabled = true
+		this.camera.matrixAutoUpdate = true
 	}
-	
 	
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion) {
 		this.carModel.position.set(position.x, position.y, position.z)
@@ -1030,6 +1030,19 @@ class Annotator {
 		// Bring the model close to the ground (approx height of the sensors)
 		let p = this.carModel.getWorldPosition()
 		this.carModel.position.set(p.x, p.y-1.5, p.z)
+	}
+	
+	private updateCameraPose() {
+		let p = this.carModel.getWorldPosition()
+		let offset = new THREE.Vector3(20, 15, 0)
+		offset.applyQuaternion(this.carModel.quaternion)
+		offset.add(p)
+		log.info(p.x)
+		this.camera.position.set(offset.x, offset.y, offset.z)
+		this.camera.lookAt(p)
+		//this.camera.matrixWorldNeedsUpdate = true
+		this.camera.updateMatrix()
+		//this.camera.updateProjectionMatrix()
 	}
 	
 }

@@ -66,7 +66,7 @@ export class SuperTile {
 	constructor() {
 		this.maxTilesToLoad = 1000
 		this.progressStepSize = 100
-		this.samplingStep = 15
+		this.samplingStep = 5
 		this.origin = new THREE.Vector3()
 	}
 	
