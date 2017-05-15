@@ -18,12 +18,20 @@ import {isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
 
-let THREE = require('three')
+//let THREE = require('three') as any
+import * as THREE from 'three'
+
+declare global {
+	namespace THREE {
+		let OBJLoader:any
+	}
+}
+
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
 const {dialog} = require('electron').remote
 const zmq = require('zmq')
-const OBJLoader = require("three-obj-loader")
+const OBJLoader = require('three-obj-loader')
 OBJLoader(THREE)
 
 TypeLogger.setLoggerOutput(console as any)
@@ -1030,8 +1038,8 @@ class Annotator {
 	
 	private loadCarModel() {
 		let manager = new THREE.LoadingManager()
-		let loader = new THREE.OBJLoader(manager)
-		loader.load('/Users/alonso/Mapper/CodeBase/Perception/data/BMW_X5_4.obj', (object) => {
+		let loader = new (THREE as any).OBJLoader(manager)
+		loader.load('/home/mapper/Development/Perception/data/BMW_X5_4.obj', (object) => {
 			let boundingBox = new THREE.Box3().setFromObject(object)
 			let boxSize = boundingBox.getSize().toArray()
 			let modelLength = Math.max(...boxSize)
@@ -1057,6 +1065,7 @@ class Annotator {
 			
 			// Move the car and the camera
 			let position = this.mapTile.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
+			log.info(state.pose.x + " " + position.x)
 			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
 			rotation.normalize()
 			this.updateCarPose(position, rotation)
