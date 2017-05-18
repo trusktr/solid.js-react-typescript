@@ -60,7 +60,6 @@ class Annotator {
 	hovered
 	settings
 	gui
-	usePlane
 	
 	constructor() {
 		this.isAddMarkerKeyPressed = false
@@ -86,8 +85,6 @@ class Annotator {
 		
 		// Initialize socket for use when "live mode" operation is on
 		this.initClient()
-		
-		this.usePlane = false
 	}
 	
 	/**
@@ -316,7 +313,7 @@ class Annotator {
 		this.raycaster_plane.setFromCamera(mouse, this.camera)
 		let intersections
 		
-		if (this.usePlane) {
+		if (this.mapTile.pointCloud === null) {
 			intersections = this.raycaster_plane.intersectObject(this.plane)
 		} else {
 			intersections = this.raycaster_plane.intersectObject(this.mapTile.pointCloud)

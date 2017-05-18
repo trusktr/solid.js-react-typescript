@@ -68,7 +68,8 @@ export class SuperTile extends UtmInterface {
 		super()
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
-		this.samplingStep = 10
+		this.samplingStep = 5
+		this.pointCloud = null
 	}
 
 	toString(): string {
@@ -144,6 +145,8 @@ export class SuperTile extends UtmInterface {
 			colors = colors.concat(sampledColors)
 			count++
 		}
+		
+		log.info("Num loaded points: " + points.length/3)
 		if (coordsFailed) log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
 
 		return Promise.resolve(this.generatePointCloudFromRawData(points, colors))
@@ -168,7 +171,7 @@ export class SuperTile extends UtmInterface {
 		geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 		geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-		const material = new THREE.PointsMaterial( { size: 0.05, vertexColors: THREE.VertexColors } )
+		const material = new THREE.PointsMaterial( { size: 0.01, vertexColors: THREE.VertexColors } )
 		this.pointCloud = new THREE.Points( geometry, material )
 		return this.centerPoint()
 	}
