@@ -675,15 +675,29 @@ class Annotator {
 
 		let menu_btn = document.getElementById('menu_control_btn')
 		menu_btn.addEventListener('click', _ => {
-			log.info("Menu icon clicked. Close/Open menu bar.")
-			let menu = document.getElementById('menu')
-			if (menu.style.visibility === 'hidden') {
-				menu.style.visibility = 'visible'
-			}
-			else {
-				menu.style.visibility = 'hidden'
+			if (this.isLiveMode) {
+				log.info("Disable live location mode first to access the menu.")
+			} else {
+				log.info("Menu icon clicked. Close/Open menu bar.")
+				let menu = document.getElementById('menu')
+				if (menu.style.visibility === 'hidden') {
+					menu.style.visibility = 'visible'
+				}
+				else {
+					menu.style.visibility = 'hidden'
+				}
 			}
 		})
+
+		let live_location_control_btn = document.getElementById('live_location_control_btn');
+		live_location_control_btn.addEventListener('click', _ => {
+			let menu = document.getElementById('menu')
+			if (this.toggleListen()) {
+				menu.style.visibility = 'hidden'
+			} else {
+				menu.style.visibility = 'visible'
+			}
+		});
 
 		let tools_delete = document.getElementById('tools_delete');
 		tools_delete.addEventListener('click', _ => {
@@ -722,15 +736,6 @@ class Annotator {
 		let tools_export_kml = document.getElementById('tools_export_kml');
 		tools_export_kml.addEventListener('click', _ => {
 			this.exportKml();
-		});
-
-		let tools_toggle_live_location = document.getElementById('tools_toggle_live_location');
-		tools_toggle_live_location.addEventListener('click', _ => {
-			if (this.toggleListen()) {
-				tools_toggle_live_location.innerText = "Enable Editor"
-			} else {
-				tools_toggle_live_location.innerText = "Enable Live Location"
-			}
 		});
 
 		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');

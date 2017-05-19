@@ -52,13 +52,14 @@ html(lang="en")
         style.
             #menu_control {
                 height: 50px;
-                width:50px;
+                width:100px;
                 position: fixed;
                 z-index: 1;
                 top: 0;
                 right: 0;
                 background-color: transparent;
                 padding-right: 5px;
+                text-align: right;
             }
         style.
             .menu_btn{
@@ -222,6 +223,7 @@ html(lang="en")
             script.
                 require(process.cwd() + "/dist/app/annotator-entry-ui")
         #menu_control
+            button#live_location_control_btn.menu_btn &#x2388;
             button#menu_control_btn.menu_btn &#9776;
         #menu
             #tools.div_buttons_group
@@ -230,7 +232,6 @@ html(lang="en")
                 button#tools_load.ui-btn.ui-icon-grid.ui-btn-icon-left Load Tiles
                 button#tools_load_annotation.ui-btn.ui-icon-edit.ui-btn-icon-left Load Annotation
                 button#tools_save.ui-btn.ui-icon-check.ui-btn-icon-left Save Annotation
-                button#tools_toggle_live_location.ui-btn.ui-icon-navigation.ui-btn-icon-left Enable Live Location
                 button#tools_export_kml.ui-btn.ui-icon-location.ui-btn-icon-left Export KML
 
             #menu_1.accordion
