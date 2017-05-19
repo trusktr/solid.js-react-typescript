@@ -78,7 +78,8 @@ class LaneRenderingProperties {
 	centerLineMaterial : THREE.LineDashedMaterial
 	trajectoryMaterial : THREE.MeshLambertMaterial
 	connectionMaterial : THREE.MeshLambertMaterial
-	
+	liveModeMaterial : THREE.MeshLambertMaterial
+
 	constructor (color) {
 		this.color = color
 		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.color, side : THREE.DoubleSide})
@@ -87,6 +88,7 @@ class LaneRenderingProperties {
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side : THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial( { color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2 } )
 		this.connectionMaterial = new THREE.MeshLambertMaterial( {color: 0x00ff00, side : THREE.DoubleSide})
+		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 	}
 }
 
@@ -304,7 +306,18 @@ export class LaneAnnotation {
 			}
 		}
 	}
-	
+
+	setLiveMode(): void {
+		this.laneMarkers.forEach((marker) => {marker.visible = false})
+		this.laneCenterLine.visible = true
+		this.laneMesh.material = this.renderingProperties.liveModeMaterial
+	}
+
+	unsetLiveMode(): void {
+		this.laneMarkers.forEach((marker) => {marker.visible = true})
+		this.makeInactive()
+	}
+
 	/**
 	 * Recompute mesh from markers.
 	 */

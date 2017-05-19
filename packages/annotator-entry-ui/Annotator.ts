@@ -293,14 +293,14 @@ class Annotator {
 	/**
 	 * Create a new lane annotation.
 	 */
-	private addLaneAnnotation() {
+	private addLaneAnnotation(): boolean {
 		if (this.annotationManager.activeAnnotationIndex >=0 &&
 			this.annotationManager.activeMarkers.length === 0) {
-			return
+			return false
 		}
 		// This creates a new lane and add it to the scene for display
-		this.annotationManager.addLaneAnnotation(this.scene)
-		this.annotationManager.makeLastAnnotationActive()
+		return this.annotationManager.addLaneAnnotation(this.scene) &&
+			this.annotationManager.makeLastAnnotationActive()
 	}
 	
 	private getMouseCoordinates = (event) : THREE.Vector2 => {
@@ -344,6 +344,8 @@ class Annotator {
 	 * @param event
 	 */
 	private checkForAnnotationSelection = (event) => {
+		if (this.isLiveMode) return
+
 		let mouse = this.getMouseCoordinates(event)
 		this.raycaster_annotation.setFromCamera( mouse, this.camera )
 		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.annotationMeshes)
@@ -435,8 +437,9 @@ class Annotator {
 
 		if (event.code === 'KeyD') {
 			log.info("Deleting last marker")
-			this.annotationManager.deleteLastLaneMarker()
-			this.hideTransform()
+			if (this.annotationManager.deleteLastLaneMarker()) {
+				this.hideTransform()
+			}
 		}
 		
 		if (event.code === 'KeyN') {
@@ -590,19 +593,20 @@ class Annotator {
 	 */
 	deleteLane() {
 		// Delete lane from scene
-		log.info("Delete selected annotation");
-		this.annotationManager.deleteLaneFromPath();
-		this.annotationManager.deleteActiveAnnotation(this.scene);
-		this.deactivateLaneProp();
-		this.hideTransform();
+		if (this.annotationManager.deleteLaneFromPath() && this.annotationManager.deleteActiveAnnotation(this.scene)) {
+			log.info("Deleted selected annotation")
+			this.deactivateLaneProp()
+			this.hideTransform()
+		}
 	}
 
 	addLane() {
 		// Add lane to scene
-		log.info("Added new annotation");
-		this.addLaneAnnotation();
-		this.resetLaneProp();
-		this.hideTransform();
+		if (this.addLaneAnnotation()) {
+			log.info("Added new annotation")
+			this.resetLaneProp()
+			this.hideTransform()
+		}
 	}
 
 	saveToFile() {
@@ -631,42 +635,37 @@ class Annotator {
 
 	addFront() {
 		log.info("Adding connected annotation to the front");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
-	
-		// Deactivate button
-		this.deactivateFrontSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
+			this.deactivateFrontSideNeighbours()
+		}
 	}
 
 	addLeftSame() {
 		log.info("Adding connected annotation to the left - same direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME);
-
-		// Deactivate buttons
-		this.deactivateLeftSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
+			this.deactivateLeftSideNeighbours()
+		}
 	}
 
 	addLeftReverse() {
 		log.info("Adding connected annotation to the left - reverse direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE);
-
-		// Deactivate buttons
-		this.deactivateLeftSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
+			this.deactivateLeftSideNeighbours()
+		}
 	}
 
 	addRightSame() {
 		log.info("Adding connected annotation to the right - same direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME);
-
-		// Deactivate buttons
-		this.deactivateRightSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
+			this.deactivateRightSideNeighbours()
+		}
 	}
 
 	addRightReverse() {
 		log.info("Adding connected annotation to the right - reverse direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE);
-
-		// Deactivate buttons
-		this.deactivateRightSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
+			this.deactivateRightSideNeighbours()
+		}
 	}
 
 	/**
@@ -808,8 +807,9 @@ class Annotator {
 			}
 
 			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
-			this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation);
-			this.resetLaneProp();
+			if (this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation)) {
+				this.resetLaneProp()
+			}
 		});
 
 		let lc_left = $('#lp_select_left');
@@ -860,12 +860,13 @@ class Annotator {
 		tr_add.on('click', _ => {
 
 			log.info("Add/remove lane to/from car path.");
-			this.annotationManager.addLaneToPath();
-			if (tr_add.text() === "Add") {
-				tr_add.text("Remove");
-			}
-			else {
-				tr_add.text("Add");
+			if (this.annotationManager.addLaneToPath()) {
+				if (tr_add.text() === "Add") {
+					tr_add.text("Remove")
+				}
+				else {
+					tr_add.text("Add")
+				}
 			}
 		});
 		
@@ -1066,10 +1067,8 @@ class Annotator {
 		this.liveSubscribeSocket = zmq.socket('sub')
 		
 		this.liveSubscribeSocket.on('message', (msg) => {
-			if (this.isLiveMode === false) {
-				return
-			}
-			
+			if (!this.isLiveMode) return
+
 			let state =  Models.InertialStateMessage.decode(msg)
 			log.info("Received message: " + state.pose.timestamp)
 			
@@ -1092,17 +1091,17 @@ class Annotator {
 	 */
 	toggleListen(): boolean {
 		if (this.isLiveMode) {
+			this.annotationManager.unsetLiveMode()
 			return this.stopListening()
 		} else {
+			this.annotationManager.setLiveMode()
 			return this.listen()
 		}
 	}
 
 	listen(): boolean {
-		if (this.isLiveMode) {
-			return this.isLiveMode
-		}
-		
+		if (this.isLiveMode) return this.isLiveMode
+
 		log.info('Listening for messages...')
 		this.isLiveMode = true
 		this.orbitControls.enabled = false
@@ -1112,10 +1111,8 @@ class Annotator {
 	}
 	
 	stopListening(): boolean {
-		if (!this.isLiveMode) {
-			return this.isLiveMode
-		}
-		
+		if (!this.isLiveMode) return this.isLiveMode
+
 		log.info('Stopped listening for messages...')
 		this.isLiveMode = false
 		this.orbitControls.enabled = true
