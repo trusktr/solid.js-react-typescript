@@ -725,6 +725,15 @@ class Annotator {
 			this.exportKml();
 		});
 
+		let tools_toggle_live_location = document.getElementById('tools_toggle_live_location');
+		tools_toggle_live_location.addEventListener('click', _ => {
+			if (this.toggleListen()) {
+				tools_toggle_live_location.innerText = "Enable Editor"
+			} else {
+				tools_toggle_live_location.innerText = "Enable Live Location"
+			}
+		});
+
 		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
 		lp_add_left_opposite.addEventListener('click', _ => {
 			this.addLeftReverse();
@@ -1076,10 +1085,22 @@ class Annotator {
 		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
 		this.liveSubscribeSocket.subscribe("")
 	}
-	
-	listen() {
+
+	/**
+	 * Toggle whether or not to listen for live-location updates.
+	 * Returns the updated state of live-location mode.
+	 */
+	toggleListen(): boolean {
 		if (this.isLiveMode) {
-			return
+			return this.stopListening()
+		} else {
+			return this.listen()
+		}
+	}
+
+	listen(): boolean {
+		if (this.isLiveMode) {
+			return this.isLiveMode
 		}
 		
 		log.info('Listening for messages...')
@@ -1087,11 +1108,12 @@ class Annotator {
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
 		this.carModel.visible = true
+		return this.isLiveMode
 	}
 	
-	stopListening() {
-		if (this.isLiveMode === false) {
-			return
+	stopListening(): boolean {
+		if (!this.isLiveMode) {
+			return this.isLiveMode
 		}
 		
 		log.info('Stopped listening for messages...')
@@ -1099,6 +1121,7 @@ class Annotator {
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
+		return this.isLiveMode
 	}
 	
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion) {
