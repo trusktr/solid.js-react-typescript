@@ -1039,7 +1039,7 @@ class Annotator {
 	private loadCarModel() {
 		let manager = new THREE.LoadingManager()
 		let loader = new (THREE as any).OBJLoader(manager)
-		loader.load('/home/mapper/Development/Perception/data/BMW_X5_4.obj', (object) => {
+		loader.load(config.get('assets.car_model.BMW_X5'), (object) => {
 			let boundingBox = new THREE.Box3().setFromObject(object)
 			let boxSize = boundingBox.getSize().toArray()
 			let modelLength = Math.max(...boxSize)
@@ -1048,6 +1048,7 @@ class Annotator {
 			this.carModel = object
 			this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
 			this.carModel.rotateY(1.5708)
+			this.carModel.visible = false
 			this.scene.add(object)
 		})
 	}
@@ -1085,6 +1086,7 @@ class Annotator {
 		this.isLiveMode = true
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
+		this.carModel.visible = true
 	}
 	
 	stopListening() {
@@ -1096,6 +1098,7 @@ class Annotator {
 		this.isLiveMode = false
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
+		this.carModel.visible = false
 	}
 	
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion) {

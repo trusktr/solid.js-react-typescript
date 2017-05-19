@@ -10,7 +10,10 @@ output.trajectory.csv.path: ./data/trajectory.csv
 # convert a data file to another format
 # You'll need to build the MapAccumulator project to get the jar file onto your system.
 # https://github.com/Signafy/Sandbox/tree/master/CloudServices/MapAccumulator#build
-conversion.kml.jar: java -classpath /Users/clyde/dev/mapper/Sandbox/CloudServices/MapAccumulator/target/scala-2.11/strabo-assembly-0.0.1-SNAPSHOT.jar
+conversion.kml.jar: java -classpath /Users/clyde/dev/mapper/Sandbox/CloudServices/MapAccumulator/target/scala-2.11/mapper-viewer.jar
 conversion.kml.main_class: ai.mapper.app.AnnotatorToTiles
 conversion.kml.input.path: ./data/annotations-lla.json
 conversion.kml.output.path: ./data/annotator-tiles.kml
+
+# 3D model
+assets.car_model.BMW_X5: /Users/clyde/dev/mapper/mapper-annotator/packages/annotator-assets/models/BMW_X5_4.obj
