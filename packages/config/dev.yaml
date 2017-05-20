@@ -16,4 +16,4 @@ conversion.kml.input.path: ./data/annotations-lla.json
 conversion.kml.output.path: ./data/annotator-tiles.kml
 
 # 3D model
-assets.car_model.BMW_X5: /Users/clyde/dev/mapper/mapper-annotator/packages/annotator-assets/models/BMW_X5_4.obj
+assets.car_model.BMW_X5: /Users/alonso/Mapper/Data/Models/BMW_X5_4.obj

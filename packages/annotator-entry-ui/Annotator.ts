@@ -199,7 +199,11 @@ class Annotator {
 	 * Start THREE.js rendering loop.
 	 */
 	animate = () => {
-		requestAnimationFrame(this.animate)
+		const fps = 30
+		setTimeout( () => {
+			requestAnimationFrame(this.animate)
+		}, 1000/ fps)
+		
 		this.render()
 		this.stats.update()
 		this.orbitControls.update()
