@@ -82,8 +82,8 @@ class LaneRenderingProperties {
 	constructor (color) {
 		this.color = color
 		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.color, side : THREE.DoubleSide})
-		this.activeMaterial = new THREE.MeshLambertMaterial({color: this.color, side : THREE.DoubleSide, opacity : 0.7})
-		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side : THREE.DoubleSide, opacity : 0.4})
+		this.activeMaterial = new THREE.MeshBasicMaterial({color : "orange", wireframe : true})
+		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side : THREE.DoubleSide})
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side : THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial( { color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2 } )
 		this.connectionMaterial = new THREE.MeshLambertMaterial( {color: 0x00ff00, side : THREE.DoubleSide})
