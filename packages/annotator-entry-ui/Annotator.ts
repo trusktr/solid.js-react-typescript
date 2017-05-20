@@ -18,12 +18,20 @@ import {isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
 
-let THREE = require('three')
+//let THREE = require('three') as any
+import * as THREE from 'three'
+
+declare global {
+	namespace THREE {
+		let OBJLoader:any
+	}
+}
+
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
 const {dialog} = require('electron').remote
 const zmq = require('zmq')
-const OBJLoader = require("three-obj-loader")
+const OBJLoader = require('three-obj-loader')
 OBJLoader(THREE)
 
 TypeLogger.setLoggerOutput(console as any)
@@ -282,14 +290,14 @@ class Annotator {
 	/**
 	 * Create a new lane annotation.
 	 */
-	private addLaneAnnotation() {
+	private addLaneAnnotation(): boolean {
 		if (this.annotationManager.activeAnnotationIndex >=0 &&
 			this.annotationManager.activeMarkers.length === 0) {
-			return
+			return false
 		}
 		// This creates a new lane and add it to the scene for display
-		this.annotationManager.addLaneAnnotation(this.scene)
-		this.annotationManager.makeLastAnnotationActive()
+		return this.annotationManager.addLaneAnnotation(this.scene) &&
+			this.annotationManager.makeLastAnnotationActive()
 	}
 	
 	private getMouseCoordinates = (event) : THREE.Vector2 => {
@@ -333,6 +341,8 @@ class Annotator {
 	 * @param event
 	 */
 	private checkForAnnotationSelection = (event) => {
+		if (this.isLiveMode) return
+
 		let mouse = this.getMouseCoordinates(event)
 		this.raycaster_annotation.setFromCamera( mouse, this.camera )
 		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.annotationMeshes)
@@ -424,8 +434,9 @@ class Annotator {
 
 		if (event.code === 'KeyD') {
 			log.info("Deleting last marker")
-			this.annotationManager.deleteLastLaneMarker()
-			this.hideTransform()
+			if (this.annotationManager.deleteLastLaneMarker()) {
+				this.hideTransform()
+			}
 		}
 		
 		if (event.code === 'KeyN') {
@@ -579,19 +590,20 @@ class Annotator {
 	 */
 	deleteLane() {
 		// Delete lane from scene
-		log.info("Delete selected annotation");
-		this.annotationManager.deleteLaneFromPath();
-		this.annotationManager.deleteActiveAnnotation(this.scene);
-		this.deactivateLaneProp();
-		this.hideTransform();
+		if (this.annotationManager.deleteLaneFromPath() && this.annotationManager.deleteActiveAnnotation(this.scene)) {
+			log.info("Deleted selected annotation")
+			this.deactivateLaneProp()
+			this.hideTransform()
+		}
 	}
 
 	addLane() {
 		// Add lane to scene
-		log.info("Added new annotation");
-		this.addLaneAnnotation();
-		this.resetLaneProp();
-		this.hideTransform();
+		if (this.addLaneAnnotation()) {
+			log.info("Added new annotation")
+			this.resetLaneProp()
+			this.hideTransform()
+		}
 	}
 
 	saveToFile() {
@@ -620,42 +632,37 @@ class Annotator {
 
 	addFront() {
 		log.info("Adding connected annotation to the front");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
-	
-		// Deactivate button
-		this.deactivateFrontSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
+			this.deactivateFrontSideNeighbours()
+		}
 	}
 
 	addLeftSame() {
 		log.info("Adding connected annotation to the left - same direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME);
-
-		// Deactivate buttons
-		this.deactivateLeftSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
+			this.deactivateLeftSideNeighbours()
+		}
 	}
 
 	addLeftReverse() {
 		log.info("Adding connected annotation to the left - reverse direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE);
-
-		// Deactivate buttons
-		this.deactivateLeftSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
+			this.deactivateLeftSideNeighbours()
+		}
 	}
 
 	addRightSame() {
 		log.info("Adding connected annotation to the right - same direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME);
-
-		// Deactivate buttons
-		this.deactivateRightSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
+			this.deactivateRightSideNeighbours()
+		}
 	}
 
 	addRightReverse() {
 		log.info("Adding connected annotation to the right - reverse direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE);
-
-		// Deactivate buttons
-		this.deactivateRightSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
+			this.deactivateRightSideNeighbours()
+		}
 	}
 
 	/**
@@ -665,15 +672,29 @@ class Annotator {
 
 		let menu_btn = document.getElementById('menu_control_btn')
 		menu_btn.addEventListener('click', _ => {
-			log.info("Menu icon clicked. Close/Open menu bar.")
-			let menu = document.getElementById('menu')
-			if (menu.style.visibility === 'hidden') {
-				menu.style.visibility = 'visible'
-			}
-			else {
-				menu.style.visibility = 'hidden'
+			if (this.isLiveMode) {
+				log.info("Disable live location mode first to access the menu.")
+			} else {
+				log.info("Menu icon clicked. Close/Open menu bar.")
+				let menu = document.getElementById('menu')
+				if (menu.style.visibility === 'hidden') {
+					menu.style.visibility = 'visible'
+				}
+				else {
+					menu.style.visibility = 'hidden'
+				}
 			}
 		})
+
+		let live_location_control_btn = document.getElementById('live_location_control_btn');
+		live_location_control_btn.addEventListener('click', _ => {
+			let menu = document.getElementById('menu')
+			if (this.toggleListen()) {
+				menu.style.visibility = 'hidden'
+			} else {
+				menu.style.visibility = 'visible'
+			}
+		});
 
 		let tools_delete = document.getElementById('tools_delete');
 		tools_delete.addEventListener('click', _ => {
@@ -788,8 +809,9 @@ class Annotator {
 			}
 
 			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
-			this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation);
-			this.resetLaneProp();
+			if (this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation)) {
+				this.resetLaneProp()
+			}
 		});
 
 		let lc_left = $('#lp_select_left');
@@ -840,12 +862,13 @@ class Annotator {
 		tr_add.on('click', _ => {
 
 			log.info("Add/remove lane to/from car path.");
-			this.annotationManager.addLaneToPath();
-			if (tr_add.text() === "Add") {
-				tr_add.text("Remove");
-			}
-			else {
-				tr_add.text("Add");
+			if (this.annotationManager.addLaneToPath()) {
+				if (tr_add.text() === "Add") {
+					tr_add.text("Remove")
+				}
+				else {
+					tr_add.text("Add")
+				}
 			}
 		});
 		
@@ -1027,8 +1050,8 @@ class Annotator {
 	
 	private loadCarModel() {
 		let manager = new THREE.LoadingManager()
-		let loader = new THREE.OBJLoader(manager)
-		loader.load('/Users/alonso/Mapper/CodeBase/Perception/data/BMW_X5_4.obj', (object) => {
+		let loader = new (THREE as any).OBJLoader(manager)
+		loader.load(config.get('assets.car_model.BMW_X5'), (object) => {
 			let boundingBox = new THREE.Box3().setFromObject(object)
 			let boxSize = boundingBox.getSize().toArray()
 			let modelLength = Math.max(...boxSize)
@@ -1037,6 +1060,7 @@ class Annotator {
 			this.carModel = object
 			this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
 			this.carModel.rotateY(1.5708)
+			this.carModel.visible = false
 			this.scene.add(object)
 		})
 	}
@@ -1045,15 +1069,14 @@ class Annotator {
 		this.liveSubscribeSocket = zmq.socket('sub')
 		
 		this.liveSubscribeSocket.on('message', (msg) => {
-			if (this.isLiveMode === false) {
-				return
-			}
-			
+			if (!this.isLiveMode) return
+
 			let state =  Models.InertialStateMessage.decode(msg)
 			log.info("Received message: " + state.pose.timestamp)
 			
 			// Move the car and the camera
 			let position = this.mapTile.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
+			log.info(state.pose.x + " " + position.x)
 			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
 			rotation.normalize()
 			this.updateCarPose(position, rotation)
@@ -1063,27 +1086,41 @@ class Annotator {
 		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
 		this.liveSubscribeSocket.subscribe("")
 	}
-	
-	listen() {
+
+	/**
+	 * Toggle whether or not to listen for live-location updates.
+	 * Returns the updated state of live-location mode.
+	 */
+	toggleListen(): boolean {
 		if (this.isLiveMode) {
-			return
+			this.annotationManager.unsetLiveMode()
+			return this.stopListening()
+		} else {
+			this.annotationManager.setLiveMode()
+			return this.listen()
 		}
-		
+	}
+
+	listen(): boolean {
+		if (this.isLiveMode) return this.isLiveMode
+
 		log.info('Listening for messages...')
 		this.isLiveMode = true
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
+		this.carModel.visible = true
+		return this.isLiveMode
 	}
 	
-	stopListening() {
-		if (this.isLiveMode === false) {
-			return
-		}
-		
+	stopListening(): boolean {
+		if (!this.isLiveMode) return this.isLiveMode
+
 		log.info('Stopped listening for messages...')
 		this.isLiveMode = false
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
+		this.carModel.visible = false
+		return this.isLiveMode
 	}
 	
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion) {
