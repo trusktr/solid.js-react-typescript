@@ -77,6 +77,7 @@ class Annotator {
 			background: "#082839",
 			cameraOffset: new THREE.Vector3(10, 30, 10),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
+			fpsRendering : 60
 		}
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
@@ -131,7 +132,7 @@ class Annotator {
 	
 		// Add grid on top of the plane
 		this.grid = new THREE.GridHelper(200, 100)
-		this.grid.position.y = -3.0
+		this.grid.position.y = -0.5
 		this.grid.material.opacity = 0.25
 		this.grid.material.transparent = true
 		this.scene.add(this.grid)
@@ -199,10 +200,9 @@ class Annotator {
 	 * Start THREE.js rendering loop.
 	 */
 	animate = () => {
-		const fps = 30
 		setTimeout( () => {
 			requestAnimationFrame(this.animate)
-		}, 1000/ fps)
+		}, 1000/ this.settings.fpsRendering)
 		
 		this.render()
 		this.stats.update()
@@ -480,13 +480,8 @@ class Annotator {
 		}
 		
 		if (event.code == 'KeyO') {
-			this.listen()
+			this.toggleListen()
 		}
-		
-		if (event.code == 'KeyP') {
-			this.stopListening()
-		}
-		
 	}
 	
 	private onKeyUp = () => {
@@ -692,12 +687,7 @@ class Annotator {
 
 		let live_location_control_btn = document.getElementById('live_location_control_btn');
 		live_location_control_btn.addEventListener('click', _ => {
-			let menu = document.getElementById('menu')
-			if (this.toggleListen()) {
-				menu.style.visibility = 'hidden'
-			} else {
-				menu.style.visibility = 'visible'
-			}
+			this.toggleListen();
 		});
 
 		let tools_delete = document.getElementById('tools_delete');
@@ -1090,18 +1080,29 @@ class Annotator {
 		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
 		this.liveSubscribeSocket.subscribe("")
 	}
+	
 
 	/**
 	 * Toggle whether or not to listen for live-location updates.
 	 * Returns the updated state of live-location mode.
 	 */
-	toggleListen(): boolean {
+	toggleListen() {
+		let hideMenu
+		
 		if (this.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
-			return this.stopListening()
+			hideMenu = this.stopListening()
 		} else {
 			this.annotationManager.setLiveMode()
-			return this.listen()
+			hideMenu = this.listen()
+		}
+		
+		let menu = document.getElementById('menu')
+		
+		if (hideMenu) {
+			menu.style.visibility = 'hidden'
+		} else {
+			menu.style.visibility = 'visible'
 		}
 	}
 
@@ -1110,9 +1111,12 @@ class Annotator {
 
 		log.info('Listening for messages...')
 		this.isLiveMode = true
+		this.plane.visible = false
+		this.grid.visible = false
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
 		this.carModel.visible = true
+		this.settings.fpsRendering = 30
 		return this.isLiveMode
 	}
 	
@@ -1121,9 +1125,12 @@ class Annotator {
 
 		log.info('Stopped listening for messages...')
 		this.isLiveMode = false
+		this.plane.visible = true
+		this.grid.visible = true
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
+		this.settings.fpsRendering = 60
 		return this.isLiveMode
 	}
 	
@@ -1134,7 +1141,8 @@ class Annotator {
 		this.carModel.rotateY(-1.5708)
 		// Bring the model close to the ground (approx height of the sensors)
 		let p = this.carModel.getWorldPosition()
-		this.carModel.position.set(p.x, p.y-1.5, p.z)
+		this.carModel.position.set(p.x, 0, p.z)
+		//this.carModel.position.set(p.x, p.y, p.z)
 	}
 	
 	private updateCameraPose() {
@@ -1147,6 +1155,11 @@ class Annotator {
 		this.camera.lookAt(p)
 		//this.camera.matrixWorldNeedsUpdate = true
 		this.camera.updateMatrix()
+		
+		//this.scene.updateMatrix()
+		//this.annotationManager.annotations.forEach( (annotation) => {
+		
+		//})
 		//this.camera.updateProjectionMatrix()
 	}
 	
