@@ -269,6 +269,11 @@ class Annotator {
 				"Annotator failed to load tiles from given folder.")
 		}
 	}
+
+	unloadPointCloudData() {
+		log.info("unloadPointCloudData")
+		this.mapTile.unloadAllPoints()
+	}
 	
 	/**
 	 * Load annotations from file. Add all annotations to the annotation manager
@@ -486,6 +491,10 @@ class Annotator {
 			this.stopListening()
 		}
 		
+		if (event.code == 'KeyU') {
+			this.unloadPointCloudData()
+		}
+
 	}
 	
 	private onKeyUp = () => {

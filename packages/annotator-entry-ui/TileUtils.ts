@@ -11,9 +11,12 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
 import * as TypeLogger from 'typelogger'
 import {UtmInterface} from "./UtmInterface"
+import {BufferGeometry} from "three"
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
+
+const threeDStepSize: number = 3
 
 /**
  * This opens a binary file for reading
@@ -34,38 +37,25 @@ async function loadTile(filename : string) :  Promise<Models.PointCloudTileMessa
 	return Models.PointCloudTileMessage.decode(buffer as any)
 }
 
-const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
-	if (step <= 0) {
-		log.error("Can't sample data. Step should be > 0.")
-		return
-	}
-	
-	
-	let sampledPoints : Array<number> = []
-	let sampledColors : Array<number> = []
-	let stride = step * 3
-	for (let i=0; i < msg.points.length; i+=stride) {
-		sampledPoints.push(msg.points[i])
-		sampledPoints.push(msg.points[i+1])
-		sampledPoints.push(msg.points[i+2])
-		sampledColors.push(msg.colors[i])
-		sampledColors.push(msg.colors[i+1])
-		sampledColors.push(msg.colors[i+2])
-	}
-	return [sampledPoints, sampledColors]
-}
-
 export class SuperTile extends UtmInterface {
 
 	// All points are stored with reference to UTM origin and offset,
 	// but using the local coordinate system which has different axes.
 	pointCloud : THREE.Points
+	rawPositions: Array<number>
+	rawColors: Array<number>
 	maxTilesToLoad : number
 	progressStepSize: number
 	samplingStep : number
 
 	constructor() {
 		super()
+		this.pointCloud = new THREE.Points(
+			new THREE.BufferGeometry(),
+			new THREE.PointsMaterial({size: 0.05, vertexColors: THREE.VertexColors})
+		)
+		this.rawPositions = new Array<number>(0)
+		this.rawColors = new Array<number>(0)
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
 		this.samplingStep = 10
@@ -97,6 +87,15 @@ export class SuperTile extends UtmInterface {
 			return SuperTile.isDefaultUtmZone(number, letter)
 				|| this.utmZoneNumber === number && this.utmZoneLetter === letter
 		}
+	}
+
+	/**
+	 * Replace existing geometry with a new one.
+	 */
+	private setGeometry(newGeometry: BufferGeometry) {
+		const oldGeometry = this.pointCloud.geometry
+		this.pointCloud.geometry = newGeometry
+		oldGeometry.dispose() // There is a vague and scary note in the docs about doing this, so here we go.
 	}
 
 	/**
@@ -138,7 +137,7 @@ export class SuperTile extends UtmInterface {
 				continue
 			}
 
-			let [sampledPoints, sampledColors] = sampleData(msg, this.samplingStep)
+			let [sampledPoints, sampledColors] = SuperTile.sampleData(msg, this.samplingStep)
 			
 			points = points.concat(sampledPoints)
 			colors = colors.concat(sampledColors)
@@ -148,34 +147,60 @@ export class SuperTile extends UtmInterface {
 
 		return Promise.resolve(this.generatePointCloudFromRawData(points, colors))
 	}
-	
+
+	private static sampleData(msg: Models.PointCloudTileMessage, step: number): [Array<number>, Array<number>] {
+		if (step <= 0) {
+			log.error("Can't sample data. Step should be > 0.")
+			return
+		}
+
+		const sampledPoints: Array<number> = []
+		const sampledColors: Array<number> = []
+		const stride = step * threeDStepSize
+		for (let i = 0; i < msg.points.length; i += stride) {
+			sampledPoints.push(msg.points[i])
+			sampledPoints.push(msg.points[i + 1])
+			sampledPoints.push(msg.points[i + 2])
+			sampledColors.push(msg.colors[i])
+			sampledColors.push(msg.colors[i + 1])
+			sampledColors.push(msg.colors[i + 2])
+		}
+		return [sampledPoints, sampledColors]
+	}
+
 	/**
 	 * Convert array of 3d points into a THREE.Point object
 	 */
 	generatePointCloudFromRawData(points : Array<number>, inputColors : Array<number>): THREE.Vector3 {
-		let geometry = new THREE.BufferGeometry()
-		let points_size = points.length
-		let positions = new Float32Array(points_size)
-		let colors = new Float32Array(inputColors)
-		
-		for (let i=0; i < points_size; i+=3) {
-			let p = this.utmToThreeJs(points[i], points[i+1], points[i+2])
-			positions[i] = p.x
-			positions[i+1] = p.y
-			positions[i+2] = p.z
-		}
-		
-		geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-		geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+		const points_size = points.length
+		const newPositions = new Array<number>(points_size)
 
-		const material = new THREE.PointsMaterial( { size: 0.05, vertexColors: THREE.VertexColors } )
-		this.pointCloud = new THREE.Points( geometry, material )
+		for (let i = 0; i < points_size; i += threeDStepSize) {
+			let p = this.utmToThreeJs(points[i], points[i+1], points[i+2])
+			newPositions[i] = p.x
+			newPositions[i+1] = p.y
+			newPositions[i+2] = p.z
+		}
+
+		if (this.rawPositions.length > 0) {
+			this.rawPositions = this.rawPositions.concat(newPositions)
+			this.rawColors = this.rawColors.concat(inputColors)
+		} else {
+			this.rawPositions = newPositions
+			this.rawColors = inputColors
+		}
+
+		const geometry = new THREE.BufferGeometry()
+		geometry.addAttribute('position', new THREE.BufferAttribute(Float32Array.from(this.rawPositions), threeDStepSize))
+		geometry.addAttribute('color', new THREE.BufferAttribute(Float32Array.from(this.rawColors), threeDStepSize))
+
+		this.setGeometry(geometry)
 		return this.centerPoint()
 	}
 
 	/**
 	 * Finds the center of the bottom of the bounding box, so that when we view the model
-	 * the whole thing appears above the ground plane.
+	 * the whole thing appears above the artificial ground plane.
 	 */
 	centerPoint(): THREE.Vector3 {
 		if (this.pointCloud) {
@@ -185,5 +210,14 @@ export class SuperTile extends UtmInterface {
 		} else {
 			return
 		}
+	}
+
+	/**
+	 * Clean slate.
+	 */
+	unloadAllPoints() {
+		this.rawPositions = new Array<number>(0)
+		this.rawColors = new Array<number>(0)
+		this.setGeometry(new THREE.BufferGeometry())
 	}
 }
