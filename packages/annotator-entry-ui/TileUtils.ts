@@ -88,7 +88,6 @@ export class SuperTile extends UtmInterface {
 		}
 		return 'SuperTile(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])';
 	}
-
 	// "default" according to protobuf rules for default values
 	private static isDefaultUtmZone(number: number, letter: string): boolean {
 		return number === 0 && letter === ""
