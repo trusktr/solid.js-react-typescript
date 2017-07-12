@@ -535,7 +535,7 @@ class Annotator {
 	 */
 	private initOrbitControls() {
 		this.orbitControls = new OrbitControls( this.camera, this.renderer.domElement );
-		this.orbitControls.damping = 0.2;
+		this.orbitControls.minDistance = -Infinity
 		
 		// Add listeners.
 		
@@ -1071,6 +1071,7 @@ class Annotator {
 			// Move the car and the camera
 			let position = this.mapTile.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
 			log.info(state.pose.x + " " + position.x)
+			
 			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
 			rotation.normalize()
 			this.updateCarPose(position, rotation)
@@ -1153,14 +1154,7 @@ class Annotator {
 		log.info(p.x)
 		this.camera.position.set(offset.x, offset.y, offset.z)
 		this.camera.lookAt(p)
-		//this.camera.matrixWorldNeedsUpdate = true
 		this.camera.updateMatrix()
-		
-		//this.scene.updateMatrix()
-		//this.annotationManager.annotations.forEach( (annotation) => {
-		
-		//})
-		//this.camera.updateProjectionMatrix()
 	}
 	
 }

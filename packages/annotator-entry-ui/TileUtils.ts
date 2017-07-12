@@ -47,12 +47,16 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 	let stride = step * 3
 	let count = 0
 	for (let i=0; i < msg.points.length; i+=stride) {
+		// This is because in the case of stereo point clouds the intensity variable
+		// is used to store "height with respect to the ground"
 		if (msg.intensities[count] > 1.0) {
-			
+			// Assuming the utm points are: easting, northing, altitude
 			sampledPoints.push(msg.points[i])
-			sampledPoints.push(-msg.intensities[count])
-			//sampledPoints.push(msg.points[i+1])
-			sampledPoints.push(msg.points[i + 2])
+			sampledPoints.push(msg.points[i+1])
+			// Using intensity to display the points with relative altitude
+			// instead of the absolute altitude msg.points[i+2]
+			sampledPoints.push(msg.intensities[count])
+			
 			sampledColors.push(msg.colors[i])
 			sampledColors.push(msg.colors[i + 1])
 			sampledColors.push(msg.colors[i + 2])
@@ -184,6 +188,7 @@ export class SuperTile extends UtmInterface {
 		let colors = new Float32Array(inputColors)
 		
 		for (let i=0; i < points_size; i+=3) {
+			// This function assumes that points are ordered as: easting, northing, altitude
 			let p = this.utmToThreeJs(points[i], points[i+1], points[i+2])
 			positions[i] = p.x
 			positions[i+1] = p.y
@@ -193,7 +198,7 @@ export class SuperTile extends UtmInterface {
 		geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 		geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-		const material = new THREE.PointsMaterial( { size: 0.01, vertexColors: THREE.VertexColors } )
+		const material = new THREE.PointsMaterial( { size: 0.1, vertexColors: THREE.VertexColors } )
 		this.pointCloud = new THREE.Points( geometry, material )
 		return this.centerPoint()
 	}

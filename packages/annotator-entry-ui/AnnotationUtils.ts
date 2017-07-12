@@ -877,8 +877,8 @@ export class AnnotationManager extends UtmInterface {
 			if (annotation['markerPositions']) {
 				for (let i = 0; i < annotation['markerPositions'].length; i++) {
 					const pos = annotation['markerPositions'][i]
-					//annotation['markerPositions'][i] = this.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
-					annotation['markerPositions'][i] = this.utmToThreeJs(pos['E'], 0, pos['alt'])
+					annotation['markerPositions'][i] = this.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
+					// This is a hack to elevate the annotations above ground (for display purposes)
 					annotation['markerPositions'][i].y += 0.2
 				}
 			}
