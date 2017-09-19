@@ -196,7 +196,7 @@ export class LaneAnnotation {
 	 */
 	addMarker(x:number, y:number, z:number) {
 		
-		let marker : THREE.Vector3 = new THREE.Vector3(x,y,z)// = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
+		let marker : THREE.Vector3 = new THREE.Vector3(x,y,z)
 		this.addRawMarker(marker)
 		
 		// From the third marker onwards, add markers in pairs by estimating the position
@@ -308,6 +308,13 @@ export class LaneAnnotation {
 	}
 
 	setLiveMode(): void {
+		if (parseInt(this.exitType as any) === LaneEntryExitType.STOP) {
+			if (parseInt(this.entryType as any) === LaneEntryExitType.STOP) {
+				this.renderingProperties.liveModeMaterial.color.setHex(0xff0000)
+			} else {
+				this.renderingProperties.liveModeMaterial.color.setHex(0x00ff00)
+			}
+		}
 		this.laneMarkers.forEach((marker) => {marker.visible = false})
 		this.laneCenterLine.visible = true
 		this.laneMesh.material = this.renderingProperties.liveModeMaterial
@@ -445,7 +452,7 @@ export class LaneAnnotation {
 		let centerPoints = spline.getPoints(100)
 		for (let i=0; i < centerPoints.length; i++) {
 			lineGeometry.vertices[i] = centerPoints[i]
-			lineGeometry.vertices[i].y += 0.2
+			lineGeometry.vertices[i].y += 0.05
 		}
 		lineGeometry.computeLineDistances()
 		this.laneCenterLine.geometry = lineGeometry

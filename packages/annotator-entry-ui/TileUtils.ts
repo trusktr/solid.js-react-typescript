@@ -37,6 +37,37 @@ async function loadTile(filename : string) :  Promise<Models.PointCloudTileMessa
 	return Models.PointCloudTileMessage.decode(buffer as any)
 }
 
+const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
+	if (step <= 0) {
+		log.error("Can't sample data. Step should be > 0.")
+		return
+	}
+	
+	
+	let sampledPoints : Array<number> = []
+	let sampledColors : Array<number> = []
+	let stride = step * threeDStepSize
+	let count = 0
+	for (let i=0; i < msg.points.length; i+=stride) {
+		// This is because in the case of stereo point clouds the intensity variable
+		// is used to store "height with respect to the ground"
+		if (msg.intensities[count] > 1.0) {
+			// Assuming the utm points are: easting, northing, altitude
+			sampledPoints.push(msg.points[i])
+			sampledPoints.push(msg.points[i+1])
+			// Using intensity to display the points with relative altitude
+			// instead of the absolute altitude msg.points[i+2]
+			sampledPoints.push(msg.intensities[count])
+			
+			sampledColors.push(msg.colors[i])
+			sampledColors.push(msg.colors[i + 1])
+			sampledColors.push(msg.colors[i + 2])
+		}
+		count += step
+	}
+	return [sampledPoints, sampledColors]
+}
+
 export class SuperTile extends UtmInterface {
 
 	// All points are stored with reference to UTM origin and offset,
@@ -58,7 +89,8 @@ export class SuperTile extends UtmInterface {
 		this.rawColors = new Array<number>(0)
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
-		this.samplingStep = 10
+		this.samplingStep = 5
+		this.pointCloud = null
 	}
 
 	toString(): string {
@@ -106,8 +138,8 @@ export class SuperTile extends UtmInterface {
 	 *   there will be something to look at there
 	 */
 	async loadFromDataset(datasetPath: string): Promise<THREE.Vector3> {
-		let points : Array<number> = []
-		let colors : Array<number> = []
+		let points:Array<number> = []
+		let colors:Array<number> = []
 		let files = Fs.readdirSync(datasetPath)
 		let count = 0
 		let coordsFailed = 0
@@ -120,52 +152,33 @@ export class SuperTile extends UtmInterface {
 		}
 
 		for (let i=0; i < maxFileCount; i++) {
-			printProgress(count + 1, maxFileCount, this.progressStepSize)
+			printProgress(i, maxFileCount, this.progressStepSize)
 
 			if (files[i] === 'tile_index.md' || files[i] === '.DS_Store') {
 				continue
 			}
-			
+
 			let msg  = await loadTile(Path.join(datasetPath, files[i]))
-			
+
 			if (msg.points.length === 0) {
 				continue
 			}
 
 			if (!this.checkCoordinateSystem(msg)) {
 				coordsFailed++
-				continue
+				return
 			}
 
-			let [sampledPoints, sampledColors] = SuperTile.sampleData(msg, this.samplingStep)
-			
+			let [sampledPoints, sampledColors] = sampleData(msg, this.samplingStep)
+
 			points = points.concat(sampledPoints)
 			colors = colors.concat(sampledColors)
-			count++
 		}
+
+		log.info("Num loaded points: " + points.length/3)
 		if (coordsFailed) log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
 
 		return Promise.resolve(this.generatePointCloudFromRawData(points, colors))
-	}
-
-	private static sampleData(msg: Models.PointCloudTileMessage, step: number): [Array<number>, Array<number>] {
-		if (step <= 0) {
-			log.error("Can't sample data. Step should be > 0.")
-			return
-		}
-
-		const sampledPoints: Array<number> = []
-		const sampledColors: Array<number> = []
-		const stride = step * threeDStepSize
-		for (let i = 0; i < msg.points.length; i += stride) {
-			sampledPoints.push(msg.points[i])
-			sampledPoints.push(msg.points[i + 1])
-			sampledPoints.push(msg.points[i + 2])
-			sampledColors.push(msg.colors[i])
-			sampledColors.push(msg.colors[i + 1])
-			sampledColors.push(msg.colors[i + 2])
-		}
-		return [sampledPoints, sampledColors]
 	}
 
 	/**

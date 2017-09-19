@@ -68,7 +68,6 @@ class Annotator {
 	hovered
 	settings
 	gui
-	usePlane
 	
 	constructor() {
 		this.isAddMarkerKeyPressed = false
@@ -78,6 +77,7 @@ class Annotator {
 			background: "#082839",
 			cameraOffset: new THREE.Vector3(10, 30, 10),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
+			fpsRendering : 60
 		}
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
@@ -94,8 +94,6 @@ class Annotator {
 		
 		// Initialize socket for use when "live mode" operation is on
 		this.initClient()
-		
-		this.usePlane = false
 	}
 	
 	/**
@@ -134,7 +132,7 @@ class Annotator {
 	
 		// Add grid on top of the plane
 		this.grid = new THREE.GridHelper(200, 100)
-		this.grid.position.y = -3.0
+		this.grid.position.y = -0.5
 		this.grid.material.opacity = 0.25
 		this.grid.material.transparent = true
 		this.scene.add(this.grid)
@@ -202,7 +200,10 @@ class Annotator {
 	 * Start THREE.js rendering loop.
 	 */
 	animate = () => {
-		requestAnimationFrame(this.animate)
+		setTimeout( () => {
+			requestAnimationFrame(this.animate)
+		}, 1000/ this.settings.fpsRendering)
+		
 		this.render()
 		this.stats.update()
 		this.orbitControls.update()
@@ -329,7 +330,7 @@ class Annotator {
 		this.raycaster_plane.setFromCamera(mouse, this.camera)
 		let intersections
 		
-		if (this.usePlane) {
+		if (this.mapTile.pointCloud === null) {
 			intersections = this.raycaster_plane.intersectObject(this.plane)
 		} else {
 			intersections = this.raycaster_plane.intersectObject(this.mapTile.pointCloud)
@@ -484,13 +485,9 @@ class Annotator {
 		}
 		
 		if (event.code == 'KeyO') {
-			this.listen()
+			this.toggleListen()
 		}
-		
-		if (event.code == 'KeyP') {
-			this.stopListening()
-		}
-		
+
 		if (event.code == 'KeyU') {
 			this.unloadPointCloudData()
 		}
@@ -548,7 +545,7 @@ class Annotator {
 	 */
 	private initOrbitControls() {
 		this.orbitControls = new OrbitControls( this.camera, this.renderer.domElement );
-		this.orbitControls.damping = 0.2;
+		this.orbitControls.minDistance = -Infinity
 		
 		// Add listeners.
 		
@@ -700,12 +697,7 @@ class Annotator {
 
 		let live_location_control_btn = document.getElementById('live_location_control_btn');
 		live_location_control_btn.addEventListener('click', _ => {
-			let menu = document.getElementById('menu')
-			if (this.toggleListen()) {
-				menu.style.visibility = 'hidden'
-			} else {
-				menu.style.visibility = 'visible'
-			}
+			this.toggleListen();
 		});
 
 		let tools_delete = document.getElementById('tools_delete');
@@ -1089,6 +1081,7 @@ class Annotator {
 			// Move the car and the camera
 			let position = this.mapTile.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
 			log.info(state.pose.x + " " + position.x)
+			
 			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
 			rotation.normalize()
 			this.updateCarPose(position, rotation)
@@ -1103,13 +1096,23 @@ class Annotator {
 	 * Toggle whether or not to listen for live-location updates.
 	 * Returns the updated state of live-location mode.
 	 */
-	toggleListen(): boolean {
+	toggleListen() {
+		let hideMenu
+		
 		if (this.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
-			return this.stopListening()
+			hideMenu = this.stopListening()
 		} else {
 			this.annotationManager.setLiveMode()
-			return this.listen()
+			hideMenu = this.listen()
+		}
+		
+		let menu = document.getElementById('menu')
+		
+		if (hideMenu) {
+			menu.style.visibility = 'hidden'
+		} else {
+			menu.style.visibility = 'visible'
 		}
 	}
 
@@ -1118,9 +1121,12 @@ class Annotator {
 
 		log.info('Listening for messages...')
 		this.isLiveMode = true
+		this.plane.visible = false
+		this.grid.visible = false
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
 		this.carModel.visible = true
+		this.settings.fpsRendering = 30
 		return this.isLiveMode
 	}
 	
@@ -1129,9 +1135,12 @@ class Annotator {
 
 		log.info('Stopped listening for messages...')
 		this.isLiveMode = false
+		this.plane.visible = true
+		this.grid.visible = true
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
+		this.settings.fpsRendering = 60
 		return this.isLiveMode
 	}
 	
@@ -1142,7 +1151,7 @@ class Annotator {
 		this.carModel.rotateY(-1.5708)
 		// Bring the model close to the ground (approx height of the sensors)
 		let p = this.carModel.getWorldPosition()
-		this.carModel.position.set(p.x, p.y-1.5, p.z)
+		this.carModel.position.set(p.x, 0, p.z)
 	}
 	
 	private updateCameraPose() {
@@ -1153,9 +1162,7 @@ class Annotator {
 		log.info(p.x)
 		this.camera.position.set(offset.x, offset.y, offset.z)
 		this.camera.lookAt(p)
-		//this.camera.matrixWorldNeedsUpdate = true
 		this.camera.updateMatrix()
-		//this.camera.updateProjectionMatrix()
 	}
 	
 }
