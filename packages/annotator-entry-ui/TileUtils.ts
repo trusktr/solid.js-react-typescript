@@ -71,7 +71,7 @@ export class SuperTile extends UtmInterface {
 
 	constructor() {
 		super()
-		this.maxTilesToLoad = 5000
+		this.maxTilesToLoad = 3000
 		this.progressStepSize = 100
 		this.samplingStep = 5
 		this.pointCloud = null
@@ -99,11 +99,12 @@ export class SuperTile extends UtmInterface {
 		var p : THREE.Vector3
 		switch (coordinateFrame) {
 			case CoordinateFrameType.CAMERA:
-				// Raw input is [+x: right, +y: down, +z: forward]
-				p = this.utmToThreeJs(-msg.originX, msg.originZ, -msg.originY)
+				// Raw input is [x: northing, y: -altitude, z: easting]
+				p = new THREE.Vector3(msg.originZ, msg.originX, -msg.originY)
 				break
 			case CoordinateFrameType.INERTIAL:
-				p = this.utmToThreeJs(msg.originY, msg.originX, -msg.originZ)
+				// Raw input is [x: northing, y: easting, z: -altitude]
+				p = new THREE.Vector3(msg.originY, msg.originX, -msg.originZ)
 				break
 			default:
 				log.warn('Coordinate frame not recognized')
@@ -119,7 +120,6 @@ export class SuperTile extends UtmInterface {
 	/**
 	 * Given a path to a dataset it loads all PointCloudTiles computed for display and
 	 * merges them into a single super tile.
-	 * The (X, Y, Z) coordinates in PointCloudTiles are (UTM Easting, UTM Northing, altitude).
 	 * @returns the center point of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
@@ -181,10 +181,11 @@ export class SuperTile extends UtmInterface {
 			var p : THREE.Vector3
 			switch (coordinateFrame) {
 				case CoordinateFrameType.CAMERA:
-					// Raw input is [+x: right, +y: down, +z: forward]
-					p = this.utmToThreeJs(-points[i], points[i+2], -points[i+1])
+					// Raw input is [x: northing, y: -altitude, z: easting]
+					p = this.utmToThreeJs(points[i+2], points[i], -points[i+1])
 					break
 				case CoordinateFrameType.INERTIAL:
+					// Raw input is [x: northing, y: easting, z: -altitude]
 					p = this.utmToThreeJs(points[i+1], points[i], -points[i+2])
 					break
 				default:
