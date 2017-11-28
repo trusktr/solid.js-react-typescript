@@ -15,6 +15,11 @@ import {UtmInterface} from "./UtmInterface"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
+export enum CoordinateFrameType {
+	CAMERA = 0, // [+x left,    +y down,  +z forward]
+	INERTIAL    // [+x forward, +y right, +z down   ]
+}
+
 /**
  * This opens a binary file for reading
  * @param filename
@@ -43,18 +48,14 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 	let sampledPoints : Array<number> = []
 	let sampledColors : Array<number> = []
 	let stride = step * 3
-	let count = 0
 	for (let i=0; i < msg.points.length; i+=stride) {
-		if (msg.intensities[count] > 1.0) {
-			// Assuming the utm points are: easting, northing, altitude
-			sampledPoints.push(msg.points[i])
-			sampledPoints.push(msg.points[i+1])
-			sampledPoints.push(msg.intensities[i+2])
-			sampledColors.push(msg.colors[i])
-			sampledColors.push(msg.colors[i + 1])
-			sampledColors.push(msg.colors[i + 2])
-		}
-		count += step
+		// Assuming the utm points are: easting, northing, altitude
+		sampledPoints.push(msg.points[i])
+		sampledPoints.push(msg.points[i+1])
+		sampledPoints.push(msg.points[i+2])
+		sampledColors.push(msg.colors[i])
+		sampledColors.push(msg.colors[i+1])
+		sampledColors.push(msg.colors[i+2])
 	}
 	return [sampledPoints, sampledColors]
 }
@@ -70,7 +71,7 @@ export class SuperTile extends UtmInterface {
 
 	constructor() {
 		super()
-		this.maxTilesToLoad = 2000
+		this.maxTilesToLoad = 5000
 		this.progressStepSize = 100
 		this.samplingStep = 5
 		this.pointCloud = null
@@ -92,10 +93,22 @@ export class SuperTile extends UtmInterface {
 
 	// The first tile we see defines the local origin and UTM zone for the lifetime of the application.
 	// All other data is expected to lie in the same zone.
-	private checkCoordinateSystem(msg: Models.PointCloudTileMessage): boolean {
+	private checkCoordinateSystem(msg: Models.PointCloudTileMessage, coordinateFrame: CoordinateFrameType): boolean {
 		const number = msg.utmZoneNumber
 		const letter = msg.utmZoneLetter
-		if (this.setOrigin(number, letter, new THREE.Vector3(msg.originX, msg.originY, msg.originZ))) {
+		var p : THREE.Vector3
+		switch (coordinateFrame) {
+			case CoordinateFrameType.CAMERA:
+				// Raw input is [+x: right, +y: down, +z: forward]
+				p = this.utmToThreeJs(-msg.originX, msg.originZ, -msg.originY)
+				break
+			case CoordinateFrameType.INERTIAL:
+				p = this.utmToThreeJs(msg.originY, msg.originX, -msg.originZ)
+				break
+			default:
+				log.warn('Coordinate frame not recognized')
+		}
+		if (this.setOrigin(number, letter, p)) {
 			return true
 		} else {
 			return SuperTile.isDefaultUtmZone(number, letter)
@@ -110,11 +123,10 @@ export class SuperTile extends UtmInterface {
 	 * @returns the center point of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
-	async loadFromDataset(datasetPath: string): Promise<THREE.Vector3> {
+	async loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<THREE.Vector3> {
 		let points:Array<number> = []
 		let colors:Array<number> = []
 		let files = Fs.readdirSync(datasetPath)
-		let count = 0
 		let coordsFailed = 0
 		let maxFileCount = files.length
 		if (maxFileCount > this.maxTilesToLoad) maxFileCount = this.maxTilesToLoad
@@ -138,7 +150,7 @@ export class SuperTile extends UtmInterface {
 			}
 
 
-			if (!this.checkCoordinateSystem(msg)) {
+			if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
 				coordsFailed++
 				return
 			}
@@ -152,21 +164,32 @@ export class SuperTile extends UtmInterface {
 		log.info("Num loaded points: " + points.length/3)
 		if (coordsFailed) log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
 
-		return Promise.resolve(this.generatePointCloudFromRawData(points, colors))
+		return Promise.resolve(this.generatePointCloudFromRawData(points, colors, coordinateFrame))
 	}
 	
 	/**
 	 * Convert array of 3d points into a THREE.Point object
 	 */
-	generatePointCloudFromRawData(points : Array<number>, inputColors : Array<number>): THREE.Vector3 {
+	generatePointCloudFromRawData(points : Array<number>, inputColors : Array<number>, coordinateFrame: CoordinateFrameType): THREE.Vector3 {
 		let geometry = new THREE.BufferGeometry()
 		let points_size = points.length
 		let positions = new Float32Array(points_size)
 		let colors = new Float32Array(inputColors)
 		
 		for (let i=0; i < points_size; i+=3) {
-			// This function assumes that points are ordered as: easting, northing, altitude
-			let p = this.utmToThreeJs(points[i], points[i+1], points[i+2])
+			// This function assumes that points are ordered as: [+x:easting, +y:northing, +z:altitude]
+			var p : THREE.Vector3
+			switch (coordinateFrame) {
+				case CoordinateFrameType.CAMERA:
+					// Raw input is [+x: right, +y: down, +z: forward]
+					p = this.utmToThreeJs(-points[i], points[i+2], -points[i+1])
+					break
+				case CoordinateFrameType.INERTIAL:
+					p = this.utmToThreeJs(points[i+1], points[i], -points[i+2])
+					break
+				default:
+					log.warn('Coordinate frame not recognized')
+			}
 			positions[i] = p.x
 			positions[i+1] = p.y
 			positions[i+2] = p.z
