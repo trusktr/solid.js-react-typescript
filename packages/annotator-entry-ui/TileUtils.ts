@@ -45,16 +45,11 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 	let stride = step * 3
 	let count = 0
 	for (let i=0; i < msg.points.length; i+=stride) {
-		// This is because in the case of stereo point clouds the intensity variable
-		// is used to store "height with respect to the ground"
 		if (msg.intensities[count] > 1.0) {
 			// Assuming the utm points are: easting, northing, altitude
 			sampledPoints.push(msg.points[i])
 			sampledPoints.push(msg.points[i+1])
-			// Using intensity to display the points with relative altitude
-			// instead of the absolute altitude msg.points[i+2]
-			sampledPoints.push(msg.intensities[count])
-			
+			sampledPoints.push(msg.intensities[i+2])
 			sampledColors.push(msg.colors[i])
 			sampledColors.push(msg.colors[i + 1])
 			sampledColors.push(msg.colors[i + 2])
