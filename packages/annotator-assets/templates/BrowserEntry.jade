@@ -37,6 +37,16 @@ html(lang="en")
                 width: auto;
             }
         style.
+            #logo {
+                position: fixed;
+                z-index: 2;
+                bottom: 0;
+                left: 0;
+                background-color: transparent;
+                padding-bottom: 0px;
+                padding-left: 5px;
+            }
+        style.
             #menu {
                 height: 100%;
                 width: 250px;
@@ -52,13 +62,14 @@ html(lang="en")
         style.
             #menu_control {
                 height: 50px;
-                width:50px;
+                width:100px;
                 position: fixed;
                 z-index: 1;
                 top: 0;
                 right: 0;
                 background-color: transparent;
                 padding-right: 5px;
+                text-align: right;
             }
         style.
             .menu_btn{
@@ -221,7 +232,10 @@ html(lang="en")
         #root
             script.
                 require(process.cwd() + "/dist/app/annotator-entry-ui")
+        #logo
+            img(src="https://signafy.github.io/indoor/stylesheets/logo_white.png", height="30px", width="auto")
         #menu_control
+            button#live_location_control_btn.menu_btn &#x2388;
             button#menu_control_btn.menu_btn &#9776;
         #menu
             #tools.div_buttons_group
@@ -230,7 +244,7 @@ html(lang="en")
                 button#tools_load.ui-btn.ui-icon-grid.ui-btn-icon-left Load Tiles
                 button#tools_load_annotation.ui-btn.ui-icon-edit.ui-btn-icon-left Load Annotation
                 button#tools_save.ui-btn.ui-icon-check.ui-btn-icon-left Save Annotation
-                button#tools_export_kml.ui-btn.ui-icon-eye.ui-btn-icon-left Export KML
+                button#tools_export_kml.ui-btn.ui-icon-location.ui-btn-icon-left Export KML
 
             #menu_1.accordion
                 h3#exp_head_1.dropdown_head Annotation
@@ -270,7 +284,8 @@ html(lang="en")
                         Key Shortcuts:<br>
                         A - Keep pressed to add more markers<br>
                         C - Center the camera on the tiles<br>
-                        D - Press to delete last marker<br>
-                        N - Press to create new lane<br>
-                        Z - Press to delete current active lane<br>
-                        M - Press to save road network waypoints to KML file
+                        D - Delete last marker<br>
+                        M - Save road network waypoints to KML file<br>
+                        N - Create new lane<br>
+                        O - Toggle live location mode data<br>
+                        Z - Delete current active lane

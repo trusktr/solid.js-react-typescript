@@ -11,6 +11,7 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
 import * as TypeLogger from 'typelogger'
 import {UtmInterface} from "./UtmInterface"
+import * as Bluebird from 'bluebird'
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -44,13 +45,23 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 	let sampledPoints : Array<number> = []
 	let sampledColors : Array<number> = []
 	let stride = step * 3
+	let count = 0
 	for (let i=0; i < msg.points.length; i+=stride) {
-		sampledPoints.push(msg.points[i])
-		sampledPoints.push(msg.points[i+1])
-		sampledPoints.push(msg.points[i+2])
-		sampledColors.push(msg.colors[i])
-		sampledColors.push(msg.colors[i+1])
-		sampledColors.push(msg.colors[i+2])
+		// This is because in the case of stereo point clouds the intensity variable
+		// is used to store "height with respect to the ground"
+		if (msg.intensities[count] > 1.0) {
+			// Assuming the utm points are: easting, northing, altitude
+			sampledPoints.push(msg.points[i])
+			sampledPoints.push(msg.points[i+1])
+			// Using intensity to display the points with relative altitude
+			// instead of the absolute altitude msg.points[i+2]
+			sampledPoints.push(msg.intensities[count])
+			
+			sampledColors.push(msg.colors[i])
+			sampledColors.push(msg.colors[i + 1])
+			sampledColors.push(msg.colors[i + 2])
+		}
+		count += step
 	}
 	return [sampledPoints, sampledColors]
 }
@@ -69,6 +80,7 @@ export class SuperTile extends UtmInterface {
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
 		this.samplingStep = 5
+		this.pointCloud = null
 	}
 
 	toString(): string {
@@ -80,7 +92,6 @@ export class SuperTile extends UtmInterface {
 		}
 		return 'SuperTile(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])';
 	}
-
 	// "default" according to protobuf rules for default values
 	private static isDefaultUtmZone(number: number, letter: string): boolean {
 		return number === 0 && letter === ""
@@ -107,46 +118,64 @@ export class SuperTile extends UtmInterface {
 	 *   there will be something to look at there
 	 */
 	async loadFromDataset(datasetPath: string): Promise<THREE.Vector3> {
-		let points : Array<number> = []
-		let colors : Array<number> = []
+		let points:Array<number> = []
+		let colors:Array<number> = []
 		let files = Fs.readdirSync(datasetPath)
 		let count = 0
 		let coordsFailed = 0
 		let maxFileCount = files.length
 		if (maxFileCount > this.maxTilesToLoad) maxFileCount = this.maxTilesToLoad
-
-		let printProgress = function (current: number, total: number, stepSize: number) {
+		
+		let printProgress = function (current:number, total:number, stepSize:number) {
 			if (total <= (stepSize * 2)) return
 			if (current % stepSize === 0) log.info(`processing ${current} of ${total} files`)
 		}
+		
+		// let fileRequests = await Bluebird.map(files
+		// 	.filter(it => !['tile_index.md','.DS_Store'].includes(it)),
+		// 	it => loadTile(Path.join(datasetPath, it)).then(msg => {
+		// 		log.info(`Loaded ${it} with ${msg.points.length} points`)
+		// 		return msg
+		// 	}),
+		// 	{
+		// 		concurrency: 1
+		// 	})
+		
+		//
+		//fileRequests = fileRequests.filter(it => it.points.length)
+//		fileRequests.forEach(msg => {
+//	    })
 
 		for (let i=0; i < maxFileCount; i++) {
-			printProgress(count + 1, maxFileCount, this.progressStepSize)
+			printProgress(i, maxFileCount, this.progressStepSize)
 
 			if (files[i] === 'tile_index.md' || files[i] === '.DS_Store') {
 				continue
 			}
-			
+
 			let msg  = await loadTile(Path.join(datasetPath, files[i]))
-			
+
 			if (msg.points.length === 0) {
 				continue
 			}
 
+
 			if (!this.checkCoordinateSystem(msg)) {
 				coordsFailed++
-				continue
+				return
 			}
 
 			let [sampledPoints, sampledColors] = sampleData(msg, this.samplingStep)
-			
+
 			points = points.concat(sampledPoints)
 			colors = colors.concat(sampledColors)
-			count++
 		}
+
+		log.info("Num loaded points: " + points.length/3)
 		if (coordsFailed) log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
 
 		return Promise.resolve(this.generatePointCloudFromRawData(points, colors))
+		//return Promise.resolve(this.generatePointCloudFromRawData([],[]))
 	}
 	
 	/**
@@ -159,6 +188,7 @@ export class SuperTile extends UtmInterface {
 		let colors = new Float32Array(inputColors)
 		
 		for (let i=0; i < points_size; i+=3) {
+			// This function assumes that points are ordered as: easting, northing, altitude
 			let p = this.utmToThreeJs(points[i], points[i+1], points[i+2])
 			positions[i] = p.x
 			positions[i+1] = p.y
@@ -168,9 +198,8 @@ export class SuperTile extends UtmInterface {
 		geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
 		geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-		const material = new THREE.PointsMaterial( { size: 0.05, vertexColors: THREE.VertexColors } )
+		const material = new THREE.PointsMaterial( { size: 0.1, vertexColors: THREE.VertexColors } )
 		this.pointCloud = new THREE.Points( geometry, material )
-
 		return this.centerPoint()
 	}
 
