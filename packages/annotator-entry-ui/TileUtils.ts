@@ -16,8 +16,8 @@ TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
 export enum CoordinateFrameType {
-	CAMERA = 0, // [+x left,    +y down,  +z forward]
-	INERTIAL    // [+x forward, +y right, +z down   ]
+	CAMERA = 0, // [northing, -altitude, easting]
+	INERTIAL    // [northing, easting, -altitude]
 }
 
 /**
