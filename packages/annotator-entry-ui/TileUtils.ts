@@ -11,7 +11,6 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
 import * as TypeLogger from 'typelogger'
 import {UtmInterface} from "./UtmInterface"
-import * as Bluebird from 'bluebird'
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -40,7 +39,6 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 		log.error("Can't sample data. Step should be > 0.")
 		return
 	}
-	
 	
 	let sampledPoints : Array<number> = []
 	let sampledColors : Array<number> = []
@@ -130,21 +128,6 @@ export class SuperTile extends UtmInterface {
 			if (total <= (stepSize * 2)) return
 			if (current % stepSize === 0) log.info(`processing ${current} of ${total} files`)
 		}
-		
-		// let fileRequests = await Bluebird.map(files
-		// 	.filter(it => !['tile_index.md','.DS_Store'].includes(it)),
-		// 	it => loadTile(Path.join(datasetPath, it)).then(msg => {
-		// 		log.info(`Loaded ${it} with ${msg.points.length} points`)
-		// 		return msg
-		// 	}),
-		// 	{
-		// 		concurrency: 1
-		// 	})
-		
-		//
-		//fileRequests = fileRequests.filter(it => it.points.length)
-//		fileRequests.forEach(msg => {
-//	    })
 
 		for (let i=0; i < maxFileCount; i++) {
 			printProgress(i, maxFileCount, this.progressStepSize)
@@ -175,7 +158,6 @@ export class SuperTile extends UtmInterface {
 		if (coordsFailed) log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
 
 		return Promise.resolve(this.generatePointCloudFromRawData(points, colors))
-		//return Promise.resolve(this.generatePointCloudFromRawData([],[]))
 	}
 	
 	/**
