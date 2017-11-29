@@ -884,7 +884,7 @@ export class AnnotationManager extends UtmInterface {
 			}
 		})
 	}
-	
+
 	/**
 	 * Load annotations from file. Store all annotations and add them to the Annotator scene.
 	 * This requires UTM as the input format.

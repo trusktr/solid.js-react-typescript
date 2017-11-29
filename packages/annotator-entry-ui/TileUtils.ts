@@ -11,10 +11,12 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
 import * as TypeLogger from 'typelogger'
 import {UtmInterface} from "./UtmInterface"
-import * as Bluebird from 'bluebird'
+import {BufferGeometry} from "three"
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
+
+const threeDStepSize: number = 3
 
 /**
  * This opens a binary file for reading
@@ -44,7 +46,7 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 	
 	let sampledPoints : Array<number> = []
 	let sampledColors : Array<number> = []
-	let stride = step * 3
+	let stride = step * threeDStepSize
 	let count = 0
 	for (let i=0; i < msg.points.length; i+=stride) {
 		// This is because in the case of stereo point clouds the intensity variable
@@ -71,12 +73,20 @@ export class SuperTile extends UtmInterface {
 	// All points are stored with reference to UTM origin and offset,
 	// but using the local coordinate system which has different axes.
 	pointCloud : THREE.Points
+	rawPositions: Array<number>
+	rawColors: Array<number>
 	maxTilesToLoad : number
 	progressStepSize: number
 	samplingStep : number
 
 	constructor() {
 		super()
+		this.pointCloud = new THREE.Points(
+			new THREE.BufferGeometry(),
+			new THREE.PointsMaterial({size: 0.05, vertexColors: THREE.VertexColors})
+		)
+		this.rawPositions = new Array<number>(0)
+		this.rawColors = new Array<number>(0)
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
 		this.samplingStep = 5
@@ -92,6 +102,7 @@ export class SuperTile extends UtmInterface {
 		}
 		return 'SuperTile(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])';
 	}
+
 	// "default" according to protobuf rules for default values
 	private static isDefaultUtmZone(number: number, letter: string): boolean {
 		return number === 0 && letter === ""
@@ -111,6 +122,15 @@ export class SuperTile extends UtmInterface {
 	}
 
 	/**
+	 * Replace existing geometry with a new one.
+	 */
+	private setGeometry(newGeometry: BufferGeometry) {
+		const oldGeometry = this.pointCloud.geometry
+		this.pointCloud.geometry = newGeometry
+		oldGeometry.dispose() // There is a vague and scary note in the docs about doing this, so here we go.
+	}
+
+	/**
 	 * Given a path to a dataset it loads all PointCloudTiles computed for display and
 	 * merges them into a single super tile.
 	 * The (X, Y, Z) coordinates in PointCloudTiles are (UTM Easting, UTM Northing, altitude).
@@ -125,26 +145,11 @@ export class SuperTile extends UtmInterface {
 		let coordsFailed = 0
 		let maxFileCount = files.length
 		if (maxFileCount > this.maxTilesToLoad) maxFileCount = this.maxTilesToLoad
-		
-		let printProgress = function (current:number, total:number, stepSize:number) {
+
+		let printProgress = function (current: number, total: number, stepSize: number) {
 			if (total <= (stepSize * 2)) return
 			if (current % stepSize === 0) log.info(`processing ${current} of ${total} files`)
 		}
-		
-		// let fileRequests = await Bluebird.map(files
-		// 	.filter(it => !['tile_index.md','.DS_Store'].includes(it)),
-		// 	it => loadTile(Path.join(datasetPath, it)).then(msg => {
-		// 		log.info(`Loaded ${it} with ${msg.points.length} points`)
-		// 		return msg
-		// 	}),
-		// 	{
-		// 		concurrency: 1
-		// 	})
-		
-		//
-		//fileRequests = fileRequests.filter(it => it.points.length)
-//		fileRequests.forEach(msg => {
-//	    })
 
 		for (let i=0; i < maxFileCount; i++) {
 			printProgress(i, maxFileCount, this.progressStepSize)
@@ -158,7 +163,6 @@ export class SuperTile extends UtmInterface {
 			if (msg.points.length === 0) {
 				continue
 			}
-
 
 			if (!this.checkCoordinateSystem(msg)) {
 				coordsFailed++
@@ -175,37 +179,41 @@ export class SuperTile extends UtmInterface {
 		if (coordsFailed) log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
 
 		return Promise.resolve(this.generatePointCloudFromRawData(points, colors))
-		//return Promise.resolve(this.generatePointCloudFromRawData([],[]))
 	}
-	
+
 	/**
 	 * Convert array of 3d points into a THREE.Point object
 	 */
 	generatePointCloudFromRawData(points : Array<number>, inputColors : Array<number>): THREE.Vector3 {
-		let geometry = new THREE.BufferGeometry()
-		let points_size = points.length
-		let positions = new Float32Array(points_size)
-		let colors = new Float32Array(inputColors)
-		
-		for (let i=0; i < points_size; i+=3) {
-			// This function assumes that points are ordered as: easting, northing, altitude
-			let p = this.utmToThreeJs(points[i], points[i+1], points[i+2])
-			positions[i] = p.x
-			positions[i+1] = p.y
-			positions[i+2] = p.z
-		}
-		
-		geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-		geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+		const points_size = points.length
+		const newPositions = new Array<number>(points_size)
 
-		const material = new THREE.PointsMaterial( { size: 0.1, vertexColors: THREE.VertexColors } )
-		this.pointCloud = new THREE.Points( geometry, material )
+		for (let i = 0; i < points_size; i += threeDStepSize) {
+			let p = this.utmToThreeJs(points[i], points[i+1], points[i+2])
+			newPositions[i] = p.x
+			newPositions[i+1] = p.y
+			newPositions[i+2] = p.z
+		}
+
+		if (this.rawPositions.length > 0) {
+			this.rawPositions = this.rawPositions.concat(newPositions)
+			this.rawColors = this.rawColors.concat(inputColors)
+		} else {
+			this.rawPositions = newPositions
+			this.rawColors = inputColors
+		}
+
+		const geometry = new THREE.BufferGeometry()
+		geometry.addAttribute('position', new THREE.BufferAttribute(Float32Array.from(this.rawPositions), threeDStepSize))
+		geometry.addAttribute('color', new THREE.BufferAttribute(Float32Array.from(this.rawColors), threeDStepSize))
+
+		this.setGeometry(geometry)
 		return this.centerPoint()
 	}
 
 	/**
 	 * Finds the center of the bottom of the bounding box, so that when we view the model
-	 * the whole thing appears above the ground plane.
+	 * the whole thing appears above the artificial ground plane.
 	 */
 	centerPoint(): THREE.Vector3 {
 		if (this.pointCloud) {
@@ -215,5 +223,14 @@ export class SuperTile extends UtmInterface {
 		} else {
 			return
 		}
+	}
+
+	/**
+	 * Clean slate.
+	 */
+	unloadAllPoints() {
+		this.rawPositions = new Array<number>(0)
+		this.rawColors = new Array<number>(0)
+		this.setGeometry(new THREE.BufferGeometry())
 	}
 }
