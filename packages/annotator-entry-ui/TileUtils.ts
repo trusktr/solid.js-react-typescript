@@ -87,7 +87,6 @@ export class SuperTile extends UtmInterface {
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
 		this.samplingStep = 5
-		this.pointCloud = null
 	}
 
 	toString(): string {
