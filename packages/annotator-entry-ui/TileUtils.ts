@@ -16,6 +16,11 @@ import {BufferGeometry} from "three"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
+export enum CoordinateFrameType {
+	CAMERA = 0, // [northing, -altitude, easting]
+	INERTIAL    // [northing, easting, -altitude]
+}
+
 const threeDStepSize: number = 3
 
 /**
@@ -43,29 +48,43 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 		return
 	}
 	
-	
 	let sampledPoints : Array<number> = []
 	let sampledColors : Array<number> = []
 	let stride = step * threeDStepSize
-	let count = 0
+
 	for (let i=0; i < msg.points.length; i+=stride) {
-		// This is because in the case of stereo point clouds the intensity variable
-		// is used to store "height with respect to the ground"
-		if (msg.intensities[count] > 1.0) {
-			// Assuming the utm points are: easting, northing, altitude
-			sampledPoints.push(msg.points[i])
-			sampledPoints.push(msg.points[i+1])
-			// Using intensity to display the points with relative altitude
-			// instead of the absolute altitude msg.points[i+2]
-			sampledPoints.push(msg.intensities[count])
-			
-			sampledColors.push(msg.colors[i])
-			sampledColors.push(msg.colors[i + 1])
-			sampledColors.push(msg.colors[i + 2])
-		}
-		count += step
+		// Assuming the utm points are: easting, northing, altitude
+		sampledPoints.push(msg.points[i])
+		sampledPoints.push(msg.points[i+1])
+		sampledPoints.push(msg.points[i+2])
+		sampledColors.push(msg.colors[i])
+		sampledColors.push(msg.colors[i+1])
+		sampledColors.push(msg.colors[i+2])
 	}
 	return [sampledPoints, sampledColors]
+}
+
+/**
+ * Convert a 3D point to our standard format: [easting, northing, altitude]
+ * @param point
+ * @param pointCoordinateFrame
+ * @returns Point in standard coordinate frame format.
+ */
+const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateFrame: CoordinateFrameType) : THREE.Vector3 => {
+	let p : THREE.Vector3
+	switch (pointCoordinateFrame) {
+		case CoordinateFrameType.CAMERA:
+			// Raw input is [x: northing, y: -altitude, z: easting]
+			p = new THREE.Vector3(point.z, point.x, -point.y)
+			break
+		case CoordinateFrameType.INERTIAL:
+			// Raw input is [x: northing, y: easting, z: -altitude]
+			p = new THREE.Vector3(point.y, point.x, -point.z)
+			break
+		default:
+			log.warn('Coordinate frame not recognized')
+	}
+	return p
 }
 
 export class SuperTile extends UtmInterface {
@@ -81,6 +100,7 @@ export class SuperTile extends UtmInterface {
 
 	constructor() {
 		super()
+
 		this.pointCloud = new THREE.Points(
 			new THREE.BufferGeometry(),
 			new THREE.PointsMaterial({size: 0.05, vertexColors: THREE.VertexColors})
@@ -90,7 +110,6 @@ export class SuperTile extends UtmInterface {
 		this.maxTilesToLoad = 2000
 		this.progressStepSize = 100
 		this.samplingStep = 5
-		this.pointCloud = null
 	}
 
 	toString(): string {
@@ -110,10 +129,13 @@ export class SuperTile extends UtmInterface {
 
 	// The first tile we see defines the local origin and UTM zone for the lifetime of the application.
 	// All other data is expected to lie in the same zone.
-	private checkCoordinateSystem(msg: Models.PointCloudTileMessage): boolean {
+	private checkCoordinateSystem(msg: Models.PointCloudTileMessage, inputCoordinateFrame: CoordinateFrameType): boolean {
 		const number = msg.utmZoneNumber
 		const letter = msg.utmZoneLetter
-		if (this.setOrigin(number, letter, new THREE.Vector3(msg.originX, msg.originY, msg.originZ))) {
+		let inputPoint = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
+		let p  = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
+		
+		if (this.setOrigin(number, letter, p)) {
 			return true
 		} else {
 			return SuperTile.isDefaultUtmZone(number, letter)
@@ -133,15 +155,13 @@ export class SuperTile extends UtmInterface {
 	/**
 	 * Given a path to a dataset it loads all PointCloudTiles computed for display and
 	 * merges them into a single super tile.
-	 * The (X, Y, Z) coordinates in PointCloudTiles are (UTM Easting, UTM Northing, altitude).
 	 * @returns the center point of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
-	async loadFromDataset(datasetPath: string): Promise<THREE.Vector3> {
+	async loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<THREE.Vector3> {
 		let points:Array<number> = []
 		let colors:Array<number> = []
 		let files = Fs.readdirSync(datasetPath)
-		let count = 0
 		let coordsFailed = 0
 		let maxFileCount = files.length
 		if (maxFileCount > this.maxTilesToLoad) maxFileCount = this.maxTilesToLoad
@@ -163,8 +183,8 @@ export class SuperTile extends UtmInterface {
 			if (msg.points.length === 0) {
 				continue
 			}
-
-			if (!this.checkCoordinateSystem(msg)) {
+			
+			if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
 				coordsFailed++
 				return
 			}
@@ -176,23 +196,29 @@ export class SuperTile extends UtmInterface {
 		}
 
 		log.info("Num loaded points: " + points.length/3)
-		if (coordsFailed) log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
+		
+		if (coordsFailed) {
+			log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
+		}
 
-		return Promise.resolve(this.generatePointCloudFromRawData(points, colors))
+		return Promise.resolve(this.generatePointCloudFromRawData(points, colors, coordinateFrame))
 	}
 
 	/**
 	 * Convert array of 3d points into a THREE.Point object
 	 */
-	generatePointCloudFromRawData(points : Array<number>, inputColors : Array<number>): THREE.Vector3 {
+	generatePointCloudFromRawData(points: Array<number>, inputColors: Array<number>, inputCoordinateFrame: CoordinateFrameType): THREE.Vector3 {
 		const points_size = points.length
 		const newPositions = new Array<number>(points_size)
 
 		for (let i = 0; i < points_size; i += threeDStepSize) {
-			let p = this.utmToThreeJs(points[i], points[i+1], points[i+2])
-			newPositions[i] = p.x
-			newPositions[i+1] = p.y
-			newPositions[i+2] = p.z
+			let inputPoint = new THREE.Vector3(points[i], points[i+1], points[i+2])
+			let standardPoint = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
+			let threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
+			
+			newPositions[i] = threePoint.x
+			newPositions[i+1] = threePoint.y
+			newPositions[i+2] = threePoint.z
 		}
 
 		if (this.rawPositions.length > 0) {

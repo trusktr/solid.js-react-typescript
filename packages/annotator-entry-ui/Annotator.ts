@@ -7,7 +7,7 @@ const config = require('../config')
 import * as $ from 'jquery'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import {SuperTile}  from 'annotator-entry-ui/TileUtils'
+import {CoordinateFrameType, SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection, LaneId} from 'annotator-entry-ui/LaneAnnotation'
 import {OutputFormat} from "annotator-entry-ui/AnnotationUtils"
@@ -258,7 +258,7 @@ class Annotator {
 	async loadPointCloudData(pathToTiles : string) {
 		try {
 			log.info('loading dataset')
-			const focalPoint = await this.mapTile.loadFromDataset(pathToTiles)
+			const focalPoint = await this.mapTile.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA)
 			if (!this.annotationManager.setOriginWithInterface(this.mapTile)) {
 				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.mapTile.getOrigin()}`)
 			}
