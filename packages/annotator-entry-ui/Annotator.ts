@@ -270,6 +270,11 @@ class Annotator {
 				"Annotator failed to load tiles from given folder.")
 		}
 	}
+
+	unloadPointCloudData() {
+		log.info("unloadPointCloudData")
+		this.mapTile.unloadAllPoints()
+	}
 	
 	/**
 	 * Load annotations from file. Add all annotations to the annotation manager
@@ -482,6 +487,11 @@ class Annotator {
 		if (event.code == 'KeyO') {
 			this.toggleListen()
 		}
+
+		if (event.code == 'KeyU') {
+			this.unloadPointCloudData()
+		}
+
 	}
 	
 	private onKeyUp = () => {
@@ -1081,7 +1091,6 @@ class Annotator {
 		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
 		this.liveSubscribeSocket.subscribe("")
 	}
-	
 
 	/**
 	 * Toggle whether or not to listen for live-location updates.
@@ -1143,7 +1152,6 @@ class Annotator {
 		// Bring the model close to the ground (approx height of the sensors)
 		let p = this.carModel.getWorldPosition()
 		this.carModel.position.set(p.x, 0, p.z)
-		//this.carModel.position.set(p.x, p.y, p.z)
 	}
 	
 	private updateCameraPose() {
