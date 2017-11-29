@@ -64,6 +64,29 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
 	return [sampledPoints, sampledColors]
 }
 
+/**
+ * Convert a 3D point to our standard format: [easting, northing, altitude]
+ * @param point
+ * @param pointCoordinateFrame
+ * @returns Point in standard coordinate frame format.
+ */
+const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateFrame: CoordinateFrameType) : THREE.Vector3 => {
+	let p : THREE.Vector3
+	switch (pointCoordinateFrame) {
+		case CoordinateFrameType.CAMERA:
+			// Raw input is [x: northing, y: -altitude, z: easting]
+			p = new THREE.Vector3(point.z, point.x, -point.y)
+			break
+		case CoordinateFrameType.INERTIAL:
+			// Raw input is [x: northing, y: easting, z: -altitude]
+			p = new THREE.Vector3(point.y, point.x, -point.z)
+			break
+		default:
+			log.warn('Coordinate frame not recognized')
+	}
+	return p
+}
+
 export class SuperTile extends UtmInterface {
 
 	// All points are stored with reference to UTM origin and offset,
@@ -106,22 +129,12 @@ export class SuperTile extends UtmInterface {
 
 	// The first tile we see defines the local origin and UTM zone for the lifetime of the application.
 	// All other data is expected to lie in the same zone.
-	private checkCoordinateSystem(msg: Models.PointCloudTileMessage, coordinateFrame: CoordinateFrameType): boolean {
+	private checkCoordinateSystem(msg: Models.PointCloudTileMessage, inputCoordinateFrame: CoordinateFrameType): boolean {
 		const number = msg.utmZoneNumber
 		const letter = msg.utmZoneLetter
-		let p : THREE.Vector3
-		switch (coordinateFrame) {
-			case CoordinateFrameType.CAMERA:
-				// Raw input is [x: northing, y: -altitude, z: easting]
-				p = new THREE.Vector3(msg.originZ, msg.originX, -msg.originY)
-				break
-			case CoordinateFrameType.INERTIAL:
-				// Raw input is [x: northing, y: easting, z: -altitude]
-				p = new THREE.Vector3(msg.originY, msg.originX, -msg.originZ)
-				break
-			default:
-				log.warn('Coordinate frame not recognized')
-		}
+		let inputPoint = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
+		let p  = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
+		
 		if (this.setOrigin(number, letter, p)) {
 			return true
 		} else {
@@ -194,29 +207,18 @@ export class SuperTile extends UtmInterface {
 	/**
 	 * Convert array of 3d points into a THREE.Point object
 	 */
-	generatePointCloudFromRawData(points: Array<number>, inputColors: Array<number>, coordinateFrame: CoordinateFrameType): THREE.Vector3 {
+	generatePointCloudFromRawData(points: Array<number>, inputColors: Array<number>, inputCoordinateFrame: CoordinateFrameType): THREE.Vector3 {
 		const points_size = points.length
 		const newPositions = new Array<number>(points_size)
 
 		for (let i = 0; i < points_size; i += threeDStepSize) {
-			// This function assumes that points are ordered as: [+x:easting, +y:northing, +z:altitude]
-			let p : THREE.Vector3
-			switch (coordinateFrame) {
-				case CoordinateFrameType.CAMERA:
-					// Raw input is [x: northing, y: -altitude, z: easting]
-					p = this.utmToThreeJs(points[i+2], points[i], -points[i+1])
-					break
-				case CoordinateFrameType.INERTIAL:
-					// Raw input is [x: northing, y: easting, z: -altitude]
-					p = this.utmToThreeJs(points[i+1], points[i], -points[i+2])
-					break
-				default:
-					log.warn('Coordinate frame not recognized')
-			}
+			let inputPoint = new THREE.Vector3(points[i], points[i+1], points[i+2])
+			let standardPoint = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
+			let threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
 			
-			newPositions[i] = p.x
-			newPositions[i+1] = p.y
-			newPositions[i+2] = p.z
+			newPositions[i] = threePoint.x
+			newPositions[i+1] = threePoint.y
+			newPositions[i+2] = threePoint.z
 		}
 
 		if (this.rawPositions.length > 0) {
