@@ -5,21 +5,34 @@
 
 const config = require('../config')
 import * as $ from 'jquery'
-import * as THREE from 'three'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {SuperTile}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection, LaneId} from 'annotator-entry-ui/LaneAnnotation'
+import {OutputFormat} from "annotator-entry-ui/AnnotationUtils"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isUndefined} from "util"
-import {OutputFormat} from "./AnnotationUtils"
+import * as MapperProtos from '@mapperai/mapper-models'
+import Models = MapperProtos.com.mapperai.models
+
+//let THREE = require('three') as any
+import * as THREE from 'three'
+
+declare global {
+	namespace THREE {
+		let OBJLoader:any
+	}
+}
 
 const statsModule = require("stats.js")
 const datModule = require("dat.gui/build/dat.gui")
 const {dialog} = require('electron').remote
+const zmq = require('zmq')
+const OBJLoader = require('three-obj-loader')
+OBJLoader(THREE)
 
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
@@ -37,6 +50,7 @@ class Annotator {
 	raycaster_plane : THREE.Raycaster
 	raycaster_marker : THREE.Raycaster
 	raycaster_annotation : THREE.Raycaster
+	carModel: THREE.Object3D
 	mapTile : SuperTile
 	plane : THREE.Mesh
 	grid: THREE.GridHelper
@@ -49,10 +63,11 @@ class Annotator {
 	annotationManager : AnnotationUtils.AnnotationManager
 	isAddMarkerKeyPressed : boolean
 	isMouseButtonPressed : boolean
+	isLiveMode : boolean
+	liveSubscribeSocket
 	hovered
 	settings
 	gui
-	usePlane
 	
 	constructor() {
 		this.isAddMarkerKeyPressed = false
@@ -62,6 +77,7 @@ class Annotator {
 			background: "#082839",
 			cameraOffset: new THREE.Vector3(10, 30, 10),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
+			fpsRendering : 60
 		}
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
@@ -71,10 +87,13 @@ class Annotator {
 		this.raycaster_marker = new THREE.Raycaster()
 		// THe raycaster is used to compute which selection should be active for editing
 		this.raycaster_annotation = new THREE.Raycaster()
-		
+		// Initialize super tile that will load the point clouds
 		this.mapTile = new SuperTile()
 		
-		this.usePlane = false
+		this.isLiveMode = false
+		
+		// Initialize socket for use when "live mode" operation is on
+		this.initClient()
 	}
 	
 	/**
@@ -112,12 +131,13 @@ class Annotator {
 		this.scene.add(this.plane)
 	
 		// Add grid on top of the plane
-		this.grid = new THREE.GridHelper(200, 100);
-		this.grid.material.opacity = 0.25;
-		this.grid.material.transparent = true;
-		this.scene.add(this.grid);
-		this.axis = new THREE.AxisHelper(1);
-		this.scene.add(this.axis);
+		this.grid = new THREE.GridHelper(200, 100)
+		this.grid.position.y = -0.5
+		this.grid.material.opacity = 0.25
+		this.grid.material.transparent = true
+		this.scene.add(this.grid)
+		this.axis = new THREE.AxisHelper(1)
+		this.scene.add(this.axis)
 
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
@@ -168,6 +188,8 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mousedown', () => {
 			this.isMouseButtonPressed = true
 		})
+		
+		this.loadCarModel()
 
 		// Bind events
 		this.bind();
@@ -178,7 +200,10 @@ class Annotator {
 	 * Start THREE.js rendering loop.
 	 */
 	animate = () => {
-		requestAnimationFrame(this.animate)
+		setTimeout( () => {
+			requestAnimationFrame(this.animate)
+		}, 1000/ this.settings.fpsRendering)
+		
 		this.render()
 		this.stats.update()
 		this.orbitControls.update()
@@ -245,6 +270,11 @@ class Annotator {
 				"Annotator failed to load tiles from given folder.")
 		}
 	}
+
+	unloadPointCloudData() {
+		log.info("unloadPointCloudData")
+		this.mapTile.unloadAllPoints()
+	}
 	
 	/**
 	 * Load annotations from file. Add all annotations to the annotation manager
@@ -269,14 +299,14 @@ class Annotator {
 	/**
 	 * Create a new lane annotation.
 	 */
-	private addLaneAnnotation() {
+	private addLaneAnnotation(): boolean {
 		if (this.annotationManager.activeAnnotationIndex >=0 &&
 			this.annotationManager.activeMarkers.length === 0) {
-			return
+			return false
 		}
 		// This creates a new lane and add it to the scene for display
-		this.annotationManager.addLaneAnnotation(this.scene)
-		this.annotationManager.makeLastAnnotationActive()
+		return this.annotationManager.addLaneAnnotation(this.scene) &&
+			this.annotationManager.makeLastAnnotationActive()
 	}
 	
 	private getMouseCoordinates = (event) : THREE.Vector2 => {
@@ -300,7 +330,7 @@ class Annotator {
 		this.raycaster_plane.setFromCamera(mouse, this.camera)
 		let intersections
 		
-		if (this.usePlane) {
+		if (this.mapTile.pointCloud === null) {
 			intersections = this.raycaster_plane.intersectObject(this.plane)
 		} else {
 			intersections = this.raycaster_plane.intersectObject(this.mapTile.pointCloud)
@@ -320,6 +350,8 @@ class Annotator {
 	 * @param event
 	 */
 	private checkForAnnotationSelection = (event) => {
+		if (this.isLiveMode) return
+
 		let mouse = this.getMouseCoordinates(event)
 		this.raycaster_annotation.setFromCamera( mouse, this.camera )
 		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.annotationMeshes)
@@ -411,8 +443,9 @@ class Annotator {
 
 		if (event.code === 'KeyD') {
 			log.info("Deleting last marker")
-			this.annotationManager.deleteLastLaneMarker()
-			this.hideTransform()
+			if (this.annotationManager.deleteLastLaneMarker()) {
+				this.hideTransform()
+			}
 		}
 		
 		if (event.code === 'KeyN') {
@@ -450,6 +483,15 @@ class Annotator {
 		if (event.code === 'KeyM') {
 			this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
 		}
+		
+		if (event.code == 'KeyO') {
+			this.toggleListen()
+		}
+
+		if (event.code == 'KeyU') {
+			this.unloadPointCloudData()
+		}
+
 	}
 	
 	private onKeyUp = () => {
@@ -503,7 +545,7 @@ class Annotator {
 	 */
 	private initOrbitControls() {
 		this.orbitControls = new OrbitControls( this.camera, this.renderer.domElement );
-		this.orbitControls.damping = 0.2;
+		this.orbitControls.minDistance = -Infinity
 		
 		// Add listeners.
 		
@@ -557,19 +599,20 @@ class Annotator {
 	 */
 	deleteLane() {
 		// Delete lane from scene
-		log.info("Delete selected annotation");
-		this.annotationManager.deleteLaneFromPath();
-		this.annotationManager.deleteActiveAnnotation(this.scene);
-		this.deactivateLaneProp();
-		this.hideTransform();
+		if (this.annotationManager.deleteLaneFromPath() && this.annotationManager.deleteActiveAnnotation(this.scene)) {
+			log.info("Deleted selected annotation")
+			this.deactivateLaneProp()
+			this.hideTransform()
+		}
 	}
 
 	addLane() {
 		// Add lane to scene
-		log.info("Added new annotation");
-		this.addLaneAnnotation();
-		this.resetLaneProp();
-		this.hideTransform();
+		if (this.addLaneAnnotation()) {
+			log.info("Added new annotation")
+			this.resetLaneProp()
+			this.hideTransform()
+		}
 	}
 
 	saveToFile() {
@@ -598,42 +641,37 @@ class Annotator {
 
 	addFront() {
 		log.info("Adding connected annotation to the front");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)
-	
-		// Deactivate button
-		this.deactivateFrontSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
+			this.deactivateFrontSideNeighbours()
+		}
 	}
 
 	addLeftSame() {
 		log.info("Adding connected annotation to the left - same direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME);
-
-		// Deactivate buttons
-		this.deactivateLeftSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
+			this.deactivateLeftSideNeighbours()
+		}
 	}
 
 	addLeftReverse() {
 		log.info("Adding connected annotation to the left - reverse direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE);
-
-		// Deactivate buttons
-		this.deactivateLeftSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
+			this.deactivateLeftSideNeighbours()
+		}
 	}
 
 	addRightSame() {
 		log.info("Adding connected annotation to the right - same direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME);
-
-		// Deactivate buttons
-		this.deactivateRightSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
+			this.deactivateRightSideNeighbours()
+		}
 	}
 
 	addRightReverse() {
 		log.info("Adding connected annotation to the right - reverse direction");
-		this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE);
-
-		// Deactivate buttons
-		this.deactivateRightSideNeighbours();
+		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
+			this.deactivateRightSideNeighbours()
+		}
 	}
 
 	/**
@@ -643,15 +681,24 @@ class Annotator {
 
 		let menu_btn = document.getElementById('menu_control_btn')
 		menu_btn.addEventListener('click', _ => {
-			log.info("Menu icon clicked. Close/Open menu bar.")
-			let menu = document.getElementById('menu')
-			if (menu.style.visibility === 'hidden') {
-				menu.style.visibility = 'visible'
-			}
-			else {
-				menu.style.visibility = 'hidden'
+			if (this.isLiveMode) {
+				log.info("Disable live location mode first to access the menu.")
+			} else {
+				log.info("Menu icon clicked. Close/Open menu bar.")
+				let menu = document.getElementById('menu')
+				if (menu.style.visibility === 'hidden') {
+					menu.style.visibility = 'visible'
+				}
+				else {
+					menu.style.visibility = 'hidden'
+				}
 			}
 		})
+
+		let live_location_control_btn = document.getElementById('live_location_control_btn');
+		live_location_control_btn.addEventListener('click', _ => {
+			this.toggleListen();
+		});
 
 		let tools_delete = document.getElementById('tools_delete');
 		tools_delete.addEventListener('click', _ => {
@@ -766,8 +813,9 @@ class Annotator {
 			}
 
 			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
-			this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation);
-			this.resetLaneProp();
+			if (this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation)) {
+				this.resetLaneProp()
+			}
 		});
 
 		let lc_left = $('#lp_select_left');
@@ -818,12 +866,13 @@ class Annotator {
 		tr_add.on('click', _ => {
 
 			log.info("Add/remove lane to/from car path.");
-			this.annotationManager.addLaneToPath();
-			if (tr_add.text() === "Add") {
-				tr_add.text("Remove");
-			}
-			else {
-				tr_add.text("Add");
+			if (this.annotationManager.addLaneToPath()) {
+				if (tr_add.text() === "Add") {
+					tr_add.text("Remove")
+				}
+				else {
+					tr_add.text("Add")
+				}
 			}
 		});
 		
@@ -1002,6 +1051,120 @@ class Annotator {
 		let lp_add_front = document.getElementById('lp_add_forward');
 		lp_add_front.removeAttribute('disabled');
 	}
+	
+	private loadCarModel() {
+		let manager = new THREE.LoadingManager()
+		let loader = new (THREE as any).OBJLoader(manager)
+		loader.load(config.get('assets.car_model.BMW_X5'), (object) => {
+			let boundingBox = new THREE.Box3().setFromObject(object)
+			let boxSize = boundingBox.getSize().toArray()
+			let modelLength = Math.max(...boxSize)
+			const carLength = 4.5 // approx in meters
+			const scaleFactor = carLength / modelLength
+			this.carModel = object
+			this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
+			this.carModel.rotateY(1.5708)
+			this.carModel.visible = false
+			this.scene.add(object)
+		})
+	}
+	
+	initClient() {
+		this.liveSubscribeSocket = zmq.socket('sub')
+		
+		this.liveSubscribeSocket.on('message', (msg) => {
+			if (!this.isLiveMode) return
+
+			let state =  Models.InertialStateMessage.decode(msg)
+			log.info("Received message: " + state.pose.timestamp)
+			
+			// Move the car and the camera
+			let position = this.mapTile.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
+			log.info(state.pose.x + " " + position.x)
+			
+			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
+			rotation.normalize()
+			this.updateCarPose(position, rotation)
+			this.updateCameraPose()
+		})
+		
+		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
+		this.liveSubscribeSocket.subscribe("")
+	}
+
+	/**
+	 * Toggle whether or not to listen for live-location updates.
+	 * Returns the updated state of live-location mode.
+	 */
+	toggleListen() {
+		let hideMenu
+		
+		if (this.isLiveMode) {
+			this.annotationManager.unsetLiveMode()
+			hideMenu = this.stopListening()
+		} else {
+			this.annotationManager.setLiveMode()
+			hideMenu = this.listen()
+		}
+		
+		let menu = document.getElementById('menu')
+		
+		if (hideMenu) {
+			menu.style.visibility = 'hidden'
+		} else {
+			menu.style.visibility = 'visible'
+		}
+	}
+
+	listen(): boolean {
+		if (this.isLiveMode) return this.isLiveMode
+
+		log.info('Listening for messages...')
+		this.isLiveMode = true
+		this.plane.visible = false
+		this.grid.visible = false
+		this.orbitControls.enabled = false
+		this.camera.matrixAutoUpdate = false
+		this.carModel.visible = true
+		this.settings.fpsRendering = 30
+		return this.isLiveMode
+	}
+	
+	stopListening(): boolean {
+		if (!this.isLiveMode) return this.isLiveMode
+
+		log.info('Stopped listening for messages...')
+		this.isLiveMode = false
+		this.plane.visible = true
+		this.grid.visible = true
+		this.orbitControls.enabled = true
+		this.camera.matrixAutoUpdate = true
+		this.carModel.visible = false
+		this.settings.fpsRendering = 60
+		return this.isLiveMode
+	}
+	
+	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion) {
+		this.carModel.position.set(position.x, position.y, position.z)
+		this.carModel.setRotationFromQuaternion(rotation)
+		// This is because the car model is rotated 90 degrees
+		this.carModel.rotateY(-1.5708)
+		// Bring the model close to the ground (approx height of the sensors)
+		let p = this.carModel.getWorldPosition()
+		this.carModel.position.set(p.x, 0, p.z)
+	}
+	
+	private updateCameraPose() {
+		let p = this.carModel.getWorldPosition()
+		let offset = new THREE.Vector3(20, 15, 0)
+		offset.applyQuaternion(this.carModel.quaternion)
+		offset.add(p)
+		log.info(p.x)
+		this.camera.position.set(offset.x, offset.y, offset.z)
+		this.camera.lookAt(p)
+		this.camera.updateMatrix()
+	}
+	
 }
 
 

@@ -78,7 +78,8 @@ class LaneRenderingProperties {
 	centerLineMaterial : THREE.LineDashedMaterial
 	trajectoryMaterial : THREE.MeshLambertMaterial
 	connectionMaterial : THREE.MeshLambertMaterial
-	
+	liveModeMaterial : THREE.MeshLambertMaterial
+
 	constructor (color) {
 		this.color = color
 		this.markerMaterial = new THREE.MeshLambertMaterial({color : this.color, side : THREE.DoubleSide})
@@ -87,6 +88,7 @@ class LaneRenderingProperties {
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side : THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial( { color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2 } )
 		this.connectionMaterial = new THREE.MeshLambertMaterial( {color: 0x00ff00, side : THREE.DoubleSide})
+		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 	}
 }
 
@@ -194,7 +196,7 @@ export class LaneAnnotation {
 	 */
 	addMarker(x:number, y:number, z:number) {
 		
-		let marker : THREE.Vector3 = new THREE.Vector3(x,y,z)// = new THREE.Mesh( controlPointGeometry, this.renderingProperties.markerMaterial)
+		let marker : THREE.Vector3 = new THREE.Vector3(x,y,z)
 		this.addRawMarker(marker)
 		
 		// From the third marker onwards, add markers in pairs by estimating the position
@@ -304,7 +306,25 @@ export class LaneAnnotation {
 			}
 		}
 	}
-	
+
+	setLiveMode(): void {
+		if (parseInt(this.exitType as any) === LaneEntryExitType.STOP) {
+			if (parseInt(this.entryType as any) === LaneEntryExitType.STOP) {
+				this.renderingProperties.liveModeMaterial.color.setHex(0xff0000)
+			} else {
+				this.renderingProperties.liveModeMaterial.color.setHex(0x00ff00)
+			}
+		}
+		this.laneMarkers.forEach((marker) => {marker.visible = false})
+		this.laneCenterLine.visible = true
+		this.laneMesh.material = this.renderingProperties.liveModeMaterial
+	}
+
+	unsetLiveMode(): void {
+		this.laneMarkers.forEach((marker) => {marker.visible = true})
+		this.makeInactive()
+	}
+
 	/**
 	 * Recompute mesh from markers.
 	 */
@@ -432,7 +452,7 @@ export class LaneAnnotation {
 		let centerPoints = spline.getPoints(100)
 		for (let i=0; i < centerPoints.length; i++) {
 			lineGeometry.vertices[i] = centerPoints[i]
-			lineGeometry.vertices[i].y += 0.2
+			lineGeometry.vertices[i].y += 0.05
 		}
 		lineGeometry.computeLineDistances()
 		this.laneCenterLine.geometry = lineGeometry
