@@ -119,7 +119,7 @@ export class TileManager extends UtmInterface {
 		} else {
 			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
 		}
-		return 'TileManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])';
+		return 'TileManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])'
 	}
 
 	// "default" according to protobuf rules for default values

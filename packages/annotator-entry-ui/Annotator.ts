@@ -112,7 +112,7 @@ class Annotator {
 		// Add some lights
 		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
 		this.light = new THREE.SpotLight(0xffffff, 1.5)
-		this.light.castShadow = true;
+		this.light.castShadow = true
 		this.light.shadow = new THREE.SpotLightShadow(new THREE.PerspectiveCamera(70, 1, 200, 2000))
 		this.light.shadow.mapSize.width = 1024
 		this.light.shadow.bias = -0.000222
@@ -151,7 +151,7 @@ class Annotator {
 		// Create stats widget to display frequency of rendering
 		this.stats = new statsModule()
 		root.append(this.renderer.domElement)
-		root.append(this.stats.dom);
+		root.append(this.stats.dom)
 
 		// Initialize all control objects.
 		this.initOrbitControls()
@@ -177,7 +177,7 @@ class Annotator {
 		})
 
 		// Add listeners
-		window.addEventListener('resize', this.onWindowResize);
+		window.addEventListener('resize', this.onWindowResize)
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
 
@@ -194,8 +194,8 @@ class Annotator {
 		this.loadCarModel()
 
 		// Bind events
-		this.bind();
-		this.deactivateLaneProp();
+		this.bind()
+		this.deactivateLaneProp()
 	}
 
 	/**
@@ -229,7 +229,7 @@ class Annotator {
 		this.plane.geometry.translate(x, y, z)
 		this.grid.geometry.center()
 		this.grid.geometry.translate(x, y, z)
-		this.grid.position.y -= 0.01;
+		this.grid.position.y -= 0.01
 		this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 		this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
 		this.orbitControls.target.set(x, y, z)
@@ -394,7 +394,7 @@ class Annotator {
 
 			if (this.hovered !== object) {
 				this.renderer.domElement.style.cursor = 'pointer'
-				this.hovered = object;
+				this.hovered = object
 				// HOVER ON
 				this.transformControls.attach(this.hovered)
 				this.cancelHideTransform()
@@ -451,35 +451,35 @@ class Annotator {
 		}
 
 		if (event.code === 'KeyN') {
-			this.addLane();
+			this.addLane()
 		}
 
 		if (event.code === 'KeyZ') {
-			this.deleteLane();
+			this.deleteLane()
 		}
 
 		if (event.code === "KeyF") {
-			this.addFront();
+			this.addFront()
 		}
 
 		if (event.code === "KeyL") {
-			this.addLeftSame();
+			this.addLeftSame()
 		}
 
 		if (event.code === "KeyK") {
-			this.addLeftReverse();
+			this.addLeftReverse()
 		}
 
 		if (event.code === "KeyR") {
-			this.addRightSame();
+			this.addRightSame()
 		}
 
 		if (event.code === "KeyE") {
-			this.addRightReverse();
+			this.addRightReverse()
 		}
 
 		if (event.code === "KeyS") {
-			this.saveToFile();
+			this.saveToFile()
 		}
 
 		if (event.code === 'KeyM') {
@@ -527,8 +527,8 @@ class Annotator {
 	}
 
 	private delayHideTransform = () => {
-		this.cancelHideTransform();
-		this.hideTransform();
+		this.cancelHideTransform()
+		this.hideTransform()
 	}
 
 	private hideTransform = () => {
@@ -539,7 +539,7 @@ class Annotator {
 
 	private cancelHideTransform = () => {
 		if (this.hideTransformControlTimer) {
-			clearTimeout(this.hideTransformControlTimer);
+			clearTimeout(this.hideTransformControlTimer)
 		}
 	}
 
@@ -547,13 +547,13 @@ class Annotator {
 	 * Create orbit controls which enable translation, rotation and zooming of the scene.
 	 */
 	private initOrbitControls() {
-		this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+		this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement)
 		this.orbitControls.minDistance = -Infinity
 
 		// Add listeners.
 
 		// Render the scene again if we translated, rotated or zoomed.
-		this.orbitControls.addEventListener('change', this.render);
+		this.orbitControls.addEventListener('change', this.render)
 
 		// If we are controlling the scene don't hide any transform object.
 		this.orbitControls.addEventListener('start', () => {
@@ -570,9 +570,9 @@ class Annotator {
 	 * Create Transform controls object. This allows for the translation of an object in the scene.
 	 */
 	private initTransformControls() {
-		this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
-		this.transformControls.addEventListener('change', this.render);
-		this.scene.add(this.transformControls);
+		this.transformControls = new TransformControls(this.camera, this.renderer.domElement)
+		this.transformControls.addEventListener('change', this.render)
+		this.scene.add(this.transformControls)
 
 		// Add listeners.
 
@@ -619,59 +619,59 @@ class Annotator {
 	}
 
 	saveToFile() {
-		log.info("Saving annotations to JSON");
-		this.saveAnnotations();
+		log.info("Saving annotations to JSON")
+		this.saveAnnotations()
 	}
 
 	exportKml() {
-		log.info("Exporting annotations to KML");
-		this.exportAnnotationsToKml();
+		log.info("Exporting annotations to KML")
+		this.exportAnnotationsToKml()
 	}
 
 	loadFromFile() {
 
 		let path_electron = dialog.showOpenDialog({
 			properties: ['openDirectory']
-		});
+		})
 
 		if (isUndefined(path_electron)) {
 			return
 		}
 
-		log.info('Loading point cloud from ' + path_electron[0]);
-		this.loadPointCloudData(path_electron[0]);
+		log.info('Loading point cloud from ' + path_electron[0])
+		this.loadPointCloudData(path_electron[0])
 	}
 
 	addFront() {
-		log.info("Adding connected annotation to the front");
+		log.info("Adding connected annotation to the front")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
 			this.deactivateFrontSideNeighbours()
 		}
 	}
 
 	addLeftSame() {
-		log.info("Adding connected annotation to the left - same direction");
+		log.info("Adding connected annotation to the left - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
 			this.deactivateLeftSideNeighbours()
 		}
 	}
 
 	addLeftReverse() {
-		log.info("Adding connected annotation to the left - reverse direction");
+		log.info("Adding connected annotation to the left - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
 			this.deactivateLeftSideNeighbours()
 		}
 	}
 
 	addRightSame() {
-		log.info("Adding connected annotation to the right - same direction");
+		log.info("Adding connected annotation to the right - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
 			this.deactivateRightSideNeighbours()
 		}
 	}
 
 	addRightReverse() {
-		log.info("Adding connected annotation to the right - reverse direction");
+		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			this.deactivateRightSideNeighbours()
 		}
@@ -698,25 +698,25 @@ class Annotator {
 			}
 		})
 
-		let live_location_control_btn = document.getElementById('live_location_control_btn');
+		let live_location_control_btn = document.getElementById('live_location_control_btn')
 		live_location_control_btn.addEventListener('click', _ => {
-			this.toggleListen();
-		});
+			this.toggleListen()
+		})
 
-		let tools_delete = document.getElementById('tools_delete');
+		let tools_delete = document.getElementById('tools_delete')
 		tools_delete.addEventListener('click', _ => {
-			this.deleteLane();
-		});
+			this.deleteLane()
+		})
 
-		let tools_add = document.getElementById('tools_add');
+		let tools_add = document.getElementById('tools_add')
 		tools_add.addEventListener('click', _ => {
-			this.addLane();
-		});
+			this.addLane()
+		})
 
-		let tools_load = document.getElementById('tools_load');
+		let tools_load = document.getElementById('tools_load')
 		tools_load.addEventListener('click', _ => {
-			this.loadFromFile();
-		});
+			this.loadFromFile()
+		})
 
 		let tools_load_annotation = document.getElementById('tools_load_annotation')
 		tools_load_annotation.addEventListener('click', _ => {
@@ -728,147 +728,147 @@ class Annotator {
 				return
 			}
 
-			log.info('Loading annotations from ' + path_electron[0]);
+			log.info('Loading annotations from ' + path_electron[0])
 			this.loadAnnotations(path_electron[0])
 		})
 
-		let tools_save = document.getElementById('tools_save');
+		let tools_save = document.getElementById('tools_save')
 		tools_save.addEventListener('click', _ => {
-			this.saveToFile();
-		});
+			this.saveToFile()
+		})
 
-		let tools_export_kml = document.getElementById('tools_export_kml');
+		let tools_export_kml = document.getElementById('tools_export_kml')
 		tools_export_kml.addEventListener('click', _ => {
-			this.exportKml();
-		});
+			this.exportKml()
+		})
 
-		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
+		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite')
 		lp_add_left_opposite.addEventListener('click', _ => {
-			this.addLeftReverse();
-		});
+			this.addLeftReverse()
+		})
 
-		let lp_add_left_same = document.getElementById('lp_add_left_same');
+		let lp_add_left_same = document.getElementById('lp_add_left_same')
 		lp_add_left_same.addEventListener('click', _ => {
-			this.addLeftSame();
-		});
+			this.addLeftSame()
+		})
 
-		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
+		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite')
 		lp_add_right_opposite.addEventListener('click', _ => {
-			this.addRightReverse();
-		});
+			this.addRightReverse()
+		})
 
-		let lp_add_right_same = document.getElementById('lp_add_right_same');
+		let lp_add_right_same = document.getElementById('lp_add_right_same')
 		lp_add_right_same.addEventListener('click', _ => {
-			this.addRightSame();
-		});
+			this.addRightSame()
+		})
 
-		let lp_add_front = document.getElementById('lp_add_forward');
+		let lp_add_front = document.getElementById('lp_add_forward')
 		lp_add_front.addEventListener('click', _ => {
-			this.addFront();
-		});
+			this.addFront()
+		})
 
-		let lc_select_from = document.getElementById('lc_select_from');
+		let lc_select_from = document.getElementById('lc_select_from')
 		lc_select_from.addEventListener('mousedown', _ => {
 
 			// Get ids
-			let ids = this.annotationManager.getValidIds();
+			let ids = this.annotationManager.getValidIds()
 			// Add ids
-			let selectbox = $('#lc_select_from');
-			selectbox.empty();
-			let list = '';
+			let selectbox = $('#lc_select_from')
+			selectbox.empty()
+			let list = ''
 			for (let j = 0; j < ids.length; j++) {
-				list += "<option value=" + ids[j] + ">" + ids[j] + "</option>";
+				list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
 			}
-			selectbox.html(list);
-		});
+			selectbox.html(list)
+		})
 
-		let lc_select_to = document.getElementById('lc_select_to');
+		let lc_select_to = document.getElementById('lc_select_to')
 		lc_select_to.addEventListener('mousedown', _ => {
 
 			// Get ids
-			let ids = this.annotationManager.getValidIds();
+			let ids = this.annotationManager.getValidIds()
 			// Add ids
-			let selectbox = $('#lc_select_to');
-			selectbox.empty();
-			let list = '';
+			let selectbox = $('#lc_select_to')
+			selectbox.empty()
+			let list = ''
 			for (let j = 0; j < ids.length; j++) {
-				list += "<option value=" + ids[j] + ">" + ids[j] + "</option>";
+				list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
 			}
-			selectbox.html(list);
-		});
+			selectbox.html(list)
+		})
 
-		let lc_add = document.getElementById('lc_add');
+		let lc_add = document.getElementById('lc_add')
 		lc_add.addEventListener('click', _ => {
-			let lc_to: LaneId = Number($('#lc_select_to').val());
-			let lc_from: LaneId = Number($('#lc_select_from').val());
-			let lc_relation = $('#lc_select_relation').val();
+			let lc_to: LaneId = Number($('#lc_select_to').val())
+			let lc_from: LaneId = Number($('#lc_select_from').val())
+			let lc_relation = $('#lc_select_relation').val()
 
 			if (lc_to === null || lc_from === null) {
 				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
 					"You have to select both lanes to be connected.")
-				return;
+				return
 			}
 
 			if (lc_to === lc_from) {
 				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-					"You can't connect a lane to itself. The 2 ids should be unique.");
-				return;
+					"You can't connect a lane to itself. The 2 ids should be unique.")
+				return
 			}
 
-			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
+			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to)
 			if (this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation)) {
 				this.resetLaneProp()
 			}
-		});
+		})
 
-		let lc_left = $('#lp_select_left');
+		let lc_left = $('#lp_select_left')
 		lc_left.on('change', _ => {
 
-			let active_annotation = this.annotationManager.getActiveAnnotation();
+			let active_annotation = this.annotationManager.getActiveAnnotation()
 			if (active_annotation === null) {
-				return;
+				return
 			}
-			log.info("Adding left side type: " + lc_left.children("option").filter(":selected").text());
-			active_annotation.leftSideType = lc_left.val();
-		});
+			log.info("Adding left side type: " + lc_left.children("option").filter(":selected").text())
+			active_annotation.leftSideType = lc_left.val()
+		})
 
-		let lc_right = $('#lp_select_right');
+		let lc_right = $('#lp_select_right')
 		lc_right.on('change', _ => {
 
-			let active_annotation = this.annotationManager.getActiveAnnotation();
+			let active_annotation = this.annotationManager.getActiveAnnotation()
 			if (active_annotation === null) {
-				return;
+				return
 			}
-			log.info("Adding right side type: " + lc_right.children("option").filter(":selected").text());
-			active_annotation.rightSideType = lc_right.val();
-		});
+			log.info("Adding right side type: " + lc_right.children("option").filter(":selected").text())
+			active_annotation.rightSideType = lc_right.val()
+		})
 
-		let lc_entry = $('#lp_select_entry');
+		let lc_entry = $('#lp_select_entry')
 		lc_entry.on('change', _ => {
 
-			let active_annotation = this.annotationManager.getActiveAnnotation();
+			let active_annotation = this.annotationManager.getActiveAnnotation()
 			if (active_annotation === null) {
-				return;
+				return
 			}
-			log.info("Adding entry type: " + lc_entry.children("option").filter(":selected").text());
-			active_annotation.entryType = lc_entry.val();
-		});
+			log.info("Adding entry type: " + lc_entry.children("option").filter(":selected").text())
+			active_annotation.entryType = lc_entry.val()
+		})
 
-		let lc_exit = $('#lp_select_exit');
+		let lc_exit = $('#lp_select_exit')
 		lc_exit.on('change', _ => {
 
-			let active_annotation = this.annotationManager.getActiveAnnotation();
+			let active_annotation = this.annotationManager.getActiveAnnotation()
 			if (active_annotation === null) {
-				return;
+				return
 			}
-			log.info("Adding exit type: " + lc_exit.children("option").filter(":selected").text());
-			active_annotation.exitType = lc_exit.val();
-		});
+			log.info("Adding exit type: " + lc_exit.children("option").filter(":selected").text())
+			active_annotation.exitType = lc_exit.val()
+		})
 
-		let tr_add = $('#tr_add');
+		let tr_add = $('#tr_add')
 		tr_add.on('click', _ => {
 
-			log.info("Add/remove lane to/from car path.");
+			log.info("Add/remove lane to/from car path.")
 			if (this.annotationManager.addLaneToPath()) {
 				if (tr_add.text() === "Add") {
 					tr_add.text("Remove")
@@ -877,24 +877,24 @@ class Annotator {
 					tr_add.text("Add")
 				}
 			}
-		});
+		})
 
-		let tr_show = $('#tr_show');
+		let tr_show = $('#tr_show')
 		tr_show.on('click', _ => {
 
-			log.info("Show/hide car path.");
+			log.info("Show/hide car path.")
 			if (!this.annotationManager.showPath()) {
 				return
 			}
 
 			// Change button text only if showPath succeed
 			if (tr_show.text() === "Show") {
-				tr_show.text("Hide");
+				tr_show.text("Hide")
 			}
 			else {
-				tr_show.text("Show");
+				tr_show.text("Show")
 			}
-		});
+		})
 
 		let save_path = $('#save_path')
 		save_path.on('click', _ => {
@@ -909,74 +909,74 @@ class Annotator {
 	 */
 	private resetLaneProp() {
 
-		let active_annotation = this.annotationManager.getActiveAnnotation();
+		let active_annotation = this.annotationManager.getActiveAnnotation()
 		if (active_annotation === null) {
-			return;
+			return
 		}
 
 		if (active_annotation.neighborsIds.left != null) {
-			this.deactivateLeftSideNeighbours();
+			this.deactivateLeftSideNeighbours()
 		} else {
-			this.activateLeftSideNeighbours();
+			this.activateLeftSideNeighbours()
 		}
 
 		if (active_annotation.neighborsIds.right != null) {
-			this.deactivateRightSideNeighbours();
+			this.deactivateRightSideNeighbours()
 		} else {
-			this.activateRightSideNeighbours();
+			this.activateRightSideNeighbours()
 		}
 
 		if (active_annotation.neighborsIds.front.length != 0) {
-			this.deactivateFrontSideNeighbours();
+			this.deactivateFrontSideNeighbours()
 		} else {
-			this.activateFrontSideNeighbours();
+			this.activateFrontSideNeighbours()
 		}
 
-		let lp_id = document.getElementById('lp_id_value');
-		lp_id.textContent = active_annotation.id.toString();
+		let lp_id = document.getElementById('lp_id_value')
+		lp_id.textContent = active_annotation.id.toString()
 		active_annotation.updateLaneWidth()
 
-		let lc_select_to = $('#lc_select_to');
-		lc_select_to.empty();
-		lc_select_to.removeAttr('disabled');
+		let lc_select_to = $('#lc_select_to')
+		lc_select_to.empty()
+		lc_select_to.removeAttr('disabled')
 
-		let lc_select_from = $('#lc_select_from');
-		lc_select_from.empty();
-		lc_select_from.removeAttr('disabled');
+		let lc_select_from = $('#lc_select_from')
+		lc_select_from.empty()
+		lc_select_from.removeAttr('disabled')
 
-		let lc_select_relation = $('#lc_select_relation');
-		lc_select_relation.removeAttr('disabled');
+		let lc_select_relation = $('#lc_select_relation')
+		lc_select_relation.removeAttr('disabled')
 
-		let lp_select_left = $('#lp_select_left');
-		lp_select_left.removeAttr('disabled');
-		lp_select_left.val(active_annotation.leftSideType.toString());
+		let lp_select_left = $('#lp_select_left')
+		lp_select_left.removeAttr('disabled')
+		lp_select_left.val(active_annotation.leftSideType.toString())
 
-		let lp_add_relation = $('#lc_add');
-		lp_add_relation.removeAttr('disabled');
+		let lp_add_relation = $('#lc_add')
+		lp_add_relation.removeAttr('disabled')
 
-		let lp_select_right = $('#lp_select_right');
-		lp_select_right.removeAttr('disabled');
-		lp_select_right.val(active_annotation.rightSideType.toString());
+		let lp_select_right = $('#lp_select_right')
+		lp_select_right.removeAttr('disabled')
+		lp_select_right.val(active_annotation.rightSideType.toString())
 
-		let lp_select_entry = $('#lp_select_entry');
-		lp_select_entry.removeAttr('disabled');
-		lp_select_entry.val(active_annotation.entryType.toString());
+		let lp_select_entry = $('#lp_select_entry')
+		lp_select_entry.removeAttr('disabled')
+		lp_select_entry.val(active_annotation.entryType.toString())
 
-		let lp_select_exit = $('#lp_select_exit');
-		lp_select_exit.removeAttr('disabled');
-		lp_select_exit.val(active_annotation.exitType.toString());
+		let lp_select_exit = $('#lp_select_exit')
+		lp_select_exit.removeAttr('disabled')
+		lp_select_exit.val(active_annotation.exitType.toString())
 
-		let tr_add = $('#tr_add');
-		tr_add.removeAttr('disabled');
+		let tr_add = $('#tr_add')
+		tr_add.removeAttr('disabled')
 		if (this.annotationManager.laneIndexInPath(active_annotation.uuid) === -1) {
-			tr_add.text("Add");
+			tr_add.text("Add")
 		}
 		else {
-			tr_add.text("Remove");
+			tr_add.text("Remove")
 		}
 
-		let tr_show = $('#tr_show');
-		tr_show.removeAttr('disabled');
+		let tr_show = $('#tr_show')
+		tr_show.removeAttr('disabled')
 	}
 
 	/**
@@ -984,78 +984,78 @@ class Annotator {
 	 */
 	deactivateLaneProp() {
 
-		this.deactivateLeftSideNeighbours();
-		this.deactivateRightSideNeighbours();
-		this.deactivateFrontSideNeighbours();
+		this.deactivateLeftSideNeighbours()
+		this.deactivateRightSideNeighbours()
+		this.deactivateFrontSideNeighbours()
 
-		let lp_id = document.getElementById('lp_id_value');
-		lp_id.textContent = 'UNKNOWN';
+		let lp_id = document.getElementById('lp_id_value')
+		lp_id.textContent = 'UNKNOWN'
 		let lp_width = document.getElementById('lp_width_value')
 		lp_width.textContent = 'UNKNOWN'
 
-		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select');
+		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select')
 		for (let i = 0; i < selects.length; ++i) {
-			selects.item(i).selectedIndex = 0;
-			selects.item(i).setAttribute('disabled', 'disabled');
+			selects.item(i).selectedIndex = 0
+			selects.item(i).setAttribute('disabled', 'disabled')
 		}
 
-		selects = document.getElementById('lane_conn').getElementsByTagName('select');
+		selects = document.getElementById('lane_conn').getElementsByTagName('select')
 		for (let i = 0; i < selects.length; ++i) {
-			selects.item(i).setAttribute('disabled', 'disabled');
+			selects.item(i).setAttribute('disabled', 'disabled')
 		}
 
-		let lc_add = document.getElementById('lc_add');
-		lc_add.setAttribute('disabled', 'disabled');
+		let lc_add = document.getElementById('lc_add')
+		lc_add.setAttribute('disabled', 'disabled')
 
-		let tr_add = document.getElementById('tr_add');
-		tr_add.setAttribute('disabled', 'disabled');
+		let tr_add = document.getElementById('tr_add')
+		tr_add.setAttribute('disabled', 'disabled')
 	}
 
 	/**
 	 * Deactivate/activate left side neighbours
 	 */
 	deactivateLeftSideNeighbours() {
-		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
-		let lp_add_left_same = document.getElementById('lp_add_left_same');
-		lp_add_left_same.setAttribute('disabled', 'disabled');
-		lp_add_left_opposite.setAttribute('disabled', 'disabled');
+		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite')
+		let lp_add_left_same = document.getElementById('lp_add_left_same')
+		lp_add_left_same.setAttribute('disabled', 'disabled')
+		lp_add_left_opposite.setAttribute('disabled', 'disabled')
 	}
 
 	activateLeftSideNeighbours() {
-		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
-		let lp_add_left_same = document.getElementById('lp_add_left_same');
-		lp_add_left_same.removeAttribute('disabled');
-		lp_add_left_opposite.removeAttribute('disabled');
+		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite')
+		let lp_add_left_same = document.getElementById('lp_add_left_same')
+		lp_add_left_same.removeAttribute('disabled')
+		lp_add_left_opposite.removeAttribute('disabled')
 	}
 
 	/**
 	 * Deactivate right side neighbours
 	 */
 	deactivateRightSideNeighbours() {
-		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
-		let lp_add_right_same = document.getElementById('lp_add_right_same');
-		lp_add_right_same.setAttribute('disabled', 'disabled');
-		lp_add_right_opposite.setAttribute('disabled', 'disabled');
+		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite')
+		let lp_add_right_same = document.getElementById('lp_add_right_same')
+		lp_add_right_same.setAttribute('disabled', 'disabled')
+		lp_add_right_opposite.setAttribute('disabled', 'disabled')
 	}
 
 	activateRightSideNeighbours() {
-		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
-		let lp_add_right_same = document.getElementById('lp_add_right_same');
-		lp_add_right_same.removeAttribute('disabled');
-		lp_add_right_opposite.removeAttribute('disabled');
+		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite')
+		let lp_add_right_same = document.getElementById('lp_add_right_same')
+		lp_add_right_same.removeAttribute('disabled')
+		lp_add_right_opposite.removeAttribute('disabled')
 	}
 
 	/**
 	 * Deactivate/activate front side neighbours
 	 */
 	deactivateFrontSideNeighbours() {
-		let lp_add_front = document.getElementById('lp_add_forward');
-		lp_add_front.setAttribute('disabled', 'disabled');
+		let lp_add_front = document.getElementById('lp_add_forward')
+		lp_add_front.setAttribute('disabled', 'disabled')
 	}
 
 	activateFrontSideNeighbours() {
-		let lp_add_front = document.getElementById('lp_add_forward');
-		lp_add_front.removeAttribute('disabled');
+		let lp_add_front = document.getElementById('lp_add_forward')
+		lp_add_front.removeAttribute('disabled')
 	}
 
 	private loadCarModel() {
@@ -1173,4 +1173,4 @@ class Annotator {
 
 }
 
-export const annotator = new Annotator();
+export const annotator = new Annotator()

@@ -12,7 +12,7 @@ TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
 // Some constants for rendering
-const controlPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+const controlPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
 
 const directionGeometry = new THREE.Geometry()
 directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25,  0.5))
@@ -435,10 +435,10 @@ export class LaneAnnotation {
 	private computeWaypoints() {
 		// There must be at least 4 markers to compute waypoints
 		if (this.laneMarkers.length < 4) {
-			return;
+			return
 		}
 
-		let points: Array<THREE.Vector3> = [];
+		let points: Array<THREE.Vector3> = []
 		for (let i = 0; i < this.laneMarkers.length - 1; i += 2) {
 			let waypoint = this.laneMarkers[i].position.clone()
 			waypoint.add(this.laneMarkers[i + 1].position).divideScalar(2)
@@ -472,7 +472,7 @@ export class LaneAnnotation {
 		})
 
 		if (this.waypoints.length < 3) {
-			return;
+			return
 		}
 
 		for (let i = 1; i < this.waypoints.length - 1; i++) {
@@ -497,7 +497,7 @@ export class LaneAnnotation {
 		})
 
 		if (trajectory.length < 3) {
-			return;
+			return
 		}
 
 		for (let i = 1; i < trajectory.length - 1; i++) {

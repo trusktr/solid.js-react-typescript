@@ -83,7 +83,7 @@ export class AnnotationManager extends UtmInterface {
 		} else {
 			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
 		}
-		return 'AnnotationManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])';
+		return 'AnnotationManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])'
 	}
 
 	/**
@@ -104,23 +104,23 @@ export class AnnotationManager extends UtmInterface {
 
 		if (this.activeAnnotationIndex < 0 &&
 			this.activeAnnotationIndex >= this.annotations.length) {
-			return null;
+			return null
 		}
 
-		return this.annotations[this.activeAnnotationIndex];
+		return this.annotations[this.activeAnnotationIndex]
 	}
 
 	/**
 	 * Get all existing ids
 	 */
 	getValidIds() {
-		let list = [];
+		let list = []
 		for (let i = 0; i < this.annotations.length; ++i) {
 			if (this.annotations[i].type === AnnotationType.LANE) {
-				list.push(this.annotations[i].id);
+				list.push(this.annotations[i].id)
 			}
 		}
-		return list;
+		return list
 	}
 
 	/**
@@ -200,21 +200,21 @@ export class AnnotationManager extends UtmInterface {
 		let lane_from: LaneAnnotation = null
 		for (let annotation of this.annotations) {
 			if (annotation.id === from_id) {
-				lane_from = annotation;
-				break;
+				lane_from = annotation
+				break
 			}
 		}
 
 		let lane_to: LaneAnnotation = null
 		for (let annotation of this.annotations) {
 			if (annotation.id === to_id) {
-				lane_to = annotation;
-				break;
+				lane_to = annotation
+				break
 			}
 		}
 
 		if (lane_to === null || lane_from === null) {
-			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Given lane ids are not valid.");
+			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Given lane ids are not valid.")
 			return false
 		}
 
@@ -223,38 +223,38 @@ export class AnnotationManager extends UtmInterface {
 				if (lane_from.neighborsIds.left === null &&
 					lane_to.neighborsIds.right === null) {
 
-					lane_from.neighborsIds.left = lane_to.uuid;
-					lane_to.neighborsIds.right = lane_from.uuid;
+					lane_from.neighborsIds.left = lane_to.uuid
+					lane_to.neighborsIds.right = lane_from.uuid
 				}
 				else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Left relation already exist.")
 					return false
 				}
-				break;
+				break
 			case 'left reverse':
 				if (lane_from.neighborsIds.left === null &&
 					lane_to.neighborsIds.left === null) {
 
-					lane_from.neighborsIds.left = lane_to.uuid;
-					lane_to.neighborsIds.left = lane_from.uuid;
+					lane_from.neighborsIds.left = lane_to.uuid
+					lane_to.neighborsIds.left = lane_from.uuid
 				}
 				else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Left relation already exist.")
 					return false
 				}
-				break;
+				break
 			case 'right':
 				if (lane_from.neighborsIds.right === null &&
 					lane_to.neighborsIds.left === null) {
 
-					lane_from.neighborsIds.right = lane_to.uuid;
-					lane_to.neighborsIds.left = lane_from.uuid;
+					lane_from.neighborsIds.right = lane_to.uuid
+					lane_to.neighborsIds.left = lane_from.uuid
 				}
 				else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Right relation already exist.")
 					return false
 				}
-				break;
+				break
 			case 'front':
 				let index_1 = lane_from.neighborsIds.front.findIndex((neighbor) => {
 					return neighbor === lane_to.uuid
@@ -267,8 +267,8 @@ export class AnnotationManager extends UtmInterface {
 					let lane_from_pt = lane_from.laneMarkers[lane_from.laneMarkers.length - 1].position
 					let lane_to_pt = lane_to.laneMarkers[1].position
 					if (lane_from_pt.distanceTo(lane_to_pt) < 1.0) {
-						lane_to.neighborsIds.back.push(lane_from.uuid);
-						lane_from.neighborsIds.front.push(lane_to.uuid);
+						lane_to.neighborsIds.back.push(lane_from.uuid)
+						lane_from.neighborsIds.front.push(lane_to.uuid)
 					}
 					else {
 						// Connection lane needed
@@ -279,7 +279,7 @@ export class AnnotationManager extends UtmInterface {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Front relation already exist.")
 					return false
 				}
-				break;
+				break
 			case 'back':
 				index_1 = lane_from.neighborsIds.back.findIndex((neighbor) => {
 					return neighbor === lane_to.uuid
@@ -288,16 +288,16 @@ export class AnnotationManager extends UtmInterface {
 					return neighbor === lane_from.uuid
 				})
 				if (index_1 === -1 && index_2 === -1) {
-					lane_from.neighborsIds.back.push(lane_to.uuid);
-					lane_to.neighborsIds.front.push(lane_from.uuid);
+					lane_from.neighborsIds.back.push(lane_to.uuid)
+					lane_to.neighborsIds.front.push(lane_from.uuid)
 				}
 				else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Back relation already exist.")
 					return false
 				}
-				break;
+				break
 			default:
-				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unknown relation to be added: " + relation);
+				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unknown relation to be added: " + relation)
 				return false
 		}
 
@@ -317,7 +317,7 @@ export class AnnotationManager extends UtmInterface {
 		if (this.isLiveMode) return false
 
 		if (this.activeAnnotationIndex === -1) {
-			log.error('No lane is active.');
+			log.error('No lane is active.')
 			return false
 		}
 
@@ -341,7 +341,7 @@ export class AnnotationManager extends UtmInterface {
 		if (this.isLiveMode) return false
 
 		if (this.activeAnnotationIndex === -1) {
-			log.error('No lane is active.');
+			log.error('No lane is active.')
 			return false
 		}
 
@@ -490,7 +490,7 @@ export class AnnotationManager extends UtmInterface {
 		trajectory_as_ordered_lane_indices.length <= this.carPath.length) {
 
 			// Try to go straight
-			let neighbors = this.annotations[new_link.index].neighborsIds;
+			let neighbors = this.annotations[new_link.index].neighborsIds
 			let next_front_index = this.tryGoStraight(neighbors)
 			if (next_front_index !== -1) {
 				new_link = new Link()
@@ -614,23 +614,23 @@ export class AnnotationManager extends UtmInterface {
 	 * Saves car path to CSV file
 	 */
 	convertAnnotationToCSV(args): string {
-		let data: Array<Vector3> = args.data || null;
+		let data: Array<Vector3> = args.data || null
 		if (data.length === 0) {
 			log.warn("Empty annotation.")
 			return ''
 		}
 
-		let columnDelimiter = args.columnDelimiter || ',';
-		let lineDelimiter = args.lineDelimiter || '\n';
+		let columnDelimiter = args.columnDelimiter || ','
+		let lineDelimiter = args.lineDelimiter || '\n'
 		let result: string = ''
 		data.forEach((marker) => {
 			// Get latitude longitude
 			let lat_lng_pt = this.threeJsToLatLng(marker)
-			result += lat_lng_pt.lng.toString();
-			result += columnDelimiter;
-			result += lat_lng_pt.lat.toString();
-			result += lineDelimiter;
-		});
+			result += lat_lng_pt.lng.toString()
+			result += columnDelimiter
+			result += lat_lng_pt.lat.toString()
+			result += lineDelimiter
+		})
 
 		return result
 	}
@@ -643,7 +643,7 @@ export class AnnotationManager extends UtmInterface {
 				let trajectory_data = self.getFullInterpolatedTrajectory(0.2, 5)
 				// Debug only
 				// self.annotations[0].tryTrajectory(trajectory_data)
-				let strAnnotations = self.convertAnnotationToCSV({data: trajectory_data});
+				let strAnnotations = self.convertAnnotationToCSV({data: trajectory_data})
 				AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
@@ -918,7 +918,7 @@ export class AnnotationManager extends UtmInterface {
 						resolve(boundingBox.getCenter().setY(boundingBox.min.y))
 					}
 				} else {
-					reject(Error(`UTM Zone for new annotations (${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneLetter']}) does not match existing zone in ${self.getOrigin()}`));
+					reject(Error(`UTM Zone for new annotations (${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneLetter']}) does not match existing zone in ${self.getOrigin()}`))
 				}
 			}, function (error) {
 				reject(error)
