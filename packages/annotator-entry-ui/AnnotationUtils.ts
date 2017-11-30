@@ -696,8 +696,8 @@ export class AnnotationManager extends UtmInterface {
 	/**
     * Add a new lane annotation and add it's mesh to the scene for display.
     */
-	addLaneAnnotation(scene: THREE.Scene, obj?: LaneAnnotationInterface): THREE.Box3 {
-		if (this.isLiveMode) return
+	addLaneAnnotation(scene: THREE.Scene, obj?: LaneAnnotationInterface): THREE.Box3 | null {
+		if (this.isLiveMode) return null
 
 		if (obj) {
 			// Create an annotation with data

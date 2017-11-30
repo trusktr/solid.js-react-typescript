@@ -186,7 +186,7 @@ export class SuperTile extends UtmInterface {
 			
 			if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
 				coordsFailed++
-				return
+				continue
 			}
 
 			let [sampledPoints, sampledColors] = sampleData(msg, this.samplingStep)
