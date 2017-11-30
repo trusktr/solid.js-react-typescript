@@ -6,15 +6,15 @@
 import {LaneAnnotation} from 'annotator-entry-ui/LaneAnnotation'
 
 export class RoadNetworkGraph {
-	lanes : Array<LaneAnnotation>
+	lanes: Array<LaneAnnotation>
 	edges
-	
-	constructor()  {
+
+	constructor() {
 		this.lanes = []
 		this.edges = []
 	}
-	
-	addLane(lane : LaneAnnotation) {
+
+	addLane(lane: LaneAnnotation) {
 		this.lanes.push(lane)
 	}
 }

@@ -21,7 +21,7 @@ import * as THREE from 'three'
 
 declare global {
 	namespace THREE {
-		let OBJLoader:any
+		let OBJLoader: any
 	}
 }
 
@@ -42,15 +42,15 @@ let root = $("#root")
  * and modify the annotations.
  */
 class Annotator {
-	scene : THREE.Scene
-	camera : THREE.PerspectiveCamera
-	renderer : THREE.WebGLRenderer
-	raycaster_plane : THREE.Raycaster
-	raycaster_marker : THREE.Raycaster
-	raycaster_annotation : THREE.Raycaster
+	scene: THREE.Scene
+	camera: THREE.PerspectiveCamera
+	renderer: THREE.WebGLRenderer
+	raycaster_plane: THREE.Raycaster
+	raycaster_marker: THREE.Raycaster
+	raycaster_annotation: THREE.Raycaster
 	carModel: THREE.Object3D
 	tileManager: TileManager
-	plane : THREE.Mesh
+	plane: THREE.Mesh
 	grid: THREE.GridHelper
 	axis: THREE.AxisHelper
 	light: THREE.SpotLight
@@ -58,24 +58,24 @@ class Annotator {
 	orbitControls
 	transformControls
 	hideTransformControlTimer
-	annotationManager : AnnotationUtils.AnnotationManager
-	isAddMarkerKeyPressed : boolean
-	isMouseButtonPressed : boolean
-	isLiveMode : boolean
+	annotationManager: AnnotationUtils.AnnotationManager
+	isAddMarkerKeyPressed: boolean
+	isMouseButtonPressed: boolean
+	isLiveMode: boolean
 	liveSubscribeSocket
 	hovered
 	settings
 	gui
-	
+
 	constructor() {
 		this.isAddMarkerKeyPressed = false
 		this.isMouseButtonPressed = false
-		
+
 		this.settings = {
 			background: "#082839",
 			cameraOffset: new THREE.Vector3(10, 30, 10),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
-			fpsRendering : 60
+			fpsRendering: 60
 		}
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
@@ -87,13 +87,13 @@ class Annotator {
 		this.raycaster_annotation = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager()
-		
+
 		this.isLiveMode = false
-		
+
 		// Initialize socket for use when "live mode" operation is on
 		this.initClient()
 	}
-	
+
 	/**
 	 * Create the 3D Scene and add some basic objects. It also initializes
 	 * several event listeners.
@@ -102,18 +102,18 @@ class Annotator {
 		const self = this
 		log.info(`Building scene`)
 
-		const [width,height] = this.getContainerSize()
-	
+		const [width, height] = this.getContainerSize()
+
 		// Create scene and camera
 		this.scene = new THREE.Scene()
-		this.camera = new THREE.PerspectiveCamera(70, width/height, 0.1, 10010)
+		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10010)
 		this.scene.add(this.camera)
-	
+
 		// Add some lights
-		this.scene.add(new THREE.AmbientLight( 0xf0f0f0 ))
+		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
 		this.light = new THREE.SpotLight(0xffffff, 1.5)
 		this.light.castShadow = true;
-		this.light.shadow = new THREE.SpotLightShadow(new THREE.PerspectiveCamera(70,1,200,2000))
+		this.light.shadow = new THREE.SpotLightShadow(new THREE.PerspectiveCamera(70, 1, 200, 2000))
 		this.light.shadow.mapSize.width = 1024
 		this.light.shadow.bias = -0.000222
 		this.light.shadow.mapSize.height = 1024
@@ -121,13 +121,13 @@ class Annotator {
 
 		// Add a "ground plane" to facilitate annotations
 		let planeGeometry = new THREE.PlaneGeometry(2000, 2000)
-		planeGeometry.rotateX(-Math.PI/2)
+		planeGeometry.rotateX(-Math.PI / 2)
 		let planeMaterial = new THREE.ShadowMaterial()
 		planeMaterial.opacity = 0.2
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
 		this.plane.receiveShadow = true
 		this.scene.add(this.plane)
-	
+
 		// Add grid on top of the plane
 		this.grid = new THREE.GridHelper(200, 100)
 		this.grid.position.y = -0.5
@@ -140,19 +140,19 @@ class Annotator {
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
 		this.annotationManager = new AnnotationUtils.AnnotationManager()
-	
+
 		// Create GL Renderer
-		this.renderer = new THREE.WebGLRenderer( {antialias: true} )
-		this.renderer.setClearColor( new THREE.Color(this.settings.background) )
-		this.renderer.setPixelRatio( window.devicePixelRatio )
-		this.renderer.setSize( width, height )
+		this.renderer = new THREE.WebGLRenderer({antialias: true})
+		this.renderer.setClearColor(new THREE.Color(this.settings.background))
+		this.renderer.setPixelRatio(window.devicePixelRatio)
+		this.renderer.setSize(width, height)
 		this.renderer.shadowMap.enabled = true
-	
+
 		// Create stats widget to display frequency of rendering
 		this.stats = new statsModule()
-		root.append( this.renderer.domElement )
-		root.append( this.stats.dom );
-		
+		root.append(this.renderer.domElement)
+		root.append(this.stats.dom);
+
 		// Initialize all control objects.
 		this.initOrbitControls()
 		this.initTransformControls()
@@ -162,21 +162,25 @@ class Annotator {
 
 		// Add panel to change the settings
 		this.gui = new datModule.GUI()
-		this.gui.addColor(this.settings, 'background').onChange( (value) => {
+		this.gui.addColor(this.settings, 'background').onChange((value) => {
 			this.renderer.setClearColor(new THREE.Color(value))
 		})
 		this.gui.domElement.className = 'threeJs_gui'
 
 		// Set up for auto-save
 		const body = $(document.body)
-		body.focusin(function () {self.annotationManager.enableAutoSave()})
-		body.focusout(function () {self.annotationManager.disableAutoSave()})
+		body.focusin(function () {
+			self.annotationManager.enableAutoSave()
+		})
+		body.focusout(function () {
+			self.annotationManager.disableAutoSave()
+		})
 
 		// Add listeners
 		window.addEventListener('resize', this.onWindowResize);
-		window.addEventListener('keydown',this.onKeyDown)
+		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
-		
+
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
@@ -186,28 +190,28 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mousedown', () => {
 			this.isMouseButtonPressed = true
 		})
-		
+
 		this.loadCarModel()
 
 		// Bind events
 		this.bind();
 		this.deactivateLaneProp();
 	}
-	
+
 	/**
 	 * Start THREE.js rendering loop.
 	 */
 	animate = () => {
-		setTimeout( () => {
+		setTimeout(() => {
 			requestAnimationFrame(this.animate)
-		}, 1000/ this.settings.fpsRendering)
-		
+		}, 1000 / this.settings.fpsRendering)
+
 		this.render()
 		this.stats.update()
 		this.orbitControls.update()
 		this.transformControls.update()
 	}
-	
+
 	/**
 	 * Render the THREE.js scene from the camera's position.
 	 */
@@ -253,7 +257,7 @@ class Annotator {
 	 * @param pathToTiles
 	 * @returns {Promise<void>}
 	 */
-	async loadPointCloudData(pathToTiles : string) {
+	async loadPointCloudData(pathToTiles: string) {
 		try {
 			log.info('loading dataset')
 			const focalPoint = await this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA)
@@ -273,7 +277,7 @@ class Annotator {
 		log.info("unloadPointCloudData")
 		this.tileManager.unloadAllPoints()
 	}
-	
+
 	/**
 	 * Load annotations from file. Add all annotations to the annotation manager
 	 * and to the scene.
@@ -293,12 +297,12 @@ class Annotator {
 				"Annotator failed to load annotation file.")
 		}
 	}
-	
+
 	/**
 	 * Create a new lane annotation.
 	 */
 	private addLaneAnnotation(): boolean {
-		if (this.annotationManager.activeAnnotationIndex >=0 &&
+		if (this.annotationManager.activeAnnotationIndex >= 0 &&
 			this.annotationManager.activeMarkers.length === 0) {
 			return false
 		}
@@ -306,14 +310,14 @@ class Annotator {
 		return this.annotationManager.addLaneAnnotation(this.scene) &&
 			this.annotationManager.makeLastAnnotationActive()
 	}
-	
-	private getMouseCoordinates = (event) : THREE.Vector2 => {
+
+	private getMouseCoordinates = (event): THREE.Vector2 => {
 		let mouse = new THREE.Vector2()
 		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
-		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		mouse.y = -( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
 		return mouse
 	}
-	
+
 	/**
 	 * Used in combination with "keyA". If the mouse was clicked while pressing
 	 * the "a" key, drop a lane marker.
@@ -323,26 +327,26 @@ class Annotator {
 		if (this.isAddMarkerKeyPressed === false) {
 			return
 		}
-		
+
 		let mouse = this.getMouseCoordinates(event)
 		this.raycaster_plane.setFromCamera(mouse, this.camera)
 		let intersections
-		
+
 		if (this.tileManager.pointCloud === null) {
 			intersections = this.raycaster_plane.intersectObject(this.plane)
 		} else {
 			intersections = this.raycaster_plane.intersectObject(this.tileManager.pointCloud)
 		}
-		
+
 		if (intersections.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
 			let x = intersections[0].point.x
 			let y = intersections[0].point.y
 			let z = intersections[0].point.z
-			this.annotationManager.addLaneMarker(x,y,z)
+			this.annotationManager.addLaneMarker(x, y, z)
 		}
 	}
-	
+
 	/**
 	 * Check if we clicked an annotation. If so, make it active for editing
 	 * @param event
@@ -351,13 +355,13 @@ class Annotator {
 		if (this.isLiveMode) return
 
 		let mouse = this.getMouseCoordinates(event)
-		this.raycaster_annotation.setFromCamera( mouse, this.camera )
-		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.annotationMeshes)
-		
-		if ( intersects.length > 0 ) {
-			let object = intersects[ 0 ].object
+		this.raycaster_annotation.setFromCamera(mouse, this.camera)
+		let intersects = this.raycaster_marker.intersectObjects(this.annotationManager.annotationMeshes)
+
+		if (intersects.length > 0) {
+			let object = intersects[0].object
 			let index = this.annotationManager.checkForInactiveAnnotation(object as any)
-			
+
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
 				this.annotationManager.changeActiveAnnotation(index)
@@ -365,39 +369,39 @@ class Annotator {
 			}
 		}
 	}
-	
+
 	/**
 	 * Check if the mouse is on top of an editable lane marker. If so, attach the
 	 * marker to the transform control for editing.
 	 * @param event
 	 */
-	private checkForActiveMarker = ( event ) => {
+	private checkForActiveMarker = (event) => {
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
 		if (this.isMouseButtonPressed) {
 			return
 		}
 		let mouse = this.getMouseCoordinates(event)
-		
-		this.raycaster_marker.setFromCamera( mouse, this.camera )
-		
-		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.activeMarkers )
-		
-		if ( intersects.length > 0 ) {
-			let object = intersects[ 0 ].object
+
+		this.raycaster_marker.setFromCamera(mouse, this.camera)
+
+		let intersects = this.raycaster_marker.intersectObjects(this.annotationManager.activeMarkers)
+
+		if (intersects.length > 0) {
+			let object = intersects[0].object
 			let plane = new THREE.Plane()
-			plane.setFromNormalAndCoplanarPoint( this.camera.getWorldDirection( plane.normal ), object.position )
-			
-			if ( this.hovered !== object ) {
+			plane.setFromNormalAndCoplanarPoint(this.camera.getWorldDirection(plane.normal), object.position)
+
+			if (this.hovered !== object) {
 				this.renderer.domElement.style.cursor = 'pointer'
 				this.hovered = object;
 				// HOVER ON
-				this.transformControls.attach( this.hovered )
+				this.transformControls.attach(this.hovered)
 				this.cancelHideTransform()
 			}
-			
+
 		} else {
-			if ( this.hovered !== null ) {
+			if (this.hovered !== null) {
 				// HOVER OFF
 				this.renderer.domElement.style.cursor = 'auto'
 				this.hovered = null
@@ -405,27 +409,27 @@ class Annotator {
 			}
 		}
 	}
-	
+
 	/**
 	 * Get the size of the canvas
 	 * @returns {[number,number]}
 	 */
 	private getContainerSize = () => {
-		return getValue(() => [root.width(),root.height()],[0,0])
+		return getValue(() => [root.width(), root.height()], [0, 0])
 	}
-	
+
 	private onWindowResize = () => {
 		if (!this.camera) {
 			return
 		}
-	
-		const [width,height] = this.getContainerSize()
-	
+
+		const [width, height] = this.getContainerSize()
+
 		this.camera.aspect = width / height
 		this.camera.updateProjectionMatrix()
-		this.renderer.setSize( width , height )
+		this.renderer.setSize(width, height)
 	}
-	
+
 	/**
 	 * Handle keyboard events
 	 * @param event
@@ -445,43 +449,43 @@ class Annotator {
 				this.hideTransform()
 			}
 		}
-		
+
 		if (event.code === 'KeyN') {
 			this.addLane();
 		}
-		
+
 		if (event.code === 'KeyZ') {
 			this.deleteLane();
 		}
-		
+
 		if (event.code === "KeyF") {
 			this.addFront();
 		}
-		
+
 		if (event.code === "KeyL") {
 			this.addLeftSame();
 		}
-		
+
 		if (event.code === "KeyK") {
 			this.addLeftReverse();
 		}
-		
+
 		if (event.code === "KeyR") {
 			this.addRightSame();
 		}
-		
+
 		if (event.code === "KeyE") {
 			this.addRightReverse();
 		}
-		
+
 		if (event.code === "KeyS") {
 			this.saveToFile();
 		}
-		
+
 		if (event.code === 'KeyM') {
 			this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
 		}
-		
+
 		if (event.code == 'KeyO') {
 			this.toggleListen()
 		}
@@ -491,14 +495,15 @@ class Annotator {
 		}
 
 	}
-	
+
 	private onKeyUp = () => {
 		this.isAddMarkerKeyPressed = false
 	}
-	
+
 	private async saveAnnotations() {
 		await this.annotationManager.saveAnnotationsToFile(config.get('output.annotations.json.path'), OutputFormat.UTM).then(
-			function () {},
+			function () {
+			},
 			function (error) {
 				console.warn('save annotations failed: ' + error.message)
 			}
@@ -525,69 +530,69 @@ class Annotator {
 		this.cancelHideTransform();
 		this.hideTransform();
 	}
-	
+
 	private hideTransform = () => {
-		this.hideTransformControlTimer = setTimeout( () => {
-			this.transformControls.detach( this.transformControls.object )
-		}, 1500 )
+		this.hideTransformControlTimer = setTimeout(() => {
+			this.transformControls.detach(this.transformControls.object)
+		}, 1500)
 	}
-	
+
 	private cancelHideTransform = () => {
 		if (this.hideTransformControlTimer) {
-			clearTimeout( this.hideTransformControlTimer );
+			clearTimeout(this.hideTransformControlTimer);
 		}
 	}
-	
+
 	/**
 	 * Create orbit controls which enable translation, rotation and zooming of the scene.
 	 */
 	private initOrbitControls() {
-		this.orbitControls = new OrbitControls( this.camera, this.renderer.domElement );
+		this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
 		this.orbitControls.minDistance = -Infinity
-		
+
 		// Add listeners.
-		
+
 		// Render the scene again if we translated, rotated or zoomed.
-		this.orbitControls.addEventListener( 'change', this.render );
-		
+		this.orbitControls.addEventListener('change', this.render);
+
 		// If we are controlling the scene don't hide any transform object.
-		this.orbitControls.addEventListener( 'start', () => {
+		this.orbitControls.addEventListener('start', () => {
 			this.cancelHideTransform()
 		})
-		
+
 		// After the scene transformation is over start the timer to hide the transform object.
-		this.orbitControls.addEventListener( 'end', () => {
+		this.orbitControls.addEventListener('end', () => {
 			this.delayHideTransform()
 		})
 	}
-	
+
 	/**
 	 * Create Transform controls object. This allows for the translation of an object in the scene.
 	 */
 	private initTransformControls() {
-		this.transformControls = new TransformControls( this.camera, this.renderer.domElement );
-		this.transformControls.addEventListener( 'change', this.render );
-		this.scene.add( this.transformControls );
-		
+		this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
+		this.transformControls.addEventListener('change', this.render);
+		this.scene.add(this.transformControls);
+
 		// Add listeners.
-		
+
 		// If we are interacting with the transform object don't hide it.
-		this.transformControls.addEventListener( 'change', () => {
+		this.transformControls.addEventListener('change', () => {
 			this.cancelHideTransform()
 		})
-		
+
 		// If we just clicked on a transform object don't hide it.
-		this.transformControls.addEventListener( 'mouseDown', () => {
+		this.transformControls.addEventListener('mouseDown', () => {
 			this.cancelHideTransform()
 		})
-		
+
 		// If we are done interacting with a transform object start hiding process.
-		this.transformControls.addEventListener( 'mouseUp', () => {
+		this.transformControls.addEventListener('mouseUp', () => {
 			this.delayHideTransform()
 		})
-		
+
 		// If the object attached to the transform object has changed, do something.
-		this.transformControls.addEventListener( 'objectChange', () => {
+		this.transformControls.addEventListener('objectChange', () => {
 			this.annotationManager.updateActiveLaneMesh()
 		})
 	}
@@ -632,7 +637,7 @@ class Annotator {
 		if (isUndefined(path_electron)) {
 			return
 		}
-		
+
 		log.info('Loading point cloud from ' + path_electron[0]);
 		this.loadPointCloudData(path_electron[0]);
 	}
@@ -716,13 +721,13 @@ class Annotator {
 		let tools_load_annotation = document.getElementById('tools_load_annotation')
 		tools_load_annotation.addEventListener('click', _ => {
 			let path_electron = dialog.showOpenDialog({
-				filters: [{ name: 'json', extensions: ['json'] }]
+				filters: [{name: 'json', extensions: ['json']}]
 			})
-			
+
 			if (isUndefined(path_electron)) {
 				return
 			}
-			
+
 			log.info('Loading annotations from ' + path_electron[0]);
 			this.loadAnnotations(path_electron[0])
 		})
@@ -771,8 +776,8 @@ class Annotator {
 			let selectbox = $('#lc_select_from');
 			selectbox.empty();
 			let list = '';
-			for (let j = 0; j < ids.length; j++){
-				list += "<option value=" + ids[j] + ">" +ids[j] + "</option>";
+			for (let j = 0; j < ids.length; j++) {
+				list += "<option value=" + ids[j] + ">" + ids[j] + "</option>";
 			}
 			selectbox.html(list);
 		});
@@ -786,8 +791,8 @@ class Annotator {
 			let selectbox = $('#lc_select_to');
 			selectbox.empty();
 			let list = '';
-			for (let j = 0; j < ids.length; j++){
-				list += "<option value=" + ids[j] + ">" +ids[j] + "</option>";
+			for (let j = 0; j < ids.length; j++) {
+				list += "<option value=" + ids[j] + ">" + ids[j] + "</option>";
 			}
 			selectbox.html(list);
 		});
@@ -873,15 +878,15 @@ class Annotator {
 				}
 			}
 		});
-		
+
 		let tr_show = $('#tr_show');
 		tr_show.on('click', _ => {
-			
+
 			log.info("Show/hide car path.");
 			if (!this.annotationManager.showPath()) {
 				return
 			}
-			
+
 			// Change button text only if showPath succeed
 			if (tr_show.text() === "Show") {
 				tr_show.text("Hide");
@@ -890,10 +895,10 @@ class Annotator {
 				tr_show.text("Show");
 			}
 		});
-		
+
 		let save_path = $('#save_path')
 		save_path.on('click', _ => {
-			
+
 			log.info("Save car path to file.")
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
@@ -911,19 +916,19 @@ class Annotator {
 
 		if (active_annotation.neighborsIds.left != null) {
 			this.deactivateLeftSideNeighbours();
-		}else {
+		} else {
 			this.activateLeftSideNeighbours();
 		}
 
 		if (active_annotation.neighborsIds.right != null) {
 			this.deactivateRightSideNeighbours();
-		}else {
+		} else {
 			this.activateRightSideNeighbours();
 		}
 
 		if (active_annotation.neighborsIds.front.length != 0) {
 			this.deactivateFrontSideNeighbours();
-		}else {
+		} else {
 			this.activateFrontSideNeighbours();
 		}
 
@@ -1015,6 +1020,7 @@ class Annotator {
 		lp_add_left_same.setAttribute('disabled', 'disabled');
 		lp_add_left_opposite.setAttribute('disabled', 'disabled');
 	}
+
 	activateLeftSideNeighbours() {
 		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
 		let lp_add_left_same = document.getElementById('lp_add_left_same');
@@ -1031,13 +1037,14 @@ class Annotator {
 		lp_add_right_same.setAttribute('disabled', 'disabled');
 		lp_add_right_opposite.setAttribute('disabled', 'disabled');
 	}
+
 	activateRightSideNeighbours() {
 		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
 		let lp_add_right_same = document.getElementById('lp_add_right_same');
 		lp_add_right_same.removeAttribute('disabled');
 		lp_add_right_opposite.removeAttribute('disabled');
 	}
-	
+
 	/**
 	 * Deactivate/activate front side neighbours
 	 */
@@ -1045,11 +1052,12 @@ class Annotator {
 		let lp_add_front = document.getElementById('lp_add_forward');
 		lp_add_front.setAttribute('disabled', 'disabled');
 	}
+
 	activateFrontSideNeighbours() {
 		let lp_add_front = document.getElementById('lp_add_forward');
 		lp_add_front.removeAttribute('disabled');
 	}
-	
+
 	private loadCarModel() {
 		let manager = new THREE.LoadingManager()
 		let loader = new (THREE as any).OBJLoader(manager)
@@ -1066,26 +1074,26 @@ class Annotator {
 			this.scene.add(object)
 		})
 	}
-	
+
 	initClient() {
 		this.liveSubscribeSocket = zmq.socket('sub')
-		
+
 		this.liveSubscribeSocket.on('message', (msg) => {
 			if (!this.isLiveMode) return
 
-			let state =  Models.InertialStateMessage.decode(msg)
+			let state = Models.InertialStateMessage.decode(msg)
 			log.info("Received message: " + state.pose.timestamp)
-			
+
 			// Move the car and the camera
 			let position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
 			log.info(state.pose.x + " " + position.x)
-			
+
 			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
 			rotation.normalize()
 			this.updateCarPose(position, rotation)
 			this.updateCameraPose()
 		})
-		
+
 		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
 		this.liveSubscribeSocket.subscribe("")
 	}
@@ -1096,7 +1104,7 @@ class Annotator {
 	 */
 	toggleListen() {
 		let hideMenu
-		
+
 		if (this.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
 			hideMenu = this.stopListening()
@@ -1104,9 +1112,9 @@ class Annotator {
 			this.annotationManager.setLiveMode()
 			hideMenu = this.listen()
 		}
-		
+
 		let menu = document.getElementById('menu')
-		
+
 		if (hideMenu) {
 			menu.style.visibility = 'hidden'
 		} else {
@@ -1127,7 +1135,7 @@ class Annotator {
 		this.settings.fpsRendering = 30
 		return this.isLiveMode
 	}
-	
+
 	stopListening(): boolean {
 		if (!this.isLiveMode) return this.isLiveMode
 
@@ -1141,7 +1149,7 @@ class Annotator {
 		this.settings.fpsRendering = 60
 		return this.isLiveMode
 	}
-	
+
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion) {
 		this.carModel.position.set(position.x, position.y, position.z)
 		this.carModel.setRotationFromQuaternion(rotation)
@@ -1151,7 +1159,7 @@ class Annotator {
 		let p = this.carModel.getWorldPosition()
 		this.carModel.position.set(p.x, 0, p.z)
 	}
-	
+
 	private updateCameraPose() {
 		let p = this.carModel.getWorldPosition()
 		let offset = new THREE.Vector3(20, 15, 0)
@@ -1162,8 +1170,7 @@ class Annotator {
 		this.camera.lookAt(p)
 		this.camera.updateMatrix()
 	}
-	
-}
 
+}
 
 export const annotator = new Annotator();

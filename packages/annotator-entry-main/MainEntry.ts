@@ -1,7 +1,7 @@
 import Electron = require("electron")
 
 const
-	{app,BrowserWindow} = Electron,
+	{app, BrowserWindow} = Electron,
 	url = require('url'),
 	Path = require('path')
 
@@ -9,20 +9,20 @@ const
 // be closed automatically when the JavaScript object is garbage collected.
 let win
 
-function createWindow () {
+function createWindow() {
 	// Create the browser window.
 	win = new BrowserWindow({width: 800, height: 600})
-	
+
 	// Open the DevTools.
 	win.webContents.openDevTools()
-	
+
 	// and load the index.html of the app.
 	win.loadURL(url.format({
 		pathname: Path.join(process.cwd(), 'dist/app/browser-entry.html'),
 		protocol: 'file:',
 		slashes: true
 	}))
-	
+
 	// Emitted when the window is closed.
 	win.on('closed', () => {
 		// Dereference the window object, usually you would store windows
@@ -54,7 +54,5 @@ app.on('activate', () => {
 	}
 })
 
-
 export {
-
 }

@@ -28,7 +28,7 @@ const threeDStepSize: number = 3
  * @param filename
  * @returns {Promise<Buffer>}
  */
-function readFile(filename : string) : Promise<Buffer> {
+function readFile(filename: string): Promise<Buffer> {
 	return AsyncFile.readFile(filename)
 }
 
@@ -37,29 +37,29 @@ function readFile(filename : string) : Promise<Buffer> {
  * @param filename
  * @returns {Promise<com.mapperai.models.PointCloudTileMessage>}
  */
-async function loadTile(filename : string) :  Promise<Models.PointCloudTileMessage> {
+async function loadTile(filename: string): Promise<Models.PointCloudTileMessage> {
 	let buffer = await readFile(filename)
 	return Models.PointCloudTileMessage.decode(buffer as any)
 }
 
-const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
+const sampleData = (msg: Models.PointCloudTileMessage, step: number) => {
 	if (step <= 0) {
 		log.error("Can't sample data. Step should be > 0.")
 		return []
 	}
-	
-	let sampledPoints : Array<number> = []
-	let sampledColors : Array<number> = []
+
+	let sampledPoints: Array<number> = []
+	let sampledColors: Array<number> = []
 	let stride = step * threeDStepSize
 
-	for (let i=0; i < msg.points.length; i+=stride) {
+	for (let i = 0; i < msg.points.length; i += stride) {
 		// Assuming the utm points are: easting, northing, altitude
 		sampledPoints.push(msg.points[i])
-		sampledPoints.push(msg.points[i+1])
-		sampledPoints.push(msg.points[i+2])
+		sampledPoints.push(msg.points[i + 1])
+		sampledPoints.push(msg.points[i + 2])
 		sampledColors.push(msg.colors[i])
-		sampledColors.push(msg.colors[i+1])
-		sampledColors.push(msg.colors[i+2])
+		sampledColors.push(msg.colors[i + 1])
+		sampledColors.push(msg.colors[i + 2])
 	}
 	return [sampledPoints, sampledColors]
 }
@@ -70,8 +70,8 @@ const sampleData = (msg : Models.PointCloudTileMessage, step : number) => {
  * @param pointCoordinateFrame
  * @returns Point in standard coordinate frame format.
  */
-const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateFrame: CoordinateFrameType) : THREE.Vector3 => {
-	let p : THREE.Vector3
+const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateFrame: CoordinateFrameType): THREE.Vector3 => {
+	let p: THREE.Vector3
 	switch (pointCoordinateFrame) {
 		case CoordinateFrameType.CAMERA:
 			// Raw input is [x: northing, y: -altitude, z: easting]
@@ -91,12 +91,12 @@ export class TileManager extends UtmInterface {
 
 	// All points are stored with reference to UTM origin and offset,
 	// but using the local coordinate system which has different axes.
-	pointCloud : THREE.Points
+	pointCloud: THREE.Points
 	rawPositions: Array<number>
 	rawColors: Array<number>
-	maxTilesToLoad : number
+	maxTilesToLoad: number
 	progressStepSize: number
-	samplingStep : number
+	samplingStep: number
 
 	constructor() {
 		super()
@@ -133,8 +133,8 @@ export class TileManager extends UtmInterface {
 		const number = msg.utmZoneNumber
 		const letter = msg.utmZoneLetter
 		let inputPoint = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
-		let p  = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
-		
+		let p = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
+
 		if (this.setOrigin(number, letter, p)) {
 			return true
 		} else {
@@ -159,8 +159,8 @@ export class TileManager extends UtmInterface {
 	 *   there will be something to look at there
 	 */
 	async loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<THREE.Vector3> {
-		let points:Array<number> = []
-		let colors:Array<number> = []
+		let points: Array<number> = []
+		let colors: Array<number> = []
 		let files = Fs.readdirSync(datasetPath)
 		let coordsFailed = 0
 		let maxFileCount = files.length
@@ -171,19 +171,19 @@ export class TileManager extends UtmInterface {
 			if (current % stepSize === 0) log.info(`processing ${current} of ${total} files`)
 		}
 
-		for (let i=0; i < maxFileCount; i++) {
+		for (let i = 0; i < maxFileCount; i++) {
 			printProgress(i, maxFileCount, this.progressStepSize)
 
 			if (files[i] === 'tile_index.md' || files[i] === '.DS_Store') {
 				continue
 			}
 
-			let msg  = await loadTile(Path.join(datasetPath, files[i]))
+			let msg = await loadTile(Path.join(datasetPath, files[i]))
 
 			if (msg.points.length === 0) {
 				continue
 			}
-			
+
 			if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
 				coordsFailed++
 				continue
@@ -195,8 +195,8 @@ export class TileManager extends UtmInterface {
 			colors = colors.concat(sampledColors)
 		}
 
-		log.info("Num loaded points: " + points.length/3)
-		
+		log.info("Num loaded points: " + points.length / 3)
+
 		if (coordsFailed) {
 			log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
 		}
@@ -212,13 +212,13 @@ export class TileManager extends UtmInterface {
 		const newPositions = new Array<number>(points_size)
 
 		for (let i = 0; i < points_size; i += threeDStepSize) {
-			let inputPoint = new THREE.Vector3(points[i], points[i+1], points[i+2])
+			let inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
 			let standardPoint = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
 			let threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
-			
+
 			newPositions[i] = threePoint.x
-			newPositions[i+1] = threePoint.y
-			newPositions[i+2] = threePoint.z
+			newPositions[i + 1] = threePoint.y
+			newPositions[i + 2] = threePoint.z
 		}
 
 		if (this.rawPositions.length > 0) {
