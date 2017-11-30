@@ -7,7 +7,7 @@ const config = require('../config')
 import * as $ from 'jquery'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import {CoordinateFrameType, SuperTile}  from 'annotator-entry-ui/TileUtils'
+import {CoordinateFrameType, TileManager}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection, LaneId} from 'annotator-entry-ui/LaneAnnotation'
 import {OutputFormat} from "annotator-entry-ui/AnnotationUtils"
@@ -17,8 +17,6 @@ import {getValue} from "typeguard"
 import {isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
-
-//let THREE = require('three') as any
 import * as THREE from 'three'
 
 declare global {
@@ -51,7 +49,7 @@ class Annotator {
 	raycaster_marker : THREE.Raycaster
 	raycaster_annotation : THREE.Raycaster
 	carModel: THREE.Object3D
-	mapTile : SuperTile
+	tileManager: TileManager
 	plane : THREE.Mesh
 	grid: THREE.GridHelper
 	axis: THREE.AxisHelper
@@ -88,7 +86,7 @@ class Annotator {
 		// THe raycaster is used to compute which selection should be active for editing
 		this.raycaster_annotation = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
-		this.mapTile = new SuperTile()
+		this.tileManager = new TileManager()
 		
 		this.isLiveMode = false
 		
@@ -244,7 +242,7 @@ class Annotator {
 	 * Set the point cloud as the center of the visible world.
 	 */
 	private focusOnPointCloud(): void {
-		const center = this.mapTile.centerPoint()
+		const center = this.tileManager.centerPoint()
 		if (center) this.setStageByVector(center)
 		else log.warn('point cloud has not been initialized')
 	}
@@ -258,11 +256,11 @@ class Annotator {
 	async loadPointCloudData(pathToTiles : string) {
 		try {
 			log.info('loading dataset')
-			const focalPoint = await this.mapTile.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA)
-			if (!this.annotationManager.setOriginWithInterface(this.mapTile)) {
-				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.mapTile.getOrigin()}`)
+			const focalPoint = await this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA)
+			if (!this.annotationManager.setOriginWithInterface(this.tileManager)) {
+				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
 			}
-			this.scene.add(this.mapTile.pointCloud)
+			this.scene.add(this.tileManager.pointCloud)
 			this.setStageByVector(focalPoint)
 		} catch (err) {
 			log.warn(err.message)
@@ -273,7 +271,7 @@ class Annotator {
 
 	unloadPointCloudData() {
 		log.info("unloadPointCloudData")
-		this.mapTile.unloadAllPoints()
+		this.tileManager.unloadAllPoints()
 	}
 	
 	/**
@@ -285,8 +283,8 @@ class Annotator {
 		try {
 			log.info('Loading annotations')
 			const focalPoint = await this.annotationManager.loadAnnotationsFromFile(fileName, this.scene)
-			if (!this.mapTile.setOriginWithInterface(this.annotationManager)) {
-				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.mapTile.getOrigin()}`)
+			if (!this.tileManager.setOriginWithInterface(this.annotationManager)) {
+				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
 			}
 			this.setStageByVector(focalPoint)
 		} catch (err) {
@@ -330,10 +328,10 @@ class Annotator {
 		this.raycaster_plane.setFromCamera(mouse, this.camera)
 		let intersections
 		
-		if (this.mapTile.pointCloud === null) {
+		if (this.tileManager.pointCloud === null) {
 			intersections = this.raycaster_plane.intersectObject(this.plane)
 		} else {
-			intersections = this.raycaster_plane.intersectObject(this.mapTile.pointCloud)
+			intersections = this.raycaster_plane.intersectObject(this.tileManager.pointCloud)
 		}
 		
 		if (intersections.length > 0) {
@@ -1079,7 +1077,7 @@ class Annotator {
 			log.info("Received message: " + state.pose.timestamp)
 			
 			// Move the car and the camera
-			let position = this.mapTile.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
+			let position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
 			log.info(state.pose.x + " " + position.x)
 			
 			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)

@@ -87,7 +87,7 @@ const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateF
 	return p
 }
 
-export class SuperTile extends UtmInterface {
+export class TileManager extends UtmInterface {
 
 	// All points are stored with reference to UTM origin and offset,
 	// but using the local coordinate system which has different axes.
@@ -119,7 +119,7 @@ export class SuperTile extends UtmInterface {
 		} else {
 			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
 		}
-		return 'SuperTile(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])';
+		return 'TileManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])';
 	}
 
 	// "default" according to protobuf rules for default values
@@ -138,7 +138,7 @@ export class SuperTile extends UtmInterface {
 		if (this.setOrigin(number, letter, p)) {
 			return true
 		} else {
-			return SuperTile.isDefaultUtmZone(number, letter)
+			return TileManager.isDefaultUtmZone(number, letter)
 				|| this.utmZoneNumber === number && this.utmZoneLetter === letter
 		}
 	}
