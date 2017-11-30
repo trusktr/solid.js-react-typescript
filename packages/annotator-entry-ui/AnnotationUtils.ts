@@ -8,7 +8,7 @@ const vsprintf = require("sprintf-js").vsprintf
 import * as THREE from 'three'
 import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
-	NeighborLocation, AnnotationType, LaneId, LaneUuid, LaneNeighborsIds
+	NeighborLocation, AnnotationType, LaneId, LaneUuid, LaneNeighborsIds, LaneAnnotationJsonInterface
 } from 'annotator-entry-ui/LaneAnnotation'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
@@ -22,6 +22,8 @@ import * as CRS from "./CoordinateReferenceSystem"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const {dialog} = require('electron').remote
+
+// tslint:disable:no-string-literal
 
 enum LinkType {
 	FORWARD = 1,
@@ -43,9 +45,9 @@ export enum OutputFormat {
 	LLA = 2,
 }
 
-interface AnnotationManagerInterface {
+interface AnnotationManagerJsonInterface {
 	coordinateReferenceSystem: CRS.CoordinateReferenceSystem
-	annotations: Array<LaneAnnotationInterface>
+	annotations: Array<LaneAnnotationJsonInterface>
 }
 
 /**
@@ -125,10 +127,6 @@ export class AnnotationManager extends UtmInterface {
 
 	/**
 	 * Get point in between at a specific distance
-	 * @param marker1
-	 * @param marker2
-	 * @param atDistance
-	 * @returns {Vector3}
 	 */
 	getMarkerInBetween(marker1: Vector3, marker2: Vector3, atDistance: number): Vector3 {
 		return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
@@ -136,8 +134,6 @@ export class AnnotationManager extends UtmInterface {
 
 	/**
 	 * Create a new lane connection between given lanes
-	 * @param laneFrom
-	 * @param laneTo
 	 */
 	private addForwardLaneConnection(scene: THREE.Scene, laneFrom: LaneAnnotation, laneTo: LaneAnnotation) {
 
@@ -159,30 +155,30 @@ export class AnnotationManager extends UtmInterface {
 		laneTo.neighborsIds.back.push(connection.uuid)
 
 		// Compute path
-		let last_index = laneFrom.laneMarkers.length - 1
-		let points_right: Array<Vector3> = []
-		points_right.push(laneFrom.laneMarkers[last_index - 3].position)
-		points_right.push(laneFrom.laneMarkers[last_index - 1].position)
-		points_right.push(laneTo.laneMarkers[0].position)
-		points_right.push(laneTo.laneMarkers[2].position)
-		let points_left: Array<Vector3> = []
-		points_left.push(laneFrom.laneMarkers[last_index - 2].position)
-		points_left.push(laneFrom.laneMarkers[last_index].position)
-		points_left.push(laneTo.laneMarkers[1].position)
-		points_left.push(laneTo.laneMarkers[3].position)
+		let lastIndex = laneFrom.laneMarkers.length - 1
+		let pointsRight: Array<Vector3> = []
+		pointsRight.push(laneFrom.laneMarkers[lastIndex - 3].position)
+		pointsRight.push(laneFrom.laneMarkers[lastIndex - 1].position)
+		pointsRight.push(laneTo.laneMarkers[0].position)
+		pointsRight.push(laneTo.laneMarkers[2].position)
+		let pointsLeft: Array<Vector3> = []
+		pointsLeft.push(laneFrom.laneMarkers[lastIndex - 2].position)
+		pointsLeft.push(laneFrom.laneMarkers[lastIndex].position)
+		pointsLeft.push(laneTo.laneMarkers[1].position)
+		pointsLeft.push(laneTo.laneMarkers[3].position)
 
-		let spline_left = new THREE.CatmullRomCurve3(points_left)
-		let spline_right = new THREE.CatmullRomCurve3(points_right)
+		let splineLeft = new THREE.CatmullRomCurve3(pointsLeft)
+		let splineRight = new THREE.CatmullRomCurve3(pointsRight)
 
 		// Add path to the connection
-		connection.addRawMarker(this.getMarkerInBetween(points_right[1], points_left[1], 0.4))
-		connection.addRawMarker(this.getMarkerInBetween(points_right[1], points_left[1], 0.6))
-		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.4))
-		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.45), spline_left.getPoint(0.45), 0.6))
-		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.55), spline_left.getPoint(0.55), 0.4))
-		connection.addRawMarker(this.getMarkerInBetween(spline_right.getPoint(0.55), spline_left.getPoint(0.55), 0.6))
-		connection.addRawMarker(this.getMarkerInBetween(points_right[2], points_left[2], 0.4))
-		connection.addRawMarker(this.getMarkerInBetween(points_right[2], points_left[2], 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6))
+		connection.addRawMarker(this.getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4))
+		connection.addRawMarker(this.getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6))
 
 		// Add annotation to the scene
 		this.annotationMeshes.push(connection.laneMesh)
@@ -194,104 +190,98 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Add a new relation between two existing lanes
 	 */
-	addRelation(scene: THREE.Scene, from_id: LaneId, to_id: LaneId, relation: string): boolean {
+	addRelation(scene: THREE.Scene, fromId: LaneId, toId: LaneId, relation: string): boolean {
 		if (this.isLiveMode) return false
 
-		let lane_from: LaneAnnotation = null
+		let laneFrom: LaneAnnotation = null
 		for (let annotation of this.annotations) {
-			if (annotation.id === from_id) {
-				lane_from = annotation
+			if (annotation.id === fromId) {
+				laneFrom = annotation
 				break
 			}
 		}
 
-		let lane_to: LaneAnnotation = null
+		let laneTo: LaneAnnotation = null
 		for (let annotation of this.annotations) {
-			if (annotation.id === to_id) {
-				lane_to = annotation
+			if (annotation.id === toId) {
+				laneTo = annotation
 				break
 			}
 		}
 
-		if (lane_to === null || lane_from === null) {
+		if (laneTo === null || laneFrom === null) {
 			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Given lane ids are not valid.")
 			return false
 		}
 
 		switch (relation) {
 			case 'left':
-				if (lane_from.neighborsIds.left === null &&
-					lane_to.neighborsIds.right === null) {
+				if (laneFrom.neighborsIds.left === null &&
+					laneTo.neighborsIds.right === null) {
 
-					lane_from.neighborsIds.left = lane_to.uuid
-					lane_to.neighborsIds.right = lane_from.uuid
-				}
-				else {
+					laneFrom.neighborsIds.left = laneTo.uuid
+					laneTo.neighborsIds.right = laneFrom.uuid
+				} else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Left relation already exist.")
 					return false
 				}
 				break
 			case 'left reverse':
-				if (lane_from.neighborsIds.left === null &&
-					lane_to.neighborsIds.left === null) {
+				if (laneFrom.neighborsIds.left === null &&
+					laneTo.neighborsIds.left === null) {
 
-					lane_from.neighborsIds.left = lane_to.uuid
-					lane_to.neighborsIds.left = lane_from.uuid
-				}
-				else {
+					laneFrom.neighborsIds.left = laneTo.uuid
+					laneTo.neighborsIds.left = laneFrom.uuid
+				} else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Left relation already exist.")
 					return false
 				}
 				break
 			case 'right':
-				if (lane_from.neighborsIds.right === null &&
-					lane_to.neighborsIds.left === null) {
+				if (laneFrom.neighborsIds.right === null &&
+					laneTo.neighborsIds.left === null) {
 
-					lane_from.neighborsIds.right = lane_to.uuid
-					lane_to.neighborsIds.left = lane_from.uuid
-				}
-				else {
+					laneFrom.neighborsIds.right = laneTo.uuid
+					laneTo.neighborsIds.left = laneFrom.uuid
+				} else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Right relation already exist.")
 					return false
 				}
 				break
 			case 'front':
-				let index_1 = lane_from.neighborsIds.front.findIndex((neighbor) => {
-					return neighbor === lane_to.uuid
+				let index1 = laneFrom.neighborsIds.front.findIndex((neighbor) => {
+					return neighbor === laneTo.uuid
 				})
-				let index_2 = lane_to.neighborsIds.back.findIndex((neighbor) => {
-					return neighbor === lane_from.uuid
+				let index2 = laneTo.neighborsIds.back.findIndex((neighbor) => {
+					return neighbor === laneFrom.uuid
 				})
-				if (index_1 === -1 && index_2 === -1) {
+				if (index1 === -1 && index2 === -1) {
 					// check if close enough
-					let lane_from_pt = lane_from.laneMarkers[lane_from.laneMarkers.length - 1].position
-					let lane_to_pt = lane_to.laneMarkers[1].position
-					if (lane_from_pt.distanceTo(lane_to_pt) < 1.0) {
-						lane_to.neighborsIds.back.push(lane_from.uuid)
-						lane_from.neighborsIds.front.push(lane_to.uuid)
-					}
-					else {
+					let laneFromPoint = laneFrom.laneMarkers[laneFrom.laneMarkers.length - 1].position
+					let laneToPoint = laneTo.laneMarkers[1].position
+					if (laneFromPoint.distanceTo(laneToPoint) < 1.0) {
+						laneTo.neighborsIds.back.push(laneFrom.uuid)
+						laneFrom.neighborsIds.front.push(laneTo.uuid)
+					} else {
 						// Connection lane needed
-						this.addForwardLaneConnection(scene, lane_from, lane_to)
+						this.addForwardLaneConnection(scene, laneFrom, laneTo)
 					}
-				}
-				else {
+				} else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Front relation already exist.")
 					return false
 				}
 				break
 			case 'back':
-				index_1 = lane_from.neighborsIds.back.findIndex((neighbor) => {
-					return neighbor === lane_to.uuid
+				index1 = laneFrom.neighborsIds.back.findIndex((neighbor) => {
+					return neighbor === laneTo.uuid
 				})
-				index_2 = lane_to.neighborsIds.front.findIndex((neighbor) => {
-					return neighbor === lane_from.uuid
+				index2 = laneTo.neighborsIds.front.findIndex((neighbor) => {
+					return neighbor === laneFrom.uuid
 				})
-				if (index_1 === -1 && index_2 === -1) {
-					lane_from.neighborsIds.back.push(lane_to.uuid)
-					lane_to.neighborsIds.front.push(lane_from.uuid)
-				}
-				else {
+				if (index1 === -1 && index2 === -1) {
+					laneFrom.neighborsIds.back.push(laneTo.uuid)
+					laneTo.neighborsIds.front.push(laneFrom.uuid)
+				} else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Back relation already exist.")
 					return false
 				}
@@ -458,16 +448,16 @@ export class AnnotationManager extends UtmInterface {
 			// check for valid front neighbor
 			if (neighbor !== null) {
 
-				let front_lane = this.annotations[this.getLaneIndexFromUuid(this.annotations, neighbor)]
-				let front_lane_neighbors = front_lane.neighborsIds
-				if (front_lane_neighbors.right !== null &&
-					this.checkLaneUuidInList(this.carPath, front_lane_neighbors.right)) {
-					return this.getLaneIndexFromUuid(this.annotations, front_lane_neighbors.right)
+				let frontLane = this.annotations[this.getLaneIndexFromUuid(this.annotations, neighbor)]
+				let frontLaneNeighbors = frontLane.neighborsIds
+				if (frontLaneNeighbors.right !== null &&
+					this.checkLaneUuidInList(this.carPath, frontLaneNeighbors.right)) {
+					return this.getLaneIndexFromUuid(this.annotations, frontLaneNeighbors.right)
 				}
 
-				if (front_lane_neighbors.left !== null &&
-					this.checkLaneUuidInList(this.carPath, front_lane_neighbors.left)) {
-					return this.getLaneIndexFromUuid(this.annotations, front_lane_neighbors.left)
+				if (frontLaneNeighbors.left !== null &&
+					this.checkLaneUuidInList(this.carPath, frontLaneNeighbors.left)) {
+					return this.getLaneIndexFromUuid(this.annotations, frontLaneNeighbors.left)
 				}
 			}
 		}
@@ -481,61 +471,61 @@ export class AnnotationManager extends UtmInterface {
 	 * @returns Sorted list of lane indices
 	 */
 	sortCarPath(): Array<Link> {
-		let trajectory_as_ordered_lane_indices: Array<Link> = []
-		let new_link: Link = new Link()
-		new_link.index = this.getLaneIndexFromUuid(this.annotations, this.carPath[0])
-		new_link.type = LinkType.FORWARD
-		trajectory_as_ordered_lane_indices.push(new_link)
-		while (new_link.index !== -1 &&
-		trajectory_as_ordered_lane_indices.length <= this.carPath.length) {
+		let trajectoryAsOrderedLaneIndices: Array<Link> = []
+		let newLink: Link = new Link()
+		newLink.index = this.getLaneIndexFromUuid(this.annotations, this.carPath[0])
+		newLink.type = LinkType.FORWARD
+		trajectoryAsOrderedLaneIndices.push(newLink)
+		while (newLink.index !== -1 &&
+		trajectoryAsOrderedLaneIndices.length <= this.carPath.length) {
 
 			// Try to go straight
-			let neighbors = this.annotations[new_link.index].neighborsIds
-			let next_front_index = this.tryGoStraight(neighbors)
-			if (next_front_index !== -1) {
-				new_link = new Link()
-				new_link.index = next_front_index
-				new_link.type = LinkType.FORWARD
-				trajectory_as_ordered_lane_indices.push(new_link)
+			let neighbors = this.annotations[newLink.index].neighborsIds
+			let nextFrontIndex = this.tryGoStraight(neighbors)
+			if (nextFrontIndex !== -1) {
+				newLink = new Link()
+				newLink.index = nextFrontIndex
+				newLink.type = LinkType.FORWARD
+				trajectoryAsOrderedLaneIndices.push(newLink)
 				continue
 			}
 
 			// Try to go sides
-			let next_side_index = this.tryGoSides(neighbors)
-			if (next_side_index !== -1) {
-				new_link = new Link()
-				new_link.index = next_side_index
-				new_link.type = LinkType.SIDE
-				trajectory_as_ordered_lane_indices.push(new_link)
+			let nextSideIndex = this.tryGoSides(neighbors)
+			if (nextSideIndex !== -1) {
+				newLink = new Link()
+				newLink.index = nextSideIndex
+				newLink.type = LinkType.SIDE
+				trajectoryAsOrderedLaneIndices.push(newLink)
 				continue
 			}
 
 			// If no valid next lane
-			new_link = new Link()
-			new_link.index = -1
-			new_link.type = LinkType.OTHER
-			trajectory_as_ordered_lane_indices.push(new_link)
+			newLink = new Link()
+			newLink.index = -1
+			newLink.type = LinkType.OTHER
+			trajectoryAsOrderedLaneIndices.push(newLink)
 		}
 
-		return trajectory_as_ordered_lane_indices
+		return trajectoryAsOrderedLaneIndices
 	}
 
 	/**
 	 * Generate trajectory points from sorted lanes of the car path
-	 * @param sorted_car_path       Trajectory sorted lanes
-	 * @param min_dist_lane_change  Minimum distance to interpolate lane change
+	 * @param sortedCarPath      Trajectory sorted lanes
+	 * @param minDistLaneChange  Minimum distance to interpolate lane change
 	 * @returns {Array<Vector3>} Points along the trajectory
 	 */
-	generatePointsFromSortedCarPath(sorted_car_path: Array<Link>, min_dist_lane_change: number): Array<Vector3> {
+	generatePointsFromSortedCarPath(sortedCarPath: Array<Link>, minDistLaneChange: number): Array<Vector3> {
 
 		let points: Array<Vector3> = []
 		let hasValidIndexes = true
-		sorted_car_path.forEach((lane_link) => {
+		sortedCarPath.forEach((laneLink) => {
 			if (hasValidIndexes) {
-				let lane_index: number = lane_link.index
-				if (lane_index === null || lane_index < 0 || lane_index >= this.annotations.length) {
+				let laneIndex: number = laneLink.index
+				if (laneIndex === null || laneIndex < 0 || laneIndex >= this.annotations.length) {
 					dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
-						"Sorted car path contains invalid index: " + lane_index)
+						"Sorted car path contains invalid index: " + laneIndex)
 					points = []
 					hasValidIndexes = false
 				}
@@ -543,23 +533,22 @@ export class AnnotationManager extends UtmInterface {
 				if (points.length > 0) {
 					// If side link: make sure there is enough distance between first point of the link
 					// and previous link last point added
-					if (lane_link.type === LinkType.SIDE) {
-						let first_pt = this.annotations[lane_index].laneMarkers[0].position.clone()
-						first_pt.add(this.annotations[lane_index].laneMarkers[1].position).divideScalar(2)
-						let distance: number = first_pt.distanceTo(points[points.length - 1])
-						while (points.length > 0 && distance < min_dist_lane_change) {
+					if (laneLink.type === LinkType.SIDE) {
+						let firstPoint = this.annotations[laneIndex].laneMarkers[0].position.clone()
+						firstPoint.add(this.annotations[laneIndex].laneMarkers[1].position).divideScalar(2)
+						let distance: number = firstPoint.distanceTo(points[points.length - 1])
+						while (points.length > 0 && distance < minDistLaneChange) {
 							points.pop()
-							distance = first_pt.distanceTo(points[points.length - 1])
+							distance = firstPoint.distanceTo(points[points.length - 1])
 						}
-					}
-					else {
+					} else {
 						// Delete the last point from lane since this is usually duplicated at the
 						// beginning of the next lane
 						points.pop()
 					}
 				}
 
-				let lane: LaneAnnotation = this.annotations[lane_index]
+				let lane: LaneAnnotation = this.annotations[laneIndex]
 				for (let i = 0; i < lane.laneMarkers.length - 1; i += 2) {
 					let waypoint = lane.laneMarkers[i].position.clone()
 					waypoint.add(lane.laneMarkers[i + 1].position).divideScalar(2)
@@ -586,18 +575,18 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		// Sort lanes
-		let sorted_car_path: Array<Link> = this.sortCarPath()
-		if (sorted_car_path.length !== this.carPath.length + 1) {
+		let sortedCarPath: Array<Link> = this.sortCarPath()
+		if (sortedCarPath.length !== this.carPath.length + 1) {
 			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
 				"Annotator failed to sort car path. Possible reasons: path may have gaps.")
 			return []
 		}
 
 		// Take out last index
-		sorted_car_path.pop()
+		sortedCarPath.pop()
 
 		// Create spline
-		let points: Array<Vector3> = this.generatePointsFromSortedCarPath(sorted_car_path, minDistanceLaneChange)
+		let points: Array<Vector3> = this.generatePointsFromSortedCarPath(sortedCarPath, minDistanceLaneChange)
 		if (points.length === 0) {
 			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
 				"There are no waypoints in the selected car path lanes.")
@@ -625,10 +614,10 @@ export class AnnotationManager extends UtmInterface {
 		let result: string = ''
 		data.forEach((marker) => {
 			// Get latitude longitude
-			let lat_lng_pt = this.threeJsToLatLng(marker)
-			result += lat_lng_pt.lng.toString()
+			let latLngPoint = this.threeJsToLatLng(marker)
+			result += latLngPoint.lng.toString()
 			result += columnDelimiter
-			result += lat_lng_pt.lat.toString()
+			result += latLngPoint.lat.toString()
 			result += lineDelimiter
 		})
 
@@ -640,10 +629,10 @@ export class AnnotationManager extends UtmInterface {
 		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		let writeFile = function (er, _) {
 			if (!er) {
-				let trajectory_data = self.getFullInterpolatedTrajectory(0.2, 5)
+				let trajectoryData = self.getFullInterpolatedTrajectory(0.2, 5)
 				// Debug only
-				// self.annotations[0].tryTrajectory(trajectory_data)
-				let strAnnotations = self.convertAnnotationToCSV({data: trajectory_data})
+				// self.annotations[0].tryTrajectory(trajectoryData)
+				let strAnnotations = self.convertAnnotationToCSV({data: trajectoryData})
 				AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
@@ -697,7 +686,7 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
-	 * Add a new lane annotation and add it's mesh to the scene for display.
+	 * Add a new lane annotation and add its mesh to the scene for display.
 	 */
 	addLaneAnnotation(scene: THREE.Scene, obj?: LaneAnnotationInterface): THREE.Box3 | null {
 		if (this.isLiveMode) return null
@@ -720,7 +709,6 @@ export class AnnotationManager extends UtmInterface {
 
 	/**
 	 * Delete given lane annotation
-	 * @param lane
 	 */
 	private deleteLaneAnnotation(scene: THREE.Scene, lane: LaneAnnotation): boolean {
 		// Remove lane from scene.
@@ -740,8 +728,8 @@ export class AnnotationManager extends UtmInterface {
 		this.deleteConnectionToNeighbors(scene, lane)
 
 		// Remove annotation from internal array of annotations.
-		let lane_index = this.getLaneIndexFromUuid(this.annotations, lane.uuid)
-		this.annotations.splice(lane_index, 1)
+		let laneIndex = this.getLaneIndexFromUuid(this.annotations, lane.uuid)
+		this.annotations.splice(laneIndex, 1)
 
 		return true
 	}
@@ -854,7 +842,7 @@ export class AnnotationManager extends UtmInterface {
 		const crs = data['coordinateReferenceSystem']
 		if (crs['coordinateSystem'] !== 'UTM') return false
 		if (crs['datum'] !== this.datum) return false
-		const number = crs['parameters']['utmZoneNumber']
+		const num = crs['parameters']['utmZoneNumber']
 		const letter = crs['parameters']['utmZoneLetter']
 
 		if (!data['annotations']) return false
@@ -871,8 +859,8 @@ export class AnnotationManager extends UtmInterface {
 		}
 		if (!first) return false
 
-		return this.setOrigin(number, letter, first) ||
-			this.utmZoneNumber === number && this.utmZoneLetter === letter
+		return this.setOrigin(num, letter, first) ||
+			this.utmZoneNumber === num && this.utmZoneLetter === letter
 	}
 
 	/**
@@ -971,30 +959,28 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	toJSON(format: OutputFormat) {
-		let crs
-		let pointConverter
+		let crs: CRS.CoordinateReferenceSystem
+		let pointConverter: (p: THREE.Vector3) => Object
 		if (format === OutputFormat.UTM) {
-			const utm: CRS.UtmCrs = {
+			crs = {
 				coordinateSystem: 'UTM',
 				datum: this.datum,
 				parameters: {
 					utmZoneNumber: this.utmZoneNumber,
 					utmZoneLetter: this.utmZoneLetter,
 				}
-			}
-			crs = utm
+			} as CRS.UtmCrs
 			pointConverter = this.threeJsToUtmJsonObject()
 		} else if (format === OutputFormat.LLA) {
-			const lla: CRS.LlaCrs = {
+			crs = {
 				coordinateSystem: 'LLA',
 				datum: this.datum,
-			}
-			crs = lla
+			} as CRS.LlaCrs
 			pointConverter = this.threeJsToLlaJsonObject()
 		} else {
 			throw new Error('unknown OutputFormat: ' + format)
 		}
-		const data: AnnotationManagerInterface = {
+		const data: AnnotationManagerJsonInterface = {
 			coordinateReferenceSystem: crs,
 			annotations: [],
 		}

@@ -31,11 +31,11 @@ export class UtmInterface implements UtmLocalOrigin {
 	// three.js rendering breaks down on coordinates with high absolute value
 	offset: THREE.Vector3 = new THREE.Vector3(0, 0, 0)
 
-	static isValidUtmZone(number: number, letter: string): boolean {
-		return number >= 1 && number <= 60 &&
-			letter.length == 1 &&
+	static isValidUtmZone(num: number, letter: string): boolean {
+		return num >= 1 && num <= 60 &&
+			letter.length === 1 &&
 			letter >= "C" && letter <= "X" &&
-			letter != "I" && letter != "O"
+			letter !== "I" && letter !== "O"
 	}
 
 	// Decide whether UTM values have been initialized.

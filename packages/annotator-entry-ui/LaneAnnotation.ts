@@ -71,7 +71,7 @@ export class LaneNeighborsIds {
 }
 
 class LaneRenderingProperties {
-	color
+	color: number
 	markerMaterial: THREE.MeshLambertMaterial
 	activeMaterial: THREE.MeshBasicMaterial
 	inactiveMaterial: THREE.MeshLambertMaterial
@@ -80,7 +80,7 @@ class LaneRenderingProperties {
 	connectionMaterial: THREE.MeshLambertMaterial
 	liveModeMaterial: THREE.MeshLambertMaterial
 
-	constructor(color) {
+	constructor(color: number) {
 		this.color = color
 		this.markerMaterial = new THREE.MeshLambertMaterial({color: this.color, side: THREE.DoubleSide})
 		this.activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
@@ -102,10 +102,23 @@ namespace LaneCounter {
 
 export interface LaneAnnotationInterface {
 	uuid: LaneUuid
-	type
-	color
-	markerPositions
-	waypoints
+	type: AnnotationType
+	color: number
+	markerPositions: Array<THREE.Vector3>
+	waypoints: Array<THREE.Vector3>
+	neighborsIds: LaneNeighborsIds
+	leftSideType: LaneSideType
+	rightSideType: LaneSideType
+	entryType: LaneEntryExitType
+	exitType: LaneEntryExitType
+}
+
+export interface LaneAnnotationJsonInterface {
+	uuid: LaneUuid
+	type: AnnotationType
+	color: number
+	markerPositions: Array<Object>
+	waypoints: Array<Object>
 	neighborsIds: LaneNeighborsIds
 	leftSideType: LaneSideType
 	rightSideType: LaneSideType
@@ -264,15 +277,12 @@ export class LaneAnnotation {
 	makeInactive() {
 		if (this.inTrajectory) {
 			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
-		}
-		else {
+		} else {
 			if (this.type === AnnotationType.LANE) {
 				this.laneMesh.material = this.renderingProperties.inactiveMaterial
-			}
-			else if (this.type === AnnotationType.CONNECTION) {
+			} else if (this.type === AnnotationType.CONNECTION) {
 				this.laneMesh.material = this.renderingProperties.connectionMaterial
-			}
-			else {
+			} else {
 				// UNKNOWN
 				log.error("Unknown lane type. This shows an improper annotation creation.")
 			}
@@ -293,15 +303,12 @@ export class LaneAnnotation {
 
 		if (this.inTrajectory) {
 			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
-		}
-		else {
+		} else {
 			if (this.type === AnnotationType.LANE) {
 				this.laneMesh.material = this.renderingProperties.inactiveMaterial
-			}
-			else if (this.type === AnnotationType.CONNECTION) {
+			} else if (this.type === AnnotationType.CONNECTION) {
 				this.laneMesh.material = this.renderingProperties.connectionMaterial
-			}
-			else {
+			} else {
 				// UNKNOWN
 				log.error("Unknown lane type. This shows an improper annotation creation.")
 			}
@@ -309,8 +316,8 @@ export class LaneAnnotation {
 	}
 
 	setLiveMode(): void {
-		if (parseInt(this.exitType as any) === LaneEntryExitType.STOP) {
-			if (parseInt(this.entryType as any) === LaneEntryExitType.STOP) {
+		if (parseInt(this.exitType as any, 10) === LaneEntryExitType.STOP) {
+			if (parseInt(this.entryType as any, 10) === LaneEntryExitType.STOP) {
 				this.renderingProperties.liveModeMaterial.color.setHex(0xff0000)
 			} else {
 				this.renderingProperties.liveModeMaterial.color.setHex(0x00ff00)
@@ -372,7 +379,7 @@ export class LaneAnnotation {
 	toJSON(pointConverter?: (p: THREE.Vector3) => Object) {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		let data: LaneAnnotationInterface = {
+		let data: LaneAnnotationJsonInterface = {
 			uuid: this.uuid,
 			type: this.type,
 			color: this.renderingProperties.color,
@@ -528,7 +535,7 @@ export class LaneAnnotation {
 	}
 
 	updateLaneWidth() {
-		let lane_width = $('#lp_width_value')
-		lane_width.text(this.getLaneWidth().toFixed(3) + " m")
+		let laneWidth = $('#lp_width_value')
+		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")
 	}
 }
