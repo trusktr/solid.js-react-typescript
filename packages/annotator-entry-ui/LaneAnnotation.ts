@@ -8,6 +8,7 @@ import * as TypeLogger from 'typelogger'
 import * as $ from 'jquery'
 import * as UUID from 'uuid'
 
+// tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
@@ -180,15 +181,14 @@ export class LaneAnnotation {
 		this.laneRenderingObject.add(this.laneCenterLine)
 	}
 
-	setType(type: AnnotationType) {
+	setType(type: AnnotationType): void {
 		this.type = type
 	}
 
 	/**
 	 * Add a single marker to the annotation and the scene.
-	 * @param position
 	 */
-	addRawMarker(position: THREE.Vector3) {
+	addRawMarker(position: THREE.Vector3): void {
 		let marker = new THREE.Mesh(controlPointGeometry, this.renderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.laneMarkers.push(marker)
@@ -204,11 +204,8 @@ export class LaneAnnotation {
 	 *      - Second marker: has it's height modified to match the height of the first marker
 	 *      - Third and onwards: Two markers are added using the passed position and the
 	 *                           position of the last two markers.
-	 * @param x
-	 * @param y
-	 * @param z
 	 */
-	addMarker(x: number, y: number, z: number) {
+	addMarker(x: number, y: number, z: number): void {
 
 		let marker: THREE.Vector3 = new THREE.Vector3(x, y, z)
 		this.addRawMarker(marker)
@@ -224,10 +221,8 @@ export class LaneAnnotation {
 
 	/**
 	 * Add neighbor to our list of neighbors
-	 * @param neighborId
-	 * @param neighborLocation
 	 */
-	addNeighbor(neighborId: LaneUuid, neighborLocation: NeighborLocation) {
+	addNeighbor(neighborId: LaneUuid, neighborLocation: NeighborLocation): void {
 		switch (neighborLocation) {
 			case NeighborLocation.FRONT:
 				this.neighborsIds.front.push(neighborId)
@@ -249,7 +244,7 @@ export class LaneAnnotation {
 	/**
 	 * Delete last marker(s).
 	 */
-	deleteLast() {
+	deleteLast(): void {
 		if (this.laneMarkers.length === 0) {
 			return
 		}
@@ -266,7 +261,7 @@ export class LaneAnnotation {
 	/**
 	 * Make this annotation active. This changes the displayed material.
 	 */
-	makeActive() {
+	makeActive(): void {
 		this.laneMesh.material = this.renderingProperties.activeMaterial
 		this.laneCenterLine.visible = false
 	}
@@ -274,7 +269,7 @@ export class LaneAnnotation {
 	/**
 	 * Make this annotation inactive. This changes the displayed material.
 	 */
-	makeInactive() {
+	makeInactive(): void {
 		if (this.inTrajectory) {
 			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
 		} else {
@@ -293,7 +288,7 @@ export class LaneAnnotation {
 	/**
 	 * Make this annotation part of the car path
 	 */
-	setTrajectory(isTrajectoryActive: boolean) {
+	setTrajectory(isTrajectoryActive: boolean): void {
 		this.inTrajectory = isTrajectoryActive
 
 		// Do not change the active lane
@@ -340,7 +335,7 @@ export class LaneAnnotation {
 	/**
 	 * Recompute mesh from markers.
 	 */
-	updateVisualization = () => {
+	updateVisualization = (): void => {
 
 		// First thing first, update lane width
 		this.updateLaneWidth()
@@ -376,7 +371,7 @@ export class LaneAnnotation {
 		this.computeWaypoints()
 	}
 
-	toJSON(pointConverter?: (p: THREE.Vector3) => Object) {
+	toJSON(pointConverter?: (p: THREE.Vector3) => Object): LaneAnnotationJsonInterface {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
 		let data: LaneAnnotationJsonInterface = {
@@ -439,7 +434,7 @@ export class LaneAnnotation {
 		return newLeftMarker
 	}
 
-	private computeWaypoints() {
+	private computeWaypoints(): void {
 		// There must be at least 4 markers to compute waypoints
 		if (this.laneMarkers.length < 4) {
 			return
@@ -472,7 +467,7 @@ export class LaneAnnotation {
 
 	}
 
-	private updateLaneDirectionMarkers() {
+	private updateLaneDirectionMarkers(): void {
 		// Remove points from lineDirection object
 		this.laneDirectionMarkers.forEach((marker) => {
 			this.laneRenderingObject.remove(marker)
@@ -497,7 +492,7 @@ export class LaneAnnotation {
 		}
 	}
 
-	tryTrajectory(trajectory: Array<THREE.Vector3>) {
+	tryTrajectory(trajectory: Array<THREE.Vector3>): void {
 		// Remove points from lineDirection object
 		this.laneDirectionMarkers.forEach((marker) => {
 			this.laneRenderingObject.remove(marker)
@@ -534,7 +529,7 @@ export class LaneAnnotation {
 		return sum / (markers.length / 2)
 	}
 
-	updateLaneWidth() {
+	updateLaneWidth(): void {
 		let laneWidth = $('#lp_width_value')
 		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")
 	}

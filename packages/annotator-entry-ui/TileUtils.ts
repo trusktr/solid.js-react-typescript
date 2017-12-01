@@ -13,6 +13,7 @@ import * as TypeLogger from 'typelogger'
 import {UtmInterface} from "./UtmInterface"
 import {BufferGeometry} from "three"
 
+// tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
@@ -39,10 +40,10 @@ function readFile(filename: string): Promise<Buffer> {
  */
 async function loadTile(filename: string): Promise<Models.PointCloudTileMessage> {
 	let buffer = await readFile(filename)
-	return Models.PointCloudTileMessage.decode(buffer as any)
+	return Models.PointCloudTileMessage.decode(buffer)
 }
 
-const sampleData = (msg: Models.PointCloudTileMessage, step: number) => {
+const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Array<number>> => {
 	if (step <= 0) {
 		log.error("Can't sample data. Step should be > 0.")
 		return []
@@ -123,30 +124,30 @@ export class TileManager extends UtmInterface {
 	}
 
 	// "default" according to protobuf rules for default values
-	private static isDefaultUtmZone(number: number, letter: string): boolean {
-		return number === 0 && letter === ""
+	private static isDefaultUtmZone(num: number, letter: string): boolean {
+		return num === 0 && letter === ""
 	}
 
 	// The first tile we see defines the local origin and UTM zone for the lifetime of the application.
 	// All other data is expected to lie in the same zone.
 	private checkCoordinateSystem(msg: Models.PointCloudTileMessage, inputCoordinateFrame: CoordinateFrameType): boolean {
-		const number = msg.utmZoneNumber
+		const num = msg.utmZoneNumber
 		const letter = msg.utmZoneLetter
 		let inputPoint = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
 		let p = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
 
-		if (this.setOrigin(number, letter, p)) {
+		if (this.setOrigin(num, letter, p)) {
 			return true
 		} else {
-			return TileManager.isDefaultUtmZone(number, letter)
-				|| this.utmZoneNumber === number && this.utmZoneLetter === letter
+			return TileManager.isDefaultUtmZone(num, letter)
+				|| this.utmZoneNumber === num && this.utmZoneLetter === letter
 		}
 	}
 
 	/**
 	 * Replace existing geometry with a new one.
 	 */
-	private setGeometry(newGeometry: BufferGeometry) {
+	private setGeometry(newGeometry: BufferGeometry): void {
 		const oldGeometry = this.pointCloud.geometry
 		this.pointCloud.geometry = newGeometry
 		oldGeometry.dispose() // There is a vague and scary note in the docs about doing this, so here we go.
@@ -166,7 +167,7 @@ export class TileManager extends UtmInterface {
 		let maxFileCount = files.length
 		if (maxFileCount > this.maxTilesToLoad) maxFileCount = this.maxTilesToLoad
 
-		let printProgress = function (current: number, total: number, stepSize: number) {
+		let printProgress = function (current: number, total: number, stepSize: number): void {
 			if (total <= (stepSize * 2)) return
 			if (current % stepSize === 0) log.info(`processing ${current} of ${total} files`)
 		}
@@ -189,7 +190,7 @@ export class TileManager extends UtmInterface {
 				continue
 			}
 
-			let [sampledPoints, sampledColors] = sampleData(msg, this.samplingStep)
+			let [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.samplingStep)
 
 			points = points.concat(sampledPoints)
 			colors = colors.concat(sampledColors)
@@ -208,10 +209,10 @@ export class TileManager extends UtmInterface {
 	 * Convert array of 3d points into a THREE.Point object
 	 */
 	generatePointCloudFromRawData(points: Array<number>, inputColors: Array<number>, inputCoordinateFrame: CoordinateFrameType): THREE.Vector3 {
-		const points_size = points.length
-		const newPositions = new Array<number>(points_size)
+		const pointsSize = points.length
+		const newPositions = new Array<number>(pointsSize)
 
-		for (let i = 0; i < points_size; i += threeDStepSize) {
+		for (let i = 0; i < pointsSize; i += threeDStepSize) {
 			let inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
 			let standardPoint = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
 			let threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
@@ -254,7 +255,7 @@ export class TileManager extends UtmInterface {
 	/**
 	 * Clean slate.
 	 */
-	unloadAllPoints() {
+	unloadAllPoints(): void {
 		this.rawPositions = new Array<number>(0)
 		this.rawColors = new Array<number>(0)
 		this.setGeometry(new THREE.BufferGeometry())

@@ -19,6 +19,7 @@ import Vector3 = THREE.Vector3
 import {UtmInterface} from "./UtmInterface"
 import * as CRS from "./CoordinateReferenceSystem"
 
+// tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const {dialog} = require('electron').remote
@@ -43,6 +44,13 @@ class Link {
 export enum OutputFormat {
 	UTM = 1,
 	LLA = 2,
+}
+
+/**
+ * Get point in between at a specific distance
+ */
+function getMarkerInBetween(marker1: Vector3, marker2: Vector3, atDistance: number): Vector3 {
+	return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
 }
 
 interface AnnotationManagerJsonInterface {
@@ -102,7 +110,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Get current active annotation
 	 */
-	getActiveAnnotation() {
+	getActiveAnnotation(): LaneAnnotation {
 
 		if (this.activeAnnotationIndex < 0 &&
 			this.activeAnnotationIndex >= this.annotations.length) {
@@ -115,7 +123,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Get all existing ids
 	 */
-	getValidIds() {
+	getValidIds(): Array<LaneId> {
 		let list = []
 		for (let i = 0; i < this.annotations.length; ++i) {
 			if (this.annotations[i].type === AnnotationType.LANE) {
@@ -126,16 +134,9 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
-	 * Get point in between at a specific distance
-	 */
-	getMarkerInBetween(marker1: Vector3, marker2: Vector3, atDistance: number): Vector3 {
-		return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
-	}
-
-	/**
 	 * Create a new lane connection between given lanes
 	 */
-	private addForwardLaneConnection(scene: THREE.Scene, laneFrom: LaneAnnotation, laneTo: LaneAnnotation) {
+	private addForwardLaneConnection(scene: THREE.Scene, laneFrom: LaneAnnotation, laneTo: LaneAnnotation): void {
 
 		if (laneFrom.laneMarkers.length < 4 || laneTo.laneMarkers.length < 4) {
 			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unable to generate forward relation." +
@@ -171,14 +172,14 @@ export class AnnotationManager extends UtmInterface {
 		let splineRight = new THREE.CatmullRomCurve3(pointsRight)
 
 		// Add path to the connection
-		connection.addRawMarker(this.getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.4))
-		connection.addRawMarker(this.getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.6))
-		connection.addRawMarker(this.getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.4))
-		connection.addRawMarker(this.getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.6))
-		connection.addRawMarker(this.getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.4))
-		connection.addRawMarker(this.getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6))
-		connection.addRawMarker(this.getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4))
-		connection.addRawMarker(this.getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6))
+		connection.addRawMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.4))
+		connection.addRawMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.6))
+		connection.addRawMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.4))
+		connection.addRawMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.6))
+		connection.addRawMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.4))
+		connection.addRawMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6))
+		connection.addRawMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4))
+		connection.addRawMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6))
 
 		// Add annotation to the scene
 		this.annotationMeshes.push(connection.laneMesh)
@@ -992,8 +993,8 @@ export class AnnotationManager extends UtmInterface {
 		return data
 	}
 
-	saveAndExportToKml(jar: string, main: string, input: string, output: string) {
-		let exportToKml = function () {
+	saveAndExportToKml(jar: string, main: string, input: string, output: string): Promise<void> {
+		const exportToKml = (): void => {
 			const command = [jar, main, input, output].join(' ')
 			log.debug('executing child process: ' + command)
 			const exec = require('child_process').exec
@@ -1007,14 +1008,12 @@ export class AnnotationManager extends UtmInterface {
 			})
 		}
 
-		this.saveAnnotationsToFile(input, OutputFormat.LLA).then(function () {
-			exportToKml()
-		}, function (error) {
-			console.warn('save-to-JSON failed for KML conversion; aborting: ' + error.message)
-		})
+		return this.saveAnnotationsToFile(input, OutputFormat.LLA)
+			.then(() => exportToKml())
+			.catch(error => log.warn('save-to-JSON failed for KML conversion; aborting: ' + error.message))
 	}
 
-	saveToKML(fileName: string) {
+	saveToKML(fileName: string): Promise<void> {
 		// Get all the points
 		let points = []
 		this.annotations.forEach((annotation) => {
@@ -1038,7 +1037,7 @@ export class AnnotationManager extends UtmInterface {
 	 * the current active annotation and it's next two points to be an extension in the direction of
 	 * the last four points of the current active annotation.
 	 */
-	private addFrontConnection(scene: THREE.Scene,): boolean {
+	private addFrontConnection(scene: THREE.Scene): boolean {
 		this.addLaneAnnotation(scene)
 		let newAnnotationIndex = this.annotations.length - 1
 
@@ -1210,7 +1209,7 @@ export class AnnotationManager extends UtmInterface {
 		})
 	}
 
-	private deleteConnectionToNeighbors(scene: THREE.Scene, annotation: LaneAnnotation) {
+	private deleteConnectionToNeighbors(scene: THREE.Scene, annotation: LaneAnnotation): void {
 
 		if (annotation.neighborsIds.right != null) {
 			let index = this.findAnnotationIndexByUuid(annotation.neighborsIds.right)
@@ -1308,7 +1307,7 @@ export class AnnotationState {
 		this.autoSaveDirectory = config.get('output.annotations.autosave.directory.path')
 		const autoSaveEventInterval = config.get('output.annotations.autosave.interval.seconds') * 1000
 		if (this.annotationManager && this.autoSaveDirectory && autoSaveEventInterval) {
-			setInterval(function () {
+			setInterval((): void => {
 				if (self.doAutoSave()) self.saveAnnotations()
 			}, autoSaveEventInterval)
 		}
@@ -1340,11 +1339,7 @@ export class AnnotationState {
 		const fileName = vsprintf("%04d-%02d-%02dT%02d-%02d-%02d.%03dZ.json", nowElements)
 		const savePath = this.autoSaveDirectory + '/' + fileName
 		log.info("auto-saving annotations to: " + savePath)
-		this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM).then(
-			function () {},
-			function (error) {
-				console.warn('save annotations failed: ' + error.message)
-			}
-		)
+		this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM)
+			.catch(error => log.warn('save annotations failed: ' + error.message))
 	}
 }

@@ -6,6 +6,7 @@
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 
+// tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const utmObj = new (require('utm-latlng'))()
@@ -57,14 +58,14 @@ export class UtmInterface implements UtmLocalOrigin {
 
 	// UTM origin can be set one time; subsequent attempts to set must match the first one.
 	// Assume that the origin does not change for the lifetime of the application.
-	setOrigin(number: number, letter: string, offset: THREE.Vector3): boolean {
+	setOrigin(num: number, letter: string, offset: THREE.Vector3): boolean {
 		if (this.hasOrigin()) {
 			return this.offset.x === offset.x && this.offset.y === offset.y && this.offset.z === offset.z &&
-				this.utmZoneNumber === number && this.utmZoneLetter === letter
+				this.utmZoneNumber === num && this.utmZoneLetter === letter
 		} else {
 			this.offset = offset
-			if (UtmInterface.isValidUtmZone(number, letter)) {
-				this.utmZoneNumber = number
+			if (UtmInterface.isValidUtmZone(num, letter)) {
+				this.utmZoneNumber = num
 				this.utmZoneLetter = letter
 			} else {
 				this.utmZoneNumber = this.defaultUtmZoneNumber

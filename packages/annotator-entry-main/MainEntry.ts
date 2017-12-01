@@ -9,7 +9,7 @@ const
 // be closed automatically when the JavaScript object is garbage collected.
 let win
 
-function createWindow() {
+function createWindow(): void {
 	// Create the browser window.
 	win = new BrowserWindow({width: 800, height: 600})
 

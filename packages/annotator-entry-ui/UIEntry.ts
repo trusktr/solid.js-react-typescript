@@ -14,6 +14,7 @@ require('!!css-loader!jquery-ui-dist/jquery-ui.css')
 import * as TypeLogger from 'typelogger'
 import {annotator} from 'annotator-entry-ui/Annotator'
 
+// tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
@@ -23,7 +24,7 @@ declare global {
 
 const root = $("#root")
 
-export function onLoad() {
+export function onLoad(): void {
 	require("annotator-control-ui/UIControl")
 	log.info('loading ')
 	annotator.initScene()

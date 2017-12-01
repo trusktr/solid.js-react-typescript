@@ -32,6 +32,7 @@ const zmq = require('zmq')
 const OBJLoader = require('three-obj-loader')
 OBJLoader(THREE)
 
+// tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 let root = $("#root")
@@ -45,9 +46,9 @@ class Annotator {
 	scene: THREE.Scene
 	camera: THREE.PerspectiveCamera
 	renderer: THREE.WebGLRenderer
-	raycaster_plane: THREE.Raycaster
-	raycaster_marker: THREE.Raycaster
-	raycaster_annotation: THREE.Raycaster
+	raycasterPlane: THREE.Raycaster
+	raycasterMarker: THREE.Raycaster
+	raycasterAnnotation: THREE.Raycaster
 	carModel: THREE.Object3D
 	tileManager: TileManager
 	plane: THREE.Mesh
@@ -79,12 +80,12 @@ class Annotator {
 		}
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
-		this.raycaster_plane = new THREE.Raycaster()
-		this.raycaster_plane.params.Points.threshold = 0.1
+		this.raycasterPlane = new THREE.Raycaster()
+		this.raycasterPlane.params.Points.threshold = 0.1
 		// THe raycaster is used to compute which marker is active for editing
-		this.raycaster_marker = new THREE.Raycaster()
+		this.raycasterMarker = new THREE.Raycaster()
 		// THe raycaster is used to compute which selection should be active for editing
-		this.raycaster_annotation = new THREE.Raycaster()
+		this.raycasterAnnotation = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager()
 
@@ -169,10 +170,10 @@ class Annotator {
 
 		// Set up for auto-save
 		const body = $(document.body)
-		body.focusin(function () {
+		body.focusin((): void => {
 			self.annotationManager.enableAutoSave()
 		})
-		body.focusout(function () {
+		body.focusout((): void => {
 			self.annotationManager.disableAutoSave()
 		})
 
@@ -201,7 +202,7 @@ class Annotator {
 	/**
 	 * Start THREE.js rendering loop.
 	 */
-	animate = () => {
+	animate = (): void => {
 		setTimeout(() => {
 			requestAnimationFrame(this.animate)
 		}, 1000 / this.settings.fpsRendering)
@@ -215,7 +216,7 @@ class Annotator {
 	/**
 	 * Render the THREE.js scene from the camera's position.
 	 */
-	render = () => {
+	render = (): void => {
 		this.renderer.render(this.scene, this.camera)
 	}
 
@@ -329,13 +330,13 @@ class Annotator {
 		}
 
 		let mouse = this.getMouseCoordinates(event)
-		this.raycaster_plane.setFromCamera(mouse, this.camera)
+		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
 
 		if (this.tileManager.pointCloud === null) {
-			intersections = this.raycaster_plane.intersectObject(this.plane)
+			intersections = this.raycasterPlane.intersectObject(this.plane)
 		} else {
-			intersections = this.raycaster_plane.intersectObject(this.tileManager.pointCloud)
+			intersections = this.raycasterPlane.intersectObject(this.tileManager.pointCloud)
 		}
 
 		if (intersections.length > 0) {
@@ -355,8 +356,8 @@ class Annotator {
 		if (this.isLiveMode) return
 
 		let mouse = this.getMouseCoordinates(event)
-		this.raycaster_annotation.setFromCamera(mouse, this.camera)
-		let intersects = this.raycaster_marker.intersectObjects(this.annotationManager.annotationMeshes)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		let intersects = this.raycasterMarker.intersectObjects(this.annotationManager.annotationMeshes)
 
 		if (intersects.length > 0) {
 			let object = intersects[0].object
@@ -383,9 +384,9 @@ class Annotator {
 		}
 		let mouse = this.getMouseCoordinates(event)
 
-		this.raycaster_marker.setFromCamera(mouse, this.camera)
+		this.raycasterMarker.setFromCamera(mouse, this.camera)
 
-		let intersects = this.raycaster_marker.intersectObjects(this.annotationManager.activeMarkers)
+		let intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
 
 		if (intersects.length > 0) {
 			let object = intersects[0].object
@@ -484,60 +485,55 @@ class Annotator {
 
 		if (event.code === 'KeyM') {
 			this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
+				.catch(err => log.warn('saveToKML failed: ' + err.message))
 		}
 
-		if (event.code == 'KeyO') {
+		if (event.code === 'KeyO') {
 			this.toggleListen()
 		}
 
-		if (event.code == 'KeyU') {
+		if (event.code === 'KeyU') {
 			this.unloadPointCloudData()
 		}
 
 	}
 
-	private onKeyUp = () => {
+	private onKeyUp = (): void => {
 		this.isAddMarkerKeyPressed = false
 	}
 
-	private async saveAnnotations() {
-		await this.annotationManager.saveAnnotationsToFile(config.get('output.annotations.json.path'), OutputFormat.UTM).then(
-			function () {
-			},
-			function (error) {
-				console.warn('save annotations failed: ' + error.message)
-			}
-		)
+	private saveAnnotations(): Promise<void> {
+		return this.annotationManager.saveAnnotationsToFile(config.get('output.annotations.json.path'), OutputFormat.UTM)
 	}
 
-	private async exportAnnotationsToKml() {
+	private exportAnnotationsToKml(): Promise<void> {
 		const jar = config.get('conversion.kml.jar')
 		const main = config.get('conversion.kml.main_class')
 		let input = config.get('conversion.kml.input.path')
 		let output = config.get('conversion.kml.output.path')
 		if (!jar || !main || !input || !output) {
-			console.warn("incomplete configuration for KML conversion; aborting")
+			return Promise.reject("incomplete configuration for KML conversion; aborting")
 		} else {
 			if (!(input.substr(0, 1) === '/'))
 				input = process.env.PWD + '/' + input
 			if (!(output.substr(0, 1) === '/'))
 				output = process.env.PWD + '/' + output
-			this.annotationManager.saveAndExportToKml(jar, main, input, output)
+			return this.annotationManager.saveAndExportToKml(jar, main, input, output)
 		}
 	}
 
-	private delayHideTransform = () => {
+	private delayHideTransform = (): void => {
 		this.cancelHideTransform()
 		this.hideTransform()
 	}
 
-	private hideTransform = () => {
+	private hideTransform = (): void => {
 		this.hideTransformControlTimer = setTimeout(() => {
 			this.transformControls.detach(this.transformControls.object)
 		}, 1500)
 	}
 
-	private cancelHideTransform = () => {
+	private cancelHideTransform = (): void => {
 		if (this.hideTransformControlTimer) {
 			clearTimeout(this.hideTransformControlTimer)
 		}
@@ -546,7 +542,7 @@ class Annotator {
 	/**
 	 * Create orbit controls which enable translation, rotation and zooming of the scene.
 	 */
-	private initOrbitControls() {
+	private initOrbitControls(): void {
 		this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement)
 		this.orbitControls.minDistance = -Infinity
 
@@ -569,7 +565,7 @@ class Annotator {
 	/**
 	 * Create Transform controls object. This allows for the translation of an object in the scene.
 	 */
-	private initTransformControls() {
+	private initTransformControls(): void {
 		this.transformControls = new TransformControls(this.camera, this.renderer.domElement)
 		this.transformControls.addEventListener('change', this.render)
 		this.scene.add(this.transformControls)
@@ -600,7 +596,7 @@ class Annotator {
 	/**
 	 * Functions to bind
 	 */
-	deleteLane() {
+	deleteLane(): void {
 		// Delete lane from scene
 		if (this.annotationManager.deleteLaneFromPath() && this.annotationManager.deleteActiveAnnotation(this.scene)) {
 			log.info("Deleted selected annotation")
@@ -609,7 +605,7 @@ class Annotator {
 		}
 	}
 
-	addLane() {
+	addLane(): void {
 		// Add lane to scene
 		if (this.addLaneAnnotation()) {
 			log.info("Added new annotation")
@@ -618,59 +614,60 @@ class Annotator {
 		}
 	}
 
-	saveToFile() {
+	saveToFile(): void {
 		log.info("Saving annotations to JSON")
 		this.saveAnnotations()
+			.catch(error => log.warn("save to file failed: " + error.message))
 	}
 
-	exportKml() {
+	exportKml(): void {
 		log.info("Exporting annotations to KML")
 		this.exportAnnotationsToKml()
+			.catch(error => log.warn("export to KML failed: " + error.message))
 	}
 
 	loadFromFile() {
-
-		let path_electron = dialog.showOpenDialog({
+		let pathElectron = dialog.showOpenDialog({
 			properties: ['openDirectory']
 		})
 
-		if (isUndefined(path_electron)) {
+		if (isUndefined(pathElectron)) {
 			return
 		}
 
-		log.info('Loading point cloud from ' + path_electron[0])
-		this.loadPointCloudData(path_electron[0])
+		log.info('Loading point cloud from ' + pathElectron[0])
+		this.loadPointCloudData(pathElectron[0])
 	}
 
-	addFront() {
+	addFront(): void {
 		log.info("Adding connected annotation to the front")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
 			this.deactivateFrontSideNeighbours()
 		}
 	}
 
-	addLeftSame() {
+	addLeftSame(): void {
 		log.info("Adding connected annotation to the left - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
 			this.deactivateLeftSideNeighbours()
 		}
 	}
 
-	addLeftReverse() {
+	addLeftReverse(): void {
 		log.info("Adding connected annotation to the left - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
 			this.deactivateLeftSideNeighbours()
 		}
 	}
 
-	addRightSame() {
+	addRightSame(): void {
 		log.info("Adding connected annotation to the right - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
 			this.deactivateRightSideNeighbours()
 		}
 	}
 
-	addRightReverse() {
+	addRightReverse(): void {
 		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			this.deactivateRightSideNeighbours()
@@ -680,10 +677,9 @@ class Annotator {
 	/**
 	 * Bind functions events to interface elements
 	 */
-	private bind() {
-
-		let menu_btn = document.getElementById('menu_control_btn')
-		menu_btn.addEventListener('click', _ => {
+	private bind(): void {
+		let menuButton = document.getElementById('menu_control_btn')
+		menuButton.addEventListener('click', _ => {
 			if (this.isLiveMode) {
 				log.info("Disable live location mode first to access the menu.")
 			} else {
@@ -691,84 +687,83 @@ class Annotator {
 				let menu = document.getElementById('menu')
 				if (menu.style.visibility === 'hidden') {
 					menu.style.visibility = 'visible'
-				}
-				else {
+				} else {
 					menu.style.visibility = 'hidden'
 				}
 			}
 		})
 
-		let live_location_control_btn = document.getElementById('live_location_control_btn')
-		live_location_control_btn.addEventListener('click', _ => {
+		let liveLocationControlButton = document.getElementById('live_location_control_btn')
+		liveLocationControlButton.addEventListener('click', _ => {
 			this.toggleListen()
 		})
 
-		let tools_delete = document.getElementById('tools_delete')
-		tools_delete.addEventListener('click', _ => {
+		let toolsDelete = document.getElementById('tools_delete')
+		toolsDelete.addEventListener('click', _ => {
 			this.deleteLane()
 		})
 
-		let tools_add = document.getElementById('tools_add')
-		tools_add.addEventListener('click', _ => {
+		let toolsAdd = document.getElementById('tools_add')
+		toolsAdd.addEventListener('click', _ => {
 			this.addLane()
 		})
 
-		let tools_load = document.getElementById('tools_load')
-		tools_load.addEventListener('click', _ => {
+		let toolsLoad = document.getElementById('tools_load')
+		toolsLoad.addEventListener('click', _ => {
 			this.loadFromFile()
 		})
 
-		let tools_load_annotation = document.getElementById('tools_load_annotation')
-		tools_load_annotation.addEventListener('click', _ => {
-			let path_electron = dialog.showOpenDialog({
+		let toolsLoadAnnotation = document.getElementById('tools_load_annotation')
+		toolsLoadAnnotation.addEventListener('click', _ => {
+			let pathElectron = dialog.showOpenDialog({
 				filters: [{name: 'json', extensions: ['json']}]
 			})
 
-			if (isUndefined(path_electron)) {
+			if (isUndefined(pathElectron)) {
 				return
 			}
 
-			log.info('Loading annotations from ' + path_electron[0])
-			this.loadAnnotations(path_electron[0])
+			log.info('Loading annotations from ' + pathElectron[0])
+			this.loadAnnotations(pathElectron[0])
 		})
 
-		let tools_save = document.getElementById('tools_save')
-		tools_save.addEventListener('click', _ => {
+		let toolsSave = document.getElementById('tools_save')
+		toolsSave.addEventListener('click', _ => {
 			this.saveToFile()
 		})
 
-		let tools_export_kml = document.getElementById('tools_export_kml')
-		tools_export_kml.addEventListener('click', _ => {
+		let toolsExportKml = document.getElementById('tools_export_kml')
+		toolsExportKml.addEventListener('click', _ => {
 			this.exportKml()
 		})
 
-		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite')
-		lp_add_left_opposite.addEventListener('click', _ => {
+		let lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		lpAddLeftOpposite.addEventListener('click', _ => {
 			this.addLeftReverse()
 		})
 
-		let lp_add_left_same = document.getElementById('lp_add_left_same')
-		lp_add_left_same.addEventListener('click', _ => {
+		let lpAddLeftSame = document.getElementById('lp_add_left_same')
+		lpAddLeftSame.addEventListener('click', _ => {
 			this.addLeftSame()
 		})
 
-		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite')
-		lp_add_right_opposite.addEventListener('click', _ => {
+		let lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		lpAddRightOpposite.addEventListener('click', _ => {
 			this.addRightReverse()
 		})
 
-		let lp_add_right_same = document.getElementById('lp_add_right_same')
-		lp_add_right_same.addEventListener('click', _ => {
+		let lpAddRightSame = document.getElementById('lp_add_right_same')
+		lpAddRightSame.addEventListener('click', _ => {
 			this.addRightSame()
 		})
 
-		let lp_add_front = document.getElementById('lp_add_forward')
-		lp_add_front.addEventListener('click', _ => {
+		let lpAddFront = document.getElementById('lp_add_forward')
+		lpAddFront.addEventListener('click', _ => {
 			this.addFront()
 		})
 
-		let lc_select_from = document.getElementById('lc_select_from')
-		lc_select_from.addEventListener('mousedown', _ => {
+		let lcSelectFrom = document.getElementById('lc_select_from')
+		lcSelectFrom.addEventListener('mousedown', _ => {
 
 			// Get ids
 			let ids = this.annotationManager.getValidIds()
@@ -782,8 +777,8 @@ class Annotator {
 			selectbox.html(list)
 		})
 
-		let lc_select_to = document.getElementById('lc_select_to')
-		lc_select_to.addEventListener('mousedown', _ => {
+		let lcSelectTo = document.getElementById('lc_select_to')
+		lcSelectTo.addEventListener('mousedown', _ => {
 
 			// Get ids
 			let ids = this.annotationManager.getValidIds()
@@ -797,90 +792,89 @@ class Annotator {
 			selectbox.html(list)
 		})
 
-		let lc_add = document.getElementById('lc_add')
-		lc_add.addEventListener('click', _ => {
-			let lc_to: LaneId = Number($('#lc_select_to').val())
-			let lc_from: LaneId = Number($('#lc_select_from').val())
-			let lc_relation = $('#lc_select_relation').val()
+		let lcAdd = document.getElementById('lc_add')
+		lcAdd.addEventListener('click', _ => {
+			let lcTo: LaneId = Number($('#lc_select_to').val())
+			let lcFrom: LaneId = Number($('#lc_select_from').val())
+			let lcRelation = $('#lc_select_relation').val()
 
-			if (lc_to === null || lc_from === null) {
+			if (lcTo === null || lcFrom === null) {
 				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
 					"You have to select both lanes to be connected.")
 				return
 			}
 
-			if (lc_to === lc_from) {
+			if (lcTo === lcFrom) {
 				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
 					"You can't connect a lane to itself. The 2 ids should be unique.")
 				return
 			}
 
-			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to)
-			if (this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation)) {
+			log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
+			if (this.annotationManager.addRelation(this.scene, lcFrom, lcTo, lcRelation)) {
 				this.resetLaneProp()
 			}
 		})
 
-		let lc_left = $('#lp_select_left')
-		lc_left.on('change', _ => {
+		let lcLeft = $('#lp_select_left')
+		lcLeft.on('change', _ => {
 
-			let active_annotation = this.annotationManager.getActiveAnnotation()
-			if (active_annotation === null) {
+			let activeAnnotation = this.annotationManager.getActiveAnnotation()
+			if (activeAnnotation === null) {
 				return
 			}
-			log.info("Adding left side type: " + lc_left.children("option").filter(":selected").text())
-			active_annotation.leftSideType = lc_left.val()
+			log.info("Adding left side type: " + lcLeft.children("option").filter(":selected").text())
+			activeAnnotation.leftSideType = lcLeft.val()
 		})
 
-		let lc_right = $('#lp_select_right')
-		lc_right.on('change', _ => {
+		let lcRight = $('#lp_select_right')
+		lcRight.on('change', _ => {
 
-			let active_annotation = this.annotationManager.getActiveAnnotation()
-			if (active_annotation === null) {
+			let activeAnnotation = this.annotationManager.getActiveAnnotation()
+			if (activeAnnotation === null) {
 				return
 			}
-			log.info("Adding right side type: " + lc_right.children("option").filter(":selected").text())
-			active_annotation.rightSideType = lc_right.val()
+			log.info("Adding right side type: " + lcRight.children("option").filter(":selected").text())
+			activeAnnotation.rightSideType = lcRight.val()
 		})
 
-		let lc_entry = $('#lp_select_entry')
-		lc_entry.on('change', _ => {
+		let lcEntry = $('#lp_select_entry')
+		lcEntry.on('change', _ => {
 
-			let active_annotation = this.annotationManager.getActiveAnnotation()
-			if (active_annotation === null) {
+			let activeAnnotation = this.annotationManager.getActiveAnnotation()
+			if (activeAnnotation === null) {
 				return
 			}
-			log.info("Adding entry type: " + lc_entry.children("option").filter(":selected").text())
-			active_annotation.entryType = lc_entry.val()
+			log.info("Adding entry type: " + lcEntry.children("option").filter(":selected").text())
+			activeAnnotation.entryType = lcEntry.val()
 		})
 
-		let lc_exit = $('#lp_select_exit')
-		lc_exit.on('change', _ => {
+		let lcExit = $('#lp_select_exit')
+		lcExit.on('change', _ => {
 
-			let active_annotation = this.annotationManager.getActiveAnnotation()
-			if (active_annotation === null) {
+			let activeAnnotation = this.annotationManager.getActiveAnnotation()
+			if (activeAnnotation === null) {
 				return
 			}
-			log.info("Adding exit type: " + lc_exit.children("option").filter(":selected").text())
-			active_annotation.exitType = lc_exit.val()
+			log.info("Adding exit type: " + lcExit.children("option").filter(":selected").text())
+			activeAnnotation.exitType = lcExit.val()
 		})
 
-		let tr_add = $('#tr_add')
-		tr_add.on('click', _ => {
+		let trAdd = $('#tr_add')
+		trAdd.on('click', _ => {
 
 			log.info("Add/remove lane to/from car path.")
 			if (this.annotationManager.addLaneToPath()) {
-				if (tr_add.text() === "Add") {
-					tr_add.text("Remove")
-				}
-				else {
-					tr_add.text("Add")
+				if (trAdd.text() === "Add") {
+					trAdd.text("Remove")
+				} else {
+					trAdd.text("Add")
 				}
 			}
 		})
 
-		let tr_show = $('#tr_show')
-		tr_show.on('click', _ => {
+		let trShow = $('#tr_show')
+		trShow.on('click', _ => {
 
 			log.info("Show/hide car path.")
 			if (!this.annotationManager.showPath()) {
@@ -888,16 +882,15 @@ class Annotator {
 			}
 
 			// Change button text only if showPath succeed
-			if (tr_show.text() === "Show") {
-				tr_show.text("Hide")
-			}
-			else {
-				tr_show.text("Show")
+			if (trShow.text() === "Show") {
+				trShow.text("Hide")
+			} else {
+				trShow.text("Show")
 			}
 		})
 
-		let save_path = $('#save_path')
-		save_path.on('click', _ => {
+		let savePath = $('#save_path')
+		savePath.on('click', _ => {
 
 			log.info("Save car path to file.")
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
@@ -907,91 +900,89 @@ class Annotator {
 	/**
 	 * Reset lane properties elements based on the current active lane
 	 */
-	private resetLaneProp() {
+	private resetLaneProp(): void {
 
-		let active_annotation = this.annotationManager.getActiveAnnotation()
-		if (active_annotation === null) {
+		let activeAnnotation = this.annotationManager.getActiveAnnotation()
+		if (activeAnnotation === null) {
 			return
 		}
 
-		if (active_annotation.neighborsIds.left != null) {
+		if (activeAnnotation.neighborsIds.left != null) {
 			this.deactivateLeftSideNeighbours()
 		} else {
 			this.activateLeftSideNeighbours()
 		}
 
-		if (active_annotation.neighborsIds.right != null) {
+		if (activeAnnotation.neighborsIds.right != null) {
 			this.deactivateRightSideNeighbours()
 		} else {
 			this.activateRightSideNeighbours()
 		}
 
-		if (active_annotation.neighborsIds.front.length != 0) {
+		if (activeAnnotation.neighborsIds.front.length !== 0) {
 			this.deactivateFrontSideNeighbours()
 		} else {
 			this.activateFrontSideNeighbours()
 		}
 
-		let lp_id = document.getElementById('lp_id_value')
-		lp_id.textContent = active_annotation.id.toString()
-		active_annotation.updateLaneWidth()
+		let lpId = document.getElementById('lp_id_value')
+		lpId.textContent = activeAnnotation.id.toString()
+		activeAnnotation.updateLaneWidth()
 
-		let lc_select_to = $('#lc_select_to')
-		lc_select_to.empty()
-		lc_select_to.removeAttr('disabled')
+		let lcSelectTo = $('#lc_select_to')
+		lcSelectTo.empty()
+		lcSelectTo.removeAttr('disabled')
 
-		let lc_select_from = $('#lc_select_from')
-		lc_select_from.empty()
-		lc_select_from.removeAttr('disabled')
+		let lcSelectFrom = $('#lc_select_from')
+		lcSelectFrom.empty()
+		lcSelectFrom.removeAttr('disabled')
 
-		let lc_select_relation = $('#lc_select_relation')
-		lc_select_relation.removeAttr('disabled')
+		let lcSelectRelation = $('#lc_select_relation')
+		lcSelectRelation.removeAttr('disabled')
 
-		let lp_select_left = $('#lp_select_left')
-		lp_select_left.removeAttr('disabled')
-		lp_select_left.val(active_annotation.leftSideType.toString())
+		let lpSelectLeft = $('#lp_select_left')
+		lpSelectLeft.removeAttr('disabled')
+		lpSelectLeft.val(activeAnnotation.leftSideType.toString())
 
-		let lp_add_relation = $('#lc_add')
-		lp_add_relation.removeAttr('disabled')
+		let lpAddRelation = $('#lc_add')
+		lpAddRelation.removeAttr('disabled')
 
-		let lp_select_right = $('#lp_select_right')
-		lp_select_right.removeAttr('disabled')
-		lp_select_right.val(active_annotation.rightSideType.toString())
+		let lpSelectRight = $('#lp_select_right')
+		lpSelectRight.removeAttr('disabled')
+		lpSelectRight.val(activeAnnotation.rightSideType.toString())
 
-		let lp_select_entry = $('#lp_select_entry')
-		lp_select_entry.removeAttr('disabled')
-		lp_select_entry.val(active_annotation.entryType.toString())
+		let lpSelectEntry = $('#lp_select_entry')
+		lpSelectEntry.removeAttr('disabled')
+		lpSelectEntry.val(activeAnnotation.entryType.toString())
 
-		let lp_select_exit = $('#lp_select_exit')
-		lp_select_exit.removeAttr('disabled')
-		lp_select_exit.val(active_annotation.exitType.toString())
+		let lpSelectExit = $('#lp_select_exit')
+		lpSelectExit.removeAttr('disabled')
+		lpSelectExit.val(activeAnnotation.exitType.toString())
 
-		let tr_add = $('#tr_add')
-		tr_add.removeAttr('disabled')
-		if (this.annotationManager.laneIndexInPath(active_annotation.uuid) === -1) {
-			tr_add.text("Add")
+		let trAdd = $('#tr_add')
+		trAdd.removeAttr('disabled')
+		if (this.annotationManager.laneIndexInPath(activeAnnotation.uuid) === -1) {
+			trAdd.text("Add")
+		} else {
+			trAdd.text("Remove")
 		}
-		else {
-			tr_add.text("Remove")
-		}
 
-		let tr_show = $('#tr_show')
-		tr_show.removeAttr('disabled')
+		let trShow = $('#tr_show')
+		trShow.removeAttr('disabled')
 	}
 
 	/**
 	 * Deactivate lane properties menu panel
 	 */
-	deactivateLaneProp() {
-
+	deactivateLaneProp(): void {
 		this.deactivateLeftSideNeighbours()
 		this.deactivateRightSideNeighbours()
 		this.deactivateFrontSideNeighbours()
 
-		let lp_id = document.getElementById('lp_id_value')
-		lp_id.textContent = 'UNKNOWN'
-		let lp_width = document.getElementById('lp_width_value')
-		lp_width.textContent = 'UNKNOWN'
+		let lpId = document.getElementById('lp_id_value')
+		lpId.textContent = 'UNKNOWN'
+		let lpWidth = document.getElementById('lp_width_value')
+		lpWidth.textContent = 'UNKNOWN'
 
 		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select')
 		for (let i = 0; i < selects.length; ++i) {
@@ -1014,51 +1005,51 @@ class Annotator {
 	/**
 	 * Deactivate/activate left side neighbours
 	 */
-	deactivateLeftSideNeighbours() {
-		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite')
-		let lp_add_left_same = document.getElementById('lp_add_left_same')
-		lp_add_left_same.setAttribute('disabled', 'disabled')
-		lp_add_left_opposite.setAttribute('disabled', 'disabled')
+	deactivateLeftSideNeighbours(): void {
+		let lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		let lpAddLeftSame = document.getElementById('lp_add_left_same')
+		lpAddLeftSame.setAttribute('disabled', 'disabled')
+		lpAddLeftOpposite.setAttribute('disabled', 'disabled')
 	}
 
-	activateLeftSideNeighbours() {
-		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite')
-		let lp_add_left_same = document.getElementById('lp_add_left_same')
-		lp_add_left_same.removeAttribute('disabled')
-		lp_add_left_opposite.removeAttribute('disabled')
+	activateLeftSideNeighbours(): void {
+		let lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		let lpAddLeftSame = document.getElementById('lp_add_left_same')
+		lpAddLeftSame.removeAttribute('disabled')
+		lpAddLeftOpposite.removeAttribute('disabled')
 	}
 
 	/**
 	 * Deactivate right side neighbours
 	 */
-	deactivateRightSideNeighbours() {
-		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite')
-		let lp_add_right_same = document.getElementById('lp_add_right_same')
-		lp_add_right_same.setAttribute('disabled', 'disabled')
-		lp_add_right_opposite.setAttribute('disabled', 'disabled')
+	deactivateRightSideNeighbours(): void {
+		let lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		let lpAddRightSame = document.getElementById('lp_add_right_same')
+		lpAddRightSame.setAttribute('disabled', 'disabled')
+		lpAddRightOpposite.setAttribute('disabled', 'disabled')
 	}
 
-	activateRightSideNeighbours() {
-		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite')
-		let lp_add_right_same = document.getElementById('lp_add_right_same')
-		lp_add_right_same.removeAttribute('disabled')
-		lp_add_right_opposite.removeAttribute('disabled')
+	activateRightSideNeighbours(): void {
+		let lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		let lpAddRightSame = document.getElementById('lp_add_right_same')
+		lpAddRightSame.removeAttribute('disabled')
+		lpAddRightOpposite.removeAttribute('disabled')
 	}
 
 	/**
 	 * Deactivate/activate front side neighbours
 	 */
-	deactivateFrontSideNeighbours() {
-		let lp_add_front = document.getElementById('lp_add_forward')
-		lp_add_front.setAttribute('disabled', 'disabled')
+	deactivateFrontSideNeighbours(): void {
+		let lpAddFront = document.getElementById('lp_add_forward')
+		lpAddFront.setAttribute('disabled', 'disabled')
 	}
 
-	activateFrontSideNeighbours() {
-		let lp_add_front = document.getElementById('lp_add_forward')
-		lp_add_front.removeAttribute('disabled')
+	activateFrontSideNeighbours(): void {
+		let lpAddFront = document.getElementById('lp_add_forward')
+		lpAddFront.removeAttribute('disabled')
 	}
 
-	private loadCarModel() {
+	private loadCarModel(): void {
 		let manager = new THREE.LoadingManager()
 		let loader = new (THREE as any).OBJLoader(manager)
 		loader.load(config.get('assets.car_model.BMW_X5'), (object) => {
@@ -1075,7 +1066,7 @@ class Annotator {
 		})
 	}
 
-	initClient() {
+	initClient(): void {
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
@@ -1102,7 +1093,7 @@ class Annotator {
 	 * Toggle whether or not to listen for live-location updates.
 	 * Returns the updated state of live-location mode.
 	 */
-	toggleListen() {
+	toggleListen(): void {
 		let hideMenu
 
 		if (this.isLiveMode) {
@@ -1150,7 +1141,7 @@ class Annotator {
 		return this.isLiveMode
 	}
 
-	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion) {
+	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
 		this.carModel.position.set(position.x, position.y, position.z)
 		this.carModel.setRotationFromQuaternion(rotation)
 		// This is because the car model is rotated 90 degrees
@@ -1160,7 +1151,7 @@ class Annotator {
 		this.carModel.position.set(p.x, 0, p.z)
 	}
 
-	private updateCameraPose() {
+	private updateCameraPose(): void {
 		let p = this.carModel.getWorldPosition()
 		let offset = new THREE.Vector3(20, 15, 0)
 		offset.applyQuaternion(this.carModel.quaternion)
