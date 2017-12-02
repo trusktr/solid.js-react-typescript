@@ -9,8 +9,7 @@
     "deploy:dev": "./etc/scripts/deploy.sh dev",
     "deploy:stage": "./etc/scripts/deploy.sh stage",
     "release:dev": "MAPPER_ENV=dev npm run build && npm run deploy:dev",
-    "release:stage": "MAPPER_ENV=stage npm run build && npm run deploy:stage",
-    "toolbox": "react-toolbox-themr"
+    "release:stage": "MAPPER_ENV=stage npm run build && npm run deploy:stage"
   },
   "license": "UNLICENSED",
   "repository": {
@@ -42,20 +41,6 @@
       "tsx",
       "js"
     ]
-  },
-  "reactToolbox": {
-    "customProperties": {
-      "animation-duration": "0.3s",
-      "preferred-font": "\"AvenirNext\", \"Roboto\", \"Helvetica\", \"sans-serif\"",
-      "font-family": "\"AvenirNext\", \"Roboto\", \"Helvetica\", \"sans-serif\"",
-      "color-primary": "var(--palette-blue-grey-900)",
-      "color-primary-dark": "var(--palette-blue-grey-900)",
-      "color-accent": "var(--palette-purple-a200)",
-      "color-accent-dark": "var(--palette-purple-700)",
-      "color-primary-contrast": "var(--color-dark-contrast)",
-      "color-accent-contrast": "var(--color-dark-contrast)"
-    },
-    "output": "src/assets/styles/toolbox"
   },
   "devDependencies": {
     "@kadira/storybook": "^2.5.2",
@@ -154,7 +139,6 @@
     "react-addons-perf": "^15.4.2",
     "react-addons-test-utils": "^15.4.2",
     "react-hot-loader": "^3.0.0-beta.6",
-    "react-toolbox-themr": "^1.0.2",
     "react-transform-hmr": "^1.0.4",
     "reactotron-cli": "^1.6.0",
     "reactotron-react-js": "^1.0.0",
@@ -219,7 +203,6 @@
     "react-split-pane": "^0.1.44",
     "react-tap-event-plugin": "^2.0.1",
     "react-timeout": "^1.0.0",
-    "react-toolbox": "^2.0.0-beta.7",
     "react-tooltip": "^3.2.2",
     "react-valid-props": "^1.0.11",
     "recompose": "^0.22.0",
