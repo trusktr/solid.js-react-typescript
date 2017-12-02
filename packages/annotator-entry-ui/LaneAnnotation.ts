@@ -413,7 +413,6 @@ export class LaneAnnotation {
 	/**
 	 *  Use the last two points to create a guess of the
 	 * location of the left marker
-	 * @returns {THREE.Vector3}
 	 */
 	private computeLeftMarkerEstimatedPosition(): THREE.Vector3 {
 		//

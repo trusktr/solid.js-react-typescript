@@ -262,8 +262,6 @@ class Annotator {
 	/**
 	 * Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	 * Center the stage and the camera on the point cloud.
-	 * @param pathToTiles
-	 * @returns {Promise<void>}
 	 */
 	loadPointCloudData(pathToTiles: string): Promise<void> {
 		log.info('loading dataset')
@@ -433,7 +431,6 @@ class Annotator {
 
 	/**
 	 * Handle keyboard events
-	 * @param event
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.code === 'KeyA') {

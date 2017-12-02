@@ -56,8 +56,6 @@ const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Arra
 
 /**
  * Convert a 3D point to our standard format: [easting, northing, altitude]
- * @param point
- * @param pointCoordinateFrame
  * @returns Point in standard coordinate frame format.
  */
 const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateFrame: CoordinateFrameType): THREE.Vector3 => {

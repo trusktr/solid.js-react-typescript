@@ -98,8 +98,6 @@ export class AnnotationManager extends UtmInterface {
 
 	/**
 	 * Get the index of the annotation associated with the given mesh.
-	 * @param object
-	 * @returns {number}
 	 */
 	getAnnotationIndex(object: THREE.Mesh): number {
 		return this.annotations.findIndex((element) => {
@@ -639,8 +637,6 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Check if the passed mesh corresponds to an inactive lane
 	 * annotation. If so, return it's index in the manager.
-	 * @param object
-	 * @returns {number}
 	 */
 	checkForInactiveAnnotation(object: THREE.Mesh): number {
 		let index = this.getAnnotationIndex(object)
@@ -653,7 +649,6 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Activate (i.e. make editable), the annotation indexed by the
 	 * given index.
-	 * @param annotationIndex
 	 */
 	changeActiveAnnotation(annotationIndex: number): boolean {
 		if (this.isLiveMode) return false
@@ -734,7 +729,6 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Eliminate the current active annotation from the manager. Delete its associated
 	 * mesh and markers from the scene and reset any active annotation variables.
-	 * @param scene
 	 */
 	deleteActiveAnnotation(scene: THREE.Scene): boolean {
 		if (this.isLiveMode) return false
@@ -760,9 +754,6 @@ export class AnnotationManager extends UtmInterface {
 	 * will add two markers subsequently. The second of those markers is computed
 	 * as a linear combination of the first marker (given position) and the
 	 * previous two markers.
-	 * @param x
-	 * @param y
-	 * @param z
 	 */
 	addLaneMarker(x: number, y: number, z: number): boolean {
 		if (this.isLiveMode) return false
@@ -804,9 +795,6 @@ export class AnnotationManager extends UtmInterface {
 	 * Create a new lane annotation connected to the current active annotation at the given location and with
 	 * the given direction of traffic. The new annotation is added to the scene for display and set as
 	 * inactive.
-	 * @param scene
-	 * @param neighborLocation
-	 * @param neighborDirection
 	 */
 	addConnectedLaneAnnotation(scene: THREE.Scene, neighborLocation: NeighborLocation, neighborDirection: NeighborDirection): boolean {
 		if (this.isLiveMode) return false
