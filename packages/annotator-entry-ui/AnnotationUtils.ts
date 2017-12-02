@@ -318,8 +318,7 @@ export class AnnotationManager extends UtmInterface {
 			this.carPath.push(this.annotations[this.activeAnnotationIndex].uuid)
 			this.annotations[this.activeAnnotationIndex].setTrajectory(this.carPathActivation)
 			log.info("Lane added to the car path.")
-		}
-		else {
+		} else {
 			this.annotations[this.activeAnnotationIndex].setTrajectory(false)
 			this.carPath.splice(index, 1)
 			log.info("Lane removed from the car path.")
@@ -363,8 +362,7 @@ export class AnnotationManager extends UtmInterface {
 			})
 			if (index !== -1) {
 				this.annotations[index].setTrajectory(this.carPathActivation)
-			}
-			else {
+			} else {
 				log.warn("Trajectory contains invalid lane id.")
 			}
 		})
@@ -603,15 +601,12 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Saves car path to CSV file
 	 */
-	convertAnnotationToCSV(args): string {
-		let data: Array<Vector3> = args.data || null
+	convertAnnotationToCSV(data: Array<Vector3>, columnDelimiter: string = ',', lineDelimiter: string = '\n'): string {
 		if (data.length === 0) {
 			log.warn("Empty annotation.")
 			return ''
 		}
 
-		let columnDelimiter = args.columnDelimiter || ','
-		let lineDelimiter = args.lineDelimiter || '\n'
 		let result: string = ''
 		data.forEach((marker) => {
 			// Get latitude longitude
@@ -625,16 +620,17 @@ export class AnnotationManager extends UtmInterface {
 		return result
 	}
 
-	saveCarPath(fileName: string) {
-		let self = this
-		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
-		let writeFile = function (er, _) {
+	saveCarPath(fileName: string): void {
+		const self = this
+		const dirName = fileName.substring(0, fileName.lastIndexOf("/"))
+		const writeFile = function (er: Error): void {
 			if (!er) {
 				let trajectoryData = self.getFullInterpolatedTrajectory(0.2, 5)
 				// Debug only
 				// self.annotations[0].tryTrajectory(trajectoryData)
-				let strAnnotations = self.convertAnnotationToCSV({data: trajectoryData})
+				let strAnnotations = self.convertAnnotationToCSV(trajectoryData)
 				AsyncFile.writeTextFile(fileName, strAnnotations)
+					.catch((err: Error) => log.warn('saveCarPath failed: ' + err.message))
 			}
 		}
 		MkDirP.mkdirP(dirName, writeFile)
@@ -659,7 +655,7 @@ export class AnnotationManager extends UtmInterface {
 	 * given index.
 	 * @param annotationIndex
 	 */
-	changeActiveAnnotation(annotationIndex): boolean {
+	changeActiveAnnotation(annotationIndex: number): boolean {
 		if (this.isLiveMode) return false
 
 		if (annotationIndex < 0 &&
@@ -796,7 +792,7 @@ export class AnnotationManager extends UtmInterface {
 	 * Update the mesh of the active annotation. This is used if the lane marker positions
 	 * where changed externally (e.g. by the transform controls)
 	 */
-	updateActiveLaneMesh() {
+	updateActiveLaneMesh(): void {
 		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't update mesh")
 			return
@@ -848,9 +844,9 @@ export class AnnotationManager extends UtmInterface {
 
 		if (!data['annotations']) return false
 		// generate an arbitrary offset for internal use, given the first point in the data set
-		let first
+		let first: THREE.Vector3
 		// and round off the values for nicer debug output
-		const trunc = function (x) {return Math.trunc(x / 10) * 10}
+		const trunc = function (x: number): number {return Math.trunc(x / 10) * 10}
 		for (let i = 0; !first && i < data['annotations'].length; i++) {
 			const annotation = data['annotations'][i]
 			if (annotation['markerPositions'] && annotation['markerPositions'].length > 0) {
@@ -883,16 +879,16 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Load annotations from file. Store all annotations and add them to the Annotator scene.
 	 * This requires UTM as the input format.
-	 * @returns the center point of the bottom of the bounding box of the data; hopefully
+	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
 	loadAnnotationsFromFile(fileName: string, scene: THREE.Scene): Promise<THREE.Vector3> {
 		if (this.isLiveMode) return Promise.reject(new Error("can't load annotations while in live presentation mode"))
 
 		const self = this
-		return new Promise(function (resolve, reject) {
-			AsyncFile.readFile(fileName, 'ascii').then(function (text) {
-				const data = JSON.parse(text as any)
+		return new Promise((resolve: (value: THREE.Vector3) => void, reject: (reason: Error) => void): void => {
+			AsyncFile.readFile(fileName, 'ascii').then((text: string) => {
+				const data = JSON.parse(text)
 				if (self.checkCoordinateSystem(data)) {
 					self.convertCoordinates(data)
 					let boundingBox = new THREE.Box3()
@@ -902,15 +898,13 @@ export class AnnotationManager extends UtmInterface {
 						if (box) boundingBox = boundingBox.union(box)
 					})
 					if (boundingBox.isEmpty()) {
-						resolve()
+						resolve(null)
 					} else {
 						resolve(boundingBox.getCenter().setY(boundingBox.min.y))
 					}
 				} else {
 					reject(Error(`UTM Zone for new annotations (${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneLetter']}) does not match existing zone in ${self.getOrigin()}`))
 				}
-			}, function (error) {
-				reject(error)
 			})
 		})
 	}
@@ -930,9 +924,9 @@ export class AnnotationManager extends UtmInterface {
 		if (!this.hasOrigin() && !config.get('output.annotations.debug.allow_annotations_without_utm_origin')) {
 			return Promise.reject(new Error('failed to save annotations: UTM origin is not set'))
 		}
-		let self = this
-		let dirName = fileName.substring(0, fileName.lastIndexOf("/"))
-		let writeFile = function (er, _): Promise<void> {
+		const self = this
+		const dirName = fileName.substring(0, fileName.lastIndexOf("/"))
+		const writeFile = function (er: Error): Promise<void> {
 			if (er) {
 				return Promise.reject(er)
 			} else {
@@ -959,7 +953,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 	}
 
-	toJSON(format: OutputFormat) {
+	toJSON(format: OutputFormat): AnnotationManagerJsonInterface {
 		let crs: CRS.CoordinateReferenceSystem
 		let pointConverter: (p: THREE.Vector3) => Object
 		if (format === OutputFormat.UTM) {

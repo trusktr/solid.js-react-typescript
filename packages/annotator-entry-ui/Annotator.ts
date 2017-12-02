@@ -37,6 +37,13 @@ TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 let root = $("#root")
 
+interface AnnotatorSettings {
+	background: string
+	cameraOffset: THREE.Vector3
+	lightOffset: THREE.Vector3
+	fpsRendering: number
+}
+
 /**
  * The Annotator class is in charge of rendering the 3d Scene that includes the point clouds
  * and the annotations. It also handles the mouse and keyboard events needed to select
@@ -55,17 +62,17 @@ class Annotator {
 	grid: THREE.GridHelper
 	axis: THREE.AxisHelper
 	light: THREE.SpotLight
-	stats
-	orbitControls
-	transformControls
-	hideTransformControlTimer
+	stats // todo https://www.npmjs.com/package/@types/stats.js
+	orbitControls: THREE.OrbitControls
+	transformControls: any
+	hideTransformControlTimer: NodeJS.Timer
 	annotationManager: AnnotationUtils.AnnotationManager
 	isAddMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	isLiveMode: boolean
-	liveSubscribeSocket
-	hovered
-	settings
+	liveSubscribeSocket // todo https://www.npmjs.com/package/@types/zmq
+	hovered: THREE.Object3D
+	settings: AnnotatorSettings
 	gui
 
 	constructor() {
@@ -99,11 +106,11 @@ class Annotator {
 	 * Create the 3D Scene and add some basic objects. It also initializes
 	 * several event listeners.
 	 */
-	initScene() {
+	initScene(): void {
 		const self = this
 		log.info(`Building scene`)
 
-		const [width, height] = this.getContainerSize()
+		const [width, height]: Array<number> = this.getContainerSize()
 
 		// Create scene and camera
 		this.scene = new THREE.Scene()
@@ -258,23 +265,19 @@ class Annotator {
 	 * @param pathToTiles
 	 * @returns {Promise<void>}
 	 */
-	async loadPointCloudData(pathToTiles: string) {
-		try {
-			log.info('loading dataset')
-			const focalPoint = await this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA)
-			if (!this.annotationManager.setOriginWithInterface(this.tileManager)) {
-				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
-			}
-			this.scene.add(this.tileManager.pointCloud)
-			this.setStageByVector(focalPoint)
-		} catch (err) {
-			log.warn(err.message)
-			dialog.showErrorBox("Tiles Load Error",
-				"Annotator failed to load tiles from given folder.")
-		}
+	loadPointCloudData(pathToTiles: string): Promise<void> {
+		log.info('loading dataset')
+		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA)
+			.then(focalPoint => {
+				if (!this.annotationManager.setOriginWithInterface(this.tileManager)) {
+					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
+				}
+				this.scene.add(this.tileManager.pointCloud)
+				this.setStageByVector(focalPoint)
+			})
 	}
 
-	unloadPointCloudData() {
+	unloadPointCloudData(): void {
 		log.info("unloadPointCloudData")
 		this.tileManager.unloadAllPoints()
 	}
@@ -291,7 +294,7 @@ class Annotator {
 			if (!this.tileManager.setOriginWithInterface(this.annotationManager)) {
 				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
 			}
-			this.setStageByVector(focalPoint)
+			if (focalPoint) this.setStageByVector(focalPoint)
 		} catch (err) {
 			log.warn(err.message)
 			dialog.showErrorBox("Annotation Load Error",
@@ -312,7 +315,7 @@ class Annotator {
 			this.annotationManager.makeLastAnnotationActive()
 	}
 
-	private getMouseCoordinates = (event): THREE.Vector2 => {
+	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
 		let mouse = new THREE.Vector2()
 		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
 		mouse.y = -( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
@@ -322,9 +325,8 @@ class Annotator {
 	/**
 	 * Used in combination with "keyA". If the mouse was clicked while pressing
 	 * the "a" key, drop a lane marker.
-	 * @param event
 	 */
-	private addLaneAnnotationMarker = (event) => {
+	private addLaneAnnotationMarker = (event: MouseEvent): void => {
 		if (this.isAddMarkerKeyPressed === false) {
 			return
 		}
@@ -350,9 +352,8 @@ class Annotator {
 
 	/**
 	 * Check if we clicked an annotation. If so, make it active for editing
-	 * @param event
 	 */
-	private checkForAnnotationSelection = (event) => {
+	private checkForAnnotationSelection = (event: MouseEvent): void => {
 		if (this.isLiveMode) return
 
 		let mouse = this.getMouseCoordinates(event)
@@ -374,9 +375,8 @@ class Annotator {
 	/**
 	 * Check if the mouse is on top of an editable lane marker. If so, attach the
 	 * marker to the transform control for editing.
-	 * @param event
 	 */
-	private checkForActiveMarker = (event) => {
+	private checkForActiveMarker = (event: MouseEvent) => {
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
 		if (this.isMouseButtonPressed) {
@@ -415,16 +415,16 @@ class Annotator {
 	 * Get the size of the canvas
 	 * @returns {[number,number]}
 	 */
-	private getContainerSize = () => {
+	private getContainerSize = (): Array<number> => {
 		return getValue(() => [root.width(), root.height()], [0, 0])
 	}
 
-	private onWindowResize = () => {
+	private onWindowResize = (): void => {
 		if (!this.camera) {
 			return
 		}
 
-		const [width, height] = this.getContainerSize()
+		const [width, height]: Array<number> = this.getContainerSize()
 
 		this.camera.aspect = width / height
 		this.camera.updateProjectionMatrix()
@@ -435,7 +435,7 @@ class Annotator {
 	 * Handle keyboard events
 	 * @param event
 	 */
-	private onKeyDown = (event) => {
+	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.code === 'KeyA') {
 			this.isAddMarkerKeyPressed = true
 		}
@@ -626,17 +626,16 @@ class Annotator {
 			.catch(error => log.warn("export to KML failed: " + error.message))
 	}
 
-	loadFromFile() {
+	loadFromFile(): Promise<void> {
 		let pathElectron = dialog.showOpenDialog({
 			properties: ['openDirectory']
 		})
 
-		if (isUndefined(pathElectron)) {
-			return
-		}
+		if (!(pathElectron && pathElectron[0]))
+			return Promise.reject(Error('no point cloud directory was selected'))
 
 		log.info('Loading point cloud from ' + pathElectron[0])
-		this.loadPointCloudData(pathElectron[0])
+		return this.loadPointCloudData(pathElectron[0])
 	}
 
 	addFront(): void {
@@ -711,6 +710,7 @@ class Annotator {
 		let toolsLoad = document.getElementById('tools_load')
 		toolsLoad.addEventListener('click', _ => {
 			this.loadFromFile()
+				.catch(err => log.warn('loadFromFile failed: ' + err.message))
 		})
 
 		let toolsLoadAnnotation = document.getElementById('tools_load_annotation')
@@ -995,11 +995,11 @@ class Annotator {
 			selects.item(i).setAttribute('disabled', 'disabled')
 		}
 
-		let lc_add = document.getElementById('lc_add')
-		lc_add.setAttribute('disabled', 'disabled')
+		let lcAdd = document.getElementById('lc_add')
+		lcAdd.setAttribute('disabled', 'disabled')
 
-		let tr_add = document.getElementById('tr_add')
-		tr_add.setAttribute('disabled', 'disabled')
+		let trAdd = document.getElementById('tr_add')
+		trAdd.setAttribute('disabled', 'disabled')
 	}
 
 	/**

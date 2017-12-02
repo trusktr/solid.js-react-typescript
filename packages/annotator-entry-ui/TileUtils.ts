@@ -25,22 +25,11 @@ export enum CoordinateFrameType {
 const threeDStepSize: number = 3
 
 /**
- * This opens a binary file for reading
- * @param filename
- * @returns {Promise<Buffer>}
- */
-function readFile(filename: string): Promise<Buffer> {
-	return AsyncFile.readFile(filename)
-}
-
-/**
  * Load a point cloud tile message from a proto binary file
- * @param filename
- * @returns {Promise<com.mapperai.models.PointCloudTileMessage>}
  */
 async function loadTile(filename: string): Promise<Models.PointCloudTileMessage> {
-	let buffer = await readFile(filename)
-	return Models.PointCloudTileMessage.decode(buffer)
+	return AsyncFile.readFile(filename)
+		.then(buffer => Models.PointCloudTileMessage.decode(buffer))
 }
 
 const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Array<number>> => {
