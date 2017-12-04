@@ -22,8 +22,6 @@ declare global {
 	type Long = number
 }
 
-const root = $("#root")
-
 export function onLoad(): void {
 	require("annotator-control-ui/UIControl")
 	log.info('loading ')
@@ -32,8 +30,3 @@ export function onLoad(): void {
 }
 
 $(onLoad)
-
-if (module.hot) {
-	module.hot.dispose(() => root.empty())
-	module.hot.accept()
-}

@@ -52,10 +52,6 @@ const
 	
 	// Output Directory
 	distDir = `${baseDir}/dist/${isPackaging ? 'app-package' : 'app'}`
-	
-	
-
-//log.info(chalk.green.bold.underline(`Using module directories: ${moduleDirs.join(', ')}`))
 
 // TypeScript SRC ALIAS
 function tsAlias(tsFilename) {

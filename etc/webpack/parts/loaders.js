@@ -27,7 +27,6 @@ module.exports = {
 				'react-hot-loader/webpack',
 				`awesome-typescript-loader?cacheDirectory=dist/.awcache-${isDev ? 'dev' : 'prod'}`,
 				proxyProvidedLoaderPath,
-				//'source-map-loader'
 			],
 		},
 		
