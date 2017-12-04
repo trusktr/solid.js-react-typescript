@@ -154,7 +154,7 @@ export class LaneAnnotation {
 		this.id = LaneCounter.nextId()
 		this.uuid = obj ? obj.uuid : UUID.v1()
 		this.type = obj ? obj.type : AnnotationType.UNKNOWN
-		let color = obj ? obj.color : Math.random() * 0xffffff
+		const color = obj ? obj.color : Math.random() * 0xffffff
 		this.neighborsIds = obj ? obj.neighborsIds : new LaneNeighborsIds()
 		this.leftSideType = obj ? obj.leftSideType : LaneSideType.UNKNOWN
 		this.rightSideType = obj ? obj.rightSideType : LaneSideType.UNKNOWN
@@ -189,7 +189,7 @@ export class LaneAnnotation {
 	 * Add a single marker to the annotation and the scene.
 	 */
 	addRawMarker(position: THREE.Vector3): void {
-		let marker = new THREE.Mesh(controlPointGeometry, this.renderingProperties.markerMaterial)
+		const marker = new THREE.Mesh(controlPointGeometry, this.renderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.laneMarkers.push(marker)
 		if (this.type === AnnotationType.LANE) {
@@ -207,7 +207,7 @@ export class LaneAnnotation {
 	 */
 	addMarker(x: number, y: number, z: number): void {
 
-		let marker: THREE.Vector3 = new THREE.Vector3(x, y, z)
+		const marker: THREE.Vector3 = new THREE.Vector3(x, y, z)
 		this.addRawMarker(marker)
 
 		// From the third marker onwards, add markers in pairs by estimating the position
@@ -344,7 +344,7 @@ export class LaneAnnotation {
 			return
 		}
 
-		let newGeometry = new THREE.Geometry()
+		const newGeometry = new THREE.Geometry()
 
 		// We need at least 3 vertices to generate a mesh
 		if (this.laneMarkers.length > 2) {
@@ -374,7 +374,7 @@ export class LaneAnnotation {
 	toJSON(pointConverter?: (p: THREE.Vector3) => Object): LaneAnnotationJsonInterface {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		let data: LaneAnnotationJsonInterface = {
+		const data: LaneAnnotationJsonInterface = {
 			uuid: this.uuid,
 			type: this.type,
 			color: this.renderingProperties.color,
@@ -416,16 +416,16 @@ export class LaneAnnotation {
 	 */
 	private computeLeftMarkerEstimatedPosition(): THREE.Vector3 {
 		//
-		let lastIndex = this.laneMarkers.length
-		let newRightMarker = this.laneMarkers[lastIndex - 1].position
-		let lastRightMarker = this.laneMarkers[lastIndex - 3].position
-		let lastLeftMarker = this.laneMarkers[lastIndex - 2].position
-		let vectorRightToLeft = new THREE.Vector3()
+		const lastIndex = this.laneMarkers.length
+		const newRightMarker = this.laneMarkers[lastIndex - 1].position
+		const lastRightMarker = this.laneMarkers[lastIndex - 3].position
+		const lastLeftMarker = this.laneMarkers[lastIndex - 2].position
+		const vectorRightToLeft = new THREE.Vector3()
 		vectorRightToLeft.subVectors(lastLeftMarker, lastRightMarker)
-		let vectorLastRightNewRight = new THREE.Vector3()
+		const vectorLastRightNewRight = new THREE.Vector3()
 		vectorLastRightNewRight.subVectors(newRightMarker, lastRightMarker)
 
-		let newLeftMarker = new THREE.Vector3()
+		const newLeftMarker = new THREE.Vector3()
 		newLeftMarker.add(lastRightMarker)
 		newLeftMarker.add(vectorLastRightNewRight)
 		newLeftMarker.add(vectorRightToLeft)
@@ -439,23 +439,23 @@ export class LaneAnnotation {
 			return
 		}
 
-		let points: Array<THREE.Vector3> = []
+		const points: Array<THREE.Vector3> = []
 		for (let i = 0; i < this.laneMarkers.length - 1; i += 2) {
-			let waypoint = this.laneMarkers[i].position.clone()
+			const waypoint = this.laneMarkers[i].position.clone()
 			waypoint.add(this.laneMarkers[i + 1].position).divideScalar(2)
 			points.push(waypoint)
 		}
 
-		let distanceBetweenMarkers = 5.0 // in meters
-		let spline = new THREE.CatmullRomCurve3(points)
-		let numPoints = spline.getLength() / distanceBetweenMarkers
+		const distanceBetweenMarkers = 5.0 // in meters
+		const spline = new THREE.CatmullRomCurve3(points)
+		const numPoints = spline.getLength() / distanceBetweenMarkers
 		this.waypoints = spline.getSpacedPoints(numPoints)
 
 		this.updateLaneDirectionMarkers()
 
 		// Change the line geometry
-		let lineGeometry = new THREE.Geometry()
-		let centerPoints = spline.getPoints(100)
+		const lineGeometry = new THREE.Geometry()
+		const centerPoints = spline.getPoints(100)
 		for (let i = 0; i < centerPoints.length; i++) {
 			lineGeometry.vertices[i] = centerPoints[i]
 			lineGeometry.vertices[i].y += 0.05
@@ -477,13 +477,12 @@ export class LaneAnnotation {
 		}
 
 		for (let i = 1; i < this.waypoints.length - 1; i++) {
-
-			let angle = Math.atan2(
+			const angle = Math.atan2(
 				this.waypoints[i + 1].z - this.waypoints[i].z,
 				this.waypoints[i + 1].x - this.waypoints[i].x
 			)
 
-			let marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
+			const marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
 			marker.position.set(this.waypoints[i].x, this.waypoints[i].y, this.waypoints[i].z)
 			marker.rotateY(-angle)
 			this.laneRenderingObject.add(marker)
@@ -502,11 +501,10 @@ export class LaneAnnotation {
 		}
 
 		for (let i = 1; i < trajectory.length - 1; i++) {
-
-			let angle = Math.atan2(trajectory[i + 1].z - trajectory[i].z,
+			const angle = Math.atan2(trajectory[i + 1].z - trajectory[i].z,
 				trajectory[i + 1].x - trajectory[i].x)
 
-			let marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
+			const marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
 			marker.position.set(trajectory[i].x, trajectory[i].y, trajectory[i].z)
 			marker.rotateY(-angle)
 			this.laneRenderingObject.add(marker)
@@ -521,7 +519,7 @@ export class LaneAnnotation {
 		}
 
 		let sum: number = 0.0
-		let markers = this.laneMarkers
+		const markers = this.laneMarkers
 		for (let i = 0; i < markers.length - 1; i += 2) {
 			sum += markers[i].position.distanceTo(markers[i + 1].position)
 		}
@@ -529,7 +527,7 @@ export class LaneAnnotation {
 	}
 
 	updateLaneWidth(): void {
-		let laneWidth = $('#lp_width_value')
+		const laneWidth = $('#lp_width_value')
 		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")
 	}
 }

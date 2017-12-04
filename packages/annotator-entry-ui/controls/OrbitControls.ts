@@ -115,18 +115,18 @@ THREE.OrbitControls = function (object, domElement) {
 	// this method is exposed, but perhaps it would be better if we can make it private...
 	this.update = function () {
 
-		let offset = new THREE.Vector3()
+		const offset = new THREE.Vector3()
 
 		// so camera.up is the orbit axis
-		let quat = new THREE.Quaternion().setFromUnitVectors(object.up, new THREE.Vector3(0, 1, 0))
-		let quatInverse = quat.clone().inverse()
+		const quat = new THREE.Quaternion().setFromUnitVectors(object.up, new THREE.Vector3(0, 1, 0))
+		const quatInverse = quat.clone().inverse()
 
-		let lastPosition = new THREE.Vector3()
-		let lastQuaternion = new THREE.Quaternion()
+		const lastPosition = new THREE.Vector3()
+		const lastQuaternion = new THREE.Quaternion()
 
 		return function update() {
 
-			let position = scope.object.position
+			const position = scope.object.position
 
 			offset.copy(position).sub(scope.target)
 
@@ -223,45 +223,43 @@ THREE.OrbitControls = function (object, domElement) {
 
 		window.removeEventListener('keydown', onKeyDown, false)
 
-		//scope.dispatchEvent( { type: 'dispose' } ) // should this be added here?
-
 	}
 
 	//
 	// internals
 	//
 
-	let scope = this
+	const scope = this
 
-	let changeEvent = {type: 'change'}
-	let startEvent = {type: 'start'}
-	let endEvent = {type: 'end'}
+	const changeEvent = {type: 'change'}
+	const startEvent = {type: 'start'}
+	const endEvent = {type: 'end'}
 
-	let STATE = {NONE: -1, ROTATE: 0, DOLLY: 1, PAN: 2, TOUCH_ROTATE: 3, TOUCH_DOLLY: 4, TOUCH_PAN: 5}
+	const STATE = {NONE: -1, ROTATE: 0, DOLLY: 1, PAN: 2, TOUCH_ROTATE: 3, TOUCH_DOLLY: 4, TOUCH_PAN: 5}
 
 	let state = STATE.NONE
 
-	let EPS = 0.000001
+	const EPS = 0.000001
 
 	// current position in spherical coordinates
-	let spherical = new THREE.Spherical()
-	let sphericalDelta = new THREE.Spherical()
+	const spherical = new THREE.Spherical()
+	const sphericalDelta = new THREE.Spherical()
 
 	let scale = 1
-	let panOffset = new THREE.Vector3()
+	const panOffset = new THREE.Vector3()
 	let zoomChanged = false
 
-	let rotateStart = new THREE.Vector2()
-	let rotateEnd = new THREE.Vector2()
-	let rotateDelta = new THREE.Vector2()
+	const rotateStart = new THREE.Vector2()
+	const rotateEnd = new THREE.Vector2()
+	const rotateDelta = new THREE.Vector2()
 
-	let panStart = new THREE.Vector2()
-	let panEnd = new THREE.Vector2()
-	let panDelta = new THREE.Vector2()
+	const panStart = new THREE.Vector2()
+	const panEnd = new THREE.Vector2()
+	const panDelta = new THREE.Vector2()
 
-	let dollyStart = new THREE.Vector2()
-	let dollyEnd = new THREE.Vector2()
-	let dollyDelta = new THREE.Vector2()
+	const dollyStart = new THREE.Vector2()
+	const dollyEnd = new THREE.Vector2()
+	const dollyDelta = new THREE.Vector2()
 
 	function getAutoRotationAngle() {
 
@@ -287,9 +285,9 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	let panLeft = function () {
+	const panLeft = function () {
 
-		let v = new THREE.Vector3()
+		const v = new THREE.Vector3()
 
 		return function panLeft(distance, objectMatrix) {
 
@@ -302,9 +300,9 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}()
 
-	let panUp = function () {
+	const panUp = function () {
 
-		let v = new THREE.Vector3()
+		const v = new THREE.Vector3()
 
 		return function panUp(distance, objectMatrix) {
 
@@ -318,18 +316,18 @@ THREE.OrbitControls = function (object, domElement) {
 	}()
 
 	// deltaX and deltaY are in pixels right and down are positive
-	let pan = function () {
+	const pan = function () {
 
-		let offset = new THREE.Vector3()
+		const offset = new THREE.Vector3()
 
 		return function pan(deltaX, deltaY) {
 
-			let element = scope.domElement === document ? scope.domElement.body : scope.domElement
+			const element = scope.domElement === document ? scope.domElement.body : scope.domElement
 
 			if (scope.object instanceof THREE.PerspectiveCamera) {
 
 				// perspective
-				let position = scope.object.position
+				const position = scope.object.position
 				offset.copy(position).sub(scope.target)
 				let targetDistance = offset.length()
 
@@ -427,7 +425,7 @@ THREE.OrbitControls = function (object, domElement) {
 		rotateEnd.set(event.clientX, event.clientY)
 		rotateDelta.subVectors(rotateEnd, rotateStart)
 
-		let element = scope.domElement === document ? scope.domElement.body : scope.domElement
+		const element = scope.domElement === document ? scope.domElement.body : scope.domElement
 
 		// rotating across whole screen goes 360 degrees around
 		rotateLeft(2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed)
@@ -534,10 +532,10 @@ THREE.OrbitControls = function (object, domElement) {
 
 	function handleTouchStartDolly(event) {
 
-		let dx = event.touches[0].pageX - event.touches[1].pageX
-		let dy = event.touches[0].pageY - event.touches[1].pageY
+		const dx = event.touches[0].pageX - event.touches[1].pageX
+		const dy = event.touches[0].pageY - event.touches[1].pageY
 
-		let distance = Math.sqrt(dx * dx + dy * dy)
+		const distance = Math.sqrt(dx * dx + dy * dy)
 
 		dollyStart.set(0, distance)
 
@@ -554,7 +552,7 @@ THREE.OrbitControls = function (object, domElement) {
 		rotateEnd.set(event.touches[0].pageX, event.touches[0].pageY)
 		rotateDelta.subVectors(rotateEnd, rotateStart)
 
-		let element = scope.domElement === document ? scope.domElement.body : scope.domElement
+		const element = scope.domElement === document ? scope.domElement.body : scope.domElement
 
 		// rotating across whole screen goes 360 degrees around
 		rotateLeft(2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed)
@@ -570,10 +568,10 @@ THREE.OrbitControls = function (object, domElement) {
 
 	function handleTouchMoveDolly(event) {
 
-		let dx = event.touches[0].pageX - event.touches[1].pageX
-		let dy = event.touches[0].pageY - event.touches[1].pageY
+		const dx = event.touches[0].pageX - event.touches[1].pageX
+		const dy = event.touches[0].pageY - event.touches[1].pageY
 
-		let distance = Math.sqrt(dx * dx + dy * dy)
+		const distance = Math.sqrt(dx * dx + dy * dy)
 
 		dollyEnd.set(0, distance)
 

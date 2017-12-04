@@ -22,7 +22,7 @@ import {Socket} from 'zmq'
 
 declare global {
 	namespace THREE {
-		let OBJLoader: any
+		const OBJLoader: any
 	}
 }
 
@@ -36,7 +36,7 @@ OBJLoader(THREE)
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-let root = $("#root")
+const root = $("#root")
 
 interface AnnotatorSettings {
 	background: string
@@ -129,9 +129,9 @@ class Annotator {
 		this.scene.add(this.light)
 
 		// Add a "ground plane" to facilitate annotations
-		let planeGeometry = new THREE.PlaneGeometry(2000, 2000)
+		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
-		let planeMaterial = new THREE.ShadowMaterial()
+		const planeMaterial = new THREE.ShadowMaterial()
 		planeMaterial.opacity = 0.2
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
 		this.plane.receiveShadow = true
@@ -315,7 +315,7 @@ class Annotator {
 	}
 
 	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
-		let mouse = new THREE.Vector2()
+		const mouse = new THREE.Vector2()
 		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
 		mouse.y = -( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
 		return mouse
@@ -330,7 +330,7 @@ class Annotator {
 			return
 		}
 
-		let mouse = this.getMouseCoordinates(event)
+		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
 
@@ -342,9 +342,9 @@ class Annotator {
 
 		if (intersections.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
-			let x = intersections[0].point.x
-			let y = intersections[0].point.y
-			let z = intersections[0].point.z
+			const x = intersections[0].point.x
+			const y = intersections[0].point.y
+			const z = intersections[0].point.z
 			this.annotationManager.addLaneMarker(x, y, z)
 		}
 	}
@@ -355,13 +355,13 @@ class Annotator {
 	private checkForAnnotationSelection = (event: MouseEvent): void => {
 		if (this.isLiveMode) return
 
-		let mouse = this.getMouseCoordinates(event)
+		const mouse = this.getMouseCoordinates(event)
 		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
-		let intersects = this.raycasterMarker.intersectObjects(this.annotationManager.annotationMeshes)
+		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.annotationMeshes)
 
 		if (intersects.length > 0) {
-			let object = intersects[0].object
-			let index = this.annotationManager.checkForInactiveAnnotation(object as any)
+			const object = intersects[0].object
+			const index = this.annotationManager.checkForInactiveAnnotation(object as any)
 
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
@@ -381,15 +381,15 @@ class Annotator {
 		if (this.isMouseButtonPressed) {
 			return
 		}
-		let mouse = this.getMouseCoordinates(event)
+		const mouse = this.getMouseCoordinates(event)
 
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
 
-		let intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
+		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
 
 		if (intersects.length > 0) {
-			let object = intersects[0].object
-			let plane = new THREE.Plane()
+			const object = intersects[0].object
+			const plane = new THREE.Plane()
 			plane.setFromNormalAndCoplanarPoint(this.camera.getWorldDirection(plane.normal), object.position)
 
 			if (this.hovered !== object) {
@@ -625,7 +625,7 @@ class Annotator {
 	}
 
 	loadFromFile(): Promise<void> {
-		let pathElectron = dialog.showOpenDialog({
+		const pathElectron = dialog.showOpenDialog({
 			properties: ['openDirectory']
 		})
 
@@ -675,13 +675,13 @@ class Annotator {
 	 * Bind functions events to interface elements
 	 */
 	private bind(): void {
-		let menuButton = document.getElementById('menu_control_btn')
+		const menuButton = document.getElementById('menu_control_btn')
 		menuButton.addEventListener('click', _ => {
 			if (this.isLiveMode) {
 				log.info("Disable live location mode first to access the menu.")
 			} else {
 				log.info("Menu icon clicked. Close/Open menu bar.")
-				let menu = document.getElementById('menu')
+				const menu = document.getElementById('menu')
 				if (menu.style.visibility === 'hidden') {
 					menu.style.visibility = 'visible'
 				} else {
@@ -690,30 +690,30 @@ class Annotator {
 			}
 		})
 
-		let liveLocationControlButton = document.getElementById('live_location_control_btn')
+		const liveLocationControlButton = document.getElementById('live_location_control_btn')
 		liveLocationControlButton.addEventListener('click', _ => {
 			this.toggleListen()
 		})
 
-		let toolsDelete = document.getElementById('tools_delete')
+		const toolsDelete = document.getElementById('tools_delete')
 		toolsDelete.addEventListener('click', _ => {
 			this.deleteLane()
 		})
 
-		let toolsAdd = document.getElementById('tools_add')
+		const toolsAdd = document.getElementById('tools_add')
 		toolsAdd.addEventListener('click', _ => {
 			this.addLane()
 		})
 
-		let toolsLoad = document.getElementById('tools_load')
+		const toolsLoad = document.getElementById('tools_load')
 		toolsLoad.addEventListener('click', _ => {
 			this.loadFromFile()
 				.catch(err => log.warn('loadFromFile failed: ' + err.message))
 		})
 
-		let toolsLoadAnnotation = document.getElementById('tools_load_annotation')
+		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 		toolsLoadAnnotation.addEventListener('click', _ => {
-			let pathElectron = dialog.showOpenDialog({
+			const pathElectron = dialog.showOpenDialog({
 				filters: [{name: 'json', extensions: ['json']}]
 			})
 
@@ -725,48 +725,48 @@ class Annotator {
 			this.loadAnnotations(pathElectron[0])
 		})
 
-		let toolsSave = document.getElementById('tools_save')
+		const toolsSave = document.getElementById('tools_save')
 		toolsSave.addEventListener('click', _ => {
 			this.saveToFile()
 		})
 
-		let toolsExportKml = document.getElementById('tools_export_kml')
+		const toolsExportKml = document.getElementById('tools_export_kml')
 		toolsExportKml.addEventListener('click', _ => {
 			this.exportKml()
 		})
 
-		let lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
 		lpAddLeftOpposite.addEventListener('click', _ => {
 			this.addLeftReverse()
 		})
 
-		let lpAddLeftSame = document.getElementById('lp_add_left_same')
+		const lpAddLeftSame = document.getElementById('lp_add_left_same')
 		lpAddLeftSame.addEventListener('click', _ => {
 			this.addLeftSame()
 		})
 
-		let lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
 		lpAddRightOpposite.addEventListener('click', _ => {
 			this.addRightReverse()
 		})
 
-		let lpAddRightSame = document.getElementById('lp_add_right_same')
+		const lpAddRightSame = document.getElementById('lp_add_right_same')
 		lpAddRightSame.addEventListener('click', _ => {
 			this.addRightSame()
 		})
 
-		let lpAddFront = document.getElementById('lp_add_forward')
+		const lpAddFront = document.getElementById('lp_add_forward')
 		lpAddFront.addEventListener('click', _ => {
 			this.addFront()
 		})
 
-		let lcSelectFrom = document.getElementById('lc_select_from')
+		const lcSelectFrom = document.getElementById('lc_select_from')
 		lcSelectFrom.addEventListener('mousedown', _ => {
 
 			// Get ids
-			let ids = this.annotationManager.getValidIds()
+			const ids = this.annotationManager.getValidIds()
 			// Add ids
-			let selectbox = $('#lc_select_from')
+			const selectbox = $('#lc_select_from')
 			selectbox.empty()
 			let list = ''
 			for (let j = 0; j < ids.length; j++) {
@@ -775,13 +775,13 @@ class Annotator {
 			selectbox.html(list)
 		})
 
-		let lcSelectTo = document.getElementById('lc_select_to')
+		const lcSelectTo = document.getElementById('lc_select_to')
 		lcSelectTo.addEventListener('mousedown', _ => {
 
 			// Get ids
-			let ids = this.annotationManager.getValidIds()
+			const ids = this.annotationManager.getValidIds()
 			// Add ids
-			let selectbox = $('#lc_select_to')
+			const selectbox = $('#lc_select_to')
 			selectbox.empty()
 			let list = ''
 			for (let j = 0; j < ids.length; j++) {
@@ -790,11 +790,11 @@ class Annotator {
 			selectbox.html(list)
 		})
 
-		let lcAdd = document.getElementById('lc_add')
+		const lcAdd = document.getElementById('lc_add')
 		lcAdd.addEventListener('click', _ => {
-			let lcTo: LaneId = Number($('#lc_select_to').val())
-			let lcFrom: LaneId = Number($('#lc_select_from').val())
-			let lcRelation = $('#lc_select_relation').val()
+			const lcTo: LaneId = Number($('#lc_select_to').val())
+			const lcFrom: LaneId = Number($('#lc_select_from').val())
+			const lcRelation = $('#lc_select_relation').val()
 
 			if (lcTo === null || lcFrom === null) {
 				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
@@ -814,10 +814,10 @@ class Annotator {
 			}
 		})
 
-		let lcLeft = $('#lp_select_left')
+		const lcLeft = $('#lp_select_left')
 		lcLeft.on('change', _ => {
 
-			let activeAnnotation = this.annotationManager.getActiveAnnotation()
+			const activeAnnotation = this.annotationManager.getActiveAnnotation()
 			if (activeAnnotation === null) {
 				return
 			}
@@ -825,10 +825,10 @@ class Annotator {
 			activeAnnotation.leftSideType = lcLeft.val()
 		})
 
-		let lcRight = $('#lp_select_right')
+		const lcRight = $('#lp_select_right')
 		lcRight.on('change', _ => {
 
-			let activeAnnotation = this.annotationManager.getActiveAnnotation()
+			const activeAnnotation = this.annotationManager.getActiveAnnotation()
 			if (activeAnnotation === null) {
 				return
 			}
@@ -836,10 +836,10 @@ class Annotator {
 			activeAnnotation.rightSideType = lcRight.val()
 		})
 
-		let lcEntry = $('#lp_select_entry')
+		const lcEntry = $('#lp_select_entry')
 		lcEntry.on('change', _ => {
 
-			let activeAnnotation = this.annotationManager.getActiveAnnotation()
+			const activeAnnotation = this.annotationManager.getActiveAnnotation()
 			if (activeAnnotation === null) {
 				return
 			}
@@ -847,10 +847,10 @@ class Annotator {
 			activeAnnotation.entryType = lcEntry.val()
 		})
 
-		let lcExit = $('#lp_select_exit')
+		const lcExit = $('#lp_select_exit')
 		lcExit.on('change', _ => {
 
-			let activeAnnotation = this.annotationManager.getActiveAnnotation()
+			const activeAnnotation = this.annotationManager.getActiveAnnotation()
 			if (activeAnnotation === null) {
 				return
 			}
@@ -858,7 +858,7 @@ class Annotator {
 			activeAnnotation.exitType = lcExit.val()
 		})
 
-		let trAdd = $('#tr_add')
+		const trAdd = $('#tr_add')
 		trAdd.on('click', _ => {
 
 			log.info("Add/remove lane to/from car path.")
@@ -871,7 +871,7 @@ class Annotator {
 			}
 		})
 
-		let trShow = $('#tr_show')
+		const trShow = $('#tr_show')
 		trShow.on('click', _ => {
 
 			log.info("Show/hide car path.")
@@ -887,7 +887,7 @@ class Annotator {
 			}
 		})
 
-		let savePath = $('#save_path')
+		const savePath = $('#save_path')
 		savePath.on('click', _ => {
 
 			log.info("Save car path to file.")
@@ -900,7 +900,7 @@ class Annotator {
 	 */
 	private resetLaneProp(): void {
 
-		let activeAnnotation = this.annotationManager.getActiveAnnotation()
+		const activeAnnotation = this.annotationManager.getActiveAnnotation()
 		if (activeAnnotation === null) {
 			return
 		}
@@ -923,41 +923,41 @@ class Annotator {
 			this.activateFrontSideNeighbours()
 		}
 
-		let lpId = document.getElementById('lp_id_value')
+		const lpId = document.getElementById('lp_id_value')
 		lpId.textContent = activeAnnotation.id.toString()
 		activeAnnotation.updateLaneWidth()
 
-		let lcSelectTo = $('#lc_select_to')
+		const lcSelectTo = $('#lc_select_to')
 		lcSelectTo.empty()
 		lcSelectTo.removeAttr('disabled')
 
-		let lcSelectFrom = $('#lc_select_from')
+		const lcSelectFrom = $('#lc_select_from')
 		lcSelectFrom.empty()
 		lcSelectFrom.removeAttr('disabled')
 
-		let lcSelectRelation = $('#lc_select_relation')
+		const lcSelectRelation = $('#lc_select_relation')
 		lcSelectRelation.removeAttr('disabled')
 
-		let lpSelectLeft = $('#lp_select_left')
+		const lpSelectLeft = $('#lp_select_left')
 		lpSelectLeft.removeAttr('disabled')
 		lpSelectLeft.val(activeAnnotation.leftSideType.toString())
 
-		let lpAddRelation = $('#lc_add')
+		const lpAddRelation = $('#lc_add')
 		lpAddRelation.removeAttr('disabled')
 
-		let lpSelectRight = $('#lp_select_right')
+		const lpSelectRight = $('#lp_select_right')
 		lpSelectRight.removeAttr('disabled')
 		lpSelectRight.val(activeAnnotation.rightSideType.toString())
 
-		let lpSelectEntry = $('#lp_select_entry')
+		const lpSelectEntry = $('#lp_select_entry')
 		lpSelectEntry.removeAttr('disabled')
 		lpSelectEntry.val(activeAnnotation.entryType.toString())
 
-		let lpSelectExit = $('#lp_select_exit')
+		const lpSelectExit = $('#lp_select_exit')
 		lpSelectExit.removeAttr('disabled')
 		lpSelectExit.val(activeAnnotation.exitType.toString())
 
-		let trAdd = $('#tr_add')
+		const trAdd = $('#tr_add')
 		trAdd.removeAttr('disabled')
 		if (this.annotationManager.laneIndexInPath(activeAnnotation.uuid) === -1) {
 			trAdd.text("Add")
@@ -965,7 +965,7 @@ class Annotator {
 			trAdd.text("Remove")
 		}
 
-		let trShow = $('#tr_show')
+		const trShow = $('#tr_show')
 		trShow.removeAttr('disabled')
 	}
 
@@ -977,9 +977,9 @@ class Annotator {
 		this.deactivateRightSideNeighbours()
 		this.deactivateFrontSideNeighbours()
 
-		let lpId = document.getElementById('lp_id_value')
+		const lpId = document.getElementById('lp_id_value')
 		lpId.textContent = 'UNKNOWN'
-		let lpWidth = document.getElementById('lp_width_value')
+		const lpWidth = document.getElementById('lp_width_value')
 		lpWidth.textContent = 'UNKNOWN'
 
 		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select')
@@ -993,10 +993,10 @@ class Annotator {
 			selects.item(i).setAttribute('disabled', 'disabled')
 		}
 
-		let lcAdd = document.getElementById('lc_add')
+		const lcAdd = document.getElementById('lc_add')
 		lcAdd.setAttribute('disabled', 'disabled')
 
-		let trAdd = document.getElementById('tr_add')
+		const trAdd = document.getElementById('tr_add')
 		trAdd.setAttribute('disabled', 'disabled')
 	}
 
@@ -1004,15 +1004,15 @@ class Annotator {
 	 * Deactivate/activate left side neighbours
 	 */
 	deactivateLeftSideNeighbours(): void {
-		let lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
-		let lpAddLeftSame = document.getElementById('lp_add_left_same')
+		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		const lpAddLeftSame = document.getElementById('lp_add_left_same')
 		lpAddLeftSame.setAttribute('disabled', 'disabled')
 		lpAddLeftOpposite.setAttribute('disabled', 'disabled')
 	}
 
 	activateLeftSideNeighbours(): void {
-		let lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
-		let lpAddLeftSame = document.getElementById('lp_add_left_same')
+		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		const lpAddLeftSame = document.getElementById('lp_add_left_same')
 		lpAddLeftSame.removeAttribute('disabled')
 		lpAddLeftOpposite.removeAttribute('disabled')
 	}
@@ -1021,15 +1021,15 @@ class Annotator {
 	 * Deactivate right side neighbours
 	 */
 	deactivateRightSideNeighbours(): void {
-		let lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
-		let lpAddRightSame = document.getElementById('lp_add_right_same')
+		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		const lpAddRightSame = document.getElementById('lp_add_right_same')
 		lpAddRightSame.setAttribute('disabled', 'disabled')
 		lpAddRightOpposite.setAttribute('disabled', 'disabled')
 	}
 
 	activateRightSideNeighbours(): void {
-		let lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
-		let lpAddRightSame = document.getElementById('lp_add_right_same')
+		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		const lpAddRightSame = document.getElementById('lp_add_right_same')
 		lpAddRightSame.removeAttribute('disabled')
 		lpAddRightOpposite.removeAttribute('disabled')
 	}
@@ -1038,22 +1038,22 @@ class Annotator {
 	 * Deactivate/activate front side neighbours
 	 */
 	deactivateFrontSideNeighbours(): void {
-		let lpAddFront = document.getElementById('lp_add_forward')
+		const lpAddFront = document.getElementById('lp_add_forward')
 		lpAddFront.setAttribute('disabled', 'disabled')
 	}
 
 	activateFrontSideNeighbours(): void {
-		let lpAddFront = document.getElementById('lp_add_forward')
+		const lpAddFront = document.getElementById('lp_add_forward')
 		lpAddFront.removeAttribute('disabled')
 	}
 
 	private loadCarModel(): void {
-		let manager = new THREE.LoadingManager()
-		let loader = new (THREE as any).OBJLoader(manager)
+		const manager = new THREE.LoadingManager()
+		const loader = new (THREE as any).OBJLoader(manager)
 		loader.load(config.get('assets.car_model.BMW_X5'), (object) => {
-			let boundingBox = new THREE.Box3().setFromObject(object)
-			let boxSize = boundingBox.getSize().toArray()
-			let modelLength = Math.max(...boxSize)
+			const boundingBox = new THREE.Box3().setFromObject(object)
+			const boxSize = boundingBox.getSize().toArray()
+			const modelLength = Math.max(...boxSize)
 			const carLength = 4.5 // approx in meters
 			const scaleFactor = carLength / modelLength
 			this.carModel = object
@@ -1070,14 +1070,14 @@ class Annotator {
 		this.liveSubscribeSocket.on('message', (msg) => {
 			if (!this.isLiveMode) return
 
-			let state = Models.InertialStateMessage.decode(msg)
+			const state = Models.InertialStateMessage.decode(msg)
 			log.info("Received message: " + state.pose.timestamp)
 
 			// Move the car and the camera
-			let position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
+			const position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
 			log.info(state.pose.x + " " + position.x)
 
-			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
+			const rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
 			rotation.normalize()
 			this.updateCarPose(position, rotation)
 			this.updateCameraPose()
@@ -1102,7 +1102,7 @@ class Annotator {
 			hideMenu = this.listen()
 		}
 
-		let menu = document.getElementById('menu')
+		const menu = document.getElementById('menu')
 
 		if (hideMenu) {
 			menu.style.visibility = 'hidden'
@@ -1145,13 +1145,13 @@ class Annotator {
 		// This is because the car model is rotated 90 degrees
 		this.carModel.rotateY(-1.5708)
 		// Bring the model close to the ground (approx height of the sensors)
-		let p = this.carModel.getWorldPosition()
+		const p = this.carModel.getWorldPosition()
 		this.carModel.position.set(p.x, 0, p.z)
 	}
 
 	private updateCameraPose(): void {
-		let p = this.carModel.getWorldPosition()
-		let offset = new THREE.Vector3(20, 15, 0)
+		const p = this.carModel.getWorldPosition()
+		const offset = new THREE.Vector3(20, 15, 0)
 		offset.applyQuaternion(this.carModel.quaternion)
 		offset.add(p)
 		log.info(p.x)
