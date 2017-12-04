@@ -204,7 +204,7 @@ class Annotator {
 
 		// Bind events
 		this.bind()
-		this.deactivateLaneProp()
+		Annotator.deactivateLaneProp()
 	}
 
 	/**
@@ -434,66 +434,51 @@ class Annotator {
 	 * Handle keyboard events
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
-		if (event.code === 'KeyA') {
+		if (event.code === 'KeyA')
 			this.isAddMarkerKeyPressed = true
-		}
 
-		if (event.code === 'KeyC') {
+		if (event.code === 'KeyC')
 			this.focusOnPointCloud()
-		}
 
 		if (event.code === 'KeyD') {
 			log.info("Deleting last marker")
-			if (this.annotationManager.deleteLastLaneMarker()) {
+			if (this.annotationManager.deleteLastLaneMarker())
 				this.hideTransform()
-			}
 		}
 
-		if (event.code === 'KeyN') {
+		if (event.code === 'KeyN')
 			this.addLane()
-		}
 
-		if (event.code === 'KeyZ') {
+		if (event.code === 'KeyZ')
 			this.deleteLane()
-		}
 
-		if (event.code === "KeyF") {
+		if (event.code === "KeyF")
 			this.addFront()
-		}
 
-		if (event.code === "KeyL") {
+		if (event.code === "KeyL")
 			this.addLeftSame()
-		}
 
-		if (event.code === "KeyK") {
+		if (event.code === "KeyK")
 			this.addLeftReverse()
-		}
 
-		if (event.code === "KeyR") {
+		if (event.code === "KeyR")
 			this.addRightSame()
-		}
 
-		if (event.code === "KeyE") {
+		if (event.code === "KeyE")
 			this.addRightReverse()
-		}
 
-		if (event.code === "KeyS") {
+		if (event.code === "KeyS")
 			this.saveToFile()
-		}
 
-		if (event.code === 'KeyM') {
+		if (event.code === 'KeyM')
 			this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
 				.catch(err => log.warn('saveToKML failed: ' + err.message))
-		}
 
-		if (event.code === 'KeyO') {
+		if (event.code === 'KeyO')
 			this.toggleListen()
-		}
 
-		if (event.code === 'KeyU') {
+		if (event.code === 'KeyU')
 			this.unloadPointCloudData()
-		}
-
 	}
 
 	private onKeyUp = (): void => {
@@ -598,7 +583,7 @@ class Annotator {
 		// Delete lane from scene
 		if (this.annotationManager.deleteLaneFromPath() && this.annotationManager.deleteActiveAnnotation(this.scene)) {
 			log.info("Deleted selected annotation")
-			this.deactivateLaneProp()
+			Annotator.deactivateLaneProp()
 			this.hideTransform()
 		}
 	}
@@ -639,35 +624,35 @@ class Annotator {
 	addFront(): void {
 		log.info("Adding connected annotation to the front")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
-			this.deactivateFrontSideNeighbours()
+			Annotator.deactivateFrontSideNeighbours()
 		}
 	}
 
 	addLeftSame(): void {
 		log.info("Adding connected annotation to the left - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
-			this.deactivateLeftSideNeighbours()
+			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
 	addLeftReverse(): void {
 		log.info("Adding connected annotation to the left - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
-			this.deactivateLeftSideNeighbours()
+			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
 	addRightSame(): void {
 		log.info("Adding connected annotation to the right - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
-			this.deactivateRightSideNeighbours()
+			Annotator.deactivateRightSideNeighbours()
 		}
 	}
 
 	addRightReverse(): void {
 		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
-			this.deactivateRightSideNeighbours()
+			Annotator.deactivateRightSideNeighbours()
 		}
 	}
 
@@ -762,7 +747,6 @@ class Annotator {
 
 		const lcSelectFrom = document.getElementById('lc_select_from')
 		lcSelectFrom.addEventListener('mousedown', _ => {
-
 			// Get ids
 			const ids = this.annotationManager.getValidIds()
 			// Add ids
@@ -777,7 +761,6 @@ class Annotator {
 
 		const lcSelectTo = document.getElementById('lc_select_to')
 		lcSelectTo.addEventListener('mousedown', _ => {
-
 			// Get ids
 			const ids = this.annotationManager.getValidIds()
 			// Add ids
@@ -816,7 +799,6 @@ class Annotator {
 
 		const lcLeft = $('#lp_select_left')
 		lcLeft.on('change', _ => {
-
 			const activeAnnotation = this.annotationManager.getActiveAnnotation()
 			if (activeAnnotation === null) {
 				return
@@ -827,7 +809,6 @@ class Annotator {
 
 		const lcRight = $('#lp_select_right')
 		lcRight.on('change', _ => {
-
 			const activeAnnotation = this.annotationManager.getActiveAnnotation()
 			if (activeAnnotation === null) {
 				return
@@ -838,7 +819,6 @@ class Annotator {
 
 		const lcEntry = $('#lp_select_entry')
 		lcEntry.on('change', _ => {
-
 			const activeAnnotation = this.annotationManager.getActiveAnnotation()
 			if (activeAnnotation === null) {
 				return
@@ -849,7 +829,6 @@ class Annotator {
 
 		const lcExit = $('#lp_select_exit')
 		lcExit.on('change', _ => {
-
 			const activeAnnotation = this.annotationManager.getActiveAnnotation()
 			if (activeAnnotation === null) {
 				return
@@ -860,7 +839,6 @@ class Annotator {
 
 		const trAdd = $('#tr_add')
 		trAdd.on('click', _ => {
-
 			log.info("Add/remove lane to/from car path.")
 			if (this.annotationManager.addLaneToPath()) {
 				if (trAdd.text() === "Add") {
@@ -873,7 +851,6 @@ class Annotator {
 
 		const trShow = $('#tr_show')
 		trShow.on('click', _ => {
-
 			log.info("Show/hide car path.")
 			if (!this.annotationManager.showPath()) {
 				return
@@ -889,7 +866,6 @@ class Annotator {
 
 		const savePath = $('#save_path')
 		savePath.on('click', _ => {
-
 			log.info("Save car path to file.")
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
@@ -899,28 +875,27 @@ class Annotator {
 	 * Reset lane properties elements based on the current active lane
 	 */
 	private resetLaneProp(): void {
-
 		const activeAnnotation = this.annotationManager.getActiveAnnotation()
 		if (activeAnnotation === null) {
 			return
 		}
 
 		if (activeAnnotation.neighborsIds.left != null) {
-			this.deactivateLeftSideNeighbours()
+			Annotator.deactivateLeftSideNeighbours()
 		} else {
-			this.activateLeftSideNeighbours()
+			Annotator.activateLeftSideNeighbours()
 		}
 
 		if (activeAnnotation.neighborsIds.right != null) {
-			this.deactivateRightSideNeighbours()
+			Annotator.deactivateRightSideNeighbours()
 		} else {
-			this.activateRightSideNeighbours()
+			Annotator.activateRightSideNeighbours()
 		}
 
 		if (activeAnnotation.neighborsIds.front.length !== 0) {
-			this.deactivateFrontSideNeighbours()
+			Annotator.deactivateFrontSideNeighbours()
 		} else {
-			this.activateFrontSideNeighbours()
+			Annotator.activateFrontSideNeighbours()
 		}
 
 		const lpId = document.getElementById('lp_id_value')
@@ -972,10 +947,10 @@ class Annotator {
 	/**
 	 * Deactivate lane properties menu panel
 	 */
-	deactivateLaneProp(): void {
-		this.deactivateLeftSideNeighbours()
-		this.deactivateRightSideNeighbours()
-		this.deactivateFrontSideNeighbours()
+	private static deactivateLaneProp(): void {
+		Annotator.deactivateLeftSideNeighbours()
+		Annotator.deactivateRightSideNeighbours()
+		Annotator.deactivateFrontSideNeighbours()
 
 		const lpId = document.getElementById('lp_id_value')
 		lpId.textContent = 'UNKNOWN'
@@ -1003,14 +978,14 @@ class Annotator {
 	/**
 	 * Deactivate/activate left side neighbours
 	 */
-	deactivateLeftSideNeighbours(): void {
+	private static deactivateLeftSideNeighbours(): void {
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
 		const lpAddLeftSame = document.getElementById('lp_add_left_same')
 		lpAddLeftSame.setAttribute('disabled', 'disabled')
 		lpAddLeftOpposite.setAttribute('disabled', 'disabled')
 	}
 
-	activateLeftSideNeighbours(): void {
+	private static activateLeftSideNeighbours(): void {
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
 		const lpAddLeftSame = document.getElementById('lp_add_left_same')
 		lpAddLeftSame.removeAttribute('disabled')
@@ -1020,14 +995,14 @@ class Annotator {
 	/**
 	 * Deactivate right side neighbours
 	 */
-	deactivateRightSideNeighbours(): void {
+	private static deactivateRightSideNeighbours(): void {
 		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
 		const lpAddRightSame = document.getElementById('lp_add_right_same')
 		lpAddRightSame.setAttribute('disabled', 'disabled')
 		lpAddRightOpposite.setAttribute('disabled', 'disabled')
 	}
 
-	activateRightSideNeighbours(): void {
+	private static activateRightSideNeighbours(): void {
 		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
 		const lpAddRightSame = document.getElementById('lp_add_right_same')
 		lpAddRightSame.removeAttribute('disabled')
@@ -1037,12 +1012,12 @@ class Annotator {
 	/**
 	 * Deactivate/activate front side neighbours
 	 */
-	deactivateFrontSideNeighbours(): void {
+	private static deactivateFrontSideNeighbours(): void {
 		const lpAddFront = document.getElementById('lp_add_forward')
 		lpAddFront.setAttribute('disabled', 'disabled')
 	}
 
-	activateFrontSideNeighbours(): void {
+	private static activateFrontSideNeighbours(): void {
 		const lpAddFront = document.getElementById('lp_add_forward')
 		lpAddFront.removeAttribute('disabled')
 	}
