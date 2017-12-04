@@ -4,12 +4,7 @@
   "description": "Mapper.ai Point Cloud Annotator",
   "scripts": {
     "lint": "./node_modules/.bin/tslint \"packages/**/*.ts\" --force",
-    "dev:start": "NODE_ENV=development ./node_modules/.bin/webpack-dev-server --config etc/webpack/webpack.config.js --env development",
-    "build": "NODE_ENV=production ./node_modules/.bin/webpack --config etc/webpack/webpack.config.js --env production -p",
-    "deploy:dev": "./etc/scripts/deploy.sh dev",
-    "deploy:stage": "./etc/scripts/deploy.sh stage",
-    "release:dev": "MAPPER_ENV=dev npm run build && npm run deploy:dev",
-    "release:stage": "MAPPER_ENV=stage npm run build && npm run deploy:stage"
+    "start": "./node_modules/.bin/electron bin/annotator-start.js"
   },
   "license": "UNLICENSED",
   "repository": {
