@@ -18,6 +18,7 @@ import {isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
 import * as THREE from 'three'
+import {Socket} from "@types/zmq";
 
 declare global {
 	namespace THREE {
@@ -62,7 +63,7 @@ class Annotator {
 	grid: THREE.GridHelper
 	axis: THREE.AxisHelper
 	light: THREE.SpotLight
-	stats // todo https://www.npmjs.com/package/@types/stats.js
+	stats: Stats
 	orbitControls: THREE.OrbitControls
 	transformControls: any
 	hideTransformControlTimer: NodeJS.Timer
@@ -70,10 +71,10 @@ class Annotator {
 	isAddMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	isLiveMode: boolean
-	liveSubscribeSocket // todo https://www.npmjs.com/package/@types/zmq
+	liveSubscribeSocket: Socket
 	hovered: THREE.Object3D
 	settings: AnnotatorSettings
-	gui
+	gui: any
 
 	constructor() {
 		this.isAddMarkerKeyPressed = false
