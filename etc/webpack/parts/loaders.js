@@ -47,8 +47,13 @@ module.exports = {
 			test: /\.(png|jpg|gif|ico)$/,
 			loaders: ['file-loader?name=assets/images/[name].[hash].[ext]'],
 		},
-		
-		
+
+		// 3D models
+		{
+			test: /\.(obj)$/,
+			loaders: ['file-loader?name=packages/annotator-assets/models/[name].[ext]'],
+		},
+
 		// CSS
 		{
 			test: /\.global\.css$/,
