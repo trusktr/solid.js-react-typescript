@@ -2,6 +2,10 @@
  * @author arodic / https://github.com/arodic
  */
 
+import {BufferGeometry, Euler, Object3D, Vector3} from "three"
+
+// tslint:disable:no-string-literal
+
 const THREE = require('three')
 
 declare global {
@@ -62,7 +66,7 @@ const GizmoLineMaterial = function (parameters) {
 	this.oldColor = this.color.clone()
 	this.oldOpacity = this.opacity
 
-	this.highlight = function (highlighted) {
+	this.highlight = function (highlighted: boolean): void {
 
 		if (highlighted) {
 
@@ -117,11 +121,11 @@ THREE.TransformGizmo = function () {
 		planes["XZ"].rotation.set(-Math.PI / 2, 0, 0)
 
 		for (const i in planes) {
-
-			planes[i].name = i
-			this.planes.add(planes[i])
-			this.planes[i] = planes[i]
-
+			if (planes.hasOwnProperty(i)) {
+				planes[i].name = i
+				this.planes.add(planes[i])
+				this.planes[i] = planes[i]
+			}
 		}
 
 		//// HANDLES AND PICKERS
@@ -129,22 +133,22 @@ THREE.TransformGizmo = function () {
 		const setupGizmos = function (gizmoMap, parent) {
 
 			for (const name in gizmoMap) {
+				if (gizmoMap.hasOwnProperty(name)) {
+					for (let i = gizmoMap[name].length; i--;) {
 
-				for (let i = gizmoMap[name].length; i--;) {
+						const object = gizmoMap[name][i][0]
+						const position = gizmoMap[name][i][1]
+						const rotation = gizmoMap[name][i][2]
 
-					const object = gizmoMap[name][i][0]
-					const position = gizmoMap[name][i][1]
-					const rotation = gizmoMap[name][i][2]
+						object.name = name
 
-					object.name = name
+						if (position) object.position.set(position[0], position[1], position[2])
+						if (rotation) object.rotation.set(rotation[0], rotation[1], rotation[2])
 
-					if (position) object.position.set(position[0], position[1], position[2])
-					if (rotation) object.rotation.set(rotation[0], rotation[1], rotation[2])
+						parent.add(object)
 
-					parent.add(object)
-
+					}
 				}
-
 			}
 
 		}
@@ -201,7 +205,7 @@ THREE.TransformGizmo = function () {
 THREE.TransformGizmo.prototype = Object.create(THREE.Object3D.prototype)
 THREE.TransformGizmo.prototype.constructor = THREE.TransformGizmo
 
-THREE.TransformGizmo.prototype.update = function (rotation, eye) {
+THREE.TransformGizmo.prototype.update = function (rotation: Euler, eye: Vector3): void {
 
 	const vec1 = new THREE.Vector3(0, 0, 0)
 	const vec2 = new THREE.Vector3(0, 1, 0)
@@ -223,7 +227,7 @@ THREE.TransformGizmo.prototype.update = function (rotation, eye) {
 
 }
 
-THREE.TransformGizmoTranslate = function () {
+THREE.TransformGizmoTranslate = function (): void {
 
 	THREE.TransformGizmo.call(this)
 
@@ -322,7 +326,7 @@ THREE.TransformGizmoTranslate = function () {
 
 	}
 
-	this.setActivePlane = function (axis, eye) {
+	this.setActivePlane = function (axis: string, eye: Vector3): void {
 
 		const tempMatrix = new THREE.Matrix4()
 		eye.applyMatrix4(tempMatrix.getInverse(tempMatrix.extractRotation(this.planes["XY"].matrixWorld)))
@@ -372,7 +376,7 @@ THREE.TransformGizmoRotate = function () {
 
 	THREE.TransformGizmo.call(this)
 
-	const CircleGeometry = (radius, facing, arc) => {
+	const CircleGeometry = (radius: number, facing: string, arc: number): BufferGeometry => {
 
 		const geometry = new THREE.BufferGeometry()
 		const vertices = []
@@ -439,7 +443,7 @@ THREE.TransformGizmoRotate = function () {
 
 	}
 
-	this.setActivePlane = function (axis) {
+	this.setActivePlane = function (axis: string): void {
 
 		if (axis === "E") this.activePlane = this.planes["XYZE"]
 
@@ -451,8 +455,7 @@ THREE.TransformGizmoRotate = function () {
 
 	}
 
-	this.update = function (rotation, eye2) {
-		rotation
+	this.update = function (_: Euler, eye2: Vector3): void {
 
 		THREE.TransformGizmo.prototype.update.apply(this, arguments)
 
@@ -578,7 +581,7 @@ THREE.TransformGizmoScale = function () {
 
 	}
 
-	this.setActivePlane = function (axis, eye) {
+	this.setActivePlane = function (axis, eye: Vector3) {
 
 		const tempMatrix = new THREE.Matrix4()
 		eye.applyMatrix4(tempMatrix.getInverse(tempMatrix.extractRotation(this.planes["XY"].matrixWorld)))
@@ -730,7 +733,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	this.attach = function (object) {
+	this.attach = function (object: Object3D): void {
 
 		this.object = object
 		this.visible = true
@@ -738,7 +741,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	this.detach = function () {
+	this.detach = function (): void {
 
 		this.object = undefined
 		this.visible = false
@@ -752,32 +755,35 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	this.setMode = function (mode) {
+	this.setMode = function (mode: string): void {
 
 		_mode = mode ? mode : _mode
 
 		if (_mode === "scale") scope.space = "local"
 
-		for (const type in _gizmo) _gizmo[type].visible = ( type === _mode )
+		for (const type in _gizmo) {
+			if (_gizmo.hasOwnProperty(type))
+				_gizmo[type].visible = ( type === _mode )
+		}
 
 		this.update()
 		scope.dispatchEvent(changeEvent)
 
 	}
 
-	this.setTranslationSnap = function (translationSnap) {
+	this.setTranslationSnap = function (translationSnap: number): void {
 
 		scope.translationSnap = translationSnap
 
 	}
 
-	this.setRotationSnap = function (rotationSnap) {
+	this.setRotationSnap = function (rotationSnap: number): void {
 
 		scope.rotationSnap = rotationSnap
 
 	}
 
-	this.setSize = function (size) {
+	this.setSize = function (size: number): void {
 
 		scope.size = size
 		this.update()
@@ -785,7 +791,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	this.setSpace = function (space) {
+	this.setSpace = function (space: string): void {
 
 		scope.space = space
 		this.update()
@@ -793,7 +799,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	this.update = function () {
+	this.update = function (): void {
 
 		if (scope.object === undefined) return
 
@@ -833,7 +839,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	function onPointerHover(event) {
+	function onPointerHover(event): void {
 
 		if (scope.object === undefined || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
 
@@ -1116,7 +1122,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	function onPointerUp(event) {
+	function onPointerUp(event: MouseEvent): void {
 
 		event.preventDefault() // Prevent MouseEvent on mobile
 
