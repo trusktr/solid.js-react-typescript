@@ -20,7 +20,8 @@
         "preserveConstEnums": true,
         "pretty": true,
         "sourceMap": true,
-        "target": "ES5"
+		"strictNullChecks": true,
+		"target": "es6"
     },
     "compileOnSave": true,
     "include": [

@@ -108,8 +108,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Get current active annotation
 	 */
-	getActiveAnnotation(): LaneAnnotation {
-
+	getActiveAnnotation(): LaneAnnotation | null {
 		if (this.activeAnnotationIndex < 0 &&
 			this.activeAnnotationIndex >= this.annotations.length) {
 			return null
@@ -122,7 +121,7 @@ export class AnnotationManager extends UtmInterface {
 	 * Get all existing ids
 	 */
 	getValidIds(): Array<LaneId> {
-		const list = []
+		const list: Array<LaneId> = []
 		for (let i = 0; i < this.annotations.length; ++i) {
 			if (this.annotations[i].type === AnnotationType.LANE) {
 				list.push(this.annotations[i].id)
@@ -192,7 +191,7 @@ export class AnnotationManager extends UtmInterface {
 	addRelation(scene: THREE.Scene, fromId: LaneId, toId: LaneId, relation: string): boolean {
 		if (this.isLiveMode) return false
 
-		let laneFrom: LaneAnnotation = null
+		let laneFrom: LaneAnnotation | null = null
 		for (const annotation of this.annotations) {
 			if (annotation.id === fromId) {
 				laneFrom = annotation
@@ -200,7 +199,7 @@ export class AnnotationManager extends UtmInterface {
 			}
 		}
 
-		let laneTo: LaneAnnotation = null
+		let laneTo: LaneAnnotation | null = null
 		for (const annotation of this.annotations) {
 			if (annotation.id === toId) {
 				laneTo = annotation
@@ -249,10 +248,10 @@ export class AnnotationManager extends UtmInterface {
 				break
 			case 'front':
 				const index1 = laneFrom.neighborsIds.front.findIndex((neighbor) => {
-					return neighbor === laneTo.uuid
+					return neighbor === laneTo!.uuid
 				})
 				const index2 = laneTo.neighborsIds.back.findIndex((neighbor) => {
-					return neighbor === laneFrom.uuid
+					return neighbor === laneFrom!.uuid
 				})
 				if (index1 === -1 && index2 === -1) {
 					// check if close enough
@@ -272,10 +271,10 @@ export class AnnotationManager extends UtmInterface {
 				break
 			case 'back':
 				const index3 = laneFrom.neighborsIds.back.findIndex((neighbor) => {
-					return neighbor === laneTo.uuid
+					return neighbor === laneTo!.uuid
 				})
 				const index4 = laneTo.neighborsIds.front.findIndex((neighbor) => {
-					return neighbor === laneFrom.uuid
+					return neighbor === laneFrom!.uuid
 				})
 				if (index3 === -1 && index4 === -1) {
 					laneFrom.neighborsIds.back.push(laneTo.uuid)
@@ -830,7 +829,7 @@ export class AnnotationManager extends UtmInterface {
 
 		if (!data['annotations']) return false
 		// generate an arbitrary offset for internal use, given the first point in the data set
-		let first: THREE.Vector3
+		let first: THREE.Vector3 | null = null
 		// and round off the values for nicer debug output
 		const trunc = function (x: number): number {return Math.trunc(x / 10) * 10}
 		for (let i = 0; !first && i < data['annotations'].length; i++) {
@@ -868,11 +867,11 @@ export class AnnotationManager extends UtmInterface {
 	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
-	loadAnnotationsFromFile(fileName: string, scene: THREE.Scene): Promise<THREE.Vector3> {
+	loadAnnotationsFromFile(fileName: string, scene: THREE.Scene): Promise<THREE.Vector3 | null> {
 		if (this.isLiveMode) return Promise.reject(new Error("can't load annotations while in live presentation mode"))
 
 		const self = this
-		return new Promise((resolve: (value: THREE.Vector3) => void, reject: (reason: Error) => void): void => {
+		return new Promise((resolve: (value: THREE.Vector3 | null) => void, reject: (reason: Error) => void): void => {
 			AsyncFile.readFile(fileName, 'ascii').then((text: string) => {
 				const data = JSON.parse(text)
 				if (self.checkCoordinateSystem(data)) {

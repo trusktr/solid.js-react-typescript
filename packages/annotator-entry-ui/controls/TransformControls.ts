@@ -379,7 +379,7 @@ THREE.TransformGizmoRotate = function () {
 	const CircleGeometry = (radius: number, facing: string, arc: number): BufferGeometry => {
 
 		const geometry = new THREE.BufferGeometry()
-		const vertices = []
+		const vertices: Array<number> = []
 		arc = arc ? arc : 1
 
 		for (let i = 0; i <= 64 * arc; ++i) {

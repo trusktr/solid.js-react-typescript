@@ -72,7 +72,7 @@ class Annotator {
 	isMouseButtonPressed: boolean
 	isLiveMode: boolean
 	liveSubscribeSocket: Socket
-	hovered: THREE.Object3D
+	hovered: THREE.Object3D | null
 	settings: AnnotatorSettings
 	gui: any
 
@@ -89,7 +89,7 @@ class Annotator {
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
 		this.raycasterPlane = new THREE.Raycaster()
-		this.raycasterPlane.params.Points.threshold = 0.1
+		this.raycasterPlane.params.Points!.threshold = 0.1
 		// THe raycaster is used to compute which marker is active for editing
 		this.raycasterMarker = new THREE.Raycaster()
 		// THe raycaster is used to compute which selection should be active for editing
@@ -248,7 +248,7 @@ class Annotator {
 	 * Set some point as the center of the visible world.
 	 */
 	private setStageByVector(point: THREE.Vector3): void {
-		if (point) this.setStage(point.x, point.y, point.z)
+		this.setStage(point.x, point.y, point.z)
 	}
 
 	/**
@@ -272,7 +272,8 @@ class Annotator {
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
 				}
 				this.scene.add(this.tileManager.pointCloud)
-				this.setStageByVector(focalPoint)
+				if (focalPoint)
+					this.setStageByVector(focalPoint)
 			})
 	}
 
@@ -310,8 +311,10 @@ class Annotator {
 			return false
 		}
 		// This creates a new lane and add it to the scene for display
-		return this.annotationManager.addLaneAnnotation(this.scene) &&
+		return !!(
+			this.annotationManager.addLaneAnnotation(this.scene) &&
 			this.annotationManager.makeLastAnnotationActive()
+		)
 	}
 
 	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
@@ -661,148 +664,194 @@ class Annotator {
 	 */
 	private bind(): void {
 		const menuButton = document.getElementById('menu_control_btn')
-		menuButton.addEventListener('click', _ => {
-			if (this.isLiveMode) {
-				log.info("Disable live location mode first to access the menu.")
-			} else {
-				log.info("Menu icon clicked. Close/Open menu bar.")
-				const menu = document.getElementById('menu')
-				if (menu.style.visibility === 'hidden') {
-					menu.style.visibility = 'visible'
+		if (menuButton)
+			menuButton.addEventListener('click', _ => {
+				if (this.isLiveMode) {
+					log.info("Disable live location mode first to access the menu.")
 				} else {
-					menu.style.visibility = 'hidden'
+					log.info("Menu icon clicked. Close/Open menu bar.")
+					const menu = document.getElementById('menu')
+					if (menu)
+						menu.style.visibility = menu.style.visibility === 'hidden' ? 'visible' : 'hidden'
+					else
+						log.warn('missing element menu')
 				}
-			}
-		})
+			})
+		else
+			log.warn('missing element menu_control_btn')
 
 		const liveLocationControlButton = document.getElementById('live_location_control_btn')
-		liveLocationControlButton.addEventListener('click', _ => {
-			this.toggleListen()
-		})
+		if (liveLocationControlButton)
+			liveLocationControlButton.addEventListener('click', _ => {
+				this.toggleListen()
+			})
+		else
+			log.warn('missing element live_location_control_btn')
 
 		const toolsDelete = document.getElementById('tools_delete')
-		toolsDelete.addEventListener('click', _ => {
-			this.deleteLane()
-		})
+		if (toolsDelete)
+			toolsDelete.addEventListener('click', _ => {
+				this.deleteLane()
+			})
+		else
+			log.warn('missing element tools_delete')
 
 		const toolsAdd = document.getElementById('tools_add')
-		toolsAdd.addEventListener('click', _ => {
-			this.addLane()
-		})
+		if (toolsAdd)
+			toolsAdd.addEventListener('click', _ => {
+				this.addLane()
+			})
+		else
+			log.warn('missing element tools_add')
 
 		const toolsLoad = document.getElementById('tools_load')
-		toolsLoad.addEventListener('click', _ => {
-			this.loadFromFile()
-				.catch(err => log.warn('loadFromFile failed: ' + err.message))
-		})
+		if (toolsLoad)
+			toolsLoad.addEventListener('click', _ => {
+				this.loadFromFile()
+					.catch(err => log.warn('loadFromFile failed: ' + err.message))
+			})
+		else
+			log.warn('missing element tools_load')
 
 		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
-		toolsLoadAnnotation.addEventListener('click', _ => {
-			const pathElectron = dialog.showOpenDialog({
-				filters: [{name: 'json', extensions: ['json']}]
+		if (toolsLoadAnnotation)
+			toolsLoadAnnotation.addEventListener('click', _ => {
+				const pathElectron = dialog.showOpenDialog({
+					filters: [{name: 'json', extensions: ['json']}]
+				})
+
+				if (isUndefined(pathElectron))
+					return
+
+				log.info('Loading annotations from ' + pathElectron[0])
+				this.loadAnnotations(pathElectron[0])
+					.catch(err => log.warn('loadAnnotations failed: ' + err.message))
 			})
-
-			if (isUndefined(pathElectron)) {
-				return
-			}
-
-			log.info('Loading annotations from ' + pathElectron[0])
-			this.loadAnnotations(pathElectron[0])
-		})
+		else
+			log.warn('missing element tools_load_annotation')
 
 		const toolsSave = document.getElementById('tools_save')
-		toolsSave.addEventListener('click', _ => {
-			this.saveToFile()
-		})
+		if (toolsSave)
+			toolsSave.addEventListener('click', _ => {
+				this.saveToFile()
+			})
+		else
+			log.warn('missing element tools_save')
 
 		const toolsExportKml = document.getElementById('tools_export_kml')
-		toolsExportKml.addEventListener('click', _ => {
-			this.exportKml()
-		})
+		if (toolsExportKml)
+			toolsExportKml.addEventListener('click', _ => {
+				this.exportKml()
+			})
+		else
+			log.warn('missing element tools_export_kml')
 
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
-		lpAddLeftOpposite.addEventListener('click', _ => {
-			this.addLeftReverse()
-		})
+		if (lpAddLeftOpposite)
+			lpAddLeftOpposite.addEventListener('click', _ => {
+				this.addLeftReverse()
+			})
+		else
+			log.warn('missing element lp_add_left_opposite')
 
 		const lpAddLeftSame = document.getElementById('lp_add_left_same')
-		lpAddLeftSame.addEventListener('click', _ => {
-			this.addLeftSame()
-		})
+		if (lpAddLeftSame)
+			lpAddLeftSame.addEventListener('click', _ => {
+				this.addLeftSame()
+			})
+		else
+			log.warn('missing element lp_add_left_same')
 
 		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
-		lpAddRightOpposite.addEventListener('click', _ => {
-			this.addRightReverse()
-		})
+		if (lpAddRightOpposite)
+			lpAddRightOpposite.addEventListener('click', _ => {
+				this.addRightReverse()
+			})
+		else
+			log.warn('missing element lp_add_right_opposite')
 
 		const lpAddRightSame = document.getElementById('lp_add_right_same')
-		lpAddRightSame.addEventListener('click', _ => {
-			this.addRightSame()
-		})
+		if (lpAddRightSame)
+			lpAddRightSame.addEventListener('click', _ => {
+				this.addRightSame()
+			})
+		else
+			log.warn('missing element lp_add_right_same')
 
 		const lpAddFront = document.getElementById('lp_add_forward')
-		lpAddFront.addEventListener('click', _ => {
-			this.addFront()
-		})
+		if (lpAddFront)
+			lpAddFront.addEventListener('click', _ => {
+				this.addFront()
+			})
+		else
+			log.warn('missing element lp_add_forward')
 
 		const lcSelectFrom = document.getElementById('lc_select_from')
-		lcSelectFrom.addEventListener('mousedown', _ => {
-			// Get ids
-			const ids = this.annotationManager.getValidIds()
-			// Add ids
-			const selectbox = $('#lc_select_from')
-			selectbox.empty()
-			let list = ''
-			for (let j = 0; j < ids.length; j++) {
-				list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-			}
-			selectbox.html(list)
-		})
+		if (lcSelectFrom)
+			lcSelectFrom.addEventListener('mousedown', _ => {
+				// Get ids
+				const ids = this.annotationManager.getValidIds()
+				// Add ids
+				const selectbox = $('#lc_select_from')
+				selectbox.empty()
+				let list = ''
+				for (let j = 0; j < ids.length; j++) {
+					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
+				}
+				selectbox.html(list)
+			})
+		else
+			log.warn('missing element lc_select_from')
 
 		const lcSelectTo = document.getElementById('lc_select_to')
-		lcSelectTo.addEventListener('mousedown', _ => {
-			// Get ids
-			const ids = this.annotationManager.getValidIds()
-			// Add ids
-			const selectbox = $('#lc_select_to')
-			selectbox.empty()
-			let list = ''
-			for (let j = 0; j < ids.length; j++) {
-				list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-			}
-			selectbox.html(list)
-		})
+		if (lcSelectTo)
+			lcSelectTo.addEventListener('mousedown', _ => {
+				// Get ids
+				const ids = this.annotationManager.getValidIds()
+				// Add ids
+				const selectbox = $('#lc_select_to')
+				selectbox.empty()
+				let list = ''
+				for (let j = 0; j < ids.length; j++) {
+					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
+				}
+				selectbox.html(list)
+			})
+		else
+			log.warn('missing element lc_select_to')
 
 		const lcAdd = document.getElementById('lc_add')
-		lcAdd.addEventListener('click', _ => {
-			const lcTo: LaneId = Number($('#lc_select_to').val())
-			const lcFrom: LaneId = Number($('#lc_select_from').val())
-			const lcRelation = $('#lc_select_relation').val()
+		if (lcAdd)
+			lcAdd.addEventListener('click', _ => {
+				const lcTo: LaneId = Number($('#lc_select_to').val())
+				const lcFrom: LaneId = Number($('#lc_select_from').val())
+				const lcRelation = $('#lc_select_relation').val()
 
-			if (lcTo === null || lcFrom === null) {
-				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-					"You have to select both lanes to be connected.")
-				return
-			}
+				if (lcTo === null || lcFrom === null) {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
+						"You have to select both lanes to be connected.")
+					return
+				}
 
-			if (lcTo === lcFrom) {
-				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-					"You can't connect a lane to itself. The 2 ids should be unique.")
-				return
-			}
+				if (lcTo === lcFrom) {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
+						"You can't connect a lane to itself. The 2 ids should be unique.")
+					return
+				}
 
-			log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
-			if (this.annotationManager.addRelation(this.scene, lcFrom, lcTo, lcRelation)) {
-				this.resetLaneProp()
-			}
-		})
+				log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
+				if (this.annotationManager.addRelation(this.scene, lcFrom, lcTo, lcRelation)) {
+					this.resetLaneProp()
+				}
+			})
+		else
+			log.warn('missing element lc_add')
 
 		const lcLeft = $('#lp_select_left')
 		lcLeft.on('change', _ => {
 			const activeAnnotation = this.annotationManager.getActiveAnnotation()
-			if (activeAnnotation === null) {
+			if (activeAnnotation === null)
 				return
-			}
 			log.info("Adding left side type: " + lcLeft.children("option").filter(":selected").text())
 			activeAnnotation.leftSideType = lcLeft.val()
 		})
@@ -810,9 +859,8 @@ class Annotator {
 		const lcRight = $('#lp_select_right')
 		lcRight.on('change', _ => {
 			const activeAnnotation = this.annotationManager.getActiveAnnotation()
-			if (activeAnnotation === null) {
+			if (activeAnnotation === null)
 				return
-			}
 			log.info("Adding right side type: " + lcRight.children("option").filter(":selected").text())
 			activeAnnotation.rightSideType = lcRight.val()
 		})
@@ -820,9 +868,8 @@ class Annotator {
 		const lcEntry = $('#lp_select_entry')
 		lcEntry.on('change', _ => {
 			const activeAnnotation = this.annotationManager.getActiveAnnotation()
-			if (activeAnnotation === null) {
+			if (activeAnnotation === null)
 				return
-			}
 			log.info("Adding entry type: " + lcEntry.children("option").filter(":selected").text())
 			activeAnnotation.entryType = lcEntry.val()
 		})
@@ -830,9 +877,8 @@ class Annotator {
 		const lcExit = $('#lp_select_exit')
 		lcExit.on('change', _ => {
 			const activeAnnotation = this.annotationManager.getActiveAnnotation()
-			if (activeAnnotation === null) {
+			if (activeAnnotation === null)
 				return
-			}
 			log.info("Adding exit type: " + lcExit.children("option").filter(":selected").text())
 			activeAnnotation.exitType = lcExit.val()
 		})
@@ -899,7 +945,10 @@ class Annotator {
 		}
 
 		const lpId = document.getElementById('lp_id_value')
-		lpId.textContent = activeAnnotation.id.toString()
+		if (lpId)
+			lpId.textContent = activeAnnotation.id.toString()
+		else
+			log.warn('missing element lp_id_value')
 		activeAnnotation.updateLaneWidth()
 
 		const lcSelectTo = $('#lc_select_to')
@@ -953,26 +1002,46 @@ class Annotator {
 		Annotator.deactivateFrontSideNeighbours()
 
 		const lpId = document.getElementById('lp_id_value')
-		lpId.textContent = 'UNKNOWN'
+		if (lpId)
+			lpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element lp_id_value')
 		const lpWidth = document.getElementById('lp_width_value')
-		lpWidth.textContent = 'UNKNOWN'
+		if (lpWidth)
+			lpWidth.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element lp_width_value')
 
-		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select')
-		for (let i = 0; i < selects.length; ++i) {
-			selects.item(i).selectedIndex = 0
-			selects.item(i).setAttribute('disabled', 'disabled')
-		}
+		const laneProp1 = document.getElementById('lane_prop_1')
+		if (laneProp1) {
+			const selects = laneProp1.getElementsByTagName('select')
+			for (let i = 0; i < selects.length; ++i) {
+				selects.item(i).selectedIndex = 0
+				selects.item(i).setAttribute('disabled', 'disabled')
+			}
+		} else
+			log.warn('missing element lane_prop_1')
 
-		selects = document.getElementById('lane_conn').getElementsByTagName('select')
-		for (let i = 0; i < selects.length; ++i) {
-			selects.item(i).setAttribute('disabled', 'disabled')
-		}
+		const laneConn = document.getElementById('lane_conn')
+		if (laneConn) {
+			const selects = laneConn.getElementsByTagName('select')
+			for (let i = 0; i < selects.length; ++i) {
+				selects.item(i).setAttribute('disabled', 'disabled')
+			}
+		} else
+			log.warn('missing element lane_conn')
 
 		const lcAdd = document.getElementById('lc_add')
-		lcAdd.setAttribute('disabled', 'disabled')
+		if (lcAdd)
+			lcAdd.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lc_add')
 
 		const trAdd = document.getElementById('tr_add')
-		trAdd.setAttribute('disabled', 'disabled')
+		if (trAdd)
+			trAdd.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element tr_add')
 	}
 
 	/**
@@ -980,16 +1049,30 @@ class Annotator {
 	 */
 	private static deactivateLeftSideNeighbours(): void {
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		if (lpAddLeftOpposite)
+			lpAddLeftOpposite.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lp_add_left_opposite')
+
 		const lpAddLeftSame = document.getElementById('lp_add_left_same')
-		lpAddLeftSame.setAttribute('disabled', 'disabled')
-		lpAddLeftOpposite.setAttribute('disabled', 'disabled')
+		if (lpAddLeftSame)
+			lpAddLeftSame.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lp_add_left_same')
 	}
 
 	private static activateLeftSideNeighbours(): void {
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		if (lpAddLeftOpposite)
+			lpAddLeftOpposite.removeAttribute('disabled')
+		else
+			log.warn('missing element lp_add_left_opposite')
+
 		const lpAddLeftSame = document.getElementById('lp_add_left_same')
-		lpAddLeftSame.removeAttribute('disabled')
-		lpAddLeftOpposite.removeAttribute('disabled')
+		if (lpAddLeftSame)
+			lpAddLeftSame.removeAttribute('disabled')
+		else
+			log.warn('missing element lp_add_left_same')
 	}
 
 	/**
@@ -997,16 +1080,30 @@ class Annotator {
 	 */
 	private static deactivateRightSideNeighbours(): void {
 		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		if (lpAddRightOpposite)
+			lpAddRightOpposite.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lp_add_right_opposite')
+
 		const lpAddRightSame = document.getElementById('lp_add_right_same')
-		lpAddRightSame.setAttribute('disabled', 'disabled')
-		lpAddRightOpposite.setAttribute('disabled', 'disabled')
+		if (lpAddRightSame)
+			lpAddRightSame.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lp_add_right_same')
 	}
 
 	private static activateRightSideNeighbours(): void {
 		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		if (lpAddRightOpposite)
+			lpAddRightOpposite.removeAttribute('disabled')
+		else
+			log.warn('missing element lp_add_right_opposite')
+
 		const lpAddRightSame = document.getElementById('lp_add_right_same')
-		lpAddRightSame.removeAttribute('disabled')
-		lpAddRightOpposite.removeAttribute('disabled')
+		if (lpAddRightSame)
+			lpAddRightSame.removeAttribute('disabled')
+		else
+			log.warn('missing element lp_add_right_same')
 	}
 
 	/**
@@ -1014,12 +1111,18 @@ class Annotator {
 	 */
 	private static deactivateFrontSideNeighbours(): void {
 		const lpAddFront = document.getElementById('lp_add_forward')
-		lpAddFront.setAttribute('disabled', 'disabled')
+		if (lpAddFront)
+			lpAddFront.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lp_add_forward')
 	}
 
 	private static activateFrontSideNeighbours(): void {
 		const lpAddFront = document.getElementById('lp_add_forward')
-		lpAddFront.removeAttribute('disabled')
+		if (lpAddFront)
+			lpAddFront.removeAttribute('disabled')
+		else
+			log.warn('missing element lp_add_forward')
 	}
 
 	private loadCarModel(): void {
@@ -1046,16 +1149,23 @@ class Annotator {
 			if (!this.isLiveMode) return
 
 			const state = Models.InertialStateMessage.decode(msg)
-			log.info("Received message: " + state.pose.timestamp)
+			if (
+				state.pose &&
+				state.pose.x != null && state.pose.y != null && state.pose.z != null &&
+				state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
+			) {
+				log.info("Received message: " + state.pose.timestamp)
 
-			// Move the car and the camera
-			const position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
-			log.info(state.pose.x + " " + position.x)
+				// Move the car and the camera
+				const position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
+				log.info(state.pose.x + " " + position.x)
 
-			const rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
-			rotation.normalize()
-			this.updateCarPose(position, rotation)
-			this.updateCameraPose()
+				const rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
+				rotation.normalize()
+				this.updateCarPose(position, rotation)
+				this.updateCameraPose()
+			} else
+				log.warn('got an InertialStateMessage without a pose')
 		})
 
 		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
@@ -1079,11 +1189,12 @@ class Annotator {
 
 		const menu = document.getElementById('menu')
 
-		if (hideMenu) {
-			menu.style.visibility = 'hidden'
-		} else {
-			menu.style.visibility = 'visible'
-		}
+		if (menu)
+			if (hideMenu) {
+				menu.style.visibility = 'hidden'
+			} else {
+				menu.style.visibility = 'visible'
+			}
 	}
 
 	listen(): boolean {
