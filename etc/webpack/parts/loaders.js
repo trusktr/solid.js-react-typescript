@@ -12,13 +12,13 @@ module.exports = {
 	 * All pre-loaders, for
 	 * hot loading, source-maps, etc
 	 */
-	
+
 	loaders: [
 		{
 			test: /\.json$/,
 			loader: 'json'
 		},
-		
+
 		// SourceCode
 		{
 			test: srcTest,
@@ -29,25 +29,23 @@ module.exports = {
 				proxyProvidedLoaderPath,
 			],
 		},
-		
+
 		// JADE
 		{
 			test: /\.(jade|pug)$/,
 			loaders: ['pug-loader']
 		},
-		
+
 		// ASSETS / FONTS
 		{
 			test: /\.(eot|svg|ttf|woff|woff2)\w*/,
 			loaders: ['file-loader?name=assets/fonts/[name].[hash].[ext]']
-			
 		},
-		
+
 		// ASSETS / IMAGES & ICONS
 		{
 			test: /\.(png|jpg|gif|ico)$/,
 			loaders: ['file-loader?name=assets/images/[name].[hash].[ext]'],
-			
 		},
 		
 		
@@ -71,7 +69,7 @@ module.exports = {
 				'css-loader?modules&sourceMap&importLoaders=1&localIdentName=[name]__[local]___[hash:base64:5]'
 			]
 		},
-		
+
 		// SCSS
 		{
 			test: /\.global\.scss$/,
