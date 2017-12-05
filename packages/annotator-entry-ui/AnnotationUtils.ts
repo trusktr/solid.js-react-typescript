@@ -14,7 +14,7 @@ import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
-import mkdirp from 'mkdirp'
+import * as mkdirp from 'mkdirp'
 import Vector3 = THREE.Vector3
 import {UtmInterface} from "./UtmInterface"
 import * as CRS from "./CoordinateReferenceSystem"
