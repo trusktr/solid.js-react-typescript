@@ -14,7 +14,7 @@ import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
-import * as MkDirP from 'mkdirp'
+import mkdirp from 'mkdirp'
 import Vector3 = THREE.Vector3
 import {UtmInterface} from "./UtmInterface"
 import * as CRS from "./CoordinateReferenceSystem"
@@ -629,7 +629,7 @@ export class AnnotationManager extends UtmInterface {
 					.catch((err: Error) => log.warn('saveCarPath failed: ' + err.message))
 			}
 		}
-		MkDirP.mkdirP(dirName, writeFile)
+		mkdirp(dirName, writeFile)
 	}
 
 	/**
@@ -850,7 +850,7 @@ export class AnnotationManager extends UtmInterface {
 	 * Convert markerPositions from UTM objects to vectors in local coordinates, for downstream consumption.
 	 */
 	private convertCoordinates(data: Object): void {
-		data['annotations'].forEach((annotation) => {
+		data['annotations'].forEach((annotation: any) => {
 			if (annotation['markerPositions']) {
 				for (let i = 0; i < annotation['markerPositions'].length; i++) {
 					const pos = annotation['markerPositions'][i]
@@ -879,7 +879,7 @@ export class AnnotationManager extends UtmInterface {
 					self.convertCoordinates(data)
 					let boundingBox = new THREE.Box3()
 					// Each element is an annotation
-					data['annotations'].forEach((element) => {
+					data['annotations'].forEach((element: any) => {
 						const box = self.addLaneAnnotation(scene, element)
 						if (box) boundingBox = boundingBox.union(box)
 					})
@@ -920,7 +920,7 @@ export class AnnotationManager extends UtmInterface {
 				return AsyncFile.writeTextFile(fileName, strAnnotations)
 			}
 		}
-		return MkDirP.mkdirP(dirName, writeFile)
+		return mkdirp(dirName, writeFile)
 	}
 
 	private threeJsToUtmJsonObject(): (p: THREE.Vector3) => Object {
@@ -978,7 +978,7 @@ export class AnnotationManager extends UtmInterface {
 			const command = [jar, main, input, output].join(' ')
 			log.debug('executing child process: ' + command)
 			const exec = require('child_process').exec
-			exec(command, (error, stdout, stderr) => {
+			exec(command, (error: Error | null, stdout: string, stderr: string) => {
 				if (error) {
 					log.error(`exec error: ${error}`)
 					return
@@ -995,13 +995,13 @@ export class AnnotationManager extends UtmInterface {
 
 	saveToKML(fileName: string): Promise<void> {
 		// Get all the points
-		let points = []
+		let points: Array<THREE.Vector3> = []
 		this.annotations.forEach((annotation) => {
 			points = points.concat(annotation.waypoints)
 		})
 
 		// Convert points to lat lon
-		const geopoints = []
+		const geopoints: Array<THREE.Vector3> = []
 		points.forEach((p) => {
 			geopoints.push(this.threeJsToLla(p))
 		})

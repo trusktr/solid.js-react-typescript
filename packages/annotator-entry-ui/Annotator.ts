@@ -171,7 +171,7 @@ class Annotator {
 
 		// Add panel to change the settings
 		this.gui = new datModule.GUI()
-		this.gui.addColor(this.settings, 'background').onChange((value) => {
+		this.gui.addColor(this.settings, 'background').onChange((value: any) => {
 			this.renderer.setClearColor(new THREE.Color(value))
 		})
 		this.gui.domElement.className = 'threeJs_gui'
@@ -1025,7 +1025,7 @@ class Annotator {
 	private loadCarModel(): void {
 		const manager = new THREE.LoadingManager()
 		const loader = new (THREE as any).OBJLoader(manager)
-		loader.load(config.get('assets.car_model.BMW_X5'), (object) => {
+		loader.load(config.get('assets.car_model.BMW_X5'), (object: any) => {
 			const boundingBox = new THREE.Box3().setFromObject(object)
 			const boxSize = boundingBox.getSize().toArray()
 			const modelLength = Math.max(...boxSize)

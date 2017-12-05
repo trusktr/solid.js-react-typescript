@@ -1,13 +1,15 @@
 import Electron = require("electron")
+import BrowserWindow = Electron.BrowserWindow
+
+const app = Electron.app
 
 const
-	{app, BrowserWindow} = Electron,
 	url = require('url'),
 	Path = require('path')
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let win
+let win: BrowserWindow
 
 function createWindow(): void {
 	// Create the browser window.
