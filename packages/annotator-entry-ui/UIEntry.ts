@@ -19,6 +19,7 @@ TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
 declare global {
+	// required by mapper-models/protobufjs
 	type Long = number
 }
 
@@ -33,7 +34,13 @@ export function onLoad(): void {
 
 $(onLoad)
 
-if (module.hot) {
-	module.hot.dispose(() => root.empty())
-	module.hot.accept()
+// This is injected by webpack, so it has no type definition:
+// https://webpack.js.org/api/hot-module-replacement/
+if (module.hasOwnProperty('hot')) {
+	// tslint:disable-next-line:no-any
+	const hotReplacement = (module as any).hot
+	if (hotReplacement) {
+		hotReplacement.dispose(() => root.empty())
+		hotReplacement.accept()
+	}
 }
