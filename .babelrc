@@ -7,7 +7,6 @@
 	],
 	"sourceMaps": "both",
 	"plugins": [
-		"transform-es2015-classes",
 		"transform-runtime"
 	]
 }
