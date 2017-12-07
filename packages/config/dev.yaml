@@ -14,6 +14,3 @@ conversion.kml.jar: java -classpath /Users/clyde/dev/mapper/Sandbox/CloudService
 conversion.kml.main_class: ai.mapper.app.AnnotatorToTiles
 conversion.kml.input.path: ./data/annotations-lla.json
 conversion.kml.output.path: ./data/annotator-tiles.kml
-
-# 3D model
-assets.car_model.BMW_X5: /Users/alonso/Mapper/Data/Models/BMW_X5_4.obj

@@ -1128,7 +1128,8 @@ class Annotator {
 	private loadCarModel(): void {
 		const manager = new THREE.LoadingManager()
 		const loader = new (THREE as any).OBJLoader(manager)
-		loader.load(config.get('assets.car_model.BMW_X5'), (object: any) => {
+		const car = require('../annotator-assets/models/BMW_X5_4.obj')
+		loader.load(car, (object: any) => {
 			const boundingBox = new THREE.Box3().setFromObject(object)
 			const boxSize = boundingBox.getSize().toArray()
 			const modelLength = Math.max(...boxSize)
