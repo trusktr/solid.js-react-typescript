@@ -14,25 +14,33 @@ require('!!css-loader!jquery-ui-dist/jquery-ui.css')
 import * as TypeLogger from 'typelogger'
 import {annotator} from 'annotator-entry-ui/Annotator'
 
+// tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
 declare global {
+	// required by mapper-models/protobufjs
 	type Long = number
 }
 
-const root = $("#root");
+const root = $("#root")
 
-export function onLoad() {
+export function onLoad(): void {
 	require("annotator-control-ui/UIControl")
 	log.info('loading ')
-	annotator.initScene();
-	annotator.animate();
+	annotator.initScene()
+	annotator.animate()
 }
 
 $(onLoad)
 
-if (module.hot) {
-	module.hot.dispose(() => root.empty())
-	module.hot.accept()
+// This is injected by webpack, so it has no type definition:
+// https://webpack.js.org/api/hot-module-replacement/
+if (module.hasOwnProperty('hot')) {
+	// tslint:disable-next-line:no-any
+	const hotReplacement = (module as any).hot
+	if (hotReplacement) {
+		hotReplacement.dispose(() => root.empty())
+		hotReplacement.accept()
+	}
 }

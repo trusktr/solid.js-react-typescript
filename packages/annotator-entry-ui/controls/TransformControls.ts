@@ -2,246 +2,250 @@
  * @author arodic / https://github.com/arodic
  */
 
+import {BufferGeometry, Euler, Object3D, Vector3} from "three"
+
+// tslint:disable:no-string-literal
+
 const THREE = require('three')
 
 declare global {
 	namespace THREE {
-		let TransformGizmo: any
-		let TransformGizmoTranslate: any
-		let TransformGizmoRotate: any
-		let TransformGizmoScale: any
+		const TransformGizmo: any
+		const TransformGizmoTranslate: any
+		const TransformGizmoRotate: any
+		const TransformGizmoScale: any
 	}
 }
 
-let GizmoMaterial = function (parameters) {
+const GizmoMaterial = function (parameters: any) {
 
-	THREE.MeshBasicMaterial.call(this);
+	THREE.MeshBasicMaterial.call(this)
 
-	this.depthTest = false;
-	this.depthWrite = false;
-	this.side = THREE.FrontSide;
-	this.transparent = true;
+	this.depthTest = false
+	this.depthWrite = false
+	this.side = THREE.FrontSide
+	this.transparent = true
 
-	this.setValues(parameters);
+	this.setValues(parameters)
 
-	this.oldColor = this.color.clone();
-	this.oldOpacity = this.opacity;
+	this.oldColor = this.color.clone()
+	this.oldOpacity = this.opacity
 
-	this.highlight = function (highlighted) {
-
-		if (highlighted) {
-
-			this.color.setRGB(1, 1, 0);
-			this.opacity = 1;
-
-		} else {
-
-			this.color.copy(this.oldColor);
-			this.opacity = this.oldOpacity;
-
-		}
-
-	};
-
-};
-
-GizmoMaterial.prototype = Object.create(THREE.MeshBasicMaterial.prototype);
-GizmoMaterial.prototype.constructor = GizmoMaterial;
-
-let GizmoLineMaterial = function (parameters) {
-
-	THREE.LineBasicMaterial.call(this);
-
-	this.depthTest = false;
-	this.depthWrite = false;
-	this.transparent = true;
-	this.linewidth = 1;
-
-	this.setValues(parameters);
-
-	this.oldColor = this.color.clone();
-	this.oldOpacity = this.opacity;
-
-	this.highlight = function (highlighted) {
+	this.highlight = function (highlighted: any) {
 
 		if (highlighted) {
 
-			this.color.setRGB(1, 1, 0);
-			this.opacity = 1;
+			this.color.setRGB(1, 1, 0)
+			this.opacity = 1
 
 		} else {
 
-			this.color.copy(this.oldColor);
-			this.opacity = this.oldOpacity;
+			this.color.copy(this.oldColor)
+			this.opacity = this.oldOpacity
 
 		}
 
-	};
+	}
 
-};
+}
 
-GizmoLineMaterial.prototype = Object.create(THREE.LineBasicMaterial.prototype);
-GizmoLineMaterial.prototype.constructor = GizmoLineMaterial;
+GizmoMaterial.prototype = Object.create(THREE.MeshBasicMaterial.prototype)
+GizmoMaterial.prototype.constructor = GizmoMaterial
 
-let pickerMaterial = new GizmoMaterial({visible: false, transparent: false});
+const GizmoLineMaterial = function (parameters: any) {
+
+	THREE.LineBasicMaterial.call(this)
+
+	this.depthTest = false
+	this.depthWrite = false
+	this.transparent = true
+	this.linewidth = 1
+
+	this.setValues(parameters)
+
+	this.oldColor = this.color.clone()
+	this.oldOpacity = this.opacity
+
+	this.highlight = function (highlighted: boolean): void {
+
+		if (highlighted) {
+
+			this.color.setRGB(1, 1, 0)
+			this.opacity = 1
+
+		} else {
+
+			this.color.copy(this.oldColor)
+			this.opacity = this.oldOpacity
+
+		}
+
+	}
+
+}
+
+GizmoLineMaterial.prototype = Object.create(THREE.LineBasicMaterial.prototype)
+GizmoLineMaterial.prototype.constructor = GizmoLineMaterial
+
+const pickerMaterial = new GizmoMaterial({visible: false, transparent: false})
 
 THREE.TransformGizmo = function () {
 
 	this.init = function () {
 
-		THREE.Object3D.call(this);
+		THREE.Object3D.call(this)
 
-		this.handles = new THREE.Object3D();
-		this.pickers = new THREE.Object3D();
-		this.planes = new THREE.Object3D();
+		this.handles = new THREE.Object3D()
+		this.pickers = new THREE.Object3D()
+		this.planes = new THREE.Object3D()
 
-		this.add(this.handles);
-		this.add(this.pickers);
-		this.add(this.planes);
+		this.add(this.handles)
+		this.add(this.pickers)
+		this.add(this.planes)
 
 		//// PLANES
 
-		let planeGeometry = new THREE.PlaneBufferGeometry(50, 50, 2, 2);
-		let planeMaterial = new THREE.MeshBasicMaterial({visible: false, side: THREE.DoubleSide});
+		const planeGeometry = new THREE.PlaneBufferGeometry(50, 50, 2, 2)
+		const planeMaterial = new THREE.MeshBasicMaterial({visible: false, side: THREE.DoubleSide})
 
-		let planes = {
+		const planes = {
 			"XY": new THREE.Mesh(planeGeometry, planeMaterial),
 			"YZ": new THREE.Mesh(planeGeometry, planeMaterial),
 			"XZ": new THREE.Mesh(planeGeometry, planeMaterial),
 			"XYZE": new THREE.Mesh(planeGeometry, planeMaterial)
-		};
+		}
 
-		this.activePlane = planes["XYZE"];
+		this.activePlane = planes["XYZE"]
 
-		planes["YZ"].rotation.set(0, Math.PI / 2, 0);
-		planes["XZ"].rotation.set(-Math.PI / 2, 0, 0);
+		planes["YZ"].rotation.set(0, Math.PI / 2, 0)
+		planes["XZ"].rotation.set(-Math.PI / 2, 0, 0)
 
-		for (let i in planes) {
-
-			planes[i].name = i;
-			this.planes.add(planes[i]);
-			this.planes[i] = planes[i];
-
+		for (const i in planes) {
+			if (planes.hasOwnProperty(i)) {
+				planes[i].name = i
+				this.planes.add(planes[i])
+				this.planes[i] = planes[i]
+			}
 		}
 
 		//// HANDLES AND PICKERS
 
-		let setupGizmos = function (gizmoMap, parent) {
+		const setupGizmos = function (gizmoMap: any, parent: any) {
 
-			for (let name in gizmoMap) {
+			for (const name in gizmoMap) {
+				if (gizmoMap.hasOwnProperty(name)) {
+					for (let i = gizmoMap[name].length; i--;) {
 
-				for (let i = gizmoMap[name].length; i--;) {
+						const object = gizmoMap[name][i][0]
+						const position = gizmoMap[name][i][1]
+						const rotation = gizmoMap[name][i][2]
 
-					let object = gizmoMap[name][i][0];
-					let position = gizmoMap[name][i][1];
-					let rotation = gizmoMap[name][i][2];
+						object.name = name
 
-					object.name = name;
+						if (position) object.position.set(position[0], position[1], position[2])
+						if (rotation) object.rotation.set(rotation[0], rotation[1], rotation[2])
 
-					if (position) object.position.set(position[0], position[1], position[2]);
-					if (rotation) object.rotation.set(rotation[0], rotation[1], rotation[2]);
+						parent.add(object)
 
-					parent.add(object);
-
+					}
 				}
-
 			}
 
-		};
+		}
 
-		setupGizmos(this.handleGizmos, this.handles);
-		setupGizmos(this.pickerGizmos, this.pickers);
+		setupGizmos(this.handleGizmos, this.handles)
+		setupGizmos(this.pickerGizmos, this.pickers)
 
 		// reset Transformations
 
-		this.traverse(function (child) {
+		this.traverse(function (child: any) {
 
 			if (child instanceof THREE.Mesh) {
 
-				child.updateMatrix();
+				child.updateMatrix()
 
-				let tempGeometry = child.geometry.clone();
-				tempGeometry.applyMatrix(child.matrix);
-				child.geometry = tempGeometry;
+				const tempGeometry = child.geometry.clone()
+				tempGeometry.applyMatrix(child.matrix)
+				child.geometry = tempGeometry
 
-				child.position.set(0, 0, 0);
-				child.rotation.set(0, 0, 0);
-				child.scale.set(1, 1, 1);
+				child.position.set(0, 0, 0)
+				child.rotation.set(0, 0, 0)
+				child.scale.set(1, 1, 1)
 
 			}
 
-		});
+		})
 
-	};
+	}
 
-	this.highlight = function (axis) {
+	this.highlight = function (axis: any) {
 
-		this.traverse(function (child) {
+		this.traverse(function (child: any) {
 
 			if (child.material && child.material.highlight) {
 
 				if (child.name === axis) {
 
-					child.material.highlight(true);
+					child.material.highlight(true)
 
 				} else {
 
-					child.material.highlight(false);
+					child.material.highlight(false)
 
 				}
 
 			}
 
-		});
+		})
 
-	};
+	}
 
-};
+}
 
-THREE.TransformGizmo.prototype = Object.create(THREE.Object3D.prototype);
-THREE.TransformGizmo.prototype.constructor = THREE.TransformGizmo;
+THREE.TransformGizmo.prototype = Object.create(THREE.Object3D.prototype)
+THREE.TransformGizmo.prototype.constructor = THREE.TransformGizmo
 
-THREE.TransformGizmo.prototype.update = function (rotation, eye) {
+THREE.TransformGizmo.prototype.update = function (rotation: Euler, eye: Vector3): void {
 
-	let vec1 = new THREE.Vector3(0, 0, 0);
-	let vec2 = new THREE.Vector3(0, 1, 0);
-	let lookAtMatrix = new THREE.Matrix4();
+	const vec1 = new THREE.Vector3(0, 0, 0)
+	const vec2 = new THREE.Vector3(0, 1, 0)
+	const lookAtMatrix = new THREE.Matrix4()
 
-	this.traverse(function (child) {
+	this.traverse(function (child: any) {
 
 		if (child.name.search("E") !== -1) {
 
-			child.quaternion.setFromRotationMatrix(lookAtMatrix.lookAt(eye, vec1, vec2));
+			child.quaternion.setFromRotationMatrix(lookAtMatrix.lookAt(eye, vec1, vec2))
 
 		} else if (child.name.search("X") !== -1 || child.name.search("Y") !== -1 || child.name.search("Z") !== -1) {
 
-			child.quaternion.setFromEuler(rotation);
+			child.quaternion.setFromEuler(rotation)
 
 		}
 
-	});
+	})
 
-};
+}
 
-THREE.TransformGizmoTranslate = function () {
+THREE.TransformGizmoTranslate = function (): void {
 
-	THREE.TransformGizmo.call(this);
+	THREE.TransformGizmo.call(this)
 
-	let arrowGeometry = new THREE.Geometry();
-	let mesh = new THREE.Mesh(new THREE.CylinderGeometry(0, 0.05, 0.2, 12, 1, false));
-	mesh.position.y = 0.5;
-	mesh.updateMatrix();
+	const arrowGeometry = new THREE.Geometry()
+	const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0, 0.05, 0.2, 12, 1, false))
+	mesh.position.y = 0.5
+	mesh.updateMatrix()
 
-	arrowGeometry.merge(mesh.geometry as any, mesh.matrix);
+	arrowGeometry.merge(mesh.geometry as any, mesh.matrix)
 
-	let lineXGeometry = new THREE.BufferGeometry();
-	lineXGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0], 3));
+	const lineXGeometry = new THREE.BufferGeometry()
+	lineXGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0], 3))
 
-	let lineYGeometry = new THREE.BufferGeometry();
-	lineYGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 1, 0], 3));
+	const lineYGeometry = new THREE.BufferGeometry()
+	lineYGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 1, 0], 3))
 
-	let lineZGeometry = new THREE.BufferGeometry();
-	lineZGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 1], 3));
+	const lineZGeometry = new THREE.BufferGeometry()
+	lineZGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 1], 3))
 
 	this.handleGizmos = {
 
@@ -288,7 +292,7 @@ THREE.TransformGizmoTranslate = function () {
 			})), [0.15, 0, 0.15], [-Math.PI / 2, 0, 0]]
 		]
 
-	};
+	}
 
 	this.pickerGizmos = {
 
@@ -320,76 +324,76 @@ THREE.TransformGizmoTranslate = function () {
 			[new THREE.Mesh(new THREE.PlaneBufferGeometry(0.4, 0.4), pickerMaterial), [0.2, 0, 0.2], [-Math.PI / 2, 0, 0]]
 		]
 
-	};
+	}
 
-	this.setActivePlane = function (axis, eye) {
+	this.setActivePlane = function (axis: string, eye: Vector3): void {
 
-		let tempMatrix = new THREE.Matrix4();
-		eye.applyMatrix4(tempMatrix.getInverse(tempMatrix.extractRotation(this.planes["XY"].matrixWorld)));
+		const tempMatrix = new THREE.Matrix4()
+		eye.applyMatrix4(tempMatrix.getInverse(tempMatrix.extractRotation(this.planes["XY"].matrixWorld)))
 
 		if (axis === "X") {
 
-			this.activePlane = this.planes["XY"];
+			this.activePlane = this.planes["XY"]
 
-			if (Math.abs(eye.y) > Math.abs(eye.z)) this.activePlane = this.planes["XZ"];
+			if (Math.abs(eye.y) > Math.abs(eye.z)) this.activePlane = this.planes["XZ"]
 
 		}
 
 		if (axis === "Y") {
 
-			this.activePlane = this.planes["XY"];
+			this.activePlane = this.planes["XY"]
 
-			if (Math.abs(eye.x) > Math.abs(eye.z)) this.activePlane = this.planes["YZ"];
+			if (Math.abs(eye.x) > Math.abs(eye.z)) this.activePlane = this.planes["YZ"]
 
 		}
 
 		if (axis === "Z") {
 
-			this.activePlane = this.planes["XZ"];
+			this.activePlane = this.planes["XZ"]
 
-			if (Math.abs(eye.x) > Math.abs(eye.y)) this.activePlane = this.planes["YZ"];
+			if (Math.abs(eye.x) > Math.abs(eye.y)) this.activePlane = this.planes["YZ"]
 
 		}
 
-		if (axis === "XYZ") this.activePlane = this.planes["XYZE"];
+		if (axis === "XYZ") this.activePlane = this.planes["XYZE"]
 
-		if (axis === "XY") this.activePlane = this.planes["XY"];
+		if (axis === "XY") this.activePlane = this.planes["XY"]
 
-		if (axis === "YZ") this.activePlane = this.planes["YZ"];
+		if (axis === "YZ") this.activePlane = this.planes["YZ"]
 
-		if (axis === "XZ") this.activePlane = this.planes["XZ"];
+		if (axis === "XZ") this.activePlane = this.planes["XZ"]
 
-	};
+	}
 
-	this.init();
+	this.init()
 
-};
+}
 
-THREE.TransformGizmoTranslate.prototype = Object.create(THREE.TransformGizmo.prototype);
-THREE.TransformGizmoTranslate.prototype.constructor = THREE.TransformGizmoTranslate;
+THREE.TransformGizmoTranslate.prototype = Object.create(THREE.TransformGizmo.prototype)
+THREE.TransformGizmoTranslate.prototype.constructor = THREE.TransformGizmoTranslate
 
 THREE.TransformGizmoRotate = function () {
 
-	THREE.TransformGizmo.call(this);
+	THREE.TransformGizmo.call(this)
 
-	const CircleGeometry = (radius, facing, arc) => {
+	const CircleGeometry = (radius: number, facing: string, arc: number): BufferGeometry => {
 
-		let geometry = new THREE.BufferGeometry();
-		let vertices = [];
-		arc = arc ? arc : 1;
+		const geometry = new THREE.BufferGeometry()
+		const vertices: Array<number> = []
+		arc = arc ? arc : 1
 
 		for (let i = 0; i <= 64 * arc; ++i) {
 
-			if (facing === 'x') vertices.push(0, Math.cos(i / 32 * Math.PI) * radius, Math.sin(i / 32 * Math.PI) * radius);
-			if (facing === 'y') vertices.push(Math.cos(i / 32 * Math.PI) * radius, 0, Math.sin(i / 32 * Math.PI) * radius);
-			if (facing === 'z') vertices.push(Math.sin(i / 32 * Math.PI) * radius, Math.cos(i / 32 * Math.PI) * radius, 0);
+			if (facing === 'x') vertices.push(0, Math.cos(i / 32 * Math.PI) * radius, Math.sin(i / 32 * Math.PI) * radius)
+			if (facing === 'y') vertices.push(Math.cos(i / 32 * Math.PI) * radius, 0, Math.sin(i / 32 * Math.PI) * radius)
+			if (facing === 'z') vertices.push(Math.sin(i / 32 * Math.PI) * radius, Math.cos(i / 32 * Math.PI) * radius, 0)
 
 		}
 
-		geometry.addAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-		return geometry;
+		geometry.addAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+		return geometry
 
-	};
+	}
 
 	this.handleGizmos = {
 
@@ -413,7 +417,7 @@ THREE.TransformGizmoRotate = function () {
 			[new THREE.Line(CircleGeometry(1, 'z', 1), new GizmoLineMaterial({color: 0x787878}))]
 		]
 
-	};
+	}
 
 	this.pickerGizmos = {
 
@@ -437,100 +441,99 @@ THREE.TransformGizmoRotate = function () {
 			[new THREE.Mesh()]// TODO
 		]
 
-	};
+	}
 
-	this.setActivePlane = function (axis) {
+	this.setActivePlane = function (axis: string): void {
 
-		if (axis === "E") this.activePlane = this.planes["XYZE"];
+		if (axis === "E") this.activePlane = this.planes["XYZE"]
 
-		if (axis === "X") this.activePlane = this.planes["YZ"];
+		if (axis === "X") this.activePlane = this.planes["YZ"]
 
-		if (axis === "Y") this.activePlane = this.planes["XZ"];
+		if (axis === "Y") this.activePlane = this.planes["XZ"]
 
-		if (axis === "Z") this.activePlane = this.planes["XY"];
+		if (axis === "Z") this.activePlane = this.planes["XY"]
 
-	};
+	}
 
-	this.update = function (rotation, eye2) {
-		rotation
+	this.update = function (_: Euler, eye2: Vector3): void {
 
-		THREE.TransformGizmo.prototype.update.apply(this, arguments);
+		THREE.TransformGizmo.prototype.update.apply(this, arguments)
 
-		let tempMatrix = new THREE.Matrix4();
-		let worldRotation = new THREE.Euler(0, 0, 1);
-		let tempQuaternion = new THREE.Quaternion();
-		let unitX = new THREE.Vector3(1, 0, 0);
-		let unitY = new THREE.Vector3(0, 1, 0);
-		let unitZ = new THREE.Vector3(0, 0, 1);
-		let quaternionX = new THREE.Quaternion();
-		let quaternionY = new THREE.Quaternion();
-		let quaternionZ = new THREE.Quaternion();
-		let eye = eye2.clone();
+		const tempMatrix = new THREE.Matrix4()
+		const worldRotation = new THREE.Euler(0, 0, 1)
+		const tempQuaternion = new THREE.Quaternion()
+		const unitX = new THREE.Vector3(1, 0, 0)
+		const unitY = new THREE.Vector3(0, 1, 0)
+		const unitZ = new THREE.Vector3(0, 0, 1)
+		const quaternionX = new THREE.Quaternion()
+		const quaternionY = new THREE.Quaternion()
+		const quaternionZ = new THREE.Quaternion()
+		const eye = eye2.clone()
 
-		worldRotation.copy(this.planes["XY"].rotation);
-		tempQuaternion.setFromEuler(worldRotation);
+		worldRotation.copy(this.planes["XY"].rotation)
+		tempQuaternion.setFromEuler(worldRotation)
 
-		tempMatrix.makeRotationFromQuaternion(tempQuaternion).getInverse(tempMatrix);
-		eye.applyMatrix4(tempMatrix);
+		tempMatrix.makeRotationFromQuaternion(tempQuaternion).getInverse(tempMatrix)
+		eye.applyMatrix4(tempMatrix)
 
-		this.traverse(function (child) {
+		this.traverse(function (child: any) {
 
-			tempQuaternion.setFromEuler(worldRotation);
+			tempQuaternion.setFromEuler(worldRotation)
 
 			if (child.name === "X") {
 
-				quaternionX.setFromAxisAngle(unitX, Math.atan2(-eye.y, eye.z));
-				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionX);
-				child.quaternion.copy(tempQuaternion);
+				quaternionX.setFromAxisAngle(unitX, Math.atan2(-eye.y, eye.z))
+				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionX)
+				child.quaternion.copy(tempQuaternion)
 
 			}
 
 			if (child.name === "Y") {
 
-				quaternionY.setFromAxisAngle(unitY, Math.atan2(eye.x, eye.z));
-				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionY);
-				child.quaternion.copy(tempQuaternion);
+				quaternionY.setFromAxisAngle(unitY, Math.atan2(eye.x, eye.z))
+				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionY)
+				child.quaternion.copy(tempQuaternion)
 
 			}
 
 			if (child.name === "Z") {
 
-				quaternionZ.setFromAxisAngle(unitZ, Math.atan2(eye.y, eye.x));
-				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionZ);
-				child.quaternion.copy(tempQuaternion);
+				quaternionZ.setFromAxisAngle(unitZ, Math.atan2(eye.y, eye.x))
+				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionZ)
+				child.quaternion.copy(tempQuaternion)
 
 			}
 
-		});
+		})
 
-	};
+	}
 
-	this.init();
+	this.init()
 
-};
+}
 
-THREE.TransformGizmoRotate.prototype = Object.create(THREE.TransformGizmo.prototype);
-THREE.TransformGizmoRotate.prototype.constructor = THREE.TransformGizmoRotate;
+THREE.TransformGizmoRotate.prototype = Object.create(THREE.TransformGizmo.prototype)
+THREE.TransformGizmoRotate.prototype.constructor = THREE.TransformGizmoRotate
 
 THREE.TransformGizmoScale = function () {
 
-	THREE.TransformGizmo.call(this);
+	THREE.TransformGizmo.call(this)
 
-	let arrowGeometry = new THREE.Geometry();
-	let mesh = new THREE.Mesh(new THREE.BoxGeometry(0.125, 0.125, 0.125));
-	mesh.position.y = 0.5;
-	mesh.updateMatrix();
+	const arrowGeometry = new THREE.Geometry()
+	const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.125, 0.125, 0.125))
+	mesh.position.y = 0.5
+	mesh.updateMatrix()
 
-	arrowGeometry.merge(mesh.geometry as any, mesh.matrix);
+	arrowGeometry.merge(mesh.geometry as any, mesh.matrix)
 
-	let lineXGeometry = new THREE.BufferGeometry();
-	lineXGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0], 3));
+	const lineXGeometry = new THREE.BufferGeometry()
+	lineXGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0], 3))
 
-	let lineYGeometry = new THREE.BufferGeometry();
-	lineYGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 1, 0], 3));
+	const lineYGeometry = new THREE.BufferGeometry()
+	lineYGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 1, 0], 3))
 
-	let lineZGeometry = new THREE.BufferGeometry();
-	lineZGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 1], 3));
+	const lineZGeometry = new THREE.BufferGeometry()
+	lineZGeometry.addAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 1], 3))
 
 	this.handleGizmos = {
 
@@ -556,7 +559,7 @@ THREE.TransformGizmoScale = function () {
 			}))]
 		]
 
-	};
+	}
 
 	this.pickerGizmos = {
 
@@ -576,330 +579,333 @@ THREE.TransformGizmoScale = function () {
 			[new THREE.Mesh(new THREE.BoxBufferGeometry(0.4, 0.4, 0.4), pickerMaterial)]
 		]
 
-	};
+	}
 
-	this.setActivePlane = function (axis, eye) {
+	this.setActivePlane = function (axis: string, eye: Vector3): void {
 
-		let tempMatrix = new THREE.Matrix4();
-		eye.applyMatrix4(tempMatrix.getInverse(tempMatrix.extractRotation(this.planes["XY"].matrixWorld)));
+		const tempMatrix = new THREE.Matrix4()
+		eye.applyMatrix4(tempMatrix.getInverse(tempMatrix.extractRotation(this.planes["XY"].matrixWorld)))
 
 		if (axis === "X") {
 
-			this.activePlane = this.planes["XY"];
-			if (Math.abs(eye.y) > Math.abs(eye.z)) this.activePlane = this.planes["XZ"];
+			this.activePlane = this.planes["XY"]
+			if (Math.abs(eye.y) > Math.abs(eye.z)) this.activePlane = this.planes["XZ"]
 
 		}
 
 		if (axis === "Y") {
 
-			this.activePlane = this.planes["XY"];
-			if (Math.abs(eye.x) > Math.abs(eye.z)) this.activePlane = this.planes["YZ"];
+			this.activePlane = this.planes["XY"]
+			if (Math.abs(eye.x) > Math.abs(eye.z)) this.activePlane = this.planes["YZ"]
 
 		}
 
 		if (axis === "Z") {
 
-			this.activePlane = this.planes["XZ"];
-			if (Math.abs(eye.x) > Math.abs(eye.y)) this.activePlane = this.planes["YZ"];
+			this.activePlane = this.planes["XZ"]
+			if (Math.abs(eye.x) > Math.abs(eye.y)) this.activePlane = this.planes["YZ"]
 
 		}
 
-		if (axis === "XYZ") this.activePlane = this.planes["XYZE"];
+		if (axis === "XYZ") this.activePlane = this.planes["XYZE"]
 
-	};
+	}
 
-	this.init();
+	this.init()
 
-};
+}
 
 THREE.TransformGizmoScale.prototype = Object.create(THREE.TransformGizmo.prototype)
-THREE.TransformGizmoScale.prototype.constructor = THREE.TransformGizmoScale;
+THREE.TransformGizmoScale.prototype.constructor = THREE.TransformGizmoScale
 
-THREE.TransformControls = function (camera, domElement) {
+THREE.TransformControls = function (camera: any, domElement: any) {
 
 	// TODO: Make non-uniform scale and rotate play nice in hierarchies
 	// TODO: ADD RXYZ contol
 
-	THREE.Object3D.call(this);
+	THREE.Object3D.call(this)
 
-	domElement = ( domElement !== undefined ) ? domElement : document;
+	domElement = ( domElement !== undefined ) ? domElement : document
 
-	this.object = undefined;
-	this.visible = false;
-	this.translationSnap = null;
-	this.rotationSnap = null;
-	this.space = "world";
-	this.size = 1;
-	this.axis = null;
+	this.object = undefined
+	this.visible = false
+	this.translationSnap = null
+	this.rotationSnap = null
+	this.space = "world"
+	this.size = 1
+	this.axis = null
 
-	let scope = this;
+	const scope = this
 
-	let _mode = "translate";
-	let _dragging = false;
-	let _gizmo = {
+	let _mode = "translate"
+	let _dragging = false
+	const _gizmo = {
 
 		"translate": new THREE.TransformGizmoTranslate(),
 		"rotate": new THREE.TransformGizmoRotate(),
 		"scale": new THREE.TransformGizmoScale()
-	};
+	}
 
-	for (let type in _gizmo) {
+	for (const type in _gizmo) {
 
-		let gizmoObj = _gizmo[type];
+		const gizmoObj = _gizmo[type]
 
-		gizmoObj.visible = ( type === _mode );
-		this.add(gizmoObj);
+		gizmoObj.visible = ( type === _mode )
+		this.add(gizmoObj)
 
 	}
 
-	let changeEvent = {type: "change"};
-	let mouseDownEvent = {type: "mouseDown"};
-	let mouseUpEvent = {type: "mouseUp", mode: _mode};
-	let objectChangeEvent = {type: "objectChange"};
+	const changeEvent = {type: "change"}
+	const mouseDownEvent = {type: "mouseDown"}
+	const mouseUpEvent = {type: "mouseUp", mode: _mode}
+	const objectChangeEvent = {type: "objectChange"}
 
-	let ray = new THREE.Raycaster();
-	let pointerVector = new THREE.Vector2();
+	const ray = new THREE.Raycaster()
+	const pointerVector = new THREE.Vector2()
 
-	let point = new THREE.Vector3();
-	let offset = new THREE.Vector3();
+	const point = new THREE.Vector3()
+	const offset = new THREE.Vector3()
 
-	let rotation = new THREE.Vector3();
-	let offsetRotation = new THREE.Vector3();
-	let scale = 1;
+	const rotation = new THREE.Vector3()
+	const offsetRotation = new THREE.Vector3()
+	let scale = 1
 
-	let lookAtMatrix = new THREE.Matrix4();
-	let eye = new THREE.Vector3();
+	const lookAtMatrix = new THREE.Matrix4()
+	const eye = new THREE.Vector3()
 
-	let tempMatrix = new THREE.Matrix4();
-	let tempVector = new THREE.Vector3();
-	let tempQuaternion = new THREE.Quaternion();
-	let unitX = new THREE.Vector3(1, 0, 0);
-	let unitY = new THREE.Vector3(0, 1, 0);
-	let unitZ = new THREE.Vector3(0, 0, 1);
+	const tempMatrix = new THREE.Matrix4()
+	const tempVector = new THREE.Vector3()
+	const tempQuaternion = new THREE.Quaternion()
+	const unitX = new THREE.Vector3(1, 0, 0)
+	const unitY = new THREE.Vector3(0, 1, 0)
+	const unitZ = new THREE.Vector3(0, 0, 1)
 
-	let quaternionXYZ = new THREE.Quaternion();
-	let quaternionX = new THREE.Quaternion();
-	let quaternionY = new THREE.Quaternion();
-	let quaternionZ = new THREE.Quaternion();
-	let quaternionE = new THREE.Quaternion();
+	const quaternionXYZ = new THREE.Quaternion()
+	const quaternionX = new THREE.Quaternion()
+	const quaternionY = new THREE.Quaternion()
+	const quaternionZ = new THREE.Quaternion()
+	const quaternionE = new THREE.Quaternion()
 
-	let oldPosition = new THREE.Vector3();
-	let oldScale = new THREE.Vector3();
-	let oldRotationMatrix = new THREE.Matrix4();
+	const oldPosition = new THREE.Vector3()
+	const oldScale = new THREE.Vector3()
+	const oldRotationMatrix = new THREE.Matrix4()
 
-	let parentRotationMatrix = new THREE.Matrix4();
-	let parentScale = new THREE.Vector3();
+	const parentRotationMatrix = new THREE.Matrix4()
+	const parentScale = new THREE.Vector3()
 
-	let worldPosition = new THREE.Vector3();
-	let worldRotation = new THREE.Euler();
-	let worldRotationMatrix = new THREE.Matrix4();
-	let camPosition = new THREE.Vector3();
-	let camRotation = new THREE.Euler();
+	const worldPosition = new THREE.Vector3()
+	const worldRotation = new THREE.Euler()
+	const worldRotationMatrix = new THREE.Matrix4()
+	const camPosition = new THREE.Vector3()
+	const camRotation = new THREE.Euler()
 
-	domElement.addEventListener("mousedown", onPointerDown, false);
-	domElement.addEventListener("touchstart", onPointerDown, false);
+	domElement.addEventListener("mousedown", onPointerDown, false)
+	domElement.addEventListener("touchstart", onPointerDown, false)
 
-	domElement.addEventListener("mousemove", onPointerHover, false);
-	domElement.addEventListener("touchmove", onPointerHover, false);
+	domElement.addEventListener("mousemove", onPointerHover, false)
+	domElement.addEventListener("touchmove", onPointerHover, false)
 
-	domElement.addEventListener("mousemove", onPointerMove, false);
-	domElement.addEventListener("touchmove", onPointerMove, false);
+	domElement.addEventListener("mousemove", onPointerMove, false)
+	domElement.addEventListener("touchmove", onPointerMove, false)
 
-	domElement.addEventListener("mouseup", onPointerUp, false);
-	domElement.addEventListener("mouseout", onPointerUp, false);
-	domElement.addEventListener("touchend", onPointerUp, false);
-	domElement.addEventListener("touchcancel", onPointerUp, false);
-	domElement.addEventListener("touchleave", onPointerUp, false);
+	domElement.addEventListener("mouseup", onPointerUp, false)
+	domElement.addEventListener("mouseout", onPointerUp, false)
+	domElement.addEventListener("touchend", onPointerUp, false)
+	domElement.addEventListener("touchcancel", onPointerUp, false)
+	domElement.addEventListener("touchleave", onPointerUp, false)
 
 	this.dispose = function () {
 
-		domElement.removeEventListener("mousedown", onPointerDown);
-		domElement.removeEventListener("touchstart", onPointerDown);
+		domElement.removeEventListener("mousedown", onPointerDown)
+		domElement.removeEventListener("touchstart", onPointerDown)
 
-		domElement.removeEventListener("mousemove", onPointerHover);
-		domElement.removeEventListener("touchmove", onPointerHover);
+		domElement.removeEventListener("mousemove", onPointerHover)
+		domElement.removeEventListener("touchmove", onPointerHover)
 
-		domElement.removeEventListener("mousemove", onPointerMove);
-		domElement.removeEventListener("touchmove", onPointerMove);
+		domElement.removeEventListener("mousemove", onPointerMove)
+		domElement.removeEventListener("touchmove", onPointerMove)
 
-		domElement.removeEventListener("mouseup", onPointerUp);
-		domElement.removeEventListener("mouseout", onPointerUp);
-		domElement.removeEventListener("touchend", onPointerUp);
-		domElement.removeEventListener("touchcancel", onPointerUp);
-		domElement.removeEventListener("touchleave", onPointerUp);
+		domElement.removeEventListener("mouseup", onPointerUp)
+		domElement.removeEventListener("mouseout", onPointerUp)
+		domElement.removeEventListener("touchend", onPointerUp)
+		domElement.removeEventListener("touchcancel", onPointerUp)
+		domElement.removeEventListener("touchleave", onPointerUp)
 
-	};
+	}
 
-	this.attach = function (object) {
+	this.attach = function (object: Object3D): void {
 
-		this.object = object;
-		this.visible = true;
-		this.update();
+		this.object = object
+		this.visible = true
+		this.update()
 
-	};
+	}
 
-	this.detach = function () {
+	this.detach = function (): void {
 
-		this.object = undefined;
-		this.visible = false;
-		this.axis = null;
+		this.object = undefined
+		this.visible = false
+		this.axis = null
 
-	};
+	}
 
 	this.getMode = function () {
 
-		return _mode;
+		return _mode
 
-	};
+	}
 
-	this.setMode = function (mode) {
+	this.setMode = function (mode: string): void {
 
-		_mode = mode ? mode : _mode;
+		_mode = mode ? mode : _mode
 
-		if (_mode === "scale") scope.space = "local";
+		if (_mode === "scale") scope.space = "local"
 
-		for (let type in _gizmo) _gizmo[type].visible = ( type === _mode );
+		for (const type in _gizmo) {
+			if (_gizmo.hasOwnProperty(type))
+				_gizmo[type].visible = ( type === _mode )
+		}
 
-		this.update();
-		scope.dispatchEvent(changeEvent);
+		this.update()
+		scope.dispatchEvent(changeEvent)
 
-	};
+	}
 
-	this.setTranslationSnap = function (translationSnap) {
+	this.setTranslationSnap = function (translationSnap: number): void {
 
-		scope.translationSnap = translationSnap;
+		scope.translationSnap = translationSnap
 
-	};
+	}
 
-	this.setRotationSnap = function (rotationSnap) {
+	this.setRotationSnap = function (rotationSnap: number): void {
 
-		scope.rotationSnap = rotationSnap;
+		scope.rotationSnap = rotationSnap
 
-	};
+	}
 
-	this.setSize = function (size) {
+	this.setSize = function (size: number): void {
 
-		scope.size = size;
-		this.update();
-		scope.dispatchEvent(changeEvent);
+		scope.size = size
+		this.update()
+		scope.dispatchEvent(changeEvent)
 
-	};
+	}
 
-	this.setSpace = function (space) {
+	this.setSpace = function (space: string): void {
 
-		scope.space = space;
-		this.update();
-		scope.dispatchEvent(changeEvent);
+		scope.space = space
+		this.update()
+		scope.dispatchEvent(changeEvent)
 
-	};
+	}
 
-	this.update = function () {
+	this.update = function (): void {
 
-		if (scope.object === undefined) return;
+		if (scope.object === undefined) return
 
-		scope.object.updateMatrixWorld();
-		worldPosition.setFromMatrixPosition(scope.object.matrixWorld);
-		worldRotation.setFromRotationMatrix(tempMatrix.extractRotation(scope.object.matrixWorld));
+		scope.object.updateMatrixWorld()
+		worldPosition.setFromMatrixPosition(scope.object.matrixWorld)
+		worldRotation.setFromRotationMatrix(tempMatrix.extractRotation(scope.object.matrixWorld))
 
-		camera.updateMatrixWorld();
-		camPosition.setFromMatrixPosition(camera.matrixWorld);
-		camRotation.setFromRotationMatrix(tempMatrix.extractRotation(camera.matrixWorld));
+		camera.updateMatrixWorld()
+		camPosition.setFromMatrixPosition(camera.matrixWorld)
+		camRotation.setFromRotationMatrix(tempMatrix.extractRotation(camera.matrixWorld))
 
-		scale = worldPosition.distanceTo(camPosition) / 6 * scope.size;
-		this.position.copy(worldPosition);
-		this.scale.set(scale, scale, scale);
+		scale = worldPosition.distanceTo(camPosition) / 6 * scope.size
+		this.position.copy(worldPosition)
+		this.scale.set(scale, scale, scale)
 
 		if (camera instanceof THREE.PerspectiveCamera) {
 
-			eye.copy(camPosition).sub(worldPosition).normalize();
+			eye.copy(camPosition).sub(worldPosition).normalize()
 
 		} else if (camera instanceof THREE.OrthographicCamera) {
 
-			eye.copy(camPosition).normalize();
+			eye.copy(camPosition).normalize()
 
 		}
 
 		if (scope.space === "local") {
 
-			_gizmo[_mode].update(worldRotation, eye);
+			_gizmo[_mode].update(worldRotation, eye)
 
 		} else if (scope.space === "world") {
 
-			_gizmo[_mode].update(new THREE.Euler(), eye);
+			_gizmo[_mode].update(new THREE.Euler(), eye)
 
 		}
 
-		_gizmo[_mode].highlight(scope.axis);
+		_gizmo[_mode].highlight(scope.axis)
 
-	};
+	}
 
-	function onPointerHover(event) {
+	function onPointerHover(event: any): void {
 
-		if (scope.object === undefined || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return;
+		if (scope.object === undefined || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
 
-		let pointer = event.changedTouches ? event.changedTouches[0] : event;
+		const pointer = event.changedTouches ? event.changedTouches[0] : event
 
-		let intersect = intersectObjects(pointer, _gizmo[_mode].pickers.children);
+		const intersect = intersectObjects(pointer, _gizmo[_mode].pickers.children)
 
-		let axis = null;
+		let axis = null
 
 		if (intersect) {
 
-			axis = intersect.object.name;
+			axis = intersect.object.name
 
-			event.preventDefault();
+			event.preventDefault()
 
 		}
 
 		if (scope.axis !== axis) {
 
-			scope.axis = axis;
-			scope.update();
-			scope.dispatchEvent(changeEvent);
+			scope.axis = axis
+			scope.update()
+			scope.dispatchEvent(changeEvent)
 
 		}
 
 	}
 
-	function onPointerDown(event) {
+	function onPointerDown(event: any): void {
 
-		if (scope.object === undefined || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return;
+		if (scope.object === undefined || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
 
-		let pointer = event.changedTouches ? event.changedTouches[0] : event;
+		const pointer = event.changedTouches ? event.changedTouches[0] : event
 
 		if (pointer.button === 0 || pointer.button === undefined) {
 
-			let intersect = intersectObjects(pointer, _gizmo[_mode].pickers.children);
+			const intersect = intersectObjects(pointer, _gizmo[_mode].pickers.children)
 
 			if (intersect) {
 
-				event.preventDefault();
-				event.stopPropagation();
+				event.preventDefault()
+				event.stopPropagation()
 
-				scope.dispatchEvent(mouseDownEvent);
+				scope.dispatchEvent(mouseDownEvent)
 
-				scope.axis = intersect.object.name;
+				scope.axis = intersect.object.name
 
-				scope.update();
+				scope.update()
 
-				eye.copy(camPosition).sub(worldPosition).normalize();
+				eye.copy(camPosition).sub(worldPosition).normalize()
 
-				_gizmo[_mode].setActivePlane(scope.axis, eye);
+				_gizmo[_mode].setActivePlane(scope.axis, eye)
 
-				let planeIntersect = intersectObjects(pointer, [_gizmo[_mode].activePlane]);
+				const planeIntersect = intersectObjects(pointer, [_gizmo[_mode].activePlane])
 
 				if (planeIntersect) {
 
-					oldPosition.copy(scope.object.position);
-					oldScale.copy(scope.object.scale);
+					oldPosition.copy(scope.object.position)
+					oldScale.copy(scope.object.scale)
 
-					oldRotationMatrix.extractRotation(scope.object.matrix);
-					worldRotationMatrix.extractRotation(scope.object.matrixWorld);
+					oldRotationMatrix.extractRotation(scope.object.matrix)
+					worldRotationMatrix.extractRotation(scope.object.matrixWorld)
 
-					parentRotationMatrix.extractRotation(scope.object.parent.matrixWorld);
-					parentScale.setFromMatrixScale(tempMatrix.getInverse(scope.object.parent.matrixWorld));
+					parentRotationMatrix.extractRotation(scope.object.parent.matrixWorld)
+					parentScale.setFromMatrixScale(tempMatrix.getInverse(scope.object.parent.matrixWorld))
 
-					offset.copy(planeIntersect.point);
+					offset.copy(planeIntersect.point)
 
 				}
 
@@ -907,55 +913,55 @@ THREE.TransformControls = function (camera, domElement) {
 
 		}
 
-		_dragging = true;
+		_dragging = true
 
 	}
 
-	function onPointerMove(event) {
+	function onPointerMove(event: any) {
 
-		if (scope.object === undefined || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 )) return;
+		if (scope.object === undefined || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 )) return
 
-		let pointer = event.changedTouches ? event.changedTouches[0] : event;
+		const pointer = event.changedTouches ? event.changedTouches[0] : event
 
-		let planeIntersect = intersectObjects(pointer, [_gizmo[_mode].activePlane]);
+		const planeIntersect = intersectObjects(pointer, [_gizmo[_mode].activePlane])
 
-		if (planeIntersect === false) return;
+		if (planeIntersect === false) return
 
-		event.preventDefault();
-		event.stopPropagation();
+		event.preventDefault()
+		event.stopPropagation()
 
-		point.copy(planeIntersect.point);
+		point.copy(planeIntersect.point)
 
 		if (_mode === "translate") {
 
-			point.sub(offset);
-			point.multiply(parentScale);
+			point.sub(offset)
+			point.multiply(parentScale)
 
 			if (scope.space === "local") {
 
-				point.applyMatrix4(tempMatrix.getInverse(worldRotationMatrix));
+				point.applyMatrix4(tempMatrix.getInverse(worldRotationMatrix))
 
-				if (scope.axis.search("X") === -1) point.x = 0;
-				if (scope.axis.search("Y") === -1) point.y = 0;
-				if (scope.axis.search("Z") === -1) point.z = 0;
+				if (scope.axis.search("X") === -1) point.x = 0
+				if (scope.axis.search("Y") === -1) point.y = 0
+				if (scope.axis.search("Z") === -1) point.z = 0
 
-				point.applyMatrix4(oldRotationMatrix);
+				point.applyMatrix4(oldRotationMatrix)
 
-				scope.object.position.copy(oldPosition);
-				scope.object.position.add(point);
+				scope.object.position.copy(oldPosition)
+				scope.object.position.add(point)
 
 			}
 
 			if (scope.space === "world" || scope.axis.search("XYZ") !== -1) {
 
-				if (scope.axis.search("X") === -1) point.x = 0;
-				if (scope.axis.search("Y") === -1) point.y = 0;
-				if (scope.axis.search("Z") === -1) point.z = 0;
+				if (scope.axis.search("X") === -1) point.x = 0
+				if (scope.axis.search("Y") === -1) point.y = 0
+				if (scope.axis.search("Z") === -1) point.z = 0
 
-				point.applyMatrix4(tempMatrix.getInverse(parentRotationMatrix));
+				point.applyMatrix4(tempMatrix.getInverse(parentRotationMatrix))
 
-				scope.object.position.copy(oldPosition);
-				scope.object.position.add(point);
+				scope.object.position.copy(oldPosition)
+				scope.object.position.add(point)
 
 			}
 
@@ -963,17 +969,17 @@ THREE.TransformControls = function (camera, domElement) {
 
 				if (scope.space === "local") {
 
-					scope.object.position.applyMatrix4(tempMatrix.getInverse(worldRotationMatrix));
+					scope.object.position.applyMatrix4(tempMatrix.getInverse(worldRotationMatrix))
 
 				}
 
-				if (scope.axis.search("X") !== -1) scope.object.position.x = Math.round(scope.object.position.x / scope.translationSnap) * scope.translationSnap;
-				if (scope.axis.search("Y") !== -1) scope.object.position.y = Math.round(scope.object.position.y / scope.translationSnap) * scope.translationSnap;
-				if (scope.axis.search("Z") !== -1) scope.object.position.z = Math.round(scope.object.position.z / scope.translationSnap) * scope.translationSnap;
+				if (scope.axis.search("X") !== -1) scope.object.position.x = Math.round(scope.object.position.x / scope.translationSnap) * scope.translationSnap
+				if (scope.axis.search("Y") !== -1) scope.object.position.y = Math.round(scope.object.position.y / scope.translationSnap) * scope.translationSnap
+				if (scope.axis.search("Z") !== -1) scope.object.position.z = Math.round(scope.object.position.z / scope.translationSnap) * scope.translationSnap
 
 				if (scope.space === "local") {
 
-					scope.object.position.applyMatrix4(worldRotationMatrix);
+					scope.object.position.applyMatrix4(worldRotationMatrix)
 
 				}
 
@@ -981,26 +987,26 @@ THREE.TransformControls = function (camera, domElement) {
 
 		} else if (_mode === "scale") {
 
-			point.sub(offset);
-			point.multiply(parentScale);
+			point.sub(offset)
+			point.multiply(parentScale)
 
 			if (scope.space === "local") {
 
 				if (scope.axis === "XYZ") {
 
-					scale = 1 + ( ( point.y ) / Math.max(oldScale.x, oldScale.y, oldScale.z) );
+					scale = 1 + ( ( point.y ) / Math.max(oldScale.x, oldScale.y, oldScale.z) )
 
-					scope.object.scale.x = oldScale.x * scale;
-					scope.object.scale.y = oldScale.y * scale;
-					scope.object.scale.z = oldScale.z * scale;
+					scope.object.scale.x = oldScale.x * scale
+					scope.object.scale.y = oldScale.y * scale
+					scope.object.scale.z = oldScale.z * scale
 
 				} else {
 
-					point.applyMatrix4(tempMatrix.getInverse(worldRotationMatrix));
+					point.applyMatrix4(tempMatrix.getInverse(worldRotationMatrix))
 
-					if (scope.axis === "X") scope.object.scale.x = oldScale.x * ( 1 + point.x / oldScale.x );
-					if (scope.axis === "Y") scope.object.scale.y = oldScale.y * ( 1 + point.y / oldScale.y );
-					if (scope.axis === "Z") scope.object.scale.z = oldScale.z * ( 1 + point.z / oldScale.z );
+					if (scope.axis === "X") scope.object.scale.x = oldScale.x * ( 1 + point.x / oldScale.x )
+					if (scope.axis === "Y") scope.object.scale.y = oldScale.y * ( 1 + point.y / oldScale.y )
+					if (scope.axis === "Z") scope.object.scale.z = oldScale.z * ( 1 + point.z / oldScale.z )
 
 				}
 
@@ -1008,39 +1014,39 @@ THREE.TransformControls = function (camera, domElement) {
 
 		} else if (_mode === "rotate") {
 
-			point.sub(worldPosition);
-			point.multiply(parentScale);
-			tempVector.copy(offset).sub(worldPosition);
-			tempVector.multiply(parentScale);
+			point.sub(worldPosition)
+			point.multiply(parentScale)
+			tempVector.copy(offset).sub(worldPosition)
+			tempVector.multiply(parentScale)
 
 			if (scope.axis === "E") {
 
-				point.applyMatrix4(tempMatrix.getInverse(lookAtMatrix));
-				tempVector.applyMatrix4(tempMatrix.getInverse(lookAtMatrix));
+				point.applyMatrix4(tempMatrix.getInverse(lookAtMatrix))
+				tempVector.applyMatrix4(tempMatrix.getInverse(lookAtMatrix))
 
-				rotation.set(Math.atan2(point.z, point.y), Math.atan2(point.x, point.z), Math.atan2(point.y, point.x));
-				offsetRotation.set(Math.atan2(tempVector.z, tempVector.y), Math.atan2(tempVector.x, tempVector.z), Math.atan2(tempVector.y, tempVector.x));
+				rotation.set(Math.atan2(point.z, point.y), Math.atan2(point.x, point.z), Math.atan2(point.y, point.x))
+				offsetRotation.set(Math.atan2(tempVector.z, tempVector.y), Math.atan2(tempVector.x, tempVector.z), Math.atan2(tempVector.y, tempVector.x))
 
-				tempQuaternion.setFromRotationMatrix(tempMatrix.getInverse(parentRotationMatrix));
+				tempQuaternion.setFromRotationMatrix(tempMatrix.getInverse(parentRotationMatrix))
 
-				quaternionE.setFromAxisAngle(eye, rotation.z - offsetRotation.z);
-				quaternionXYZ.setFromRotationMatrix(worldRotationMatrix);
+				quaternionE.setFromAxisAngle(eye, rotation.z - offsetRotation.z)
+				quaternionXYZ.setFromRotationMatrix(worldRotationMatrix)
 
-				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionE);
-				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionXYZ);
+				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionE)
+				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionXYZ)
 
-				scope.object.quaternion.copy(tempQuaternion);
+				scope.object.quaternion.copy(tempQuaternion)
 
 			} else if (scope.axis === "XYZE") {
 
-				quaternionE.setFromEuler(point.clone().cross(tempVector).normalize() as any); // rotation axis
+				quaternionE.setFromEuler(point.clone().cross(tempVector).normalize() as any) // rotation axis
 
-				tempQuaternion.setFromRotationMatrix(tempMatrix.getInverse(parentRotationMatrix));
-				quaternionX.setFromAxisAngle(quaternionE as any, -point.clone().angleTo(tempVector));
-				quaternionXYZ.setFromRotationMatrix(worldRotationMatrix);
+				tempQuaternion.setFromRotationMatrix(tempMatrix.getInverse(parentRotationMatrix))
+				quaternionX.setFromAxisAngle(quaternionE as any, -point.clone().angleTo(tempVector))
+				quaternionXYZ.setFromRotationMatrix(worldRotationMatrix)
 
-				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionX);
-				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionXYZ);
+				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionX)
+				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionXYZ)
 
 				scope.object.quaternion.copy(tempQuaternion)
 
@@ -1065,7 +1071,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 					quaternionX.setFromAxisAngle(unitX, rotation.x - offsetRotation.x)
 					quaternionY.setFromAxisAngle(unitY, rotation.y - offsetRotation.y)
-					quaternionZ.setFromAxisAngle(unitZ, rotation.z - offsetRotation.z);
+					quaternionZ.setFromAxisAngle(unitZ, rotation.z - offsetRotation.z)
 
 				}
 
@@ -1116,7 +1122,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	function onPointerUp(event) {
+	function onPointerUp(event: MouseEvent): void {
 
 		event.preventDefault() // Prevent MouseEvent on mobile
 
@@ -1149,16 +1155,16 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	function intersectObjects(pointer, objects) {
+	function intersectObjects(pointer: any, objects: any) {
 
-		let rect = domElement.getBoundingClientRect()
-		let x = ( pointer.clientX - rect.left ) / rect.width
-		let y = ( pointer.clientY - rect.top ) / rect.height
+		const rect = domElement.getBoundingClientRect()
+		const x = ( pointer.clientX - rect.left ) / rect.width
+		const y = ( pointer.clientY - rect.top ) / rect.height
 
 		pointerVector.set(( x * 2 ) - 1, -( y * 2 ) + 1)
 		ray.setFromCamera(pointerVector, camera)
 
-		let intersections = ray.intersectObjects(objects, true)
+		const intersections = ray.intersectObjects(objects, true)
 		return intersections[0] ? intersections[0] : false
 
 	}

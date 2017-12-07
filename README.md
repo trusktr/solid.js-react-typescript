@@ -26,6 +26,10 @@ The application uses [nconf](https://www.npmjs.com/package/nconf) for configurat
     ./etc/scripts/compile-watch.js 
 
 ### Run the [electron](https://www.npmjs.com/package/electron) debug GUI
+    npm run start
+
+or
+
  - Open the project in IntelliJ IDEA.
  - Under Run>Run…, select the Mapper Annotator configuration and run it.
 
