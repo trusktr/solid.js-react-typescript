@@ -1,293 +1,284 @@
 -
-    var fontStyles = eval(require('!!css-loader!sass-loader!assets/fonts/fonts.global.scss'))
-//var mainStyles = eval(require('!!css-loader!sass-loader!styles/MainEntry.global.scss'))
-
 doctype html
 html(lang="en")
-    head
-        meta(charset='utf-8')
-        meta(name="viewport" content="width=device-width, initial-scale=1")
-        link(rel="stylesheet" href='https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css')
-        style!=fontStyles
-        //style!=mainStyles
-        style!=eval(require('!!css-loader!sass-loader!styles/split-pane.global.scss'))
-        style!=eval(require('!!css-loader!animate.css/animate.css'))
-        style!=eval(require('!!css-loader!font-awesome/css/font-awesome.min.css'))
-        style.
-            html, body {
-                height: 100%;
-                margin: 0;
-                border: 0;
-                padding: 0;
-                width: 100%;
-                background-color: white;
-                font-family: Verdana, Geneva, sans-serif;
-            }
-        style.
-            #threeJs_gui {
-                position: absolute;
-                top: 100%;
-                left: 100%;
-            }
-        style.
-            #root {
-                height: 100%;
-                border: 0;
-                padding: 0;
-                width: auto;
-            }
-        style.
-            #logo {
-                position: fixed;
-                z-index: 2;
-                bottom: 0;
-                left: 0;
-                background-color: transparent;
-                padding-bottom: 0px;
-                padding-left: 5px;
-            }
-        style.
-            #menu {
-                height: 100%;
-                width: 250px;
-                position: fixed;
-                z-index: 1;
-                top: 50px;
-                right: 0;
-                background-color: transparent;
-                overflow-x: hidden;
-                padding-top: 0;
-                padding-right: 5px;
-            }
-        style.
-            #menu_control {
-                height: 50px;
-                width:100px;
-                position: fixed;
-                z-index: 1;
-                top: 0;
-                right: 0;
-                background-color: transparent;
-                padding-right: 5px;
-                text-align: right;
-            }
-        style.
-            .menu_btn{
-                height: 40px;
-                width: 40px;
-                font-size: x-large;
-                background-color: transparent;
-                border: none;
-            }
-        style.
-            button.menu_btn:hover {
-                font-size:xx-large;
-                background-color: transparent;
-            }
-        style.
-            button.menu_btn:active {
-                font-size: xx-large;
-            }
-        style.
-            .fieldset_content_style {
-                margin-top: 2px;
-                width: 100%;
-                height: 100%;
-                text-align: center;
-            }
-        style.
-            .div_buttons_group {
-                margin-top: 2px;
-                text-align: center;
-            }
-        style.
-            .div_properties {
-                margin-top: 2px;
-                text-align: center;
-            }
-        style.
-            .div_glue {
-                margin-top: 2px;
-                text-align: left;
-                font-size: x-small;
-            }
-        style.
-            .div_help {
-                margin-top: 0;
-                -webkit-margin-after: 0;
-                text-align: left;
-                font-size: x-small;
-            }
-        style.
-            .button_inline {
-                width: 90px;
-                text-align: center;
-                margin: 0;
-                font-size: x-small;
-                cursor: pointer;
-                background-color: white;
-                color: #4CAF50;
-                border: 2px solid #4CAF50;
-                border-radius: 12px;
-            }
-        style.
-            button.button_inline:disabled {
-                color: #999999;
-                border: 2px solid #999999;
-            }
-        style.
-            button.button_inline:hover {
-                background-color: white;
-            }
-        style.
-            button {
-                width: 30px;
-                text-decoration: none;
-                outline: none;
-                color: #fff;
-                background-color: #4CAF50;
-                border: none;
-                border-radius: 15px;
-            }
-        style.
-            .ui-btn{
-                font-size: 12px;
-            }
-        style.
-            button:hover {
-                background-color: #3e8e41
-            }
-        style.
-            button:active {
-                background-color: #3e8e41;
-                transform: translateY(4px);
-            }
-        style.
-            .label_style {
-                width: 60%;
-                text-align: left;
-                border: 0;
-                padding: 0;
-                margin: 0;
-                background-color: transparent;
-                float: left;
-                font-size: x-small;
-            }
-        style.
-            .select_style {
-                width: 40%;
-                text-align: left;
-                padding: 0;
-                margin: 0;
-                float: left;
-                font-size: x-small;
-            }
-        style.
-            .accordion {
-                outline: none;
-                border-radius: 10px;
-                margin-bottom: 2px;
-                background-color: #f4511e;
-                border: none;
-                color: #FFFFFF;
-                text-align: left;
-                font-size: 15px;
-                padding: 0;
-                width: auto;
-                cursor: pointer;
-            }
-        style.
-            .dropdown_head {
-                margin : 3px;
-                padding: 2px;
-                font-size: 12px;
-            }
-        style.
-            .dropdown_head:after {
-                content: '\02795'; /* Unicode character for "plus" sign (+) */
-                font-size: 10px;
-                padding-right: 5px;
-                padding-top: 2px;
-                float: right;
-            }
-        style.
-            .dropdown_head:active:after {
-                content: '-';
-            }
-        style.
-            .dropdown_body {
-                height: auto;
-                padding: 5px;
-                border-radius: 5px;
-                -webkit-padding-after: 10px;
-                background-color: antiquewhite;
-                color: black;
-                display: none;
-            }
+	head
+		meta(charset='utf-8')
+		meta(name="viewport" content="width=device-width, initial-scale=1")
+		link(rel="stylesheet" href='https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css')
+		style.
+			html, body {
+				height: 100%;
+				margin: 0;
+				border: 0;
+				padding: 0;
+				width: 100%;
+				background-color: white;
+				font-family: Verdana, Geneva, sans-serif;
+			}
+		style.
+			#threeJs_gui {
+				position: absolute;
+				top: 100%;
+				left: 100%;
+			}
+		style.
+			#root {
+				height: 100%;
+				border: 0;
+				padding: 0;
+				width: auto;
+			}
+		style.
+			#logo {
+				position: fixed;
+				z-index: 2;
+				bottom: 0;
+				left: 0;
+				background-color: transparent;
+				padding-bottom: 0px;
+				padding-left: 5px;
+			}
+		style.
+			#menu {
+				height: 100%;
+				width: 250px;
+				position: fixed;
+				z-index: 1;
+				top: 50px;
+				right: 0;
+				background-color: transparent;
+				overflow-x: hidden;
+				padding-top: 0;
+				padding-right: 5px;
+			}
+		style.
+			#menu_control {
+				height: 50px;
+				width: 100px;
+				position: fixed;
+				z-index: 1;
+				top: 0;
+				right: 0;
+				background-color: transparent;
+				padding-right: 5px;
+				text-align: right;
+			}
+		style.
+			.menu_btn {
+				height: 40px;
+				width: 40px;
+				font-size: x-large;
+				background-color: transparent;
+				border: none;
+			}
+		style.
+			button.menu_btn:hover {
+				font-size: xx-large;
+				background-color: transparent;
+			}
+		style.
+			button.menu_btn:active {
+				font-size: xx-large;
+			}
+		style.
+			.fieldset_content_style {
+				margin-top: 2px;
+				width: 100%;
+				height: 100%;
+				text-align: center;
+			}
+		style.
+			.div_buttons_group {
+				margin-top: 2px;
+				text-align: center;
+			}
+		style.
+			.div_properties {
+				margin-top: 2px;
+				text-align: center;
+			}
+		style.
+			.div_glue {
+				margin-top: 2px;
+				text-align: left;
+				font-size: x-small;
+			}
+		style.
+			.div_help {
+				margin-top: 0;
+				-webkit-margin-after: 0;
+				text-align: left;
+				font-size: x-small;
+			}
+		style.
+			.button_inline {
+				width: 90px;
+				text-align: center;
+				margin: 0;
+				font-size: x-small;
+				cursor: pointer;
+				background-color: white;
+				color: #4CAF50;
+				border: 2px solid #4CAF50;
+				border-radius: 12px;
+			}
+		style.
+			button.button_inline:disabled {
+				color: #999999;
+				border: 2px solid #999999;
+			}
+		style.
+			button.button_inline:hover {
+				background-color: white;
+			}
+		style.
+			button {
+				width: 30px;
+				text-decoration: none;
+				outline: none;
+				color: #fff;
+				background-color: #4CAF50;
+				border: none;
+				border-radius: 15px;
+			}
+		style.
+			.ui-btn {
+				font-size: 12px;
+			}
+		style.
+			button:hover {
+				background-color: #3e8e41
+			}
+		style.
+			button:active {
+				background-color: #3e8e41;
+				transform: translateY(4px);
+			}
+		style.
+			.label_style {
+				width: 60%;
+				text-align: left;
+				border: 0;
+				padding: 0;
+				margin: 0;
+				background-color: transparent;
+				float: left;
+				font-size: x-small;
+			}
+		style.
+			.select_style {
+				width: 40%;
+				text-align: left;
+				padding: 0;
+				margin: 0;
+				float: left;
+				font-size: x-small;
+			}
+		style.
+			.accordion {
+				outline: none;
+				border-radius: 10px;
+				margin-bottom: 2px;
+				background-color: #f4511e;
+				border: none;
+				color: #FFFFFF;
+				text-align: left;
+				font-size: 15px;
+				padding: 0;
+				width: auto;
+				cursor: pointer;
+			}
+		style.
+			.dropdown_head {
+				margin: 3px;
+				padding: 2px;
+				font-size: 12px;
+			}
+		style.
+			.dropdown_head:after {
+				content: '\02795'; /* Unicode character for "plus" sign (+) */
+				font-size: 10px;
+				padding-right: 5px;
+				padding-top: 2px;
+				float: right;
+			}
+		style.
+			.dropdown_head:active:after {
+				content: '-';
+			}
+		style.
+			.dropdown_body {
+				height: auto;
+				padding: 5px;
+				border-radius: 5px;
+				-webkit-padding-after: 10px;
+				background-color: antiquewhite;
+				color: black;
+				display: none;
+			}
 
-        meta(name="viewport",content="width=device-width, initial-scale=1")
-        title!="Annotator"
+		meta(name="viewport",content="width=device-width, initial-scale=1")
+		title!="Annotator"
 
-    body
-        #root
-            script.
-                require(process.cwd() + "/dist/app/annotator-entry-ui")
-        #logo
-            img(src="https://signafy.github.io/indoor/stylesheets/logo_white.png", height="30px", width="auto")
-        #menu_control
-            button#live_location_control_btn.menu_btn &#x2388;
-            button#menu_control_btn.menu_btn &#9776;
-        #menu
-            #tools.div_buttons_group
-                button#tools_add.ui-btn.ui-icon-plus.ui-btn-icon-left New Lane
-                button#tools_delete.ui-btn.ui-icon-minus.ui-btn-icon-left Delete Lane
-                button#tools_load.ui-btn.ui-icon-grid.ui-btn-icon-left Load Tiles
-                button#tools_load_annotation.ui-btn.ui-icon-edit.ui-btn-icon-left Load Annotation
-                button#tools_save.ui-btn.ui-icon-check.ui-btn-icon-left Save Annotation
-                button#tools_export_kml.ui-btn.ui-icon-location.ui-btn-icon-left Export KML
+	body
+		#root
+			script.
+				require(process.cwd() + "/dist/app/annotator-entry-ui")
+		#logo
+			img(src="https://signafy.github.io/indoor/stylesheets/logo_white.png", height="30px", width="auto")
+		#menu_control
+			button#live_location_control_btn.menu_btn &#x2388;
+			button#menu_control_btn.menu_btn &#9776;
+		#menu
+			#tools.div_buttons_group
+				button#tools_add.ui-btn.ui-icon-plus.ui-btn-icon-left New Lane
+				button#tools_delete.ui-btn.ui-icon-minus.ui-btn-icon-left Delete Lane
+				button#tools_load.ui-btn.ui-icon-grid.ui-btn-icon-left Load Tiles
+				button#tools_load_annotation.ui-btn.ui-icon-edit.ui-btn-icon-left Load Annotation
+				button#tools_save.ui-btn.ui-icon-check.ui-btn-icon-left Save Annotation
+				button#tools_export_kml.ui-btn.ui-icon-location.ui-btn-icon-left Export KML
 
-            #menu_1.accordion
-                h3#exp_head_1.dropdown_head Annotation
-                #exp_body_1.dropdown_body
-                    #lane_prop.fieldset_content_style
-                        #lane_prop_1.div_properties
-                        #lane_prop_2.div_glue Add Neighbor:
-                        #lane_prop_3.div_buttons_group
-                            button#lp_add_forward &uarr;
-                        #lane_prop_4.div_buttons_group
-                            button#lp_add_left_opposite &darr;
-                            button#lp_add_left_same &uarr;
-                            button#lp_current(disabled) C
-                            button#lp_add_right_same &uarr;
-                            button#lp_add_right_opposite &darr;
-            #menu_2.accordion
-                h3#exp_head_2.dropdown_head Neighbours
-                #exp_body_2.dropdown_body
-                    #lane_conn.fieldset_content_style
-                    #lane_conn_btn.fieldset_content_style
-                        button#lc_add.button_inline Add
-            #menu_3.accordion
-                h3#exp_head_3.dropdown_head Trajectory
-                #exp_body_3.dropdown_body
-                    #trajectory_1.fieldset_content_style
-                        text#tr_add_text.label_style Add to trajectory
-                        button#tr_add.button_inline Add
-                    #trajectory_2.fieldset_content_style
-                        text#tr_show_text.label_style Show trajectory
-                        button#tr_show.button_inline Show
-                    #trajectory_3.fieldset_content_style
-                        button#save_path.button_inline Save To File
-            #menu_4.accordion
-                h3#exp_head_4.dropdown_head Help
-                #exp_body_4.dropdown_body
-                    p.div_help.
-                        Key Shortcuts:<br>
-                        A - Keep pressed to add more markers<br>
-                        C - Center the camera on the tiles<br>
-                        D - Delete last marker<br>
-                        M - Save road network waypoints to KML file<br>
-                        N - Create new lane<br>
-                        O - Listen for live location data<br>
-                        P - Stop listening for live location data<br>
-                        U - Unload point cloud<br>
-                        Z - Delete current active lane
+			#menu_1.accordion
+				h3#exp_head_1.dropdown_head Annotation
+				#exp_body_1.dropdown_body
+					#lane_prop.fieldset_content_style
+						#lane_prop_1.div_properties
+						#lane_prop_2.div_glue Add Neighbor:
+						#lane_prop_3.div_buttons_group
+							button#lp_add_forward &uarr;
+						#lane_prop_4.div_buttons_group
+							button#lp_add_left_opposite &darr;
+							button#lp_add_left_same &uarr;
+							button#lp_current(disabled) C
+							button#lp_add_right_same &uarr;
+							button#lp_add_right_opposite &darr;
+			#menu_2.accordion
+				h3#exp_head_2.dropdown_head Neighbours
+				#exp_body_2.dropdown_body
+					#lane_conn.fieldset_content_style
+					#lane_conn_btn.fieldset_content_style
+						button#lc_add.button_inline Add
+			#menu_3.accordion
+				h3#exp_head_3.dropdown_head Trajectory
+				#exp_body_3.dropdown_body
+					#trajectory_1.fieldset_content_style
+						text#tr_add_text.label_style Add to trajectory
+						button#tr_add.button_inline Add
+					#trajectory_2.fieldset_content_style
+						text#tr_show_text.label_style Show trajectory
+						button#tr_show.button_inline Show
+					#trajectory_3.fieldset_content_style
+						button#save_path.button_inline Save To File
+			#menu_4.accordion
+				h3#exp_head_4.dropdown_head Help
+				#exp_body_4.dropdown_body
+					p.div_help.
+						Key Shortcuts:<br>
+						A - Keep pressed to add more markers<br>
+						C - Center the camera on the tiles<br>
+						D - Delete last marker<br>
+						M - Save road network waypoints to KML file<br>
+						N - Create new lane<br>
+						O - Listen/stop listening for live location data<br>
+						U - Unload point cloud<br>
+						Z - Delete current active lane

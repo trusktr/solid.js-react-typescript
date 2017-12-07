@@ -1,51 +1,31 @@
 {
     "compilerOptions": {
-        "target": "ES5",
-        "lib": [
-            "es6",
-            "es7",
-            
-            "es2016",
-            "es2017",
-            "dom"
-        ],
-        "module": "commonjs",
-        "moduleResolution": "node",
+        "allowSyntheticDefaultImports": true,
+        "alwaysStrict": true,
+        "baseUrl": "./packages",
         "declaration": false,
         "emitDecoratorMetadata": true,
-        "jsx": "react",
         "experimentalDecorators": true,
-        "preserveConstEnums": true,
-        "allowSyntheticDefaultImports": true,
-        "sourceMap": true,
-        "pretty": true,
+        "forceConsistentCasingInFileNames": true,
+        "jsx": "react",
+		"lib": ["es6", "dom", "esnext.asynciterable"],
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
         "outDir": "./dist/out",
-        "paths": {
-            "*": [
-                "*"
-            ]
-        },
-        "baseUrl": "./packages",
-        "typeRoots": [
-            "./node_modules/@types",
-            "./typings/epictask",
-            "./typings/globals",
-            "./typings/modules"
-        ]
+        "paths": { "*": [ "*" ] },
+        "preserveConstEnums": true,
+        "pretty": true,
+        "sourceMap": true,
+		"strictNullChecks": true,
+		"target": "es6"
     },
     "compileOnSave": true,
-    "exclude": [
-        "libs/**/*.*",
-        "typings/custom",
-        "dist",
-        "build",
-        "target",
-        "etc",
-        "bin",
-        ".awcache",
-        ".happy**/*.*",
-        "node_modules/**/*",
-        "node_modules.disk"
+    "include": [
+        "packages"
     ],
     "awesomeTypescriptLoaderOptions": {
         "useBabel": false,
