@@ -32,7 +32,7 @@ export class SimpleKML {
 		this.content = ""
 	}
 
-	addPath(points: Array<THREE.Vector3>) {
+	addPath(points: Array<THREE.Vector3>): void {
 		let path =
 			"    <Placemark>\n " +
 			"      <LineString>\n" +
@@ -48,7 +48,7 @@ export class SimpleKML {
 		this.content += path
 	}
 
-	async saveToFile(fileName) {
-		AsyncFile.writeTextFile(fileName, this.header + this.content + this.tail)
+	saveToFile(fileName: string): Promise<void> {
+		return AsyncFile.writeTextFile(fileName, this.header + this.content + this.tail)
 	}
 }
