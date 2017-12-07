@@ -481,7 +481,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 	function handleMouseUp(_: MouseEvent): void {
 	}
 
-	function handleMouseWheel(event): void {
+	function handleMouseWheel(event: any): void {
 
 		if (event.deltaY < 0) {
 

@@ -58,8 +58,8 @@ export enum AnnotationType {
 }
 
 export class LaneNeighborsIds {
-	right: LaneUuid
-	left: LaneUuid
+	right: LaneUuid | null
+	left: LaneUuid | null
 	front: Array<LaneUuid>
 	back: Array<LaneUuid>
 
@@ -249,10 +249,10 @@ export class LaneAnnotation {
 			return
 		}
 
-		this.laneRenderingObject.remove(this.laneMarkers.pop())
+		this.laneRenderingObject.remove(this.laneMarkers.pop()!)
 
 		if (this.laneMarkers.length > 2) {
-			this.laneRenderingObject.remove(this.laneMarkers.pop())
+			this.laneRenderingObject.remove(this.laneMarkers.pop()!)
 		}
 
 		this.updateVisualization()

@@ -17,7 +17,7 @@ declare global {
 	}
 }
 
-const GizmoMaterial = function (parameters) {
+const GizmoMaterial = function (parameters: any) {
 
 	THREE.MeshBasicMaterial.call(this)
 
@@ -31,7 +31,7 @@ const GizmoMaterial = function (parameters) {
 	this.oldColor = this.color.clone()
 	this.oldOpacity = this.opacity
 
-	this.highlight = function (highlighted) {
+	this.highlight = function (highlighted: any) {
 
 		if (highlighted) {
 
@@ -52,7 +52,7 @@ const GizmoMaterial = function (parameters) {
 GizmoMaterial.prototype = Object.create(THREE.MeshBasicMaterial.prototype)
 GizmoMaterial.prototype.constructor = GizmoMaterial
 
-const GizmoLineMaterial = function (parameters) {
+const GizmoLineMaterial = function (parameters: any) {
 
 	THREE.LineBasicMaterial.call(this)
 
@@ -130,7 +130,7 @@ THREE.TransformGizmo = function () {
 
 		//// HANDLES AND PICKERS
 
-		const setupGizmos = function (gizmoMap, parent) {
+		const setupGizmos = function (gizmoMap: any, parent: any) {
 
 			for (const name in gizmoMap) {
 				if (gizmoMap.hasOwnProperty(name)) {
@@ -158,7 +158,7 @@ THREE.TransformGizmo = function () {
 
 		// reset Transformations
 
-		this.traverse(function (child) {
+		this.traverse(function (child: any) {
 
 			if (child instanceof THREE.Mesh) {
 
@@ -178,9 +178,9 @@ THREE.TransformGizmo = function () {
 
 	}
 
-	this.highlight = function (axis) {
+	this.highlight = function (axis: any) {
 
-		this.traverse(function (child) {
+		this.traverse(function (child: any) {
 
 			if (child.material && child.material.highlight) {
 
@@ -211,7 +211,7 @@ THREE.TransformGizmo.prototype.update = function (rotation: Euler, eye: Vector3)
 	const vec2 = new THREE.Vector3(0, 1, 0)
 	const lookAtMatrix = new THREE.Matrix4()
 
-	this.traverse(function (child) {
+	this.traverse(function (child: any) {
 
 		if (child.name.search("E") !== -1) {
 
@@ -379,7 +379,7 @@ THREE.TransformGizmoRotate = function () {
 	const CircleGeometry = (radius: number, facing: string, arc: number): BufferGeometry => {
 
 		const geometry = new THREE.BufferGeometry()
-		const vertices = []
+		const vertices: Array<number> = []
 		arc = arc ? arc : 1
 
 		for (let i = 0; i <= 64 * arc; ++i) {
@@ -476,7 +476,7 @@ THREE.TransformGizmoRotate = function () {
 		tempMatrix.makeRotationFromQuaternion(tempQuaternion).getInverse(tempMatrix)
 		eye.applyMatrix4(tempMatrix)
 
-		this.traverse(function (child) {
+		this.traverse(function (child: any) {
 
 			tempQuaternion.setFromEuler(worldRotation)
 
@@ -581,7 +581,7 @@ THREE.TransformGizmoScale = function () {
 
 	}
 
-	this.setActivePlane = function (axis, eye: Vector3) {
+	this.setActivePlane = function (axis: string, eye: Vector3): void {
 
 		const tempMatrix = new THREE.Matrix4()
 		eye.applyMatrix4(tempMatrix.getInverse(tempMatrix.extractRotation(this.planes["XY"].matrixWorld)))
@@ -618,7 +618,7 @@ THREE.TransformGizmoScale = function () {
 THREE.TransformGizmoScale.prototype = Object.create(THREE.TransformGizmo.prototype)
 THREE.TransformGizmoScale.prototype.constructor = THREE.TransformGizmoScale
 
-THREE.TransformControls = function (camera, domElement) {
+THREE.TransformControls = function (camera: any, domElement: any) {
 
 	// TODO: Make non-uniform scale and rotate play nice in hierarchies
 	// TODO: ADD RXYZ contol
@@ -839,7 +839,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	function onPointerHover(event): void {
+	function onPointerHover(event: any): void {
 
 		if (scope.object === undefined || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
 
@@ -867,7 +867,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	function onPointerDown(event) {
+	function onPointerDown(event: any): void {
 
 		if (scope.object === undefined || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
 
@@ -917,7 +917,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	function onPointerMove(event) {
+	function onPointerMove(event: any) {
 
 		if (scope.object === undefined || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 )) return
 
@@ -1155,7 +1155,7 @@ THREE.TransformControls = function (camera, domElement) {
 
 	}
 
-	function intersectObjects(pointer, objects) {
+	function intersectObjects(pointer: any, objects: any) {
 
 		const rect = domElement.getBoundingClientRect()
 		const x = ( pointer.clientX - rect.left ) / rect.width
