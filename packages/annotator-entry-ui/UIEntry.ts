@@ -19,8 +19,11 @@ TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
 declare global {
+	// required by mapper-models/protobufjs
 	type Long = number
 }
+
+const root = $("#root")
 
 export function onLoad(): void {
 	require("annotator-control-ui/UIControl")
@@ -30,3 +33,14 @@ export function onLoad(): void {
 }
 
 $(onLoad)
+
+// This is injected by webpack, so it has no type definition:
+// https://webpack.js.org/api/hot-module-replacement/
+if (module.hasOwnProperty('hot')) {
+	// tslint:disable-next-line:no-any
+	const hotReplacement = (module as any).hot
+	if (hotReplacement) {
+		hotReplacement.dispose(() => root.empty())
+		hotReplacement.accept()
+	}
+}

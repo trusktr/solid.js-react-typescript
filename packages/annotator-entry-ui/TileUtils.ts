@@ -38,9 +38,9 @@ const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Arra
 		return []
 	}
 
-	let sampledPoints: Array<number> = []
-	let sampledColors: Array<number> = []
-	let stride = step * threeDStepSize
+	const sampledPoints: Array<number> = []
+	const sampledColors: Array<number> = []
+	const stride = step * threeDStepSize
 
 	for (let i = 0; i < msg.points.length; i += stride) {
 		// Assuming the utm points are: easting, northing, altitude
@@ -58,21 +58,18 @@ const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Arra
  * Convert a 3D point to our standard format: [easting, northing, altitude]
  * @returns Point in standard coordinate frame format.
  */
-const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateFrame: CoordinateFrameType): THREE.Vector3 => {
-	let p: THREE.Vector3
+const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateFrame: CoordinateFrameType): THREE.Vector3 | null => {
 	switch (pointCoordinateFrame) {
 		case CoordinateFrameType.CAMERA:
 			// Raw input is [x: northing, y: -altitude, z: easting]
-			p = new THREE.Vector3(point.z, point.x, -point.y)
-			break
+			return new THREE.Vector3(point.z, point.x, -point.y)
 		case CoordinateFrameType.INERTIAL:
 			// Raw input is [x: northing, y: easting, z: -altitude]
-			p = new THREE.Vector3(point.y, point.x, -point.z)
-			break
+			return new THREE.Vector3(point.y, point.x, -point.z)
 		default:
 			log.warn('Coordinate frame not recognized')
+			return null
 	}
-	return p
 }
 
 export class TileManager extends UtmInterface {
@@ -120,15 +117,16 @@ export class TileManager extends UtmInterface {
 	private checkCoordinateSystem(msg: Models.PointCloudTileMessage, inputCoordinateFrame: CoordinateFrameType): boolean {
 		const num = msg.utmZoneNumber
 		const letter = msg.utmZoneLetter
-		let inputPoint = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
-		let p = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
+		const inputPoint = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
+		const p = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
 
-		if (this.setOrigin(num, letter, p)) {
+		if (!p)
+			return false
+		else if (this.setOrigin(num, letter, p))
 			return true
-		} else {
+		else
 			return TileManager.isDefaultUtmZone(num, letter)
 				|| this.utmZoneNumber === num && this.utmZoneLetter === letter
-		}
 	}
 
 	/**
@@ -146,15 +144,15 @@ export class TileManager extends UtmInterface {
 	 * @returns the center point of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
-	async loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<THREE.Vector3> {
+	async loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<THREE.Vector3 | null> {
 		let points: Array<number> = []
 		let colors: Array<number> = []
-		let files = Fs.readdirSync(datasetPath)
+		const files = Fs.readdirSync(datasetPath)
 		let coordsFailed = 0
 		let maxFileCount = files.length
 		if (maxFileCount > this.maxTilesToLoad) maxFileCount = this.maxTilesToLoad
 
-		let printProgress = function (current: number, total: number, stepSize: number): void {
+		const printProgress = function (current: number, total: number, stepSize: number): void {
 			if (total <= (stepSize * 2)) return
 			if (current % stepSize === 0) log.info(`processing ${current} of ${total} files`)
 		}
@@ -166,7 +164,7 @@ export class TileManager extends UtmInterface {
 				continue
 			}
 
-			let msg = await loadTile(Path.join(datasetPath, files[i]))
+			const msg = await loadTile(Path.join(datasetPath, files[i]))
 
 			if (msg.points.length === 0) {
 				continue
@@ -177,7 +175,7 @@ export class TileManager extends UtmInterface {
 				continue
 			}
 
-			let [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.samplingStep)
+			const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.samplingStep)
 
 			points = points.concat(sampledPoints)
 			colors = colors.concat(sampledColors)
@@ -195,33 +193,38 @@ export class TileManager extends UtmInterface {
 	/**
 	 * Convert array of 3d points into a THREE.Point object
 	 */
-	generatePointCloudFromRawData(points: Array<number>, inputColors: Array<number>, inputCoordinateFrame: CoordinateFrameType): THREE.Vector3 {
+	generatePointCloudFromRawData(points: Array<number>, inputColors: Array<number>, inputCoordinateFrame: CoordinateFrameType): THREE.Vector3 | null {
 		const pointsSize = points.length
 		const newPositions = new Array<number>(pointsSize)
 
 		for (let i = 0; i < pointsSize; i += threeDStepSize) {
-			let inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
-			let standardPoint = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
-			let threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
+			const inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
+			const standardPoint = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
+			if (standardPoint) {
+				const threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
 
-			newPositions[i] = threePoint.x
-			newPositions[i + 1] = threePoint.y
-			newPositions[i + 2] = threePoint.z
+				newPositions[i] = threePoint.x
+				newPositions[i + 1] = threePoint.y
+				newPositions[i + 2] = threePoint.z
+			}
 		}
 
-		if (this.rawPositions.length > 0) {
-			this.rawPositions = this.rawPositions.concat(newPositions)
-			this.rawColors = this.rawColors.concat(inputColors)
-		} else {
-			this.rawPositions = newPositions
-			this.rawColors = inputColors
+		if (newPositions.length) {
+			if (this.rawPositions.length > 0) {
+				this.rawPositions = this.rawPositions.concat(newPositions)
+				this.rawColors = this.rawColors.concat(inputColors)
+			} else {
+				this.rawPositions = newPositions
+				this.rawColors = inputColors
+			}
+
+			const geometry = new THREE.BufferGeometry()
+			geometry.addAttribute('position', new THREE.BufferAttribute(Float32Array.from(this.rawPositions), threeDStepSize))
+			geometry.addAttribute('color', new THREE.BufferAttribute(Float32Array.from(this.rawColors), threeDStepSize))
+
+			this.setGeometry(geometry)
 		}
 
-		const geometry = new THREE.BufferGeometry()
-		geometry.addAttribute('position', new THREE.BufferAttribute(Float32Array.from(this.rawPositions), threeDStepSize))
-		geometry.addAttribute('color', new THREE.BufferAttribute(Float32Array.from(this.rawColors), threeDStepSize))
-
-		this.setGeometry(geometry)
 		return this.centerPoint()
 	}
 
@@ -229,7 +232,7 @@ export class TileManager extends UtmInterface {
 	 * Finds the center of the bottom of the bounding box, so that when we view the model
 	 * the whole thing appears above the artificial ground plane.
 	 */
-	centerPoint(): THREE.Vector3 {
+	centerPoint(): THREE.Vector3 | null {
 		if (this.pointCloud) {
 			const geometry = this.pointCloud.geometry
 			geometry.computeBoundingBox()
