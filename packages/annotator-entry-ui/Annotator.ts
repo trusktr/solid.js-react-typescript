@@ -18,10 +18,11 @@ import {isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.com.mapperai.models
 import * as THREE from 'three'
+import {Socket} from 'zmq'
 
 declare global {
 	namespace THREE {
-		let OBJLoader:any
+		const OBJLoader: any
 	}
 }
 
@@ -32,9 +33,17 @@ const zmq = require('zmq')
 const OBJLoader = require('three-obj-loader')
 OBJLoader(THREE)
 
+// tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-let root = $("#root")
+const root = $("#root")
+
+interface AnnotatorSettings {
+	background: string
+	cameraOffset: THREE.Vector3
+	lightOffset: THREE.Vector3
+	fpsRendering: number
+}
 
 /**
  * The Annotator class is in charge of rendering the 3d Scene that includes the point clouds
@@ -42,92 +51,92 @@ let root = $("#root")
  * and modify the annotations.
  */
 class Annotator {
-	scene : THREE.Scene
-	camera : THREE.PerspectiveCamera
-	renderer : THREE.WebGLRenderer
-	raycaster_plane : THREE.Raycaster
-	raycaster_marker : THREE.Raycaster
-	raycaster_annotation : THREE.Raycaster
+	scene: THREE.Scene
+	camera: THREE.PerspectiveCamera
+	renderer: THREE.WebGLRenderer
+	raycasterPlane: THREE.Raycaster
+	raycasterMarker: THREE.Raycaster
+	raycasterAnnotation: THREE.Raycaster
 	carModel: THREE.Object3D
 	tileManager: TileManager
-	plane : THREE.Mesh
+	plane: THREE.Mesh
 	grid: THREE.GridHelper
 	axis: THREE.AxisHelper
 	light: THREE.SpotLight
-	stats
-	orbitControls
-	transformControls
-	hideTransformControlTimer
-	annotationManager : AnnotationUtils.AnnotationManager
-	isAddMarkerKeyPressed : boolean
-	isMouseButtonPressed : boolean
-	isLiveMode : boolean
-	liveSubscribeSocket
-	hovered
-	settings
-	gui
-	
+	stats: Stats
+	orbitControls: THREE.OrbitControls
+	transformControls: any
+	hideTransformControlTimer: NodeJS.Timer
+	annotationManager: AnnotationUtils.AnnotationManager
+	isAddMarkerKeyPressed: boolean
+	isMouseButtonPressed: boolean
+	isLiveMode: boolean
+	liveSubscribeSocket: Socket
+	hovered: THREE.Object3D | null
+	settings: AnnotatorSettings
+	gui: any
+
 	constructor() {
 		this.isAddMarkerKeyPressed = false
 		this.isMouseButtonPressed = false
-		
+
 		this.settings = {
 			background: "#082839",
 			cameraOffset: new THREE.Vector3(10, 30, 10),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
-			fpsRendering : 60
+			fpsRendering: 60
 		}
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
-		this.raycaster_plane = new THREE.Raycaster()
-		this.raycaster_plane.params.Points.threshold = 0.1
+		this.raycasterPlane = new THREE.Raycaster()
+		this.raycasterPlane.params.Points!.threshold = 0.1
 		// THe raycaster is used to compute which marker is active for editing
-		this.raycaster_marker = new THREE.Raycaster()
+		this.raycasterMarker = new THREE.Raycaster()
 		// THe raycaster is used to compute which selection should be active for editing
-		this.raycaster_annotation = new THREE.Raycaster()
+		this.raycasterAnnotation = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager()
-		
+
 		this.isLiveMode = false
-		
+
 		// Initialize socket for use when "live mode" operation is on
 		this.initClient()
 	}
-	
+
 	/**
 	 * Create the 3D Scene and add some basic objects. It also initializes
 	 * several event listeners.
 	 */
-	initScene() {
+	initScene(): void {
 		const self = this
 		log.info(`Building scene`)
 
-		const [width,height] = this.getContainerSize()
-	
+		const [width, height]: Array<number> = this.getContainerSize()
+
 		// Create scene and camera
 		this.scene = new THREE.Scene()
-		this.camera = new THREE.PerspectiveCamera(70, width/height, 0.1, 10010)
+		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10010)
 		this.scene.add(this.camera)
-	
+
 		// Add some lights
-		this.scene.add(new THREE.AmbientLight( 0xf0f0f0 ))
+		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
 		this.light = new THREE.SpotLight(0xffffff, 1.5)
-		this.light.castShadow = true;
-		this.light.shadow = new THREE.SpotLightShadow(new THREE.PerspectiveCamera(70,1,200,2000))
+		this.light.castShadow = true
+		this.light.shadow = new THREE.SpotLightShadow(new THREE.PerspectiveCamera(70, 1, 200, 2000))
 		this.light.shadow.mapSize.width = 1024
 		this.light.shadow.bias = -0.000222
 		this.light.shadow.mapSize.height = 1024
 		this.scene.add(this.light)
 
 		// Add a "ground plane" to facilitate annotations
-		let planeGeometry = new THREE.PlaneGeometry(2000, 2000)
-		planeGeometry.rotateX(-Math.PI/2)
-		let planeMaterial = new THREE.ShadowMaterial()
+		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
+		planeGeometry.rotateX(-Math.PI / 2)
+		const planeMaterial = new THREE.ShadowMaterial()
 		planeMaterial.opacity = 0.2
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
 		this.plane.receiveShadow = true
 		this.scene.add(this.plane)
-	
+
 		// Add grid on top of the plane
 		this.grid = new THREE.GridHelper(200, 100)
 		this.grid.position.y = -0.5
@@ -140,19 +149,19 @@ class Annotator {
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
 		this.annotationManager = new AnnotationUtils.AnnotationManager()
-	
+
 		// Create GL Renderer
-		this.renderer = new THREE.WebGLRenderer( {antialias: true} )
-		this.renderer.setClearColor( new THREE.Color(this.settings.background) )
-		this.renderer.setPixelRatio( window.devicePixelRatio )
-		this.renderer.setSize( width, height )
+		this.renderer = new THREE.WebGLRenderer({antialias: true})
+		this.renderer.setClearColor(new THREE.Color(this.settings.background))
+		this.renderer.setPixelRatio(window.devicePixelRatio)
+		this.renderer.setSize(width, height)
 		this.renderer.shadowMap.enabled = true
-	
+
 		// Create stats widget to display frequency of rendering
 		this.stats = new statsModule()
-		root.append( this.renderer.domElement )
-		root.append( this.stats.dom );
-		
+		root.append(this.renderer.domElement)
+		root.append(this.stats.dom)
+
 		// Initialize all control objects.
 		this.initOrbitControls()
 		this.initTransformControls()
@@ -162,21 +171,25 @@ class Annotator {
 
 		// Add panel to change the settings
 		this.gui = new datModule.GUI()
-		this.gui.addColor(this.settings, 'background').onChange( (value) => {
+		this.gui.addColor(this.settings, 'background').onChange((value: any) => {
 			this.renderer.setClearColor(new THREE.Color(value))
 		})
 		this.gui.domElement.className = 'threeJs_gui'
 
 		// Set up for auto-save
 		const body = $(document.body)
-		body.focusin(function () {self.annotationManager.enableAutoSave()})
-		body.focusout(function () {self.annotationManager.disableAutoSave()})
+		body.focusin((): void => {
+			self.annotationManager.enableAutoSave()
+		})
+		body.focusout((): void => {
+			self.annotationManager.disableAutoSave()
+		})
 
 		// Add listeners
-		window.addEventListener('resize', this.onWindowResize);
-		window.addEventListener('keydown',this.onKeyDown)
+		window.addEventListener('resize', this.onWindowResize)
+		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
-		
+
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
@@ -186,32 +199,32 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mousedown', () => {
 			this.isMouseButtonPressed = true
 		})
-		
+
 		this.loadCarModel()
 
 		// Bind events
-		this.bind();
-		this.deactivateLaneProp();
+		this.bind()
+		Annotator.deactivateLaneProp()
 	}
-	
+
 	/**
 	 * Start THREE.js rendering loop.
 	 */
-	animate = () => {
-		setTimeout( () => {
+	animate = (): void => {
+		setTimeout(() => {
 			requestAnimationFrame(this.animate)
-		}, 1000/ this.settings.fpsRendering)
-		
+		}, 1000 / this.settings.fpsRendering)
+
 		this.render()
 		this.stats.update()
 		this.orbitControls.update()
 		this.transformControls.update()
 	}
-	
+
 	/**
 	 * Render the THREE.js scene from the camera's position.
 	 */
-	render = () => {
+	render = (): void => {
 		this.renderer.render(this.scene, this.camera)
 	}
 
@@ -225,7 +238,7 @@ class Annotator {
 		this.plane.geometry.translate(x, y, z)
 		this.grid.geometry.center()
 		this.grid.geometry.translate(x, y, z)
-		this.grid.position.y -= 0.01;
+		this.grid.position.y -= 0.01
 		this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 		this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
 		this.orbitControls.target.set(x, y, z)
@@ -235,7 +248,7 @@ class Annotator {
 	 * Set some point as the center of the visible world.
 	 */
 	private setStageByVector(point: THREE.Vector3): void {
-		if (point) this.setStage(point.x, point.y, point.z)
+		this.setStage(point.x, point.y, point.z)
 	}
 
 	/**
@@ -250,30 +263,25 @@ class Annotator {
 	/**
 	 * Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	 * Center the stage and the camera on the point cloud.
-	 * @param pathToTiles
-	 * @returns {Promise<void>}
 	 */
-	async loadPointCloudData(pathToTiles : string) {
-		try {
-			log.info('loading dataset')
-			const focalPoint = await this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA)
-			if (!this.annotationManager.setOriginWithInterface(this.tileManager)) {
-				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
-			}
-			this.scene.add(this.tileManager.pointCloud)
-			this.setStageByVector(focalPoint)
-		} catch (err) {
-			log.warn(err.message)
-			dialog.showErrorBox("Tiles Load Error",
-				"Annotator failed to load tiles from given folder.")
-		}
+	loadPointCloudData(pathToTiles: string): Promise<void> {
+		log.info('loading dataset')
+		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA)
+			.then(focalPoint => {
+				if (!this.annotationManager.setOriginWithInterface(this.tileManager)) {
+					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
+				}
+				this.scene.add(this.tileManager.pointCloud)
+				if (focalPoint)
+					this.setStageByVector(focalPoint)
+			})
 	}
 
-	unloadPointCloudData() {
+	unloadPointCloudData(): void {
 		log.info("unloadPointCloudData")
 		this.tileManager.unloadAllPoints()
 	}
-	
+
 	/**
 	 * Load annotations from file. Add all annotations to the annotation manager
 	 * and to the scene.
@@ -286,78 +294,78 @@ class Annotator {
 			if (!this.tileManager.setOriginWithInterface(this.annotationManager)) {
 				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
 			}
-			this.setStageByVector(focalPoint)
+			if (focalPoint) this.setStageByVector(focalPoint)
 		} catch (err) {
 			log.warn(err.message)
 			dialog.showErrorBox("Annotation Load Error",
 				"Annotator failed to load annotation file.")
 		}
 	}
-	
+
 	/**
 	 * Create a new lane annotation.
 	 */
 	private addLaneAnnotation(): boolean {
-		if (this.annotationManager.activeAnnotationIndex >=0 &&
+		if (this.annotationManager.activeAnnotationIndex >= 0 &&
 			this.annotationManager.activeMarkers.length === 0) {
 			return false
 		}
 		// This creates a new lane and add it to the scene for display
-		return this.annotationManager.addLaneAnnotation(this.scene) &&
+		return !!(
+			this.annotationManager.addLaneAnnotation(this.scene) &&
 			this.annotationManager.makeLastAnnotationActive()
+		)
 	}
-	
-	private getMouseCoordinates = (event) : THREE.Vector2 => {
-		let mouse = new THREE.Vector2()
+
+	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
+		const mouse = new THREE.Vector2()
 		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
-		mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		mouse.y = -( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
 		return mouse
 	}
-	
+
 	/**
 	 * Used in combination with "keyA". If the mouse was clicked while pressing
 	 * the "a" key, drop a lane marker.
-	 * @param event
 	 */
-	private addLaneAnnotationMarker = (event) => {
+	private addLaneAnnotationMarker = (event: MouseEvent): void => {
 		if (this.isAddMarkerKeyPressed === false) {
 			return
 		}
-		
-		let mouse = this.getMouseCoordinates(event)
-		this.raycaster_plane.setFromCamera(mouse, this.camera)
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
-		
+
 		if (this.tileManager.pointCloud === null) {
-			intersections = this.raycaster_plane.intersectObject(this.plane)
+			intersections = this.raycasterPlane.intersectObject(this.plane)
 		} else {
-			intersections = this.raycaster_plane.intersectObject(this.tileManager.pointCloud)
+			intersections = this.raycasterPlane.intersectObject(this.tileManager.pointCloud)
 		}
-		
+
 		if (intersections.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
-			let x = intersections[0].point.x
-			let y = intersections[0].point.y
-			let z = intersections[0].point.z
-			this.annotationManager.addLaneMarker(x,y,z)
+			const x = intersections[0].point.x
+			const y = intersections[0].point.y
+			const z = intersections[0].point.z
+			this.annotationManager.addLaneMarker(x, y, z)
 		}
 	}
-	
+
 	/**
 	 * Check if we clicked an annotation. If so, make it active for editing
-	 * @param event
 	 */
-	private checkForAnnotationSelection = (event) => {
+	private checkForAnnotationSelection = (event: MouseEvent): void => {
 		if (this.isLiveMode) return
 
-		let mouse = this.getMouseCoordinates(event)
-		this.raycaster_annotation.setFromCamera( mouse, this.camera )
-		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.annotationMeshes)
-		
-		if ( intersects.length > 0 ) {
-			let object = intersects[ 0 ].object
-			let index = this.annotationManager.checkForInactiveAnnotation(object as any)
-			
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.annotationMeshes)
+
+		if (intersects.length > 0) {
+			const object = intersects[0].object
+			const index = this.annotationManager.checkForInactiveAnnotation(object as any)
+
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
 				this.annotationManager.changeActiveAnnotation(index)
@@ -365,39 +373,38 @@ class Annotator {
 			}
 		}
 	}
-	
+
 	/**
 	 * Check if the mouse is on top of an editable lane marker. If so, attach the
 	 * marker to the transform control for editing.
-	 * @param event
 	 */
-	private checkForActiveMarker = ( event ) => {
+	private checkForActiveMarker = (event: MouseEvent) => {
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
 		if (this.isMouseButtonPressed) {
 			return
 		}
-		let mouse = this.getMouseCoordinates(event)
-		
-		this.raycaster_marker.setFromCamera( mouse, this.camera )
-		
-		let intersects = this.raycaster_marker.intersectObjects( this.annotationManager.activeMarkers )
-		
-		if ( intersects.length > 0 ) {
-			let object = intersects[ 0 ].object
-			let plane = new THREE.Plane()
-			plane.setFromNormalAndCoplanarPoint( this.camera.getWorldDirection( plane.normal ), object.position )
-			
-			if ( this.hovered !== object ) {
+		const mouse = this.getMouseCoordinates(event)
+
+		this.raycasterMarker.setFromCamera(mouse, this.camera)
+
+		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
+
+		if (intersects.length > 0) {
+			const object = intersects[0].object
+			const plane = new THREE.Plane()
+			plane.setFromNormalAndCoplanarPoint(this.camera.getWorldDirection(plane.normal), object.position)
+
+			if (this.hovered !== object) {
 				this.renderer.domElement.style.cursor = 'pointer'
-				this.hovered = object;
+				this.hovered = object
 				// HOVER ON
-				this.transformControls.attach( this.hovered )
+				this.transformControls.attach(this.hovered)
 				this.cancelHideTransform()
 			}
-			
+
 		} else {
-			if ( this.hovered !== null ) {
+			if (this.hovered !== null) {
 				// HOVER OFF
 				this.renderer.domElement.style.cursor = 'auto'
 				this.hovered = null
@@ -405,189 +412,169 @@ class Annotator {
 			}
 		}
 	}
-	
+
 	/**
 	 * Get the size of the canvas
 	 * @returns {[number,number]}
 	 */
-	private getContainerSize = () => {
-		return getValue(() => [root.width(),root.height()],[0,0])
+	private getContainerSize = (): Array<number> => {
+		return getValue(() => [root.width(), root.height()], [0, 0])
 	}
-	
-	private onWindowResize = () => {
+
+	private onWindowResize = (): void => {
 		if (!this.camera) {
 			return
 		}
-	
-		const [width,height] = this.getContainerSize()
-	
+
+		const [width, height]: Array<number> = this.getContainerSize()
+
 		this.camera.aspect = width / height
 		this.camera.updateProjectionMatrix()
-		this.renderer.setSize( width , height )
+		this.renderer.setSize(width, height)
 	}
-	
+
 	/**
 	 * Handle keyboard events
-	 * @param event
 	 */
-	private onKeyDown = (event) => {
-		if (event.code === 'KeyA') {
+	private onKeyDown = (event: KeyboardEvent): void => {
+		if (event.code === 'KeyA')
 			this.isAddMarkerKeyPressed = true
-		}
 
-		if (event.code === 'KeyC') {
+		if (event.code === 'KeyC')
 			this.focusOnPointCloud()
-		}
 
 		if (event.code === 'KeyD') {
 			log.info("Deleting last marker")
-			if (this.annotationManager.deleteLastLaneMarker()) {
+			if (this.annotationManager.deleteLastLaneMarker())
 				this.hideTransform()
-			}
 		}
-		
-		if (event.code === 'KeyN') {
-			this.addLane();
-		}
-		
-		if (event.code === 'KeyZ') {
-			this.deleteLane();
-		}
-		
-		if (event.code === "KeyF") {
-			this.addFront();
-		}
-		
-		if (event.code === "KeyL") {
-			this.addLeftSame();
-		}
-		
-		if (event.code === "KeyK") {
-			this.addLeftReverse();
-		}
-		
-		if (event.code === "KeyR") {
-			this.addRightSame();
-		}
-		
-		if (event.code === "KeyE") {
-			this.addRightReverse();
-		}
-		
-		if (event.code === "KeyS") {
-			this.saveToFile();
-		}
-		
-		if (event.code === 'KeyM') {
+
+		if (event.code === 'KeyN')
+			this.addLane()
+
+		if (event.code === 'KeyZ')
+			this.deleteLane()
+
+		if (event.code === "KeyF")
+			this.addFront()
+
+		if (event.code === "KeyL")
+			this.addLeftSame()
+
+		if (event.code === "KeyK")
+			this.addLeftReverse()
+
+		if (event.code === "KeyR")
+			this.addRightSame()
+
+		if (event.code === "KeyE")
+			this.addRightReverse()
+
+		if (event.code === "KeyS")
+			this.saveToFile()
+
+		if (event.code === 'KeyM')
 			this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
-		}
-		
-		if (event.code == 'KeyO') {
+				.catch(err => log.warn('saveToKML failed: ' + err.message))
+
+		if (event.code === 'KeyO')
 			this.toggleListen()
-		}
 
-		if (event.code == 'KeyU') {
+		if (event.code === 'KeyU')
 			this.unloadPointCloudData()
-		}
-
 	}
-	
-	private onKeyUp = () => {
+
+	private onKeyUp = (): void => {
 		this.isAddMarkerKeyPressed = false
 	}
-	
-	private async saveAnnotations() {
-		await this.annotationManager.saveAnnotationsToFile(config.get('output.annotations.json.path'), OutputFormat.UTM).then(
-			function () {},
-			function (error) {
-				console.warn('save annotations failed: ' + error.message)
-			}
-		)
+
+	private saveAnnotations(): Promise<void> {
+		return this.annotationManager.saveAnnotationsToFile(config.get('output.annotations.json.path'), OutputFormat.UTM)
 	}
 
-	private async exportAnnotationsToKml() {
+	private exportAnnotationsToKml(): Promise<void> {
 		const jar = config.get('conversion.kml.jar')
 		const main = config.get('conversion.kml.main_class')
 		let input = config.get('conversion.kml.input.path')
 		let output = config.get('conversion.kml.output.path')
 		if (!jar || !main || !input || !output) {
-			console.warn("incomplete configuration for KML conversion; aborting")
+			return Promise.reject("incomplete configuration for KML conversion; aborting")
 		} else {
 			if (!(input.substr(0, 1) === '/'))
 				input = process.env.PWD + '/' + input
 			if (!(output.substr(0, 1) === '/'))
 				output = process.env.PWD + '/' + output
-			this.annotationManager.saveAndExportToKml(jar, main, input, output)
+			return this.annotationManager.saveAndExportToKml(jar, main, input, output)
 		}
 	}
 
-	private delayHideTransform = () => {
-		this.cancelHideTransform();
-		this.hideTransform();
+	private delayHideTransform = (): void => {
+		this.cancelHideTransform()
+		this.hideTransform()
 	}
-	
-	private hideTransform = () => {
-		this.hideTransformControlTimer = setTimeout( () => {
-			this.transformControls.detach( this.transformControls.object )
-		}, 1500 )
+
+	private hideTransform = (): void => {
+		this.hideTransformControlTimer = setTimeout(() => {
+			this.transformControls.detach(this.transformControls.object)
+		}, 1500)
 	}
-	
-	private cancelHideTransform = () => {
+
+	private cancelHideTransform = (): void => {
 		if (this.hideTransformControlTimer) {
-			clearTimeout( this.hideTransformControlTimer );
+			clearTimeout(this.hideTransformControlTimer)
 		}
 	}
-	
+
 	/**
 	 * Create orbit controls which enable translation, rotation and zooming of the scene.
 	 */
-	private initOrbitControls() {
-		this.orbitControls = new OrbitControls( this.camera, this.renderer.domElement );
+	private initOrbitControls(): void {
+		this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement)
 		this.orbitControls.minDistance = -Infinity
-		
+
 		// Add listeners.
-		
+
 		// Render the scene again if we translated, rotated or zoomed.
-		this.orbitControls.addEventListener( 'change', this.render );
-		
+		this.orbitControls.addEventListener('change', this.render)
+
 		// If we are controlling the scene don't hide any transform object.
-		this.orbitControls.addEventListener( 'start', () => {
+		this.orbitControls.addEventListener('start', () => {
 			this.cancelHideTransform()
 		})
-		
+
 		// After the scene transformation is over start the timer to hide the transform object.
-		this.orbitControls.addEventListener( 'end', () => {
+		this.orbitControls.addEventListener('end', () => {
 			this.delayHideTransform()
 		})
 	}
-	
+
 	/**
 	 * Create Transform controls object. This allows for the translation of an object in the scene.
 	 */
-	private initTransformControls() {
-		this.transformControls = new TransformControls( this.camera, this.renderer.domElement );
-		this.transformControls.addEventListener( 'change', this.render );
-		this.scene.add( this.transformControls );
-		
+	private initTransformControls(): void {
+		this.transformControls = new TransformControls(this.camera, this.renderer.domElement)
+		this.transformControls.addEventListener('change', this.render)
+		this.scene.add(this.transformControls)
+
 		// Add listeners.
-		
+
 		// If we are interacting with the transform object don't hide it.
-		this.transformControls.addEventListener( 'change', () => {
+		this.transformControls.addEventListener('change', () => {
 			this.cancelHideTransform()
 		})
-		
+
 		// If we just clicked on a transform object don't hide it.
-		this.transformControls.addEventListener( 'mouseDown', () => {
+		this.transformControls.addEventListener('mouseDown', () => {
 			this.cancelHideTransform()
 		})
-		
+
 		// If we are done interacting with a transform object start hiding process.
-		this.transformControls.addEventListener( 'mouseUp', () => {
+		this.transformControls.addEventListener('mouseUp', () => {
 			this.delayHideTransform()
 		})
-		
+
 		// If the object attached to the transform object has changed, do something.
-		this.transformControls.addEventListener( 'objectChange', () => {
+		this.transformControls.addEventListener('objectChange', () => {
 			this.annotationManager.updateActiveLaneMesh()
 		})
 	}
@@ -595,16 +582,16 @@ class Annotator {
 	/**
 	 * Functions to bind
 	 */
-	deleteLane() {
+	deleteLane(): void {
 		// Delete lane from scene
 		if (this.annotationManager.deleteLaneFromPath() && this.annotationManager.deleteActiveAnnotation(this.scene)) {
 			log.info("Deleted selected annotation")
-			this.deactivateLaneProp()
+			Annotator.deactivateLaneProp()
 			this.hideTransform()
 		}
 	}
 
-	addLane() {
+	addLane(): void {
 		// Add lane to scene
 		if (this.addLaneAnnotation()) {
 			log.info("Added new annotation")
@@ -613,287 +600,318 @@ class Annotator {
 		}
 	}
 
-	saveToFile() {
-		log.info("Saving annotations to JSON");
-		this.saveAnnotations();
+	saveToFile(): void {
+		log.info("Saving annotations to JSON")
+		this.saveAnnotations()
+			.catch(error => log.warn("save to file failed: " + error.message))
 	}
 
-	exportKml() {
-		log.info("Exporting annotations to KML");
-		this.exportAnnotationsToKml();
+	exportKml(): void {
+		log.info("Exporting annotations to KML")
+		this.exportAnnotationsToKml()
+			.catch(error => log.warn("export to KML failed: " + error.message))
 	}
 
-	loadFromFile() {
-
-		let path_electron = dialog.showOpenDialog({
+	loadFromFile(): Promise<void> {
+		const pathElectron = dialog.showOpenDialog({
 			properties: ['openDirectory']
-		});
+		})
 
-		if (isUndefined(path_electron)) {
-			return
-		}
-		
-		log.info('Loading point cloud from ' + path_electron[0]);
-		this.loadPointCloudData(path_electron[0]);
+		if (!(pathElectron && pathElectron[0]))
+			return Promise.reject(Error('no point cloud directory was selected'))
+
+		log.info('Loading point cloud from ' + pathElectron[0])
+		return this.loadPointCloudData(pathElectron[0])
 	}
 
-	addFront() {
-		log.info("Adding connected annotation to the front");
+	addFront(): void {
+		log.info("Adding connected annotation to the front")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
-			this.deactivateFrontSideNeighbours()
+			Annotator.deactivateFrontSideNeighbours()
 		}
 	}
 
-	addLeftSame() {
-		log.info("Adding connected annotation to the left - same direction");
+	addLeftSame(): void {
+		log.info("Adding connected annotation to the left - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
-			this.deactivateLeftSideNeighbours()
+			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
-	addLeftReverse() {
-		log.info("Adding connected annotation to the left - reverse direction");
+	addLeftReverse(): void {
+		log.info("Adding connected annotation to the left - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
-			this.deactivateLeftSideNeighbours()
+			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
-	addRightSame() {
-		log.info("Adding connected annotation to the right - same direction");
+	addRightSame(): void {
+		log.info("Adding connected annotation to the right - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
-			this.deactivateRightSideNeighbours()
+			Annotator.deactivateRightSideNeighbours()
 		}
 	}
 
-	addRightReverse() {
-		log.info("Adding connected annotation to the right - reverse direction");
+	addRightReverse(): void {
+		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
-			this.deactivateRightSideNeighbours()
+			Annotator.deactivateRightSideNeighbours()
 		}
 	}
 
 	/**
 	 * Bind functions events to interface elements
 	 */
-	private bind() {
-
-		let menu_btn = document.getElementById('menu_control_btn')
-		menu_btn.addEventListener('click', _ => {
-			if (this.isLiveMode) {
-				log.info("Disable live location mode first to access the menu.")
-			} else {
-				log.info("Menu icon clicked. Close/Open menu bar.")
-				let menu = document.getElementById('menu')
-				if (menu.style.visibility === 'hidden') {
-					menu.style.visibility = 'visible'
+	private bind(): void {
+		const menuButton = document.getElementById('menu_control_btn')
+		if (menuButton)
+			menuButton.addEventListener('click', _ => {
+				if (this.isLiveMode) {
+					log.info("Disable live location mode first to access the menu.")
+				} else {
+					log.info("Menu icon clicked. Close/Open menu bar.")
+					const menu = document.getElementById('menu')
+					if (menu)
+						menu.style.visibility = menu.style.visibility === 'hidden' ? 'visible' : 'hidden'
+					else
+						log.warn('missing element menu')
 				}
-				else {
-					menu.style.visibility = 'hidden'
-				}
-			}
-		})
-
-		let live_location_control_btn = document.getElementById('live_location_control_btn');
-		live_location_control_btn.addEventListener('click', _ => {
-			this.toggleListen();
-		});
-
-		let tools_delete = document.getElementById('tools_delete');
-		tools_delete.addEventListener('click', _ => {
-			this.deleteLane();
-		});
-
-		let tools_add = document.getElementById('tools_add');
-		tools_add.addEventListener('click', _ => {
-			this.addLane();
-		});
-
-		let tools_load = document.getElementById('tools_load');
-		tools_load.addEventListener('click', _ => {
-			this.loadFromFile();
-		});
-
-		let tools_load_annotation = document.getElementById('tools_load_annotation')
-		tools_load_annotation.addEventListener('click', _ => {
-			let path_electron = dialog.showOpenDialog({
-				filters: [{ name: 'json', extensions: ['json'] }]
 			})
-			
-			if (isUndefined(path_electron)) {
+		else
+			log.warn('missing element menu_control_btn')
+
+		const liveLocationControlButton = document.getElementById('live_location_control_btn')
+		if (liveLocationControlButton)
+			liveLocationControlButton.addEventListener('click', _ => {
+				this.toggleListen()
+			})
+		else
+			log.warn('missing element live_location_control_btn')
+
+		const toolsDelete = document.getElementById('tools_delete')
+		if (toolsDelete)
+			toolsDelete.addEventListener('click', _ => {
+				this.deleteLane()
+			})
+		else
+			log.warn('missing element tools_delete')
+
+		const toolsAdd = document.getElementById('tools_add')
+		if (toolsAdd)
+			toolsAdd.addEventListener('click', _ => {
+				this.addLane()
+			})
+		else
+			log.warn('missing element tools_add')
+
+		const toolsLoad = document.getElementById('tools_load')
+		if (toolsLoad)
+			toolsLoad.addEventListener('click', _ => {
+				this.loadFromFile()
+					.catch(err => log.warn('loadFromFile failed: ' + err.message))
+			})
+		else
+			log.warn('missing element tools_load')
+
+		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
+		if (toolsLoadAnnotation)
+			toolsLoadAnnotation.addEventListener('click', _ => {
+				const pathElectron = dialog.showOpenDialog({
+					filters: [{name: 'json', extensions: ['json']}]
+				})
+
+				if (isUndefined(pathElectron))
+					return
+
+				log.info('Loading annotations from ' + pathElectron[0])
+				this.loadAnnotations(pathElectron[0])
+					.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+			})
+		else
+			log.warn('missing element tools_load_annotation')
+
+		const toolsSave = document.getElementById('tools_save')
+		if (toolsSave)
+			toolsSave.addEventListener('click', _ => {
+				this.saveToFile()
+			})
+		else
+			log.warn('missing element tools_save')
+
+		const toolsExportKml = document.getElementById('tools_export_kml')
+		if (toolsExportKml)
+			toolsExportKml.addEventListener('click', _ => {
+				this.exportKml()
+			})
+		else
+			log.warn('missing element tools_export_kml')
+
+		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		if (lpAddLeftOpposite)
+			lpAddLeftOpposite.addEventListener('click', _ => {
+				this.addLeftReverse()
+			})
+		else
+			log.warn('missing element lp_add_left_opposite')
+
+		const lpAddLeftSame = document.getElementById('lp_add_left_same')
+		if (lpAddLeftSame)
+			lpAddLeftSame.addEventListener('click', _ => {
+				this.addLeftSame()
+			})
+		else
+			log.warn('missing element lp_add_left_same')
+
+		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		if (lpAddRightOpposite)
+			lpAddRightOpposite.addEventListener('click', _ => {
+				this.addRightReverse()
+			})
+		else
+			log.warn('missing element lp_add_right_opposite')
+
+		const lpAddRightSame = document.getElementById('lp_add_right_same')
+		if (lpAddRightSame)
+			lpAddRightSame.addEventListener('click', _ => {
+				this.addRightSame()
+			})
+		else
+			log.warn('missing element lp_add_right_same')
+
+		const lpAddFront = document.getElementById('lp_add_forward')
+		if (lpAddFront)
+			lpAddFront.addEventListener('click', _ => {
+				this.addFront()
+			})
+		else
+			log.warn('missing element lp_add_forward')
+
+		const lcSelectFrom = document.getElementById('lc_select_from')
+		if (lcSelectFrom)
+			lcSelectFrom.addEventListener('mousedown', _ => {
+				// Get ids
+				const ids = this.annotationManager.getValidIds()
+				// Add ids
+				const selectbox = $('#lc_select_from')
+				selectbox.empty()
+				let list = ''
+				for (let j = 0; j < ids.length; j++) {
+					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
+				}
+				selectbox.html(list)
+			})
+		else
+			log.warn('missing element lc_select_from')
+
+		const lcSelectTo = document.getElementById('lc_select_to')
+		if (lcSelectTo)
+			lcSelectTo.addEventListener('mousedown', _ => {
+				// Get ids
+				const ids = this.annotationManager.getValidIds()
+				// Add ids
+				const selectbox = $('#lc_select_to')
+				selectbox.empty()
+				let list = ''
+				for (let j = 0; j < ids.length; j++) {
+					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
+				}
+				selectbox.html(list)
+			})
+		else
+			log.warn('missing element lc_select_to')
+
+		const lcAdd = document.getElementById('lc_add')
+		if (lcAdd)
+			lcAdd.addEventListener('click', _ => {
+				const lcTo: LaneId = Number($('#lc_select_to').val())
+				const lcFrom: LaneId = Number($('#lc_select_from').val())
+				const lcRelation = $('#lc_select_relation').val()
+
+				if (lcTo === null || lcFrom === null) {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
+						"You have to select both lanes to be connected.")
+					return
+				}
+
+				if (lcTo === lcFrom) {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
+						"You can't connect a lane to itself. The 2 ids should be unique.")
+					return
+				}
+
+				log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
+				if (this.annotationManager.addRelation(this.scene, lcFrom, lcTo, lcRelation)) {
+					this.resetLaneProp()
+				}
+			})
+		else
+			log.warn('missing element lc_add')
+
+		const lcLeft = $('#lp_select_left')
+		lcLeft.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveAnnotation()
+			if (activeAnnotation === null)
 				return
-			}
-			
-			log.info('Loading annotations from ' + path_electron[0]);
-			this.loadAnnotations(path_electron[0])
+			log.info("Adding left side type: " + lcLeft.children("option").filter(":selected").text())
+			activeAnnotation.leftSideType = lcLeft.val()
 		})
 
-		let tools_save = document.getElementById('tools_save');
-		tools_save.addEventListener('click', _ => {
-			this.saveToFile();
-		});
+		const lcRight = $('#lp_select_right')
+		lcRight.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding right side type: " + lcRight.children("option").filter(":selected").text())
+			activeAnnotation.rightSideType = lcRight.val()
+		})
 
-		let tools_export_kml = document.getElementById('tools_export_kml');
-		tools_export_kml.addEventListener('click', _ => {
-			this.exportKml();
-		});
+		const lcEntry = $('#lp_select_entry')
+		lcEntry.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding entry type: " + lcEntry.children("option").filter(":selected").text())
+			activeAnnotation.entryType = lcEntry.val()
+		})
 
-		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
-		lp_add_left_opposite.addEventListener('click', _ => {
-			this.addLeftReverse();
-		});
+		const lcExit = $('#lp_select_exit')
+		lcExit.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding exit type: " + lcExit.children("option").filter(":selected").text())
+			activeAnnotation.exitType = lcExit.val()
+		})
 
-		let lp_add_left_same = document.getElementById('lp_add_left_same');
-		lp_add_left_same.addEventListener('click', _ => {
-			this.addLeftSame();
-		});
-
-		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
-		lp_add_right_opposite.addEventListener('click', _ => {
-			this.addRightReverse();
-		});
-
-		let lp_add_right_same = document.getElementById('lp_add_right_same');
-		lp_add_right_same.addEventListener('click', _ => {
-			this.addRightSame();
-		});
-
-		let lp_add_front = document.getElementById('lp_add_forward');
-		lp_add_front.addEventListener('click', _ => {
-			this.addFront();
-		});
-
-		let lc_select_from = document.getElementById('lc_select_from');
-		lc_select_from.addEventListener('mousedown', _ => {
-
-			// Get ids
-			let ids = this.annotationManager.getValidIds();
-			// Add ids
-			let selectbox = $('#lc_select_from');
-			selectbox.empty();
-			let list = '';
-			for (let j = 0; j < ids.length; j++){
-				list += "<option value=" + ids[j] + ">" +ids[j] + "</option>";
-			}
-			selectbox.html(list);
-		});
-
-		let lc_select_to = document.getElementById('lc_select_to');
-		lc_select_to.addEventListener('mousedown', _ => {
-
-			// Get ids
-			let ids = this.annotationManager.getValidIds();
-			// Add ids
-			let selectbox = $('#lc_select_to');
-			selectbox.empty();
-			let list = '';
-			for (let j = 0; j < ids.length; j++){
-				list += "<option value=" + ids[j] + ">" +ids[j] + "</option>";
-			}
-			selectbox.html(list);
-		});
-
-		let lc_add = document.getElementById('lc_add');
-		lc_add.addEventListener('click', _ => {
-			let lc_to: LaneId = Number($('#lc_select_to').val());
-			let lc_from: LaneId = Number($('#lc_select_from').val());
-			let lc_relation = $('#lc_select_relation').val();
-
-			if (lc_to === null || lc_from === null) {
-				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-					"You have to select both lanes to be connected.")
-				return;
-			}
-
-			if (lc_to === lc_from) {
-				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-					"You can't connect a lane to itself. The 2 ids should be unique.");
-				return;
-			}
-
-			log.info("Trying to add " + lc_relation + " relation from " + lc_from + " to " + lc_to);
-			if (this.annotationManager.addRelation(this.scene, lc_from, lc_to, lc_relation)) {
-				this.resetLaneProp()
-			}
-		});
-
-		let lc_left = $('#lp_select_left');
-		lc_left.on('change', _ => {
-
-			let active_annotation = this.annotationManager.getActiveAnnotation();
-			if (active_annotation === null) {
-				return;
-			}
-			log.info("Adding left side type: " + lc_left.children("option").filter(":selected").text());
-			active_annotation.leftSideType = lc_left.val();
-		});
-
-		let lc_right = $('#lp_select_right');
-		lc_right.on('change', _ => {
-
-			let active_annotation = this.annotationManager.getActiveAnnotation();
-			if (active_annotation === null) {
-				return;
-			}
-			log.info("Adding right side type: " + lc_right.children("option").filter(":selected").text());
-			active_annotation.rightSideType = lc_right.val();
-		});
-
-		let lc_entry = $('#lp_select_entry');
-		lc_entry.on('change', _ => {
-
-			let active_annotation = this.annotationManager.getActiveAnnotation();
-			if (active_annotation === null) {
-				return;
-			}
-			log.info("Adding entry type: " + lc_entry.children("option").filter(":selected").text());
-			active_annotation.entryType = lc_entry.val();
-		});
-
-		let lc_exit = $('#lp_select_exit');
-		lc_exit.on('change', _ => {
-
-			let active_annotation = this.annotationManager.getActiveAnnotation();
-			if (active_annotation === null) {
-				return;
-			}
-			log.info("Adding exit type: " + lc_exit.children("option").filter(":selected").text());
-			active_annotation.exitType = lc_exit.val();
-		});
-
-		let tr_add = $('#tr_add');
-		tr_add.on('click', _ => {
-
-			log.info("Add/remove lane to/from car path.");
+		const trAdd = $('#tr_add')
+		trAdd.on('click', _ => {
+			log.info("Add/remove lane to/from car path.")
 			if (this.annotationManager.addLaneToPath()) {
-				if (tr_add.text() === "Add") {
-					tr_add.text("Remove")
-				}
-				else {
-					tr_add.text("Add")
+				if (trAdd.text() === "Add") {
+					trAdd.text("Remove")
+				} else {
+					trAdd.text("Add")
 				}
 			}
-		});
-		
-		let tr_show = $('#tr_show');
-		tr_show.on('click', _ => {
-			
-			log.info("Show/hide car path.");
+		})
+
+		const trShow = $('#tr_show')
+		trShow.on('click', _ => {
+			log.info("Show/hide car path.")
 			if (!this.annotationManager.showPath()) {
 				return
 			}
-			
+
 			// Change button text only if showPath succeed
-			if (tr_show.text() === "Show") {
-				tr_show.text("Hide");
+			if (trShow.text() === "Show") {
+				trShow.text("Hide")
+			} else {
+				trShow.text("Show")
 			}
-			else {
-				tr_show.text("Show");
-			}
-		});
-		
-		let save_path = $('#save_path')
-		save_path.on('click', _ => {
-			
+		})
+
+		const savePath = $('#save_path')
+		savePath.on('click', _ => {
 			log.info("Save car path to file.")
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
@@ -902,161 +920,219 @@ class Annotator {
 	/**
 	 * Reset lane properties elements based on the current active lane
 	 */
-	private resetLaneProp() {
-
-		let active_annotation = this.annotationManager.getActiveAnnotation();
-		if (active_annotation === null) {
-			return;
+	private resetLaneProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveAnnotation()
+		if (activeAnnotation === null) {
+			return
 		}
 
-		if (active_annotation.neighborsIds.left != null) {
-			this.deactivateLeftSideNeighbours();
-		}else {
-			this.activateLeftSideNeighbours();
+		if (activeAnnotation.neighborsIds.left != null) {
+			Annotator.deactivateLeftSideNeighbours()
+		} else {
+			Annotator.activateLeftSideNeighbours()
 		}
 
-		if (active_annotation.neighborsIds.right != null) {
-			this.deactivateRightSideNeighbours();
-		}else {
-			this.activateRightSideNeighbours();
+		if (activeAnnotation.neighborsIds.right != null) {
+			Annotator.deactivateRightSideNeighbours()
+		} else {
+			Annotator.activateRightSideNeighbours()
 		}
 
-		if (active_annotation.neighborsIds.front.length != 0) {
-			this.deactivateFrontSideNeighbours();
-		}else {
-			this.activateFrontSideNeighbours();
+		if (activeAnnotation.neighborsIds.front.length !== 0) {
+			Annotator.deactivateFrontSideNeighbours()
+		} else {
+			Annotator.activateFrontSideNeighbours()
 		}
 
-		let lp_id = document.getElementById('lp_id_value');
-		lp_id.textContent = active_annotation.id.toString();
-		active_annotation.updateLaneWidth()
+		const lpId = document.getElementById('lp_id_value')
+		if (lpId)
+			lpId.textContent = activeAnnotation.id.toString()
+		else
+			log.warn('missing element lp_id_value')
+		activeAnnotation.updateLaneWidth()
 
-		let lc_select_to = $('#lc_select_to');
-		lc_select_to.empty();
-		lc_select_to.removeAttr('disabled');
+		const lcSelectTo = $('#lc_select_to')
+		lcSelectTo.empty()
+		lcSelectTo.removeAttr('disabled')
 
-		let lc_select_from = $('#lc_select_from');
-		lc_select_from.empty();
-		lc_select_from.removeAttr('disabled');
+		const lcSelectFrom = $('#lc_select_from')
+		lcSelectFrom.empty()
+		lcSelectFrom.removeAttr('disabled')
 
-		let lc_select_relation = $('#lc_select_relation');
-		lc_select_relation.removeAttr('disabled');
+		const lcSelectRelation = $('#lc_select_relation')
+		lcSelectRelation.removeAttr('disabled')
 
-		let lp_select_left = $('#lp_select_left');
-		lp_select_left.removeAttr('disabled');
-		lp_select_left.val(active_annotation.leftSideType.toString());
+		const lpSelectLeft = $('#lp_select_left')
+		lpSelectLeft.removeAttr('disabled')
+		lpSelectLeft.val(activeAnnotation.leftSideType.toString())
 
-		let lp_add_relation = $('#lc_add');
-		lp_add_relation.removeAttr('disabled');
+		const lpAddRelation = $('#lc_add')
+		lpAddRelation.removeAttr('disabled')
 
-		let lp_select_right = $('#lp_select_right');
-		lp_select_right.removeAttr('disabled');
-		lp_select_right.val(active_annotation.rightSideType.toString());
+		const lpSelectRight = $('#lp_select_right')
+		lpSelectRight.removeAttr('disabled')
+		lpSelectRight.val(activeAnnotation.rightSideType.toString())
 
-		let lp_select_entry = $('#lp_select_entry');
-		lp_select_entry.removeAttr('disabled');
-		lp_select_entry.val(active_annotation.entryType.toString());
+		const lpSelectEntry = $('#lp_select_entry')
+		lpSelectEntry.removeAttr('disabled')
+		lpSelectEntry.val(activeAnnotation.entryType.toString())
 
-		let lp_select_exit = $('#lp_select_exit');
-		lp_select_exit.removeAttr('disabled');
-		lp_select_exit.val(active_annotation.exitType.toString());
+		const lpSelectExit = $('#lp_select_exit')
+		lpSelectExit.removeAttr('disabled')
+		lpSelectExit.val(activeAnnotation.exitType.toString())
 
-		let tr_add = $('#tr_add');
-		tr_add.removeAttr('disabled');
-		if (this.annotationManager.laneIndexInPath(active_annotation.uuid) === -1) {
-			tr_add.text("Add");
+		const trAdd = $('#tr_add')
+		trAdd.removeAttr('disabled')
+		if (this.annotationManager.laneIndexInPath(activeAnnotation.uuid) === -1) {
+			trAdd.text("Add")
+		} else {
+			trAdd.text("Remove")
 		}
-		else {
-			tr_add.text("Remove");
-		}
 
-		let tr_show = $('#tr_show');
-		tr_show.removeAttr('disabled');
+		const trShow = $('#tr_show')
+		trShow.removeAttr('disabled')
 	}
 
 	/**
 	 * Deactivate lane properties menu panel
 	 */
-	deactivateLaneProp() {
+	private static deactivateLaneProp(): void {
+		Annotator.deactivateLeftSideNeighbours()
+		Annotator.deactivateRightSideNeighbours()
+		Annotator.deactivateFrontSideNeighbours()
 
-		this.deactivateLeftSideNeighbours();
-		this.deactivateRightSideNeighbours();
-		this.deactivateFrontSideNeighbours();
+		const lpId = document.getElementById('lp_id_value')
+		if (lpId)
+			lpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element lp_id_value')
+		const lpWidth = document.getElementById('lp_width_value')
+		if (lpWidth)
+			lpWidth.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element lp_width_value')
 
-		let lp_id = document.getElementById('lp_id_value');
-		lp_id.textContent = 'UNKNOWN';
-		let lp_width = document.getElementById('lp_width_value')
-		lp_width.textContent = 'UNKNOWN'
+		const laneProp1 = document.getElementById('lane_prop_1')
+		if (laneProp1) {
+			const selects = laneProp1.getElementsByTagName('select')
+			for (let i = 0; i < selects.length; ++i) {
+				selects.item(i).selectedIndex = 0
+				selects.item(i).setAttribute('disabled', 'disabled')
+			}
+		} else
+			log.warn('missing element lane_prop_1')
 
-		let selects = document.getElementById('lane_prop_1').getElementsByTagName('select');
-		for (let i = 0; i < selects.length; ++i) {
-			selects.item(i).selectedIndex = 0;
-			selects.item(i).setAttribute('disabled', 'disabled');
-		}
+		const laneConn = document.getElementById('lane_conn')
+		if (laneConn) {
+			const selects = laneConn.getElementsByTagName('select')
+			for (let i = 0; i < selects.length; ++i) {
+				selects.item(i).setAttribute('disabled', 'disabled')
+			}
+		} else
+			log.warn('missing element lane_conn')
 
-		selects = document.getElementById('lane_conn').getElementsByTagName('select');
-		for (let i = 0; i < selects.length; ++i) {
-			selects.item(i).setAttribute('disabled', 'disabled');
-		}
+		const lcAdd = document.getElementById('lc_add')
+		if (lcAdd)
+			lcAdd.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lc_add')
 
-		let lc_add = document.getElementById('lc_add');
-		lc_add.setAttribute('disabled', 'disabled');
-
-		let tr_add = document.getElementById('tr_add');
-		tr_add.setAttribute('disabled', 'disabled');
+		const trAdd = document.getElementById('tr_add')
+		if (trAdd)
+			trAdd.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element tr_add')
 	}
 
 	/**
 	 * Deactivate/activate left side neighbours
 	 */
-	deactivateLeftSideNeighbours() {
-		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
-		let lp_add_left_same = document.getElementById('lp_add_left_same');
-		lp_add_left_same.setAttribute('disabled', 'disabled');
-		lp_add_left_opposite.setAttribute('disabled', 'disabled');
+	private static deactivateLeftSideNeighbours(): void {
+		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		if (lpAddLeftOpposite)
+			lpAddLeftOpposite.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lp_add_left_opposite')
+
+		const lpAddLeftSame = document.getElementById('lp_add_left_same')
+		if (lpAddLeftSame)
+			lpAddLeftSame.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lp_add_left_same')
 	}
-	activateLeftSideNeighbours() {
-		let lp_add_left_opposite = document.getElementById('lp_add_left_opposite');
-		let lp_add_left_same = document.getElementById('lp_add_left_same');
-		lp_add_left_same.removeAttribute('disabled');
-		lp_add_left_opposite.removeAttribute('disabled');
+
+	private static activateLeftSideNeighbours(): void {
+		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		if (lpAddLeftOpposite)
+			lpAddLeftOpposite.removeAttribute('disabled')
+		else
+			log.warn('missing element lp_add_left_opposite')
+
+		const lpAddLeftSame = document.getElementById('lp_add_left_same')
+		if (lpAddLeftSame)
+			lpAddLeftSame.removeAttribute('disabled')
+		else
+			log.warn('missing element lp_add_left_same')
 	}
 
 	/**
 	 * Deactivate right side neighbours
 	 */
-	deactivateRightSideNeighbours() {
-		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
-		let lp_add_right_same = document.getElementById('lp_add_right_same');
-		lp_add_right_same.setAttribute('disabled', 'disabled');
-		lp_add_right_opposite.setAttribute('disabled', 'disabled');
+	private static deactivateRightSideNeighbours(): void {
+		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		if (lpAddRightOpposite)
+			lpAddRightOpposite.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lp_add_right_opposite')
+
+		const lpAddRightSame = document.getElementById('lp_add_right_same')
+		if (lpAddRightSame)
+			lpAddRightSame.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lp_add_right_same')
 	}
-	activateRightSideNeighbours() {
-		let lp_add_right_opposite = document.getElementById('lp_add_right_opposite');
-		let lp_add_right_same = document.getElementById('lp_add_right_same');
-		lp_add_right_same.removeAttribute('disabled');
-		lp_add_right_opposite.removeAttribute('disabled');
+
+	private static activateRightSideNeighbours(): void {
+		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		if (lpAddRightOpposite)
+			lpAddRightOpposite.removeAttribute('disabled')
+		else
+			log.warn('missing element lp_add_right_opposite')
+
+		const lpAddRightSame = document.getElementById('lp_add_right_same')
+		if (lpAddRightSame)
+			lpAddRightSame.removeAttribute('disabled')
+		else
+			log.warn('missing element lp_add_right_same')
 	}
-	
+
 	/**
 	 * Deactivate/activate front side neighbours
 	 */
-	deactivateFrontSideNeighbours() {
-		let lp_add_front = document.getElementById('lp_add_forward');
-		lp_add_front.setAttribute('disabled', 'disabled');
+	private static deactivateFrontSideNeighbours(): void {
+		const lpAddFront = document.getElementById('lp_add_forward')
+		if (lpAddFront)
+			lpAddFront.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element lp_add_forward')
 	}
-	activateFrontSideNeighbours() {
-		let lp_add_front = document.getElementById('lp_add_forward');
-		lp_add_front.removeAttribute('disabled');
+
+	private static activateFrontSideNeighbours(): void {
+		const lpAddFront = document.getElementById('lp_add_forward')
+		if (lpAddFront)
+			lpAddFront.removeAttribute('disabled')
+		else
+			log.warn('missing element lp_add_forward')
 	}
-	
-	private loadCarModel() {
-		let manager = new THREE.LoadingManager()
-		let loader = new (THREE as any).OBJLoader(manager)
-		loader.load(config.get('assets.car_model.BMW_X5'), (object) => {
-			let boundingBox = new THREE.Box3().setFromObject(object)
-			let boxSize = boundingBox.getSize().toArray()
-			let modelLength = Math.max(...boxSize)
+
+	private loadCarModel(): void {
+		const manager = new THREE.LoadingManager()
+		const loader = new (THREE as any).OBJLoader(manager)
+		const car = require('../annotator-assets/models/BMW_X5_4.obj')
+		loader.load(car, (object: any) => {
+			const boundingBox = new THREE.Box3().setFromObject(object)
+			const boxSize = boundingBox.getSize().toArray()
+			const modelLength = Math.max(...boxSize)
 			const carLength = 4.5 // approx in meters
 			const scaleFactor = carLength / modelLength
 			this.carModel = object
@@ -1066,26 +1142,33 @@ class Annotator {
 			this.scene.add(object)
 		})
 	}
-	
-	initClient() {
+
+	initClient(): void {
 		this.liveSubscribeSocket = zmq.socket('sub')
-		
+
 		this.liveSubscribeSocket.on('message', (msg) => {
 			if (!this.isLiveMode) return
 
-			let state =  Models.InertialStateMessage.decode(msg)
-			log.info("Received message: " + state.pose.timestamp)
-			
-			// Move the car and the camera
-			let position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
-			log.info(state.pose.x + " " + position.x)
-			
-			let rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
-			rotation.normalize()
-			this.updateCarPose(position, rotation)
-			this.updateCameraPose()
+			const state = Models.InertialStateMessage.decode(msg)
+			if (
+				state.pose &&
+				state.pose.x != null && state.pose.y != null && state.pose.z != null &&
+				state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
+			) {
+				log.info("Received message: " + state.pose.timestamp)
+
+				// Move the car and the camera
+				const position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
+				log.info(state.pose.x + " " + position.x)
+
+				const rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
+				rotation.normalize()
+				this.updateCarPose(position, rotation)
+				this.updateCameraPose()
+			} else
+				log.warn('got an InertialStateMessage without a pose')
 		})
-		
+
 		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
 		this.liveSubscribeSocket.subscribe("")
 	}
@@ -1094,9 +1177,9 @@ class Annotator {
 	 * Toggle whether or not to listen for live-location updates.
 	 * Returns the updated state of live-location mode.
 	 */
-	toggleListen() {
+	toggleListen(): void {
 		let hideMenu
-		
+
 		if (this.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
 			hideMenu = this.stopListening()
@@ -1104,14 +1187,15 @@ class Annotator {
 			this.annotationManager.setLiveMode()
 			hideMenu = this.listen()
 		}
-		
-		let menu = document.getElementById('menu')
-		
-		if (hideMenu) {
-			menu.style.visibility = 'hidden'
-		} else {
-			menu.style.visibility = 'visible'
-		}
+
+		const menu = document.getElementById('menu')
+
+		if (menu)
+			if (hideMenu) {
+				menu.style.visibility = 'hidden'
+			} else {
+				menu.style.visibility = 'visible'
+			}
 	}
 
 	listen(): boolean {
@@ -1127,7 +1211,7 @@ class Annotator {
 		this.settings.fpsRendering = 30
 		return this.isLiveMode
 	}
-	
+
 	stopListening(): boolean {
 		if (!this.isLiveMode) return this.isLiveMode
 
@@ -1141,20 +1225,20 @@ class Annotator {
 		this.settings.fpsRendering = 60
 		return this.isLiveMode
 	}
-	
-	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion) {
+
+	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
 		this.carModel.position.set(position.x, position.y, position.z)
 		this.carModel.setRotationFromQuaternion(rotation)
 		// This is because the car model is rotated 90 degrees
 		this.carModel.rotateY(-1.5708)
 		// Bring the model close to the ground (approx height of the sensors)
-		let p = this.carModel.getWorldPosition()
+		const p = this.carModel.getWorldPosition()
 		this.carModel.position.set(p.x, 0, p.z)
 	}
-	
-	private updateCameraPose() {
-		let p = this.carModel.getWorldPosition()
-		let offset = new THREE.Vector3(20, 15, 0)
+
+	private updateCameraPose(): void {
+		const p = this.carModel.getWorldPosition()
+		const offset = new THREE.Vector3(20, 15, 0)
 		offset.applyQuaternion(this.carModel.quaternion)
 		offset.add(p)
 		log.info(p.x)
@@ -1162,8 +1246,7 @@ class Annotator {
 		this.camera.lookAt(p)
 		this.camera.updateMatrix()
 	}
-	
+
 }
 
-
-export const annotator = new Annotator();
+export const annotator = new Annotator()
