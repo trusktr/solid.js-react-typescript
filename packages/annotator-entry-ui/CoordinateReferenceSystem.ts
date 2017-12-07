@@ -4,17 +4,17 @@
  */
 
 export interface CoordinateReferenceSystem {
-    coordinateSystem: string
-    datum: string
+	coordinateSystem: string
+	datum: string
 }
 
 export interface UtmCrsParameters {
-    utmZoneNumber: number
-    utmZoneLetter: string
+	utmZoneNumber: number
+	utmZoneLetter: string
 }
 
 export interface UtmCrs extends CoordinateReferenceSystem {
-    parameters: UtmCrsParameters
+	parameters: UtmCrsParameters
 }
 
 export interface LlaCrs extends CoordinateReferenceSystem {

@@ -1,7 +1,7 @@
 /**
-*  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
-*  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
-*/
+ *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
 
 /**
  * Error titles for popup dialogs
