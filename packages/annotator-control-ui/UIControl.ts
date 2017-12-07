@@ -14,7 +14,7 @@ const laneConn = document.getElementById('lane_conn')
 ///////////////////////////////////////////////////////////////////////////////
 const lpLabelsText = ['Lane ID:', 'Lane Width', 'Left Side:', 'Right Side:', 'Entry Type:', 'Exit Type:']
 const lpLabelsId = ['lp_id', 'lp_width', 'lp_left_side', 'lp_right_side', 'lp_entry', 'lp_exit']
-const lpLabels = []
+const lpLabels: Array<HTMLElement> = []
 for (const i in lpLabelsText) {
 	if (lpLabelsText.hasOwnProperty(i)) {
 		const elm = document.createElement('text')
@@ -37,7 +37,7 @@ const lpSelectValue = [
 	[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()],
 	[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()]]
 
-const lpSelects = []
+const lpSelects: Array<HTMLElement> = []
 const elm = document.createElement('text')
 elm.textContent = 'UNKNOWN'
 elm.id = 'lp_id_value'
@@ -66,7 +66,7 @@ for (const i in lpSelectsId) {
 
 const lcLabelsText = ['From Lane:', 'To Lane:', 'Relation:']
 const lcLabelsId = ['lc_from', 'lc_to', 'lc_relation']
-const lcLabels = []
+const lcLabels: Array<HTMLElement> = []
 for (const i in lcLabelsText) {
 	if (lcLabelsText.hasOwnProperty(i)) {
 		const element = document.createElement('text')
@@ -82,7 +82,7 @@ const lcSelectsItems = [
 	[],
 	[],
 	['left', 'left reverse', 'right', 'front', 'back']]
-const lcSelects = []
+const lcSelects: Array<HTMLSelectElement> = []
 for (const i in lcSelectsId) {
 	if (lcSelectsId.hasOwnProperty(i)) {
 		const element = document.createElement('select')
@@ -102,19 +102,21 @@ for (const i in lcSelectsId) {
 
 // Add elements to the menu panel
 ///////////////////////////////////////////////////////////////////////////////
-for (const i in lpSelects) {
-	if (lpSelects.hasOwnProperty(i)) {
-		laneProp.appendChild(lpLabels[i])
-		laneProp.appendChild(lpSelects[i])
+if (laneProp)
+	for (const i in lpSelects) {
+		if (lpSelects.hasOwnProperty(i)) {
+			laneProp.appendChild(lpLabels[i])
+			laneProp.appendChild(lpSelects[i])
+		}
 	}
-}
 
-for (const i in lcSelects) {
-	if (lcSelects.hasOwnProperty(i)) {
-		laneConn.appendChild(lcLabels[i])
-		laneConn.appendChild(lcSelects[i])
+if (laneConn)
+	for (const i in lcSelects) {
+		if (lcSelects.hasOwnProperty(i)) {
+			laneConn.appendChild(lcLabels[i])
+			laneConn.appendChild(lcSelects[i])
+		}
 	}
-}
 
 $('#menu_1').accordion({collapsible: true, heightStyle: "content"})
 $('#menu_2').accordion({collapsible: true, heightStyle: "content"})

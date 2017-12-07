@@ -6,6 +6,8 @@
  * @author erich666 / http://erichaines.com
  */
 
+import {Camera, Matrix4} from "three"
+
 const THREE = require('three')
 // This set of controls performs orbiting, dollying (zooming), and panning.
 // Unlike TrackballControls, it maintains the "up" direction object.up (+Y by default).
@@ -14,7 +16,7 @@ const THREE = require('three')
 //    Zoom - middle mouse, or mousewheel / touch: two finger spread or squish
 //    Pan - right mouse, or arrow keys / touch: three finger swipe
 
-THREE.OrbitControls = function (object, domElement) {
+THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): void {
 
 	this.object = object
 
@@ -85,19 +87,19 @@ THREE.OrbitControls = function (object, domElement) {
 	// public methods
 	//
 
-	this.getPolarAngle = function () {
+	this.getPolarAngle = function (): number {
 
 		return spherical.phi
 
 	}
 
-	this.getAzimuthalAngle = function () {
+	this.getAzimuthalAngle = function (): number {
 
 		return spherical.theta
 
 	}
 
-	this.reset = function () {
+	this.reset = function (): void {
 
 		scope.target.copy(scope.target0)
 		scope.object.position.copy(scope.position0)
@@ -113,7 +115,7 @@ THREE.OrbitControls = function (object, domElement) {
 	}
 
 	// this method is exposed, but perhaps it would be better if we can make it private...
-	this.update = function () {
+	this.update = function (): () => boolean {
 
 		const offset = new THREE.Vector3()
 
@@ -124,7 +126,7 @@ THREE.OrbitControls = function (object, domElement) {
 		const lastPosition = new THREE.Vector3()
 		const lastQuaternion = new THREE.Quaternion()
 
-		return function update() {
+		return function update(): boolean {
 
 			const position = scope.object.position
 
@@ -208,7 +210,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}()
 
-	this.dispose = function () {
+	this.dispose = function (): void {
 
 		scope.domElement.removeEventListener('contextmenu', onContextMenu, false)
 		scope.domElement.removeEventListener('mousedown', onMouseDown, false)
@@ -261,35 +263,35 @@ THREE.OrbitControls = function (object, domElement) {
 	const dollyEnd = new THREE.Vector2()
 	const dollyDelta = new THREE.Vector2()
 
-	function getAutoRotationAngle() {
+	function getAutoRotationAngle(): number {
 
 		return 2 * Math.PI / 60 / 60 * scope.autoRotateSpeed
 
 	}
 
-	function getZoomScale() {
+	function getZoomScale(): number {
 
 		return Math.pow(0.95, scope.zoomSpeed)
 
 	}
 
-	function rotateLeft(angle) {
+	function rotateLeft(angle: number): void {
 
 		sphericalDelta.theta -= angle
 
 	}
 
-	function rotateUp(angle) {
+	function rotateUp(angle: number): void {
 
 		sphericalDelta.phi -= angle
 
 	}
 
-	const panLeft = function () {
+	const panLeft = function (): (distance: number, objectMatrix: Matrix4) => void {
 
 		const v = new THREE.Vector3()
 
-		return function panLeft(distance, objectMatrix) {
+		return function panLeft(distance: number, objectMatrix: Matrix4): void {
 
 			v.setFromMatrixColumn(objectMatrix, 0) // get X column of objectMatrix
 			v.multiplyScalar(-distance)
@@ -300,11 +302,11 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}()
 
-	const panUp = function () {
+	const panUp = function (): (distance: number, objectMatrix: Matrix4) => void {
 
 		const v = new THREE.Vector3()
 
-		return function panUp(distance, objectMatrix) {
+		return function panUp(distance: number, objectMatrix: Matrix4): void {
 
 			v.setFromMatrixColumn(objectMatrix, 1) // get Y column of objectMatrix
 			v.multiplyScalar(distance)
@@ -316,11 +318,11 @@ THREE.OrbitControls = function (object, domElement) {
 	}()
 
 	// deltaX and deltaY are in pixels right and down are positive
-	const pan = function () {
+	const pan = function (): (deltaX: number, deltaY: number) => void {
 
 		const offset = new THREE.Vector3()
 
-		return function pan(deltaX, deltaY) {
+		return function pan(deltaX: number, deltaY: number): void {
 
 			const element = scope.domElement === document ? scope.domElement.body : scope.domElement
 
@@ -356,7 +358,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}()
 
-	function dollyIn(dollyScale) {
+	function dollyIn(dollyScale: number): void {
 
 		if (scope.object instanceof THREE.PerspectiveCamera) {
 
@@ -377,7 +379,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function dollyOut(dollyScale) {
+	function dollyOut(dollyScale: number): void {
 
 		if (scope.object instanceof THREE.PerspectiveCamera) {
 
@@ -402,25 +404,25 @@ THREE.OrbitControls = function (object, domElement) {
 	// event callbacks - update the object state
 	//
 
-	function handleMouseDownRotate(event) {
+	function handleMouseDownRotate(event: MouseEvent): void {
 
 		rotateStart.set(event.clientX, event.clientY)
 
 	}
 
-	function handleMouseDownDolly(event) {
+	function handleMouseDownDolly(event: MouseEvent): void {
 
 		dollyStart.set(event.clientX, event.clientY)
 
 	}
 
-	function handleMouseDownPan(event) {
+	function handleMouseDownPan(event: MouseEvent): void {
 
 		panStart.set(event.clientX, event.clientY)
 
 	}
 
-	function handleMouseMoveRotate(event) {
+	function handleMouseMoveRotate(event: MouseEvent): void {
 
 		rotateEnd.set(event.clientX, event.clientY)
 		rotateDelta.subVectors(rotateEnd, rotateStart)
@@ -439,7 +441,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function handleMouseMoveDolly(event) {
+	function handleMouseMoveDolly(event: MouseEvent): void {
 
 		dollyEnd.set(event.clientX, event.clientY)
 
@@ -461,7 +463,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function handleMouseMovePan(event) {
+	function handleMouseMovePan(event: MouseEvent): void {
 
 		panEnd.set(event.clientX, event.clientY)
 
@@ -475,12 +477,11 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function handleMouseUp(event) {
-		event
-
+	// tslint:disable-next-line:no-empty
+	function handleMouseUp(_: MouseEvent): void {
 	}
 
-	function handleMouseWheel(event) {
+	function handleMouseWheel(event: any): void {
 
 		if (event.deltaY < 0) {
 
@@ -496,7 +497,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function handleKeyDown(event) {
+	function handleKeyDown(event: KeyboardEvent): void {
 
 		switch (event.keyCode) {
 
@@ -520,17 +521,18 @@ THREE.OrbitControls = function (object, domElement) {
 				scope.update()
 				break
 
+			default:
 		}
 
 	}
 
-	function handleTouchStartRotate(event) {
+	function handleTouchStartRotate(event: TouchEvent): void {
 
 		rotateStart.set(event.touches[0].pageX, event.touches[0].pageY)
 
 	}
 
-	function handleTouchStartDolly(event) {
+	function handleTouchStartDolly(event: TouchEvent): void {
 
 		const dx = event.touches[0].pageX - event.touches[1].pageX
 		const dy = event.touches[0].pageY - event.touches[1].pageY
@@ -541,13 +543,13 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function handleTouchStartPan(event) {
+	function handleTouchStartPan(event: TouchEvent): void {
 
 		panStart.set(event.touches[0].pageX, event.touches[0].pageY)
 
 	}
 
-	function handleTouchMoveRotate(event) {
+	function handleTouchMoveRotate(event: TouchEvent): void {
 
 		rotateEnd.set(event.touches[0].pageX, event.touches[0].pageY)
 		rotateDelta.subVectors(rotateEnd, rotateStart)
@@ -566,7 +568,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function handleTouchMoveDolly(event) {
+	function handleTouchMoveDolly(event: TouchEvent): void {
 
 		const dx = event.touches[0].pageX - event.touches[1].pageX
 		const dy = event.touches[0].pageY - event.touches[1].pageY
@@ -593,7 +595,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function handleTouchMovePan(event) {
+	function handleTouchMovePan(event: TouchEvent): void {
 
 		panEnd.set(event.touches[0].pageX, event.touches[0].pageY)
 
@@ -607,16 +609,15 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function handleTouchEnd(event) {
-		event
-
+	// tslint:disable-next-line:no-empty
+	function handleTouchEnd(_: TouchEvent): void {
 	}
 
 	//
 	// event handlers - FSM: listen for events and reset state
 	//
 
-	function onMouseDown(event) {
+	function onMouseDown(event: MouseEvent): void {
 
 		if (scope.enabled === false) return
 
@@ -659,7 +660,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function onMouseMove(event) {
+	function onMouseMove(event: MouseEvent): void {
 
 		if (scope.enabled === false) return
 
@@ -687,7 +688,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function onMouseUp(event) {
+	function onMouseUp(event: MouseEvent): void {
 
 		if (scope.enabled === false) return
 
@@ -702,7 +703,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function onMouseWheel(event) {
+	function onMouseWheel(event: MouseEvent): void {
 
 		if (scope.enabled === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE )) return
 
@@ -716,7 +717,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function onKeyDown(event) {
+	function onKeyDown(event: KeyboardEvent): void {
 
 		if (scope.enabled === false || scope.enableKeys === false || scope.enablePan === false) return
 
@@ -724,7 +725,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function onTouchStart(event) {
+	function onTouchStart(event: TouchEvent): void {
 
 		if (scope.enabled === false) return
 
@@ -774,7 +775,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function onTouchMove(event) {
+	function onTouchMove(event: TouchEvent): void {
 
 		if (scope.enabled === false) return
 
@@ -818,7 +819,7 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function onTouchEnd(event) {
+	function onTouchEnd(event: TouchEvent): void {
 
 		if (scope.enabled === false) return
 
@@ -830,13 +831,11 @@ THREE.OrbitControls = function (object, domElement) {
 
 	}
 
-	function onContextMenu(event) {
+	function onContextMenu(event: PointerEvent): void {
 
 		event.preventDefault()
 
 	}
-
-	//
 
 	scope.domElement.addEventListener('contextmenu', onContextMenu, false)
 
@@ -854,134 +853,6 @@ THREE.OrbitControls = function (object, domElement) {
 	this.update()
 
 }
-
-THREE.OrbitControls.prototype = Object.create(THREE.EventDispatcher.prototype)
-THREE.OrbitControls.prototype.constructor = THREE.OrbitControls
-
-Object.defineProperties(THREE.OrbitControls.prototype, {
-
-	center: {
-
-		get: function () {
-
-			console.warn('THREE.OrbitControls: .center has been renamed to .target')
-			return this.target
-
-		}
-
-	},
-
-	// backward compatibility
-
-	noZoom: {
-
-		get: function () {
-
-			console.warn('THREE.OrbitControls: .noZoom has been deprecated. Use .enableZoom instead.')
-			return !this.enableZoom
-
-		},
-
-		set: function (value) {
-
-			console.warn('THREE.OrbitControls: .noZoom has been deprecated. Use .enableZoom instead.')
-			this.enableZoom = !value
-
-		}
-
-	},
-
-	noRotate: {
-
-		get: function () {
-
-			console.warn('THREE.OrbitControls: .noRotate has been deprecated. Use .enableRotate instead.')
-			return !this.enableRotate
-
-		},
-
-		set: function (value) {
-
-			console.warn('THREE.OrbitControls: .noRotate has been deprecated. Use .enableRotate instead.')
-			this.enableRotate = !value
-
-		}
-
-	},
-
-	noPan: {
-
-		get: function () {
-
-			console.warn('THREE.OrbitControls: .noPan has been deprecated. Use .enablePan instead.')
-			return !this.enablePan
-
-		},
-
-		set: function (value) {
-
-			console.warn('THREE.OrbitControls: .noPan has been deprecated. Use .enablePan instead.')
-			this.enablePan = !value
-
-		}
-
-	},
-
-	noKeys: {
-
-		get: function () {
-
-			console.warn('THREE.OrbitControls: .noKeys has been deprecated. Use .enableKeys instead.')
-			return !this.enableKeys
-
-		},
-
-		set: function (value) {
-
-			console.warn('THREE.OrbitControls: .noKeys has been deprecated. Use .enableKeys instead.')
-			this.enableKeys = !value
-
-		}
-
-	},
-
-	staticMoving: {
-
-		get: function () {
-
-			console.warn('THREE.OrbitControls: .staticMoving has been deprecated. Use .enableDamping instead.')
-			return !this.enableDamping
-
-		},
-
-		set: function (value) {
-
-			console.warn('THREE.OrbitControls: .staticMoving has been deprecated. Use .enableDamping instead.')
-			this.enableDamping = !value
-
-		}
-
-	},
-
-	dynamicDampingFactor: {
-
-		get: function () {
-
-			console.warn('THREE.OrbitControls: .dynamicDampingFactor has been renamed. Use .dampingFactor instead.')
-			return this.dampingFactor
-
-		},
-
-		set: function (value) {
-
-			console.warn('THREE.OrbitControls: .dynamicDampingFactor has been renamed. Use .dampingFactor instead.')
-			this.dampingFactor = value
-
-		}
-
-	}
-
-})
 
 THREE.OrbitControls.prototype = Object.create(THREE.EventDispatcher.prototype)
 THREE.OrbitControls.prototype.constructor = THREE.OrbitControls

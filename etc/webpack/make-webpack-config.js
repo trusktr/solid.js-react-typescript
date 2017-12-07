@@ -1,4 +1,3 @@
-
 // GET SHELL JS
 import '../tools/global-env'
 import assert from 'assert'
@@ -13,12 +12,10 @@ import {CheckerPlugin} from 'awesome-typescript-loader'
 // EXTERNALS / makes all node_modules external
 import nodeExternals from 'webpack-node-externals'
 
-
 // Import globals
 const
 	{
 		isDev,
-		env,
 		baseDir,
 		srcRootDir,
 		_
@@ -31,8 +28,6 @@ const
 /**
  * Resolves directories and maps to ram disk
  * if available
- *
- * @param dirs
  */
 function resolveDirs(...dirs) {
 	return dirs.map(dir => {
@@ -42,14 +37,12 @@ function resolveDirs(...dirs) {
 	})
 }
 
-
 assert(Fs.existsSync(srcRootDir), `TypeScript must be compiled to ${Path.resolve(srcRootDir)}`)
 
 const
-	
 	// Module Directories
 	moduleDirs = resolveDirs(srcRootDir, 'node_modules'),
-	
+
 	// Output Directory
 	distDir = `${baseDir}/dist/${isPackaging ? 'app-package' : 'app'}`
 
@@ -58,40 +51,13 @@ function tsAlias(tsFilename) {
 	return Path.resolve(srcRootDir, tsFilename)
 }
 
-/**
- * Get all epic packages
- */
-function getPackages() {
-	// const
-	// 	{packages} = require('../../epic-config')
-	//
-	// Object.keys(packages).forEach(name => {
-	// 	packages[name].name = name
-	// })
-	//
-	return {}
-}
-
-
-/**
- * Create typescript package aliases from tsconfig.json
- */
-function makePackageAliases() {
-	return Object.values(getPackages()).reduce((aliasMap = {}, {name}) => {
-		//aliasMap[name] = path.join('.','packages',name)// path.resolve(process.cwd(),'packages',name)
-		return aliasMap
-	}, {})
-}
-
-
 function makeAliases() {
-	return _.assign(makePackageAliases(), {
+	return {
 		buildResources: Path.resolve(baseDir, 'build'),
 		libs: Path.resolve(baseDir, 'libs'),
 		styles: tsAlias('annotator-assets/styles'),
 		assets: tsAlias('annotator-assets')
-		
-	})
+	}
 }
 
 /**
@@ -122,30 +88,27 @@ export function makeHotEntry(entry, devEntries) {
 		entry.unshift("webpack/hot/dev-server")
 		entry.unshift('webpack/hot/poll.js?500')
 	}
-	
+
 	if (devEntries)
 		entry.unshift(...devEntries)
-	
+
 	return entry
 }
-
 
 function makeOutputConfig(name, isEntry = false) {
 	const
 		outputConfig = {
 			path: `${distDir}/`,
 			publicPath: `${distDir}/`,
-			//publicPath: "./",
 		}
-	
+
 	outputConfig.filename = '[name].js'
-	
+
 	if (isEntry !== true)
 		outputConfig.library = `${name}`
-	
+
 	return outputConfig
 }
-
 
 function makeResolveConfig() {
 	return {
@@ -155,23 +118,17 @@ function makeResolveConfig() {
 	}
 }
 
-
 function patchConfig(config) {
 	// Development specific updates
 	if (isDev) {
 		_.merge(config, {
 			// In development specify absolute path - better debugger support
 			output: {
-				// devtoolModuleFilenameTemplate: "[absolute-resource-path]",
-				// devtoolFallbackModuleFilenameTemplate: "[absolute-resource-path]"
 				devtoolModuleFilenameTemplate: "file://[absolute-resource-path]",
 				devtoolFallbackModuleFilenameTemplate: "file://[absolute-resource-path]"
 			},
-			
 		})
-		
-		// IF ENTRY & DEV THEN HMR
-		//if (isEntry)
+
 		config.plugins.splice(1, 0, new HotModuleReplacementPlugin())
 	} else {
 		config.plugins.push(new Webpack.optimize.UglifyJsPlugin({
@@ -185,39 +142,30 @@ function patchConfig(config) {
 			debug: false
 		}))
 	}
-	
+
 	return config
 }
 
-
-
 const
 	DevTools = {
-		//'eval-source-map', //'#cheap-module-eval-source-map',
-		//'development': 'cheap-module-eval-source-map',//'inline-source-map',
-		//'development': 'inline-source-map',
-		//'development': 'cheap-inline-source-map',
 		'development': 'cheap-source-map',
-		//'development': 'source-map',
-		//'development': 'source-map',
 		'production': 'source-map'
 	},
-	
+
 	devtool = DevTools[process.env.NODE_ENV]
 
 // Webpack Config
 export function makeConfig(name, dependencies, entry, configFn) {
-	
 	let
 		config = {
-			
+
 			name,
 			dependencies,
 			/**
 			 * Target type
 			 */
 			target: 'node',
-			
+
 			/**
 			 * All entries including common
 			 */
@@ -226,57 +174,54 @@ export function makeConfig(name, dependencies, entry, configFn) {
 			 * Source root, './packages'
 			 */
 			context: srcRootDir,
-			
+
 			/**
 			 * Stats config
 			 */
 			stats:  WebpackStatsConfig,
-			
+
 			/**
 			 * Output configuration
 			 */
-			// output: makeOutputConfig(name,isEntry || false),
 			output: makeOutputConfig(null, true),
-			
+
 			// LOADERS
 			module: makeModuleConfig(),
 			cache: true,
 			recordsPath: `${distDir}/records__${name}`,
-			
+
 			/**
 			 * DevTool config
 			 */
 			devtool,
-			
+
 			// Currently we need to add '.ts' to the resolve.extensions array.
 			resolve: makeResolveConfig(),
-			
-			
+
 			/**
 			 * Plugins
 			 */
 			plugins: [
-				
 				new CheckerPlugin(),
-				
+
 				// NO ERRORS
 				new Webpack.NoEmitOnErrorsPlugin(),
-				
+
 				// AVOID CIRCULAR
 				new CircularDependencyPlugin(),
-				
+
 				// ENV
 				new DefinePlugin(DefinedEnv),
-				
+
 				// NAMED MODULES
 				new Webpack.NamedModulesPlugin(),
-				
+
 				// ALWAYS BLUEBIRD
 				new Webpack.ProvidePlugin({
 					'Promise': 'bluebird'
 				})
 			],
-			
+
 			/**
 			 * Node Shims
 			 */
@@ -286,16 +231,15 @@ export function makeConfig(name, dependencies, entry, configFn) {
 				global: true,
 				process: true
 			},
-			
+
 			/**
 			 * Externals
 			 */
 			externals: makeExternals()
 		}
-	
+
 	if (configFn)
 		configFn(config)
-	
+
 	return patchConfig(config)
-	
 }
