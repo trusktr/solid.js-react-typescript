@@ -16,7 +16,7 @@ import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
-import Models = MapperProtos.com.mapperai.models
+import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
 

@@ -86,7 +86,7 @@
     "webpack-node-externals": "1.2.0"
   },
   "dependencies": {
-    "@mapperai/mapper-models": "0.0.46",
+    "@mapperai/mapper-models": "1.7.12",
     "async-file": "2.0.2",
     "bluebird": "3.4.0",
     "dat.gui": "0.6.1",

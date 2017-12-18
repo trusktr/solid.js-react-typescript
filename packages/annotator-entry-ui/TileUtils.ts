@@ -8,7 +8,7 @@ import * as Path from 'path'
 import * as AsyncFile from 'async-file'
 import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
-import Models = MapperProtos.com.mapperai.models
+import Models = MapperProtos.mapper.models
 import * as TypeLogger from 'typelogger'
 import {UtmInterface} from "./UtmInterface"
 import {BufferGeometry} from "three"
@@ -35,6 +35,14 @@ async function loadTile(filename: string): Promise<Models.PointCloudTileMessage>
 const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Array<number>> => {
 	if (step <= 0) {
 		log.error("Can't sample data. Step should be > 0.")
+		return []
+	}
+	if (!msg.points) {
+		log.error("PointCloudTileMessage is missing points")
+		return []
+	}
+	if (!msg.colors) {
+		log.error("PointCloudTileMessage is missing colors")
 		return []
 	}
 
@@ -117,6 +125,8 @@ export class TileManager extends UtmInterface {
 	private checkCoordinateSystem(msg: Models.PointCloudTileMessage, inputCoordinateFrame: CoordinateFrameType): boolean {
 		const num = msg.utmZoneNumber
 		const letter = msg.utmZoneLetter
+		if (!num || !letter)
+			return false
 		const inputPoint = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
 		const p = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
 
@@ -166,7 +176,7 @@ export class TileManager extends UtmInterface {
 
 			const msg = await loadTile(Path.join(datasetPath, files[i]))
 
-			if (msg.points.length === 0) {
+			if (!msg.points || msg.points.length === 0) {
 				continue
 			}
 
