@@ -618,7 +618,7 @@ class Annotator {
 		})
 
 		if (!(pathElectron && pathElectron[0]))
-			return Promise.reject(Error('no point cloud directory was selected'))
+			return Promise.resolve()
 
 		log.info('Loading point cloud from ' + pathElectron[0])
 		return this.loadPointCloudData(pathElectron[0])
