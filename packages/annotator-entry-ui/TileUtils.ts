@@ -255,7 +255,7 @@ export class TileManager extends UtmInterface {
 	 * the whole thing appears above the artificial ground plane.
 	 */
 	centerPoint(): THREE.Vector3 | null {
-		if (this.pointCloud) {
+		if (this.pointCloud && this.rawPositions.length) {
 			const geometry = this.pointCloud.geometry
 			geometry.computeBoundingBox()
 			return geometry.boundingBox.getCenter().setY(geometry.boundingBox.min.y)
