@@ -16,8 +16,8 @@ let win: BrowserWindow | null
 function createWindow(): void {
 	// Create the browser window.
 	const options = {} as BrowserWindowConstructorOptions
-	const width = parseInt(config.get('electron.window.default.width'), 10)
-	const height = parseInt(config.get('electron.window.default.height'), 10)
+	const width = parseInt(config.get('startup.electron.window.default.width'), 10)
+	const height = parseInt(config.get('startup.electron.window.default.height'), 10)
 	let maximize = false
 	if (width && height) {
 		options.width = width

@@ -205,6 +205,13 @@ class Annotator {
 		// Bind events
 		this.bind()
 		Annotator.deactivateLaneProp()
+
+		const pointCloudDir = config.get('startup.point_cloud_directory')
+		if (pointCloudDir) {
+			log.info('loading pre-configured data set ' + pointCloudDir)
+			this.loadPointCloudData(pointCloudDir)
+				.catch(err => log.warn('loadFromFile failed: ' + err.message))
+		}
 	}
 
 	/**
@@ -498,6 +505,7 @@ class Annotator {
 				break
 			}
 			default:
+				// nothing to see here
 		}
 	}
 

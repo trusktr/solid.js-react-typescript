@@ -1,3 +1,9 @@
+# application initialization
+# Set window dimensions to 0 to maximize.
+startup.electron.window.default.width: 0
+startup.electron.window.default.height: 0
+startup.point_cloud_directory:
+
 # persistence of a data file
 output.annotations.json.path: ./data/annotations-utm.json
 output.annotations.kml.path: ./data/path.kml
