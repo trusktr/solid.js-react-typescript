@@ -24,12 +24,24 @@ export enum CoordinateFrameType {
 
 const threeDStepSize: number = 3
 
+let warningDelivered = false
+
 /**
  * Load a point cloud tile message from a proto binary file
  */
-async function loadTile(filename: string): Promise<Models.PointCloudTileMessage> {
+function loadTile(filename: string): Promise<Models.PointCloudTileMessage> {
 	return AsyncFile.readFile(filename)
 		.then(buffer => Models.PointCloudTileMessage.decode(buffer))
+		.then(msg => {
+			// Perception doesn't set UTM zone correctly. For now we have to assume the data are from San Francisco.
+			if (!warningDelivered) {
+				log.warn('forcing tiles into UTM zone 10N')
+				warningDelivered = true
+			}
+			msg.utmZoneNumber = 10
+			msg.utmZoneNorthernHemisphere = true
+			return msg
+		})
 }
 
 const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Array<number>> => {
@@ -112,31 +124,31 @@ export class TileManager extends UtmInterface {
 		} else {
 			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
 		}
-		return 'TileManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])'
+		return 'TileManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneNorthernHemisphere + ', offset: [' + offsetStr + '])'
 	}
 
 	// "default" according to protobuf rules for default values
-	private static isDefaultUtmZone(num: number, letter: string): boolean {
-		return num === 0 && letter === ""
+	private static isDefaultUtmZone(num: number, northernHemisphere: boolean): boolean {
+		return num === 0 && northernHemisphere === false
 	}
 
 	// The first tile we see defines the local origin and UTM zone for the lifetime of the application.
 	// All other data is expected to lie in the same zone.
 	private checkCoordinateSystem(msg: Models.PointCloudTileMessage, inputCoordinateFrame: CoordinateFrameType): boolean {
 		const num = msg.utmZoneNumber
-		const letter = msg.utmZoneLetter
-		if (!num || !letter)
+		const northernHemisphere = msg.utmZoneNorthernHemisphere
+		if (!num || northernHemisphere === null)
 			return false
 		const inputPoint = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
 		const p = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
 
 		if (!p)
 			return false
-		else if (this.setOrigin(num, letter, p))
+		else if (this.setOrigin(num, northernHemisphere, p))
 			return true
 		else
-			return TileManager.isDefaultUtmZone(num, letter)
-				|| this.utmZoneNumber === num && this.utmZoneLetter === letter
+			return TileManager.isDefaultUtmZone(num, northernHemisphere)
+				|| this.utmZoneNumber === num && this.utmZoneNorthernHemisphere === northernHemisphere
 	}
 
 	/**

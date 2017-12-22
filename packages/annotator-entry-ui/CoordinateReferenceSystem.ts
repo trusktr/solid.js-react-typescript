@@ -10,7 +10,7 @@ export interface CoordinateReferenceSystem {
 
 export interface UtmCrsParameters {
 	utmZoneNumber: number
-	utmZoneLetter: string
+	utmZoneNorthernHemisphere: boolean
 }
 
 export interface UtmCrs extends CoordinateReferenceSystem {

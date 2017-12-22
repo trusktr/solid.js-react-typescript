@@ -5,6 +5,7 @@
 
 const config = require('../config')
 const vsprintf = require("sprintf-js").vsprintf
+import {isNullOrUndefined} from "util"
 import * as THREE from 'three'
 import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
@@ -54,6 +55,8 @@ function getMarkerInBetween(marker1: Vector3, marker2: Vector3, atDistance: numb
 }
 
 interface AnnotationManagerJsonInterface {
+	version: number
+	created: string
 	coordinateReferenceSystem: CRS.CoordinateReferenceSystem
 	annotations: Array<LaneAnnotationJsonInterface>
 }
@@ -61,7 +64,7 @@ interface AnnotationManagerJsonInterface {
 /**
  * The AnnotationManager is in charge of maintaining a set of annotations and all operations
  * to modify, add or delete them. It also keeps an index to the "active" annotation as well
- * as it's markers. The "active" annotation is the only one that can be modified.
+ * as its markers. The "active" annotation is the only one that can be modified.
  */
 export class AnnotationManager extends UtmInterface {
 	datum: string = 'WGS84'
@@ -93,7 +96,7 @@ export class AnnotationManager extends UtmInterface {
 		} else {
 			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
 		}
-		return 'AnnotationManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneLetter + ', offset: [' + offsetStr + '])'
+		return 'AnnotationManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneNorthernHemisphere + ', offset: [' + offsetStr + '])'
 	}
 
 	/**
@@ -605,10 +608,10 @@ export class AnnotationManager extends UtmInterface {
 		let result: string = ''
 		data.forEach((marker) => {
 			// Get latitude longitude
-			const latLngPoint = this.threeJsToLatLng(marker)
-			result += latLngPoint.lng.toString()
+			const lngLatAlt = this.threeJsToLngLatAlt(marker)
+			result += lngLatAlt.x.toString()
 			result += columnDelimiter
-			result += latLngPoint.lat.toString()
+			result += lngLatAlt.y.toString()
 			result += lineDelimiter
 		})
 
@@ -817,15 +820,37 @@ export class AnnotationManager extends UtmInterface {
 		}
 	}
 
+	// Get the file-format version of a saved annotation.
+	private static annotationsFileVersion(data: Object): number {
+		let version = parseInt(data['version'], 10);
+		if (isNaN(version))
+			return 1
+		else
+			return version
+	}
+
 	/**
 	 * This expects the serialized UtmCrs structure produced by toJSON().
 	 */
-	private checkCoordinateSystem(data: Object): boolean {
+	private checkCoordinateSystem(data: Object, version: number): boolean {
 		const crs = data['coordinateReferenceSystem']
 		if (crs['coordinateSystem'] !== 'UTM') return false
 		if (crs['datum'] !== this.datum) return false
-		const num = crs['parameters']['utmZoneNumber']
-		const letter = crs['parameters']['utmZoneLetter']
+		let num: number
+		let northernHemisphere: boolean
+		if (version === 1) {
+			// Files generated under this version, in late 2017, were marked with MGRS zone 18S regardless
+			// of whether the data came from DC or SF. We have no way of knowing the difference. Assume SF.
+			num = 10
+			northernHemisphere = true
+		} else {
+			if (isNullOrUndefined(crs['parameters']['utmZoneNumber']))
+				return false
+			num = crs['parameters']['utmZoneNumber']
+			if (isNullOrUndefined(crs['parameters']['utmZoneNorthernHemisphere']))
+				return false
+			northernHemisphere = !!crs['parameters']['utmZoneNorthernHemisphere']
+		}
 
 		if (!data['annotations']) return false
 		// generate an arbitrary offset for internal use, given the first point in the data set
@@ -841,8 +866,8 @@ export class AnnotationManager extends UtmInterface {
 		}
 		if (!first) return false
 
-		return this.setOrigin(num, letter, first) ||
-			this.utmZoneNumber === num && this.utmZoneLetter === letter
+		return this.setOrigin(num, northernHemisphere, first) ||
+			this.utmZoneNumber === num && this.utmZoneNorthernHemisphere === northernHemisphere
 	}
 
 	/**
@@ -874,7 +899,8 @@ export class AnnotationManager extends UtmInterface {
 		return new Promise((resolve: (value: THREE.Vector3 | null) => void, reject: (reason: Error) => void): void => {
 			AsyncFile.readFile(fileName, 'ascii').then((text: string) => {
 				const data = JSON.parse(text)
-				if (self.checkCoordinateSystem(data)) {
+				const version = AnnotationManager.annotationsFileVersion(data)
+				if (self.checkCoordinateSystem(data, version)) {
 					self.convertCoordinates(data)
 					let boundingBox = new THREE.Box3()
 					// Each element is an annotation
@@ -888,7 +914,10 @@ export class AnnotationManager extends UtmInterface {
 						resolve(boundingBox.getCenter().setY(boundingBox.min.y))
 					}
 				} else {
-					reject(Error(`UTM Zone for new annotations (${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneLetter']}) does not match existing zone in ${self.getOrigin()}`))
+					const zoneId = version === 1
+						? `${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneLetter']}`
+						: `${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneNorthernHemisphere']}`
+					reject(Error(`UTM Zone for new annotations (${zoneId}) does not match existing zone in ${self.getOrigin()}`))
 				}
 			})
 		})
@@ -933,8 +962,8 @@ export class AnnotationManager extends UtmInterface {
 	private threeJsToLlaJsonObject(): (p: THREE.Vector3) => Object {
 		const self = this
 		return function (p: THREE.Vector3): Object {
-			const lla = self.threeJsToLla(p)
-			return {'lon': lla.x, 'lat': lla.y, 'alt': lla.z}
+			const lngLatAlt = self.threeJsToLngLatAlt(p)
+			return {'lng': lngLatAlt.x, 'lat': lngLatAlt.y, 'alt': lngLatAlt.z}
 		}
 	}
 
@@ -947,7 +976,7 @@ export class AnnotationManager extends UtmInterface {
 				datum: this.datum,
 				parameters: {
 					utmZoneNumber: this.utmZoneNumber,
-					utmZoneLetter: this.utmZoneLetter,
+					utmZoneNorthernHemisphere: this.utmZoneNorthernHemisphere,
 				}
 			} as CRS.UtmCrs
 			pointConverter = this.threeJsToUtmJsonObject()
@@ -961,6 +990,8 @@ export class AnnotationManager extends UtmInterface {
 			throw new Error('unknown OutputFormat: ' + format)
 		}
 		const data: AnnotationManagerJsonInterface = {
+			version: 2,
+			created: new Date().toISOString(),
 			coordinateReferenceSystem: crs,
 			annotations: [],
 		}
@@ -1002,7 +1033,7 @@ export class AnnotationManager extends UtmInterface {
 		// Convert points to lat lon
 		const geopoints: Array<THREE.Vector3> = []
 		points.forEach((p) => {
-			geopoints.push(this.threeJsToLla(p))
+			geopoints.push(this.threeJsToLngLatAlt(p))
 		})
 
 		// Save file

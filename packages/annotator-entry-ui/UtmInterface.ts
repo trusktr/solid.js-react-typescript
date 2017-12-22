@@ -9,11 +9,11 @@ import * as TypeLogger from 'typelogger'
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-const utmObj = new (require('utm-latlng'))()
+const utmConverter = require('utm')
 
 export interface UtmLocalOrigin {
 	utmZoneNumber: number
-	utmZoneLetter: string
+	utmZoneNorthernHemisphere: boolean
 	offset: THREE.Vector3
 }
 
@@ -24,24 +24,21 @@ export interface UtmLocalOrigin {
  */
 export class UtmInterface implements UtmLocalOrigin {
 	private readonly defaultUtmZoneNumber: number = 18 // Washington, DC
-	private readonly defaultUtmZoneLetter: string = 'S' // Washington, DC
+	private readonly defaultUtmZoneNorthernHemisphere: boolean = true // Washington, DC
 
 	utmZoneNumber: number
-	utmZoneLetter: string
+	utmZoneNorthernHemisphere: boolean
 	// this is an offset from UTM origin for display purposes:
 	// three.js rendering breaks down on coordinates with high absolute value
 	offset: THREE.Vector3 = new THREE.Vector3(0, 0, 0)
 
-	static isValidUtmZone(num: number, letter: string): boolean {
-		return num >= 1 && num <= 60 &&
-			letter.length === 1 &&
-			letter >= "C" && letter <= "X" &&
-			letter !== "I" && letter !== "O"
+	static isValidUtmZone(num: number, northernHemisphere: boolean): boolean {
+		return num >= 1 && num <= 60 && northernHemisphere !== null
 	}
 
 	// Decide whether UTM values have been initialized.
 	hasOrigin(): boolean {
-		return this.offset !== null && UtmInterface.isValidUtmZone(this.utmZoneNumber, this.utmZoneLetter)
+		return this.offset !== null && UtmInterface.isValidUtmZone(this.utmZoneNumber, this.utmZoneNorthernHemisphere)
 	}
 
 	getOrigin(): UtmLocalOrigin {
@@ -50,7 +47,7 @@ export class UtmInterface implements UtmLocalOrigin {
 
 	setOriginWithInterface(utm: UtmInterface): boolean {
 		if (utm.hasOrigin()) {
-			return this.setOrigin(utm.utmZoneNumber, utm.utmZoneLetter, utm.offset)
+			return this.setOrigin(utm.utmZoneNumber, utm.utmZoneNorthernHemisphere, utm.offset)
 		} else {
 			return true
 		}
@@ -58,20 +55,20 @@ export class UtmInterface implements UtmLocalOrigin {
 
 	// UTM origin can be set one time; subsequent attempts to set must match the first one.
 	// Assume that the origin does not change for the lifetime of the application.
-	setOrigin(num: number, letter: string, offset: THREE.Vector3): boolean {
+	setOrigin(num: number, northernHemisphere: boolean, offset: THREE.Vector3): boolean {
 		if (this.hasOrigin()) {
 			return this.offset.x === offset.x && this.offset.y === offset.y && this.offset.z === offset.z &&
-				this.utmZoneNumber === num && this.utmZoneLetter === letter
+				this.utmZoneNumber === num && this.utmZoneNorthernHemisphere === northernHemisphere
 		} else {
 			this.offset = offset
-			if (UtmInterface.isValidUtmZone(num, letter)) {
+			if (UtmInterface.isValidUtmZone(num, northernHemisphere)) {
 				this.utmZoneNumber = num
-				this.utmZoneLetter = letter
+				this.utmZoneNorthernHemisphere = northernHemisphere
 			} else {
 				this.utmZoneNumber = this.defaultUtmZoneNumber
-				this.utmZoneLetter = this.defaultUtmZoneLetter
+				this.utmZoneNorthernHemisphere = this.defaultUtmZoneNorthernHemisphere
 			}
-			log.info('setting UTM zone: ' + this.utmZoneNumber + this.utmZoneLetter)
+			log.info('setting UTM zone: ' + this.utmZoneNumber + (this.utmZoneNorthernHemisphere ? 'N' : 'S'))
 			log.info('setting UTM origin offset: ' + this.offset.x + ', ' + this.offset.y + ', ' + this.offset.z)
 			return true
 		}
@@ -91,18 +88,10 @@ export class UtmInterface implements UtmLocalOrigin {
 		return new THREE.Vector3(tmp.y, tmp.z, tmp.x)
 	}
 
-	threeJsToLatLng(p: THREE.Vector3) {
+	threeJsToLngLatAlt(p: THREE.Vector3): THREE.Vector3 {
 		// First change coordinate frame from THREE js to UTM
 		const utm = this.threeJsToUtm(p)
-		// Get latitude longitude
-		return utmObj.convertUtmToLatLng(utm.x, utm.y, this.utmZoneNumber, this.utmZoneLetter)
-	}
-
-	threeJsToLla(p: THREE.Vector3): THREE.Vector3 {
-		// First change coordinate frame from THREE js to UTM
-		const utm = this.threeJsToUtm(p)
-		// Get latitude longitude
-		const latLon = utmObj.convertUtmToLatLng(utm.x, utm.y, this.utmZoneNumber, this.utmZoneLetter)
-		return new THREE.Vector3(latLon.lng, latLon.lat, utm.z)
+		const lngLat = utmConverter.toLatLon(utm.x, utm.y, this.utmZoneNumber, undefined, this.utmZoneNorthernHemisphere, false) // todo strict=true
+		return new THREE.Vector3(lngLat.longitude, lngLat.latitude, utm.z)
 	}
 }
