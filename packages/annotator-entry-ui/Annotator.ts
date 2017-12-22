@@ -16,7 +16,7 @@ import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
-import Models = MapperProtos.com.mapperai.models
+import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
 
@@ -618,7 +618,7 @@ class Annotator {
 		})
 
 		if (!(pathElectron && pathElectron[0]))
-			return Promise.reject(Error('no point cloud directory was selected'))
+			return Promise.resolve()
 
 		log.info('Loading point cloud from ' + pathElectron[0])
 		return this.loadPointCloudData(pathElectron[0])
