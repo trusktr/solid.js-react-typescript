@@ -437,51 +437,68 @@ class Annotator {
 	 * Handle keyboard events
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
-		if (event.code === 'KeyA')
-			this.isAddMarkerKeyPressed = true
-
-		if (event.code === 'KeyC')
-			this.focusOnPointCloud()
-
-		if (event.code === 'KeyD') {
-			log.info("Deleting last marker")
-			if (this.annotationManager.deleteLastLaneMarker())
-				this.hideTransform()
+		switch (event.code) {
+			case 'KeyA': {
+				this.isAddMarkerKeyPressed = true
+				break
+			}
+			case 'KeyC': {
+				this.focusOnPointCloud()
+				break
+			}
+			case 'KeyD': {
+				log.info("Deleting last marker")
+				if (this.annotationManager.deleteLastLaneMarker())
+					this.hideTransform()
+				break
+			}
+			case 'KeyN': {
+				this.addLane()
+				break
+			}
+			case 'KeyZ': {
+				this.deleteLane()
+				break
+			}
+			case 'KeyF': {
+				this.addFront()
+				break
+			}
+			case 'KeyL': {
+				this.addLeftSame()
+				break
+			}
+			case 'KeyK': {
+				this.addLeftReverse()
+				break
+			}
+			case 'KeyR': {
+				this.addRightSame()
+				break
+			}
+			case 'KeyE': {
+				this.addRightReverse()
+				break
+			}
+			case 'KeyS': {
+				this.saveToFile()
+				break
+			}
+			case 'KeyM': {
+				this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
+					.catch(err => log.warn('saveToKML failed: ' + err.message))
+				break
+			}
+			case 'KeyO': {
+				this.toggleListen()
+				break
+			}
+			case 'KeyU': {
+				this.unloadPointCloudData()
+				break
+			}
+			default:
 		}
-
-		if (event.code === 'KeyN')
-			this.addLane()
-
-		if (event.code === 'KeyZ')
-			this.deleteLane()
-
-		if (event.code === "KeyF")
-			this.addFront()
-
-		if (event.code === "KeyL")
-			this.addLeftSame()
-
-		if (event.code === "KeyK")
-			this.addLeftReverse()
-
-		if (event.code === "KeyR")
-			this.addRightSame()
-
-		if (event.code === "KeyE")
-			this.addRightReverse()
-
-		if (event.code === "KeyS")
-			this.saveToFile()
-
-		if (event.code === 'KeyM')
-			this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
-				.catch(err => log.warn('saveToKML failed: ' + err.message))
-
-		if (event.code === 'KeyO')
-			this.toggleListen()
-
-		if (event.code === 'KeyU')
-			this.unloadPointCloudData()
 	}
 
 	private onKeyUp = (): void => {
