@@ -105,7 +105,7 @@
     "three-obj-loader": "1.1.2",
     "typeguard": "0.0.12",
     "typelogger": "1.0.29",
-    "utm-latlng": "1.0.3",
+    "utm": "1.1.1",
     "uuid": "3.1.0",
     "zmq": "2.15.3"
   }
