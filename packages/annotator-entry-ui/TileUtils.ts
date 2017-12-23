@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+const config = require('../config')
 import * as Fs from 'fs'
 import * as Path from 'path'
 import * as AsyncFile from 'async-file'
@@ -112,9 +113,9 @@ export class TileManager extends UtmInterface {
 		)
 		this.rawPositions = new Array<number>(0)
 		this.rawColors = new Array<number>(0)
-		this.maxTilesToLoad = 2000
-		this.progressStepSize = 100
-		this.samplingStep = 5
+		this.maxTilesToLoad = parseInt(config.get('tile_manager.max_tiles_to_load'), 10) || 2000
+		this.progressStepSize = parseInt(config.get('tile_manager.progress_step_size'), 10) || 100
+		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
 	}
 
 	toString(): string {
@@ -255,7 +256,7 @@ export class TileManager extends UtmInterface {
 	 * the whole thing appears above the artificial ground plane.
 	 */
 	centerPoint(): THREE.Vector3 | null {
-		if (this.pointCloud) {
+		if (this.pointCloud && this.rawPositions.length) {
 			const geometry = this.pointCloud.geometry
 			geometry.computeBoundingBox()
 			return geometry.boundingBox.getCenter().setY(geometry.boundingBox.min.y)

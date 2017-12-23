@@ -31,6 +31,7 @@ const envFile = path.join(dirName, deployEnv + '.yaml')
 if (!fs.existsSync(envFile)) {
 	throw new Error(`Bad environment variable MAPPER_ENV=${deployEnv}. Missing required config file ${envFile}.`)
 }
+const localFile = path.join(dirName, 'local.yaml')
 
 nconf
 	// command-line arguments
@@ -38,7 +39,8 @@ nconf
 	// environment variables
 	.env(required)
 	// config files
-	.file({file: envFile, format: nconf.formats.yaml})
+	.file('local_config', {file: localFile, format: nconf.formats.yaml})
+	.file('shared_config', {file: envFile, format: nconf.formats.yaml})
 	.defaults({})
 
 required.forEach((key) => {

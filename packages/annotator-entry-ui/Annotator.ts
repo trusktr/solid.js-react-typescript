@@ -38,6 +38,12 @@ TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const root = $("#root")
 
+enum MenuVisibility {
+	HIDE = 0,
+	SHOW,
+	TOGGLE
+}
+
 interface AnnotatorSettings {
 	background: string
 	cameraOffset: THREE.Vector3
@@ -205,6 +211,15 @@ class Annotator {
 		// Bind events
 		this.bind()
 		Annotator.deactivateLaneProp()
+
+		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
+
+		const pointCloudDir = config.get('startup.point_cloud_directory')
+		if (pointCloudDir) {
+			log.info('loading pre-configured data set ' + pointCloudDir)
+			this.loadPointCloudData(pointCloudDir)
+				.catch(err => log.warn('loadFromFile failed: ' + err.message))
+		}
 	}
 
 	/**
@@ -437,51 +452,69 @@ class Annotator {
 	 * Handle keyboard events
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
-		if (event.code === 'KeyA')
-			this.isAddMarkerKeyPressed = true
-
-		if (event.code === 'KeyC')
-			this.focusOnPointCloud()
-
-		if (event.code === 'KeyD') {
-			log.info("Deleting last marker")
-			if (this.annotationManager.deleteLastLaneMarker())
-				this.hideTransform()
+		switch (event.code) {
+			case 'KeyA': {
+				this.isAddMarkerKeyPressed = true
+				break
+			}
+			case 'KeyC': {
+				this.focusOnPointCloud()
+				break
+			}
+			case 'KeyD': {
+				log.info("Deleting last marker")
+				if (this.annotationManager.deleteLastLaneMarker())
+					this.hideTransform()
+				break
+			}
+			case 'KeyN': {
+				this.addLane()
+				break
+			}
+			case 'KeyZ': {
+				this.deleteLane()
+				break
+			}
+			case 'KeyF': {
+				this.addFront()
+				break
+			}
+			case 'KeyL': {
+				this.addLeftSame()
+				break
+			}
+			case 'KeyK': {
+				this.addLeftReverse()
+				break
+			}
+			case 'KeyR': {
+				this.addRightSame()
+				break
+			}
+			case 'KeyE': {
+				this.addRightReverse()
+				break
+			}
+			case 'KeyS': {
+				this.saveToFile()
+				break
+			}
+			case 'KeyM': {
+				this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
+					.catch(err => log.warn('saveToKML failed: ' + err.message))
+				break
+			}
+			case 'KeyO': {
+				this.toggleListen()
+				break
+			}
+			case 'KeyU': {
+				this.unloadPointCloudData()
+				break
+			}
+			default:
+				// nothing to see here
 		}
-
-		if (event.code === 'KeyN')
-			this.addLane()
-
-		if (event.code === 'KeyZ')
-			this.deleteLane()
-
-		if (event.code === "KeyF")
-			this.addFront()
-
-		if (event.code === "KeyL")
-			this.addLeftSame()
-
-		if (event.code === "KeyK")
-			this.addLeftReverse()
-
-		if (event.code === "KeyR")
-			this.addRightSame()
-
-		if (event.code === "KeyE")
-			this.addRightReverse()
-
-		if (event.code === "KeyS")
-			this.saveToFile()
-
-		if (event.code === 'KeyM')
-			this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
-				.catch(err => log.warn('saveToKML failed: ' + err.message))
-
-		if (event.code === 'KeyO')
-			this.toggleListen()
-
-		if (event.code === 'KeyU')
-			this.unloadPointCloudData()
 	}
 
 	private onKeyUp = (): void => {
@@ -670,11 +703,7 @@ class Annotator {
 					log.info("Disable live location mode first to access the menu.")
 				} else {
 					log.info("Menu icon clicked. Close/Open menu bar.")
-					const menu = document.getElementById('menu')
-					if (menu)
-						menu.style.visibility = menu.style.visibility === 'hidden' ? 'visible' : 'hidden'
-					else
-						log.warn('missing element menu')
+					this.displayMenu(MenuVisibility.TOGGLE)
 				}
 			})
 		else
@@ -1179,7 +1208,6 @@ class Annotator {
 	 */
 	toggleListen(): void {
 		let hideMenu
-
 		if (this.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
 			hideMenu = this.stopListening()
@@ -1187,15 +1215,7 @@ class Annotator {
 			this.annotationManager.setLiveMode()
 			hideMenu = this.listen()
 		}
-
-		const menu = document.getElementById('menu')
-
-		if (menu)
-			if (hideMenu) {
-				menu.style.visibility = 'hidden'
-			} else {
-				menu.style.visibility = 'visible'
-			}
+		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
 	}
 
 	listen(): boolean {
@@ -1224,6 +1244,27 @@ class Annotator {
 		this.carModel.visible = false
 		this.settings.fpsRendering = 60
 		return this.isLiveMode
+	}
+
+	// Show or hide the menu as requested.
+	private displayMenu(visibility: MenuVisibility): void {
+		const menu = document.getElementById('menu')
+		if (menu)
+			switch (visibility) {
+				case MenuVisibility.HIDE:
+					menu.style.visibility = 'hidden'
+					break
+				case MenuVisibility.SHOW:
+					menu.style.visibility = 'visible'
+					break
+				case MenuVisibility.TOGGLE:
+					menu.style.visibility = menu.style.visibility === 'hidden' ? 'visible' : 'hidden'
+					break
+				default:
+					log.warn(`unhandled visibility option ${visibility} in displayMenu()`)
+			}
+		else
+			log.warn('missing element menu')
 	}
 
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {

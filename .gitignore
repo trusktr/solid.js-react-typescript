@@ -36,4 +36,5 @@ jspm_packages/
 data
 
 # developer config file
+local.yaml
 test.yaml

@@ -1,5 +1,7 @@
 import Electron = require("electron")
 import BrowserWindow = Electron.BrowserWindow
+import {BrowserWindowConstructorOptions} from 'electron'
+const config = require('../config')
 
 const app = Electron.app
 
@@ -13,7 +15,18 @@ let win: BrowserWindow | null
 
 function createWindow(): void {
 	// Create the browser window.
-	win = new BrowserWindow({width: 800, height: 600})
+	const options = {} as BrowserWindowConstructorOptions
+	const width = parseInt(config.get('startup.electron.window.default.width'), 10)
+	const height = parseInt(config.get('startup.electron.window.default.height'), 10)
+	let maximize = false
+	if (width && height) {
+		options.width = width
+		options.height = height
+	} else
+		maximize = true
+	win = new BrowserWindow(options)
+	if (maximize)
+		win.maximize()
 
 	// Open the DevTools.
 	win.webContents.openDevTools()

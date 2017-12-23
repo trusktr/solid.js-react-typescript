@@ -822,7 +822,7 @@ export class AnnotationManager extends UtmInterface {
 
 	// Get the file-format version of a saved annotation.
 	private static annotationsFileVersion(data: Object): number {
-		let version = parseInt(data['version'], 10);
+		let version = parseInt(data['version'], 10)
 		if (isNaN(version))
 			return 1
 		else
