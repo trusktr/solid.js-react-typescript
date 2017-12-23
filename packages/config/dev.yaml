@@ -3,6 +3,7 @@
 startup.electron.window.default.width: 0
 startup.electron.window.default.height: 0
 startup.point_cloud_directory:
+startup.show_menu: true
 
 # persistence of a data file
 output.annotations.json.path: ./data/annotations-utm.json
