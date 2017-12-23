@@ -5,6 +5,11 @@ startup.electron.window.default.height: 0
 startup.point_cloud_directory:
 startup.show_menu: true
 
+# parameters for loading a tile
+tile_manager.max_tiles_to_load: 2000
+tile_manager.progress_step_size: 100
+tile_manager.sampling_step: 5
+
 # persistence of a data file
 output.annotations.json.path: ./data/annotations-utm.json
 output.annotations.kml.path: ./data/path.kml
