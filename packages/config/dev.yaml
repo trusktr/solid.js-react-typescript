@@ -2,8 +2,10 @@
 # Set window dimensions to 0 to maximize.
 startup.electron.window.default.width: 0
 startup.electron.window.default.height: 0
-startup.point_cloud_directory:
+startup.background_color: '#082839'
+startup.show_color_picker: true
 startup.show_menu: true
+startup.point_cloud_directory:
 
 # parameters for loading a tile
 tile_manager.max_tiles_to_load: 2000

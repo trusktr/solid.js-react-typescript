@@ -87,7 +87,7 @@ class Annotator {
 		this.isMouseButtonPressed = false
 
 		this.settings = {
-			background: "#082839",
+			background: config.get('startup.background_color') || '#082839',
 			cameraOffset: new THREE.Vector3(10, 30, 10),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
 			fpsRendering: 60
@@ -176,11 +176,13 @@ class Annotator {
 		this.setStage(0, 0, 0)
 
 		// Add panel to change the settings
-		this.gui = new datModule.GUI()
-		this.gui.addColor(this.settings, 'background').onChange((value: any) => {
-			this.renderer.setClearColor(new THREE.Color(value))
-		})
-		this.gui.domElement.className = 'threeJs_gui'
+		if (config.get('startup.show_color_picker')) {
+			this.gui = new datModule.GUI()
+			this.gui.addColor(this.settings, 'background').onChange((value: any) => {
+				this.renderer.setClearColor(new THREE.Color(value))
+			})
+			this.gui.domElement.className = 'threeJs_gui'
+		}
 
 		// Set up for auto-save
 		const body = $(document.body)
