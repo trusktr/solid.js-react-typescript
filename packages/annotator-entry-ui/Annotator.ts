@@ -162,11 +162,13 @@ class Annotator {
 		this.renderer.setPixelRatio(window.devicePixelRatio)
 		this.renderer.setSize(width, height)
 		this.renderer.shadowMap.enabled = true
+		root.append(this.renderer.domElement)
 
 		// Create stats widget to display frequency of rendering
-		this.stats = new statsModule()
-		root.append(this.renderer.domElement)
-		root.append(this.stats.dom)
+		if (config.get('startup.show_stats_module')) {
+			this.stats = new statsModule()
+			root.append(this.stats.dom)
+		}
 
 		// Initialize all control objects.
 		this.initOrbitControls()
@@ -233,7 +235,7 @@ class Annotator {
 		}, 1000 / this.settings.fpsRendering)
 
 		this.render()
-		this.stats.update()
+		if (this.stats) this.stats.update()
 		this.orbitControls.update()
 		this.transformControls.update()
 	}
