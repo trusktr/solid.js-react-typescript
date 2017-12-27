@@ -281,7 +281,7 @@ class Annotator {
 	 */
 	loadPointCloudData(pathToTiles: string): Promise<void> {
 		log.info('loading dataset')
-		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.CES_TEST)
+		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR)
 			.then(focalPoint => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager)) {
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
