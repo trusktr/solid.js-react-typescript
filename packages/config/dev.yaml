@@ -8,6 +8,7 @@ startup.show_color_picker: true
 startup.show_stats_module: true
 startup.show_menu: true
 startup.point_cloud_directory:
+startup.annotations_path:
 
 # parameters for loading a tile
 tile_manager.max_tiles_to_load: 2000

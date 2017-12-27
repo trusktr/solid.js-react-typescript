@@ -118,7 +118,7 @@ class Annotator {
 	 * Create the 3D Scene and add some basic objects. It also initializes
 	 * several event listeners.
 	 */
-	initScene(): void {
+	initScene(): Promise<void> {
 		const self = this
 		log.info(`Building scene`)
 
@@ -224,11 +224,26 @@ class Annotator {
 		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
 
 		const pointCloudDir = config.get('startup.point_cloud_directory')
+		let pointCloudResult: Promise<void>
 		if (pointCloudDir) {
 			log.info('loading pre-configured data set ' + pointCloudDir)
-			this.loadPointCloudData(pointCloudDir)
+			pointCloudResult = this.loadPointCloudData(pointCloudDir)
 				.catch(err => log.warn('loadFromFile failed: ' + err.message))
-		}
+		} else
+			pointCloudResult = Promise.resolve()
+
+		const annotationsPath = config.get('startup.annotations_path')
+		let annotationsResult: Promise<void>
+		if (annotationsPath) {
+			annotationsResult = pointCloudResult
+				.then(() => {
+					log.info('loading pre-configured annotations ' + annotationsPath)
+					return this.loadAnnotations(annotationsPath)
+						.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+				})
+		} else
+			annotationsResult = pointCloudResult
+		return annotationsResult
 	}
 
 	/**
