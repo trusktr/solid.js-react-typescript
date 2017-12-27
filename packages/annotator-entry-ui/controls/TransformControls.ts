@@ -438,7 +438,7 @@ THREE.TransformGizmoRotate = function () {
 		],
 
 		XYZE: [
-			[new THREE.Mesh()]// TODO
+			[new THREE.Mesh()]
 		]
 
 	}
@@ -619,9 +619,6 @@ THREE.TransformGizmoScale.prototype = Object.create(THREE.TransformGizmo.prototy
 THREE.TransformGizmoScale.prototype.constructor = THREE.TransformGizmoScale
 
 THREE.TransformControls = function (camera: any, domElement: any) {
-
-	// TODO: Make non-uniform scale and rotate play nice in hierarchies
-	// TODO: ADD RXYZ contol
 
 	THREE.Object3D.call(this)
 
