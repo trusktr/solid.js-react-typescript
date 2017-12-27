@@ -48,6 +48,7 @@ interface AnnotatorSettings {
 	background: string
 	cameraOffset: THREE.Vector3
 	lightOffset: THREE.Vector3
+	defaultFpsRendering: number
 	fpsRendering: number
 	estimateGroundPlane: boolean
 }
@@ -91,9 +92,11 @@ class Annotator {
 			background: config.get('startup.background_color') || '#082839',
 			cameraOffset: new THREE.Vector3(10, 30, 10),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
-			fpsRendering: 60
+			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
+			fpsRendering: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 		}
+		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
 		this.raycasterPlane = new THREE.Raycaster()
@@ -1240,7 +1243,7 @@ class Annotator {
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
 		this.carModel.visible = true
-		this.settings.fpsRendering = 30
+		this.settings.fpsRendering = this.settings.defaultFpsRendering / 2
 		return this.isLiveMode
 	}
 
@@ -1254,7 +1257,7 @@ class Annotator {
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
-		this.settings.fpsRendering = 60
+		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		return this.isLiveMode
 	}
 
