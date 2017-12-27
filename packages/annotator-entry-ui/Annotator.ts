@@ -14,7 +14,7 @@ import {OutputFormat} from "annotator-entry-ui/AnnotationUtils"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
-import {isUndefined} from "util"
+import {isNullOrUndefined, isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
@@ -49,6 +49,7 @@ interface AnnotatorSettings {
 	cameraOffset: THREE.Vector3
 	lightOffset: THREE.Vector3
 	fpsRendering: number
+	estimateGroundPlane: boolean
 }
 
 /**
@@ -66,7 +67,7 @@ class Annotator {
 	carModel: THREE.Object3D
 	tileManager: TileManager
 	plane: THREE.Mesh
-	grid: THREE.GridHelper
+	grid: THREE.GridHelper // an arbitrary horizontal (XZ) reference plane for the UI
 	axis: THREE.AxisHelper
 	light: THREE.SpotLight
 	stats: Stats
@@ -91,6 +92,7 @@ class Annotator {
 			cameraOffset: new THREE.Vector3(10, 30, 10),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
 			fpsRendering: 60
+			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 		}
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
@@ -145,7 +147,7 @@ class Annotator {
 
 		// Add grid on top of the plane
 		this.grid = new THREE.GridHelper(200, 100)
-		this.grid.position.y = -0.5
+		this.grid.position.y = 0
 		this.grid.material.opacity = 0.25
 		this.grid.material.transparent = true
 		this.scene.add(this.grid)
@@ -250,14 +252,15 @@ class Annotator {
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
-	private setStage(x: number, y: number, z: number): void {
+	private setStage(x: number, y: number, z: number, gridYValue: number | null = null): void {
 		this.axis.geometry.center()
 		this.axis.geometry.translate(x, y, z)
 		this.plane.geometry.center()
 		this.plane.geometry.translate(x, y, z)
 		this.grid.geometry.center()
 		this.grid.geometry.translate(x, y, z)
-		this.grid.position.y -= 0.01
+		if (!isNullOrUndefined(gridYValue))
+			this.grid.position.y = gridYValue
 		this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 		this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
 		this.orbitControls.target.set(x, y, z)
@@ -266,8 +269,8 @@ class Annotator {
 	/**
 	 * Set some point as the center of the visible world.
 	 */
-	private setStageByVector(point: THREE.Vector3): void {
-		this.setStage(point.x, point.y, point.z)
+	private setStageByVector(point: THREE.Vector3, gridYValue: number | null = null): void {
+		this.setStage(point.x, point.y, point.z, gridYValue)
 	}
 
 	/**
@@ -285,14 +288,19 @@ class Annotator {
 	 */
 	loadPointCloudData(pathToTiles: string): Promise<void> {
 		log.info('loading dataset')
-		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA)
-			.then(focalPoint => {
+		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA, this.settings.estimateGroundPlane)
+			.then(result => {
+				const focalPoint = result[0]
+				const groundPlaneYIndex = result[1] // Note: Tile data uses Z for the vertical dimension. Three.js uses Y. We make the switch here.
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager)) {
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
 				}
 				this.scene.add(this.tileManager.pointCloud)
-				if (focalPoint)
-					this.setStageByVector(focalPoint)
+
+				if (focalPoint) {
+					const gridYValue = isNullOrUndefined(groundPlaneYIndex) ? null : groundPlaneYIndex - focalPoint.y
+					this.setStageByVector(focalPoint, gridYValue)
+				}
 			})
 	}
 
@@ -356,7 +364,7 @@ class Annotator {
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
 
-		if (this.tileManager.pointCloud === null) {
+		if (this.settings.estimateGroundPlane || !this.tileManager.pointCloud) {
 			intersections = this.raycasterPlane.intersectObject(this.plane)
 		} else {
 			intersections = this.raycasterPlane.intersectObject(this.tileManager.pointCloud)

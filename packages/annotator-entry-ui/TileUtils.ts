@@ -167,7 +167,7 @@ export class TileManager extends UtmInterface {
 	 * @returns the center point of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
-	async loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<THREE.Vector3 | null> {
+	async loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType, estimateGroundPlane: boolean): Promise<[THREE.Vector3 | null, number | null]> {
 		let points: Array<number> = []
 		let colors: Array<number> = []
 		const files = Fs.readdirSync(datasetPath)
@@ -210,15 +210,27 @@ export class TileManager extends UtmInterface {
 			log.warn('rejected ' + coordsFailed + ' tiles due to UTM zone mismatch')
 		}
 
-		return Promise.resolve(this.generatePointCloudFromRawData(points, colors, coordinateFrame))
+		return Promise.resolve(this.generatePointCloudFromRawData(points, colors, coordinateFrame, estimateGroundPlane))
 	}
 
 	/**
 	 * Convert array of 3d points into a THREE.Point object
 	 */
-	generatePointCloudFromRawData(points: Array<number>, inputColors: Array<number>, inputCoordinateFrame: CoordinateFrameType): THREE.Vector3 | null {
+	generatePointCloudFromRawData(
+		points: Array<number>,
+		inputColors: Array<number>,
+		inputCoordinateFrame: CoordinateFrameType,
+		estimateGroundPlane: boolean
+	): [THREE.Vector3 | null, number | null] {
 		const pointsSize = points.length
 		const newPositions = new Array<number>(pointsSize)
+
+		// This is a trivial solution to finding the local ground plane. Simply find a band of Z values with the most
+		// points (arithmetic mode). Assume that band contains a large horizontal object which is a road.
+		const zValueHistogram: Map<number, number> = new Map()
+		const zValueBinSize = 10 // arbitrary setting for the physical size of bins, given data sets ~50m high
+		let biggestBinIndex = 0
+		let biggestBinCount = 0
 
 		for (let i = 0; i < pointsSize; i += threeDStepSize) {
 			const inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
@@ -229,6 +241,14 @@ export class TileManager extends UtmInterface {
 				newPositions[i] = threePoint.x
 				newPositions[i + 1] = threePoint.y
 				newPositions[i + 2] = threePoint.z
+
+				if (estimateGroundPlane) {
+					const zIndex = Math.floor(standardPoint.z * zValueBinSize)
+					if (zValueHistogram.has(zIndex))
+						zValueHistogram.set(zIndex, zValueHistogram.get(zIndex)! + 1)
+					else
+						zValueHistogram.set(zIndex, 1)
+				}
 			}
 		}
 
@@ -246,9 +266,22 @@ export class TileManager extends UtmInterface {
 			geometry.addAttribute('color', new THREE.BufferAttribute(Float32Array.from(this.rawColors), threeDStepSize))
 
 			this.setGeometry(geometry)
+
+			if (estimateGroundPlane) {
+				zValueHistogram.forEach((count, index) => {
+					if (count > biggestBinCount) {
+						biggestBinIndex = index
+						biggestBinCount = count
+					}
+				})
+			}
 		}
 
-		return this.centerPoint()
+		let groundPlaneZIndex: number | null = null
+		if (biggestBinCount)
+			groundPlaneZIndex = (biggestBinIndex + 0.5) / zValueBinSize // Get the midpoint of the most popular bin.
+
+		return [this.centerPoint(), groundPlaneZIndex]
 	}
 
 	/**
