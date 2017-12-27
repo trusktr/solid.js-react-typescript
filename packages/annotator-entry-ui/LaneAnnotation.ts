@@ -206,14 +206,16 @@ export class LaneAnnotation {
 	 *                           position of the last two markers.
 	 */
 	addMarker(x: number, y: number, z: number): void {
-
 		const marker: THREE.Vector3 = new THREE.Vector3(x, y, z)
-		this.addRawMarker(marker)
 
-		// From the third marker onwards, add markers in pairs by estimating the position
-		// of the left marker.
-		if (this.laneMarkers.length >= 3) {
-			this.addRawMarker(this.computeLeftMarkerEstimatedPosition())
+		if (this.laneMarkers.length < 2) {
+			this.addRawMarker(marker)
+		} else {
+			// From the third marker onwards, add markers in pairs by estimating the position
+			// of the left marker.
+			const leftMarker = this.computeLeftMarkerEstimatedPosition(marker)
+			this.addRawMarker(leftMarker)
+			this.addRawMarker(marker)
 		}
 
 		this.updateVisualization()
@@ -414,11 +416,9 @@ export class LaneAnnotation {
 	 *  Use the last two points to create a guess of the
 	 * location of the left marker
 	 */
-	private computeLeftMarkerEstimatedPosition(): THREE.Vector3 {
-		//
+	private computeLeftMarkerEstimatedPosition(newRightMarker: THREE.Vector3): THREE.Vector3 {
 		const lastIndex = this.laneMarkers.length
-		const newRightMarker = this.laneMarkers[lastIndex - 1].position
-		const lastRightMarker = this.laneMarkers[lastIndex - 3].position
+		const lastRightMarker = this.laneMarkers[lastIndex - 1].position
 		const lastLeftMarker = this.laneMarkers[lastIndex - 2].position
 		const vectorRightToLeft = new THREE.Vector3()
 		vectorRightToLeft.subVectors(lastLeftMarker, lastRightMarker)
