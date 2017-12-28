@@ -150,7 +150,6 @@ class Annotator {
 
 		// Add grid on top of the plane
 		this.grid = new THREE.GridHelper(200, 100)
-		this.grid.position.y = 0
 		this.grid.material.opacity = 0.25
 		this.grid.material.transparent = true
 		this.scene.add(this.grid)
@@ -277,8 +276,10 @@ class Annotator {
 		this.plane.geometry.translate(x, y, z)
 		this.grid.geometry.center()
 		this.grid.geometry.translate(x, y, z)
-		if (!isNullOrUndefined(gridYValue))
+		if (!isNullOrUndefined(gridYValue)) {
+			this.plane.position.y = gridYValue
 			this.grid.position.y = gridYValue
+		}
 		this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 		this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
 		this.orbitControls.target.set(x, y, z)
