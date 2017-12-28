@@ -78,14 +78,16 @@ class Annotator {
 	annotationManager: AnnotationUtils.AnnotationManager
 	isAddMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
+	numberKeyPressed: number | null
 	isLiveMode: boolean
 	liveSubscribeSocket: Socket
-	hovered: THREE.Object3D | null
+	hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	settings: AnnotatorSettings
 	gui: any
 
 	constructor() {
 		this.isAddMarkerKeyPressed = false
+		this.numberKeyPressed = null
 		this.isMouseButtonPressed = false
 
 		this.settings = {
@@ -413,6 +415,7 @@ class Annotator {
 
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
+				this.cleanTransformControls()
 				this.annotationManager.changeActiveAnnotation(index)
 				this.resetLaneProp()
 			}
@@ -423,7 +426,7 @@ class Annotator {
 	 * Check if the mouse is on top of an editable lane marker. If so, attach the
 	 * marker to the transform control for editing.
 	 */
-	private checkForActiveMarker = (event: MouseEvent) => {
+	private checkForActiveMarker = (event: MouseEvent): void => {
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
 		if (this.isMouseButtonPressed) {
@@ -436,18 +439,26 @@ class Annotator {
 		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
 
 		if (intersects.length > 0) {
-			const object = intersects[0].object
-			const plane = new THREE.Plane()
-			plane.setFromNormalAndCoplanarPoint(this.camera.getWorldDirection(plane.normal), object.position)
+			const marker = intersects[0].object as THREE.Mesh
+			if (this.hovered !== marker) {
+				this.cleanTransformControls()
 
-			if (this.hovered !== object) {
+				let moveableMarkers: Array<THREE.Mesh>
+				if (this.numberKeyPressed === null) {
+					moveableMarkers = [marker]
+				} else {
+					const neighbors = this.annotationManager.neighboringLaneMarkers(marker, this.numberKeyPressed)
+					this.annotationManager.highlightMarkers(neighbors)
+					neighbors.unshift(marker)
+					moveableMarkers = neighbors
+				}
+
 				this.renderer.domElement.style.cursor = 'pointer'
-				this.hovered = object
+				this.hovered = marker
 				// HOVER ON
-				this.transformControls.attach(this.hovered)
+				this.transformControls.attach(moveableMarkers)
 				this.cancelHideTransform()
 			}
-
 		} else {
 			if (this.hovered !== null) {
 				// HOVER OFF
@@ -482,73 +493,77 @@ class Annotator {
 	 * Handle keyboard events
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
-		switch (event.code) {
-			case 'KeyA': {
-				this.isAddMarkerKeyPressed = true
-				break
+		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
+			this.numberKeyPressed = parseInt(event.key, 10)
+		} else
+			switch (event.code) {
+				case 'KeyA': {
+					this.isAddMarkerKeyPressed = true
+					break
+				}
+				case 'KeyC': {
+					this.focusOnPointCloud()
+					break
+				}
+				case 'KeyD': {
+					log.info("Deleting last marker")
+					if (this.annotationManager.deleteLastLaneMarker())
+						this.hideTransform()
+					break
+				}
+				case 'KeyN': {
+					this.addLane()
+					break
+				}
+				case 'KeyZ': {
+					this.deleteLane()
+					break
+				}
+				case 'KeyF': {
+					this.addFront()
+					break
+				}
+				case 'KeyL': {
+					this.addLeftSame()
+					break
+				}
+				case 'KeyK': {
+					this.addLeftReverse()
+					break
+				}
+				case 'KeyR': {
+					this.addRightSame()
+					break
+				}
+				case 'KeyE': {
+					this.addRightReverse()
+					break
+				}
+				case 'KeyS': {
+					this.saveToFile()
+					break
+				}
+				case 'KeyM': {
+					this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
+						.catch(err => log.warn('saveToKML failed: ' + err.message))
+					break
+				}
+				case 'KeyO': {
+					this.toggleListen()
+					break
+				}
+				case 'KeyU': {
+					this.unloadPointCloudData()
+					break
+				}
+				default:
+					// nothing to see here
 			}
-			case 'KeyC': {
-				this.focusOnPointCloud()
-				break
-			}
-			case 'KeyD': {
-				log.info("Deleting last marker")
-				if (this.annotationManager.deleteLastLaneMarker())
-					this.hideTransform()
-				break
-			}
-			case 'KeyN': {
-				this.addLane()
-				break
-			}
-			case 'KeyZ': {
-				this.deleteLane()
-				break
-			}
-			case 'KeyF': {
-				this.addFront()
-				break
-			}
-			case 'KeyL': {
-				this.addLeftSame()
-				break
-			}
-			case 'KeyK': {
-				this.addLeftReverse()
-				break
-			}
-			case 'KeyR': {
-				this.addRightSame()
-				break
-			}
-			case 'KeyE': {
-				this.addRightReverse()
-				break
-			}
-			case 'KeyS': {
-				this.saveToFile()
-				break
-			}
-			case 'KeyM': {
-				this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
-					.catch(err => log.warn('saveToKML failed: ' + err.message))
-				break
-			}
-			case 'KeyO': {
-				this.toggleListen()
-				break
-			}
-			case 'KeyU': {
-				this.unloadPointCloudData()
-				break
-			}
-			default:
-				// nothing to see here
-		}
 	}
 
 	private onKeyUp = (): void => {
 		this.isAddMarkerKeyPressed = false
+		this.numberKeyPressed = null
 	}
 
 	private saveAnnotations(): Promise<void> {
@@ -577,15 +592,19 @@ class Annotator {
 	}
 
 	private hideTransform = (): void => {
-		this.hideTransformControlTimer = setTimeout(() => {
-			this.transformControls.detach(this.transformControls.object)
-		}, 1500)
+		this.hideTransformControlTimer = setTimeout(() => this.cleanTransformControls(), 1500)
 	}
 
 	private cancelHideTransform = (): void => {
 		if (this.hideTransformControlTimer) {
 			clearTimeout(this.hideTransformControlTimer)
 		}
+	}
+
+	private cleanTransformControls = (): void => {
+		this.cancelHideTransform()
+		this.transformControls.detach()
+		this.annotationManager.unhighlightMarkers()
 	}
 
 	/**

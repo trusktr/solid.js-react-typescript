@@ -14,6 +14,7 @@ const log = TypeLogger.getLogger(__filename)
 
 // Some constants for rendering
 const controlPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
+const highlightControlPointGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3)
 
 const directionGeometry = new THREE.Geometry()
 directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25,  0.5))
@@ -285,6 +286,7 @@ export class LaneAnnotation {
 			}
 		}
 		this.laneCenterLine.visible = true
+		this.unhighlightMarkers()
 	}
 
 	/**
@@ -431,6 +433,54 @@ export class LaneAnnotation {
 		newLeftMarker.add(vectorRightToLeft)
 
 		return newLeftMarker
+	}
+
+	/*
+	 * Intersect requested markers with active markers.
+	 * Draw the markers a little larger.
+	 */
+	highlightMarkers(markers: Array<THREE.Mesh>): void {
+		const ids: Array<number> = markers.map(m => m.id)
+		this.laneMarkers.forEach(marker => {
+			ids.filter(id => id === marker.id).forEach(() => {
+				marker.geometry = highlightControlPointGeometry
+			})
+		})
+	}
+
+	/*
+	 * Draw all markers at normal size.
+	 */
+	unhighlightMarkers(): void {
+		this.laneMarkers.forEach(marker => {
+			marker.geometry = controlPointGeometry
+		})
+	}
+
+	/*
+	 * Find neighboring points on the same edge as the origin. Given how addMarker() works with pairs,
+	 * assume that all odd-indexed points are on one edge and all even-indexed points are on the other.
+	 */
+	neighboringLaneMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {
+		if (distance < 1) return []
+
+		const neighbors: Array<THREE.Mesh> = []
+		let originIndex = -1
+		// Find the origin.
+		for (let i = 0; i < this.laneMarkers.length; i++) {
+			if (this.laneMarkers[i].id === origin.id) {
+				originIndex = i
+				break
+			}
+		}
+		// Find the neighbors.
+		if (originIndex > -1)
+			for (let i = originIndex % 2; i < this.laneMarkers.length; i += 2) {
+				if (i !== originIndex && Math.abs(i - originIndex) <= distance * 2)
+					neighbors.push(this.laneMarkers[i])
+			}
+
+		return neighbors
 	}
 
 	private computeWaypoints(): void {
