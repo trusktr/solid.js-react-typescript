@@ -20,7 +20,8 @@ const log = TypeLogger.getLogger(__filename)
 
 export enum CoordinateFrameType {
 	CAMERA = 0, // [northing, -altitude, easting]
-	INERTIAL    // [northing, easting, -altitude]
+	INERTIAL,   // [northing, easting, -altitude]
+	LIDAR,      // [northing, easting, altitude]
 }
 
 const threeDStepSize: number = 3
@@ -87,6 +88,9 @@ const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateF
 		case CoordinateFrameType.INERTIAL:
 			// Raw input is [x: northing, y: easting, z: -altitude]
 			return new THREE.Vector3(point.y, point.x, -point.z)
+		case CoordinateFrameType.LIDAR:
+			// Raw input is [x: northing, y: easting, z: altitude]
+			return new THREE.Vector3(point.y, point.x, point.z)
 		default:
 			log.warn('Coordinate frame not recognized')
 			return null
