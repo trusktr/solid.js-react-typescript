@@ -7,7 +7,7 @@ const config = require('../config')
 import * as $ from 'jquery'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import {CoordinateFrameType, TileManager}  from 'annotator-entry-ui/TileUtils'
+import {CoordinateFrameType, TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection, LaneId} from 'annotator-entry-ui/LaneAnnotation'
 import {OutputFormat} from "annotator-entry-ui/AnnotationUtils"

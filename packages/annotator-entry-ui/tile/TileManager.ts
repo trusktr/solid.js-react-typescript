@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const config = require('../config')
+const config = require('../../config')
 import * as Fs from 'fs'
 import * as Path from 'path'
 import * as AsyncFile from 'async-file'
@@ -11,7 +11,7 @@ import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as TypeLogger from 'typelogger'
-import {UtmInterface} from "./UtmInterface"
+import {UtmInterface} from "../UtmInterface"
 import {BufferGeometry} from "three"
 
 // tslint:disable-next-line:no-any
