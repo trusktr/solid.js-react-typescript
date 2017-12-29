@@ -172,34 +172,35 @@ export class TileManager extends UtmInterface {
 		let colors: Array<number> = []
 		const files = Fs.readdirSync(datasetPath)
 		let coordsFailed = 0
-		let maxFileCount = files.length
-		if (maxFileCount > this.maxTilesToLoad) maxFileCount = this.maxTilesToLoad
+		const maxFileCount = Math.min(files.length, this.maxTilesToLoad)
 
 		const printProgress = function (current: number, total: number, stepSize: number): void {
 			if (total <= (stepSize * 2)) return
 			if (current % stepSize === 0) log.info(`processing ${current} of ${total} files`)
 		}
 
-		for (let i = 0; i < maxFileCount; i++) {
-			printProgress(i, maxFileCount, this.progressStepSize)
+		let validFileCount = 0
+		for (let i = 0; i < files.length; i++) {
+			if (validFileCount > this.maxTilesToLoad)
+				break
 
-			if (files[i] === 'tile_index.md' || files[i] === '.DS_Store') {
+			if (files[i] === 'tile_index.md' || files[i] === '.DS_Store')
 				continue
-			}
 
 			const msg = await loadTile(Path.join(datasetPath, files[i]))
 
-			if (!msg.points || msg.points.length === 0) {
+			if (!msg.points || msg.points.length === 0)
 				continue
-			}
 
 			if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
 				coordsFailed++
 				continue
 			}
 
-			const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.samplingStep)
+			validFileCount++
+			printProgress(validFileCount, maxFileCount, this.progressStepSize)
 
+			const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.samplingStep)
 			points = points.concat(sampledPoints)
 			colors = colors.concat(sampledColors)
 		}

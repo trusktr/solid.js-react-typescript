@@ -230,7 +230,7 @@ class Annotator {
 		if (pointCloudDir) {
 			log.info('loading pre-configured data set ' + pointCloudDir)
 			pointCloudResult = this.loadPointCloudData(pointCloudDir)
-				.catch(err => log.warn('loadFromFile failed: ' + err.message))
+				.catch(err => log.warn('loadPointCloudData failed: ' + err.message))
 		} else
 			pointCloudResult = Promise.resolve()
 
