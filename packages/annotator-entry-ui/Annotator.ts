@@ -307,7 +307,7 @@ class Annotator {
 	 */
 	loadPointCloudData(pathToTiles: string): Promise<void> {
 		log.info('loading dataset')
-		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.CAMERA, this.settings.estimateGroundPlane)
+		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR, this.settings.estimateGroundPlane)
 			.then(result => {
 				const focalPoint = result[0]
 				const groundPlaneYIndex = result[1] // Note: Tile data uses Z for the vertical dimension. Three.js uses Y. We make the switch here.
