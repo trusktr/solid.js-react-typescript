@@ -186,6 +186,7 @@ export class AnnotationManager extends UtmInterface {
 		scene.add(connection.laneRenderingObject)
 		connection.makeInactive()
 		connection.updateVisualization()
+		this.metadataState.dirty()
 	}
 
 	/**
@@ -292,6 +293,7 @@ export class AnnotationManager extends UtmInterface {
 				return false
 		}
 
+		this.metadataState.dirty()
 		return true
 	}
 
@@ -324,6 +326,7 @@ export class AnnotationManager extends UtmInterface {
 			log.info("Lane removed from the car path.")
 		}
 
+		this.metadataState.dirty()
 		return true
 	}
 
@@ -342,6 +345,7 @@ export class AnnotationManager extends UtmInterface {
 			log.info("Lane removed from the car path.")
 		}
 
+		this.metadataState.dirty()
 		return true
 	}
 
@@ -723,6 +727,7 @@ export class AnnotationManager extends UtmInterface {
 		const laneIndex = this.getLaneIndexFromUuid(this.annotations, lane.uuid)
 		this.annotations.splice(laneIndex, 1)
 
+		this.metadataState.dirty()
 		return true
 	}
 
@@ -745,6 +750,7 @@ export class AnnotationManager extends UtmInterface {
 		this.activeAnnotationIndex = -1
 		this.activeMarkers = []
 
+		this.metadataState.dirty()
 		return true
 	}
 
@@ -762,6 +768,8 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 		this.annotations[this.activeAnnotationIndex].addMarker(x, y, z)
+
+		this.metadataState.dirty()
 		return true
 	}
 
@@ -776,6 +784,8 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 		this.annotations[this.activeAnnotationIndex].deleteLast()
+
+		this.metadataState.dirty()
 		return true
 	}
 
@@ -939,6 +949,7 @@ export class AnnotationManager extends UtmInterface {
 						const box = self.addLaneAnnotation(scene, element)
 						if (box) boundingBox = boundingBox.union(box)
 					})
+					self.metadataState.clean()
 					if (boundingBox.isEmpty()) {
 						resolve(null)
 					} else {
@@ -962,6 +973,10 @@ export class AnnotationManager extends UtmInterface {
 		this.metadataState.disableAutoSave()
 	}
 
+	immediateAutoSave(): Promise<void> {
+		return this.metadataState.immediateAutoSave()
+	}
+
 	async saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
 		if (this.annotations.length === 0) {
 			return Promise.reject(new Error('failed to save empty set of annotations'))
@@ -977,6 +992,7 @@ export class AnnotationManager extends UtmInterface {
 			} else {
 				const strAnnotations = JSON.stringify(self.toJSON(format))
 				return AsyncFile.writeTextFile(fileName, strAnnotations)
+					.then(() => self.metadataState.clean())
 			}
 		}
 		return mkdirp(dirName, writeFile)
@@ -1114,6 +1130,7 @@ export class AnnotationManager extends UtmInterface {
 		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
 
+		this.metadataState.dirty()
 		return true
 	}
 
@@ -1178,6 +1195,7 @@ export class AnnotationManager extends UtmInterface {
 		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
 
+		this.metadataState.dirty()
 		return true
 	}
 
@@ -1241,6 +1259,7 @@ export class AnnotationManager extends UtmInterface {
 		this.annotations[newAnnotationIndex].updateVisualization()
 		this.annotations[newAnnotationIndex].makeInactive()
 
+		this.metadataState.dirty()
 		return true
 	}
 
@@ -1251,6 +1270,7 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	private deleteConnectionToNeighbors(scene: THREE.Scene, annotation: LaneAnnotation): void {
+		let modifications = 0
 
 		if (annotation.neighborsIds.right != null) {
 			const index = this.findAnnotationIndexByUuid(annotation.neighborsIds.right)
@@ -1262,9 +1282,11 @@ export class AnnotationManager extends UtmInterface {
 			if (rightNeighbor.neighborsIds.right === annotation.uuid) {
 				log.info("Deleted connection to right neighbor.")
 				rightNeighbor.neighborsIds.right = null
+				modifications++
 			} else if (rightNeighbor.neighborsIds.left === annotation.uuid) {
 				log.info("Deleted connection to right neighbor.")
 				rightNeighbor.neighborsIds.left = null
+				modifications++
 			} else {
 				log.error("Non-reciprocal neighbor relation detected. This should never happen.")
 			}
@@ -1280,9 +1302,11 @@ export class AnnotationManager extends UtmInterface {
 			if (leftNeighbor.neighborsIds.right === annotation.uuid) {
 				log.info("Deleted connection to left neighbor.")
 				leftNeighbor.neighborsIds.right = null
+				modifications++
 			} else if (leftNeighbor.neighborsIds.left === annotation.uuid) {
 				log.info("Deleted connection to left neighbor.")
 				leftNeighbor.neighborsIds.left = null
+				modifications++
 			} else {
 				log.error("Non-reciprocal neighbor relation detected. This should never happen.")
 			}
@@ -1307,6 +1331,7 @@ export class AnnotationManager extends UtmInterface {
 					// delete the connection LANE
 					this.deleteLaneAnnotation(scene, frontNeighbor)
 				}
+				modifications++
 			}
 		}
 
@@ -1329,8 +1354,12 @@ export class AnnotationManager extends UtmInterface {
 					// delete the backward connection LANE
 					this.deleteLaneAnnotation(scene, backNeighbor)
 				}
+				modifications++
 			}
 		}
+
+		if (modifications)
+			this.metadataState.dirty()
 	}
 }
 
@@ -1339,19 +1368,32 @@ export class AnnotationManager extends UtmInterface {
  */
 export class AnnotationState {
 	private annotationManager: AnnotationManager
+	private isDirty: boolean
 	private autoSaveEnabled: boolean
 	private autoSaveDirectory: string
 
 	constructor(annotationManager: AnnotationManager) {
 		const self = this
 		this.annotationManager = annotationManager
+		this.isDirty = false
+		this.autoSaveEnabled = false
 		this.autoSaveDirectory = config.get('output.annotations.autosave.directory.path')
 		const autoSaveEventInterval = config.get('output.annotations.autosave.interval.seconds') * 1000
 		if (this.annotationManager && this.autoSaveDirectory && autoSaveEventInterval) {
 			setInterval((): void => {
-				if (self.doAutoSave()) self.saveAnnotations()
+				if (self.doPeriodicSave()) self.saveAnnotations().then()
 			}, autoSaveEventInterval)
 		}
+	}
+
+	// Mark dirty if the in-memory model has information which is not recorded on disk.
+	dirty(): void {
+		this.isDirty = true
+	}
+
+	// Mark clean if the in-memory model is current with a saved file. Auto-saves don't count.
+	clean(): void {
+		this.isDirty = false
 	}
 
 	enableAutoSave(): void {
@@ -1362,16 +1404,27 @@ export class AnnotationState {
 		this.autoSaveEnabled = false
 	}
 
-	private doAutoSave(): boolean {
-		return this.autoSaveEnabled && this.annotationManager.annotations.length > 0
+	immediateAutoSave(): Promise<void> {
+		if (this.doImmediateSave())
+			return this.saveAnnotations()
+		else
+			return Promise.resolve()
 	}
 
-	private saveAnnotations(): void {
+	private doPeriodicSave(): boolean {
+		return this.autoSaveEnabled && this.isDirty && this.annotationManager.annotations.length > 0
+	}
+
+	private doImmediateSave(): boolean {
+		return this.isDirty && this.annotationManager.annotations.length > 0
+	}
+
+	private saveAnnotations(): Promise<void> {
 		const now = new Date()
 		const nowElements = [
 			now.getUTCFullYear(),
 			now.getUTCMonth() + 1,
-			now.getUTCDay(),
+			now.getUTCDate(),
 			now.getUTCHours(),
 			now.getUTCMinutes(),
 			now.getUTCSeconds(),
@@ -1380,7 +1433,7 @@ export class AnnotationState {
 		const fileName = vsprintf("%04d-%02d-%02dT%02d-%02d-%02d.%03dZ.json", nowElements)
 		const savePath = this.autoSaveDirectory + '/' + fileName
 		log.info("auto-saving annotations to: " + savePath)
-		this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM)
+		return this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM)
 			.catch(error => log.warn('save annotations failed: ' + error.message))
 	}
 }
