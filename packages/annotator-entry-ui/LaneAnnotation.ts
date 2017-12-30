@@ -14,6 +14,7 @@ const log = TypeLogger.getLogger(__filename)
 
 // Some constants for rendering
 const controlPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
+const highlightControlPointGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3)
 
 const directionGeometry = new THREE.Geometry()
 directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25,  0.5))
@@ -206,14 +207,16 @@ export class LaneAnnotation {
 	 *                           position of the last two markers.
 	 */
 	addMarker(x: number, y: number, z: number): void {
-
 		const marker: THREE.Vector3 = new THREE.Vector3(x, y, z)
-		this.addRawMarker(marker)
 
-		// From the third marker onwards, add markers in pairs by estimating the position
-		// of the left marker.
-		if (this.laneMarkers.length >= 3) {
-			this.addRawMarker(this.computeLeftMarkerEstimatedPosition())
+		if (this.laneMarkers.length < 2) {
+			this.addRawMarker(marker)
+		} else {
+			// From the third marker onwards, add markers in pairs by estimating the position
+			// of the left marker.
+			const leftMarker = this.computeLeftMarkerEstimatedPosition(marker)
+			this.addRawMarker(leftMarker)
+			this.addRawMarker(marker)
 		}
 
 		this.updateVisualization()
@@ -283,6 +286,7 @@ export class LaneAnnotation {
 			}
 		}
 		this.laneCenterLine.visible = true
+		this.unhighlightMarkers()
 	}
 
 	/**
@@ -414,11 +418,9 @@ export class LaneAnnotation {
 	 *  Use the last two points to create a guess of the
 	 * location of the left marker
 	 */
-	private computeLeftMarkerEstimatedPosition(): THREE.Vector3 {
-		//
+	private computeLeftMarkerEstimatedPosition(newRightMarker: THREE.Vector3): THREE.Vector3 {
 		const lastIndex = this.laneMarkers.length
-		const newRightMarker = this.laneMarkers[lastIndex - 1].position
-		const lastRightMarker = this.laneMarkers[lastIndex - 3].position
+		const lastRightMarker = this.laneMarkers[lastIndex - 1].position
 		const lastLeftMarker = this.laneMarkers[lastIndex - 2].position
 		const vectorRightToLeft = new THREE.Vector3()
 		vectorRightToLeft.subVectors(lastLeftMarker, lastRightMarker)
@@ -431,6 +433,54 @@ export class LaneAnnotation {
 		newLeftMarker.add(vectorRightToLeft)
 
 		return newLeftMarker
+	}
+
+	/*
+	 * Intersect requested markers with active markers.
+	 * Draw the markers a little larger.
+	 */
+	highlightMarkers(markers: Array<THREE.Mesh>): void {
+		const ids: Array<number> = markers.map(m => m.id)
+		this.laneMarkers.forEach(marker => {
+			ids.filter(id => id === marker.id).forEach(() => {
+				marker.geometry = highlightControlPointGeometry
+			})
+		})
+	}
+
+	/*
+	 * Draw all markers at normal size.
+	 */
+	unhighlightMarkers(): void {
+		this.laneMarkers.forEach(marker => {
+			marker.geometry = controlPointGeometry
+		})
+	}
+
+	/*
+	 * Find neighboring points on the same edge as the origin. Given how addMarker() works with pairs,
+	 * assume that all odd-indexed points are on one edge and all even-indexed points are on the other.
+	 */
+	neighboringLaneMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {
+		if (distance < 1) return []
+
+		const neighbors: Array<THREE.Mesh> = []
+		let originIndex = -1
+		// Find the origin.
+		for (let i = 0; i < this.laneMarkers.length; i++) {
+			if (this.laneMarkers[i].id === origin.id) {
+				originIndex = i
+				break
+			}
+		}
+		// Find the neighbors.
+		if (originIndex > -1)
+			for (let i = originIndex % 2; i < this.laneMarkers.length; i += 2) {
+				if (i !== originIndex && Math.abs(i - originIndex) <= distance * 2)
+					neighbors.push(this.laneMarkers[i])
+			}
+
+		return neighbors
 	}
 
 	private computeWaypoints(): void {

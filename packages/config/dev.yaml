@@ -2,13 +2,21 @@
 # Set window dimensions to 0 to maximize.
 startup.electron.window.default.width: 0
 startup.electron.window.default.height: 0
-startup.point_cloud_directory:
+startup.render.fps: 60
+startup.background_color: '#082839'
+startup.show_color_picker: true
+startup.show_stats_module: true
 startup.show_menu: true
+startup.point_cloud_directory:
+startup.annotations_path:
 
 # parameters for loading a tile
 tile_manager.max_tiles_to_load: 2000
 tile_manager.progress_step_size: 100
 tile_manager.sampling_step: 5
+
+# annotator controls
+annotator.add_points_to_estimated_ground_plane: true
 
 # persistence of a data file
 output.annotations.json.path: ./data/annotations-utm.json

@@ -14,7 +14,7 @@ import {OutputFormat} from "annotator-entry-ui/AnnotationUtils"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
-import {isUndefined} from "util"
+import {isNullOrUndefined, isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
@@ -48,7 +48,9 @@ interface AnnotatorSettings {
 	background: string
 	cameraOffset: THREE.Vector3
 	lightOffset: THREE.Vector3
+	defaultFpsRendering: number
 	fpsRendering: number
+	estimateGroundPlane: boolean
 }
 
 /**
@@ -66,7 +68,7 @@ class Annotator {
 	carModel: THREE.Object3D
 	tileManager: TileManager
 	plane: THREE.Mesh
-	grid: THREE.GridHelper
+	grid: THREE.GridHelper // an arbitrary horizontal (XZ) reference plane for the UI
 	axis: THREE.AxisHelper
 	light: THREE.SpotLight
 	stats: Stats
@@ -76,22 +78,27 @@ class Annotator {
 	annotationManager: AnnotationUtils.AnnotationManager
 	isAddMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
+	numberKeyPressed: number | null
 	isLiveMode: boolean
 	liveSubscribeSocket: Socket
-	hovered: THREE.Object3D | null
+	hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	settings: AnnotatorSettings
 	gui: any
 
 	constructor() {
 		this.isAddMarkerKeyPressed = false
+		this.numberKeyPressed = null
 		this.isMouseButtonPressed = false
 
 		this.settings = {
-			background: "#082839",
+			background: config.get('startup.background_color') || '#082839',
 			cameraOffset: new THREE.Vector3(10, 30, 10),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
-			fpsRendering: 60
+			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
+			fpsRendering: 0,
+			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 		}
+		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		this.hovered = null
 		// THe raycaster is used to compute where the waypoints will be dropped
 		this.raycasterPlane = new THREE.Raycaster()
@@ -113,7 +120,7 @@ class Annotator {
 	 * Create the 3D Scene and add some basic objects. It also initializes
 	 * several event listeners.
 	 */
-	initScene(): void {
+	initScene(): Promise<void> {
 		const self = this
 		log.info(`Building scene`)
 
@@ -145,7 +152,6 @@ class Annotator {
 
 		// Add grid on top of the plane
 		this.grid = new THREE.GridHelper(200, 100)
-		this.grid.position.y = -0.5
 		this.grid.material.opacity = 0.25
 		this.grid.material.transparent = true
 		this.scene.add(this.grid)
@@ -162,11 +168,13 @@ class Annotator {
 		this.renderer.setPixelRatio(window.devicePixelRatio)
 		this.renderer.setSize(width, height)
 		this.renderer.shadowMap.enabled = true
+		root.append(this.renderer.domElement)
 
 		// Create stats widget to display frequency of rendering
-		this.stats = new statsModule()
-		root.append(this.renderer.domElement)
-		root.append(this.stats.dom)
+		if (config.get('startup.show_stats_module')) {
+			this.stats = new statsModule()
+			root.append(this.stats.dom)
+		}
 
 		// Initialize all control objects.
 		this.initOrbitControls()
@@ -176,11 +184,13 @@ class Annotator {
 		this.setStage(0, 0, 0)
 
 		// Add panel to change the settings
-		this.gui = new datModule.GUI()
-		this.gui.addColor(this.settings, 'background').onChange((value: any) => {
-			this.renderer.setClearColor(new THREE.Color(value))
-		})
-		this.gui.domElement.className = 'threeJs_gui'
+		if (config.get('startup.show_color_picker')) {
+			this.gui = new datModule.GUI()
+			this.gui.addColor(this.settings, 'background').onChange((value: any) => {
+				this.renderer.setClearColor(new THREE.Color(value))
+			})
+			this.gui.domElement.className = 'threeJs_gui'
+		}
 
 		// Set up for auto-save
 		const body = $(document.body)
@@ -216,11 +226,26 @@ class Annotator {
 		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
 
 		const pointCloudDir = config.get('startup.point_cloud_directory')
+		let pointCloudResult: Promise<void>
 		if (pointCloudDir) {
 			log.info('loading pre-configured data set ' + pointCloudDir)
-			this.loadPointCloudData(pointCloudDir)
+			pointCloudResult = this.loadPointCloudData(pointCloudDir)
 				.catch(err => log.warn('loadFromFile failed: ' + err.message))
-		}
+		} else
+			pointCloudResult = Promise.resolve()
+
+		const annotationsPath = config.get('startup.annotations_path')
+		let annotationsResult: Promise<void>
+		if (annotationsPath) {
+			annotationsResult = pointCloudResult
+				.then(() => {
+					log.info('loading pre-configured annotations ' + annotationsPath)
+					return this.loadAnnotations(annotationsPath)
+						.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+				})
+		} else
+			annotationsResult = pointCloudResult
+		return annotationsResult
 	}
 
 	/**
@@ -232,7 +257,7 @@ class Annotator {
 		}, 1000 / this.settings.fpsRendering)
 
 		this.render()
-		this.stats.update()
+		if (this.stats) this.stats.update()
 		this.orbitControls.update()
 		this.transformControls.update()
 	}
@@ -247,14 +272,17 @@ class Annotator {
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
-	private setStage(x: number, y: number, z: number): void {
+	private setStage(x: number, y: number, z: number, gridYValue: number | null = null): void {
 		this.axis.geometry.center()
 		this.axis.geometry.translate(x, y, z)
 		this.plane.geometry.center()
 		this.plane.geometry.translate(x, y, z)
 		this.grid.geometry.center()
 		this.grid.geometry.translate(x, y, z)
-		this.grid.position.y -= 0.01
+		if (!isNullOrUndefined(gridYValue)) {
+			this.plane.position.y = gridYValue
+			this.grid.position.y = gridYValue
+		}
 		this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 		this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
 		this.orbitControls.target.set(x, y, z)
@@ -263,8 +291,8 @@ class Annotator {
 	/**
 	 * Set some point as the center of the visible world.
 	 */
-	private setStageByVector(point: THREE.Vector3): void {
-		this.setStage(point.x, point.y, point.z)
+	private setStageByVector(point: THREE.Vector3, gridYValue: number | null = null): void {
+		this.setStage(point.x, point.y, point.z, gridYValue)
 	}
 
 	/**
@@ -282,14 +310,19 @@ class Annotator {
 	 */
 	loadPointCloudData(pathToTiles: string): Promise<void> {
 		log.info('loading dataset')
-		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR)
-			.then(focalPoint => {
+		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR, this.settings.estimateGroundPlane)
+			.then(result => {
+				const focalPoint = result[0]
+				const groundPlaneYIndex = result[1] // Note: Tile data uses Z for the vertical dimension. Three.js uses Y. We make the switch here.
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager)) {
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
 				}
 				this.scene.add(this.tileManager.pointCloud)
-				if (focalPoint)
-					this.setStageByVector(focalPoint)
+
+				if (focalPoint) {
+					const gridYValue = isNullOrUndefined(groundPlaneYIndex) ? null : groundPlaneYIndex - focalPoint.y
+					this.setStageByVector(focalPoint, gridYValue)
+				}
 			})
 	}
 
@@ -353,7 +386,7 @@ class Annotator {
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
 
-		if (this.tileManager.pointCloud === null) {
+		if (this.settings.estimateGroundPlane || !this.tileManager.pointCloud) {
 			intersections = this.raycasterPlane.intersectObject(this.plane)
 		} else {
 			intersections = this.raycasterPlane.intersectObject(this.tileManager.pointCloud)
@@ -384,6 +417,7 @@ class Annotator {
 
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
+				this.cleanTransformControls()
 				this.annotationManager.changeActiveAnnotation(index)
 				this.resetLaneProp()
 			}
@@ -394,7 +428,7 @@ class Annotator {
 	 * Check if the mouse is on top of an editable lane marker. If so, attach the
 	 * marker to the transform control for editing.
 	 */
-	private checkForActiveMarker = (event: MouseEvent) => {
+	private checkForActiveMarker = (event: MouseEvent): void => {
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
 		if (this.isMouseButtonPressed) {
@@ -407,18 +441,26 @@ class Annotator {
 		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
 
 		if (intersects.length > 0) {
-			const object = intersects[0].object
-			const plane = new THREE.Plane()
-			plane.setFromNormalAndCoplanarPoint(this.camera.getWorldDirection(plane.normal), object.position)
+			const marker = intersects[0].object as THREE.Mesh
+			if (this.hovered !== marker) {
+				this.cleanTransformControls()
 
-			if (this.hovered !== object) {
+				let moveableMarkers: Array<THREE.Mesh>
+				if (this.numberKeyPressed === null) {
+					moveableMarkers = [marker]
+				} else {
+					const neighbors = this.annotationManager.neighboringLaneMarkers(marker, this.numberKeyPressed)
+					this.annotationManager.highlightMarkers(neighbors)
+					neighbors.unshift(marker)
+					moveableMarkers = neighbors
+				}
+
 				this.renderer.domElement.style.cursor = 'pointer'
-				this.hovered = object
+				this.hovered = marker
 				// HOVER ON
-				this.transformControls.attach(this.hovered)
+				this.transformControls.attach(moveableMarkers)
 				this.cancelHideTransform()
 			}
-
 		} else {
 			if (this.hovered !== null) {
 				// HOVER OFF
@@ -461,73 +503,77 @@ class Annotator {
 	 * Handle keyboard events
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
-		switch (event.code) {
-			case 'KeyA': {
-				this.isAddMarkerKeyPressed = true
-				break
+		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
+			this.numberKeyPressed = parseInt(event.key, 10)
+		} else
+			switch (event.code) {
+				case 'KeyA': {
+					this.isAddMarkerKeyPressed = true
+					break
+				}
+				case 'KeyC': {
+					this.focusOnPointCloud()
+					break
+				}
+				case 'KeyD': {
+					log.info("Deleting last marker")
+					if (this.annotationManager.deleteLastLaneMarker())
+						this.hideTransform()
+					break
+				}
+				case 'KeyN': {
+					this.addLane()
+					break
+				}
+				case 'KeyZ': {
+					this.deleteLane()
+					break
+				}
+				case 'KeyF': {
+					this.addFront()
+					break
+				}
+				case 'KeyL': {
+					this.addLeftSame()
+					break
+				}
+				case 'KeyK': {
+					this.addLeftReverse()
+					break
+				}
+				case 'KeyR': {
+					this.addRightSame()
+					break
+				}
+				case 'KeyE': {
+					this.addRightReverse()
+					break
+				}
+				case 'KeyS': {
+					this.saveToFile()
+					break
+				}
+				case 'KeyM': {
+					this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
+						.catch(err => log.warn('saveToKML failed: ' + err.message))
+					break
+				}
+				case 'KeyO': {
+					this.toggleListen()
+					break
+				}
+				case 'KeyU': {
+					this.unloadPointCloudData()
+					break
+				}
+				default:
+					// nothing to see here
 			}
-			case 'KeyC': {
-				this.focusOnPointCloud()
-				break
-			}
-			case 'KeyD': {
-				log.info("Deleting last marker")
-				if (this.annotationManager.deleteLastLaneMarker())
-					this.hideTransform()
-				break
-			}
-			case 'KeyN': {
-				this.addLane()
-				break
-			}
-			case 'KeyZ': {
-				this.deleteLane()
-				break
-			}
-			case 'KeyF': {
-				this.addFront()
-				break
-			}
-			case 'KeyL': {
-				this.addLeftSame()
-				break
-			}
-			case 'KeyK': {
-				this.addLeftReverse()
-				break
-			}
-			case 'KeyR': {
-				this.addRightSame()
-				break
-			}
-			case 'KeyE': {
-				this.addRightReverse()
-				break
-			}
-			case 'KeyS': {
-				this.saveToFile()
-				break
-			}
-			case 'KeyM': {
-				this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
-					.catch(err => log.warn('saveToKML failed: ' + err.message))
-				break
-			}
-			case 'KeyO': {
-				this.toggleListen()
-				break
-			}
-			case 'KeyU': {
-				this.unloadPointCloudData()
-				break
-			}
-			default:
-				// nothing to see here
-		}
 	}
 
 	private onKeyUp = (): void => {
 		this.isAddMarkerKeyPressed = false
+		this.numberKeyPressed = null
 	}
 
 	private saveAnnotations(): Promise<void> {
@@ -556,9 +602,7 @@ class Annotator {
 	}
 
 	private hideTransform = (): void => {
-		this.hideTransformControlTimer = setTimeout(() => {
-			this.transformControls.detach(this.transformControls.object)
-		}, 1500)
+		this.hideTransformControlTimer = setTimeout(() => this.cleanTransformControls(), 1500)
 	}
 
 	private cancelHideTransform = (): void => {
@@ -567,12 +611,19 @@ class Annotator {
 		}
 	}
 
+	private cleanTransformControls = (): void => {
+		this.cancelHideTransform()
+		this.transformControls.detach()
+		this.annotationManager.unhighlightMarkers()
+	}
+
 	/**
 	 * Create orbit controls which enable translation, rotation and zooming of the scene.
 	 */
 	private initOrbitControls(): void {
 		this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement)
 		this.orbitControls.minDistance = -Infinity
+		this.orbitControls.keyPanSpeed = 100
 
 		// Add listeners.
 
@@ -1237,7 +1288,7 @@ class Annotator {
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
 		this.carModel.visible = true
-		this.settings.fpsRendering = 30
+		this.settings.fpsRendering = this.settings.defaultFpsRendering / 2
 		return this.isLiveMode
 	}
 
@@ -1251,7 +1302,7 @@ class Annotator {
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
-		this.settings.fpsRendering = 60
+		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		return this.isLiveMode
 	}
 

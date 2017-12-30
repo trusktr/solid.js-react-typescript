@@ -29,7 +29,7 @@ export function onLoad(): void {
 	require("annotator-control-ui/UIControl")
 	log.info('loading ')
 	annotator.initScene()
-	annotator.animate()
+		.then(() => annotator.animate())
 }
 
 $(onLoad)
