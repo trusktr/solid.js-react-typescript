@@ -791,6 +791,37 @@ export class AnnotationManager extends UtmInterface {
 		this.annotations[this.activeAnnotationIndex].updateVisualization()
 	}
 
+	/*
+	 * Draw the markers a little larger.
+	 */
+	highlightMarkers(markers: Array<THREE.Mesh>): void {
+		const active = this.getActiveAnnotation()
+		if (active)
+			active.highlightMarkers(markers)
+	}
+
+	/*
+	 * Draw all markers at normal size.
+	 */
+	unhighlightMarkers(): void {
+		const active = this.getActiveAnnotation()
+		if (active)
+			active.unhighlightMarkers()
+	}
+
+	/*
+	 * Get all markers that share a lane edge with the origin, up to a given distance in either direction.
+	 * Distance is a count of markers, not a physical distance.
+	 * Origin is not included in the result.
+	 * Sort order is not specified.
+	 */
+	neighboringLaneMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {
+		const active = this.getActiveAnnotation()
+		return active
+			? active.neighboringLaneMarkers(origin, distance)
+			: []
+	}
+
 	/**
 	 * Create a new lane annotation connected to the current active annotation at the given location and with
 	 * the given direction of traffic. The new annotation is added to the scene for display and set as

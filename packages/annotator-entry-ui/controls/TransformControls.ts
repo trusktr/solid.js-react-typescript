@@ -624,7 +624,7 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 	domElement = ( domElement !== undefined ) ? domElement : document
 
-	this.object = undefined
+	this.objects = []
 	this.visible = false
 	this.translationSnap = null
 	this.rotationSnap = null
@@ -683,7 +683,7 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 	const quaternionZ = new THREE.Quaternion()
 	const quaternionE = new THREE.Quaternion()
 
-	const oldPosition = new THREE.Vector3()
+	let oldPositions: Array<Object3D> = []
 	const oldScale = new THREE.Vector3()
 	const oldRotationMatrix = new THREE.Matrix4()
 
@@ -730,9 +730,9 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 	}
 
-	this.attach = function (object: Object3D): void {
+	this.attach = function (objects: Array<Object3D>): void {
 
-		this.object = object
+		this.objects = objects
 		this.visible = true
 		this.update()
 
@@ -740,13 +740,13 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 	this.detach = function (): void {
 
-		this.object = undefined
+		this.objects = []
 		this.visible = false
 		this.axis = null
 
 	}
 
-	this.getMode = function () {
+	this.getMode = function (): string {
 
 		return _mode
 
@@ -798,11 +798,13 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 	this.update = function (): void {
 
-		if (scope.object === undefined) return
+		if (!scope.objects.length) return
 
-		scope.object.updateMatrixWorld()
-		worldPosition.setFromMatrixPosition(scope.object.matrixWorld)
-		worldRotation.setFromRotationMatrix(tempMatrix.extractRotation(scope.object.matrixWorld))
+		for (let i = 0; i < scope.objects.length; i++) {
+			scope.objects[i].updateMatrixWorld()
+		}
+		worldPosition.setFromMatrixPosition(scope.objects[0].matrixWorld)
+		worldRotation.setFromRotationMatrix(tempMatrix.extractRotation(scope.objects[0].matrixWorld))
 
 		camera.updateMatrixWorld()
 		camPosition.setFromMatrixPosition(camera.matrixWorld)
@@ -838,7 +840,7 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 	function onPointerHover(event: any): void {
 
-		if (scope.object === undefined || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
+		if (!scope.objects.length || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
 
 		const pointer = event.changedTouches ? event.changedTouches[0] : event
 
@@ -866,7 +868,7 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 	function onPointerDown(event: any): void {
 
-		if (scope.object === undefined || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
+		if (!scope.objects.length || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
 
 		const pointer = event.changedTouches ? event.changedTouches[0] : event
 
@@ -893,14 +895,18 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 				if (planeIntersect) {
 
-					oldPosition.copy(scope.object.position)
-					oldScale.copy(scope.object.scale)
+					oldPositions = scope.objects.map((o: Object3D) => {
+						const v = new THREE.Vector3()
+						v.copy(o.position)
+						return v
+					})
+					oldScale.copy(scope.objects[0].scale)
 
-					oldRotationMatrix.extractRotation(scope.object.matrix)
-					worldRotationMatrix.extractRotation(scope.object.matrixWorld)
+					oldRotationMatrix.extractRotation(scope.objects[0].matrix)
+					worldRotationMatrix.extractRotation(scope.objects[0].matrixWorld)
 
-					parentRotationMatrix.extractRotation(scope.object.parent.matrixWorld)
-					parentScale.setFromMatrixScale(tempMatrix.getInverse(scope.object.parent.matrixWorld))
+					parentRotationMatrix.extractRotation(scope.objects[0].parent.matrixWorld)
+					parentScale.setFromMatrixScale(tempMatrix.getInverse(scope.objects[0].parent.matrixWorld))
 
 					offset.copy(planeIntersect.point)
 
@@ -914,9 +920,9 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 	}
 
-	function onPointerMove(event: any) {
+	function onPointerMove(event: any): void {
 
-		if (scope.object === undefined || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 )) return
+		if (!scope.objects.length || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 )) return
 
 		const pointer = event.changedTouches ? event.changedTouches[0] : event
 
@@ -944,8 +950,10 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 				point.applyMatrix4(oldRotationMatrix)
 
-				scope.object.position.copy(oldPosition)
-				scope.object.position.add(point)
+				for (let i = 0; i < scope.objects.length ; i ++) {
+					scope.objects[i].position.copy(oldPositions[i])
+					scope.objects[i].position.add(point)
+				}
 
 			}
 
@@ -957,8 +965,10 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 				point.applyMatrix4(tempMatrix.getInverse(parentRotationMatrix))
 
-				scope.object.position.copy(oldPosition)
-				scope.object.position.add(point)
+				for (let i = 0; i < scope.objects.length; i++) {
+					scope.objects[i].position.copy(oldPositions[i])
+					scope.objects[i].position.add(point)
+				}
 
 			}
 
@@ -966,17 +976,23 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 				if (scope.space === "local") {
 
-					scope.object.position.applyMatrix4(tempMatrix.getInverse(worldRotationMatrix))
+					for (let i = 0; i < scope.objects.length; i++) {
+						scope.objects[i].position.applyMatrix4(tempMatrix.getInverse(worldRotationMatrix))
+					}
 
 				}
 
-				if (scope.axis.search("X") !== -1) scope.object.position.x = Math.round(scope.object.position.x / scope.translationSnap) * scope.translationSnap
-				if (scope.axis.search("Y") !== -1) scope.object.position.y = Math.round(scope.object.position.y / scope.translationSnap) * scope.translationSnap
-				if (scope.axis.search("Z") !== -1) scope.object.position.z = Math.round(scope.object.position.z / scope.translationSnap) * scope.translationSnap
+				for (let i = 0; i < scope.objects.length; i++) {
+					if (scope.axis.search("X") !== -1) scope.objects[i].position.x = Math.round(scope.objects[i].position.x / scope.translationSnap) * scope.translationSnap
+					if (scope.axis.search("Y") !== -1) scope.objects[i].position.y = Math.round(scope.objects[i].position.y / scope.translationSnap) * scope.translationSnap
+					if (scope.axis.search("Z") !== -1) scope.objects[i].position.z = Math.round(scope.objects[i].position.z / scope.translationSnap) * scope.translationSnap
+				}
 
 				if (scope.space === "local") {
 
-					scope.object.position.applyMatrix4(worldRotationMatrix)
+					for (let i = 0; i < scope.objects.length; i++) {
+						scope.objects[i].position.applyMatrix4(worldRotationMatrix)
+					}
 
 				}
 
@@ -993,17 +1009,21 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 					scale = 1 + ( ( point.y ) / Math.max(oldScale.x, oldScale.y, oldScale.z) )
 
-					scope.object.scale.x = oldScale.x * scale
-					scope.object.scale.y = oldScale.y * scale
-					scope.object.scale.z = oldScale.z * scale
+					for (let i = 0; i < scope.objects.length; i++) {
+						scope.objects[i].scale.x = oldScale.x * scale
+						scope.objects[i].scale.y = oldScale.y * scale
+						scope.objects[i].scale.z = oldScale.z * scale
+					}
 
 				} else {
 
 					point.applyMatrix4(tempMatrix.getInverse(worldRotationMatrix))
 
-					if (scope.axis === "X") scope.object.scale.x = oldScale.x * ( 1 + point.x / oldScale.x )
-					if (scope.axis === "Y") scope.object.scale.y = oldScale.y * ( 1 + point.y / oldScale.y )
-					if (scope.axis === "Z") scope.object.scale.z = oldScale.z * ( 1 + point.z / oldScale.z )
+					for (let i = 0; i < scope.objects.length; i++) {
+						if (scope.axis === "X") scope.objects[i].scale.x = oldScale.x * ( 1 + point.x / oldScale.x )
+						if (scope.axis === "Y") scope.objects[i].scale.y = oldScale.y * ( 1 + point.y / oldScale.y )
+						if (scope.axis === "Z") scope.objects[i].scale.z = oldScale.z * ( 1 + point.z / oldScale.z )
+					}
 
 				}
 
@@ -1032,7 +1052,9 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionE)
 				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionXYZ)
 
-				scope.object.quaternion.copy(tempQuaternion)
+				for (let i = 0; i < scope.objects.length; i++) {
+					scope.objects[i].quaternion.copy(tempQuaternion)
+				}
 
 			} else if (scope.axis === "XYZE") {
 
@@ -1045,7 +1067,9 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionX)
 				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionXYZ)
 
-				scope.object.quaternion.copy(tempQuaternion)
+				for (let i = 0; i < scope.objects.length; i++) {
+					scope.objects[i].quaternion.copy(tempQuaternion)
+				}
 
 			} else if (scope.space === "local") {
 
@@ -1076,7 +1100,9 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 				if (scope.axis === "Y") quaternionXYZ.multiplyQuaternions(quaternionXYZ, quaternionY)
 				if (scope.axis === "Z") quaternionXYZ.multiplyQuaternions(quaternionXYZ, quaternionZ)
 
-				scope.object.quaternion.copy(quaternionXYZ)
+				for (let i = 0; i < scope.objects.length; i++) {
+					scope.objects[i].quaternion.copy(quaternionXYZ)
+				}
 
 			} else if (scope.space === "world") {
 
@@ -1107,7 +1133,9 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 
 				tempQuaternion.multiplyQuaternions(tempQuaternion, quaternionXYZ)
 
-				scope.object.quaternion.copy(tempQuaternion)
+				for (let i = 0; i < scope.objects.length; i++) {
+					scope.objects[i].quaternion.copy(tempQuaternion)
+				}
 
 			}
 
