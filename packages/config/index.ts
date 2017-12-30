@@ -9,6 +9,8 @@ const path = require('path')
 const fs = require('fs')
 
 const required = [
+	'tile_manager.tile_scale',
+	'tile_manager.super_tile_scale',
 	'output.annotations.json.path',
 	'output.annotations.kml.path',
 	'output.trajectory.csv.path',
