@@ -192,6 +192,7 @@ class Annotator {
 		})
 
 		// Add listeners
+		window.addEventListener('beforeunload', this.onBeforeunload)
 		window.addEventListener('resize', this.onWindowResize)
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
@@ -426,6 +427,14 @@ class Annotator {
 				this.delayHideTransform()
 			}
 		}
+	}
+
+	/*
+	 * Make a best effort to save annotations before exiting. There is no guarantee the
+	 * promise will complete, but it seems to work in practice.
+	 */
+	private onBeforeunload: (e: BeforeUnloadEvent) => void = (_: BeforeUnloadEvent) => {
+		this.annotationManager.immediateAutoSave().then()
 	}
 
 	/**
