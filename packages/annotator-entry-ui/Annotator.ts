@@ -613,6 +613,7 @@ class Annotator {
 	private initOrbitControls(): void {
 		this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement)
 		this.orbitControls.minDistance = -Infinity
+		this.orbitControls.keyPanSpeed = 100
 
 		// Add listeners.
 

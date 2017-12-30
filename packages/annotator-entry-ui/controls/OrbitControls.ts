@@ -623,7 +623,18 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		event.preventDefault()
 
-		if (event.button === scope.mouseButtons.ORBIT) {
+		if (
+			event.button === scope.mouseButtons.PAN
+			|| (event.button === scope.mouseButtons.ORBIT && event.ctrlKey)
+		) {
+
+			if (scope.enablePan === false) return
+
+			handleMouseDownPan(event)
+
+			state = STATE.PAN
+
+		} else if (event.button === scope.mouseButtons.ORBIT) {
 
 			if (scope.enableRotate === false) return
 
@@ -638,14 +649,6 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 			handleMouseDownDolly(event)
 
 			state = STATE.DOLLY
-
-		} else if (event.button === scope.mouseButtons.PAN) {
-
-			if (scope.enablePan === false) return
-
-			handleMouseDownPan(event)
-
-			state = STATE.PAN
 
 		}
 
