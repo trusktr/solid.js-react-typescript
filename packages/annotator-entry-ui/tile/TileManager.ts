@@ -15,18 +15,13 @@ import {SuperTile} from "./SuperTile"
 import {UtmTile} from "./UtmTile"
 import {UtmInterface} from "../UtmInterface"
 import {BufferGeometry} from "three"
+import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
 import {Scale3D} from "../geometry/Scale3D"
-import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
+import {TileIndex} from "../model/TileIndex"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-
-export enum CoordinateFrameType {
-	CAMERA = 0, // [northing, -altitude, easting]
-	INERTIAL,   // [northing, easting, -altitude]
-	LIDAR,      // [northing, easting, altitude]
-}
 
 // Set the dimensions of tiles and super tiles.
 // Super tile boundaries coincide with tile boundaries, with no overlap.
@@ -123,26 +118,6 @@ const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Arra
 		sampledColors.push(msg.colors[i + 2])
 	}
 	return [sampledPoints, sampledColors]
-}
-
-/**
- * Convert a 3D point to our standard format: [easting, northing, altitude]
- * @returns Point in standard coordinate frame format.
- */
-const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateFrame: CoordinateFrameType): THREE.Vector3 => {
-	switch (pointCoordinateFrame) {
-		case CoordinateFrameType.CAMERA:
-			// Raw input is [x: northing, y: -altitude, z: easting]
-			return new THREE.Vector3(point.z, point.x, -point.y)
-		case CoordinateFrameType.INERTIAL:
-			// Raw input is [x: northing, y: easting, z: -altitude]
-			return new THREE.Vector3(point.y, point.x, -point.z)
-		case CoordinateFrameType.LIDAR:
-			// Raw input is [x: northing, y: easting, z: altitude]
-			return new THREE.Vector3(point.y, point.x, point.z)
-		default:
-			throw Error(`unknown coordinate frame '${pointCoordinateFrame}'`)
-	}
 }
 
 export class TileManager extends UtmInterface {
