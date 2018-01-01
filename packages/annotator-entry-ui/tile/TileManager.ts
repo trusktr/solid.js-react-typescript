@@ -129,7 +129,7 @@ const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Arra
  * Convert a 3D point to our standard format: [easting, northing, altitude]
  * @returns Point in standard coordinate frame format.
  */
-const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateFrame: CoordinateFrameType): THREE.Vector3 | null => {
+const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateFrame: CoordinateFrameType): THREE.Vector3 => {
 	switch (pointCoordinateFrame) {
 		case CoordinateFrameType.CAMERA:
 			// Raw input is [x: northing, y: -altitude, z: easting]
@@ -141,8 +141,7 @@ const convertToStandardCoordinateFrame = (point: THREE.Vector3, pointCoordinateF
 			// Raw input is [x: northing, y: easting, z: altitude]
 			return new THREE.Vector3(point.y, point.x, point.z)
 		default:
-			log.warn('Coordinate frame not recognized')
-			return null
+			throw Error(`unknown coordinate frame '${pointCoordinateFrame}'`)
 	}
 }
 
@@ -204,9 +203,7 @@ export class TileManager extends UtmInterface {
 		const inputPoint = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
 		const p = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
 
-		if (!p)
-			return false
-		else if (this.setOrigin(num, northernHemisphere, p))
+		if (this.setOrigin(num, northernHemisphere, p))
 			return true
 		else
 			return TileManager.isDefaultUtmZone(num, northernHemisphere)
@@ -290,12 +287,10 @@ export class TileManager extends UtmInterface {
 		for (let i = 0; i < pointsSize; i += threeDStepSize) {
 			const inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
 			const standardPoint = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
-			if (standardPoint) {
-				const threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
-				newPositions[i] = threePoint.x
-				newPositions[i + 1] = threePoint.y
-				newPositions[i + 2] = threePoint.z
-			}
+			const threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
+			newPositions[i] = threePoint.x
+			newPositions[i + 1] = threePoint.y
+			newPositions[i + 2] = threePoint.z
 		}
 
 		return newPositions.length
@@ -350,20 +345,18 @@ export class TileManager extends UtmInterface {
 		for (let i = 0; i < pointsSize; i += threeDStepSize) {
 			const inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
 			const standardPoint = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
-			if (standardPoint) {
-				const threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
+			const threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
 
-				newPositions[i] = threePoint.x
-				newPositions[i + 1] = threePoint.y
-				newPositions[i + 2] = threePoint.z
+			newPositions[i] = threePoint.x
+			newPositions[i + 1] = threePoint.y
+			newPositions[i + 2] = threePoint.z
 
-				if (estimateGroundPlane) {
-					const zIndex = Math.floor(standardPoint.z * zValueBinSize)
-					if (zValueHistogram.has(zIndex))
-						zValueHistogram.set(zIndex, zValueHistogram.get(zIndex)! + 1)
-					else
-						zValueHistogram.set(zIndex, 1)
-				}
+			if (estimateGroundPlane) {
+				const zIndex = Math.floor(standardPoint.z * zValueBinSize)
+				if (zValueHistogram.has(zIndex))
+					zValueHistogram.set(zIndex, zValueHistogram.get(zIndex)! + 1)
+				else
+					zValueHistogram.set(zIndex, 1)
 			}
 		}
 
