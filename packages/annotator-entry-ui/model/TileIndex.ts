@@ -45,6 +45,13 @@ export class TileIndex {
 			indexToCoord(this.zIndex, this.scale.zSize)
 		)
 	}
+
+	boundingBox(): THREE.Box3 {
+		return new THREE.Box3(
+			this.origin(),
+			this.origin().add(this.scale.toVector())
+		)
+	}
 }
 
 export function tileIndexFromCoordinates(scale: Scale3D, x: number, y: number, z: number): TileIndex {

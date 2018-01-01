@@ -156,10 +156,10 @@ export class TileManager extends UtmInterface {
 		return 'TileManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneNorthernHemisphere + ', offset: [' + offsetStr + '])'
 	}
 
-	private getOrCreateSuperTile(index: TileIndex): SuperTile {
-		const key = index.toString()
+	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
+		const key = utmIndex.toString()
 		if (!this.superTiles.has(key))
-			this.superTiles.set(key, new SuperTile(index))
+			this.superTiles.set(key, new SuperTile(utmIndex, coordinateFrame, this))
 		return this.superTiles.get(key)!
 	}
 
@@ -205,7 +205,6 @@ export class TileManager extends UtmInterface {
 		const tileMetadatas = Fs.readdirSync(datasetPath)
 			.map(name => tileFileNameToTileMetadata(name))
 			.filter(tm => tm !== null)
-		let coordsFailed = 0
 		const maxFileCount = Math.min(tileMetadatas.length, this.maxTilesToLoad)
 
 		const printProgress = function (current: number, total: number, stepSize: number): void {
@@ -214,18 +213,22 @@ export class TileManager extends UtmInterface {
 		}
 
 		let validFileCount = 0
+		let emptyFileCount = 0
+		let coordsFailedCount = 0
 		for (let i = 0; i < tileMetadatas.length; i++) {
-			if (validFileCount > this.maxTilesToLoad)
+			if (validFileCount >= this.maxTilesToLoad)
 				break
 
 			const metadata = tileMetadatas[i]!
 			const msg = await loadTile(Path.join(datasetPath, metadata.name))
 
-			if (!msg.points || msg.points.length === 0)
+			if (!msg.points || msg.points.length === 0) {
+				emptyFileCount++
 				continue
+			}
 
 			if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
-				coordsFailed++
+				coordsFailedCount++
 				continue
 			}
 
@@ -236,20 +239,22 @@ export class TileManager extends UtmInterface {
 			const utmTile = this.rawDataToUtmTile(metadata.index, sampledPoints, sampledColors, coordinateFrame)
 
 			if (utmTile) {
-				const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale))
+				const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale), coordinateFrame)
 				if (!superTile.addTile(utmTile))
 					log.warn(`addTile() failed for ${metadata}`)
 			}
 		}
 
 		log.info(`loaded ${validFileCount} tiles`)
-		if (coordsFailed)
-			log.warn(`rejected ${coordsFailed} tiles due to UTM zone mismatch`)
+		if (emptyFileCount)
+			log.info(`skipped ${emptyFileCount} empty tiles`)
+		if (coordsFailedCount)
+			log.warn(`rejected ${coordsFailedCount} tiles due to UTM zone mismatch`)
 
 		return Promise.resolve(this.generatePointCloudFromSuperTiles())
 	}
 
-	// Transform protobuf data to the correct coordinate from and instantiate a tile.
+	// Transform protobuf data to the correct coordinate frame and instantiate a tile.
 	private rawDataToUtmTile(
 		index: THREE.Vector3,
 		points: Array<number>,

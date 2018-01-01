@@ -3,6 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+import * as THREE from 'three'
+
 export class Scale3D {
 	xSize: number
 	ySize: number
@@ -24,6 +26,10 @@ export class Scale3D {
 		return this.xSize % that.xSize === 0
 			&& this.ySize % that.ySize === 0
 			&& this.zSize % that.zSize === 0
+	}
+
+	toVector(): THREE.Vector3 {
+		return new THREE.Vector3(this.xSize, this.ySize, this.zSize)
 	}
 }
 

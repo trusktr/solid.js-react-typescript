@@ -68,8 +68,6 @@ export class UtmInterface implements UtmLocalOrigin {
 				this.utmZoneNumber = this.defaultUtmZoneNumber
 				this.utmZoneNorthernHemisphere = this.defaultUtmZoneNorthernHemisphere
 			}
-			log.info('setting UTM zone: ' + this.utmZoneNumber + (this.utmZoneNorthernHemisphere ? 'N' : 'S'))
-			log.info('setting UTM origin offset: ' + this.offset.x + ', ' + this.offset.y + ', ' + this.offset.z)
 			return true
 		}
 	}
