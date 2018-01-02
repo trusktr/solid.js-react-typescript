@@ -12,18 +12,19 @@ import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
  * In practice this comes directly from a PointCloudTileMessage protobuf.
  */
 export class UtmTile {
+	hasPointCloud: boolean
 	index: TileIndex
-	rawPositions: Array<number>
-	rawColors: Array<number>
+	private pointCloudLoader: () => Promise<[number[], number[]]>
+	private rawPositions: Array<number>
+	private rawColors: Array<number>
 
 	constructor(
 		index: TileIndex,
-		rawPositions: Array<number>,
-		rawColors: Array<number>,
+		pointCloudLoader: () => Promise<[number[], number[]]>
 	) {
+		this.hasPointCloud = false
 		this.index = index
-		this.rawPositions = rawPositions
-		this.rawColors = rawColors
+		this.pointCloudLoader = pointCloudLoader
 	}
 
 	// Find the TileIndex for a super tile which contains the origin of this tile.
@@ -31,5 +32,18 @@ export class UtmTile {
 	// and then to the super tile scale.
 	superTileIndex(superTileScale: Scale3D): TileIndex {
 		return tileIndexFromVector3(superTileScale, this.index.origin())
+	}
+
+	loadPointCloud(): Promise<[number[], number[]]> {
+		if (this.hasPointCloud)
+			return Promise.resolve<[number[], number[]]>([this.rawPositions, this.rawColors])
+
+		return this.pointCloudLoader()
+			.then(result => {
+				this.rawPositions = result[0]
+				this.rawColors = result[1]
+				this.hasPointCloud = true
+				return [this.rawPositions, this.rawColors] as [number[], number[]]
+			})
 	}
 }

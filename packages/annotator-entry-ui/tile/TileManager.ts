@@ -122,16 +122,15 @@ const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Arra
 
 export class TileManager extends UtmInterface {
 
-	hasGeometry: boolean
+	private hasGeometry: boolean
 	// All super tiles which have some content loaded in memory.
 	superTiles: Map<string, SuperTile>
 	// This composite point cloud contains all super tile data, in a single structure for three.js rendering.
 	// All points are stored with reference to UTM origin and offset,
 	// but using the local coordinate system which has different axes.
 	pointCloud: THREE.Points
-	maxTilesToLoad: number
-	progressStepSize: number
-	samplingStep: number
+	private maxSuperTilesToLoad: number
+	private samplingStep: number
 
 	constructor() {
 		super()
@@ -141,8 +140,7 @@ export class TileManager extends UtmInterface {
 			new THREE.BufferGeometry(),
 			new THREE.PointsMaterial({size: 0.05, vertexColors: THREE.VertexColors})
 		)
-		this.maxTilesToLoad = parseInt(config.get('tile_manager.max_tiles_to_load'), 10) || 2000
-		this.progressStepSize = parseInt(config.get('tile_manager.progress_step_size'), 10) || 100
+		this.maxSuperTilesToLoad = parseInt(config.get('tile_manager.max_super_tiles_to_load'), 10) || 20
 		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
 	}
 
@@ -201,81 +199,77 @@ export class TileManager extends UtmInterface {
 	 * @returns the center point of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
-	async loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType, estimateGroundPlane: boolean): Promise<[THREE.Vector3 | null, number | null]> {
-		const tileMetadatas = Fs.readdirSync(datasetPath)
+	loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType, estimateGroundPlane: boolean): Promise<[THREE.Vector3 | null, number | null]> {
+		// Consider all tiles within datasetPath.
+		const fileMetadatas = Fs.readdirSync(datasetPath)
 			.map(name => tileFileNameToTileMetadata(name))
-			.filter(tm => tm !== null)
-		const maxFileCount = Math.min(tileMetadatas.length, this.maxTilesToLoad)
+			.filter(metadata => metadata !== null)
+		if (!fileMetadatas.length)
+			return Promise.reject(Error('no tiles found at ' + datasetPath))
 
-		const printProgress = function (current: number, total: number, stepSize: number): void {
-			if (total <= (stepSize * 2)) return
-			if (current % stepSize === 0) log.info(`processing ${current} of ${total} files`)
-		}
+		// Ensure that we have a valid coordinate system before doing anything else.
+		const firstTilePromise = loadTile(Path.join(datasetPath, fileMetadatas[0]!.name))
+			.then(firstMessage => {
+				if (this.checkCoordinateSystem(firstMessage, coordinateFrame))
+					return Promise.resolve()
+				else
+					return Promise.reject(Error('checkCoordinateSystem failed on first tile: ' + fileMetadatas[0]!.name))
+			})
 
-		let validFileCount = 0
-		let emptyFileCount = 0
-		let coordsFailedCount = 0
-		for (let i = 0; i < tileMetadatas.length; i++) {
-			if (validFileCount >= this.maxTilesToLoad)
-				break
+		// Instantiate tile and super tile classes for all the data.
+		// Load some of the data to get us started.
+		return firstTilePromise
+			.then(() => {
+				fileMetadatas.forEach(metadata => {
+					const utmTile = new UtmTile(
+						new TileIndex(tileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z),
+						this.loader(Path.join(datasetPath, metadata!.name), coordinateFrame),
+					)
+					const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale), coordinateFrame)
+					if (!superTile.addTile(utmTile))
+						log.warn(`addTile() failed for ${metadata!.name}`)
+				})
 
-			const metadata = tileMetadatas[i]!
-			const msg = await loadTile(Path.join(datasetPath, metadata.name))
+				const promises = Array.from(this.superTiles.values()).map(st => st.loadPointCloud())
+				return Promise.all(promises)
+			})
+			.then(() => this.generatePointCloudFromSuperTiles())
+	}
 
-			if (!msg.points || msg.points.length === 0) {
-				emptyFileCount++
-				continue
-			}
-
-			if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
-				coordsFailedCount++
-				continue
-			}
-
-			validFileCount++
-			printProgress(validFileCount, maxFileCount, this.progressStepSize)
-
-			const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.samplingStep)
-			const utmTile = this.rawDataToUtmTile(metadata.index, sampledPoints, sampledColors, coordinateFrame)
-
-			if (utmTile) {
-				const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale), coordinateFrame)
-				if (!superTile.addTile(utmTile))
-					log.warn(`addTile() failed for ${metadata}`)
-			}
-		}
-
-		log.info(`loaded ${validFileCount} tiles`)
-		if (emptyFileCount)
-			log.info(`skipped ${emptyFileCount} empty tiles`)
-		if (coordsFailedCount)
-			log.warn(`rejected ${coordsFailedCount} tiles due to UTM zone mismatch`)
-
-		return Promise.resolve(this.generatePointCloudFromSuperTiles())
+	private loader(filename: string, coordinateFrame: CoordinateFrameType):     () => Promise<[number[], number[]]> {
+		return (): Promise<[number[], number[]]> =>
+			loadTile(filename)
+				.then(msg => {
+					if (!msg.points || msg.points.length === 0) {
+						return [[], []] as [number[], number[]]
+					} else if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
+						return [[], []] as [number[], number[]]
+					} else {
+						const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.samplingStep)
+						const positions = this.rawDataToPositions(sampledPoints, coordinateFrame)
+						return [positions, sampledColors] as [number[], number[]]
+					}
+				})
 	}
 
 	// Transform protobuf data to the correct coordinate frame and instantiate a tile.
-	private rawDataToUtmTile(
-		index: THREE.Vector3,
+	private rawDataToPositions(
 		points: Array<number>,
-		inputColors: Array<number>,
-		inputCoordinateFrame: CoordinateFrameType
-	): UtmTile | null {
+		coordinateFrame: CoordinateFrameType
+	): number[] {
 		const pointsSize = points.length
 		const newPositions = new Array<number>(pointsSize)
 
 		for (let i = 0; i < pointsSize; i += threeDStepSize) {
 			const inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
-			const standardPoint = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
+			const standardPoint = convertToStandardCoordinateFrame(inputPoint, coordinateFrame)
 			const threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
 			newPositions[i] = threePoint.x
 			newPositions[i + 1] = threePoint.y
 			newPositions[i + 2] = threePoint.z
 		}
 
-		return newPositions.length
-			? new UtmTile(new TileIndex(tileScale, index.x, index.y, index.z), newPositions, inputColors)
-			: null
+		return newPositions
 	}
 
 	/*
@@ -290,8 +284,10 @@ export class TileManager extends UtmInterface {
 		let rawColors: Array<number> = []
 
 		this.superTiles.forEach(st => {
-			rawPositions = rawPositions.concat(st.rawPositions)
-			rawColors = rawColors.concat(st.rawColors)
+			if (st.hasPointCloud) {
+				rawPositions = rawPositions.concat(st.rawPositions)
+				rawColors = rawColors.concat(st.rawColors)
+			}
 		})
 
 		const geometry = new THREE.BufferGeometry()

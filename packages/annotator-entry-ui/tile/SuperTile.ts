@@ -15,15 +15,17 @@ import {UtmInterface} from "../UtmInterface"
  * Bounding box contents are inclusive at the low edges and exclusive at the high edges.
  */
 export class SuperTile extends UtmInterface {
+	hasPointCloud: boolean
 	index: TileIndex
 	coordinateFrame: CoordinateFrameType
 	threeJsBoundingBox: THREE.Box3
-	tiles: UtmTile[]
+	private tiles: UtmTile[]
 	rawPositions: Array<number>
 	rawColors: Array<number>
 
 	constructor(index: TileIndex, coordinateFrame: CoordinateFrameType, utmParent: UtmInterface) {
 		super()
+		this.hasPointCloud = false
 		this.index = index
 		this.coordinateFrame = coordinateFrame
 		this.setOriginWithInterface(utmParent)
@@ -41,18 +43,33 @@ export class SuperTile extends UtmInterface {
 		this.rawColors = []
 	}
 
-	hasTileData(): boolean {
-		return this.tiles.length > 0
-	}
-
+	// SuperTile doesn't have to be filled densely with tiles. Add tiles only if they are not empty.
 	addTile(tile: UtmTile): boolean {
+		if (this.hasPointCloud)
+			return false
+
 		// First validate that the tile exists in the volume described by this super tile.
 		if (this.index.equals(tile.superTileIndex(this.index.scale))) {
 			this.tiles.push(tile)
-			this.rawPositions = this.rawPositions.concat(tile.rawPositions)
-			this.rawColors = this.rawColors.concat(tile.rawColors)
 			return true
 		} else
 			return false
+	}
+
+	// The point cloud loads once. Call addTile() first.
+	loadPointCloud(): Promise<boolean> {
+		if (this.hasPointCloud)
+			return Promise.resolve(true)
+
+		const promises = this.tiles.map(t => t.loadPointCloud())
+		return Promise.all(promises)
+			.then(results => {
+				results.forEach(result => {
+					this.rawPositions = this.rawPositions.concat(result[0])
+					this.rawColors = this.rawColors.concat(result[1])
+				})
+				this.hasPointCloud = true
+				return true
+			})
 	}
 }
