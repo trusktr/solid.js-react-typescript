@@ -7,6 +7,7 @@ const config = require('../../config')
 import * as Fs from 'fs'
 import * as Path from 'path'
 import * as AsyncFile from 'async-file'
+import {OrderedMap} from 'immutable'
 import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
@@ -124,7 +125,7 @@ export class TileManager extends UtmInterface {
 
 	private hasGeometry: boolean
 	// All super tiles which have some content loaded in memory.
-	superTiles: Map<string, SuperTile>
+	superTiles: OrderedMap<string, SuperTile>
 	// This composite point cloud contains all super tile data, in a single structure for three.js rendering.
 	// All points are stored with reference to UTM origin and offset,
 	// but using the local coordinate system which has different axes.
@@ -135,7 +136,7 @@ export class TileManager extends UtmInterface {
 	constructor() {
 		super()
 		this.hasGeometry = false
-		this.superTiles = new Map()
+		this.superTiles = OrderedMap()
 		this.pointCloud = new THREE.Points(
 			new THREE.BufferGeometry(),
 			new THREE.PointsMaterial({size: 0.05, vertexColors: THREE.VertexColors})
@@ -157,8 +158,8 @@ export class TileManager extends UtmInterface {
 	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
 		const key = utmIndex.toString()
 		if (!this.superTiles.has(key))
-			this.superTiles.set(key, new SuperTile(utmIndex, coordinateFrame, this))
-		return this.superTiles.get(key)!
+			this.superTiles = this.superTiles.set(key, new SuperTile(utmIndex, coordinateFrame, this))
+		return this.superTiles.get(key)
 	}
 
 	// "default" according to protobuf rules for default values
@@ -230,7 +231,9 @@ export class TileManager extends UtmInterface {
 						log.warn(`addTile() failed for ${metadata!.name}`)
 				})
 
-				const promises = Array.from(this.superTiles.values()).map(st => st.loadPointCloud())
+				const promises = this.superTiles
+					.take(this.maxSuperTilesToLoad)
+					.valueSeq().toArray().map(st => st.loadPointCloud())
 				return Promise.all(promises)
 			})
 			.then(() => this.generatePointCloudFromSuperTiles())
@@ -243,7 +246,7 @@ export class TileManager extends UtmInterface {
 					if (!msg.points || msg.points.length === 0) {
 						return [[], []] as [number[], number[]]
 					} else if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
-						return [[], []] as [number[], number[]]
+						throw Error('checkCoordinateSystem failed on: ' + filename)
 					} else {
 						const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.samplingStep)
 						const positions = this.rawDataToPositions(sampledPoints, coordinateFrame)
@@ -284,7 +287,7 @@ export class TileManager extends UtmInterface {
 		let rawColors: Array<number> = []
 
 		this.superTiles.forEach(st => {
-			if (st.hasPointCloud) {
+			if (st && st.hasPointCloud) {
 				rawPositions = rawPositions.concat(st.rawPositions)
 				rawColors = rawColors.concat(st.rawColors)
 			}
@@ -373,7 +376,7 @@ export class TileManager extends UtmInterface {
 	 * Clean slate.
 	 */
 	unloadAllPoints(): void {
-		this.superTiles = new Map()
+		this.superTiles = OrderedMap()
 		this.setGeometry(new THREE.BufferGeometry())
 		this.hasGeometry = false
 	}

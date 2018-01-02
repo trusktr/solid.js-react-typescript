@@ -12,9 +12,8 @@ startup.annotations_path:
 
 # parameters for loading a tile
 tile_manager.tile_scale: [10, 10, 10] # conversion from tile index numbers to physical dimensions
-tile_manager.super_tile_scale: [20, 30, 40] # ditto; must contain multiples of tile_scale
-tile_manager.max_tiles_to_load: 2000
-tile_manager.progress_step_size: 100
+tile_manager.super_tile_scale: [100, 100, 50] # ditto; must contain multiples of tile_scale
+tile_manager.max_super_tiles_to_load: 20
 tile_manager.sampling_step: 5
 
 # annotator controls
