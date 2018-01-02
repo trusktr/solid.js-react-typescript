@@ -53,6 +53,7 @@ interface AnnotatorSettings {
 	defaultFpsRendering: number
 	fpsRendering: number
 	estimateGroundPlane: boolean
+	drawBoundingBox: boolean
 }
 
 /**
@@ -80,6 +81,7 @@ class Annotator {
 	annotationManager: AnnotationUtils.AnnotationManager
 	pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
 	highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
+	pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
 	isAddMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	numberKeyPressed: number | null
@@ -101,6 +103,7 @@ class Annotator {
 			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
 			fpsRendering: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
+			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
 		}
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		this.hovered = null
@@ -114,6 +117,7 @@ class Annotator {
 		this.tileManager = new TileManager()
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
+		this.pointCloudBoundingBox = null
 
 		this.isLiveMode = false
 
@@ -323,6 +327,11 @@ class Annotator {
 				this.scene.add(this.tileManager.pointCloud)
 				this.renderSuperTiles()
 
+				if (this.settings.drawBoundingBox) {
+					this.pointCloudBoundingBox = new THREE.BoxHelper(this.tileManager.pointCloud, new THREE.Color(0xff0000))
+					this.scene.add(this.pointCloudBoundingBox)
+				}
+
 				if (focalPoint) {
 					const gridYValue = isNullOrUndefined(groundPlaneYIndex) ? null : groundPlaneYIndex - focalPoint.y
 					this.setStageByVector(focalPoint, gridYValue)
@@ -332,6 +341,14 @@ class Annotator {
 
 	private loadSuperTile(superTile: SuperTile): void {
 		this.tileManager.loadFromSuperTile(superTile)
+			.then(result => {
+				if (this.settings.drawBoundingBox) {
+					if (this.pointCloudBoundingBox)
+						this.scene.remove(this.pointCloudBoundingBox)
+					this.pointCloudBoundingBox = new THREE.BoxHelper(this.tileManager.pointCloud, new THREE.Color(0xff0000))
+					this.scene.add(this.pointCloudBoundingBox)
+				}
+			})
 	}
 
 	private unloadPointCloudData(): void {
@@ -523,8 +540,8 @@ class Annotator {
 		if (intersects.length > 0) {
 			const superTile = this.highlightedSuperTileBox.userData as SuperTile
 			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
-			this.unHighlightSuperTileBox()
 			this.scene.remove(this.highlightedSuperTileBox)
+			this.unHighlightSuperTileBox()
 			this.loadSuperTile(superTile)
 		}
 	}
