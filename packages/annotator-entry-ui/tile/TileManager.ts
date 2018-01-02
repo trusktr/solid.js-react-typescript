@@ -130,6 +130,7 @@ export class TileManager extends UtmInterface {
 	// All points are stored with reference to UTM origin and offset,
 	// but using the local coordinate system which has different axes.
 	pointCloud: THREE.Points
+	private initialSuperTilesToLoad: number
 	private maxSuperTilesToLoad: number
 	private samplingStep: number
 
@@ -141,7 +142,7 @@ export class TileManager extends UtmInterface {
 			new THREE.BufferGeometry(),
 			new THREE.PointsMaterial({size: 0.05, vertexColors: THREE.VertexColors})
 		)
-		this.maxSuperTilesToLoad = parseInt(config.get('tile_manager.max_super_tiles_to_load'), 10) || 20
+		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
 		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
 	}
 
@@ -195,8 +196,7 @@ export class TileManager extends UtmInterface {
 	}
 
 	/**
-	 * Given a path to a dataset it loads all PointCloudTiles computed for display and
-	 * merges them into a single super tile.
+	 * Given a path to a dataset, find all super tiles. Load point cloud data for some of them.
 	 * @returns the center point of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
@@ -232,10 +232,15 @@ export class TileManager extends UtmInterface {
 				})
 
 				const promises = this.superTiles
-					.take(this.maxSuperTilesToLoad)
+					.take(this.initialSuperTilesToLoad)
 					.valueSeq().toArray().map(st => st.loadPointCloud())
 				return Promise.all(promises)
 			})
+			.then(() => this.generatePointCloudFromSuperTiles())
+	}
+
+	loadFromSuperTile(superTile: SuperTile): Promise<[THREE.Vector3 | null, number | null]> {
+		return superTile.loadPointCloud()
 			.then(() => this.generatePointCloudFromSuperTiles())
 	}
 

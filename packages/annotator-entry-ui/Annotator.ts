@@ -8,6 +8,7 @@ import * as $ from 'jquery'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
+import {SuperTile} from "./tile/SuperTile"
 import {CoordinateFrameType} from "./geometry/CoordinateFrame"
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {NeighborLocation, NeighborDirection, LaneId} from 'annotator-entry-ui/LaneAnnotation'
@@ -65,7 +66,7 @@ class Annotator {
 	renderer: THREE.WebGLRenderer
 	raycasterPlane: THREE.Raycaster
 	raycasterMarker: THREE.Raycaster
-	raycasterAnnotation: THREE.Raycaster
+	raycasterSuperTiles: THREE.Raycaster
 	carModel: THREE.Object3D
 	tileManager: TileManager
 	plane: THREE.Mesh
@@ -77,6 +78,8 @@ class Annotator {
 	transformControls: any
 	hideTransformControlTimer: NodeJS.Timer
 	annotationManager: AnnotationUtils.AnnotationManager
+	pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
+	highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
 	isAddMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	numberKeyPressed: number | null
@@ -106,10 +109,11 @@ class Annotator {
 		this.raycasterPlane.params.Points!.threshold = 0.1
 		// THe raycaster is used to compute which marker is active for editing
 		this.raycasterMarker = new THREE.Raycaster()
-		// THe raycaster is used to compute which selection should be active for editing
-		this.raycasterAnnotation = new THREE.Raycaster()
+		this.raycasterSuperTiles = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager()
+		this.pendingSuperTileBoxes = []
+		this.highlightedSuperTileBox = null
 
 		this.isLiveMode = false
 
@@ -211,12 +215,10 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mouseup', () => {
-			this.isMouseButtonPressed = false
-		})
-		this.renderer.domElement.addEventListener('mousedown', () => {
-			this.isMouseButtonPressed = true
-		})
+		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
+		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
+		this.renderer.domElement.addEventListener('mouseup', () => {this.isMouseButtonPressed = false})
+		this.renderer.domElement.addEventListener('mousedown', () => {this.isMouseButtonPressed = true})
 
 		this.loadCarModel()
 
@@ -309,7 +311,7 @@ class Annotator {
 	 * Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	 * Center the stage and the camera on the point cloud.
 	 */
-	loadPointCloudData(pathToTiles: string): Promise<void> {
+	private loadPointCloudData(pathToTiles: string): Promise<void> {
 		log.info('loading dataset')
 		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR, this.settings.estimateGroundPlane)
 			.then(result => {
@@ -319,6 +321,7 @@ class Annotator {
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
 				}
 				this.scene.add(this.tileManager.pointCloud)
+				this.renderSuperTiles()
 
 				if (focalPoint) {
 					const gridYValue = isNullOrUndefined(groundPlaneYIndex) ? null : groundPlaneYIndex - focalPoint.y
@@ -327,9 +330,29 @@ class Annotator {
 			})
 	}
 
-	unloadPointCloudData(): void {
+	private loadSuperTile(superTile: SuperTile): void {
+		this.tileManager.loadFromSuperTile(superTile)
+	}
+
+	private unloadPointCloudData(): void {
 		log.info("unloadPointCloudData")
 		this.tileManager.unloadAllPoints()
+	}
+
+	private renderSuperTiles(): void {
+		this.tileManager.superTiles.forEach(st => {
+			if (st && !st.hasPointCloud) {
+				const size = st.threeJsBoundingBox.getSize()
+				const center = st.threeJsBoundingBox.getCenter()
+				const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
+				const material = new THREE.MeshBasicMaterial({color: 0xffaa00, wireframe: true})
+				const box = new THREE.Mesh(geometry, material)
+				box.geometry.translate(center.x, center.y, center.z)
+				box.userData = st
+				this.scene.add(box)
+				this.pendingSuperTileBoxes.push(box)
+			}
+		})
 	}
 
 	/**
@@ -386,7 +409,6 @@ class Annotator {
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
-
 		if (this.settings.estimateGroundPlane || !this.tileManager.pointCloud) {
 			intersections = this.raycasterPlane.intersectObject(this.plane)
 		} else {
@@ -409,7 +431,7 @@ class Annotator {
 		if (this.isLiveMode) return
 
 		const mouse = this.getMouseCoordinates(event)
-		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		this.raycasterMarker.setFromCamera(mouse, this.camera)
 		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.annotationMeshes)
 
 		if (intersects.length > 0) {
@@ -436,9 +458,7 @@ class Annotator {
 			return
 		}
 		const mouse = this.getMouseCoordinates(event)
-
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
-
 		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
 
 		if (intersects.length > 0) {
@@ -470,6 +490,64 @@ class Annotator {
 				this.delayHideTransform()
 			}
 		}
+	}
+
+	private checkForSuperTileSelection = (event: MouseEvent): void => {
+		if (this.isLiveMode) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterSuperTiles.intersectObjects(this.pendingSuperTileBoxes)
+
+		if (!intersects.length) {
+			this.unHighlightSuperTileBox()
+		} else {
+			const first = intersects[0].object as THREE.Mesh
+
+			if (this.highlightedSuperTileBox && this.highlightedSuperTileBox.id !== first.id)
+				this.unHighlightSuperTileBox()
+
+			if (!this.highlightedSuperTileBox)
+				this.highlightSuperTileBox(first)
+		}
+	}
+
+	private clickSuperTileBox = (event: MouseEvent): void => {
+		if (this.isLiveMode) return
+		if (!this.highlightedSuperTileBox) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterSuperTiles.intersectObject(this.highlightedSuperTileBox)
+
+		if (intersects.length > 0) {
+			const superTile = this.highlightedSuperTileBox.userData as SuperTile
+			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
+			this.unHighlightSuperTileBox()
+			this.scene.remove(this.highlightedSuperTileBox)
+			this.loadSuperTile(superTile)
+		}
+	}
+
+	// Draw the box in a more solid form to indicate that it is active.
+	private highlightSuperTileBox(superTileBox: THREE.Mesh): void {
+		const material = superTileBox.material as THREE.MeshBasicMaterial
+		material.wireframe = false
+		material.transparent = true
+		material.opacity = 0.5
+		this.highlightedSuperTileBox = superTileBox
+		// this.scene.remove(this.highlightedSuperTileBox)
+	}
+
+	// Draw the box as a simple wireframe like all the other boxes.
+	private unHighlightSuperTileBox(): void {
+		if (!this.highlightedSuperTileBox) return
+
+		const material = this.highlightedSuperTileBox.material as THREE.MeshBasicMaterial
+		material.wireframe = true
+		material.transparent = false
+		material.opacity = 1.0
+		this.highlightedSuperTileBox = null
 	}
 
 	/*
