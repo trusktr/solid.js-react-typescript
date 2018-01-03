@@ -62,34 +62,34 @@ interface AnnotatorSettings {
  * and modify the annotations.
  */
 class Annotator {
-	scene: THREE.Scene
-	camera: THREE.PerspectiveCamera
-	renderer: THREE.WebGLRenderer
-	raycasterPlane: THREE.Raycaster
-	raycasterMarker: THREE.Raycaster
-	raycasterSuperTiles: THREE.Raycaster
-	carModel: THREE.Object3D
-	tileManager: TileManager
-	plane: THREE.Mesh
-	grid: THREE.GridHelper // an arbitrary horizontal (XZ) reference plane for the UI
-	axis: THREE.AxisHelper
-	light: THREE.SpotLight
-	stats: Stats
-	orbitControls: THREE.OrbitControls
-	transformControls: any
-	hideTransformControlTimer: NodeJS.Timer
-	annotationManager: AnnotationUtils.AnnotationManager
-	pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
-	highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
-	pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
-	isAddMarkerKeyPressed: boolean
-	isMouseButtonPressed: boolean
-	numberKeyPressed: number | null
-	isLiveMode: boolean
-	liveSubscribeSocket: Socket
-	hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
-	settings: AnnotatorSettings
-	gui: any
+	private scene: THREE.Scene
+	private camera: THREE.PerspectiveCamera
+	private renderer: THREE.WebGLRenderer
+	private raycasterPlane: THREE.Raycaster
+	private raycasterMarker: THREE.Raycaster
+	private raycasterSuperTiles: THREE.Raycaster
+	private carModel: THREE.Object3D
+	private tileManager: TileManager
+	private plane: THREE.Mesh
+	private grid: THREE.GridHelper // an arbitrary horizontal (XZ) reference plane for the UI
+	private axis: THREE.AxisHelper
+	private light: THREE.SpotLight
+	private stats: Stats
+	private orbitControls: THREE.OrbitControls
+	private transformControls: any
+	private hideTransformControlTimer: NodeJS.Timer
+	private annotationManager: AnnotationUtils.AnnotationManager
+	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
+	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
+	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
+	private isAddMarkerKeyPressed: boolean
+	private isMouseButtonPressed: boolean
+	private numberKeyPressed: number | null
+	private isLiveMode: boolean
+	private liveSubscribeSocket: Socket
+	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
+	private settings: AnnotatorSettings
+	private gui: any
 
 	constructor() {
 		this.isAddMarkerKeyPressed = false
@@ -272,7 +272,7 @@ class Annotator {
 	/**
 	 * Render the THREE.js scene from the camera's position.
 	 */
-	render = (): void => {
+	private render = (): void => {
 		this.renderer.render(this.scene, this.camera)
 	}
 
@@ -339,7 +339,8 @@ class Annotator {
 			})
 	}
 
-	private loadSuperTile(superTile: SuperTile): void {
+	// Incrementally load the point cloud for a single super tile.
+	private loadSuperTileData(superTile: SuperTile): void {
 		this.tileManager.loadFromSuperTile(superTile)
 			.then(result => {
 				if (this.settings.drawBoundingBox) {
@@ -356,6 +357,7 @@ class Annotator {
 		this.tileManager.unloadAllPoints()
 	}
 
+	// Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
 	private renderSuperTiles(): void {
 		this.tileManager.superTiles.forEach(st => {
 			if (st && !st.hasPointCloud) {
@@ -377,7 +379,7 @@ class Annotator {
 	 * and to the scene.
 	 * Center the stage and the camera on the annotations model.
 	 */
-	async loadAnnotations(fileName: string): Promise<void> {
+	private async loadAnnotations(fileName: string): Promise<void> {
 		try {
 			log.info('Loading annotations')
 			const focalPoint = await this.annotationManager.loadAnnotationsFromFile(fileName, this.scene)
@@ -511,6 +513,7 @@ class Annotator {
 
 	private checkForSuperTileSelection = (event: MouseEvent): void => {
 		if (this.isLiveMode) return
+		if (this.isMouseButtonPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
@@ -542,7 +545,7 @@ class Annotator {
 			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
 			this.scene.remove(this.highlightedSuperTileBox)
 			this.unHighlightSuperTileBox()
-			this.loadSuperTile(superTile)
+			this.loadSuperTileData(superTile)
 		}
 	}
 
@@ -553,7 +556,6 @@ class Annotator {
 		material.transparent = true
 		material.opacity = 0.5
 		this.highlightedSuperTileBox = superTileBox
-		// this.scene.remove(this.highlightedSuperTileBox)
 	}
 
 	// Draw the box as a simple wireframe like all the other boxes.
@@ -771,7 +773,7 @@ class Annotator {
 	/**
 	 * Functions to bind
 	 */
-	deleteLane(): void {
+	private deleteLane(): void {
 		// Delete lane from scene
 		if (this.annotationManager.deleteLaneFromPath() && this.annotationManager.deleteActiveAnnotation(this.scene)) {
 			log.info("Deleted selected annotation")
@@ -780,7 +782,7 @@ class Annotator {
 		}
 	}
 
-	addLane(): void {
+	private addLane(): void {
 		// Add lane to scene
 		if (this.addLaneAnnotation()) {
 			log.info("Added new annotation")
@@ -789,19 +791,19 @@ class Annotator {
 		}
 	}
 
-	saveToFile(): void {
+	private saveToFile(): void {
 		log.info("Saving annotations to JSON")
 		this.saveAnnotations()
 			.catch(error => log.warn("save to file failed: " + error.message))
 	}
 
-	exportKml(): void {
+	private exportKml(): void {
 		log.info("Exporting annotations to KML")
 		this.exportAnnotationsToKml()
 			.catch(error => log.warn("export to KML failed: " + error.message))
 	}
 
-	loadFromFile(): Promise<void> {
+	private loadFromFile(): Promise<void> {
 		const pathElectron = dialog.showOpenDialog({
 			properties: ['openDirectory']
 		})
@@ -813,35 +815,35 @@ class Annotator {
 		return this.loadPointCloudData(pathElectron[0])
 	}
 
-	addFront(): void {
+	private addFront(): void {
 		log.info("Adding connected annotation to the front")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
 			Annotator.deactivateFrontSideNeighbours()
 		}
 	}
 
-	addLeftSame(): void {
+	private addLeftSame(): void {
 		log.info("Adding connected annotation to the left - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
-	addLeftReverse(): void {
+	private addLeftReverse(): void {
 		log.info("Adding connected annotation to the left - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
-	addRightSame(): void {
+	private addRightSame(): void {
 		log.info("Adding connected annotation to the right - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
 	}
 
-	addRightReverse(): void {
+	private addRightReverse(): void {
 		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateRightSideNeighbours()
@@ -1328,7 +1330,7 @@ class Annotator {
 		})
 	}
 
-	initClient(): void {
+	private initClient(): void {
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
@@ -1362,7 +1364,7 @@ class Annotator {
 	 * Toggle whether or not to listen for live-location updates.
 	 * Returns the updated state of live-location mode.
 	 */
-	toggleListen(): void {
+	private toggleListen(): void {
 		let hideMenu
 		if (this.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
@@ -1374,7 +1376,7 @@ class Annotator {
 		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
 	}
 
-	listen(): boolean {
+	private listen(): boolean {
 		if (this.isLiveMode) return this.isLiveMode
 
 		log.info('Listening for messages...')
@@ -1388,7 +1390,7 @@ class Annotator {
 		return this.isLiveMode
 	}
 
-	stopListening(): boolean {
+	private stopListening(): boolean {
 		if (!this.isLiveMode) return this.isLiveMode
 
 		log.info('Stopped listening for messages...')
