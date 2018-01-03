@@ -2,6 +2,7 @@
 # Set window dimensions to 0 to maximize.
 startup.electron.window.default.width: 0
 startup.electron.window.default.height: 0
+startup.show_dev_tools: true
 startup.render.fps: 60
 startup.background_color: '#082839'
 startup.show_color_picker: true
