@@ -98,7 +98,7 @@ class Annotator {
 
 		this.settings = {
 			background: config.get('startup.background_color') || '#082839',
-			cameraOffset: new THREE.Vector3(10, 30, 10),
+			cameraOffset: new THREE.Vector3(40, 120, 40),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
 			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
 			fpsRendering: 0,
