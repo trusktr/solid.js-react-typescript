@@ -10,9 +10,8 @@ import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {CoordinateFrameType, TileManager}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
 import {AnnotationId, AnnotationUuid} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
-
-import {OutputFormat} from "annotator-entry-ui/AnnotationUtils"
+import {Lane, NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
+import {AnnotationType, OutputFormat} from "annotator-entry-ui/AnnotationUtils"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
@@ -358,10 +357,19 @@ class Annotator {
 		}
 	}
 
+	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
+		const mouse = new THREE.Vector2()
+		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
+		mouse.y = -( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		return mouse
+	}
+
 	/**
 	 * Create a new lane annotation.
 	 */
 	private addLaneAnnotation(): boolean {
+		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
+		// that annotation wouldn't be selectable and it would be lost)
 		if (this.annotationManager.activeAnnotationIndex >= 0 &&
 			this.annotationManager.activeMarkers.length === 0) {
 			return false
@@ -376,13 +384,6 @@ class Annotator {
 
 	private addTrafficSignAnnotation(): void {
 		this.annotationManager.addTrafficSignAnnotation(this.scene)
-	}
-
-	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
-		const mouse = new THREE.Vector2()
-		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
-		mouse.y = -( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
-		return mouse
 	}
 
 	/**
@@ -406,13 +407,7 @@ class Annotator {
 
 		if (intersections.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
-			const x = intersections[0].point.x
-			const y = intersections[0].point.y
-			const z = icase 'KeyQ': {
-				this.isAddTrafficSignMarkerKeyPressed = true
-				break
-			}ntersections[0].point.z
-			this.annotationManager.addLaneMarker(x, y, z)
+			this.annotationManager.addLaneMarker(intersections[0].point)
 		}
 	}
 
@@ -448,7 +443,7 @@ class Annotator {
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
 				this.cleanTransformControls()
-				this.annotationManager.changeActiveAnnotation(index)
+				this.annotationManager.changeActiveAnnotation(index, AnnotationType.LANE)
 				this.resetLaneProp()
 			}
 		}
@@ -956,8 +951,8 @@ class Annotator {
 		const lcAdd = document.getElementById('lc_add')
 		if (lcAdd)
 			lcAdd.addEventListener('click', _ => {
-				const lcTo: LaneId = Number($('#lc_select_to').val())
-				const lcFrom: LaneId = Number($('#lc_select_from').val())
+				const lcTo: AnnotationId = Number($('#lc_select_to').val())
+				const lcFrom: AnnotationId = Number($('#lc_select_from').val())
 				const lcRelation = $('#lc_select_relation').val()
 
 				if (lcTo === null || lcFrom === null) {
@@ -1055,7 +1050,7 @@ class Annotator {
 	 */
 	private resetLaneProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveAnnotation()
-		if (activeAnnotation === null) {
+		if (activeAnnotation === null || activeAnnotation.constructor.name !== Lane.name) {
 			return
 		}
 
