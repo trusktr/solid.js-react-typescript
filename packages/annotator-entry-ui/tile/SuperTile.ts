@@ -38,7 +38,7 @@ export class SuperTile extends UtmInterface {
 		this.coordinateFrame = coordinateFrame
 		this.setOriginWithInterface(utmParent)
 
-		const utmBoundingBox = index.boundingBox()
+		const utmBoundingBox = index.boundingBox
 		const min = convertToStandardCoordinateFrame(utmBoundingBox.min, coordinateFrame)
 		const max = convertToStandardCoordinateFrame(utmBoundingBox.max, coordinateFrame)
 		this.threeJsBoundingBox = new THREE.Box3(

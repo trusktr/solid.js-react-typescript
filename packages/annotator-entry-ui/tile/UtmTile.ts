@@ -31,7 +31,7 @@ export class UtmTile {
 	// First convert from the tile's scale to the coordinate frame for point clouds,
 	// and then to the super tile scale.
 	superTileIndex(superTileScale: Scale3D): TileIndex {
-		return tileIndexFromVector3(superTileScale, this.index.origin())
+		return tileIndexFromVector3(superTileScale, this.index.origin)
 	}
 
 	loadPointCloud(): Promise<[number[], number[]]> {

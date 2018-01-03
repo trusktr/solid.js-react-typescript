@@ -17,12 +17,23 @@ export class TileIndex {
 	xIndex: TileIndexDimension
 	yIndex: TileIndexDimension
 	zIndex: TileIndexDimension
+	origin: THREE.Vector3
+	boundingBox: THREE.Box3
 
 	constructor(scale: Scale3D, xIndex: TileIndexDimension, yIndex: TileIndexDimension, zIndex: TileIndexDimension) {
 		this.scale = scale
 		this.xIndex = xIndex
 		this.yIndex = yIndex
 		this.zIndex = zIndex
+		this.origin = new THREE.Vector3(
+			indexToCoord(this.xIndex, this.scale.xSize),
+			indexToCoord(this.yIndex, this.scale.ySize),
+			indexToCoord(this.zIndex, this.scale.zSize)
+		)
+		this.boundingBox = new THREE.Box3(
+			this.origin,
+			this.origin.clone().add(this.scale.toVector())
+		)
 	}
 
 	toString(separator: string = defaultSeparator): string {
@@ -36,21 +47,6 @@ export class TileIndex {
 			&& this.yIndex === that.yIndex
 			&& this.zIndex === that.zIndex
 			&& this.scale.equals(that.scale)
-	}
-
-	origin(): THREE.Vector3 {
-		return new THREE.Vector3(
-			indexToCoord(this.xIndex, this.scale.xSize),
-			indexToCoord(this.yIndex, this.scale.ySize),
-			indexToCoord(this.zIndex, this.scale.zSize)
-		)
-	}
-
-	boundingBox(): THREE.Box3 {
-		return new THREE.Box3(
-			this.origin(),
-			this.origin().add(this.scale.toVector())
-		)
 	}
 }
 
