@@ -30,7 +30,7 @@ export abstract class Annotation {
 	abstract makeInactive(): void
 	abstract setLiveMode(): void
 	abstract unsetLiveMode(): void
-	abstract highlightMarkers(): void
+	abstract highlightMarkers(markers: Array<THREE.Mesh>): void
 	abstract unhighlightMarkers(): void
 	abstract updateVisualization(): void
 }
