@@ -4,11 +4,7 @@
  */
 
 import * as THREE from 'three'
-import * as TypeLogger from 'typelogger'
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
 const utmConverter = require('utm')
 
 export interface UtmLocalOrigin {

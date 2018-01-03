@@ -205,6 +205,7 @@ export class TileManager extends UtmInterface {
 	 *   there will be something to look at there
 	 */
 	loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType, estimateGroundPlane: boolean): Promise<[THREE.Vector3 | null, number | null]> {
+		log.debug(estimateGroundPlane) // todo fix this
 		// Consider all tiles within datasetPath.
 		const fileMetadatas = Fs.readdirSync(datasetPath)
 			.map(name => tileFileNameToTileMetadata(name))
@@ -355,7 +356,6 @@ export class TileManager extends UtmInterface {
 	 */
 	generatePointCloudFromRawData(
 		points: Array<number>,
-		inputColors: Array<number>,
 		inputCoordinateFrame: CoordinateFrameType,
 		estimateGroundPlane: boolean
 	): [THREE.Vector3 | null, number | null] {
