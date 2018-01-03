@@ -1407,6 +1407,8 @@ class Annotator {
 
 		log.info('Listening for messages...')
 		this.isLiveMode = true
+		if (this.axis)
+			this.scene.remove(this.axis)
 		this.plane.visible = false
 		this.grid.visible = false
 		this.orbitControls.enabled = false
@@ -1424,6 +1426,8 @@ class Annotator {
 
 		log.info('Stopped listening for messages...')
 		this.isLiveMode = false
+		if (this.axis)
+			this.scene.add(this.axis)
 		this.plane.visible = true
 		this.grid.visible = true
 		this.orbitControls.enabled = true
