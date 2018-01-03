@@ -549,6 +549,7 @@ class Annotator {
 	private checkForSuperTileSelection = (event: MouseEvent): void => {
 		if (this.isLiveMode) return
 		if (this.isMouseButtonPressed) return
+		if (this.isAddMarkerKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
