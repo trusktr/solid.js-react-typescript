@@ -11,6 +11,7 @@ import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
 	NeighborLocation, AnnotationType, LaneId, LaneUuid, LaneNeighborsIds, LaneAnnotationJsonInterface
 } from 'annotator-entry-ui/LaneAnnotation'
+import {TrafficAnnotation} from 'annotator-entry-ui/TrafficAnnotation'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -69,9 +70,11 @@ interface AnnotationManagerJsonInterface {
 export class AnnotationManager extends UtmInterface {
 	datum: string = 'WGS84'
 	annotations: Array<LaneAnnotation>
+	trafficSignAnnotations: Array<TrafficAnnotation>
 	annotationMeshes: Array<THREE.Mesh>
 	activeMarkers: Array<THREE.Mesh>
 	activeAnnotationIndex: number
+	activeTrafficSignAnnotationIndex: number
 	carPath: Array<LaneUuid>
 	carPathActivation: boolean
 	metadataState: AnnotationState
@@ -80,9 +83,11 @@ export class AnnotationManager extends UtmInterface {
 	constructor() {
 		super()
 		this.annotations = []
+		this.trafficSignAnnotations = []
 		this.annotationMeshes = []
 		this.activeMarkers = []
 		this.activeAnnotationIndex = -1
+		this.activeTrafficSignAnnotationIndex = -1
 		this.carPath = []
 		this.carPathActivation = false
 		this.metadataState = new AnnotationState(this)
@@ -703,6 +708,14 @@ export class AnnotationManager extends UtmInterface {
 		return mesh.geometry.boundingBox
 	}
 
+	addTrafficSignAnnotation(scene: THREE.Scene): void {
+		this.trafficSignAnnotations.push(new TrafficAnnotation())
+		const newAnnotationIndex = this.trafficSignAnnotations.length - 1
+		this.activeTrafficSignAnnotationIndex = newAnnotationIndex
+		scene.add(this.trafficSignAnnotations[newAnnotationIndex].trafficSignRenderingObject)
+	}
+
+
 	/**
 	 * Delete given lane annotation
 	 */
@@ -771,6 +784,11 @@ export class AnnotationManager extends UtmInterface {
 
 		this.metadataState.dirty()
 		return true
+	}
+
+
+	addTrafficSignMarker(position: THREE.Vector3, isLastMarker: boolean): void {
+		this.trafficSignAnnotations[this.activeTrafficSignAnnotationIndex].addMarker(position, isLastMarker)
 	}
 
 	/**

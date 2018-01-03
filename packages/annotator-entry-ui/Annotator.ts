@@ -77,6 +77,8 @@ class Annotator {
 	hideTransformControlTimer: NodeJS.Timer
 	annotationManager: AnnotationUtils.AnnotationManager
 	isAddMarkerKeyPressed: boolean
+	isAddTrafficSignMarkerKeyPressed: boolean
+	isLastTrafficSignMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	numberKeyPressed: number | null
 	isLiveMode: boolean
@@ -87,6 +89,8 @@ class Annotator {
 
 	constructor() {
 		this.isAddMarkerKeyPressed = false
+		this.isAddTrafficSignMarkerKeyPressed = false
+		this.isLastTrafficSignMarkerKeyPressed = false
 		this.numberKeyPressed = null
 		this.isMouseButtonPressed = false
 
@@ -209,6 +213,7 @@ class Annotator {
 
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
+		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mouseup', () => {
 			this.isMouseButtonPressed = false
@@ -366,6 +371,10 @@ class Annotator {
 		)
 	}
 
+	private addTrafficSignAnnotation(): void {
+		this.annotationManager.addTrafficSignAnnotation(this.scene)
+	}
+
 	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
 		const mouse = new THREE.Vector2()
 		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
@@ -398,6 +407,21 @@ class Annotator {
 			const y = intersections[0].point.y
 			const z = intersections[0].point.z
 			this.annotationManager.addLaneMarker(x, y, z)
+		}
+	}
+
+	private addTrafficSignAnnotationMarker = (event: MouseEvent): void => {
+		if (this.isAddTrafficSignMarkerKeyPressed === false &&
+		    this.isLastTrafficSignMarkerKeyPressed === false) {
+			return
+		}
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterPlane.setFromCamera(mouse, this.camera)
+		let intersections = this.raycasterPlane.intersectObject(this.tileManager.pointCloud)
+
+		if (intersections.length > 0) {
+			this.annotationManager.addTrafficSignMarker(intersections[0].point, this.isLastTrafficSignMarkerKeyPressed)
 		}
 	}
 
@@ -562,8 +586,20 @@ class Annotator {
 					this.toggleListen()
 					break
 				}
+				case 'KeyT': {
+					this.addTrafficSignAnnotation()
+					break
+				}
 				case 'KeyU': {
 					this.unloadPointCloudData()
+					break
+				}
+				case 'KeyQ': {
+					this.isAddTrafficSignMarkerKeyPressed = true
+					break
+				}
+				case 'KeyW': {
+					this.isLastTrafficSignMarkerKeyPressed = true
 					break
 				}
 				default:
@@ -573,6 +609,8 @@ class Annotator {
 
 	private onKeyUp = (): void => {
 		this.isAddMarkerKeyPressed = false
+		this.isAddTrafficSignMarkerKeyPressed = false
+		this.isLastTrafficSignMarkerKeyPressed = false
 		this.numberKeyPressed = null
 	}
 
