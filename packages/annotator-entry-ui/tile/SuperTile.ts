@@ -57,7 +57,12 @@ export class SuperTile extends UtmInterface {
 		if (this.hasPointCloud)
 			return false
 
-		// First validate that the tile exists in the volume described by this super tile.
+		// Ignore duplicates.
+		const newKey = tile.index.toString()
+		if (this.tiles.find(t => t.index.toString() === newKey))
+			return false
+
+		// Validate that the tile exists in the volume described by this super tile.
 		if (this.index.equals(tile.superTileIndex(this.index.scale))) {
 			this.tiles.push(tile)
 			return true
