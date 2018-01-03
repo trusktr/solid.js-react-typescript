@@ -384,5 +384,6 @@ export class TileManager extends UtmInterface {
 		this.superTiles = OrderedMap()
 		this.setGeometry(new THREE.BufferGeometry())
 		this.hasGeometry = false
+		this.superTiles.forEach(st => st!.unloadPointCloud())
 	}
 }

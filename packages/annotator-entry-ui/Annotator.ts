@@ -355,10 +355,16 @@ class Annotator {
 	private unloadPointCloudData(): void {
 		log.info("unloadPointCloudData")
 		this.tileManager.unloadAllPoints()
+		this.unHighlightSuperTileBox()
+		this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
+		if (this.pointCloudBoundingBox)
+			this.scene.remove(this.pointCloudBoundingBox)
 	}
 
 	// Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
 	private renderSuperTiles(): void {
+		if (this.isLiveMode) return
+
 		this.tileManager.superTiles.forEach(st => {
 			if (st && !st.hasPointCloud) {
 				const size = st.threeJsBoundingBox.getSize()
@@ -372,6 +378,15 @@ class Annotator {
 				this.pendingSuperTileBoxes.push(box)
 			}
 		})
+	}
+
+	private hideSuperTiles(): void {
+		this.unHighlightSuperTileBox()
+		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = false)
+	}
+
+	private showSuperTiles(): void {
+		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = true)
 	}
 
 	/**
@@ -551,6 +566,8 @@ class Annotator {
 
 	// Draw the box in a more solid form to indicate that it is active.
 	private highlightSuperTileBox(superTileBox: THREE.Mesh): void {
+		if (this.isLiveMode) return
+
 		const material = superTileBox.material as THREE.MeshBasicMaterial
 		material.wireframe = false
 		material.transparent = true
@@ -1385,6 +1402,9 @@ class Annotator {
 		this.grid.visible = false
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
+		this.hideSuperTiles()
+		if (this.pointCloudBoundingBox)
+			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering / 2
 		return this.isLiveMode
@@ -1400,6 +1420,9 @@ class Annotator {
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
+		this.showSuperTiles()
+		if (this.pointCloudBoundingBox)
+			this.pointCloudBoundingBox.material.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		return this.isLiveMode
 	}

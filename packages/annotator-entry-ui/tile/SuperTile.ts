@@ -72,4 +72,12 @@ export class SuperTile extends UtmInterface {
 				return true
 			})
 	}
+
+	// Reset the object to its initial state.
+	unloadPointCloud(): void {
+		this.tiles.forEach(tile => tile.unloadPointCloud())
+		this.hasPointCloud = false
+		this.rawPositions = []
+		this.rawColors = []
+	}
 }

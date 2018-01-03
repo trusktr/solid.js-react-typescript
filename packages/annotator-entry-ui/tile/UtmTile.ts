@@ -46,4 +46,11 @@ export class UtmTile {
 				return [this.rawPositions, this.rawColors] as [number[], number[]]
 			})
 	}
+
+	// Reset the object to its initial state.
+	unloadPointCloud(): void {
+		this.hasPointCloud = false
+		this.rawPositions = []
+		this.rawColors = []
+	}
 }
