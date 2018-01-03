@@ -141,9 +141,10 @@ export class TileManager extends UtmInterface {
 		this.hasGeometry = false
 		this.superTiles = OrderedMap()
 		this.loadedSuperTileKeys = OrderedSet()
+		const pointsSize = parseFloat(config.get('annotator.point_render_size')) || 1
 		this.pointCloud = new THREE.Points(
 			new THREE.BufferGeometry(),
-			new THREE.PointsMaterial({size: 0.05, vertexColors: THREE.VertexColors})
+			new THREE.PointsMaterial({size: pointsSize, vertexColors: THREE.VertexColors})
 		)
 		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
 		this.maximumPointsToLoad = parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000
