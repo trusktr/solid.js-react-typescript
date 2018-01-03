@@ -7,6 +7,7 @@ const config = require('../config')
 import * as $ from 'jquery'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
+import {AxesHelper} from "./controls/AxesHelper"
 import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {CoordinateFrameType} from "./geometry/CoordinateFrame"
@@ -72,7 +73,7 @@ class Annotator {
 	private tileManager: TileManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper // visible grid attached to the reference plane
-	private axis: THREE.AxisHelper
+	private axis: THREE.Object3D | null
 	private light: THREE.SpotLight
 	private stats: Stats
 	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
@@ -162,8 +163,13 @@ class Annotator {
 		this.grid.material.opacity = 0.25
 		this.grid.material.transparent = true
 		this.scene.add(this.grid)
-		this.axis = new THREE.AxisHelper(1)
-		this.scene.add(this.axis)
+
+		const axesHelperLength = parseFloat(config.get('annotator.axes_helper_length')) || 0
+		if (axesHelperLength > 0) {
+			this.axis = AxesHelper(axesHelperLength)
+			this.scene.add(this.axis)
+		} else
+			this.axis = null
 
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
@@ -278,8 +284,6 @@ class Annotator {
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
 	private setStage(x: number, y: number, z: number, gridYValue: number | null = null): void {
-		this.axis.geometry.center()
-		this.axis.geometry.translate(x, y, z)
 		this.plane.geometry.center()
 		this.plane.geometry.translate(x, y, z)
 		this.grid.geometry.center()

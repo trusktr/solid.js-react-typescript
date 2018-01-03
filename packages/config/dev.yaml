@@ -20,6 +20,7 @@ tile_manager.sampling_step: 5
 # annotator controls
 annotator.add_points_to_estimated_ground_plane: true
 annotator.draw_bounding_box: false
+annotator.axes_helper_length: 10
 
 # persistence of a data file
 output.annotations.json.path: ./data/annotations-utm.json
