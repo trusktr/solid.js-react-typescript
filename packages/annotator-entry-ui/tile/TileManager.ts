@@ -35,10 +35,10 @@ function configToSharedScale(key: string): Scale3D {
 	})
 	return new Scale3D(tileScaleConfig)
 }
-const tileScale = configToSharedScale('tile_manager.tile_scale')
+const utmTileScale = configToSharedScale('tile_manager.utm_tile_scale')
 const superTileScale = configToSharedScale('tile_manager.super_tile_scale')
-if (!superTileScale.isMultipleOf(tileScale))
-	throw Error('super_tile_scale must be a multiple of tile_scale')
+if (!superTileScale.isMultipleOf(utmTileScale))
+	throw Error('super_tile_scale must be a multiple of utm_tile_scale')
 
 const threeDStepSize: number = 3
 
@@ -228,7 +228,7 @@ export class TileManager extends UtmInterface {
 			.then(() => {
 				fileMetadatas.forEach(metadata => {
 					const utmTile = new UtmTile(
-						new TileIndex(tileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z),
+						new TileIndex(utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z),
 						this.pointCloudFileLoader(Path.join(datasetPath, metadata!.name), coordinateFrame),
 					)
 					const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale), coordinateFrame)
