@@ -3,15 +3,22 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+
 const config = require('../config')
 const vsprintf = require("sprintf-js").vsprintf
 import {isNullOrUndefined} from "util"
 import * as THREE from 'three'
+/*
 import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
 	NeighborLocation, AnnotationType, LaneId, LaneUuid, LaneNeighborsIds, LaneAnnotationJsonInterface
 } from 'annotator-entry-ui/LaneAnnotation'
+*/
+import {AnnotationId, AnnotationUuid} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {Lane, LaneType, NeighborDirection, NeighborLocation, LaneNeighborsIds, LaneAnnotationJsonInterface
+} from 'annotator-entry-ui/annotations/Lane'
 import {TrafficSign} from 'annotator-entry-ui/annotations/TrafficSign'
+import {Connection} from 'annotator-entry-ui/annotations/Connection'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -48,6 +55,13 @@ export enum OutputFormat {
 	LLA = 2,
 }
 
+export enum AnnotationType {
+	UNKNOWN,
+	LANE,
+	TRAFFIC_SIGN,
+	CONNECTION
+}
+
 /**
  * Get point in between at a specific distance
  */
@@ -59,7 +73,7 @@ interface AnnotationManagerJsonInterface {
 	version: number
 	created: string
 	coordinateReferenceSystem: CRS.CoordinateReferenceSystem
-	annotations: Array<LaneAnnotationJsonInterface>
+	laneAnnotations: Array<LaneAnnotationJsonInterface>
 }
 
 /**
@@ -69,25 +83,27 @@ interface AnnotationManagerJsonInterface {
  */
 export class AnnotationManager extends UtmInterface {
 	datum: string = 'WGS84'
-	annotations: Array<LaneAnnotation>
+	laneAnnotations: Array<Lane>
 	trafficSignAnnotations: Array<TrafficSign>
+	connectionAnnotations: Array<Connection>
 	annotationMeshes: Array<THREE.Mesh>
 	activeMarkers: Array<THREE.Mesh>
+	activeAnnotationType: AnnotationType
 	activeAnnotationIndex: number
-	activeTrafficSignAnnotationIndex: number
-	carPath: Array<LaneUuid>
+	carPath: Array<AnnotationUuid>
 	carPathActivation: boolean
 	metadataState: AnnotationState
 	isLiveMode: boolean
 
 	constructor() {
 		super()
-		this.annotations = []
+		this.laneAnnotations = []
 		this.trafficSignAnnotations = []
+		this.connectionAnnotations = []
 		this.annotationMeshes = []
 		this.activeMarkers = []
 		this.activeAnnotationIndex = -1
-		this.activeTrafficSignAnnotationIndex = -1
+		this.activeAnnotationType = AnnotationType.UNKNOWN
 		this.carPath = []
 		this.carPathActivation = false
 		this.metadataState = new AnnotationState(this)
@@ -107,8 +123,8 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Get the index of the annotation associated with the given mesh.
 	 */
-	getAnnotationIndex(object: THREE.Mesh): number {
-		return this.annotations.findIndex((element) => {
+	getLaneAnnotationIndex(object: THREE.Mesh): number {
+		return this.laneAnnotations.findIndex((element) => {
 			return element.laneMesh === object
 		})
 	}
@@ -116,79 +132,97 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Get current active annotation
 	 */
-	getActiveAnnotation(): LaneAnnotation | null {
-		if (this.activeAnnotationIndex < 0 &&
-			this.activeAnnotationIndex >= this.annotations.length) {
+	getActiveAnnotation(): Lane | TrafficSign | null {
+		if (this.activeAnnotationType === AnnotationType.UNKNOWN ||
+			this.activeAnnotationIndex < 0) {
 			return null
 		}
 
-		return this.annotations[this.activeAnnotationIndex]
+		switch (this.activeAnnotationType) {
+			case AnnotationType.LANE:
+				if (this.activeAnnotationIndex >= this.laneAnnotations.length) {
+					return null
+				}
+				return this.laneAnnotations[this.activeAnnotationIndex]
+			case AnnotationType.TRAFFIC_SIGN:
+				if (this.activeAnnotationIndex >= this.trafficSignAnnotations.length) {
+					return null
+				}
+				return this.trafficSignAnnotations[this.activeAnnotationIndex]
+			default:
+				return null
+		}
 	}
 
 	/**
 	 * Get all existing ids
 	 */
-	getValidIds(): Array<LaneId> {
-		const list: Array<LaneId> = []
-		for (let i = 0; i < this.annotations.length; ++i) {
-			if (this.annotations[i].type === AnnotationType.LANE) {
-				list.push(this.annotations[i].id)
-			}
-		}
+	getValidIds(): Array<AnnotationId> {
+		const list: Array<AnnotationId> = []
+
+		this.laneAnnotations.forEach( (annotation: Lane) => {
+			list.push(annotation.id)
+		})
+
+		this.trafficSignAnnotations.forEach( (annotation: TrafficSign) => {
+			list.push(annotation.id)
+		})
+
+		this.connectionAnnotations.forEach( (annotation: Connection) => {
+			list.push(annotation.id)
+		})
+
 		return list
 	}
 
 	/**
 	 * Create a new lane connection between given lanes
 	 */
-	private addForwardLaneConnection(scene: THREE.Scene, laneFrom: LaneAnnotation, laneTo: LaneAnnotation): void {
+	private addForwardLaneConnection(scene: THREE.Scene, laneFrom: Lane, laneTo: Lane): void {
 
-		if (laneFrom.laneMarkers.length < 4 || laneTo.laneMarkers.length < 4) {
+		if (laneFrom.markers.length < 4 || laneTo.markers.length < 4) {
 			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unable to generate forward relation." +
 				"Possible reasons: one of the two lanes connected does not have at least 4 markers.")
 			return
 		}
 
 		// Create new connection
-		const connection = new LaneAnnotation()
-		connection.setType(AnnotationType.CONNECTION)
-		this.annotations.push(connection)
+		const connection = new Connection(laneFrom.uuid, laneTo.uuid)
+		this.connectionAnnotations.push(connection)
 
 		// Glue neighbors
-		connection.neighborsIds.front.push(laneTo.uuid)
-		connection.neighborsIds.back.push(laneFrom.uuid)
 		laneFrom.neighborsIds.front.push(connection.uuid)
 		laneTo.neighborsIds.back.push(connection.uuid)
 
 		// Compute path
-		const lastIndex = laneFrom.laneMarkers.length - 1
+		const lastIndex = laneFrom.markers.length - 1
 		const pointsRight: Array<Vector3> = []
-		pointsRight.push(laneFrom.laneMarkers[lastIndex - 3].position)
-		pointsRight.push(laneFrom.laneMarkers[lastIndex - 1].position)
-		pointsRight.push(laneTo.laneMarkers[0].position)
-		pointsRight.push(laneTo.laneMarkers[2].position)
+		pointsRight.push(laneFrom.markers[lastIndex - 3].position)
+		pointsRight.push(laneFrom.markers[lastIndex - 1].position)
+		pointsRight.push(laneTo.markers[0].position)
+		pointsRight.push(laneTo.markers[2].position)
 		const pointsLeft: Array<Vector3> = []
-		pointsLeft.push(laneFrom.laneMarkers[lastIndex - 2].position)
-		pointsLeft.push(laneFrom.laneMarkers[lastIndex].position)
-		pointsLeft.push(laneTo.laneMarkers[1].position)
-		pointsLeft.push(laneTo.laneMarkers[3].position)
+		pointsLeft.push(laneFrom.markers[lastIndex - 2].position)
+		pointsLeft.push(laneFrom.markers[lastIndex].position)
+		pointsLeft.push(laneTo.markers[1].position)
+		pointsLeft.push(laneTo.markers[3].position)
 
 		const splineLeft = new THREE.CatmullRomCurve3(pointsLeft)
 		const splineRight = new THREE.CatmullRomCurve3(pointsRight)
 
 		// Add path to the connection
-		connection.addRawMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.4))
-		connection.addRawMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.6))
-		connection.addRawMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.4))
-		connection.addRawMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.6))
-		connection.addRawMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.4))
-		connection.addRawMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6))
-		connection.addRawMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4))
-		connection.addRawMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6))
+		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.4))
+		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.6))
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.4))
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.6))
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.4))
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6))
+		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4))
+		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6))
 
 		// Add annotation to the scene
-		this.annotationMeshes.push(connection.laneMesh)
-		scene.add(connection.laneRenderingObject)
+		//this.annotationMeshes.push(connection.laneMesh)
+		scene.add(connection.renderingObject)
 		connection.makeInactive()
 		connection.updateVisualization()
 		this.metadataState.dirty()
@@ -197,19 +231,19 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Add a new relation between two existing lanes
 	 */
-	addRelation(scene: THREE.Scene, fromId: LaneId, toId: LaneId, relation: string): boolean {
+	addRelation(scene: THREE.Scene, fromId: AnnotationId, toId: AnnotationId, relation: string): boolean {
 		if (this.isLiveMode) return false
 
-		let laneFrom: LaneAnnotation | null = null
-		for (const annotation of this.annotations) {
+		let laneFrom: Lane | null = null
+		for (const annotation of this.laneAnnotations) {
 			if (annotation.id === fromId) {
 				laneFrom = annotation
 				break
 			}
 		}
 
-		let laneTo: LaneAnnotation | null = null
-		for (const annotation of this.annotations) {
+		let laneTo: Lane | null = null
+		for (const annotation of this.laneAnnotations) {
 			if (annotation.id === toId) {
 				laneTo = annotation
 				break
@@ -264,8 +298,8 @@ export class AnnotationManager extends UtmInterface {
 				})
 				if (index1 === -1 && index2 === -1) {
 					// check if close enough
-					const laneFromPoint = laneFrom.laneMarkers[laneFrom.laneMarkers.length - 1].position
-					const laneToPoint = laneTo.laneMarkers[1].position
+					const laneFromPoint = laneFrom.markers[laneFrom.markers.length - 1].position
+					const laneToPoint = laneTo.markers[1].position
 					if (laneFromPoint.distanceTo(laneToPoint) < 1.0) {
 						laneTo.neighborsIds.back.push(laneFrom.uuid)
 						laneFrom.neighborsIds.front.push(laneTo.uuid)
@@ -305,7 +339,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Add current lane to the car path
 	 */
-	laneIndexInPath(laneUuid: LaneUuid): number {
+	laneIndexInPath(laneUuid: AnnotationUuid): number {
 		return this.carPath.findIndex((uuid) => {
 			return laneUuid === uuid
 		})
@@ -314,19 +348,23 @@ export class AnnotationManager extends UtmInterface {
 	addLaneToPath(): boolean {
 		if (this.isLiveMode) return false
 
+		if (this.activeAnnotationType !== AnnotationType.LANE) {
+			return false
+		}
+
 		if (this.activeAnnotationIndex === -1) {
 			log.error('No lane is active.')
 			return false
 		}
 
 		// Check if lane already added
-		const index = this.laneIndexInPath(this.annotations[this.activeAnnotationIndex].uuid)
+		const index = this.laneIndexInPath(this.laneAnnotations[this.activeAnnotationIndex].uuid)
 		if (index === -1) {
-			this.carPath.push(this.annotations[this.activeAnnotationIndex].uuid)
-			this.annotations[this.activeAnnotationIndex].setTrajectory(this.carPathActivation)
+			this.carPath.push(this.laneAnnotations[this.activeAnnotationIndex].uuid)
+			this.laneAnnotations[this.activeAnnotationIndex].setTrajectory(this.carPathActivation)
 			log.info("Lane added to the car path.")
 		} else {
-			this.annotations[this.activeAnnotationIndex].setTrajectory(false)
+			this.laneAnnotations[this.activeAnnotationIndex].setTrajectory(false)
 			this.carPath.splice(index, 1)
 			log.info("Lane removed from the car path.")
 		}
@@ -338,14 +376,18 @@ export class AnnotationManager extends UtmInterface {
 	deleteLaneFromPath(): boolean {
 		if (this.isLiveMode) return false
 
+		if (this.activeAnnotationType !== AnnotationType.LANE) {
+			return false
+		}
+
 		if (this.activeAnnotationIndex === -1) {
 			log.error('No lane is active.')
 			return false
 		}
 
-		const index = this.laneIndexInPath(this.annotations[this.activeAnnotationIndex].uuid)
+		const index = this.laneIndexInPath(this.laneAnnotations[this.activeAnnotationIndex].uuid)
 		if (index !== -1) {
-			this.annotations[index].setTrajectory(false)
+			this.laneAnnotations[index].setTrajectory(false)
 			this.carPath.splice(index, 1)
 			log.info("Lane removed from the car path.")
 		}

@@ -26,6 +26,20 @@ directionGeometry.computeFaceNormals()
 
 const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, side: THREE.DoubleSide})
 
+export enum LaneType {
+	UNKNOWN = 0,
+	ALL_VEHICLES,
+	MOTOR_VEHICLES,
+	CAR_ONLY,
+	TRUCK_ONLY,
+	BUS_ONLY,
+	BIKE_ONLY,
+	PEDESTRIAN_ONLY,
+	PARKING,
+	CROSSWALK,
+	OTHER
+}
+
 export enum NeighborDirection {
 	SAME = 1,
 	REVERSE
@@ -60,19 +74,7 @@ export enum LaneEntryExitType {
 	STOP
 }
 
-export enum LaneType {
-	UNKNOWN = 0,
-	ALL_VEHICLES,
-	MOTOR_VEHICLES,
-	CAR_ONLY,
-	TRUCK_ONLY,
-	BUS_ONLY,
-	BIKE_ONLY,
-	PEDESTRIAN_ONLY,
-	PARKING,
-	CROSSWALK,
-	OTHER
-}
+
 
 export class LaneNeighborsIds {
 	right: AnnotationUuid | null
