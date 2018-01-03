@@ -306,6 +306,22 @@ class Annotator {
 		this.setStage(point.x, point.y, point.z, resetCamera, gridYValue)
 	}
 
+	/*
+	 * Set the stage at the bottom center of TileManager's point cloud.
+	 */
+	private setStageByPointCloud(resetCamera: boolean): void {
+		const focalPoint = this.tileManager.centerPoint()
+		if (focalPoint) {
+			const groundPlaneYIndex = this.settings.estimateGroundPlane
+				? this.tileManager.estimateGroundPlaneYIndex()
+				: null
+			const gridYValue = isNullOrUndefined(groundPlaneYIndex)
+				? null
+				: groundPlaneYIndex - focalPoint.y
+			this.setStageByVector(focalPoint, resetCamera, gridYValue)
+		}
+	}
+
 	/**
 	 * Set the point cloud as the center of the visible world.
 	 */
@@ -321,35 +337,23 @@ class Annotator {
 	 */
 	private loadPointCloudData(pathToTiles: string): Promise<void> {
 		log.info('loading dataset')
-		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR, this.settings.estimateGroundPlane)
-			.then(result => {
-				const focalPoint = result[0]
-				const groundPlaneYIndex = result[1]
+		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR)
+			.then(() => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
 				this.scene.add(this.tileManager.pointCloud)
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
-
-				if (focalPoint) {
-					const gridYValue = isNullOrUndefined(groundPlaneYIndex) ? null : groundPlaneYIndex - focalPoint.y
-					this.setStageByVector(focalPoint, true, gridYValue)
-				}
+				this.setStageByPointCloud(true)
 			})
 	}
 
 	// Incrementally load the point cloud for a single super tile.
 	private loadSuperTileData(superTile: SuperTile): void {
-		this.tileManager.loadFromSuperTile(superTile, this.settings.estimateGroundPlane)
-			.then(result => {
-				const focalPoint = result[0]
-				const groundPlaneYIndex = result[1]
+		this.tileManager.loadFromSuperTile(superTile)
+			.then(() => {
 				this.updatePointCloudBoundingBox()
-
-				if (focalPoint) {
-					const gridYValue = isNullOrUndefined(groundPlaneYIndex) ? null : groundPlaneYIndex - focalPoint.y
-					this.setStageByVector(focalPoint, false, gridYValue)
-				}
+				this.setStageByPointCloud(false)
 			})
 	}
 
@@ -373,7 +377,6 @@ class Annotator {
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
 	private onSuperTileUnload: (superTile: SuperTile) => void = (superTile: SuperTile) => {
 		this.superTileToBoundingBox(superTile)
-		return
 	}
 
 	private superTileToBoundingBox(superTile: SuperTile): void {
@@ -849,6 +852,8 @@ class Annotator {
 		if (!(pathElectron && pathElectron[0]))
 			return Promise.resolve()
 
+		if (this.tileManager.hasGeometry)
+			log.warn('you should probably unload the existing point cloud before loading another')
 		log.info('Loading point cloud from ' + pathElectron[0])
 		return this.loadPointCloudData(pathElectron[0])
 	}

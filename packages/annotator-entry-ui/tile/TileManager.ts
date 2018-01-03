@@ -123,7 +123,7 @@ const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Arra
 
 export class TileManager extends UtmInterface {
 
-	private hasGeometry: boolean
+	hasGeometry: boolean
 	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
 	loadedSuperTileKeys: OrderedSet<string> // keys to super tiles which have some content loaded in memory
 	// This composite point cloud contains all super tile data, in a single structure for three.js rendering.
@@ -201,10 +201,8 @@ export class TileManager extends UtmInterface {
 
 	/**
 	 * Given a path to a dataset, find all super tiles. Load point cloud data for some of them.
-	 * @returns the center point of the bounding box of the data; hopefully
-	 *   there will be something to look at there
 	 */
-	loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType, estimateGroundPlane: boolean): Promise<[THREE.Vector3 | null, number | null]> {
+	loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<void> {
 		// Consider all tiles within datasetPath.
 		const fileMetadatas = Fs.readdirSync(datasetPath)
 			.map(name => tileFileNameToTileMetadata(name))
@@ -240,7 +238,7 @@ export class TileManager extends UtmInterface {
 					.valueSeq().toArray().map(st => this.loadSuperTile(st))
 				return Promise.all(promises)
 			})
-			.then(() => this.generatePointCloudFromSuperTiles(estimateGroundPlane))
+			.then(() => this.generatePointCloudFromSuperTiles())
 	}
 
 	// Get data from a file. Prepare it to instantiate a UtmTile.
@@ -262,7 +260,7 @@ export class TileManager extends UtmInterface {
 
 	// Load data for a single SuperTile. This assumes that loadFromDataset() already happened.
 	// Side effect: prune old SuperTiles as necessary.
-	loadFromSuperTile(superTile: SuperTile, estimateGroundPlane: boolean): Promise<[THREE.Vector3 | null, number | null]> {
+	loadFromSuperTile(superTile: SuperTile): Promise<void> {
 		const key = superTile.index.toString()
 		const foundSuperTile = this.superTiles.get(key)
 		if (!foundSuperTile)
@@ -270,7 +268,7 @@ export class TileManager extends UtmInterface {
 		else
 			return this.loadSuperTile(foundSuperTile)
 				.then(() => this.pruneSuperTiles())
-				.then(() => this.generatePointCloudFromSuperTiles(estimateGroundPlane))
+				.then(() => this.generatePointCloudFromSuperTiles())
 	}
 
 	private loadSuperTile(superTile: SuperTile): Promise<boolean> {
@@ -326,11 +324,8 @@ export class TileManager extends UtmInterface {
 	/*
 	 * Set the current denormalized point cloud.
 	 * Return some summary values for UI display.
-	 * @returns
-	 *   centerPoint        a point at the bottom center of the cloud
-	 *   groundPlaneYIndex  estimated height of the ground plane in three.js space
 	 */
-	private generatePointCloudFromSuperTiles(estimateGroundPlane: boolean): [THREE.Vector3 | null, number | null] {
+	private generatePointCloudFromSuperTiles(): void {
 		let rawPositions: Array<number> = []
 		let rawColors: Array<number> = []
 
@@ -345,30 +340,29 @@ export class TileManager extends UtmInterface {
 		geometry.addAttribute('position', new THREE.BufferAttribute(Float32Array.from(rawPositions), threeDStepSize))
 		geometry.addAttribute('color', new THREE.BufferAttribute(Float32Array.from(rawColors), threeDStepSize))
 		this.setGeometry(geometry)
-
-		const groundPlaneYIndex = estimateGroundPlane && rawPositions.length
-			? this.estimateGroundPlaneYIndex(rawPositions)
-			: null
-
-		return [this.centerPoint(), groundPlaneYIndex]
 	}
 
 	// This is a trivial solution to finding the local ground plane. Simply find a band of Y values with the most
 	// points (arithmetic mode). Assume that band contains a large horizontal object which is a road.
-	private estimateGroundPlaneYIndex(rawPositions: Array<number>): number {
+	estimateGroundPlaneYIndex(): number | null {
 		const yValueHistogram: Map<number, number> = new Map()
 		const yValueBinSize = 0.7 // arbitrary setting for the physical size of bins, yields ~20 bins given data sets ~10m high
 		let biggestBinIndex = 0
 		let biggestBinCount = 0
 
-		for (let i = 0; i < rawPositions.length; i += threeDStepSize) {
-			const yValue = rawPositions[i + 1]
-			const yIndex = Math.floor(yValue / yValueBinSize)
-			if (yValueHistogram.has(yIndex))
-				yValueHistogram.set(yIndex, yValueHistogram.get(yIndex)! + 1)
-			else
-				yValueHistogram.set(yIndex, 1)
-		}
+		this.superTiles.forEach(st => {
+			if (st && st.hasPointCloud) {
+				const rawPositions = st.getRawPositions()
+				for (let i = 0; i < rawPositions.length; i += threeDStepSize) {
+					const yValue = rawPositions[i + 1]
+					const yIndex = Math.floor(yValue / yValueBinSize)
+					if (yValueHistogram.has(yIndex))
+						yValueHistogram.set(yIndex, yValueHistogram.get(yIndex)! + 1)
+					else
+						yValueHistogram.set(yIndex, 1)
+				}
+			}
+		})
 
 		yValueHistogram.forEach((count, index) => {
 			if (count > biggestBinCount) {
@@ -377,7 +371,9 @@ export class TileManager extends UtmInterface {
 			}
 		})
 
-		return (biggestBinIndex + 0.5) * yValueBinSize // Get the midpoint of the most popular bin.
+		return biggestBinIndex > 0
+			? (biggestBinIndex + 0.5) * yValueBinSize // Get the midpoint of the most popular bin.
+			: null
 	}
 
 	// The number of points in all SuperTiles which have been loaded to memory.
