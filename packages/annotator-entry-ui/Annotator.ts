@@ -9,7 +9,9 @@ import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {CoordinateFrameType, TileManager}  from 'annotator-entry-ui/TileUtils'
 import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
-import {NeighborLocation, NeighborDirection, LaneId} from 'annotator-entry-ui/LaneAnnotation'
+import {AnnotationId, AnnotationUuid} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
+
 import {OutputFormat} from "annotator-entry-ui/AnnotationUtils"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -367,7 +369,8 @@ class Annotator {
 		// This creates a new lane and add it to the scene for display
 		return !!(
 			this.annotationManager.addLaneAnnotation(this.scene) &&
-			this.annotationManager.makeLastAnnotationActive()
+			this.annotationManager.changeActiveAnnotation(this.annotationManager.laneAnnotations.length - 1,
+															AnnotationType.LANE)
 		)
 	}
 
