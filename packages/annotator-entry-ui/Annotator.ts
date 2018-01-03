@@ -73,7 +73,7 @@ class Annotator {
 	private tileManager: TileManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper // visible grid attached to the reference plane
-	private axis: THREE.Object3D | null
+	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
 	private light: THREE.SpotLight
 	private stats: Stats
 	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
@@ -283,7 +283,7 @@ class Annotator {
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
-	private setStage(x: number, y: number, z: number, gridYValue: number | null = null): void {
+	private setStage(x: number, y: number, z: number, resetCamera: boolean = true, gridYValue: number | null = null): void {
 		this.plane.geometry.center()
 		this.plane.geometry.translate(x, y, z)
 		this.grid.geometry.center()
@@ -292,16 +292,18 @@ class Annotator {
 			this.plane.position.y = gridYValue
 			this.grid.position.y = gridYValue
 		}
-		this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
-		this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
-		this.orbitControls.target.set(x, y, z)
+		if (resetCamera) {
+			this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
+			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
+			this.orbitControls.target.set(x, y, z)
+		}
 	}
 
 	/**
 	 * Set some point as the center of the visible world.
 	 */
-	private setStageByVector(point: THREE.Vector3, gridYValue: number | null = null): void {
-		this.setStage(point.x, point.y, point.z, gridYValue)
+	private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true, gridYValue: number | null = null): void {
+		this.setStage(point.x, point.y, point.z, resetCamera, gridYValue)
 	}
 
 	/**
@@ -322,7 +324,7 @@ class Annotator {
 		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR, this.settings.estimateGroundPlane)
 			.then(result => {
 				const focalPoint = result[0]
-				const groundPlaneYIndex = result[1] // Note: Tile data uses Z for the vertical dimension. Three.js uses Y. We make the switch here.
+				const groundPlaneYIndex = result[1]
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
 				this.scene.add(this.tileManager.pointCloud)
@@ -331,15 +333,24 @@ class Annotator {
 
 				if (focalPoint) {
 					const gridYValue = isNullOrUndefined(groundPlaneYIndex) ? null : groundPlaneYIndex - focalPoint.y
-					this.setStageByVector(focalPoint, gridYValue)
+					this.setStageByVector(focalPoint, true, gridYValue)
 				}
 			})
 	}
 
 	// Incrementally load the point cloud for a single super tile.
 	private loadSuperTileData(superTile: SuperTile): void {
-		this.tileManager.loadFromSuperTile(superTile)
-			.then(_ => this.updatePointCloudBoundingBox())
+		this.tileManager.loadFromSuperTile(superTile, this.settings.estimateGroundPlane)
+			.then(result => {
+				const focalPoint = result[0]
+				const groundPlaneYIndex = result[1]
+				this.updatePointCloudBoundingBox()
+
+				if (focalPoint) {
+					const gridYValue = isNullOrUndefined(groundPlaneYIndex) ? null : groundPlaneYIndex - focalPoint.y
+					this.setStageByVector(focalPoint, false, gridYValue)
+				}
+			})
 	}
 
 	private unloadPointCloudData(): void {

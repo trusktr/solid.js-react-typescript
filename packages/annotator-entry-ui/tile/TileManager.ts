@@ -205,7 +205,6 @@ export class TileManager extends UtmInterface {
 	 *   there will be something to look at there
 	 */
 	loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType, estimateGroundPlane: boolean): Promise<[THREE.Vector3 | null, number | null]> {
-		log.debug(estimateGroundPlane) // todo fix this
 		// Consider all tiles within datasetPath.
 		const fileMetadatas = Fs.readdirSync(datasetPath)
 			.map(name => tileFileNameToTileMetadata(name))
@@ -241,7 +240,7 @@ export class TileManager extends UtmInterface {
 					.valueSeq().toArray().map(st => this.loadSuperTile(st))
 				return Promise.all(promises)
 			})
-			.then(() => this.generatePointCloudFromSuperTiles())
+			.then(() => this.generatePointCloudFromSuperTiles(estimateGroundPlane))
 	}
 
 	// Get data from a file. Prepare it to instantiate a UtmTile.
@@ -263,7 +262,7 @@ export class TileManager extends UtmInterface {
 
 	// Load data for a single SuperTile. This assumes that loadFromDataset() already happened.
 	// Side effect: prune old SuperTiles as necessary.
-	loadFromSuperTile(superTile: SuperTile): Promise<[THREE.Vector3 | null, number | null]> {
+	loadFromSuperTile(superTile: SuperTile, estimateGroundPlane: boolean): Promise<[THREE.Vector3 | null, number | null]> {
 		const key = superTile.index.toString()
 		const foundSuperTile = this.superTiles.get(key)
 		if (!foundSuperTile)
@@ -271,7 +270,7 @@ export class TileManager extends UtmInterface {
 		else
 			return this.loadSuperTile(foundSuperTile)
 				.then(() => this.pruneSuperTiles())
-				.then(() => this.generatePointCloudFromSuperTiles())
+				.then(() => this.generatePointCloudFromSuperTiles(estimateGroundPlane))
 	}
 
 	private loadSuperTile(superTile: SuperTile): Promise<boolean> {
@@ -329,9 +328,9 @@ export class TileManager extends UtmInterface {
 	 * Return some summary values for UI display.
 	 * @returns
 	 *   centerPoint        a point at the bottom center of the cloud
-	 *   groundPlaneZIndex  estimated height of the ground plane
+	 *   groundPlaneYIndex  estimated height of the ground plane in three.js space
 	 */
-	private generatePointCloudFromSuperTiles(): [THREE.Vector3 | null, number | null] {
+	private generatePointCloudFromSuperTiles(estimateGroundPlane: boolean): [THREE.Vector3 | null, number | null] {
 		let rawPositions: Array<number> = []
 		let rawColors: Array<number> = []
 
@@ -347,63 +346,38 @@ export class TileManager extends UtmInterface {
 		geometry.addAttribute('color', new THREE.BufferAttribute(Float32Array.from(rawColors), threeDStepSize))
 		this.setGeometry(geometry)
 
-		const groundPlaneZIndex = null
-		return [this.centerPoint(), groundPlaneZIndex]
+		const groundPlaneYIndex = estimateGroundPlane && rawPositions.length
+			? this.estimateGroundPlaneYIndex(rawPositions)
+			: null
+
+		return [this.centerPoint(), groundPlaneYIndex]
 	}
 
-	/**
-	 * Convert array of 3d points into a THREE.Point object
-	 */
-	generatePointCloudFromRawData(
-		points: Array<number>,
-		inputCoordinateFrame: CoordinateFrameType,
-		estimateGroundPlane: boolean
-	): [THREE.Vector3 | null, number | null] {
-		const pointsSize = points.length
-		const newPositions = new Array<number>(pointsSize)
-
-		// This is a trivial solution to finding the local ground plane. Simply find a band of Z values with the most
-		// points (arithmetic mode). Assume that band contains a large horizontal object which is a road.
-		const zValueHistogram: Map<number, number> = new Map()
-		const zValueBinSize = 10 // arbitrary setting for the physical size of bins, given data sets ~50m high
+	// This is a trivial solution to finding the local ground plane. Simply find a band of Y values with the most
+	// points (arithmetic mode). Assume that band contains a large horizontal object which is a road.
+	private estimateGroundPlaneYIndex(rawPositions: Array<number>): number {
+		const yValueHistogram: Map<number, number> = new Map()
+		const yValueBinSize = 0.7 // arbitrary setting for the physical size of bins, yields ~20 bins given data sets ~10m high
 		let biggestBinIndex = 0
 		let biggestBinCount = 0
 
-		for (let i = 0; i < pointsSize; i += threeDStepSize) {
-			const inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
-			const standardPoint = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
-			const threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
-
-			newPositions[i] = threePoint.x
-			newPositions[i + 1] = threePoint.y
-			newPositions[i + 2] = threePoint.z
-
-			if (estimateGroundPlane) {
-				const zIndex = Math.floor(standardPoint.z * zValueBinSize)
-				if (zValueHistogram.has(zIndex))
-					zValueHistogram.set(zIndex, zValueHistogram.get(zIndex)! + 1)
-				else
-					zValueHistogram.set(zIndex, 1)
-			}
+		for (let i = 0; i < rawPositions.length; i += threeDStepSize) {
+			const yValue = rawPositions[i + 1]
+			const yIndex = Math.floor(yValue / yValueBinSize)
+			if (yValueHistogram.has(yIndex))
+				yValueHistogram.set(yIndex, yValueHistogram.get(yIndex)! + 1)
+			else
+				yValueHistogram.set(yIndex, 1)
 		}
 
-		if (newPositions.length) {
-
-			if (estimateGroundPlane) {
-				zValueHistogram.forEach((count, index) => {
-					if (count > biggestBinCount) {
-						biggestBinIndex = index
-						biggestBinCount = count
-					}
-				})
+		yValueHistogram.forEach((count, index) => {
+			if (count > biggestBinCount) {
+				biggestBinIndex = index
+				biggestBinCount = count
 			}
-		}
+		})
 
-		let groundPlaneZIndex: number | null = null
-		if (biggestBinCount)
-			groundPlaneZIndex = (biggestBinIndex + 0.5) / zValueBinSize // Get the midpoint of the most popular bin.
-
-		return [this.centerPoint(), groundPlaneZIndex]
+		return (biggestBinIndex + 0.5) * yValueBinSize // Get the midpoint of the most popular bin.
 	}
 
 	// The number of points in all SuperTiles which have been loaded to memory.
