@@ -65,18 +65,18 @@ class Annotator {
 	private scene: THREE.Scene
 	private camera: THREE.PerspectiveCamera
 	private renderer: THREE.WebGLRenderer
-	private raycasterPlane: THREE.Raycaster
-	private raycasterMarker: THREE.Raycaster
-	private raycasterSuperTiles: THREE.Raycaster
-	private carModel: THREE.Object3D
+	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
+	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
+	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
+	private carModel: THREE.Object3D // displayed during live mode, moving along a preset trajectory
 	private tileManager: TileManager
-	private plane: THREE.Mesh
-	private grid: THREE.GridHelper // an arbitrary horizontal (XZ) reference plane for the UI
+	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
+	private grid: THREE.GridHelper // visible grid attached to the reference plane
 	private axis: THREE.AxisHelper
 	private light: THREE.SpotLight
 	private stats: Stats
-	private orbitControls: THREE.OrbitControls
-	private transformControls: any
+	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
+	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: NodeJS.Timer
 	private annotationManager: AnnotationUtils.AnnotationManager
 	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
@@ -107,14 +107,12 @@ class Annotator {
 		}
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		this.hovered = null
-		// THe raycaster is used to compute where the waypoints will be dropped
 		this.raycasterPlane = new THREE.Raycaster()
 		this.raycasterPlane.params.Points!.threshold = 0.1
-		// THe raycaster is used to compute which marker is active for editing
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterSuperTiles = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
-		this.tileManager = new TileManager()
+		this.tileManager = new TileManager(this.onSuperTileUnload)
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
@@ -321,16 +319,11 @@ class Annotator {
 			.then(result => {
 				const focalPoint = result[0]
 				const groundPlaneYIndex = result[1] // Note: Tile data uses Z for the vertical dimension. Three.js uses Y. We make the switch here.
-				if (!this.annotationManager.setOriginWithInterface(this.tileManager)) {
+				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
-				}
 				this.scene.add(this.tileManager.pointCloud)
-				this.renderSuperTiles()
-
-				if (this.settings.drawBoundingBox) {
-					this.pointCloudBoundingBox = new THREE.BoxHelper(this.tileManager.pointCloud, new THREE.Color(0xff0000))
-					this.scene.add(this.pointCloudBoundingBox)
-				}
+				this.renderEmptySuperTiles()
+				this.updatePointCloudBoundingBox()
 
 				if (focalPoint) {
 					const gridYValue = isNullOrUndefined(groundPlaneYIndex) ? null : groundPlaneYIndex - focalPoint.y
@@ -342,14 +335,7 @@ class Annotator {
 	// Incrementally load the point cloud for a single super tile.
 	private loadSuperTileData(superTile: SuperTile): void {
 		this.tileManager.loadFromSuperTile(superTile)
-			.then(result => {
-				if (this.settings.drawBoundingBox) {
-					if (this.pointCloudBoundingBox)
-						this.scene.remove(this.pointCloudBoundingBox)
-					this.pointCloudBoundingBox = new THREE.BoxHelper(this.tileManager.pointCloud, new THREE.Color(0xff0000))
-					this.scene.add(this.pointCloudBoundingBox)
-				}
-			})
+			.then(_ => this.updatePointCloudBoundingBox())
 	}
 
 	private unloadPointCloudData(): void {
@@ -362,22 +348,31 @@ class Annotator {
 	}
 
 	// Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
-	private renderSuperTiles(): void {
-		if (this.isLiveMode) return
+	private renderEmptySuperTiles(): void {
+		this.tileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
 
-		this.tileManager.superTiles.forEach(st => {
-			if (st && !st.hasPointCloud) {
-				const size = st.threeJsBoundingBox.getSize()
-				const center = st.threeJsBoundingBox.getCenter()
-				const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
-				const material = new THREE.MeshBasicMaterial({color: 0xffaa00, wireframe: true})
-				const box = new THREE.Mesh(geometry, material)
-				box.geometry.translate(center.x, center.y, center.z)
-				box.userData = st
-				this.scene.add(box)
-				this.pendingSuperTileBoxes.push(box)
-			}
-		})
+		if (this.isLiveMode)
+			this.hideSuperTiles()
+	}
+
+	// When TileManager unloads a super tile, update Annotator's parallel data structure.
+	private onSuperTileUnload: (superTile: SuperTile) => void = (superTile: SuperTile) => {
+		this.superTileToBoundingBox(superTile)
+		return
+	}
+
+	private superTileToBoundingBox(superTile: SuperTile): void {
+		if (!superTile.hasPointCloud) {
+			const size = superTile.threeJsBoundingBox.getSize()
+			const center = superTile.threeJsBoundingBox.getCenter()
+			const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
+			const material = new THREE.MeshBasicMaterial({color: 0xffaa00, wireframe: true})
+			const box = new THREE.Mesh(geometry, material)
+			box.geometry.translate(center.x, center.y, center.z)
+			box.userData = superTile
+			this.scene.add(box)
+			this.pendingSuperTileBoxes.push(box)
+		}
 	}
 
 	private hideSuperTiles(): void {
@@ -387,6 +382,16 @@ class Annotator {
 
 	private showSuperTiles(): void {
 		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = true)
+	}
+
+	// Draw a box around the data. Useful for debugging.
+	private updatePointCloudBoundingBox(): void {
+		if (this.settings.drawBoundingBox) {
+			if (this.pointCloudBoundingBox)
+				this.scene.remove(this.pointCloudBoundingBox)
+			this.pointCloudBoundingBox = new THREE.BoxHelper(this.tileManager.pointCloud, new THREE.Color(0xff0000))
+			this.scene.add(this.pointCloudBoundingBox)
+		}
 	}
 
 	/**

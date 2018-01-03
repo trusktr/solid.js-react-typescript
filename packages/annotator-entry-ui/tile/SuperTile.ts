@@ -16,16 +16,24 @@ import {UtmInterface} from "../UtmInterface"
  */
 export class SuperTile extends UtmInterface {
 	hasPointCloud: boolean
+	pointCount: number
 	index: TileIndex
 	coordinateFrame: CoordinateFrameType
 	threeJsBoundingBox: THREE.Box3
 	private tiles: UtmTile[]
-	rawPositions: Array<number>
-	rawColors: Array<number>
+	private rawPositions: Array<number>
+	private rawColors: Array<number>
+	private pointStepSize: number
 
-	constructor(index: TileIndex, coordinateFrame: CoordinateFrameType, utmParent: UtmInterface) {
+	constructor(
+		index: TileIndex,
+		coordinateFrame: CoordinateFrameType,
+		utmParent: UtmInterface,
+		pointStepSize: number
+	) {
 		super()
 		this.hasPointCloud = false
+		this.pointCount = 0
 		this.index = index
 		this.coordinateFrame = coordinateFrame
 		this.setOriginWithInterface(utmParent)
@@ -41,6 +49,7 @@ export class SuperTile extends UtmInterface {
 		this.tiles = []
 		this.rawPositions = []
 		this.rawColors = []
+		this.pointStepSize = pointStepSize
 	}
 
 	// SuperTile doesn't have to be filled densely with tiles. Add tiles only if they are not empty.
@@ -69,6 +78,7 @@ export class SuperTile extends UtmInterface {
 					this.rawColors = this.rawColors.concat(result[1])
 				})
 				this.hasPointCloud = true
+				this.pointCount = this.rawPositions.length / this.pointStepSize
 				return true
 			})
 	}
@@ -77,7 +87,16 @@ export class SuperTile extends UtmInterface {
 	unloadPointCloud(): void {
 		this.tiles.forEach(tile => tile.unloadPointCloud())
 		this.hasPointCloud = false
+		this.pointCount = 0
 		this.rawPositions = []
 		this.rawColors = []
+	}
+
+	getRawPositions(): Array<number> {
+		return this.rawPositions
+	}
+
+	getRawColors(): Array<number> {
+		return this.rawColors
 	}
 }

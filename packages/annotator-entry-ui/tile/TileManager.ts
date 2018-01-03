@@ -7,7 +7,7 @@ const config = require('../../config')
 import * as Fs from 'fs'
 import * as Path from 'path'
 import * as AsyncFile from 'async-file'
-import {OrderedMap} from 'immutable'
+import {OrderedMap, OrderedSet} from 'immutable'
 import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
@@ -124,25 +124,29 @@ const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Arra
 export class TileManager extends UtmInterface {
 
 	private hasGeometry: boolean
-	// All super tiles which have some content loaded in memory.
-	superTiles: OrderedMap<string, SuperTile>
+	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
+	loadedSuperTileKeys: OrderedSet<string> // keys to super tiles which have some content loaded in memory
 	// This composite point cloud contains all super tile data, in a single structure for three.js rendering.
 	// All points are stored with reference to UTM origin and offset,
 	// but using the local coordinate system which has different axes.
 	pointCloud: THREE.Points
-	private initialSuperTilesToLoad: number
-	private maxSuperTilesToLoad: number
+	private onSuperTileUnload: (superTile: SuperTile) => void
+	private initialSuperTilesToLoad: number // preload some super tiles; initially we don't know how many points they will contain
+	private maximumPointsToLoad: number // after loading super tiles we can trim them back by point count
 	private samplingStep: number
 
-	constructor() {
+	constructor(onSuperTileUnload: (superTile: SuperTile) => void) {
 		super()
+		this.onSuperTileUnload = onSuperTileUnload
 		this.hasGeometry = false
 		this.superTiles = OrderedMap()
+		this.loadedSuperTileKeys = OrderedSet()
 		this.pointCloud = new THREE.Points(
 			new THREE.BufferGeometry(),
 			new THREE.PointsMaterial({size: 0.05, vertexColors: THREE.VertexColors})
 		)
 		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
+		this.maximumPointsToLoad = parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000
 		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
 	}
 
@@ -159,7 +163,7 @@ export class TileManager extends UtmInterface {
 	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
 		const key = utmIndex.toString()
 		if (!this.superTiles.has(key))
-			this.superTiles = this.superTiles.set(key, new SuperTile(utmIndex, coordinateFrame, this))
+			this.superTiles = this.superTiles.set(key, new SuperTile(utmIndex, coordinateFrame, this, threeDStepSize))
 		return this.superTiles.get(key)
 	}
 
@@ -224,7 +228,7 @@ export class TileManager extends UtmInterface {
 				fileMetadatas.forEach(metadata => {
 					const utmTile = new UtmTile(
 						new TileIndex(tileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z),
-						this.loader(Path.join(datasetPath, metadata!.name), coordinateFrame),
+						this.pointCloudFileLoader(Path.join(datasetPath, metadata!.name), coordinateFrame),
 					)
 					const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale), coordinateFrame)
 					if (!superTile.addTile(utmTile))
@@ -233,18 +237,14 @@ export class TileManager extends UtmInterface {
 
 				const promises = this.superTiles
 					.take(this.initialSuperTilesToLoad)
-					.valueSeq().toArray().map(st => st.loadPointCloud())
+					.valueSeq().toArray().map(st => this.loadSuperTile(st))
 				return Promise.all(promises)
 			})
 			.then(() => this.generatePointCloudFromSuperTiles())
 	}
 
-	loadFromSuperTile(superTile: SuperTile): Promise<[THREE.Vector3 | null, number | null]> {
-		return superTile.loadPointCloud()
-			.then(() => this.generatePointCloudFromSuperTiles())
-	}
-
-	private loader(filename: string, coordinateFrame: CoordinateFrameType):     () => Promise<[number[], number[]]> {
+	// Get data from a file. Prepare it to instantiate a UtmTile.
+	private pointCloudFileLoader(filename: string, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[]]> {
 		return (): Promise<[number[], number[]]> =>
 			loadTile(filename)
 				.then(msg => {
@@ -257,6 +257,32 @@ export class TileManager extends UtmInterface {
 						const positions = this.rawDataToPositions(sampledPoints, coordinateFrame)
 						return [positions, sampledColors] as [number[], number[]]
 					}
+				})
+	}
+
+	// Load data for a single SuperTile. This assumes that loadFromDataset() already happened.
+	// Side effect: prune old SuperTiles as necessary.
+	loadFromSuperTile(superTile: SuperTile): Promise<[THREE.Vector3 | null, number | null]> {
+		const key = superTile.index.toString()
+		const foundSuperTile = this.superTiles.get(key)
+		if (!foundSuperTile)
+			return Promise.reject(`can't load nonexistent super tile '${key}'`)
+		else
+			return this.loadSuperTile(foundSuperTile)
+				.then(() => this.pruneSuperTiles())
+				.then(() => this.generatePointCloudFromSuperTiles())
+	}
+
+	private loadSuperTile(superTile: SuperTile): Promise<boolean> {
+		const key = superTile.index.toString()
+		if (this.loadedSuperTileKeys.contains(key))
+			return Promise.resolve(true)
+		else
+			return superTile.loadPointCloud()
+				.then(success => {
+					if (success)
+						this.loadedSuperTileKeys = this.loadedSuperTileKeys.add(key)
+					return success
 				})
 	}
 
@@ -280,6 +306,23 @@ export class TileManager extends UtmInterface {
 		return newPositions
 	}
 
+	// When we exceed maximumPointsToLoad, unload old SuperTiles, keeping a minimum of one in memory.
+	private pruneSuperTiles(): void {
+		let count = 0
+		while (this.loadedSuperTileKeys.size > 1 && this.pointCount() > this.maximumPointsToLoad) {
+			const oldestKey = this.loadedSuperTileKeys.first()
+			this.loadedSuperTileKeys = this.loadedSuperTileKeys.skip(1).toOrderedSet()
+			const foundSuperTile = this.superTiles.get(oldestKey)
+			if (foundSuperTile) {
+				foundSuperTile.unloadPointCloud()
+				this.onSuperTileUnload(foundSuperTile)
+				count++
+			}
+		}
+		if (count)
+			log.info(`unloaded ${count} super tiles for better performance`)
+	}
+
 	/*
 	 * Set the current denormalized point cloud.
 	 * Return some summary values for UI display.
@@ -293,8 +336,8 @@ export class TileManager extends UtmInterface {
 
 		this.superTiles.forEach(st => {
 			if (st && st.hasPointCloud) {
-				rawPositions = rawPositions.concat(st.rawPositions)
-				rawColors = rawColors.concat(st.rawColors)
+				rawPositions = rawPositions.concat(st.getRawPositions())
+				rawColors = rawColors.concat(st.getRawColors())
 			}
 		})
 
@@ -363,6 +406,14 @@ export class TileManager extends UtmInterface {
 		return [this.centerPoint(), groundPlaneZIndex]
 	}
 
+	// The number of points in all SuperTiles which have been loaded to memory.
+	pointCount(): number {
+		return this.superTiles
+			.valueSeq().toArray()
+			.map(st => st.pointCount)
+			.reduce((a, b) => a + b, 0)
+	}
+
 	/**
 	 * Finds the center of the bottom of the bounding box, so that when we view the model
 	 * the whole thing appears above the artificial ground plane.
@@ -381,9 +432,9 @@ export class TileManager extends UtmInterface {
 	 * Clean slate.
 	 */
 	unloadAllPoints(): void {
+		this.loadedSuperTileKeys = OrderedSet()
 		this.superTiles = OrderedMap()
 		this.setGeometry(new THREE.BufferGeometry())
 		this.hasGeometry = false
-		this.superTiles.forEach(st => st!.unloadPointCloud())
 	}
 }
