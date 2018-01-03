@@ -1,5 +1,6 @@
 
 import * as THREE from 'three'
+import * as UUID from 'uuid'
 
 export type AnnotationId = number
 export type AnnotationUuid = string
@@ -20,11 +21,12 @@ export abstract class Annotation {
 
 	constructor() {
 		this.id = AnnotationCounter.nextId()
+		this.uuid = UUID.v1()
 		this.markers = []
 		this.renderingObject = new THREE.Object3D()
 	}
 
-	abstract addMarker(position: THREE.Vector3): void
+	abstract addMarker(position: THREE.Vector3, isLastMarker: boolean): void
 	abstract deleteLastMarker(): void
 	abstract makeActive(): void
 	abstract makeInactive(): void

@@ -214,7 +214,7 @@ export class Lane extends Annotation {
 	 *      - Third and onwards: Two markers are added using the passed position and the
 	 *                           position of the last two markers.
 	 */
-	addMarker(position: THREE.Vector3): void {
+	addMarker(position: THREE.Vector3, isLastMarker: boolean = false): void {
 
 		if (this.markers.length < 2) {
 			this.addRawMarker(position)

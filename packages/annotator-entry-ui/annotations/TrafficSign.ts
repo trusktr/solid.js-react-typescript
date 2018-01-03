@@ -4,52 +4,49 @@
  */
 
 import * as THREE from 'three'
-import * as UUID from 'uuid'
+import {Annotation} from 'annotator-entry-ui/annotations/AnnotationBase'
 
-export type TrafficUuid = string // a UUID, for use across distributed applications
-export type TrafficId = number   // a small integer, for use in the UI during one session
-
+// Some variables used for rendering
 const markerPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
 const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 const contourMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff })
 
-namespace TrafficSignCounter {
-	let i = 0
-
-	export function nextId(): number {
-		return ++i
-	}
-}
-
-export class TrafficAnnotation {
-	id: TrafficId
-	uuid: TrafficUuid
-	markers: Array<THREE.Mesh>
-	trafficSignRenderingObject: THREE.Object3D
+export class TrafficSign extends Annotation {
 	trafficSignContour: THREE.Line
 	isComplete: boolean
 
 	constructor() {
-		this.id = TrafficSignCounter.nextId()
-		this.uuid = UUID.v1()
+		super()
 		this.isComplete = false
 		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), contourMaterial)
-		this.markers = []
-		this.trafficSignRenderingObject = new THREE.Object3D()
-		this.trafficSignRenderingObject.add(this.trafficSignContour)
+		this.renderingObject.add(this.trafficSignContour)
 	}
 
 	addMarker(position: THREE.Vector3, isLastMarker: boolean): void {
-		const marker = new THREE.Mesh(markerPointGeometry, markerMaterial)
-		marker.position.set(position.x, position.y, position.z)
-		this.markers.push(marker)
-		this.trafficSignRenderingObject.add(marker)
+	const marker = new THREE.Mesh(markerPointGeometry, markerMaterial)
+	marker.position.set(position.x, position.y, position.z)
+	this.markers.push(marker)
+	this.renderingObject.add(marker)
 
-		if (isLastMarker) {
-			this.isComplete = true
-		}
-		this.updateVisualization()
+	if (isLastMarker) {
+		this.isComplete = true
 	}
+	this.updateVisualization()
+}
+
+	deleteLastMarker(): void {}
+
+	makeActive(): void {}
+
+	makeInactive(): void {}
+
+	setLiveMode(): void {}
+
+	unsetLiveMode(): void {}
+
+	highlightMarkers(markers: Array<THREE.Mesh>): void {}
+
+	unhighlightMarkers(): void {}
 
 	updateVisualization(): void {
 		// Check if there are at least two markers

@@ -11,7 +11,7 @@ import {
 	LaneAnnotation, LaneAnnotationInterface, NeighborDirection,
 	NeighborLocation, AnnotationType, LaneId, LaneUuid, LaneNeighborsIds, LaneAnnotationJsonInterface
 } from 'annotator-entry-ui/LaneAnnotation'
-import {TrafficAnnotation} from 'annotator-entry-ui/TrafficAnnotation'
+import {TrafficSign} from 'annotator-entry-ui/annotations/TrafficSign'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -70,7 +70,7 @@ interface AnnotationManagerJsonInterface {
 export class AnnotationManager extends UtmInterface {
 	datum: string = 'WGS84'
 	annotations: Array<LaneAnnotation>
-	trafficSignAnnotations: Array<TrafficAnnotation>
+	trafficSignAnnotations: Array<TrafficSign>
 	annotationMeshes: Array<THREE.Mesh>
 	activeMarkers: Array<THREE.Mesh>
 	activeAnnotationIndex: number
@@ -709,10 +709,10 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	addTrafficSignAnnotation(scene: THREE.Scene): void {
-		this.trafficSignAnnotations.push(new TrafficAnnotation())
+		this.trafficSignAnnotations.push(new TrafficSign())
 		const newAnnotationIndex = this.trafficSignAnnotations.length - 1
 		this.activeTrafficSignAnnotationIndex = newAnnotationIndex
-		scene.add(this.trafficSignAnnotations[newAnnotationIndex].trafficSignRenderingObject)
+		scene.add(this.trafficSignAnnotations[newAnnotationIndex].renderingObject)
 	}
 
 

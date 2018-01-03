@@ -405,7 +405,10 @@ class Annotator {
 			// Remember x-z is the horizontal plane, y is the up-down axis
 			const x = intersections[0].point.x
 			const y = intersections[0].point.y
-			const z = intersections[0].point.z
+			const z = icase 'KeyQ': {
+				this.isAddTrafficSignMarkerKeyPressed = true
+				break
+			}ntersections[0].point.z
 			this.annotationManager.addLaneMarker(x, y, z)
 		}
 	}
