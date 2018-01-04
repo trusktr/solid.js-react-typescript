@@ -89,7 +89,7 @@ for (const i in lcSelectsId) {
 		element.id = lcSelectsId[i]
 		element.className = 'select_style'
 		for (const j in lcSelectsItems[i]) {
-			if (lcSelectsItems.hasOwnProperty(j)) {
+			if (lcSelectsItems[i].hasOwnProperty(j)) {
 				const option = document.createElement("option")
 				option.value = lcSelectsItems[i][j]
 				option.text = lcSelectsItems[i][j]
