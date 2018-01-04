@@ -812,13 +812,24 @@ export class AnnotationManager extends UtmInterface {
 	 * Remove last marker from the annotation. The marker is also removed from
 	 * the scene.
 	 */
-	deleteLastLaneMarker(): boolean {
+	deleteLastMarker(): boolean {
 		if (this.isLiveMode) return false
-		if (this.activeAnnotationIndex < 0 || this.activeAnnotationType !== AnnotationType.LANE) {
+
+		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't delete marker")
 			return false
 		}
-		this.laneAnnotations[this.activeAnnotationIndex].deleteLastMarker()
+
+		switch (this.activeAnnotationType) {
+			case AnnotationType.LANE:
+				this.laneAnnotations[this.activeAnnotationIndex].deleteLastMarker()
+				break
+			case AnnotationType.TRAFFIC_SIGN:
+				this.trafficSignAnnotations[this.activeAnnotationIndex].deleteLastMarker()
+				break
+			default:
+				log.warn("Annotation type can't be edited")
+		}
 
 		this.metadataState.dirty()
 		return true

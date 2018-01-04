@@ -553,7 +553,7 @@ class Annotator {
 				}
 				case 'KeyD': {
 					log.info("Deleting last marker")
-					if (this.annotationManager.deleteLastLaneMarker())
+					if (this.annotationManager.deleteLastMarker())
 						this.hideTransform()
 					break
 				}
