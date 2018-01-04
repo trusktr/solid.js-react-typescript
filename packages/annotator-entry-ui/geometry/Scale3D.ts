@@ -38,6 +38,8 @@ export class Scale3D {
 // All dimensions are expressed in meters.
 export function coordToIndex(coord: number, size: number): TileIndexDimension {
 	const floor = Math.floor(coord / size)
+	if (!isFinite(floor) || size < 0)
+		throw Error(`out-of-bounds arguments in coordToIndex(${coord}, ${size})`)
 	return (floor === 0 && coord < 0) // special case for underflow on very small, negative values of coord
 		? -1
 		: floor
