@@ -29,7 +29,8 @@ function createWindow(): void {
 		win.maximize()
 
 	// Open the DevTools.
-	win.webContents.openDevTools()
+	if (!!config.get('startup.show_dev_tools'))
+		win.webContents.openDevTools()
 
 	// and load the index.html of the app.
 	win.loadURL(url.format({
