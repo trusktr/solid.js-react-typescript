@@ -31,8 +31,8 @@ export abstract class Annotation {
 		this.renderingObject = new THREE.Object3D()
 	}
 
-	abstract addMarker(position: THREE.Vector3, isLastMarker: boolean): void
-	abstract deleteLastMarker(): void
+	abstract addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean
+	abstract deleteLastMarker(): boolean
 	abstract makeActive(): void
 	abstract makeInactive(): void
 	abstract setLiveMode(): void

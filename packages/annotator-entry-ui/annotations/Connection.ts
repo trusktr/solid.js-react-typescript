@@ -56,15 +56,17 @@ export class Connection extends Annotation {
 		this.renderingObject.add(this.connectionMesh)
 	}
 
-	addMarker(position: THREE.Vector3, isLastMarker: boolean = false): void {
+	addMarker(position: THREE.Vector3, isLastMarker: boolean = false): boolean {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry,
 			                          ConnectionRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
+
+		return true
 	}
 
-	deleteLastMarker(): void  {}
+	deleteLastMarker(): boolean  { return false}
 
 	makeActive(): void {
 		this.connectionMesh.material = ConnectionRenderingProperties.activeMaterial

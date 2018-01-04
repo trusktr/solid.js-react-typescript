@@ -857,18 +857,6 @@ export class AnnotationManager extends UtmInterface {
 		return true
 	}
 
-	deleteLastTrafficSignMarker(): boolean {
-		if (this.isLiveMode) return false
-		if (this.activeAnnotationIndex < 0 || this.activeAnnotationType !== AnnotationType.TRAFFIC_SIGN) {
-			log.info("No active traffic sign annotation. Can't delete marker")
-			return false
-		}
-		this.trafficSignAnnotations[this.activeAnnotationIndex].deleteLastMarker()
-		this.metadataState.dirty()
-
-		return true
-	}
-
 	/**
 	 * Update the mesh of the active annotation. This is used if the lane marker positions
 	 * where changed externally (e.g. by the transform controls)

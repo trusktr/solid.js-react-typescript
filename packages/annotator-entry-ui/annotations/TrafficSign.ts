@@ -4,7 +4,11 @@
  */
 
 import * as THREE from 'three'
+import * as TypeLogger from 'typelogger'
 import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
+
+TypeLogger.setLoggerOutput(console as any)
+const log = TypeLogger.getLogger(__filename)
 
 // Some variables used for rendering
 namespace TrafficSignRenderingProperties {
@@ -29,7 +33,13 @@ export class TrafficSign extends Annotation {
 		this.trafficSignMesh.visible = false
 	}
 
-	addMarker(position: THREE.Vector3, isLastMarker: boolean): void {
+	addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean {
+		// Don't allow addition of markers if the isComplete flag is active
+		if (this.isComplete) {
+			log.warn("Last marker was already added. Can't add more markers. Delete a marker to allow more marker additions.")
+			return false
+		}
+
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficSignRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
@@ -39,14 +49,26 @@ export class TrafficSign extends Annotation {
 			this.isComplete = true
 		}
 		this.updateVisualization()
+
+		return true
 	}
 
-	deleteLastMarker(): void {
+	deleteLastMarker(): boolean {
 		if (this.markers.length === 0) {
-			return
+			log.warn('No markers to delete in this annotation')
+			return false
 		}
+
 		this.renderingObject.remove(this.markers.pop()!)
+
+		// Check if the deleted marker was marked as the last in the annotation. If so, reset the
+		// isComplete flag
+		if (this.isComplete) {
+			this.isComplete = false
+		}
 		this.updateVisualization()
+
+		return true
 	}
 
 	makeActive(): void {

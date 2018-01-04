@@ -9,7 +9,7 @@ import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {CoordinateFrameType, TileManager}  from 'annotator-entry-ui/TileUtils'
 import {AnnotationManager, AnnotationType, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
-import {AnnotationId, AnnotationUuid} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {Lane, NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -560,7 +560,7 @@ class Annotator {
 					break
 				}
 				case 'KeyZ': {
-					this.deleteLane()
+					this.deleteActiveAnnotation()
 					break
 				}
 				case 'KeyF': {
@@ -723,9 +723,13 @@ class Annotator {
 	/**
 	 * Functions to bind
 	 */
-	deleteLane(): void {
-		// Delete lane from scene
-		if (this.annotationManager.deleteLaneFromPath() && this.annotationManager.deleteActiveAnnotation(this.scene)) {
+	deleteActiveAnnotation(): void {
+		// Delete annotation from scene
+		if (this.annotationManager.activeAnnotationType === AnnotationType.LANE) {
+			this.annotationManager.deleteLaneFromPath()
+		}
+
+		if (this.annotationManager.deleteActiveAnnotation(this.scene)) {
 			log.info("Deleted selected annotation")
 			Annotator.deactivateLaneProp()
 			this.hideTransform()
@@ -828,7 +832,7 @@ class Annotator {
 		const toolsDelete = document.getElementById('tools_delete')
 		if (toolsDelete)
 			toolsDelete.addEventListener('click', _ => {
-				this.deleteLane()
+				this.deleteActiveAnnotation()
 			})
 		else
 			log.warn('missing element tools_delete')
