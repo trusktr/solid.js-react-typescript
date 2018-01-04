@@ -97,7 +97,6 @@ class LaneRenderingProperties {
 	inactiveMaterial: THREE.MeshLambertMaterial
 	centerLineMaterial: THREE.LineDashedMaterial
 	trajectoryMaterial: THREE.MeshLambertMaterial
-	connectionMaterial: THREE.MeshLambertMaterial
 	liveModeMaterial: THREE.MeshLambertMaterial
 
 	constructor(color: number) {
@@ -107,7 +106,6 @@ class LaneRenderingProperties {
 		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side: THREE.DoubleSide})
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side: THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial({color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2})
-		this.connectionMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
 		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 	}
 }

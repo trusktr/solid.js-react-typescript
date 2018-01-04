@@ -1092,14 +1092,14 @@ class Annotator {
 
 		const lpSelectLeft = $('#lp_select_left')
 		lpSelectLeft.removeAttr('disabled')
-		lpSelectLeft.val(activeAnnotation.leftSideType.toString())
+		lpSelectLeft.val(activeAnnotation.leftLineType.toString())
 
 		const lpAddRelation = $('#lc_add')
 		lpAddRelation.removeAttr('disabled')
 
 		const lpSelectRight = $('#lp_select_right')
 		lpSelectRight.removeAttr('disabled')
-		lpSelectRight.val(activeAnnotation.rightSideType.toString())
+		lpSelectRight.val(activeAnnotation.rightLineType.toString())
 
 		const lpSelectEntry = $('#lp_select_entry')
 		lpSelectEntry.removeAttr('disabled')

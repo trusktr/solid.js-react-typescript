@@ -280,7 +280,7 @@ export class AnnotationManager extends UtmInterface {
 						laneFrom.neighborsIds.front.push(laneTo.uuid)
 					} else {
 						// Connection lane needed
-						this.addLaneConnection(scene, laneFrom, laneTo)
+						this.addConnection(scene, laneFrom, laneTo)
 					}
 				} else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Front relation already exist.")
@@ -714,7 +714,6 @@ export class AnnotationManager extends UtmInterface {
 				if (annotationIndex >= this.trafficSignAnnotations.length) {
 					return false
 				}
-
 				this.trafficSignAnnotations[annotationIndex].makeActive()
 				this.activeMarkers = this.trafficSignAnnotations[annotationIndex].markers
 				break
@@ -736,8 +735,6 @@ export class AnnotationManager extends UtmInterface {
 
 		return true
 	}
-
-
 
 	/**
 	 * Eliminate the current active annotation from the manager. Delete its associated
@@ -1061,7 +1058,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Create a new lane connection between given lanes
 	 */
-	private addLaneConnection(scene: THREE.Scene, laneFrom: Lane, laneTo: Lane): void {
+	private addConnection(scene: THREE.Scene, laneFrom: Lane, laneTo: Lane): void {
 
 		if (laneFrom.markers.length < 4 || laneTo.markers.length < 4) {
 			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unable to generate forward relation." +
@@ -1105,6 +1102,8 @@ export class AnnotationManager extends UtmInterface {
 
 		// Add annotation to the scene
 		scene.add(connection.renderingObject)
+		this.annotationMeshes.push(connection.connectionMesh)
+
 		connection.makeInactive()
 		connection.updateVisualization()
 		this.metadataState.dirty()
