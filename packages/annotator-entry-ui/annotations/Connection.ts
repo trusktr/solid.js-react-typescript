@@ -5,10 +5,6 @@
 
 import * as THREE from 'three'
 import {Annotation, AnnotationUuid, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {
-	LaneAnnotationJsonInterface, LaneEntryExitType, LaneLineColor, LaneLineType, LaneNeighborsIds,
-	LaneType
-} from "./Lane";
 
 // Some variables used for rendering
 

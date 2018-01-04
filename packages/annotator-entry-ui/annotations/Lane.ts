@@ -6,7 +6,6 @@
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 import * as $ from 'jquery'
-import * as UUID from 'uuid'
 import {AnnotationUuid, Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
 
 // tslint:disable-next-line:no-any
