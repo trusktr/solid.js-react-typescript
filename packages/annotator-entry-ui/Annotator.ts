@@ -7,7 +7,10 @@ const config = require('../config')
 import * as $ from 'jquery'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import {CoordinateFrameType, TileManager}  from 'annotator-entry-ui/TileUtils'
+import {CoordinateFrameType} from "./geometry/CoordinateFrame"
+import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
+import {SuperTile} from "./tile/SuperTile"
+import {AxesHelper} from "./controls/AxesHelper"
 import {AnnotationManager, AnnotationType, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {Lane, NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
@@ -51,6 +54,7 @@ interface AnnotatorSettings {
 	defaultFpsRendering: number
 	fpsRendering: number
 	estimateGroundPlane: boolean
+	drawBoundingBox: boolean
 }
 
 /**
@@ -59,33 +63,36 @@ interface AnnotatorSettings {
  * and modify the annotations.
  */
 class Annotator {
-	scene: THREE.Scene
-	camera: THREE.PerspectiveCamera
-	renderer: THREE.WebGLRenderer
-	raycasterPlane: THREE.Raycaster
-	raycasterMarker: THREE.Raycaster
-	raycasterAnnotation: THREE.Raycaster
-	carModel: THREE.Object3D
-	tileManager: TileManager
-	plane: THREE.Mesh
-	grid: THREE.GridHelper // an arbitrary horizontal (XZ) reference plane for the UI
-	axis: THREE.AxisHelper
-	light: THREE.SpotLight
-	stats: Stats
-	orbitControls: THREE.OrbitControls
-	transformControls: any
-	hideTransformControlTimer: NodeJS.Timer
-	annotationManager: AnnotationManager
-	isAddMarkerKeyPressed: boolean
-	isAddTrafficSignMarkerKeyPressed: boolean
-	isLastTrafficSignMarkerKeyPressed: boolean
-	isMouseButtonPressed: boolean
-	numberKeyPressed: number | null
-	isLiveMode: boolean
-	liveSubscribeSocket: Socket
-	hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
-	settings: AnnotatorSettings
-	gui: any
+	private scene: THREE.Scene
+	private camera: THREE.PerspectiveCamera
+	private renderer: THREE.WebGLRenderer
+	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
+	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
+	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
+	private carModel: THREE.Object3D // displayed during live mode, moving along a preset trajectory
+	private tileManager: TileManager
+	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
+	private grid: THREE.GridHelper // visible grid attached to the reference plane
+	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
+	private light: THREE.SpotLight
+	private stats: Stats
+	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
+	private transformControls: any // controller for translating an object within the scene
+	private hideTransformControlTimer: NodeJS.Timer
+	private annotationManager: AnnotationManager
+	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
+	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
+	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
+	private isAddMarkerKeyPressed: boolean
+	private isAddTrafficSignMarkerKeyPressed: boolean
+	private isLastTrafficSignMarkerKeyPressed: boolean
+	private isMouseButtonPressed: boolean
+	private numberKeyPressed: number | null
+	private isLiveMode: boolean
+	private liveSubscribeSocket: Socket
+	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
+	private settings: AnnotatorSettings
+	private gui: any
 
 	constructor() {
 		this.isAddMarkerKeyPressed = false
@@ -96,23 +103,24 @@ class Annotator {
 
 		this.settings = {
 			background: config.get('startup.background_color') || '#082839',
-			cameraOffset: new THREE.Vector3(10, 30, 10),
+			cameraOffset: new THREE.Vector3(40, 120, 40),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
 			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
 			fpsRendering: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
+			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
 		}
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		this.hovered = null
-		// THe raycaster is used to compute where the waypoints will be dropped
 		this.raycasterPlane = new THREE.Raycaster()
 		this.raycasterPlane.params.Points!.threshold = 0.1
-		// THe raycaster is used to compute which marker is active for editing
 		this.raycasterMarker = new THREE.Raycaster()
-		// THe raycaster is used to compute which selection should be active for editing
-		this.raycasterAnnotation = new THREE.Raycaster()
+		this.raycasterSuperTiles = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
-		this.tileManager = new TileManager()
+		this.tileManager = new TileManager(this.onSuperTileUnload)
+		this.pendingSuperTileBoxes = []
+		this.highlightedSuperTileBox = null
+		this.pointCloudBoundingBox = null
 
 		this.isLiveMode = false
 
@@ -159,8 +167,13 @@ class Annotator {
 		this.grid.material.opacity = 0.25
 		this.grid.material.transparent = true
 		this.scene.add(this.grid)
-		this.axis = new THREE.AxisHelper(1)
-		this.scene.add(this.axis)
+
+		const axesHelperLength = parseFloat(config.get('annotator.axes_helper_length')) || 0
+		if (axesHelperLength > 0) {
+			this.axis = AxesHelper(axesHelperLength)
+			this.scene.add(this.axis)
+		} else
+			this.axis = null
 
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
@@ -215,12 +228,10 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mouseup', () => {
-			this.isMouseButtonPressed = false
-		})
-		this.renderer.domElement.addEventListener('mousedown', () => {
-			this.isMouseButtonPressed = true
-		})
+		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
+		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
+		this.renderer.domElement.addEventListener('mouseup', () => {this.isMouseButtonPressed = false})
+		this.renderer.domElement.addEventListener('mousedown', () => {this.isMouseButtonPressed = true})
 
 		this.loadCarModel()
 
@@ -235,7 +246,7 @@ class Annotator {
 		if (pointCloudDir) {
 			log.info('loading pre-configured data set ' + pointCloudDir)
 			pointCloudResult = this.loadPointCloudData(pointCloudDir)
-				.catch(err => log.warn('loadFromFile failed: ' + err.message))
+				.catch(err => log.warn('loadPointCloudData failed: ' + err.message))
 		} else
 			pointCloudResult = Promise.resolve()
 
@@ -270,16 +281,14 @@ class Annotator {
 	/**
 	 * Render the THREE.js scene from the camera's position.
 	 */
-	render = (): void => {
+	private render = (): void => {
 		this.renderer.render(this.scene, this.camera)
 	}
 
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
-	private setStage(x: number, y: number, z: number, gridYValue: number | null = null): void {
-		this.axis.geometry.center()
-		this.axis.geometry.translate(x, y, z)
+	private setStage(x: number, y: number, z: number, resetCamera: boolean = true, gridYValue: number | null = null): void {
 		this.plane.geometry.center()
 		this.plane.geometry.translate(x, y, z)
 		this.grid.geometry.center()
@@ -288,16 +297,34 @@ class Annotator {
 			this.plane.position.y = gridYValue
 			this.grid.position.y = gridYValue
 		}
-		this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
-		this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
-		this.orbitControls.target.set(x, y, z)
+		if (resetCamera) {
+			this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
+			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
+			this.orbitControls.target.set(x, y, z)
+		}
 	}
 
 	/**
 	 * Set some point as the center of the visible world.
 	 */
-	private setStageByVector(point: THREE.Vector3, gridYValue: number | null = null): void {
-		this.setStage(point.x, point.y, point.z, gridYValue)
+	private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true, gridYValue: number | null = null): void {
+		this.setStage(point.x, point.y, point.z, resetCamera, gridYValue)
+	}
+
+	/*
+	 * Set the stage at the bottom center of TileManager's point cloud.
+	 */
+	private setStageByPointCloud(resetCamera: boolean): void {
+		const focalPoint = this.tileManager.centerPoint()
+		if (focalPoint) {
+			const groundPlaneYIndex = this.settings.estimateGroundPlane
+				? this.tileManager.estimateGroundPlaneYIndex()
+				: null
+			const gridYValue = isNullOrUndefined(groundPlaneYIndex)
+				? null
+				: groundPlaneYIndex - focalPoint.y
+			this.setStageByVector(focalPoint, resetCamera, gridYValue)
+		}
 	}
 
 	/**
@@ -313,27 +340,81 @@ class Annotator {
 	 * Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	 * Center the stage and the camera on the point cloud.
 	 */
-	loadPointCloudData(pathToTiles: string): Promise<void> {
+	private loadPointCloudData(pathToTiles: string): Promise<void> {
 		log.info('loading dataset')
-		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR, this.settings.estimateGroundPlane)
-			.then(result => {
-				const focalPoint = result[0]
-				const groundPlaneYIndex = result[1] // Note: Tile data uses Z for the vertical dimension. Three.js uses Y. We make the switch here.
-				if (!this.annotationManager.setOriginWithInterface(this.tileManager)) {
+		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR)
+			.then(() => {
+				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
-				}
 				this.scene.add(this.tileManager.pointCloud)
-
-				if (focalPoint) {
-					const gridYValue = isNullOrUndefined(groundPlaneYIndex) ? null : groundPlaneYIndex - focalPoint.y
-					this.setStageByVector(focalPoint, gridYValue)
-				}
+				this.renderEmptySuperTiles()
+				this.updatePointCloudBoundingBox()
+				this.setStageByPointCloud(true)
 			})
 	}
 
-	unloadPointCloudData(): void {
+	// Incrementally load the point cloud for a single super tile.
+	private loadSuperTileData(superTile: SuperTile): void {
+		this.tileManager.loadFromSuperTile(superTile)
+			.then(() => {
+				this.updatePointCloudBoundingBox()
+				this.setStageByPointCloud(false)
+			})
+	}
+
+	private unloadPointCloudData(): void {
 		log.info("unloadPointCloudData")
 		this.tileManager.unloadAllPoints()
+		this.unHighlightSuperTileBox()
+		this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
+		if (this.pointCloudBoundingBox)
+			this.scene.remove(this.pointCloudBoundingBox)
+	}
+
+	// Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
+	private renderEmptySuperTiles(): void {
+		this.tileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
+
+		if (this.isLiveMode)
+			this.hideSuperTiles()
+	}
+
+	// When TileManager unloads a super tile, update Annotator's parallel data structure.
+	private onSuperTileUnload: (superTile: SuperTile) => void = (superTile: SuperTile) => {
+		this.superTileToBoundingBox(superTile)
+	}
+
+	private superTileToBoundingBox(superTile: SuperTile): void {
+		if (!superTile.hasPointCloud) {
+			const size = superTile.threeJsBoundingBox.getSize()
+			const center = superTile.threeJsBoundingBox.getCenter()
+			const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
+			const material = new THREE.MeshBasicMaterial({color: 0xffaa00, wireframe: true})
+			const box = new THREE.Mesh(geometry, material)
+			box.geometry.translate(center.x, center.y, center.z)
+			box.userData = superTile
+			this.scene.add(box)
+			this.pendingSuperTileBoxes.push(box)
+		}
+	}
+
+	private hideSuperTiles(): void {
+		this.unHighlightSuperTileBox()
+		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = false)
+	}
+
+	private showSuperTiles(): void {
+		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = true)
+	}
+
+	// Draw a box around the data. Useful for debugging.
+	private updatePointCloudBoundingBox(): void {
+		if (this.settings.drawBoundingBox) {
+			if (this.pointCloudBoundingBox)
+				this.scene.remove(this.pointCloudBoundingBox)
+			this.pointCloudBoundingBox = new THREE.BoxHelper(this.tileManager.pointCloud, new THREE.Color(0xff0000))
+			this.scene.add(this.pointCloudBoundingBox)
+		}
 	}
 
 	/**
@@ -341,7 +422,7 @@ class Annotator {
 	 * and to the scene.
 	 * Center the stage and the camera on the annotations model.
 	 */
-	async loadAnnotations(fileName: string): Promise<void> {
+	private async loadAnnotations(fileName: string): Promise<void> {
 		try {
 			log.info('Loading annotations')
 			const focalPoint = await this.annotationManager.loadAnnotationsFromFile(fileName, this.scene)
@@ -408,7 +489,6 @@ class Annotator {
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
-
 		if (this.settings.estimateGroundPlane || !this.tileManager.pointCloud) {
 			intersections = this.raycasterPlane.intersectObject(this.plane)
 		} else {
@@ -442,7 +522,7 @@ class Annotator {
 		if (this.isLiveMode) return
 
 		const mouse = this.getMouseCoordinates(event)
-		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		this.raycasterMarker.setFromCamera(mouse, this.camera)
 		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.annotationMeshes)
 
 		if (intersects.length > 0) {
@@ -469,9 +549,7 @@ class Annotator {
 			return
 		}
 		const mouse = this.getMouseCoordinates(event)
-
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
-
 		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
 
 		if (intersects.length > 0) {
@@ -503,6 +581,67 @@ class Annotator {
 				this.delayHideTransform()
 			}
 		}
+	}
+
+	private checkForSuperTileSelection = (event: MouseEvent): void => {
+		if (this.isLiveMode) return
+		if (this.isMouseButtonPressed) return
+		if (this.isAddMarkerKeyPressed) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterSuperTiles.intersectObjects(this.pendingSuperTileBoxes)
+
+		if (!intersects.length) {
+			this.unHighlightSuperTileBox()
+		} else {
+			const first = intersects[0].object as THREE.Mesh
+
+			if (this.highlightedSuperTileBox && this.highlightedSuperTileBox.id !== first.id)
+				this.unHighlightSuperTileBox()
+
+			if (!this.highlightedSuperTileBox)
+				this.highlightSuperTileBox(first)
+		}
+	}
+
+	private clickSuperTileBox = (event: MouseEvent): void => {
+		if (this.isLiveMode) return
+		if (!this.highlightedSuperTileBox) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterSuperTiles.intersectObject(this.highlightedSuperTileBox)
+
+		if (intersects.length > 0) {
+			const superTile = this.highlightedSuperTileBox.userData as SuperTile
+			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
+			this.scene.remove(this.highlightedSuperTileBox)
+			this.unHighlightSuperTileBox()
+			this.loadSuperTileData(superTile)
+		}
+	}
+
+	// Draw the box in a more solid form to indicate that it is active.
+	private highlightSuperTileBox(superTileBox: THREE.Mesh): void {
+		if (this.isLiveMode) return
+
+		const material = superTileBox.material as THREE.MeshBasicMaterial
+		material.wireframe = false
+		material.transparent = true
+		material.opacity = 0.5
+		this.highlightedSuperTileBox = superTileBox
+	}
+
+	// Draw the box as a simple wireframe like all the other boxes.
+	private unHighlightSuperTileBox(): void {
+		if (!this.highlightedSuperTileBox) return
+
+		const material = this.highlightedSuperTileBox.material as THREE.MeshBasicMaterial
+		material.wireframe = true
+		material.transparent = false
+		material.opacity = 1.0
+		this.highlightedSuperTileBox = null
 	}
 
 	/*
@@ -723,7 +862,7 @@ class Annotator {
 	/**
 	 * Functions to bind
 	 */
-	deleteActiveAnnotation(): void {
+	private deleteActiveAnnotation(): void {
 		// Delete annotation from scene
 		if (this.annotationManager.activeAnnotationType === AnnotationType.LANE) {
 			this.annotationManager.deleteLaneFromPath()
@@ -736,7 +875,7 @@ class Annotator {
 		}
 	}
 
-	addLane(): void {
+	private addLane(): void {
 		// Add lane to scene
 		if (this.addLaneAnnotation()) {
 			log.info("Added new annotation")
@@ -745,19 +884,19 @@ class Annotator {
 		}
 	}
 
-	saveToFile(): void {
+	private saveToFile(): void {
 		log.info("Saving annotations to JSON")
 		this.saveAnnotations()
 			.catch(error => log.warn("save to file failed: " + error.message))
 	}
 
-	exportKml(): void {
+	private exportKml(): void {
 		log.info("Exporting annotations to KML")
 		this.exportAnnotationsToKml()
 			.catch(error => log.warn("export to KML failed: " + error.message))
 	}
 
-	loadFromFile(): Promise<void> {
+	private loadFromFile(): Promise<void> {
 		const pathElectron = dialog.showOpenDialog({
 			properties: ['openDirectory']
 		})
@@ -765,39 +904,41 @@ class Annotator {
 		if (!(pathElectron && pathElectron[0]))
 			return Promise.resolve()
 
+		if (this.tileManager.hasGeometry)
+			log.warn('you should probably unload the existing point cloud before loading another')
 		log.info('Loading point cloud from ' + pathElectron[0])
 		return this.loadPointCloudData(pathElectron[0])
 	}
 
-	addFront(): void {
+	private addFront(): void {
 		log.info("Adding connected annotation to the front")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
 			Annotator.deactivateFrontSideNeighbours()
 		}
 	}
 
-	addLeftSame(): void {
+	private addLeftSame(): void {
 		log.info("Adding connected annotation to the left - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
-	addLeftReverse(): void {
+	private addLeftReverse(): void {
 		log.info("Adding connected annotation to the left - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
-	addRightSame(): void {
+	private addRightSame(): void {
 		log.info("Adding connected annotation to the right - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
 	}
 
-	addRightReverse(): void {
+	private addRightReverse(): void {
 		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateRightSideNeighbours()
@@ -1284,7 +1425,7 @@ class Annotator {
 		})
 	}
 
-	initClient(): void {
+	private initClient(): void {
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
@@ -1318,7 +1459,7 @@ class Annotator {
 	 * Toggle whether or not to listen for live-location updates.
 	 * Returns the updated state of live-location mode.
 	 */
-	toggleListen(): void {
+	private toggleListen(): void {
 		let hideMenu
 		if (this.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
@@ -1330,30 +1471,40 @@ class Annotator {
 		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
 	}
 
-	listen(): boolean {
+	private listen(): boolean {
 		if (this.isLiveMode) return this.isLiveMode
 
 		log.info('Listening for messages...')
 		this.isLiveMode = true
+		if (this.axis)
+			this.scene.remove(this.axis)
 		this.plane.visible = false
 		this.grid.visible = false
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
+		this.hideSuperTiles()
+		if (this.pointCloudBoundingBox)
+			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering / 2
 		return this.isLiveMode
 	}
 
-	stopListening(): boolean {
+	private stopListening(): boolean {
 		if (!this.isLiveMode) return this.isLiveMode
 
 		log.info('Stopped listening for messages...')
 		this.isLiveMode = false
+		if (this.axis)
+			this.scene.add(this.axis)
 		this.plane.visible = true
 		this.grid.visible = true
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
+		this.showSuperTiles()
+		if (this.pointCloudBoundingBox)
+			this.pointCloudBoundingBox.material.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		return this.isLiveMode
 	}

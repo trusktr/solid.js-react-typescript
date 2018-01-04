@@ -4,11 +4,7 @@
  */
 
 import * as THREE from 'three'
-import * as TypeLogger from 'typelogger'
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
 const utmConverter = require('utm')
 
 export interface UtmLocalOrigin {
@@ -68,8 +64,6 @@ export class UtmInterface implements UtmLocalOrigin {
 				this.utmZoneNumber = this.defaultUtmZoneNumber
 				this.utmZoneNorthernHemisphere = this.defaultUtmZoneNorthernHemisphere
 			}
-			log.info('setting UTM zone: ' + this.utmZoneNumber + (this.utmZoneNorthernHemisphere ? 'N' : 'S'))
-			log.info('setting UTM origin offset: ' + this.offset.x + ', ' + this.offset.y + ', ' + this.offset.z)
 			return true
 		}
 	}
