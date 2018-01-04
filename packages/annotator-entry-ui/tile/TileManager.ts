@@ -7,6 +7,8 @@ const config = require('../../config')
 import * as Fs from 'fs'
 import * as Path from 'path'
 import * as AsyncFile from 'async-file'
+import * as lodash from 'lodash'
+import {Option, none, option} from 'ts-option'
 import {OrderedMap, OrderedSet} from 'immutable'
 import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
@@ -19,6 +21,7 @@ import {BufferGeometry} from "three"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
 import {Scale3D} from "../geometry/Scale3D"
 import {TileIndex} from "../model/TileIndex"
+import LocalStorage from "../state/LocalStorage"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -41,7 +44,7 @@ if (!superTileScale.isMultipleOf(utmTileScale))
 	throw Error('super_tile_scale must be a multiple of utm_tile_scale')
 
 const threeDStepSize: number = 3
-
+const loadedSuperTileKeysKey = 'loadedSuperTileKeys'
 let warningDelivered = false
 
 /**
@@ -122,7 +125,7 @@ const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Arra
 }
 
 export class TileManager extends UtmInterface {
-
+	private storage: LocalStorage // persistent state for UI settings
 	hasGeometry: boolean
 	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
 	loadedSuperTileKeys: OrderedSet<string> // keys to super tiles which have some content loaded in memory
@@ -137,10 +140,11 @@ export class TileManager extends UtmInterface {
 
 	constructor(onSuperTileUnload: (superTile: SuperTile) => void) {
 		super()
+		this.storage = new LocalStorage()
 		this.onSuperTileUnload = onSuperTileUnload
 		this.hasGeometry = false
 		this.superTiles = OrderedMap()
-		this.loadedSuperTileKeys = OrderedSet()
+		this.setLoadedSuperTileKeys(OrderedSet())
 		const pointsSize = parseFloat(config.get('annotator.point_render_size')) || 1
 		this.pointCloud = new THREE.Points(
 			new THREE.BufferGeometry(),
@@ -159,6 +163,26 @@ export class TileManager extends UtmInterface {
 			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
 		}
 		return 'TileManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneNorthernHemisphere + ', offset: [' + offsetStr + '])'
+	}
+
+	// Update state of which super tiles are loaded; and save that state for use when the application is reloaded.
+	private setLoadedSuperTileKeys(newKeys: OrderedSet<string>): void {
+		this.loadedSuperTileKeys = newKeys
+		this.setSuperTilesPreference()
+	}
+
+	private setSuperTilesPreference(): void {
+		if (!this.loadedSuperTileKeys.isEmpty())
+			this.storage.setItem(loadedSuperTileKeysKey, JSON.stringify(this.loadedSuperTileKeys.toArray()))
+	}
+
+	private getSuperTilesPreference(): Option<OrderedSet<string>> {
+		try {
+			return option(this.storage.getItem(loadedSuperTileKeysKey))
+				.map(stored => OrderedSet(JSON.parse(stored!)))
+		} catch (_) {
+			return none
+		}
 	}
 
 	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
@@ -234,9 +258,8 @@ export class TileManager extends UtmInterface {
 						log.warn(`addTile() failed for ${metadata!.name}`)
 				})
 
-				const promises = this.superTiles
-					.take(this.initialSuperTilesToLoad)
-					.valueSeq().toArray().map(st => this.loadSuperTile(st))
+				const promises = this.identifyFirstSuperTilesToLoad()
+					.map(st => this.loadSuperTile(st))
 				return Promise.all(promises)
 			})
 			.then(() => this.generatePointCloudFromSuperTiles())
@@ -257,6 +280,28 @@ export class TileManager extends UtmInterface {
 						return [positions, sampledColors] as [number[], number[]]
 					}
 				})
+	}
+
+	private identifyFirstSuperTilesToLoad(): SuperTile[] {
+		let toLoad: SuperTile[] = []
+
+		// See if there are any valid super tile references from a previous session.
+		const preferred = this.getSuperTilesPreference()
+		if (preferred.nonEmpty) {
+			toLoad = lodash.flatten(
+				preferred.get
+					.valueSeq().toArray()
+					.map(key => option(this.superTiles.get(key!)).toArray)
+			)
+		}
+
+		// If not, default behavior is to take the first few in the list.
+		if (!toLoad.length)
+			toLoad = this.superTiles
+				.take(this.initialSuperTilesToLoad)
+				.valueSeq().toArray()
+
+		return toLoad
 	}
 
 	// Load data for a single SuperTile. This assumes that loadFromDataset() already happened.
@@ -280,7 +325,7 @@ export class TileManager extends UtmInterface {
 			return superTile.loadPointCloud()
 				.then(success => {
 					if (success)
-						this.loadedSuperTileKeys = this.loadedSuperTileKeys.add(key)
+						this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.add(key))
 					return success
 				})
 	}
@@ -310,7 +355,7 @@ export class TileManager extends UtmInterface {
 		let count = 0
 		while (this.loadedSuperTileKeys.size > 1 && this.pointCount() > this.maximumPointsToLoad) {
 			const oldestKey = this.loadedSuperTileKeys.first()
-			this.loadedSuperTileKeys = this.loadedSuperTileKeys.skip(1).toOrderedSet()
+			this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.skip(1).toOrderedSet())
 			const foundSuperTile = this.superTiles.get(oldestKey)
 			if (foundSuperTile) {
 				foundSuperTile.unloadPointCloud()
@@ -403,7 +448,7 @@ export class TileManager extends UtmInterface {
 	 * Clean slate.
 	 */
 	unloadAllPoints(): void {
-		this.loadedSuperTileKeys = OrderedSet()
+		this.setLoadedSuperTileKeys(OrderedSet())
 		this.superTiles = OrderedMap()
 		this.setGeometry(new THREE.BufferGeometry())
 		this.hasGeometry = false
