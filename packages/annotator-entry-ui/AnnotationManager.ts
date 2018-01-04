@@ -158,6 +158,15 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
+	 * Get the index of the annotation associated with the given mesh.
+	 */
+	getTrafficSignAnnotationIndex(object: THREE.Mesh): number {
+		return this.trafficSignAnnotations.findIndex((element) => {
+			return element.trafficSignMesh === object
+		})
+	}
+
+	/**
 	 * Get current active annotation
 	 */
 	getActiveAnnotation(): Lane | TrafficSign | Connection | null {
@@ -667,12 +676,25 @@ export class AnnotationManager extends UtmInterface {
 	 * Check if the passed mesh corresponds to an inactive lane
 	 * annotation. If so, return it's index in the manager.
 	 */
-	checkForInactiveAnnotation(object: THREE.Mesh): number {
+	checkForInactiveAnnotation(object: THREE.Mesh): [number, AnnotationType] {
+		// Check for lane annotations
 		let index = this.getLaneAnnotationIndex(object)
-		if (index === this.activeAnnotationIndex) {
-			index = -1
+
+		if (index >= 0) {
+			if (index === this.activeAnnotationIndex && this.activeAnnotationType === AnnotationType.LANE)	{
+				return [-1, AnnotationType.UNKNOWN]
+			}
+			return [index, AnnotationType.LANE]
 		}
-		return index
+
+		// Selected object didn't match any lanes. Check for traffic sign annotations
+		index = this.getTrafficSignAnnotationIndex(object)
+
+		if (index < 0 || (index === this.activeAnnotationIndex && this.activeAnnotationType === AnnotationType.TRAFFIC_SIGN)) {
+			return [-1, AnnotationType.UNKNOWN]
+		}
+
+		return [index, AnnotationType.TRAFFIC_SIGN]
 	}
 
 	/**

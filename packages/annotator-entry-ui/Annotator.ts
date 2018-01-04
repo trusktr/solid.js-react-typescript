@@ -447,12 +447,12 @@ class Annotator {
 
 		if (intersects.length > 0) {
 			const object = intersects[0].object
-			const index = this.annotationManager.checkForInactiveAnnotation(object as any)
+			const [index, type] = this.annotationManager.checkForInactiveAnnotation(object as any)
 
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
 				this.cleanTransformControls()
-				this.annotationManager.changeActiveAnnotation(index, AnnotationType.LANE)
+				this.annotationManager.changeActiveAnnotation(index, type)
 				this.resetLaneProp()
 			}
 		}
