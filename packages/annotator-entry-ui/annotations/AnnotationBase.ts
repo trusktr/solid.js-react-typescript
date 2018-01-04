@@ -24,9 +24,9 @@ export abstract class Annotation {
 	markers: Array<THREE.Mesh> 			// Control point used to edit the annotation
 	renderingObject: THREE.Object3D		// Object that is added to the scene for display
 
-	constructor() {
+	constructor(uuid?: AnnotationUuid) {
 		this.id = AnnotationCounter.nextId()
-		this.uuid = UUID.v1()
+		this.uuid = uuid ? uuid : UUID.v1()
 		this.markers = []
 		this.renderingObject = new THREE.Object3D()
 	}

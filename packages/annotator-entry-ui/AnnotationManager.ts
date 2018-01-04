@@ -9,10 +9,10 @@ import {isNullOrUndefined} from "util"
 import * as THREE from 'three'
 import {AnnotationId, AnnotationUuid} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds,
-		LaneAnnotationInterface, LaneAnnotationJsonInterface
+		LaneInterface, LaneJsonInterface
 } from 'annotator-entry-ui/annotations/Lane'
-import {TrafficSign} from 'annotator-entry-ui/annotations/TrafficSign'
-import {Connection} from 'annotator-entry-ui/annotations/Connection'
+import {TrafficSign, TrafficSignJsonInterface} from 'annotator-entry-ui/annotations/TrafficSign'
+import {Connection, ConnectionJsonInterface} from 'annotator-entry-ui/annotations/Connection'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -68,7 +68,9 @@ interface AnnotationManagerJsonInterface {
 	version: number
 	created: string
 	coordinateReferenceSystem: CRS.CoordinateReferenceSystem
-	laneAnnotations: Array<LaneAnnotationJsonInterface>
+	laneAnnotations: Array<LaneJsonInterface>
+	connectionAnnotations: Array<ConnectionJsonInterface>
+	trafficSignAnnotations: Array<TrafficSignJsonInterface>
 }
 
 /**
@@ -118,7 +120,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Add a new lane annotation and add its mesh to the scene for display.
 	 */
-	addLaneAnnotation(scene: THREE.Scene, obj?: LaneAnnotationInterface): THREE.Box3 | null {
+	addLaneAnnotation(scene: THREE.Scene, obj?: LaneInterface): THREE.Box3 | null {
 		if (this.isLiveMode) return null
 
 		if (obj) {
@@ -1041,11 +1043,21 @@ export class AnnotationManager extends UtmInterface {
 			version: 2,
 			created: new Date().toISOString(),
 			coordinateReferenceSystem: crs,
-			annotations: [],
+			laneAnnotations: [],
+			connectionAnnotations: [],
+			trafficSignAnnotations: []
 		}
 
 		this.laneAnnotations.forEach((annotation) => {
-			data.annotations = data.annotations.concat(annotation.toJSON(pointConverter))
+			data.laneAnnotations = data.laneAnnotations.concat(annotation.toJSON(pointConverter))
+		})
+
+		this.connectionAnnotations.forEach( (annotation) => {
+			data.connectionAnnotations = data.connectionAnnotations.concat(annotation.toJSON(pointConverter))
+		})
+
+		this.trafficSignAnnotations.forEach( (annotation) => {
+			data.trafficSignAnnotations = data.trafficSignAnnotations.concat(annotation.toJSON(pointConverter))
 		})
 
 		return data

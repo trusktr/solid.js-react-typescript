@@ -104,7 +104,7 @@ class LaneRenderingProperties {
 	}
 }
 
-export interface LaneAnnotationInterface {
+export interface LaneInterface {
 	uuid: AnnotationUuid
 	type: LaneType
 	color: number
@@ -119,7 +119,7 @@ export interface LaneAnnotationInterface {
 	exitType: LaneEntryExitType
 }
 
-export interface LaneAnnotationJsonInterface {
+export interface LaneJsonInterface {
 	uuid: AnnotationUuid
 	type: LaneType
 	color: number
@@ -154,10 +154,10 @@ export class Lane extends Annotation {
 	exitType: LaneEntryExitType
 	inTrajectory: boolean
 
-	constructor(obj?: LaneAnnotationInterface) {
+	constructor(obj?: LaneInterface) {
 		// Call the base constructor
 		super()
-		this.uuid = obj ? obj.uuid : UUID.v1()
+		if (obj) this.uuid = obj.uuid
 		this.type = obj ? obj.type : LaneType.UNKNOWN
 		const color = obj ? obj.color : Math.random() * 0xffffff
 		this.neighborsIds = obj ? obj.neighborsIds : new LaneNeighborsIds()
@@ -171,6 +171,7 @@ export class Lane extends Annotation {
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
 		this.laneDirectionMarkers = []
+		this.waypoints = []
 		this.inTrajectory = false
 
 		if (obj && obj.markerPositions.length > 0) {
@@ -208,7 +209,7 @@ export class Lane extends Annotation {
 	 *      - Third and onwards: Two markers are added using the passed position and the
 	 *                           position of the last two markers.
 	 */
-	addMarker(position: THREE.Vector3, isLastMarker: boolean = false): boolean {
+	addMarker(position: THREE.Vector3): boolean {
 
 		if (this.markers.length < 2) {
 			this.addRawMarker(position)
@@ -365,10 +366,10 @@ export class Lane extends Annotation {
 		}
 	}
 
-	toJSON(pointConverter?: (p: THREE.Vector3) => Object): LaneAnnotationJsonInterface {
+	toJSON(pointConverter?: (p: THREE.Vector3) => Object): LaneJsonInterface {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		const data: LaneAnnotationJsonInterface = {
+		const data: LaneJsonInterface = {
 			uuid: this.uuid,
 			type: this.type,
 			color: this.renderingProperties.color,
