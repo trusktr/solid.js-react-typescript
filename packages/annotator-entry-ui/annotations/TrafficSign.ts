@@ -6,12 +6,10 @@
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {ConnectionAnnotationJsonInterface, ConnectionType} from "./Connection";
 import {AnnotationUuid} from "./AnnotationBase";
 
-TypeLogger.setLoggerOutput(console as any)
+TypeLogger.setLoggerOutput(console as {})
 const log = TypeLogger.getLogger(__filename)
-
 
 export enum TrafficSignType {
 	UNKNOWN = 0,
@@ -23,7 +21,6 @@ export enum TrafficSignType {
 
 // Some variables used for rendering
 namespace TrafficSignRenderingProperties {
-	export const markerPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 	export const meshMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
 	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
@@ -57,7 +54,7 @@ export class TrafficSign extends Annotation {
 		this.renderingObject.add(this.trafficSignMesh)
 		this.renderingObject.add(this.trafficSignContour)
 		this.trafficSignMesh.visible = false
-		
+
 		if (obj && obj.markers.length > 0) {
 			obj.markers.forEach( (marker) => {
 				this.addMarker(marker, false)

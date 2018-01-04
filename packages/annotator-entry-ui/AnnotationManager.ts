@@ -11,8 +11,8 @@ import {AnnotationId, AnnotationUuid} from 'annotator-entry-ui/annotations/Annot
 import {Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds,
 		LaneInterface, LaneJsonInterface
 } from 'annotator-entry-ui/annotations/Lane'
-import {TrafficSign, TrafficSignJsonInterface} from 'annotator-entry-ui/annotations/TrafficSign'
-import {Connection, ConnectionJsonInterface} from 'annotator-entry-ui/annotations/Connection'
+import {TrafficSign, TrafficSignInterface, TrafficSignJsonInterface} from 'annotator-entry-ui/annotations/TrafficSign'
+import {Connection, ConnectionInterface, ConnectionJsonInterface} from 'annotator-entry-ui/annotations/Connection'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -997,7 +997,9 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	async saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
-		if (this.laneAnnotations.length === 0) {
+		if (this.laneAnnotations.length === 0
+			&& this.connectionAnnotations.length === 0
+			&& this.trafficSignAnnotations.length === 0) {
 			return Promise.reject(new Error('failed to save empty set of annotations'))
 		}
 		if (!this.hasOrigin() && !config.get('output.annotations.debug.allow_annotations_without_utm_origin')) {
