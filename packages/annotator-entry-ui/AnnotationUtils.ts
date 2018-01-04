@@ -137,10 +137,15 @@ export class AnnotationManager extends UtmInterface {
 		return mesh.geometry.boundingBox
 	}
 
-	addTrafficSignAnnotation(scene: THREE.Scene): void {
+	addTrafficSignAnnotation(scene: THREE.Scene): THREE.Box3 | null {
 		this.trafficSignAnnotations.push(new TrafficSign())
 		const newAnnotationIndex = this.trafficSignAnnotations.length - 1
+		const mesh = this.trafficSignAnnotations[newAnnotationIndex].trafficSignMesh
+		this.annotationMeshes.push(mesh)
 		scene.add(this.trafficSignAnnotations[newAnnotationIndex].renderingObject)
+		mesh.geometry.computeBoundingBox()
+
+		return mesh.geometry.boundingBox
 	}
 
 	/**
@@ -794,7 +799,7 @@ export class AnnotationManager extends UtmInterface {
 	addTrafficSignMarker(position: THREE.Vector3, isLastMarker: boolean): boolean {
 		if (this.isLiveMode) return false
 		if (this.activeAnnotationIndex < 0 || this.activeAnnotationType !== AnnotationType.TRAFFIC_SIGN) {
-			log.info("No active lane annotation. Can't add marker")
+			log.info("No active traffic sign annotation. Can't add marker")
 			return false
 		}
 		this.trafficSignAnnotations[this.activeAnnotationIndex].addMarker(position, isLastMarker)
@@ -822,12 +827,12 @@ export class AnnotationManager extends UtmInterface {
 	deleteLastTrafficSignMarker(): boolean {
 		if (this.isLiveMode) return false
 		if (this.activeAnnotationIndex < 0 || this.activeAnnotationType !== AnnotationType.TRAFFIC_SIGN) {
-			log.info("No active annotation. Can't delete marker")
+			log.info("No active traffic sign annotation. Can't delete marker")
 			return false
 		}
 		this.trafficSignAnnotations[this.activeAnnotationIndex].deleteLastMarker()
-
 		this.metadataState.dirty()
+
 		return true
 	}
 
@@ -836,11 +841,20 @@ export class AnnotationManager extends UtmInterface {
 	 * where changed externally (e.g. by the transform controls)
 	 */
 	updateActiveLaneMesh(): void {
-		if (this.activeAnnotationIndex < 0 || this.activeAnnotationType !== AnnotationType.LANE) {
+		if (this.activeAnnotationIndex < 0)  {
 			log.info("No active annotation. Can't update mesh")
 			return
 		}
-		this.laneAnnotations[this.activeAnnotationIndex].updateVisualization()
+		switch (this.activeAnnotationType) {
+			case AnnotationType.LANE:
+				this.laneAnnotations[this.activeAnnotationIndex].updateVisualization()
+				break
+			case AnnotationType.TRAFFIC_SIGN:
+				this.trafficSignAnnotations[this.activeAnnotationIndex].updateVisualization()
+				break
+			default:
+				log.warn("Annotation type can't be edited")
+		}
 	}
 
 	/*

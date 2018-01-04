@@ -7,15 +7,11 @@ import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 import * as $ from 'jquery'
 import * as UUID from 'uuid'
-import {AnnotationUuid, Annotation} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {AnnotationUuid, Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-
-// Some constants for rendering
-const controlPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
-const highlightControlPointGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3)
 
 const directionGeometry = new THREE.Geometry()
 directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25,  0.5))
@@ -73,8 +69,6 @@ export enum LaneEntryExitType {
 	CONTINUE,
 	STOP
 }
-
-
 
 export class LaneNeighborsIds {
 	right: AnnotationUuid | null
@@ -200,7 +194,7 @@ export class Lane extends Annotation {
 	 * Add a single marker to the annotation and the scene.
 	 */
 	addRawMarker(position: THREE.Vector3): void {
-		const marker = new THREE.Mesh(controlPointGeometry, this.renderingProperties.markerMaterial)
+		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, this.renderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
@@ -287,28 +281,6 @@ export class Lane extends Annotation {
 			marker.visible = true
 		})
 		this.makeInactive()
-	}
-
-	/**
-	 * Intersect requested markers with active markers.
-	 * Draw the markers a little larger.
-	 */
-	highlightMarkers(markers: Array<THREE.Mesh>): void {
-		const ids: Array<number> = markers.map(m => m.id)
-		this.markers.forEach(marker => {
-			ids.filter(id => id === marker.id).forEach(() => {
-				marker.geometry = highlightControlPointGeometry
-			})
-		})
-	}
-
-	/**
-	 * Draw all markers at normal size.
-	 */
-	unhighlightMarkers(): void {
-		this.markers.forEach(marker => {
-			marker.geometry = controlPointGeometry
-		})
 	}
 
 	/**

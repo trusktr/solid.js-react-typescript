@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three'
-import {Annotation, AnnotationUuid} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {Annotation, AnnotationUuid, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
 
 // Some variables used for rendering
 
@@ -30,8 +30,6 @@ namespace ConnectionRenderingProperties {
 	directionGeometry.computeFaceNormals()
 
 	export const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, side: THREE.DoubleSide})
-	export const controlPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
-	export const highlightControlPointGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3)
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 	export const activeMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
 	export const inactiveMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
@@ -59,14 +57,14 @@ export class Connection extends Annotation {
 	}
 
 	addMarker(position: THREE.Vector3, isLastMarker: boolean = false): void {
-		const marker = new THREE.Mesh(ConnectionRenderingProperties.controlPointGeometry,
+		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry,
 			                          ConnectionRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
 	}
 
-	deleteLastMarker(): void {}
+	deleteLastMarker(): void  {}
 
 	makeActive(): void {
 		this.connectionMesh.material = ConnectionRenderingProperties.activeMaterial
@@ -89,21 +87,6 @@ export class Connection extends Annotation {
 			marker.visible = true
 		})
 		this.makeInactive()
-	}
-
-	highlightMarkers(markers: Array<THREE.Mesh>): void {
-		const ids: Array<number> = markers.map(m => m.id)
-		this.markers.forEach(marker => {
-			ids.filter(id => id === marker.id).forEach(() => {
-				marker.geometry = ConnectionRenderingProperties.highlightControlPointGeometry
-			})
-		})
-	}
-
-	unhighlightMarkers(): void {
-		this.markers.forEach(marker => {
-			marker.geometry = ConnectionRenderingProperties.controlPointGeometry
-		})
 	}
 
 	updateVisualization(): void {

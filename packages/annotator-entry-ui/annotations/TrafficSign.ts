@@ -4,49 +4,72 @@
  */
 
 import * as THREE from 'three'
-import {Annotation} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
 
 // Some variables used for rendering
-const markerPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
-const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-const contourMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff })
+namespace TrafficSignRenderingProperties {
+	export const markerPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
+	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
+	export const meshMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
+	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
+}
 
 export class TrafficSign extends Annotation {
 	trafficSignContour: THREE.Line
+	trafficSignMesh: THREE.Mesh
 	isComplete: boolean
 
 	constructor() {
 		super()
 		this.isComplete = false
-		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), contourMaterial)
+		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficSignRenderingProperties.contourMaterial)
+		this.trafficSignMesh = new THREE.Mesh(new THREE.Geometry(), TrafficSignRenderingProperties.meshMaterial)
+		this.renderingObject.add(this.trafficSignMesh)
 		this.renderingObject.add(this.trafficSignContour)
+		this.trafficSignMesh.visible = false
 	}
 
 	addMarker(position: THREE.Vector3, isLastMarker: boolean): void {
-	const marker = new THREE.Mesh(markerPointGeometry, markerMaterial)
-	marker.position.set(position.x, position.y, position.z)
-	this.markers.push(marker)
-	this.renderingObject.add(marker)
+		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficSignRenderingProperties.markerMaterial)
+		marker.position.set(position.x, position.y, position.z)
+		this.markers.push(marker)
+		this.renderingObject.add(marker)
 
-	if (isLastMarker) {
-		this.isComplete = true
+		if (isLastMarker) {
+			this.isComplete = true
+		}
+		this.updateVisualization()
 	}
-	this.updateVisualization()
-}
 
-	deleteLastMarker(): void {}
+	deleteLastMarker(): void {
+		if (this.markers.length === 0) {
+			return
+		}
+		this.renderingObject.remove(this.markers.pop()!)
+		this.updateVisualization()
+	}
 
-	makeActive(): void {}
+	makeActive(): void {
+		this.trafficSignMesh.visible = false
+	}
 
-	makeInactive(): void {}
+	makeInactive(): void {
+		this.trafficSignMesh.visible = true
+		this.unhighlightMarkers()
+	}
 
-	setLiveMode(): void {}
+	setLiveMode(): void {
+		this.markers.forEach((marker) => {
+			marker.visible = false
+		})
+	}
 
-	unsetLiveMode(): void {}
-
-	highlightMarkers(markers: Array<THREE.Mesh>): void {}
-
-	unhighlightMarkers(): void {}
+	unsetLiveMode(): void {
+		this.markers.forEach((marker) => {
+			marker.visible = true
+		})
+		this.makeInactive()
+	}
 
 	updateVisualization(): void {
 		// Check if there are at least two markers
@@ -54,18 +77,41 @@ export class TrafficSign extends Annotation {
 			return
 		}
 
-		const newGeometry = new THREE.Geometry();
+		const newContourGeometry = new THREE.Geometry();
 		this.markers.forEach((marker) => {
-			newGeometry.vertices.push(marker.position)
+			newContourGeometry.vertices.push(marker.position)
 		})
 
 		// Push the first vertex again to close the loop
 		if (this.isComplete) {
-			newGeometry.vertices.push(this.markers[0].position)
+			newContourGeometry.vertices.push(this.markers[0].position)
 		}
 
-		newGeometry.computeLineDistances()
-		this.trafficSignContour.geometry = newGeometry
+		newContourGeometry.computeLineDistances()
+		this.trafficSignContour.geometry = newContourGeometry
 		this.trafficSignContour.geometry.verticesNeedUpdate = true
+
+		const newMeshGeometry = new THREE.Geometry()
+
+		// We need at least 3 vertices to generate a mesh
+		if (newContourGeometry.vertices.length > 2) {
+			// Add all vertices
+			newContourGeometry.vertices.forEach((vertex) => {
+				newMeshGeometry.vertices.push(vertex)
+			})
+
+			// Add faces
+			for (let i = 0; i < newContourGeometry.vertices.length - 2; i++) {
+				if (i % 2 === 0) {
+					newMeshGeometry.faces.push(new THREE.Face3(i + 2, i + 1, i))
+				} else {
+					newMeshGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))
+				}
+
+			}
+		}
+		newMeshGeometry.computeFaceNormals()
+		this.trafficSignMesh.geometry = newMeshGeometry
+		this.trafficSignMesh.geometry.verticesNeedUpdate = true
 	}
 }

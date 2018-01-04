@@ -382,8 +382,19 @@ class Annotator {
 		)
 	}
 
-	private addTrafficSignAnnotation(): void {
-		this.annotationManager.addTrafficSignAnnotation(this.scene)
+	private addTrafficSignAnnotation(): boolean {
+		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
+		// that annotation wouldn't be selectable and it would be lost)
+		if (this.annotationManager.activeAnnotationIndex >= 0 &&
+			this.annotationManager.activeMarkers.length === 0) {
+			return false
+		}
+
+		return !!(
+			this.annotationManager.addTrafficSignAnnotation(this.scene) &&
+			this.annotationManager.changeActiveAnnotation(this.annotationManager.trafficSignAnnotations.length - 1,
+															AnnotationType.TRAFFIC_SIGN)
+		)
 	}
 
 	/**
@@ -1048,7 +1059,7 @@ class Annotator {
 	/**
 	 * Reset lane properties elements based on the current active lane
 	 */
-	private resetLaneProp(): void {
+	private resetLaneProp(): void  {
 		const activeAnnotation = this.annotationManager.getActiveAnnotation()
 		if (activeAnnotation === null || activeAnnotation.constructor.name !== Lane.name) {
 			return

@@ -13,6 +13,11 @@ namespace AnnotationCounter {
 	}
 }
 
+export namespace AnnotationRenderingProperties {
+	export const markerPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
+	export const markerHighlightPointGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3)
+}
+
 export abstract class Annotation {
 	id: AnnotationId	 				// A small integer, for use in the UI during one session
 	uuid: AnnotationUuid 				// A UUID, for use across distributed applications
@@ -32,7 +37,27 @@ export abstract class Annotation {
 	abstract makeInactive(): void
 	abstract setLiveMode(): void
 	abstract unsetLiveMode(): void
-	abstract highlightMarkers(markers: Array<THREE.Mesh>): void
-	abstract unhighlightMarkers(): void
 	abstract updateVisualization(): void
+
+	/**
+	 * Intersect requested markers with active markers.
+	 * Draw the markers a little larger.
+	 */
+	highlightMarkers(markers: Array<THREE.Mesh>): void {
+		const ids: Array<number> = markers.map(m => m.id)
+		this.markers.forEach(marker => {
+			ids.filter(id => id === marker.id).forEach(() => {
+				marker.geometry = AnnotationRenderingProperties.markerHighlightPointGeometry
+			})
+		})
+	}
+
+	/**
+	 * Draw all markers at normal size.
+	 */
+	unhighlightMarkers(): void {
+		this.markers.forEach(marker => {
+			marker.geometry = AnnotationRenderingProperties.markerPointGeometry
+		})
+	}
 }
