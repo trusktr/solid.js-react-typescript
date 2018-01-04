@@ -23,13 +23,11 @@ export class SuperTile extends UtmInterface {
 	private tiles: UtmTile[]
 	private rawPositions: Array<number>
 	private rawColors: Array<number>
-	private pointStepSize: number
 
 	constructor(
 		index: TileIndex,
 		coordinateFrame: CoordinateFrameType,
 		utmParent: UtmInterface,
-		pointStepSize: number
 	) {
 		super()
 		this.hasPointCloud = false
@@ -49,7 +47,6 @@ export class SuperTile extends UtmInterface {
 		this.tiles = []
 		this.rawPositions = []
 		this.rawColors = []
-		this.pointStepSize = pointStepSize
 	}
 
 	// SuperTile doesn't have to be filled densely with tiles. Add tiles only if they are not empty.
@@ -66,8 +63,9 @@ export class SuperTile extends UtmInterface {
 		if (this.index.equals(tile.superTileIndex(this.index.scale))) {
 			this.tiles.push(tile)
 			return true
-		} else
+		} else {
 			return false
+		}
 	}
 
 	// The point cloud loads once. Call addTile() first.
@@ -81,9 +79,9 @@ export class SuperTile extends UtmInterface {
 				results.forEach(result => {
 					this.rawPositions = this.rawPositions.concat(result[0])
 					this.rawColors = this.rawColors.concat(result[1])
+					this.pointCount += result[2]
 				})
 				this.hasPointCloud = true
-				this.pointCount = this.rawPositions.length / this.pointStepSize
 				return true
 			})
 	}

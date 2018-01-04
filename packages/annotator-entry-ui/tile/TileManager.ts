@@ -188,7 +188,7 @@ export class TileManager extends UtmInterface {
 	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
 		const key = utmIndex.toString()
 		if (!this.superTiles.has(key))
-			this.superTiles = this.superTiles.set(key, new SuperTile(utmIndex, coordinateFrame, this, threeDStepSize))
+			this.superTiles = this.superTiles.set(key, new SuperTile(utmIndex, coordinateFrame, this))
 		return this.superTiles.get(key)
 	}
 
@@ -266,18 +266,23 @@ export class TileManager extends UtmInterface {
 	}
 
 	// Get data from a file. Prepare it to instantiate a UtmTile.
-	private pointCloudFileLoader(filename: string, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[]]> {
-		return (): Promise<[number[], number[]]> =>
+	// Returns:
+	//  - array of raw position data
+	//  - array of raw color data
+	//  - count of points
+	private pointCloudFileLoader(filename: string, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[], number]> {
+		return (): Promise<[number[], number[], number]> =>
 			loadTile(filename)
 				.then(msg => {
 					if (!msg.points || msg.points.length === 0) {
-						return [[], []] as [number[], number[]]
+						return [[], [], 0] as [number[], number[], number]
 					} else if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
 						throw Error('checkCoordinateSystem failed on: ' + filename)
 					} else {
 						const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.samplingStep)
 						const positions = this.rawDataToPositions(sampledPoints, coordinateFrame)
-						return [positions, sampledColors] as [number[], number[]]
+						const pointCount = positions.length / threeDStepSize
+						return [positions, sampledColors, pointCount] as [number[], number[], number]
 					}
 				})
 	}
