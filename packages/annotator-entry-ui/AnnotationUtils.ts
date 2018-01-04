@@ -683,6 +683,24 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
+		// Deactivate current active annotation
+		if (this.activeAnnotationIndex >= 0 ) {
+			switch (this.activeAnnotationType) {
+				case AnnotationType.LANE:
+					this.laneAnnotations[this.activeAnnotationIndex].makeInactive()
+					break
+				case AnnotationType.CONNECTION:
+					this.connectionAnnotations[this.activeAnnotationIndex].makeInactive()
+					break
+				case AnnotationType.TRAFFIC_SIGN:
+					this.trafficSignAnnotations[this.activeAnnotationIndex].makeInactive()
+					break
+				default:
+					log.warn('Unrecognized annotation type.')
+			}
+		}
+
+		// Set new active annotation
 		switch (annotationType) {
 			case AnnotationType.LANE:
 				if (annotationIndex >= this.laneAnnotations.length) {
@@ -696,6 +714,7 @@ export class AnnotationManager extends UtmInterface {
 				if (annotationIndex >= this.trafficSignAnnotations.length) {
 					return false
 				}
+
 				this.trafficSignAnnotations[annotationIndex].makeActive()
 				this.activeMarkers = this.trafficSignAnnotations[annotationIndex].markers
 				break
@@ -867,10 +886,13 @@ export class AnnotationManager extends UtmInterface {
 	 * inactive.
 	 */
 	addConnectedLaneAnnotation(scene: THREE.Scene, neighborLocation: NeighborLocation, neighborDirection: NeighborDirection): boolean {
-		if (this.isLiveMode) return false
-
-		if (this.activeAnnotationIndex < 0) {
+		if (this.isLaneAnnotationActive() === false) {
 			log.info("Can't add connected lane. No annotation is active.")
+			return false
+		}
+
+		if (this.activeMarkers.length < 4) {
+			log.warn("Current active lane doesn't have an area. Can't add neighbor")
 			return false
 		}
 
@@ -1248,13 +1270,9 @@ export class AnnotationManager extends UtmInterface {
 	 * the last four points of the current active annotation.
 	 */
 	private addFrontConnection(scene: THREE.Scene): boolean {
+
 		this.addLaneAnnotation(scene)
 		const newAnnotationIndex = this.laneAnnotations.length - 1
-
-		if (this.activeMarkers.length < 4) {
-			log.warn("Current active lane doesn't have an area. Can't add neighbor")
-			return false
-		}
 
 		const lastMarkerIndex = this.activeMarkers.length - 1
 		const direction1 = new THREE.Vector3()
