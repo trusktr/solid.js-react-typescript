@@ -139,12 +139,28 @@ export class AnnotationManager extends UtmInterface {
 		return mesh.geometry.boundingBox
 	}
 
-	addTrafficSignAnnotation(scene: THREE.Scene): THREE.Box3 | null {
-		this.trafficSignAnnotations.push(new TrafficSign())
+	addTrafficSignAnnotation(scene: THREE.Scene, obj?: TrafficSignInterface): THREE.Box3 | null {
+		if (obj) {
+			this.trafficSignAnnotations.push( new TrafficSign(obj) )
+		} else {
+			this.trafficSignAnnotations.push( new TrafficSign() )
+		}
+
 		const newAnnotationIndex = this.trafficSignAnnotations.length - 1
 		const mesh = this.trafficSignAnnotations[newAnnotationIndex].trafficSignMesh
 		this.annotationMeshes.push(mesh)
 		scene.add(this.trafficSignAnnotations[newAnnotationIndex].renderingObject)
+		mesh.geometry.computeBoundingBox()
+
+		return mesh.geometry.boundingBox
+	}
+
+	addConnectionAnnotation(scene: THREE.Scene, obj: ConnectionInterface): THREE.Box3 | null {
+		this.connectionAnnotations.push( new Connection(obj) )
+		const newAnnotationIndex = this.connectionAnnotations.length - 1
+		const mesh = this.connectionAnnotations[newAnnotationIndex].connectionMesh
+		this.annotationMeshes.push(mesh)
+		scene.add(this.connectionAnnotations[newAnnotationIndex].renderingObject)
 		mesh.geometry.computeBoundingBox()
 
 		return mesh.geometry.boundingBox
@@ -964,8 +980,16 @@ export class AnnotationManager extends UtmInterface {
 					self.convertCoordinates(data)
 					let boundingBox = new THREE.Box3()
 					// Each element is an annotation
-					data['annotations'].forEach((element: {}) => {
+					data['laneAnnotations'].forEach((element: {}) => {
 						const box = self.addLaneAnnotation(scene, element)
+						if (box) boundingBox = boundingBox.union(box)
+					})
+					data['connectionAnnotations'].forEach((element: {}) => {
+						const box = self.addConnectionAnnotation(scene, element)
+						if (box) boundingBox = boundingBox.union(box)
+					})
+					data['trafficSignAnnotations'].forEach((element: {}) => {
+						const box = self.addTrafficSignAnnotation(scene, element)
 						if (box) boundingBox = boundingBox.union(box)
 					})
 					self.metadataState.clean()
@@ -1116,7 +1140,8 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		// Create new connection
-		const connection = new Connection(laneFrom.uuid, laneTo.uuid)
+		const connection = new Connection()
+		connection.setConnectionEndPoints(laneFrom.uuid, laneTo.uuid)
 		this.connectionAnnotations.push(connection)
 
 		// Glue neighbors
