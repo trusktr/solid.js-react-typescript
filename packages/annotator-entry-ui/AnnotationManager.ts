@@ -214,6 +214,14 @@ export class AnnotationManager extends UtmInterface {
 		}
 	}
 
+	getActiveLaneAnnotation(): Lane | null {
+		const activeAnnotation = this.getActiveAnnotation()
+		if (activeAnnotation === null || activeAnnotation.constructor.name !== Lane.name)
+			return null
+		else
+			return activeAnnotation as Lane
+	}
+
 	/**
 	 * Get all existing ids
 	 */
@@ -921,9 +929,9 @@ export class AnnotationManager extends UtmInterface {
 	 * Sort order is not specified.
 	 */
 	neighboringLaneMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {
-		const active = this.getActiveAnnotation()
+		const active = this.getActiveLaneAnnotation()
 
-		if (active === null || active.constructor.name !== Lane.name) {
+		if (active === null) {
 			return []
 		}
 
@@ -980,15 +988,15 @@ export class AnnotationManager extends UtmInterface {
 					self.convertCoordinates(data)
 					let boundingBox = new THREE.Box3()
 					// Each element is an annotation
-					data['laneAnnotations'].forEach((element: {}) => {
+					data['laneAnnotations'].forEach((element: LaneInterface) => {
 						const box = self.addLaneAnnotation(scene, element)
 						if (box) boundingBox = boundingBox.union(box)
 					})
-					data['connectionAnnotations'].forEach((element: {}) => {
+					data['connectionAnnotations'].forEach((element: ConnectionInterface) => {
 						const box = self.addConnectionAnnotation(scene, element)
 						if (box) boundingBox = boundingBox.union(box)
 					})
-					data['trafficSignAnnotations'].forEach((element: {}) => {
+					data['trafficSignAnnotations'].forEach((element: TrafficSignInterface) => {
 						const box = self.addTrafficSignAnnotation(scene, element)
 						if (box) boundingBox = boundingBox.union(box)
 					})

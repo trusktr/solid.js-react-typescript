@@ -8,7 +8,8 @@ import * as TypeLogger from 'typelogger'
 import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {AnnotationUuid} from "./AnnotationBase";
 
-TypeLogger.setLoggerOutput(console as {})
+// tslint:disable-next-line:no-any
+TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
 export enum TrafficSignType {

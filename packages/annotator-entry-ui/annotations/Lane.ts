@@ -265,8 +265,8 @@ export class Lane extends Annotation {
 	}
 
 	setLiveMode(): void {
-		if (parseInt(this.exitType as {}, 10) === LaneEntryExitType.STOP) {
-			if (parseInt(this.entryType as {}, 10) === LaneEntryExitType.STOP) {
+		if (parseInt(this.exitType as any, 10) === LaneEntryExitType.STOP) {
+			if (parseInt(this.entryType as any, 10) === LaneEntryExitType.STOP) {
 				this.renderingProperties.liveModeMaterial.color.setHex(0xff0000)
 			} else {
 				this.renderingProperties.liveModeMaterial.color.setHex(0x00ff00)
@@ -546,7 +546,7 @@ export class Lane extends Annotation {
 		}
 	}
 
-	private updateLaneWidth(): void {
+	updateLaneWidth(): void {
 		const laneWidth = $('#lp_width_value')
 		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")
 	}

@@ -13,7 +13,7 @@ import {SuperTile} from "./tile/SuperTile"
 import {AxesHelper} from "./controls/AxesHelper"
 import {AnnotationManager, AnnotationType, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {Lane, NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
+import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
@@ -1131,7 +1131,7 @@ class Annotator {
 
 		const lcLeft = $('#lp_select_left')
 		lcLeft.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveAnnotation()
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
 			log.info("Adding left side type: " + lcLeft.children("option").filter(":selected").text())
@@ -1140,7 +1140,7 @@ class Annotator {
 
 		const lcRight = $('#lp_select_right')
 		lcRight.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveAnnotation()
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
 			log.info("Adding right side type: " + lcRight.children("option").filter(":selected").text())
@@ -1149,7 +1149,7 @@ class Annotator {
 
 		const lcEntry = $('#lp_select_entry')
 		lcEntry.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveAnnotation()
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
 			log.info("Adding entry type: " + lcEntry.children("option").filter(":selected").text())
@@ -1158,7 +1158,7 @@ class Annotator {
 
 		const lcExit = $('#lp_select_exit')
 		lcExit.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveAnnotation()
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
 			log.info("Adding exit type: " + lcExit.children("option").filter(":selected").text())
@@ -1203,8 +1203,8 @@ class Annotator {
 	 * Reset lane properties elements based on the current active lane
 	 */
 	private resetLaneProp(): void  {
-		const activeAnnotation = this.annotationManager.getActiveAnnotation()
-		if (activeAnnotation === null || activeAnnotation.constructor.name !== Lane.name) {
+		const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+		if (activeAnnotation === null) {
 			return
 		}
 
