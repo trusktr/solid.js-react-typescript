@@ -78,15 +78,24 @@ export class TrafficSign extends Annotation {
 		}
 
 		const newContourGeometry = new THREE.Geometry();
+		const contourMean = new THREE.Vector3(0, 0, 0)
+
 		this.markers.forEach((marker) => {
 			newContourGeometry.vertices.push(marker.position)
+			contourMean.add(marker.position)
 		})
 
-		// Push the first vertex again to close the loop
-		if (this.isComplete) {
-			newContourGeometry.vertices.push(this.markers[0].position)
+		contourMean.divideScalar(this.markers.length)
+
+		if (this.isComplete === false) {
+			newContourGeometry.computeLineDistances()
+			this.trafficSignContour.geometry = newContourGeometry
+			this.trafficSignContour.geometry.verticesNeedUpdate = true
+			return
 		}
 
+		// Push the first vertex again to close the loop
+		newContourGeometry.vertices.push(this.markers[0].position)
 		newContourGeometry.computeLineDistances()
 		this.trafficSignContour.geometry = newContourGeometry
 		this.trafficSignContour.geometry.verticesNeedUpdate = true
@@ -96,18 +105,14 @@ export class TrafficSign extends Annotation {
 		// We need at least 3 vertices to generate a mesh
 		if (newContourGeometry.vertices.length > 2) {
 			// Add all vertices
-			newContourGeometry.vertices.forEach((vertex) => {
-				newMeshGeometry.vertices.push(vertex)
+			newContourGeometry.vertices.forEach( (v) => {
+				newMeshGeometry.vertices.push(v.clone())
 			})
+			newMeshGeometry.vertices.push( contourMean )
+			const centerIndex = newMeshGeometry.vertices.length - 1
 
-			// Add faces
-			for (let i = 0; i < newContourGeometry.vertices.length - 2; i++) {
-				if (i % 2 === 0) {
-					newMeshGeometry.faces.push(new THREE.Face3(i + 2, i + 1, i))
-				} else {
-					newMeshGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))
-				}
-
+			for (let i = 0; i < newMeshGeometry.vertices.length - 2; ++i) {
+				newMeshGeometry.faces.push(new THREE.Face3(centerIndex, i, i + 1))
 			}
 		}
 		newMeshGeometry.computeFaceNormals()

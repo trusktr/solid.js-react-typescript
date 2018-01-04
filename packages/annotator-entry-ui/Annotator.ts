@@ -8,10 +8,9 @@ import * as $ from 'jquery'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {CoordinateFrameType, TileManager}  from 'annotator-entry-ui/TileUtils'
-import * as AnnotationUtils from 'annotator-entry-ui/AnnotationUtils'
+import {AnnotationManager, AnnotationType, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId, AnnotationUuid} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {Lane, NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
-import {AnnotationType, OutputFormat} from "annotator-entry-ui/AnnotationUtils"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
@@ -76,7 +75,7 @@ class Annotator {
 	orbitControls: THREE.OrbitControls
 	transformControls: any
 	hideTransformControlTimer: NodeJS.Timer
-	annotationManager: AnnotationUtils.AnnotationManager
+	annotationManager: AnnotationManager
 	isAddMarkerKeyPressed: boolean
 	isAddTrafficSignMarkerKeyPressed: boolean
 	isLastTrafficSignMarkerKeyPressed: boolean
@@ -165,7 +164,7 @@ class Annotator {
 
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
-		this.annotationManager = new AnnotationUtils.AnnotationManager()
+		this.annotationManager = new AnnotationManager()
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
@@ -423,8 +422,7 @@ class Annotator {
 	}
 
 	private addTrafficSignAnnotationMarker = (event: MouseEvent): void => {
-		if (this.isAddTrafficSignMarkerKeyPressed === false &&
-		    this.isLastTrafficSignMarkerKeyPressed === false) {
+		if (this.isAddTrafficSignMarkerKeyPressed === false && this.isLastTrafficSignMarkerKeyPressed === false) {
 			return
 		}
 
@@ -992,7 +990,7 @@ class Annotator {
 			if (activeAnnotation === null)
 				return
 			log.info("Adding left side type: " + lcLeft.children("option").filter(":selected").text())
-			activeAnnotation.leftSideType = lcLeft.val()
+			activeAnnotation.leftLineType = lcLeft.val()
 		})
 
 		const lcRight = $('#lp_select_right')
@@ -1001,7 +999,7 @@ class Annotator {
 			if (activeAnnotation === null)
 				return
 			log.info("Adding right side type: " + lcRight.children("option").filter(":selected").text())
-			activeAnnotation.rightSideType = lcRight.val()
+			activeAnnotation.rightLineType = lcRight.val()
 		})
 
 		const lcEntry = $('#lp_select_entry')
