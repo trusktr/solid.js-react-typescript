@@ -1,3 +1,5 @@
+import * as AsyncFile from "async-file";
+
 /**
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
@@ -7,7 +9,7 @@ const config = require('../config')
 import * as $ from 'jquery'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import {CoordinateFrameType} from "./geometry/CoordinateFrame"
+import {convertToStandardCoordinateFrame, CoordinateFrameType} from "./geometry/CoordinateFrame"
 import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {AxesHelper} from "./controls/AxesHelper"
@@ -58,6 +60,13 @@ interface AnnotatorSettings {
 	drawBoundingBox: boolean
 }
 
+interface FlyThroughSettings {
+	startPoseIndex: number
+	endPoseIndex: number
+	currentPoseIndex: number
+	fps: number
+}
+
 /**
  * The Annotator class is in charge of rendering the 3d Scene that includes the point clouds
  * and the annotations. It also handles the mouse and keyboard events needed to select
@@ -90,9 +99,11 @@ class Annotator {
 	private isMouseButtonPressed: boolean
 	private numberKeyPressed: number | null
 	private isLiveMode: boolean
+	private flythroughTrajectory: Models.TrajectoryMessage
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
+	private flythroughSettings: FlyThroughSettings
 	private gui: any
 
 	constructor() {
@@ -123,6 +134,13 @@ class Annotator {
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
 
+		this.flythroughTrajectory = []
+		this.flythroughSettings = {
+			startPoseIndex: 0,
+			endPoseIndex: 10000,
+			currentPoseIndex: 0,
+			fps: 10
+		}
 		this.isLiveMode = false
 
 		// Initialize socket for use when "live mode" operation is on
@@ -234,7 +252,18 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', () => {this.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.isMouseButtonPressed = true})
 
+		// Live mode data
 		this.loadCarModel()
+
+		const trajectoryPath = config.get('live_mode.trajectory_path')
+		if (trajectoryPath) {
+			this.loadFlythroughTrajectory(trajectoryPath).then( msg => {
+				this.flythroughTrajectory = msg
+				if (this.flythroughSettings.endPoseIndex >= this.flythroughTrajectory.states.length) {
+					this.flythroughSettings.endPoseIndex = this.flythroughTrajectory.states.length
+				}
+			})
+		}
 
 		// Bind events
 		this.bind()
@@ -277,6 +306,42 @@ class Annotator {
 		if (this.stats) this.stats.update()
 		this.orbitControls.update()
 		this.transformControls.update()
+	}
+
+	private loadFlythroughTrajectory(filename: string): Promise<Models.TrajectoryMessage>  {
+		 return AsyncFile.readFile(filename)
+			.then(buffer => Models.TrajectoryMessage.decode(buffer))
+			.then(msg => {
+				log.info('Number of trajectory poses: ' + msg.states.length)
+				return msg
+			})
+	}
+
+	private runFlythrough(): void {
+		if (!this.isLiveMode) {
+			return
+		}
+
+		setTimeout(() => {
+			this.runFlythrough()
+		}, 1000 / this.flythroughSettings.fps)
+
+		if (this.flythroughSettings.currentPoseIndex >= this.flythroughSettings.endPoseIndex) {
+			this.flythroughSettings.currentPoseIndex = this.flythroughSettings.startPoseIndex
+		}
+		const state = this.flythroughTrajectory.states[this.flythroughSettings.currentPoseIndex]
+
+		// Move the car and the camera
+		const inputPosition = new THREE.Vector3(state.pose.x, state.pose.y, state.pose.z)
+		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.LIDAR)
+		const position = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+		const rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
+		rotation.normalize()
+
+		this.updateCarPose(position, rotation)
+		this.updateCameraPose()
+
+		this.flythroughSettings.currentPoseIndex++
 	}
 
 	/**
@@ -1594,6 +1659,9 @@ class Annotator {
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering / 2
+
+		this.flythroughSettings.currentPoseIndex = this.flythroughSettings.startPoseIndex
+		this.runFlythrough()
 		return this.isLiveMode
 	}
 
