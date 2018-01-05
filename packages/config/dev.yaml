@@ -30,6 +30,9 @@ output.annotations.kml.path: ./data/path.kml
 output.annotations.autosave.directory.path: ./data/autosave
 output.annotations.autosave.interval.seconds: 300
 
+# Fly-through trajectory file
+live_mode.trajectory_path: 
+
 # persist trajectories
 output.trajectory.csv.path: ./data/trajectory.csv
 

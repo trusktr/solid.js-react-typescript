@@ -33,3 +33,18 @@ export function convertToStandardCoordinateFrame(point: THREE.Vector3, pointCoor
 			throw Error(`unknown coordinate frame '${pointCoordinateFrame}'`)
 	}
 }
+
+export function cvtQuaternionToStandardCoordinateFrame(quaternion: THREE.Quaternion, inputCoordinateFrame: CoordinateFrameType): THREE.Quaternion {
+	switch (inputCoordinateFrame) {
+		case CoordinateFrameType.CAMERA:
+			return new THREE.Quaternion(quaternion.z, quaternion.x, -quaternion.y, quaternion.w)
+		case CoordinateFrameType.INERTIAL:
+			return new THREE.Quaternion(quaternion.y, quaternion.x, -quaternion.z, quaternion.w)
+		case CoordinateFrameType.LIDAR:
+			return new THREE.Quaternion(quaternion.y, quaternion.x, quaternion.z, quaternion.w)
+		case CoordinateFrameType.STANDARD:
+			return quaternion
+		default:
+			throw Error(`unknown coordinate frame '${inputCoordinateFrame}'`)
+	}
+}

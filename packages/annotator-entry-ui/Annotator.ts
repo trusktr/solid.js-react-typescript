@@ -9,7 +9,10 @@ const config = require('../config')
 import * as $ from 'jquery'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import {convertToStandardCoordinateFrame, CoordinateFrameType} from "./geometry/CoordinateFrame"
+import {
+	convertToStandardCoordinateFrame, CoordinateFrameType,
+	cvtQuaternionToStandardCoordinateFrame
+} from "./geometry/CoordinateFrame"
 import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {AxesHelper} from "./controls/AxesHelper"
@@ -28,7 +31,7 @@ import {Socket} from 'zmq'
 
 declare global {
 	namespace THREE {
-		const OBJLoader: any
+		const OBJLoader: {}
 	}
 }
 
@@ -87,7 +90,7 @@ class Annotator {
 	private light: THREE.SpotLight
 	private stats: Stats
 	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
-	private transformControls: any // controller for translating an object within the scene
+	private transformControls: {} // controller for translating an object within the scene
 	private hideTransformControlTimer: NodeJS.Timer
 	private annotationManager: AnnotationManager
 	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
@@ -104,7 +107,7 @@ class Annotator {
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
 	private flythroughSettings: FlyThroughSettings
-	private gui: any
+	private gui: {}
 
 	constructor() {
 		this.isAddMarkerKeyPressed = false
@@ -134,7 +137,6 @@ class Annotator {
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
 
-		this.flythroughTrajectory = []
 		this.flythroughSettings = {
 			startPoseIndex: 0,
 			endPoseIndex: 10000,
@@ -222,7 +224,7 @@ class Annotator {
 		// Add panel to change the settings
 		if (config.get('startup.show_color_picker')) {
 			this.gui = new datModule.GUI()
-			this.gui.addColor(this.settings, 'background').onChange((value: any) => {
+			this.gui.addColor(this.settings, 'background').onChange((value: {}) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
 			this.gui.domElement.className = 'threeJs_gui'
@@ -334,11 +336,13 @@ class Annotator {
 		// Move the car and the camera
 		const inputPosition = new THREE.Vector3(state.pose.x, state.pose.y, state.pose.z)
 		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.LIDAR)
-		const position = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
-		const rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
-		rotation.normalize()
+		const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+		const inputRotation =  new THREE.Quaternion(state.pose.q0, state.pose.q1, state.pose.q2, state.pose.q3)
+		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.LIDAR)
+		const rotationThreeJs =  new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
+		rotationThreeJs.normalize()
 
-		this.updateCarPose(position, rotation)
+		this.updateCarPose(positionThreeJs, rotationThreeJs)
 		this.updateCameraPose()
 
 		this.flythroughSettings.currentPoseIndex++
@@ -593,7 +597,7 @@ class Annotator {
 
 		if (intersects.length > 0) {
 			const object = intersects[0].object
-			const [index, type] = this.annotationManager.checkForInactiveAnnotation(object as any)
+			const [index, type] = this.annotationManager.checkForInactiveAnnotation(object as {})
 
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
@@ -1581,9 +1585,9 @@ class Annotator {
 
 	private loadCarModel(): void {
 		const manager = new THREE.LoadingManager()
-		const loader = new (THREE as any).OBJLoader(manager)
+		const loader = new (THREE as {}).OBJLoader(manager)
 		const car = require('../annotator-assets/models/BMW_X5_4.obj')
-		loader.load(car, (object: any) => {
+		loader.load(car, (object: {}) => {
 			const boundingBox = new THREE.Box3().setFromObject(object)
 			const boxSize = boundingBox.getSize().toArray()
 			const modelLength = Math.max(...boxSize)
@@ -1591,7 +1595,6 @@ class Annotator {
 			const scaleFactor = carLength / modelLength
 			this.carModel = object
 			this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
-			this.carModel.rotateY(1.5708)
 			this.carModel.visible = false
 			this.scene.add(object)
 		})
@@ -1708,11 +1711,10 @@ class Annotator {
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
 		this.carModel.position.set(position.x, position.y, position.z)
 		this.carModel.setRotationFromQuaternion(rotation)
-		// This is because the car model is rotated 90 degrees
-		this.carModel.rotateY(-1.5708)
+		this.carModel.rotateY(-3.32)
 		// Bring the model close to the ground (approx height of the sensors)
-		const p = this.carModel.getWorldPosition()
-		this.carModel.position.set(p.x, 0, p.z)
+		//const p = this.carModel.getWorldPosition()
+		//this.carModel.position.set(p.x, 0, p.z)
 	}
 
 	private updateCameraPose(): void {
