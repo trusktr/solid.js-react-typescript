@@ -85,7 +85,7 @@ export class UtmInterface implements UtmLocalOrigin {
 	threeJsToLngLatAlt(p: THREE.Vector3): THREE.Vector3 {
 		// First change coordinate frame from THREE js to UTM
 		const utm = this.threeJsToUtm(p)
-		const lngLat = utmConverter.toLatLon(utm.x, utm.y, this.utmZoneNumber, undefined, this.utmZoneNorthernHemisphere, false) // todo strict=true
+		const lngLat = utmConverter.toLatLon(utm.x, utm.y, this.utmZoneNumber, undefined, this.utmZoneNorthernHemisphere, true)
 		return new THREE.Vector3(lngLat.longitude, lngLat.latitude, utm.z)
 	}
 }
