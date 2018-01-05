@@ -356,16 +356,22 @@ class Annotator {
 		const state = this.flythroughTrajectory.states[this.flythroughSettings.currentPoseIndex]
 
 		// Move the car and the camera
-		const inputPosition = new THREE.Vector3(state.pose.x, state.pose.y, state.pose.z)
-		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.LIDAR)
-		const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
-		const inputRotation =  new THREE.Quaternion(state.pose.q0, state.pose.q1, state.pose.q2, state.pose.q3)
-		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.LIDAR)
-		const rotationThreeJs =  new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
-		rotationThreeJs.normalize()
+		if (
+			state && state.pose
+			&& state.pose.x !== null && state.pose.y !== null && state.pose.z !== null
+			&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
+		) {
+			const inputPosition = new THREE.Vector3(state.pose.x, state.pose.y, state.pose.z)
+			const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.LIDAR)
+			const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+			const inputRotation = new THREE.Quaternion(state.pose.q0, state.pose.q1, state.pose.q2, state.pose.q3)
+			const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.LIDAR)
+			const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
+			rotationThreeJs.normalize()
 
-		this.updateCarPose(positionThreeJs, rotationThreeJs)
-		this.updateCameraPose()
+			this.updateCarPose(positionThreeJs, rotationThreeJs)
+			this.updateCameraPose()
+		}
 
 		this.flythroughSettings.currentPoseIndex++
 	}
