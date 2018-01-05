@@ -12,8 +12,10 @@ const laneConn = document.getElementById('lane_conn')
 
 // Define new elements
 ///////////////////////////////////////////////////////////////////////////////
-const lpLabelsText = ['Lane ID:', 'Lane Width', 'Type', 'Left Side:', 'Right Side:', 'Entry Type:', 'Exit Type:']
-const lpLabelsId = ['lp_id', 'lp_width', 'lp_lane_type', 'lp_left_side', 'lp_right_side', 'lp_entry', 'lp_exit']
+const lpLabelsText = ['Lane ID:', 'Lane Width', 'Type:', 'Left Line Type:', 'Left Line Color:',
+					  'Right Line Type:', 'Right Line Color', 'Entry Type:', 'Exit Type:']
+const lpLabelsId = ['lp_id', 'lp_width', 'lp_lane_type', 'lp_left_line', 'lp_left_color',
+					'lp_right_line', 'lp_right_color', 'lp_entry', 'lp_exit']
 const lpLabels: Array<HTMLElement> = []
 for (const i in lpLabelsText) {
 	if (lpLabelsText.hasOwnProperty(i)) {
@@ -25,19 +27,24 @@ for (const i in lpLabelsText) {
 	}
 }
 
-const lpSelectsId = ['lp_select_type', 'lp_select_left', 'lp_select_right', 'lp_select_entry', 'lp_select_exit']
+const lpSelectsId = ['lp_select_type', 'lp_select_left_type', 'lp_select_left_color',
+					 'lp_select_right_type', 'lp_select_right_color', 'lp_select_entry', 'lp_select_exit']
 const lpSelectsText = [
-	['unknown', 'ALL_VEHICLES', 'MOTOR_VEHICLES', 'CAR_ONLY', 'TRUCK_ONLY', 'BUS_ONLY', 'BIKE_ONLY', 'PEDESTRIAN_ONLY', 'PARKING', 'CROSSWALK', 'OTHER'],
-	['unknown', '––––––––––––', '–  –  –  –  –  –  –'],
-	['unknown', '––––––––––––', '–  –  –  –  –  –  –'],
-	['unknown', 'continue ––»»»––', 'stop ––||––'],
-	['unknown', 'continue ––»»»––', 'stop ––||––']]
+	['UNKNOWN', 'ALL_VEHICLES', 'MOTOR_VEHICLES', 'CAR_ONLY', 'TRUCK_ONLY', 'BUS_ONLY', 'BIKE_ONLY', 'PEDESTRIAN_ONLY', 'PARKING', 'CROSSWALK', 'OTHER'],
+	['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –'],
+	['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
+	['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –'],
+	['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
+	['UNKNOWN', 'continue ––»»»––', 'stop ––||––'],
+	['UNKNOWN', 'continue ––»»»––', 'stop ––||––']]
 const lpSelectValue = [
 	[LaneType.UNKNOWN.toString(), LaneType.ALL_VEHICLES.toString(), LaneType.MOTOR_VEHICLES.toString(), LaneType.CAR_ONLY.toString(),
 	LaneType.TRUCK_ONLY.toString(), LaneType.BUS_ONLY.toString(), LaneType.BIKE_ONLY.toString(), LaneType.PEDESTRIAN_ONLY.toString(),
 	LaneType.PARKING.toString(), LaneType.CROSSWALK.toString(), LaneType.OTHER.toString()],
 	[LaneLineType.UNKNOWN.toString(), LaneLineType.SOLID.toString(), LaneLineType.DASHED.toString()],
+	[LaneLineColor.UNKNOWN.toString(), LaneLineColor.WHITE.toString(), LaneLineColor.YELLOW, LaneLineColor.RED, LaneLineColor.BLUE, LaneLineColor.BLUE],
 	[LaneLineType.UNKNOWN.toString(), LaneLineType.SOLID.toString(), LaneLineType.DASHED.toString()],
+	[LaneLineColor.UNKNOWN.toString(), LaneLineColor.WHITE.toString(), LaneLineColor.YELLOW, LaneLineColor.RED, LaneLineColor.BLUE, LaneLineColor.BLUE],
 	[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()],
 	[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()]]
 

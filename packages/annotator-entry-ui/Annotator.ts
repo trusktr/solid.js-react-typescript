@@ -948,7 +948,181 @@ class Annotator {
 	/**
 	 * Bind functions events to interface elements
 	 */
+	private bindLanePropertiesPanel(): void {
+		const lcType = $('#lp_select_type')
+		lcType.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding lane type: " + lcType.children("option").filter(":selected").text())
+			activeAnnotation.type = +lcType.val()
+		})
+
+		const lcLeftType = $('#lp_select_left_type')
+		lcLeftType.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding left side type: " + lcLeftType.children("option").filter(":selected").text())
+			activeAnnotation.leftLineType = +lcLeftType.val()
+		})
+
+		const lcLeftColor = $('#lp_select_left_color')
+		lcLeftColor.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding left side type: " + lcLeftColor.children("option").filter(":selected").text())
+			activeAnnotation.leftLineColor = +lcLeftColor.val()
+		})
+
+		const lcRightType = $('#lp_select_right_type')
+		lcRightType.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding right side type: " + lcRightType.children("option").filter(":selected").text())
+			activeAnnotation.rightLineType = +lcRightType.val()
+		})
+
+		const lcRightColor = $('#lp_select_right_color')
+		lcRightColor.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding left side type: " + lcRightColor.children("option").filter(":selected").text())
+			activeAnnotation.rightLineColor = +lcRightColor.val()
+		})
+
+		const lcEntry = $('#lp_select_entry')
+		lcEntry.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding entry type: " + lcEntry.children("option").filter(":selected").text())
+			activeAnnotation.entryType = lcEntry.val()
+		})
+
+		const lcExit = $('#lp_select_exit')
+		lcExit.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding exit type: " + lcExit.children("option").filter(":selected").text())
+			activeAnnotation.exitType = lcExit.val()
+		})
+	}
+
+	private bindLaneNeighborsPanel(): void {
+		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+		if (lpAddLeftOpposite)
+			lpAddLeftOpposite.addEventListener('click', _ => {
+				this.addLeftReverse()
+			})
+		else
+			log.warn('missing element lp_add_left_opposite')
+
+		const lpAddLeftSame = document.getElementById('lp_add_left_same')
+		if (lpAddLeftSame)
+			lpAddLeftSame.addEventListener('click', _ => {
+				this.addLeftSame()
+			})
+		else
+			log.warn('missing element lp_add_left_same')
+
+		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+		if (lpAddRightOpposite)
+			lpAddRightOpposite.addEventListener('click', _ => {
+				this.addRightReverse()
+			})
+		else
+			log.warn('missing element lp_add_right_opposite')
+
+		const lpAddRightSame = document.getElementById('lp_add_right_same')
+		if (lpAddRightSame)
+			lpAddRightSame.addEventListener('click', _ => {
+				this.addRightSame()
+			})
+		else
+			log.warn('missing element lp_add_right_same')
+
+		const lpAddFront = document.getElementById('lp_add_forward')
+		if (lpAddFront)
+			lpAddFront.addEventListener('click', _ => {
+				this.addFront()
+			})
+		else
+			log.warn('missing element lp_add_forward')
+	}
+
+	private bindRelationsPanel(): void {
+		const lcSelectFrom = document.getElementById('lc_select_from')
+		if (lcSelectFrom)
+			lcSelectFrom.addEventListener('mousedown', _ => {
+				// Get ids
+				const ids = this.annotationManager.getValidIds()
+				// Add ids
+				const selectbox = $('#lc_select_from')
+				selectbox.empty()
+				let list = ''
+				for (let j = 0; j < ids.length; j++) {
+					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
+				}
+				selectbox.html(list)
+			})
+		else
+			log.warn('missing element lc_select_from')
+
+		const lcSelectTo = document.getElementById('lc_select_to')
+		if (lcSelectTo)
+			lcSelectTo.addEventListener('mousedown', _ => {
+				// Get ids
+				const ids = this.annotationManager.getValidIds()
+				// Add ids
+				const selectbox = $('#lc_select_to')
+				selectbox.empty()
+				let list = ''
+				for (let j = 0; j < ids.length; j++) {
+					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
+				}
+				selectbox.html(list)
+			})
+		else
+			log.warn('missing element lc_select_to')
+
+		const lcAdd = document.getElementById('lc_add')
+		if (lcAdd)
+			lcAdd.addEventListener('click', _ => {
+				const lcTo: AnnotationId = Number($('#lc_select_to').val())
+				const lcFrom: AnnotationId = Number($('#lc_select_from').val())
+				const lcRelation = $('#lc_select_relation').val()
+
+				if (lcTo === null || lcFrom === null) {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
+						"You have to select both lanes to be connected.")
+					return
+				}
+
+				if (lcTo === lcFrom) {
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
+						"You can't connect a lane to itself. The 2 ids should be unique.")
+					return
+				}
+
+				log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
+				if (this.annotationManager.addRelation(this.scene, lcFrom, lcTo, lcRelation)) {
+					this.resetLaneProp()
+				}
+			})
+		else
+			log.warn('missing element lc_add')
+	}
+
 	private bind(): void {
+		this.bindLanePropertiesPanel()
+		this.bindLaneNeighborsPanel()
+		this.bindRelationsPanel()
+
 		const menuButton = document.getElementById('menu_control_btn')
 		if (menuButton)
 			menuButton.addEventListener('click', _ => {
@@ -1027,152 +1201,6 @@ class Annotator {
 			})
 		else
 			log.warn('missing element tools_export_kml')
-
-		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
-		if (lpAddLeftOpposite)
-			lpAddLeftOpposite.addEventListener('click', _ => {
-				this.addLeftReverse()
-			})
-		else
-			log.warn('missing element lp_add_left_opposite')
-
-		const lpAddLeftSame = document.getElementById('lp_add_left_same')
-		if (lpAddLeftSame)
-			lpAddLeftSame.addEventListener('click', _ => {
-				this.addLeftSame()
-			})
-		else
-			log.warn('missing element lp_add_left_same')
-
-		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
-		if (lpAddRightOpposite)
-			lpAddRightOpposite.addEventListener('click', _ => {
-				this.addRightReverse()
-			})
-		else
-			log.warn('missing element lp_add_right_opposite')
-
-		const lpAddRightSame = document.getElementById('lp_add_right_same')
-		if (lpAddRightSame)
-			lpAddRightSame.addEventListener('click', _ => {
-				this.addRightSame()
-			})
-		else
-			log.warn('missing element lp_add_right_same')
-
-		const lpAddFront = document.getElementById('lp_add_forward')
-		if (lpAddFront)
-			lpAddFront.addEventListener('click', _ => {
-				this.addFront()
-			})
-		else
-			log.warn('missing element lp_add_forward')
-
-		const lcSelectFrom = document.getElementById('lc_select_from')
-		if (lcSelectFrom)
-			lcSelectFrom.addEventListener('mousedown', _ => {
-				// Get ids
-				const ids = this.annotationManager.getValidIds()
-				// Add ids
-				const selectbox = $('#lc_select_from')
-				selectbox.empty()
-				let list = ''
-				for (let j = 0; j < ids.length; j++) {
-					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-				}
-				selectbox.html(list)
-			})
-		else
-			log.warn('missing element lc_select_from')
-
-		const lcSelectTo = document.getElementById('lc_select_to')
-		if (lcSelectTo)
-			lcSelectTo.addEventListener('mousedown', _ => {
-				// Get ids
-				const ids = this.annotationManager.getValidIds()
-				// Add ids
-				const selectbox = $('#lc_select_to')
-				selectbox.empty()
-				let list = ''
-				for (let j = 0; j < ids.length; j++) {
-					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-				}
-				selectbox.html(list)
-			})
-		else
-			log.warn('missing element lc_select_to')
-
-		const lcAdd = document.getElementById('lc_add')
-		if (lcAdd)
-			lcAdd.addEventListener('click', _ => {
-				const lcTo: AnnotationId = Number($('#lc_select_to').val())
-				const lcFrom: AnnotationId = Number($('#lc_select_from').val())
-				const lcRelation = $('#lc_select_relation').val()
-
-				if (lcTo === null || lcFrom === null) {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-						"You have to select both lanes to be connected.")
-					return
-				}
-
-				if (lcTo === lcFrom) {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-						"You can't connect a lane to itself. The 2 ids should be unique.")
-					return
-				}
-
-				log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
-				if (this.annotationManager.addRelation(this.scene, lcFrom, lcTo, lcRelation)) {
-					this.resetLaneProp()
-				}
-			})
-		else
-			log.warn('missing element lc_add')
-
-		const lcType = $('#lp_select_type')
-		lcType.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-			if (activeAnnotation === null)
-				return
-			log.info("Adding lane type: " + lcType.children("option").filter(":selected").text())
-			activeAnnotation.type = +lcType.val()
-		})
-
-		const lcLeft = $('#lp_select_left')
-		lcLeft.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-			if (activeAnnotation === null)
-				return
-			log.info("Adding left side type: " + lcLeft.children("option").filter(":selected").text())
-			activeAnnotation.leftLineType = +lcLeft.val()
-		})
-
-		const lcRight = $('#lp_select_right')
-		lcRight.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-			if (activeAnnotation === null)
-				return
-			log.info("Adding right side type: " + lcRight.children("option").filter(":selected").text())
-			activeAnnotation.rightLineType = +lcRight.val()
-		})
-
-		const lcEntry = $('#lp_select_entry')
-		lcEntry.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-			if (activeAnnotation === null)
-				return
-			log.info("Adding entry type: " + lcEntry.children("option").filter(":selected").text())
-			activeAnnotation.entryType = lcEntry.val()
-		})
-
-		const lcExit = $('#lp_select_exit')
-		lcExit.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-			if (activeAnnotation === null)
-				return
-			log.info("Adding exit type: " + lcExit.children("option").filter(":selected").text())
-			activeAnnotation.exitType = lcExit.val()
-		})
 
 		const trAdd = $('#tr_add')
 		trAdd.on('click', _ => {
@@ -1260,13 +1288,21 @@ class Annotator {
 		lpSelectType.removeAttr('disabled')
 		lpSelectType.val(activeAnnotation.type.toString())
 
-		const lpSelectLeft = $('#lp_select_left')
+		const lpSelectLeft = $('#lp_select_left_type')
 		lpSelectLeft.removeAttr('disabled')
 		lpSelectLeft.val(activeAnnotation.leftLineType.toString())
 
-		const lpSelectRight = $('#lp_select_right')
+		const lpSelectLeftColor = $('#lp_select_left_color')
+		lpSelectLeftColor.removeAttr('disabled')
+		lpSelectLeftColor.val(activeAnnotation.leftLineColor.toString())
+
+		const lpSelectRight = $('#lp_select_right_type')
 		lpSelectRight.removeAttr('disabled')
 		lpSelectRight.val(activeAnnotation.rightLineType.toString())
+
+		const lpSelectRightColor = $('#lp_select_right_color')
+		lpSelectRightColor.removeAttr('disabled')
+		lpSelectRightColor.val(activeAnnotation.rightLineColor.toString())
 
 		const lpSelectEntry = $('#lp_select_entry')
 		lpSelectEntry.removeAttr('disabled')
