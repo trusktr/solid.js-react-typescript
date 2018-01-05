@@ -1129,13 +1129,22 @@ class Annotator {
 		else
 			log.warn('missing element lc_add')
 
+		const lcType = $('#lp_select_type')
+		lcType.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding lane type: " + lcType.children("option").filter(":selected").text())
+			activeAnnotation.type = +lcType.val()
+		})
+
 		const lcLeft = $('#lp_select_left')
 		lcLeft.on('change', _ => {
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
 			log.info("Adding left side type: " + lcLeft.children("option").filter(":selected").text())
-			activeAnnotation.leftLineType = lcLeft.val()
+			activeAnnotation.leftLineType = +lcLeft.val()
 		})
 
 		const lcRight = $('#lp_select_right')
@@ -1144,7 +1153,7 @@ class Annotator {
 			if (activeAnnotation === null)
 				return
 			log.info("Adding right side type: " + lcRight.children("option").filter(":selected").text())
-			activeAnnotation.rightLineType = lcRight.val()
+			activeAnnotation.rightLineType = +lcRight.val()
 		})
 
 		const lcEntry = $('#lp_select_entry')
@@ -1244,12 +1253,16 @@ class Annotator {
 		const lcSelectRelation = $('#lc_select_relation')
 		lcSelectRelation.removeAttr('disabled')
 
+		const lpAddRelation = $('#lc_add')
+		lpAddRelation.removeAttr('disabled')
+
+		const lpSelectType = $('#lp_select_type')
+		lpSelectType.removeAttr('disabled')
+		lpSelectType.val(activeAnnotation.type.toString())
+
 		const lpSelectLeft = $('#lp_select_left')
 		lpSelectLeft.removeAttr('disabled')
 		lpSelectLeft.val(activeAnnotation.leftLineType.toString())
-
-		const lpAddRelation = $('#lc_add')
-		lpAddRelation.removeAttr('disabled')
 
 		const lpSelectRight = $('#lp_select_right')
 		lpSelectRight.removeAttr('disabled')

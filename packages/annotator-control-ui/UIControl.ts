@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {LaneSideType, LaneEntryExitType} from 'annotator-entry-ui/LaneAnnotation'
+import {LaneType, LaneLineType, LaneLineColor, LaneEntryExitType} from 'annotator-entry-ui/annotations/Lane'
 
 // Get html elements
 ///////////////////////////////////////////////////////////////////////////////
@@ -12,8 +12,8 @@ const laneConn = document.getElementById('lane_conn')
 
 // Define new elements
 ///////////////////////////////////////////////////////////////////////////////
-const lpLabelsText = ['Lane ID:', 'Lane Width', 'Left Side:', 'Right Side:', 'Entry Type:', 'Exit Type:']
-const lpLabelsId = ['lp_id', 'lp_width', 'lp_left_side', 'lp_right_side', 'lp_entry', 'lp_exit']
+const lpLabelsText = ['Lane ID:', 'Lane Width', 'Type', 'Left Side:', 'Right Side:', 'Entry Type:', 'Exit Type:']
+const lpLabelsId = ['lp_id', 'lp_width', 'lp_lane_type', 'lp_left_side', 'lp_right_side', 'lp_entry', 'lp_exit']
 const lpLabels: Array<HTMLElement> = []
 for (const i in lpLabelsText) {
 	if (lpLabelsText.hasOwnProperty(i)) {
@@ -25,15 +25,19 @@ for (const i in lpLabelsText) {
 	}
 }
 
-const lpSelectsId = ['lp_select_left', 'lp_select_right', 'lp_select_entry', 'lp_select_exit']
+const lpSelectsId = ['lp_select_type', 'lp_select_left', 'lp_select_right', 'lp_select_entry', 'lp_select_exit']
 const lpSelectsText = [
+	['unknown', 'ALL_VEHICLES', 'MOTOR_VEHICLES', 'CAR_ONLY', 'TRUCK_ONLY', 'BUS_ONLY', 'BIKE_ONLY', 'PEDESTRIAN_ONLY', 'PARKING', 'CROSSWALK', 'OTHER'],
 	['unknown', '––––––––––––', '–  –  –  –  –  –  –'],
 	['unknown', '––––––––––––', '–  –  –  –  –  –  –'],
 	['unknown', 'continue ––»»»––', 'stop ––||––'],
 	['unknown', 'continue ––»»»––', 'stop ––||––']]
 const lpSelectValue = [
-	[LaneSideType.UNKNOWN.toString(), LaneSideType.SOLID.toString(), LaneSideType.BROKEN.toString()],
-	[LaneSideType.UNKNOWN.toString(), LaneSideType.SOLID.toString(), LaneSideType.BROKEN.toString()],
+	[LaneType.UNKNOWN.toString(), LaneType.ALL_VEHICLES.toString(), LaneType.MOTOR_VEHICLES.toString(), LaneType.CAR_ONLY.toString(),
+	LaneType.TRUCK_ONLY.toString(), LaneType.BUS_ONLY.toString(), LaneType.BIKE_ONLY.toString(), LaneType.PEDESTRIAN_ONLY.toString(),
+	LaneType.PARKING.toString(), LaneType.CROSSWALK.toString(), LaneType.OTHER.toString()],
+	[LaneLineType.UNKNOWN.toString(), LaneLineType.SOLID.toString(), LaneLineType.DASHED.toString()],
+	[LaneLineType.UNKNOWN.toString(), LaneLineType.SOLID.toString(), LaneLineType.DASHED.toString()],
 	[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()],
 	[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()]]
 

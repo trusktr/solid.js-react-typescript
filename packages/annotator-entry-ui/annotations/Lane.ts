@@ -265,17 +265,28 @@ export class Lane extends Annotation {
 	}
 
 	setLiveMode(): void {
-		if (parseInt(this.exitType as any, 10) === LaneEntryExitType.STOP) {
-			if (parseInt(this.entryType as any, 10) === LaneEntryExitType.STOP) {
-				this.renderingProperties.liveModeMaterial.color.setHex(0xff0000)
-			} else {
-				this.renderingProperties.liveModeMaterial.color.setHex(0x00ff00)
-			}
+		switch (this.type) {
+			case LaneType.BIKE_ONLY:
+				// green
+				this.renderingProperties.liveModeMaterial.color.setHex(0x3cb371)
+				break
+			case LaneType.CROSSWALK:
+				// yellow
+				this.renderingProperties.liveModeMaterial.color.setHex(0xfffe0)
+				break
+			case LaneType.PARKING:
+				// blue
+				this.renderingProperties.liveModeMaterial.color.setHex(0x87ceeb)
+				break
+			default:
+				this.laneCenterLine.visible = true
+				this.renderingProperties.liveModeMaterial.color.setHex(0x443333)
 		}
+
 		this.markers.forEach((marker) => {
 			marker.visible = false
 		})
-		this.laneCenterLine.visible = true
+
 		this.laneMesh.material = this.renderingProperties.liveModeMaterial
 	}
 
