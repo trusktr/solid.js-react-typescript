@@ -133,6 +133,9 @@ export class TileManager extends UtmInterface {
 	// All points are stored with reference to UTM origin and offset,
 	// but using the local coordinate system which has different axes.
 	pointCloud: THREE.Points
+	voxelsMesh: THREE.Mesh
+	voxelsDictionary: Set<THREE.Vector3> = new Set<THREE.Vector3>()
+	voxelSize: number
 	private onSuperTileUnload: (superTile: SuperTile) => void
 	private initialSuperTilesToLoad: number // preload some super tiles; initially we don't know how many points they will contain
 	private maximumPointsToLoad: number // after loading super tiles we can trim them back by point count
@@ -150,6 +153,12 @@ export class TileManager extends UtmInterface {
 			new THREE.BufferGeometry(),
 			new THREE.PointsMaterial({size: pointsSize, vertexColors: THREE.VertexColors})
 		)
+		this.voxelsMesh = new THREE.Mesh(
+			new THREE.Geometry(),
+			new THREE.MeshLambertMaterial({color: new THREE.Color(1, 1, 1), side: THREE.DoubleSide})
+		)
+		this.voxelsDictionary = new Set<THREE.Vector3>()
+		this.voxelSize = 0.2
 		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
 		this.maximumPointsToLoad = parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000
 		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
@@ -222,6 +231,103 @@ export class TileManager extends UtmInterface {
 		this.pointCloud.geometry = newGeometry
 		this.hasGeometry = true // Wouldn't it be nice if BufferGeometry had a method to do this?
 		oldGeometry.dispose() // There is a vague and scary note in the docs about doing this, so here we go.
+	}
+
+	/**
+     * Create voxels geometry given a list of indices for the occupied voxels
+     */
+    generateVoxels(): void {
+
+		log.warn(`There are ${this.voxelsDictionary.size} voxels`)
+
+		let positions: Array<number> = []
+		let voxelSizeForRender = 0.9 * this.voxelSize
+		let count: number = 0
+		for (let voxelIndex of this.voxelsDictionary) {
+
+			try {
+				let voxelBottomLeft = voxelIndex.multiplyScalar(this.voxelSize)
+				count++
+				if (count % 500000 === 0) {
+					break
+				}
+				if (count % 100000 === 0) {
+					log.warn(`Processing ${count}`)
+				}
+
+				let p11 = voxelBottomLeft.clone()
+				let p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
+				let p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
+				let p14 = new THREE.Vector3(p11.x, (p11.y + voxelSizeForRender), p11.z)
+
+				let p21 = new THREE.Vector3(p11.x, p11.y, (p11.z + voxelSizeForRender))
+				let p22 = new THREE.Vector3(p12.x, p12.y, (p12.z + voxelSizeForRender))
+				let p23 = new THREE.Vector3(p13.x, p13.y, (p13.z + voxelSizeForRender))
+				let p24 = new THREE.Vector3(p14.x, p14.y, (p14.z + voxelSizeForRender))
+
+				// Top
+				positions.push(p11.x, p11.y, p11.z)
+				positions.push(p12.x, p12.y, p12.z)
+				positions.push(p13.x, p13.y, p13.z)
+
+				positions.push(p11.x, p11.y, p11.z)
+				positions.push(p13.x, p13.y, p13.z)
+				positions.push(p14.x, p14.y, p14.z)
+
+				// Bottom
+				positions.push(p21.x, p21.y, p21.z)
+				positions.push(p22.x, p22.y, p22.z)
+				positions.push(p23.x, p23.y, p23.z)
+
+				positions.push(p21.x, p21.y, p21.z)
+				positions.push(p23.x, p23.y, p23.z)
+				positions.push(p24.x, p24.y, p24.z)
+
+				// Side 1
+				positions.push(p11.x, p11.y, p11.z)
+				positions.push(p12.x, p12.y, p12.z)
+				positions.push(p22.x, p22.y, p22.z)
+
+				positions.push(p11.x, p11.y, p11.z)
+				positions.push(p22.x, p22.y, p22.z)
+				positions.push(p21.x, p21.y, p21.z)
+
+				// Side 2
+				positions.push(p12.x, p12.y, p12.z)
+				positions.push(p13.x, p13.y, p13.z)
+				positions.push(p23.x, p23.y, p23.z)
+
+				positions.push(p12.x, p12.y, p12.z)
+				positions.push(p23.x, p23.y, p23.z)
+				positions.push(p22.x, p22.y, p22.z)
+
+				// Side 3
+				positions.push(p13.x, p13.y, p13.z)
+				positions.push(p14.x, p14.y, p14.z)
+				positions.push(p24.x, p24.y, p24.z)
+
+				positions.push(p13.x, p13.y, p13.z)
+				positions.push(p24.x, p24.y, p24.z)
+				positions.push(p23.x, p23.y, p23.z)
+
+				// Side 4
+				positions.push(p14.x, p14.y, p14.z)
+				positions.push(p11.x, p11.y, p11.z)
+				positions.push(p21.x, p21.y, p21.z)
+
+				positions.push(p14.x, p14.y, p14.z)
+				positions.push(p21.x, p21.y, p21.z)
+				positions.push(p24.x, p24.y, p24.z)
+			} catch (e) {
+				log.error(e.text)
+				log.warn(e)
+			}
+		}
+
+		let floatBuffer = new THREE.Float32BufferAttribute(positions, 3)
+		let buffer = new THREE.BufferGeometry()
+		buffer.addAttribute('position', floatBuffer);
+		this.voxelsMesh.geometry = buffer
 	}
 
 	/**
@@ -350,6 +456,7 @@ export class TileManager extends UtmInterface {
 			newPositions[i] = threePoint.x
 			newPositions[i + 1] = threePoint.y
 			newPositions[i + 2] = threePoint.z
+			this.voxelsDictionary.add(threePoint.divideScalar(this.voxelSize).floor())
 		}
 
 		return newPositions
