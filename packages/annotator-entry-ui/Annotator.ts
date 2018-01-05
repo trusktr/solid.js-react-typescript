@@ -1816,7 +1816,7 @@ class Annotator {
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
 		this.carModel.position.set(position.x, position.y, position.z)
 		this.carModel.setRotationFromQuaternion(rotation)
-		this.carModel.rotateY(-3.32)
+		this.carModel.rotateY(-3.14)
 		// Bring the model close to the ground (approx height of the sensors)
 		//const p = this.carModel.getWorldPosition()
 		//this.carModel.position.set(p.x, 0, p.z)

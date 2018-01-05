@@ -26,7 +26,7 @@ export function convertToStandardCoordinateFrame(point: THREE.Vector3, pointCoor
 			return new THREE.Vector3(point.y, point.x, -point.z)
 		case CoordinateFrameType.LIDAR:
 			// Raw input is [x: northing, y: easting, z: altitude]
-			return new THREE.Vector3(point.y, -point.x, point.z)
+			return new THREE.Vector3(point.y, point.x, point.z)
 		case CoordinateFrameType.STANDARD:
 			return point
 		default:
