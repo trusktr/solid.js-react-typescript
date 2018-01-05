@@ -300,7 +300,7 @@ export class Lane extends Annotation {
 				break
 			case LaneType.CROSSWALK:
 				// yellow
-				this.renderingProperties.liveModeMaterial.color.setHex(0xfffe0)
+				this.renderingProperties.liveModeMaterial.color.setHex(0xffffe0)
 				break
 			case LaneType.PARKING:
 				// blue
