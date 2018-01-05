@@ -13,6 +13,18 @@ namespace AnnotationCounter {
 	}
 }
 
+export interface AnnotationJsonInputInterface {
+	annotationType: string // stringified instance of enum AnnotationType
+	uuid: AnnotationUuid
+	markers: Array<THREE.Vector3>
+}
+
+export interface AnnotationJsonOutputInterface {
+	annotationType: string // stringified instance of enum AnnotationType
+	uuid: AnnotationUuid
+	markers: Array<Object>
+}
+
 export namespace AnnotationRenderingProperties {
 	export const markerPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
 	export const markerHighlightPointGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3)

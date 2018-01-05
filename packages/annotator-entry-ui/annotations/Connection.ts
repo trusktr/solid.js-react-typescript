@@ -4,7 +4,11 @@
  */
 
 import * as THREE from 'three'
-import {Annotation, AnnotationUuid, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {
+	Annotation, AnnotationUuid, AnnotationRenderingProperties,
+	AnnotationJsonOutputInterface, AnnotationJsonInputInterface,
+} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {AnnotationType} from "./AnnotationType"
 
 // Some variables used for rendering
 
@@ -37,22 +41,17 @@ namespace ConnectionRenderingProperties {
 	export const liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 }
 
-export interface ConnectionInterface {
-	uuid: AnnotationUuid
-	type: ConnectionType
+export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterface {
+	connectionType: ConnectionType
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
-	markers: Array<THREE.Vector3>
 	waypoints: Array<THREE.Vector3>
 }
 
-
-export interface ConnectionJsonInterface {
-	uuid: AnnotationUuid
-	type: ConnectionType
+export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInterface {
+	connectionType: ConnectionType
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
-	markers: Array<Object>
 	waypoints: Array<Object>
 }
 
@@ -64,10 +63,10 @@ export class Connection extends Annotation {
 	waypoints: Array<THREE.Vector3>
 	connectionMesh: THREE.Mesh
 
-	constructor(obj?: ConnectionInterface) {
+	constructor(obj?: ConnectionJsonInputInterface) {
 		super()
 		if (obj) this.uuid = obj.uuid
-		this.type = obj ? obj.type : ConnectionType.UNKNOWN
+		this.type = obj ? obj.connectionType : ConnectionType.UNKNOWN
 		this.startLaneUuid = obj ? obj.startLaneUuid : ""
 		this.endLaneUuid = obj ? obj.endLaneUuid : ""
 		this.directionMarkers = []
@@ -84,7 +83,7 @@ export class Connection extends Annotation {
 		}
 	}
 
-	setConnectionEndPoints(startLaneUuid: AnnotationUuid, endLaneUuid: AnnotationUuid) {
+	setConnectionEndPoints(startLaneUuid: AnnotationUuid, endLaneUuid: AnnotationUuid): void {
 		this.startLaneUuid = startLaneUuid
 		this.endLaneUuid = endLaneUuid
 	}
@@ -159,12 +158,13 @@ export class Connection extends Annotation {
 		this.type = type
 	}
 
-	toJSON(pointConverter?: (p: THREE.Vector3) => Object): ConnectionJsonInterface {
+	toJSON(pointConverter?: (p: THREE.Vector3) => Object): ConnectionJsonOutputInterface {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		const data: ConnectionJsonInterface = {
+		const data: ConnectionJsonOutputInterface = {
+			annotationType: AnnotationType[AnnotationType.CONNECTION],
 			uuid: this.uuid,
-			type: this.type,
+			connectionType: this.type,
 			startLaneUuid: this.startLaneUuid,
 			endLaneUuid: this.endLaneUuid,
 			markers: [],

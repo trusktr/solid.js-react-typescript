@@ -6,7 +6,11 @@
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 import * as $ from 'jquery'
-import {AnnotationUuid, Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {
+	AnnotationUuid, Annotation, AnnotationRenderingProperties,
+	AnnotationJsonOutputInterface, AnnotationJsonInputInterface
+} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {AnnotationType} from "./AnnotationType"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -103,11 +107,23 @@ class LaneRenderingProperties {
 	}
 }
 
-export interface LaneInterface {
+// support for legacy data files
+export interface LaneJsonInputInterfaceV1 {
 	uuid: AnnotationUuid
-	type: LaneType
+	type: number
 	color: number
 	markerPositions: Array<THREE.Vector3>
+	waypoints: Array<THREE.Vector3>
+	neighborsIds: LaneNeighborsIds
+	leftSideType: LaneLineType
+	rightSideType: LaneLineType
+	entryType: LaneEntryExitType
+	exitType: LaneEntryExitType
+}
+
+export interface LaneJsonInputInterfaceV3 extends AnnotationJsonInputInterface {
+	laneType: LaneType
+	color: number
 	waypoints: Array<THREE.Vector3>
 	neighborsIds: LaneNeighborsIds
 	leftLineType: LaneLineType
@@ -118,11 +134,9 @@ export interface LaneInterface {
 	exitType: LaneEntryExitType
 }
 
-export interface LaneJsonInterface {
-	uuid: AnnotationUuid
-	type: LaneType
+export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface {
+	laneType: LaneType
 	color: number
-	markerPositions: Array<Object>
 	waypoints: Array<Object>
 	neighborsIds: LaneNeighborsIds
 	leftLineType: LaneLineType
@@ -153,11 +167,11 @@ export class Lane extends Annotation {
 	exitType: LaneEntryExitType
 	inTrajectory: boolean
 
-	constructor(obj?: LaneInterface) {
+	constructor(obj?: LaneJsonInputInterfaceV3) {
 		// Call the base constructor
 		super()
 		if (obj) this.uuid = obj.uuid
-		this.type = obj ? obj.type : LaneType.UNKNOWN
+		this.type = obj ? obj.laneType : LaneType.UNKNOWN
 		const color = obj ? obj.color : Math.random() * 0xffffff
 		this.neighborsIds = obj ? obj.neighborsIds : new LaneNeighborsIds()
 		this.leftLineType = obj ? obj.leftLineType : LaneLineType.UNKNOWN
@@ -173,8 +187,8 @@ export class Lane extends Annotation {
 		this.waypoints = []
 		this.inTrajectory = false
 
-		if (obj && obj.markerPositions.length > 0) {
-			obj.markerPositions.forEach((position) => {
+		if (obj && obj.markers.length > 0) {
+			obj.markers.forEach((position) => {
 				this.addRawMarker(new THREE.Vector3(position.x, position.y, position.z))
 			})
 			this.updateVisualization()
@@ -365,12 +379,13 @@ export class Lane extends Annotation {
 		}
 	}
 
-	toJSON(pointConverter?: (p: THREE.Vector3) => Object): LaneJsonInterface {
+	toJSON(pointConverter?: (p: THREE.Vector3) => Object): LaneJsonOutputInterfaceV3 {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		const data: LaneJsonInterface = {
+		const data: LaneJsonOutputInterfaceV3 = {
+			annotationType: AnnotationType[AnnotationType.LANE],
 			uuid: this.uuid,
-			type: this.type,
+			laneType: this.type,
 			color: this.renderingProperties.color,
 			leftLineType: this.leftLineType,
 			leftLineColor: this.leftLineColor,
@@ -379,7 +394,7 @@ export class Lane extends Annotation {
 			entryType: this.entryType,
 			exitType: this.exitType,
 			neighborsIds: this.neighborsIds,
-			markerPositions: [],
+			markers: [],
 			waypoints: []
 		}
 
@@ -396,9 +411,9 @@ export class Lane extends Annotation {
 		if (this.markers) {
 			this.markers.forEach((marker) => {
 				if (pointConverter) {
-					data.markerPositions.push(pointConverter(marker.position))
+					data.markers.push(pointConverter(marker.position))
 				} else {
-					data.markerPositions.push(marker.position)
+					data.markers.push(marker.position)
 				}
 			})
 		}
