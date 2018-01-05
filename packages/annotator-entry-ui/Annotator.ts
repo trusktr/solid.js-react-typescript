@@ -534,7 +534,15 @@ class Annotator {
 			if (index >= 0) {
 				this.cleanTransformControls()
 				this.annotationManager.changeActiveAnnotation(index, type)
-				this.resetLaneProp()
+
+				switch (type) {
+					case AnnotationType.LANE:
+						this.resetLaneProp()
+						break
+					case AnnotationType.TRAFFIC_SIGN:
+						this.resetTrafficSignProp()
+						break
+				}
 			}
 		}
 	}
@@ -737,7 +745,7 @@ class Annotator {
 					break
 				}
 				case 'KeyT': {
-					this.addTrafficSignAnnotation()
+					this.addTrafficSign()
 					break
 				}
 				case 'KeyU': {
@@ -879,8 +887,17 @@ class Annotator {
 	private addLane(): void {
 		// Add lane to scene
 		if (this.addLaneAnnotation()) {
-			log.info("Added new annotation")
+			log.info("Added new lane annotation")
 			this.resetLaneProp()
+			this.hideTransform()
+		}
+	}
+
+	private addTrafficSign(): void {
+		// Add lane to scene
+		if (this.addTrafficSignAnnotation()) {
+			log.info("Added new traffic sign annotation")
+			this.resetTrafficSignProp()
 			this.hideTransform()
 		}
 	}
@@ -949,86 +966,72 @@ class Annotator {
 	/**
 	 * Bind functions events to interface elements
 	 */
-	private bind(): void {
-		const menuButton = document.getElementById('menu_control_btn')
-		if (menuButton)
-			menuButton.addEventListener('click', _ => {
-				if (this.isLiveMode) {
-					log.info("Disable live location mode first to access the menu.")
-				} else {
-					log.info("Menu icon clicked. Close/Open menu bar.")
-					this.displayMenu(MenuVisibility.TOGGLE)
-				}
-			})
-		else
-			log.warn('missing element menu_control_btn')
+	private bindLanePropertiesPanel(): void {
+		const lcType = $('#lp_select_type')
+		lcType.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding lane type: " + lcType.children("option").filter(":selected").text())
+			activeAnnotation.type = +lcType.val()
+		})
 
-		const liveLocationControlButton = document.getElementById('live_location_control_btn')
-		if (liveLocationControlButton)
-			liveLocationControlButton.addEventListener('click', _ => {
-				this.toggleListen()
-			})
-		else
-			log.warn('missing element live_location_control_btn')
+		const lcLeftType = $('#lp_select_left_type')
+		lcLeftType.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding left side type: " + lcLeftType.children("option").filter(":selected").text())
+			activeAnnotation.leftLineType = +lcLeftType.val()
+		})
 
-		const toolsDelete = document.getElementById('tools_delete')
-		if (toolsDelete)
-			toolsDelete.addEventListener('click', _ => {
-				this.deleteActiveAnnotation()
-			})
-		else
-			log.warn('missing element tools_delete')
+		const lcLeftColor = $('#lp_select_left_color')
+		lcLeftColor.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding left side type: " + lcLeftColor.children("option").filter(":selected").text())
+			activeAnnotation.leftLineColor = +lcLeftColor.val()
+		})
 
-		const toolsAdd = document.getElementById('tools_add')
-		if (toolsAdd)
-			toolsAdd.addEventListener('click', _ => {
-				this.addLane()
-			})
-		else
-			log.warn('missing element tools_add')
+		const lcRightType = $('#lp_select_right_type')
+		lcRightType.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding right side type: " + lcRightType.children("option").filter(":selected").text())
+			activeAnnotation.rightLineType = +lcRightType.val()
+		})
 
-		const toolsLoad = document.getElementById('tools_load')
-		if (toolsLoad)
-			toolsLoad.addEventListener('click', _ => {
-				this.loadFromFile()
-					.catch(err => log.warn('loadFromFile failed: ' + err.message))
-			})
-		else
-			log.warn('missing element tools_load')
+		const lcRightColor = $('#lp_select_right_color')
+		lcRightColor.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding left side type: " + lcRightColor.children("option").filter(":selected").text())
+			activeAnnotation.rightLineColor = +lcRightColor.val()
+		})
 
-		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
-		if (toolsLoadAnnotation)
-			toolsLoadAnnotation.addEventListener('click', _ => {
-				const pathElectron = dialog.showOpenDialog({
-					filters: [{name: 'json', extensions: ['json']}]
-				})
+		const lcEntry = $('#lp_select_entry')
+		lcEntry.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding entry type: " + lcEntry.children("option").filter(":selected").text())
+			activeAnnotation.entryType = lcEntry.val()
+		})
 
-				if (isUndefined(pathElectron))
-					return
+		const lcExit = $('#lp_select_exit')
+		lcExit.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding exit type: " + lcExit.children("option").filter(":selected").text())
+			activeAnnotation.exitType = lcExit.val()
+		})
+	}
 
-				log.info('Loading annotations from ' + pathElectron[0])
-				this.loadAnnotations(pathElectron[0])
-					.catch(err => log.warn('loadAnnotations failed: ' + err.message))
-			})
-		else
-			log.warn('missing element tools_load_annotation')
-
-		const toolsSave = document.getElementById('tools_save')
-		if (toolsSave)
-			toolsSave.addEventListener('click', _ => {
-				this.saveToFile()
-			})
-		else
-			log.warn('missing element tools_save')
-
-		const toolsExportKml = document.getElementById('tools_export_kml')
-		if (toolsExportKml)
-			toolsExportKml.addEventListener('click', _ => {
-				this.exportKml()
-			})
-		else
-			log.warn('missing element tools_export_kml')
-
+	private bindLaneNeighborsPanel(): void {
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
 		if (lpAddLeftOpposite)
 			lpAddLeftOpposite.addEventListener('click', _ => {
@@ -1068,7 +1071,9 @@ class Annotator {
 			})
 		else
 			log.warn('missing element lp_add_forward')
+	}
 
+	private bindRelationsPanel(): void {
 		const lcSelectFrom = document.getElementById('lc_select_from')
 		if (lcSelectFrom)
 			lcSelectFrom.addEventListener('mousedown', _ => {
@@ -1129,42 +1134,111 @@ class Annotator {
 			})
 		else
 			log.warn('missing element lc_add')
+	}
 
-		const lcLeft = $('#lp_select_left')
-		lcLeft.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
+	private bindTrafficSignPropertiesPanel(): void {
+		const tpType = $('#tp_select_type')
+		tpType.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
 			if (activeAnnotation === null)
 				return
-			log.info("Adding left side type: " + lcLeft.children("option").filter(":selected").text())
-			activeAnnotation.leftLineType = lcLeft.val()
+			log.info("Adding traffic sign type: " + tpType.children("option").filter(":selected").text())
+			activeAnnotation.type = +tpType.val()
 		})
+	}
 
-		const lcRight = $('#lp_select_right')
-		lcRight.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-			if (activeAnnotation === null)
-				return
-			log.info("Adding right side type: " + lcRight.children("option").filter(":selected").text())
-			activeAnnotation.rightLineType = lcRight.val()
-		})
+	private bind(): void {
+		this.bindLanePropertiesPanel()
+		this.bindLaneNeighborsPanel()
+		this.bindRelationsPanel()
+		this.bindTrafficSignPropertiesPanel()
 
-		const lcEntry = $('#lp_select_entry')
-		lcEntry.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-			if (activeAnnotation === null)
-				return
-			log.info("Adding entry type: " + lcEntry.children("option").filter(":selected").text())
-			activeAnnotation.entryType = lcEntry.val()
-		})
+		const menuButton = document.getElementById('menu_control_btn')
+		if (menuButton)
+			menuButton.addEventListener('click', _ => {
+				if (this.isLiveMode) {
+					log.info("Disable live location mode first to access the menu.")
+				} else {
+					log.info("Menu icon clicked. Close/Open menu bar.")
+					this.displayMenu(MenuVisibility.TOGGLE)
+				}
+			})
+		else
+			log.warn('missing element menu_control_btn')
 
-		const lcExit = $('#lp_select_exit')
-		lcExit.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-			if (activeAnnotation === null)
-				return
-			log.info("Adding exit type: " + lcExit.children("option").filter(":selected").text())
-			activeAnnotation.exitType = lcExit.val()
-		})
+		const liveLocationControlButton = document.getElementById('live_location_control_btn')
+		if (liveLocationControlButton)
+			liveLocationControlButton.addEventListener('click', _ => {
+				this.toggleListen()
+			})
+		else
+			log.warn('missing element live_location_control_btn')
+
+		const toolsDelete = document.getElementById('tools_delete')
+		if (toolsDelete)
+			toolsDelete.addEventListener('click', _ => {
+				this.deleteActiveAnnotation()
+			})
+		else
+			log.warn('missing element tools_delete')
+
+		const toolsAddLane = document.getElementById('tools_add_lane')
+		if (toolsAddLane)
+			toolsAddLane.addEventListener('click', _ => {
+				this.addLane()
+			})
+		else
+			log.warn('missing element tools_add_lane')
+
+		const toolsAddTrafficSign = document.getElementById('tools_add_traffic_sign')
+		if (toolsAddTrafficSign)
+			toolsAddTrafficSign.addEventListener('click', _ => {
+				this.addTrafficSign()
+			})
+		else
+			log.warn('missing element tools_add_traffic_sign')
+
+		const toolsLoad = document.getElementById('tools_load')
+		if (toolsLoad)
+			toolsLoad.addEventListener('click', _ => {
+				this.loadFromFile()
+					.catch(err => log.warn('loadFromFile failed: ' + err.message))
+			})
+		else
+			log.warn('missing element tools_load')
+
+		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
+		if (toolsLoadAnnotation)
+			toolsLoadAnnotation.addEventListener('click', _ => {
+				const pathElectron = dialog.showOpenDialog({
+					filters: [{name: 'json', extensions: ['json']}]
+				})
+
+				if (isUndefined(pathElectron))
+					return
+
+				log.info('Loading annotations from ' + pathElectron[0])
+				this.loadAnnotations(pathElectron[0])
+					.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+			})
+		else
+			log.warn('missing element tools_load_annotation')
+
+		const toolsSave = document.getElementById('tools_save')
+		if (toolsSave)
+			toolsSave.addEventListener('click', _ => {
+				this.saveToFile()
+			})
+		else
+			log.warn('missing element tools_save')
+
+		const toolsExportKml = document.getElementById('tools_export_kml')
+		if (toolsExportKml)
+			toolsExportKml.addEventListener('click', _ => {
+				this.exportKml()
+			})
+		else
+			log.warn('missing element tools_export_kml')
 
 		const trAdd = $('#tr_add')
 		trAdd.on('click', _ => {
@@ -1245,16 +1319,28 @@ class Annotator {
 		const lcSelectRelation = $('#lc_select_relation')
 		lcSelectRelation.removeAttr('disabled')
 
-		const lpSelectLeft = $('#lp_select_left')
-		lpSelectLeft.removeAttr('disabled')
-		lpSelectLeft.val(activeAnnotation.leftLineType.toString())
-
 		const lpAddRelation = $('#lc_add')
 		lpAddRelation.removeAttr('disabled')
 
-		const lpSelectRight = $('#lp_select_right')
+		const lpSelectType = $('#lp_select_type')
+		lpSelectType.removeAttr('disabled')
+		lpSelectType.val(activeAnnotation.type.toString())
+
+		const lpSelectLeft = $('#lp_select_left_type')
+		lpSelectLeft.removeAttr('disabled')
+		lpSelectLeft.val(activeAnnotation.leftLineType.toString())
+
+		const lpSelectLeftColor = $('#lp_select_left_color')
+		lpSelectLeftColor.removeAttr('disabled')
+		lpSelectLeftColor.val(activeAnnotation.leftLineColor.toString())
+
+		const lpSelectRight = $('#lp_select_right_type')
 		lpSelectRight.removeAttr('disabled')
 		lpSelectRight.val(activeAnnotation.rightLineType.toString())
+
+		const lpSelectRightColor = $('#lp_select_right_color')
+		lpSelectRightColor.removeAttr('disabled')
+		lpSelectRightColor.val(activeAnnotation.rightLineColor.toString())
 
 		const lpSelectEntry = $('#lp_select_entry')
 		lpSelectEntry.removeAttr('disabled')
@@ -1274,6 +1360,26 @@ class Annotator {
 
 		const trShow = $('#tr_show')
 		trShow.removeAttr('disabled')
+	}
+
+	/**
+	 * Reset traffic sign properties elements based on the current active traffic sign
+	 */
+	private resetTrafficSignProp(): void  {
+		const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
+		if (activeAnnotation === null) {
+			return
+		}
+
+		const tpId = document.getElementById('tp_id_value')
+		if (tpId)
+			tpId.textContent = activeAnnotation.id.toString()
+		else
+			log.warn('missing element tp_id_value')
+
+		const tpSelectType = $('#tp_select_type')
+		tpSelectType.removeAttr('disabled')
+		tpSelectType.val(activeAnnotation.type.toString())
 	}
 
 	/**
