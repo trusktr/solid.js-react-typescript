@@ -119,13 +119,7 @@ export class AnnotationManager extends UtmInterface {
 	addLaneAnnotation(scene: THREE.Scene, obj?: LaneJsonInputInterfaceV3): THREE.Box3 | null {
 		if (this.isLiveMode) return null
 
-		if (obj) {
-			// Create an annotation with data
-			this.laneAnnotations.push(new Lane(obj))
-		} else {
-			// Create a clean annotation
-			this.laneAnnotations.push(new Lane())
-		}
+		this.laneAnnotations.push(new Lane(obj))
 		const newAnnotationIndex = this.laneAnnotations.length - 1
 		const mesh = this.laneAnnotations[newAnnotationIndex].laneMesh
 		this.annotationMeshes.push(mesh)
@@ -136,12 +130,9 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	addTrafficSignAnnotation(scene: THREE.Scene, obj?: TrafficSignJsonInputInterface): THREE.Box3 | null {
-		if (obj) {
-			this.trafficSignAnnotations.push( new TrafficSign(obj) )
-		} else {
-			this.trafficSignAnnotations.push( new TrafficSign() )
-		}
+		if (this.isLiveMode) return null
 
+		this.trafficSignAnnotations.push(new TrafficSign(obj))
 		const newAnnotationIndex = this.trafficSignAnnotations.length - 1
 		const mesh = this.trafficSignAnnotations[newAnnotationIndex].trafficSignMesh
 		this.annotationMeshes.push(mesh)
@@ -151,8 +142,10 @@ export class AnnotationManager extends UtmInterface {
 		return mesh.geometry.boundingBox
 	}
 
-	addConnectionAnnotation(scene: THREE.Scene, obj: ConnectionJsonInputInterface): THREE.Box3 | null {
-		this.connectionAnnotations.push( new Connection(obj) )
+	addConnectionAnnotation(scene: THREE.Scene, obj?: ConnectionJsonInputInterface): THREE.Box3 | null {
+		if (this.isLiveMode) return null
+
+		this.connectionAnnotations.push(new Connection(obj))
 		const newAnnotationIndex = this.connectionAnnotations.length - 1
 		const mesh = this.connectionAnnotations[newAnnotationIndex].connectionMesh
 		this.annotationMeshes.push(mesh)
@@ -892,7 +885,7 @@ export class AnnotationManager extends UtmInterface {
 	 * where changed externally (e.g. by the transform controls)
 	 */
 	updateActiveLaneMesh(): void {
-		if (this.activeAnnotationIndex < 0)  {
+		if (this.activeAnnotationIndex < 0) {
 			log.info("No active annotation. Can't update mesh")
 			return
 		}
@@ -1301,8 +1294,6 @@ export class AnnotationManager extends UtmInterface {
 				for (let i = 0; i < annotation['markers'].length; i++) {
 					const pos = annotation['markers'][i]
 					annotation['markers'][i] = this.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
-					// This is a hack to elevate the annotations above ground (for display purposes)
-					annotation['markers'][i].y += 0.2
 				}
 			}
 		})
@@ -1566,7 +1557,7 @@ export class AnnotationManager extends UtmInterface {
 		let modifications = 0
 
 		if (annotation.neighborsIds.right != null) {
-			const [index, type] = this.findAnnotationIndexByUuid(annotation.neighborsIds.right)
+			const [index, type]: [number, AnnotationType] = this.findAnnotationIndexByUuid(annotation.neighborsIds.right)
 			if (index < 0 || type !== AnnotationType.LANE) {
 				log.error("Couldn't find right neighbor. This should never happen.")
 			}
@@ -1606,7 +1597,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		for (let i = 0; i < annotation.neighborsIds.front.length; i++) {
-			const [index, type] = this.findAnnotationIndexByUuid(annotation.neighborsIds.front[i])
+			const [index, type]: [number, AnnotationType] = this.findAnnotationIndexByUuid(annotation.neighborsIds.front[i])
 			if (index < 0) {
 				log.error("Couldn't find front neighbor. This should never happen.")
 			}
@@ -1636,7 +1627,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		for (let i = 0; i < annotation.neighborsIds.back.length; i++) {
-			const [index, type] = this.findAnnotationIndexByUuid(annotation.neighborsIds.back[i])
+			const [index, type]: [number, AnnotationType] = this.findAnnotationIndexByUuid(annotation.neighborsIds.back[i])
 			if (index < 0) {
 				log.error("Couldn't find back neighbor. This should never happen.")
 			}
