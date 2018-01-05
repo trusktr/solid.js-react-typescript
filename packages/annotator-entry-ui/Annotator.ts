@@ -15,6 +15,7 @@ import {
 } from "./geometry/CoordinateFrame"
 import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
+import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {AnnotationType} from "./annotations/AnnotationType"
 import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
@@ -333,7 +334,7 @@ class Annotator {
 	}
 
 	private loadFlythroughTrajectory(filename: string): Promise<Models.TrajectoryMessage>  {
-		 return AsyncFile.readFile(filename)
+		return AsyncFile.readFile(filename)
 			.then(buffer => Models.TrajectoryMessage.decode(buffer))
 			.then(msg => {
 				log.info('Number of trajectory poses: ' + msg.states.length)
@@ -487,8 +488,8 @@ class Annotator {
 
 	private superTileToBoundingBox(superTile: SuperTile): void {
 		if (!superTile.hasPointCloud) {
-			const size = superTile.threeJsBoundingBox.getSize()
-			const center = superTile.threeJsBoundingBox.getCenter()
+			const size = getSize(superTile.threeJsBoundingBox)
+			const center = getCenter(superTile.threeJsBoundingBox)
 			const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
 			const material = new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true})
 			const box = new THREE.Mesh(geometry, material)
