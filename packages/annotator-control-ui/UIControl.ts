@@ -133,7 +133,6 @@ const tpSelectsText = [ ['UNKNOWN', 'TRAFFIC_LIGHT', 'STOP', 'YIELD', 'OTHER']]
 const tpSelectsValue = [ [TrafficSignType.UNKNOWN.toString(), TrafficSignType.TRAFFIC_LIGHT.toString(),
 						 TrafficSignType.STOP.toString(), TrafficSignType.YIELD.toString(), TrafficSignType.OTHER.toString()]]
 
-
 const tpSelects: Array<HTMLElement> = []
 
 const elementTrafficSignId = document.createElement('text')

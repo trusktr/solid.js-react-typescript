@@ -6,7 +6,9 @@
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {AnnotationUuid} from "./AnnotationBase";
+import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase";
+import {AnnotationType} from "./AnnotationType"
+import {isNullOrUndefined} from "util"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -27,16 +29,12 @@ namespace TrafficSignRenderingProperties {
 	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
 }
 
-export interface TrafficSignInterface {
-	uuid: AnnotationUuid
-	type: TrafficSignType
-	markers: Array<THREE.Vector3>
+export interface TrafficSignJsonInputInterface extends AnnotationJsonInputInterface {
+	trafficSignType: string
 }
 
-export interface TrafficSignJsonInterface {
-	uuid: AnnotationUuid
-	type: TrafficSignType
-	markers: Array<Object>
+export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInterface {
+	trafficSignType: string
 }
 
 export class TrafficSign extends Annotation {
@@ -45,10 +43,13 @@ export class TrafficSign extends Annotation {
 	trafficSignMesh: THREE.Mesh
 	isComplete: boolean
 
-	constructor(obj?: TrafficSignInterface) {
-		super()
-		if (obj) this.uuid = obj.uuid
-		this.type = obj ? obj.type : TrafficSignType.UNKNOWN
+	constructor(obj?: TrafficSignJsonInputInterface) {
+		super(obj)
+		if (obj) {
+			this.type = isNullOrUndefined(TrafficSignType[obj.trafficSignType]) ? TrafficSignType.UNKNOWN : TrafficSignType[obj.trafficSignType]
+		} else {
+			this.type = TrafficSignType.UNKNOWN
+		}
 		this.isComplete = false
 		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficSignRenderingProperties.contourMaterial)
 		this.trafficSignMesh = new THREE.Mesh(new THREE.Geometry(), TrafficSignRenderingProperties.meshMaterial)
@@ -176,12 +177,13 @@ export class TrafficSign extends Annotation {
 		this.trafficSignMesh.geometry.verticesNeedUpdate = true
 	}
 
-	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficSignJsonInterface {
+	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficSignJsonOutputInterface {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		const data: TrafficSignJsonInterface = {
+		const data: TrafficSignJsonOutputInterface = {
+			annotationType: AnnotationType[AnnotationType.TRAFFIC_SIGN],
 			uuid: this.uuid,
-			type: this.type,
+			trafficSignType: TrafficSignType[this.type],
 			markers: [],
 		}
 

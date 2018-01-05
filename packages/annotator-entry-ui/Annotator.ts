@@ -11,7 +11,8 @@ import {CoordinateFrameType} from "./geometry/CoordinateFrame"
 import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {AxesHelper} from "./controls/AxesHelper"
-import {AnnotationManager, AnnotationType, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
+import {AnnotationType} from "./annotations/AnnotationType"
+import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
 import * as EM from 'annotator-entry-ui/ErrorMessages'

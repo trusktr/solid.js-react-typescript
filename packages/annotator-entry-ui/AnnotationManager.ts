@@ -7,12 +7,17 @@ const config = require('../config')
 const vsprintf = require("sprintf-js").vsprintf
 import {isNullOrUndefined} from "util"
 import * as THREE from 'three'
-import {AnnotationId, AnnotationUuid} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds,
-		LaneInterface, LaneJsonInterface
+import {AnnotationType} from "./annotations/AnnotationType"
+import {
+	AnnotationId, AnnotationJsonInputInterface, AnnotationJsonOutputInterface,
+	AnnotationUuid
+} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {
+	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds,
+	LaneJsonInputInterfaceV3, LaneJsonInputInterfaceV1, LaneLineType, LaneEntryExitType
 } from 'annotator-entry-ui/annotations/Lane'
-import {TrafficSign, TrafficSignInterface, TrafficSignJsonInterface} from 'annotator-entry-ui/annotations/TrafficSign'
-import {Connection, ConnectionInterface, ConnectionJsonInterface} from 'annotator-entry-ui/annotations/Connection'
+import {TrafficSign, TrafficSignJsonInputInterface} from 'annotator-entry-ui/annotations/TrafficSign'
+import {Connection, ConnectionJsonInputInterface} from 'annotator-entry-ui/annotations/Connection'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -50,13 +55,6 @@ export enum OutputFormat {
 	LLA = 2,
 }
 
-export enum AnnotationType {
-	UNKNOWN,
-	LANE,
-	TRAFFIC_SIGN,
-	CONNECTION
-}
-
 /**
  * Get point in between at a specific distance
  */
@@ -64,13 +62,11 @@ function getMarkerInBetween(marker1: Vector3, marker2: Vector3, atDistance: numb
 	return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
 }
 
-interface AnnotationManagerJsonInterface {
+interface AnnotationManagerJsonOutputInterface {
 	version: number
 	created: string
 	coordinateReferenceSystem: CRS.CoordinateReferenceSystem
-	laneAnnotations: Array<LaneJsonInterface>
-	connectionAnnotations: Array<ConnectionJsonInterface>
-	trafficSignAnnotations: Array<TrafficSignJsonInterface>
+	annotations: Array<AnnotationJsonOutputInterface>
 }
 
 /**
@@ -120,7 +116,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Add a new lane annotation and add its mesh to the scene for display.
 	 */
-	addLaneAnnotation(scene: THREE.Scene, obj?: LaneInterface): THREE.Box3 | null {
+	addLaneAnnotation(scene: THREE.Scene, obj?: LaneJsonInputInterfaceV3): THREE.Box3 | null {
 		if (this.isLiveMode) return null
 
 		if (obj) {
@@ -139,7 +135,7 @@ export class AnnotationManager extends UtmInterface {
 		return mesh.geometry.boundingBox
 	}
 
-	addTrafficSignAnnotation(scene: THREE.Scene, obj?: TrafficSignInterface): THREE.Box3 | null {
+	addTrafficSignAnnotation(scene: THREE.Scene, obj?: TrafficSignJsonInputInterface): THREE.Box3 | null {
 		if (obj) {
 			this.trafficSignAnnotations.push( new TrafficSign(obj) )
 		} else {
@@ -155,7 +151,7 @@ export class AnnotationManager extends UtmInterface {
 		return mesh.geometry.boundingBox
 	}
 
-	addConnectionAnnotation(scene: THREE.Scene, obj: ConnectionInterface): THREE.Box3 | null {
+	addConnectionAnnotation(scene: THREE.Scene, obj: ConnectionJsonInputInterface): THREE.Box3 | null {
 		this.connectionAnnotations.push( new Connection(obj) )
 		const newAnnotationIndex = this.connectionAnnotations.length - 1
 		const mesh = this.connectionAnnotations[newAnnotationIndex].connectionMesh
@@ -992,20 +988,45 @@ export class AnnotationManager extends UtmInterface {
 			AsyncFile.readFile(fileName, 'ascii').then((text: string) => {
 				const data = JSON.parse(text)
 				const version = AnnotationManager.annotationsFileVersion(data)
+				if (version === 1 || version === 2) {
+					data['annotations'] = data['annotations'].map((v1: LaneJsonInputInterfaceV1) => {
+						return {
+							annotationType: "LANE",
+							uuid: v1.uuid,
+							laneType: "UNKNOWN",
+							color: v1.color,
+							markers: v1.markerPositions,
+							waypoints: v1.waypoints,
+							neighborsIds: v1.neighborsIds,
+							leftLineType: LaneLineType[v1.leftSideType],
+							leftLineColor: "UNKNOWN",
+							rightLineType: LaneLineType[v1.rightSideType],
+							rightLineColor: "UNKNOWN",
+							entryType: LaneEntryExitType[v1.entryType],
+							exitType: LaneEntryExitType[v1.exitType],
+						} as LaneJsonInputInterfaceV3
+					})
+				}
 				if (self.checkCoordinateSystem(data, version)) {
 					self.convertCoordinates(data)
 					let boundingBox = new THREE.Box3()
 					// Each element is an annotation
-					data['laneAnnotations'].forEach((element: LaneInterface) => {
-						const box = self.addLaneAnnotation(scene, element)
-						if (box) boundingBox = boundingBox.union(box)
-					})
-					data['connectionAnnotations'].forEach((element: ConnectionInterface) => {
-						const box = self.addConnectionAnnotation(scene, element)
-						if (box) boundingBox = boundingBox.union(box)
-					})
-					data['trafficSignAnnotations'].forEach((element: TrafficSignInterface) => {
-						const box = self.addTrafficSignAnnotation(scene, element)
+					data['annotations'].forEach((element: AnnotationJsonInputInterface) => {
+						const annotationType = AnnotationType[element.annotationType]
+						let box: THREE.Box3 | null = null
+						switch (annotationType) {
+							case AnnotationType.LANE:
+								box = self.addLaneAnnotation(scene, element as LaneJsonInputInterfaceV3)
+								break
+							case AnnotationType.TRAFFIC_SIGN:
+								box = self.addTrafficSignAnnotation(scene, element as TrafficSignJsonInputInterface)
+								break
+							case AnnotationType.CONNECTION:
+								box = self.addConnectionAnnotation(scene, element as ConnectionJsonInputInterface)
+								break
+							default:
+								log.warn(`discarding annotation with invalid type ${element.annotationType}`)
+						}
 						if (box) boundingBox = boundingBox.union(box)
 					})
 					self.metadataState.clean()
@@ -1059,7 +1080,7 @@ export class AnnotationManager extends UtmInterface {
 		return mkdirp(dirName, writeFile)
 	}
 
-	toJSON(format: OutputFormat): AnnotationManagerJsonInterface {
+	toJSON(format: OutputFormat): AnnotationManagerJsonOutputInterface {
 		let crs: CRS.CoordinateReferenceSystem
 		let pointConverter: (p: THREE.Vector3) => Object
 		if (format === OutputFormat.UTM) {
@@ -1081,26 +1102,16 @@ export class AnnotationManager extends UtmInterface {
 		} else {
 			throw new Error('unknown OutputFormat: ' + format)
 		}
-		const data: AnnotationManagerJsonInterface = {
-			version: 2,
+		const data: AnnotationManagerJsonOutputInterface = {
+			version: 3,
 			created: new Date().toISOString(),
 			coordinateReferenceSystem: crs,
-			laneAnnotations: [],
-			connectionAnnotations: [],
-			trafficSignAnnotations: []
+			annotations: [],
 		}
 
-		this.laneAnnotations.forEach((annotation) => {
-			data.laneAnnotations = data.laneAnnotations.concat(annotation.toJSON(pointConverter))
-		})
-
-		this.connectionAnnotations.forEach( (annotation) => {
-			data.connectionAnnotations = data.connectionAnnotations.concat(annotation.toJSON(pointConverter))
-		})
-
-		this.trafficSignAnnotations.forEach( (annotation) => {
-			data.trafficSignAnnotations = data.trafficSignAnnotations.concat(annotation.toJSON(pointConverter))
-		})
+		data.annotations = data.annotations.concat(this.laneAnnotations.map(a => a.toJSON(pointConverter)))
+		data.annotations = data.annotations.concat(this.connectionAnnotations.map(a => a.toJSON(pointConverter)))
+		data.annotations = data.annotations.concat(this.trafficSignAnnotations.map(a => a.toJSON(pointConverter)))
 
 		return data
 	}
@@ -1270,8 +1281,8 @@ export class AnnotationManager extends UtmInterface {
 		const trunc = function (x: number): number {return Math.trunc(x / 10) * 10}
 		for (let i = 0; !first && i < data['annotations'].length; i++) {
 			const annotation = data['annotations'][i]
-			if (annotation['markerPositions'] && annotation['markerPositions'].length > 0) {
-				const pos = annotation['markerPositions'][0]
+			if (annotation['markers'] && annotation['markers'].length > 0) {
+				const pos = annotation['markers'][0]
 				first = new THREE.Vector3(trunc(pos['E']), trunc(pos['N']), trunc(pos['alt']))
 			}
 		}
@@ -1282,16 +1293,16 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
-	 * Convert markerPositions from UTM objects to vectors in local coordinates, for downstream consumption.
+	 * Convert markers from UTM objects to vectors in local coordinates, for downstream consumption.
 	 */
 	private convertCoordinates(data: Object): void {
 		data['annotations'].forEach((annotation: {}) => {
-			if (annotation['markerPositions']) {
-				for (let i = 0; i < annotation['markerPositions'].length; i++) {
-					const pos = annotation['markerPositions'][i]
-					annotation['markerPositions'][i] = this.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
+			if (annotation['markers']) {
+				for (let i = 0; i < annotation['markers'].length; i++) {
+					const pos = annotation['markers'][i]
+					annotation['markers'][i] = this.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
 					// This is a hack to elevate the annotations above ground (for display purposes)
-					annotation['markerPositions'][i].y += 0.2
+					annotation['markers'][i].y += 0.2
 				}
 			}
 		})

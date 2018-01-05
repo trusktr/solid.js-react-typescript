@@ -13,6 +13,18 @@ namespace AnnotationCounter {
 	}
 }
 
+export interface AnnotationJsonInputInterface {
+	annotationType: string // stringified instance of enum AnnotationType
+	uuid: AnnotationUuid
+	markers: Array<THREE.Vector3>
+}
+
+export interface AnnotationJsonOutputInterface {
+	annotationType: string // stringified instance of enum AnnotationType
+	uuid: AnnotationUuid
+	markers: Array<Object>
+}
+
 export namespace AnnotationRenderingProperties {
 	export const markerPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
 	export const markerHighlightPointGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3)
@@ -24,9 +36,9 @@ export abstract class Annotation {
 	markers: Array<THREE.Mesh> 			// Control point used to edit the annotation
 	renderingObject: THREE.Object3D		// Object that is added to the scene for display
 
-	constructor(uuid?: AnnotationUuid) {
+	constructor(inputInterface?: AnnotationJsonInputInterface) {
 		this.id = AnnotationCounter.nextId()
-		this.uuid = uuid ? uuid : UUID.v1()
+		this.uuid = inputInterface && inputInterface.uuid ? inputInterface.uuid : UUID.v1()
 		this.markers = []
 		this.renderingObject = new THREE.Object3D()
 	}
