@@ -11,6 +11,7 @@ import {
 	AnnotationJsonOutputInterface, AnnotationJsonInputInterface
 } from 'annotator-entry-ui/annotations/AnnotationBase'
 import {AnnotationType} from "./AnnotationType"
+import {isNullOrUndefined} from "util"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -122,29 +123,29 @@ export interface LaneJsonInputInterfaceV1 {
 }
 
 export interface LaneJsonInputInterfaceV3 extends AnnotationJsonInputInterface {
-	laneType: LaneType
+	laneType: string
 	color: number
 	waypoints: Array<THREE.Vector3>
 	neighborsIds: LaneNeighborsIds
-	leftLineType: LaneLineType
-	leftLineColor: LaneLineColor
-	rightLineType: LaneLineType
-	rightLineColor: LaneLineColor
-	entryType: LaneEntryExitType
-	exitType: LaneEntryExitType
+	leftLineType: string
+	leftLineColor: string
+	rightLineType: string
+	rightLineColor: string
+	entryType: string
+	exitType: string
 }
 
 export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface {
-	laneType: LaneType
+	laneType: string
 	color: number
 	waypoints: Array<Object>
 	neighborsIds: LaneNeighborsIds
-	leftLineType: LaneLineType
-	leftLineColor: LaneLineColor
-	rightLineType: LaneLineType
-	rightLineColor: LaneLineColor
-	entryType: LaneEntryExitType
-	exitType: LaneEntryExitType
+	leftLineType: string
+	leftLineColor: string
+	rightLineType: string
+	rightLineColor: string
+	entryType: string
+	exitType: string
 }
 
 /**
@@ -169,17 +170,30 @@ export class Lane extends Annotation {
 
 	constructor(obj?: LaneJsonInputInterfaceV3) {
 		// Call the base constructor
-		super()
-		if (obj) this.uuid = obj.uuid
-		this.type = obj ? obj.laneType : LaneType.UNKNOWN
-		const color = obj ? obj.color : Math.random() * 0xffffff
-		this.neighborsIds = obj ? obj.neighborsIds : new LaneNeighborsIds()
-		this.leftLineType = obj ? obj.leftLineType : LaneLineType.UNKNOWN
-		this.rightLineType = obj ? obj.rightLineType : LaneLineType.UNKNOWN
-		this.leftLineColor = obj ? obj.leftLineColor : LaneLineColor.UNKNOWN
-		this.rightLineColor = obj ? obj.rightLineColor : LaneLineColor.UNKNOWN
-		this.entryType = obj ? obj.entryType : LaneEntryExitType.UNKNOWN
-		this.exitType = obj ? obj.exitType : LaneEntryExitType.UNKNOWN
+		super(obj)
+		let color: number
+		if (obj) {
+			this.type = isNullOrUndefined(LaneType[obj.laneType]) ? LaneType.UNKNOWN : LaneType[obj.laneType]
+			color = obj.color
+			this.neighborsIds = obj.neighborsIds
+			this.leftLineType = isNullOrUndefined(LaneLineType[obj.leftLineType]) ? LaneLineType.UNKNOWN : LaneLineType[obj.leftLineType]
+			this.rightLineType = isNullOrUndefined(LaneLineType[obj.rightLineType]) ? LaneLineType.UNKNOWN : LaneLineType[obj.rightLineType]
+			this.leftLineColor = isNullOrUndefined(LaneLineColor[obj.leftLineColor]) ? LaneLineColor.UNKNOWN : LaneLineColor[obj.leftLineColor]
+			this.rightLineColor = isNullOrUndefined(LaneLineColor[obj.rightLineColor]) ? LaneLineColor.UNKNOWN : LaneLineColor[obj.rightLineColor]
+			this.entryType = isNullOrUndefined(LaneEntryExitType[obj.entryType]) ? LaneEntryExitType.UNKNOWN : LaneEntryExitType[obj.entryType]
+			this.exitType = isNullOrUndefined(LaneEntryExitType[obj.exitType]) ? LaneEntryExitType.UNKNOWN : LaneEntryExitType[obj.exitType]
+		} else {
+			this.type = LaneType.UNKNOWN
+			color = Math.random() * 0xffffff
+			this.neighborsIds = new LaneNeighborsIds()
+			this.leftLineType = LaneLineType.UNKNOWN
+			this.rightLineType = LaneLineType.UNKNOWN
+			this.leftLineColor = LaneLineColor.UNKNOWN
+			this.rightLineColor = LaneLineColor.UNKNOWN
+			this.entryType = LaneEntryExitType.UNKNOWN
+			this.exitType = LaneEntryExitType.UNKNOWN
+		}
+
 		this.renderingProperties = new LaneRenderingProperties(color)
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
@@ -385,14 +399,14 @@ export class Lane extends Annotation {
 		const data: LaneJsonOutputInterfaceV3 = {
 			annotationType: AnnotationType[AnnotationType.LANE],
 			uuid: this.uuid,
-			laneType: this.type,
+			laneType: LaneType[this.type],
 			color: this.renderingProperties.color,
-			leftLineType: this.leftLineType,
-			leftLineColor: this.leftLineColor,
-			rightLineType: this.rightLineType,
-			rightLineColor: this.rightLineColor,
-			entryType: this.entryType,
-			exitType: this.exitType,
+			leftLineType: LaneLineType[this.leftLineType],
+			leftLineColor: LaneLineColor[this.leftLineColor],
+			rightLineType: LaneLineType[this.rightLineType],
+			rightLineColor: LaneLineColor[this.rightLineColor],
+			entryType: LaneEntryExitType[this.entryType],
+			exitType: LaneEntryExitType[this.exitType],
 			neighborsIds: this.neighborsIds,
 			markers: [],
 			waypoints: []

@@ -8,6 +8,7 @@ import * as TypeLogger from 'typelogger'
 import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase";
 import {AnnotationType} from "./AnnotationType"
+import {isNullOrUndefined} from "util"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -29,11 +30,11 @@ namespace TrafficSignRenderingProperties {
 }
 
 export interface TrafficSignJsonInputInterface extends AnnotationJsonInputInterface {
-	trafficSignType: TrafficSignType
+	trafficSignType: string
 }
 
 export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInterface {
-	trafficSignType: TrafficSignType
+	trafficSignType: string
 }
 
 export class TrafficSign extends Annotation {
@@ -43,9 +44,12 @@ export class TrafficSign extends Annotation {
 	isComplete: boolean
 
 	constructor(obj?: TrafficSignJsonInputInterface) {
-		super()
-		if (obj) this.uuid = obj.uuid
-		this.type = obj ? obj.trafficSignType : TrafficSignType.UNKNOWN
+		super(obj)
+		if (obj) {
+			this.type = isNullOrUndefined(TrafficSignType[obj.trafficSignType]) ? TrafficSignType.UNKNOWN : TrafficSignType[obj.trafficSignType]
+		} else {
+			this.type = TrafficSignType.UNKNOWN
+		}
 		this.isComplete = false
 		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficSignRenderingProperties.contourMaterial)
 		this.trafficSignMesh = new THREE.Mesh(new THREE.Geometry(), TrafficSignRenderingProperties.meshMaterial)
@@ -179,7 +183,7 @@ export class TrafficSign extends Annotation {
 		const data: TrafficSignJsonOutputInterface = {
 			annotationType: AnnotationType[AnnotationType.TRAFFIC_SIGN],
 			uuid: this.uuid,
-			trafficSignType: this.type,
+			trafficSignType: TrafficSignType[this.type],
 			markers: [],
 		}
 

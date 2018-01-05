@@ -14,7 +14,7 @@ import {
 } from 'annotator-entry-ui/annotations/AnnotationBase'
 import {
 	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds,
-	LaneJsonInputInterfaceV3, LaneJsonInputInterfaceV1, LaneType, LaneLineColor
+	LaneJsonInputInterfaceV3, LaneJsonInputInterfaceV1, LaneLineType, LaneEntryExitType
 } from 'annotator-entry-ui/annotations/Lane'
 import {TrafficSign, TrafficSignJsonInputInterface} from 'annotator-entry-ui/annotations/TrafficSign'
 import {Connection, ConnectionJsonInputInterface} from 'annotator-entry-ui/annotations/Connection'
@@ -985,17 +985,17 @@ export class AnnotationManager extends UtmInterface {
 						return {
 							annotationType: "LANE",
 							uuid: v1.uuid,
-							laneType: LaneType.UNKNOWN,
+							laneType: "UNKNOWN",
 							color: v1.color,
 							markers: v1.markerPositions,
 							waypoints: v1.waypoints,
 							neighborsIds: v1.neighborsIds,
-							leftLineType: v1.leftSideType,
-							leftLineColor: LaneLineColor.UNKNOWN,
-							rightLineType: v1.rightSideType,
-							rightLineColor: LaneLineColor.UNKNOWN,
-							entryType: v1.entryType,
-							exitType: v1.exitType,
+							leftLineType: LaneLineType[v1.leftSideType],
+							leftLineColor: "UNKNOWN",
+							rightLineType: LaneLineType[v1.rightSideType],
+							rightLineColor: "UNKNOWN",
+							entryType: LaneEntryExitType[v1.entryType],
+							exitType: LaneEntryExitType[v1.exitType],
 						} as LaneJsonInputInterfaceV3
 					})
 				}

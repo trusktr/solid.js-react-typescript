@@ -9,6 +9,7 @@ import {
 	AnnotationJsonOutputInterface, AnnotationJsonInputInterface,
 } from 'annotator-entry-ui/annotations/AnnotationBase'
 import {AnnotationType} from "./AnnotationType"
+import {isNullOrUndefined} from "util"
 
 // Some variables used for rendering
 
@@ -42,14 +43,14 @@ namespace ConnectionRenderingProperties {
 }
 
 export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterface {
-	connectionType: ConnectionType
+	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
 	waypoints: Array<THREE.Vector3>
 }
 
 export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInterface {
-	connectionType: ConnectionType
+	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
 	waypoints: Array<Object>
@@ -64,11 +65,16 @@ export class Connection extends Annotation {
 	connectionMesh: THREE.Mesh
 
 	constructor(obj?: ConnectionJsonInputInterface) {
-		super()
-		if (obj) this.uuid = obj.uuid
-		this.type = obj ? obj.connectionType : ConnectionType.UNKNOWN
-		this.startLaneUuid = obj ? obj.startLaneUuid : ""
-		this.endLaneUuid = obj ? obj.endLaneUuid : ""
+		super(obj)
+		if (obj) {
+			this.type = isNullOrUndefined(ConnectionType[obj.connectionType]) ? ConnectionType.UNKNOWN : ConnectionType[obj.connectionType]
+			this.startLaneUuid = obj.startLaneUuid
+			this.endLaneUuid = obj.endLaneUuid
+		} else {
+			this.type = ConnectionType.UNKNOWN
+			this.startLaneUuid = ""
+			this.endLaneUuid = ""
+		}
 		this.directionMarkers = []
 		this.waypoints = []
 		this.connectionMesh = new THREE.Mesh(new THREE.Geometry(), ConnectionRenderingProperties.activeMaterial)
@@ -164,7 +170,7 @@ export class Connection extends Annotation {
 		const data: ConnectionJsonOutputInterface = {
 			annotationType: AnnotationType[AnnotationType.CONNECTION],
 			uuid: this.uuid,
-			connectionType: this.type,
+			connectionType: ConnectionType[this.type],
 			startLaneUuid: this.startLaneUuid,
 			endLaneUuid: this.endLaneUuid,
 			markers: [],
