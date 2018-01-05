@@ -878,8 +878,17 @@ class Annotator {
 	private addLane(): void {
 		// Add lane to scene
 		if (this.addLaneAnnotation()) {
-			log.info("Added new annotation")
+			log.info("Added new lane annotation")
 			this.resetLaneProp()
+			this.hideTransform()
+		}
+	}
+
+	private addTrafficSign(): void {
+		// Add lane to scene
+		if (this.addTrafficSignAnnotation()) {
+			log.info("Added new traffic sign annotation")
+			this.resetTrafficSignProp()
 			this.hideTransform()
 		}
 	}
@@ -1118,10 +1127,22 @@ class Annotator {
 			log.warn('missing element lc_add')
 	}
 
+	private bindTrafficSignPropertiesPanel(): void {
+		const tpType = $('#tp_select_type')
+		tpType.on('change', _ => {
+			const activeAnnotation = this.annotationManager.getActiveAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding lane type: " + tpType.children("option").filter(":selected").text())
+			activeAnnotation.type = +tpType.val()
+		})
+	}
+
 	private bind(): void {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
 		this.bindRelationsPanel()
+		this.bindTrafficSignPropertiesPanel()
 
 		const menuButton = document.getElementById('menu_control_btn')
 		if (menuButton)
@@ -1152,13 +1173,21 @@ class Annotator {
 		else
 			log.warn('missing element tools_delete')
 
-		const toolsAdd = document.getElementById('tools_add')
-		if (toolsAdd)
-			toolsAdd.addEventListener('click', _ => {
+		const toolsAddLane = document.getElementById('tools_add_lane')
+		if (toolsAddLane)
+			toolsAddLane.addEventListener('click', _ => {
 				this.addLane()
 			})
 		else
-			log.warn('missing element tools_add')
+			log.warn('missing element tools_add_lane')
+
+		const toolsAddTrafficSign = document.getElementById('tools_add_traffic_sign')
+		if (toolsAddTrafficSign)
+			toolsAddTrafficSign.addEventListener('click', _ => {
+				this.addTrafficSign()
+			})
+		else
+			log.warn('missing element tools_add_traffic_sign')
 
 		const toolsLoad = document.getElementById('tools_load')
 		if (toolsLoad)
@@ -1322,6 +1351,26 @@ class Annotator {
 
 		const trShow = $('#tr_show')
 		trShow.removeAttr('disabled')
+	}
+
+	/**
+	 * Reset traffic sign properties elements based on the current active traffic sign
+	 */
+	private resetTrafficSignProp(): void  {
+		const activeAnnotation = this.annotationManager.getActiveAnnotation()
+		if (activeAnnotation === null) {
+			return
+		}
+
+		const tpId = document.getElementById('tp_id')
+		if (tpId)
+			tpId.textContent = activeAnnotation.id.toString()
+		else
+			log.warn('missing element tp_id')
+
+		const tpSelectType = $('#tp_select_type')
+		tpSelectType.removeAttr('disabled')
+		tpSelectType.val(activeAnnotation.type.toString())
 	}
 
 	/**

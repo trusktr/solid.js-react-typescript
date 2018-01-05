@@ -222,6 +222,14 @@ export class AnnotationManager extends UtmInterface {
 			return activeAnnotation as Lane
 	}
 
+	getActiveTrafficSignAnnotation(): Lane | null {
+		const activeAnnotation = this.getActiveAnnotation()
+		if (activeAnnotation === null || activeAnnotation.constructor.name !== Lane.name)
+			return null
+		else
+			return activeAnnotation as Lane
+	}
+
 	/**
 	 * Get all existing ids
 	 */
