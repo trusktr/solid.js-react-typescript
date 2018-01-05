@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {LaneSideType, LaneEntryExitType} from 'annotator-entry-ui/LaneAnnotation'
+import {LaneEntryExitType, LaneLineType} from "../annotator-entry-ui/annotations/Lane"
 
 // Get html elements
 ///////////////////////////////////////////////////////////////////////////////
@@ -32,8 +32,8 @@ const lpSelectsText = [
 	['unknown', 'continue ––»»»––', 'stop ––||––'],
 	['unknown', 'continue ––»»»––', 'stop ––||––']]
 const lpSelectValue = [
-	[LaneSideType.UNKNOWN.toString(), LaneSideType.SOLID.toString(), LaneSideType.BROKEN.toString()],
-	[LaneSideType.UNKNOWN.toString(), LaneSideType.SOLID.toString(), LaneSideType.BROKEN.toString()],
+	[LaneLineType.UNKNOWN.toString(), LaneLineType.SOLID.toString(), LaneLineType.DASHED.toString()],
+	[LaneLineType.UNKNOWN.toString(), LaneLineType.SOLID.toString(), LaneLineType.DASHED.toString()],
 	[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()],
 	[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()]]
 
