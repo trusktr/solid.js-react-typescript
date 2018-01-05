@@ -1,3 +1,5 @@
+import * as AsyncFile from "async-file";
+
 /**
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
@@ -7,7 +9,10 @@ const config = require('../config')
 import * as $ from 'jquery'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
-import {CoordinateFrameType} from "./geometry/CoordinateFrame"
+import {
+	convertToStandardCoordinateFrame, CoordinateFrameType,
+	cvtQuaternionToStandardCoordinateFrame
+} from "./geometry/CoordinateFrame"
 import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {AxesHelper} from "./controls/AxesHelper"
@@ -65,6 +70,13 @@ interface AnnotatorSettings {
 	drawBoundingBox: boolean
 }
 
+interface FlyThroughSettings {
+	startPoseIndex: number
+	endPoseIndex: number
+	currentPoseIndex: number
+	fps: number
+}
+
 interface UiState {
 	modelVisibility: ModelVisibility
 	isSuperTilesVisible: boolean
@@ -108,6 +120,8 @@ class Annotator {
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
+	private flythroughTrajectory: Models.TrajectoryMessage
+	private flythroughSettings: FlyThroughSettings
 	private gui: any
 
 	constructor() {
@@ -144,6 +158,12 @@ class Annotator {
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
 
+		this.flythroughSettings = {
+			startPoseIndex: 0,
+			endPoseIndex: 10000,
+			currentPoseIndex: 0,
+			fps: 10
+		}
 		// Initialize socket for use when "live mode" operation is on
 		this.initClient()
 	}
@@ -256,7 +276,18 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
 
+		// Live mode data
 		this.loadCarModel()
+
+		const trajectoryPath = config.get('live_mode.trajectory_path')
+		if (trajectoryPath) {
+			this.loadFlythroughTrajectory(trajectoryPath).then( msg => {
+				this.flythroughTrajectory = msg
+				if (this.flythroughSettings.endPoseIndex >= this.flythroughTrajectory.states.length) {
+					this.flythroughSettings.endPoseIndex = this.flythroughTrajectory.states.length
+				}
+			})
+		}
 
 		// Bind events
 		this.bind()
@@ -299,6 +330,50 @@ class Annotator {
 		if (this.stats) this.stats.update()
 		this.orbitControls.update()
 		this.transformControls.update()
+	}
+
+	private loadFlythroughTrajectory(filename: string): Promise<Models.TrajectoryMessage>  {
+		 return AsyncFile.readFile(filename)
+			.then(buffer => Models.TrajectoryMessage.decode(buffer))
+			.then(msg => {
+				log.info('Number of trajectory poses: ' + msg.states.length)
+				return msg
+			})
+	}
+
+	private runFlythrough(): void {
+		if (!this.uiState.isLiveMode) {
+			return
+		}
+
+		setTimeout(() => {
+			this.runFlythrough()
+		}, 1000 / this.flythroughSettings.fps)
+
+		if (this.flythroughSettings.currentPoseIndex >= this.flythroughSettings.endPoseIndex) {
+			this.flythroughSettings.currentPoseIndex = this.flythroughSettings.startPoseIndex
+		}
+		const state = this.flythroughTrajectory.states[this.flythroughSettings.currentPoseIndex]
+
+		// Move the car and the camera
+		if (
+			state && state.pose
+			&& state.pose.x !== null && state.pose.y !== null && state.pose.z !== null
+			&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
+		) {
+			const inputPosition = new THREE.Vector3(state.pose.x, state.pose.y, state.pose.z)
+			const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.LIDAR)
+			const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+			const inputRotation = new THREE.Quaternion(state.pose.q0, state.pose.q1, state.pose.q2, state.pose.q3)
+			const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.LIDAR)
+			const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
+			rotationThreeJs.normalize()
+
+			this.updateCarPose(positionThreeJs, rotationThreeJs)
+			this.updateCameraPose()
+		}
+
+		this.flythroughSettings.currentPoseIndex++
 	}
 
 	/**
@@ -1628,7 +1703,6 @@ class Annotator {
 			const scaleFactor = carLength / modelLength
 			this.carModel = object
 			this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
-			this.carModel.rotateY(1.5708)
 			this.carModel.visible = false
 			this.scene.add(object)
 		})
@@ -1697,6 +1771,10 @@ class Annotator {
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering / 2
+
+		this.flythroughSettings.currentPoseIndex = this.flythroughSettings.startPoseIndex
+		this.runFlythrough()
+
 		return this.uiState.isLiveMode
 	}
 
@@ -1744,11 +1822,10 @@ class Annotator {
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
 		this.carModel.position.set(position.x, position.y, position.z)
 		this.carModel.setRotationFromQuaternion(rotation)
-		// This is because the car model is rotated 90 degrees
-		this.carModel.rotateY(-1.5708)
+		this.carModel.rotateY(-3.14)
 		// Bring the model close to the ground (approx height of the sensors)
-		const p = this.carModel.getWorldPosition()
-		this.carModel.position.set(p.x, 0, p.z)
+		//const p = this.carModel.getWorldPosition()
+		//this.carModel.position.set(p.x, 0, p.z)
 	}
 
 	private updateCameraPose(): void {

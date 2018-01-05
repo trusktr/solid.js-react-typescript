@@ -9,6 +9,7 @@ export enum CoordinateFrameType {
 	CAMERA = 0, // [northing, -altitude, easting]
 	INERTIAL,   // [northing, easting, -altitude]
 	LIDAR,      // [northing, easting, altitude]
+	STANDARD,   // [easting, northing, altitude]
 }
 
 /**
@@ -26,7 +27,24 @@ export function convertToStandardCoordinateFrame(point: THREE.Vector3, pointCoor
 		case CoordinateFrameType.LIDAR:
 			// Raw input is [x: northing, y: easting, z: altitude]
 			return new THREE.Vector3(point.y, point.x, point.z)
+		case CoordinateFrameType.STANDARD:
+			return point
 		default:
 			throw Error(`unknown coordinate frame '${pointCoordinateFrame}'`)
+	}
+}
+
+export function cvtQuaternionToStandardCoordinateFrame(quaternion: THREE.Quaternion, inputCoordinateFrame: CoordinateFrameType): THREE.Quaternion {
+	switch (inputCoordinateFrame) {
+		case CoordinateFrameType.CAMERA:
+			return new THREE.Quaternion(quaternion.z, quaternion.x, -quaternion.y, quaternion.w)
+		case CoordinateFrameType.INERTIAL:
+			return new THREE.Quaternion(quaternion.y, quaternion.x, -quaternion.z, quaternion.w)
+		case CoordinateFrameType.LIDAR:
+			return new THREE.Quaternion(quaternion.y, quaternion.x, quaternion.z, quaternion.w)
+		case CoordinateFrameType.STANDARD:
+			return quaternion
+		default:
+			throw Error(`unknown coordinate frame '${inputCoordinateFrame}'`)
 	}
 }
