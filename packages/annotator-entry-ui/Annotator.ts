@@ -533,7 +533,15 @@ class Annotator {
 			if (index >= 0) {
 				this.cleanTransformControls()
 				this.annotationManager.changeActiveAnnotation(index, type)
-				this.resetLaneProp()
+
+				switch (type) {
+					case AnnotationType.LANE:
+						this.resetLaneProp()
+						break
+					case AnnotationType.TRAFFIC_SIGN:
+						this.resetTrafficSignProp()
+						break
+				}
 			}
 		}
 	}
@@ -736,7 +744,7 @@ class Annotator {
 					break
 				}
 				case 'KeyT': {
-					this.addTrafficSignAnnotation()
+					this.addTrafficSign()
 					break
 				}
 				case 'KeyU': {
@@ -1130,10 +1138,10 @@ class Annotator {
 	private bindTrafficSignPropertiesPanel(): void {
 		const tpType = $('#tp_select_type')
 		tpType.on('change', _ => {
-			const activeAnnotation = this.annotationManager.getActiveAnnotation()
+			const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
 			if (activeAnnotation === null)
 				return
-			log.info("Adding lane type: " + tpType.children("option").filter(":selected").text())
+			log.info("Adding traffic sign type: " + tpType.children("option").filter(":selected").text())
 			activeAnnotation.type = +tpType.val()
 		})
 	}
@@ -1357,16 +1365,16 @@ class Annotator {
 	 * Reset traffic sign properties elements based on the current active traffic sign
 	 */
 	private resetTrafficSignProp(): void  {
-		const activeAnnotation = this.annotationManager.getActiveAnnotation()
+		const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
 		if (activeAnnotation === null) {
 			return
 		}
 
-		const tpId = document.getElementById('tp_id')
+		const tpId = document.getElementById('tp_id_value')
 		if (tpId)
 			tpId.textContent = activeAnnotation.id.toString()
 		else
-			log.warn('missing element tp_id')
+			log.warn('missing element tp_id_value')
 
 		const tpSelectType = $('#tp_select_type')
 		tpSelectType.removeAttr('disabled')
