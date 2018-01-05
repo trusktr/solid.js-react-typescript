@@ -48,6 +48,13 @@ enum MenuVisibility {
 	TOGGLE
 }
 
+enum ModelVisibility {
+	ALL_VISIBLE = 0,
+	HIDE_SUPER_TILES,
+	HIDE_SUPER_TILES_AND_POINT_CLOUD,
+	HIDE_SUPER_TILES_AND_ANNOTATIONS,
+}
+
 interface AnnotatorSettings {
 	background: string
 	cameraOffset: THREE.Vector3
@@ -58,12 +65,26 @@ interface AnnotatorSettings {
 	drawBoundingBox: boolean
 }
 
+interface UiState {
+	modelVisibility: ModelVisibility
+	isSuperTilesVisible: boolean
+	isPointCloudVisible: boolean
+	isAnnotationsVisible: boolean
+	isAddMarkerKeyPressed: boolean
+	isAddTrafficSignMarkerKeyPressed: boolean
+	isLastTrafficSignMarkerKeyPressed: boolean
+	isMouseButtonPressed: boolean
+	numberKeyPressed: number | null
+	isLiveMode: boolean
+}
+
 /**
  * The Annotator class is in charge of rendering the 3d Scene that includes the point clouds
  * and the annotations. It also handles the mouse and keyboard events needed to select
  * and modify the annotations.
  */
 class Annotator {
+	private uiState: UiState
 	private scene: THREE.Scene
 	private camera: THREE.PerspectiveCamera
 	private renderer: THREE.WebGLRenderer
@@ -84,24 +105,12 @@ class Annotator {
 	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
 	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
 	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
-	private isAddMarkerKeyPressed: boolean
-	private isAddTrafficSignMarkerKeyPressed: boolean
-	private isLastTrafficSignMarkerKeyPressed: boolean
-	private isMouseButtonPressed: boolean
-	private numberKeyPressed: number | null
-	private isLiveMode: boolean
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
 	private gui: any
 
 	constructor() {
-		this.isAddMarkerKeyPressed = false
-		this.isAddTrafficSignMarkerKeyPressed = false
-		this.isLastTrafficSignMarkerKeyPressed = false
-		this.numberKeyPressed = null
-		this.isMouseButtonPressed = false
-
 		this.settings = {
 			background: config.get('startup.background_color') || '#082839',
 			cameraOffset: new THREE.Vector3(40, 120, 40),
@@ -112,6 +121,18 @@ class Annotator {
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
 		}
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
+		this.uiState = {
+			modelVisibility: ModelVisibility.ALL_VISIBLE,
+			isSuperTilesVisible: true,
+			isPointCloudVisible: true,
+			isAnnotationsVisible: true,
+			isAddMarkerKeyPressed: false,
+			isAddTrafficSignMarkerKeyPressed: false,
+			isLastTrafficSignMarkerKeyPressed: false,
+			isMouseButtonPressed: false,
+			numberKeyPressed: null,
+			isLiveMode: false,
+		}
 		this.hovered = null
 		this.raycasterPlane = new THREE.Raycaster()
 		this.raycasterPlane.params.Points!.threshold = 0.1
@@ -122,8 +143,6 @@ class Annotator {
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
-
-		this.isLiveMode = false
 
 		// Initialize socket for use when "live mode" operation is on
 		this.initClient()
@@ -180,6 +199,9 @@ class Annotator {
 		// to work in response to a menu, panel or keyboard event.
 		this.annotationManager = new AnnotationManager()
 
+		// Point cloud is empty. It will be populated later.
+		this.scene.add(this.tileManager.pointCloud)
+
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
 		this.renderer.setClearColor(new THREE.Color(this.settings.background))
@@ -231,8 +253,8 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
-		this.renderer.domElement.addEventListener('mouseup', () => {this.isMouseButtonPressed = false})
-		this.renderer.domElement.addEventListener('mousedown', () => {this.isMouseButtonPressed = true})
+		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
+		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
 
 		this.loadCarModel()
 
@@ -343,11 +365,12 @@ class Annotator {
 	 */
 	private loadPointCloudData(pathToTiles: string): Promise<void> {
 		log.info('loading dataset')
+		if (!this.uiState.isPointCloudVisible)
+			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR)
 			.then(() => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
-				this.scene.add(this.tileManager.pointCloud)
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(true)
@@ -356,6 +379,8 @@ class Annotator {
 
 	// Incrementally load the point cloud for a single super tile.
 	private loadSuperTileData(superTile: SuperTile): void {
+		if (!this.uiState.isPointCloudVisible)
+			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		this.tileManager.loadFromSuperTile(superTile)
 			.then(() => {
 				this.updatePointCloudBoundingBox()
@@ -376,7 +401,7 @@ class Annotator {
 	private renderEmptySuperTiles(): void {
 		this.tileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
 
-		if (this.isLiveMode)
+		if (this.uiState.isLiveMode)
 			this.hideSuperTiles()
 	}
 
@@ -390,7 +415,7 @@ class Annotator {
 			const size = superTile.threeJsBoundingBox.getSize()
 			const center = superTile.threeJsBoundingBox.getCenter()
 			const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
-			const material = new THREE.MeshBasicMaterial({color: 0xffaa00, wireframe: true})
+			const material = new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true})
 			const box = new THREE.Mesh(geometry, material)
 			box.geometry.translate(center.x, center.y, center.z)
 			box.userData = superTile
@@ -402,10 +427,12 @@ class Annotator {
 	private hideSuperTiles(): void {
 		this.unHighlightSuperTileBox()
 		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = false)
+		this.uiState.isSuperTilesVisible = false
 	}
 
 	private showSuperTiles(): void {
 		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = true)
+		this.uiState.isSuperTilesVisible = true
 	}
 
 	// Draw a box around the data. Useful for debugging.
@@ -426,6 +453,8 @@ class Annotator {
 	private async loadAnnotations(fileName: string): Promise<void> {
 		try {
 			log.info('Loading annotations')
+			if (!this.uiState.isAnnotationsVisible)
+				this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 			const focalPoint = await this.annotationManager.loadAnnotationsFromFile(fileName, this.scene)
 			if (!this.tileManager.setOriginWithInterface(this.annotationManager)) {
 				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
@@ -483,7 +512,7 @@ class Annotator {
 	 * the "a" key, drop a lane marker.
 	 */
 	private addLaneAnnotationMarker = (event: MouseEvent): void => {
-		if (this.isAddMarkerKeyPressed === false) {
+		if (this.uiState.isAddMarkerKeyPressed === false) {
 			return
 		}
 
@@ -503,7 +532,7 @@ class Annotator {
 	}
 
 	private addTrafficSignAnnotationMarker = (event: MouseEvent): void => {
-		if (this.isAddTrafficSignMarkerKeyPressed === false && this.isLastTrafficSignMarkerKeyPressed === false) {
+		if (this.uiState.isAddTrafficSignMarkerKeyPressed === false && this.uiState.isLastTrafficSignMarkerKeyPressed === false) {
 			return
 		}
 
@@ -512,7 +541,7 @@ class Annotator {
 		let intersections = this.raycasterPlane.intersectObject(this.tileManager.pointCloud)
 
 		if (intersections.length > 0) {
-			this.annotationManager.addTrafficSignMarker(intersections[0].point, this.isLastTrafficSignMarkerKeyPressed)
+			this.annotationManager.addTrafficSignMarker(intersections[0].point, this.uiState.isLastTrafficSignMarkerKeyPressed)
 		}
 	}
 
@@ -520,7 +549,7 @@ class Annotator {
 	 * Check if we clicked an annotation. If so, make it active for editing
 	 */
 	private checkForAnnotationSelection = (event: MouseEvent): void => {
-		if (this.isLiveMode) return
+		if (this.uiState.isLiveMode) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
@@ -554,7 +583,7 @@ class Annotator {
 	private checkForActiveMarker = (event: MouseEvent): void => {
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
-		if (this.isMouseButtonPressed) {
+		if (this.uiState.isMouseButtonPressed) {
 			return
 		}
 		const mouse = this.getMouseCoordinates(event)
@@ -567,10 +596,10 @@ class Annotator {
 				this.cleanTransformControls()
 
 				let moveableMarkers: Array<THREE.Mesh>
-				if (this.numberKeyPressed === null) {
+				if (this.uiState.numberKeyPressed === null) {
 					moveableMarkers = [marker]
 				} else {
-					const neighbors = this.annotationManager.neighboringLaneMarkers(marker, this.numberKeyPressed)
+					const neighbors = this.annotationManager.neighboringLaneMarkers(marker, this.uiState.numberKeyPressed)
 					this.annotationManager.highlightMarkers(neighbors)
 					neighbors.unshift(marker)
 					moveableMarkers = neighbors
@@ -593,9 +622,10 @@ class Annotator {
 	}
 
 	private checkForSuperTileSelection = (event: MouseEvent): void => {
-		if (this.isLiveMode) return
-		if (this.isMouseButtonPressed) return
-		if (this.isAddMarkerKeyPressed) return
+		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseButtonPressed) return
+		if (this.uiState.isAddMarkerKeyPressed) return
+		if (!this.uiState.isSuperTilesVisible) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
@@ -615,8 +645,9 @@ class Annotator {
 	}
 
 	private clickSuperTileBox = (event: MouseEvent): void => {
-		if (this.isLiveMode) return
+		if (this.uiState.isLiveMode) return
 		if (!this.highlightedSuperTileBox) return
+		if (!this.uiState.isSuperTilesVisible) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
@@ -633,7 +664,7 @@ class Annotator {
 
 	// Draw the box in a more solid form to indicate that it is active.
 	private highlightSuperTileBox(superTileBox: THREE.Mesh): void {
-		if (this.isLiveMode) return
+		if (this.uiState.isLiveMode) return
 
 		const material = superTileBox.material as THREE.MeshBasicMaterial
 		material.wireframe = false
@@ -686,11 +717,11 @@ class Annotator {
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
-			this.numberKeyPressed = parseInt(event.key, 10)
+			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else
 			switch (event.code) {
 				case 'KeyA': {
-					this.isAddMarkerKeyPressed = true
+					this.uiState.isAddMarkerKeyPressed = true
 					break
 				}
 				case 'KeyC': {
@@ -713,6 +744,10 @@ class Annotator {
 				}
 				case 'KeyF': {
 					this.addFront()
+					break
+				}
+				case 'KeyH': {
+					this.toggleModelVisibility()
 					break
 				}
 				case 'KeyL': {
@@ -753,11 +788,11 @@ class Annotator {
 					break
 				}
 				case 'KeyQ': {
-					this.isAddTrafficSignMarkerKeyPressed = true
+					this.uiState.isAddTrafficSignMarkerKeyPressed = true
 					break
 				}
 				case 'KeyW': {
-					this.isLastTrafficSignMarkerKeyPressed = true
+					this.uiState.isLastTrafficSignMarkerKeyPressed = true
 					break
 				}
 				default:
@@ -766,10 +801,10 @@ class Annotator {
 	}
 
 	private onKeyUp = (): void => {
-		this.isAddMarkerKeyPressed = false
-		this.isAddTrafficSignMarkerKeyPressed = false
-		this.isLastTrafficSignMarkerKeyPressed = false
-		this.numberKeyPressed = null
+		this.uiState.isAddMarkerKeyPressed = false
+		this.uiState.isAddTrafficSignMarkerKeyPressed = false
+		this.uiState.isLastTrafficSignMarkerKeyPressed = false
+		this.uiState.numberKeyPressed = null
 	}
 
 	private saveAnnotations(): Promise<void> {
@@ -1156,7 +1191,7 @@ class Annotator {
 		const menuButton = document.getElementById('menu_control_btn')
 		if (menuButton)
 			menuButton.addEventListener('click', _ => {
-				if (this.isLiveMode) {
+				if (this.uiState.isLiveMode) {
 					log.info("Disable live location mode first to access the menu.")
 				} else {
 					log.info("Menu icon clicked. Close/Open menu bar.")
@@ -1514,6 +1549,73 @@ class Annotator {
 			log.warn('missing element lp_add_forward')
 	}
 
+	// In normal edit mode, toggles through the states defined in ModelVisibility:
+	// - all visible
+	// - super tile wire frames hidden
+	// - super tile wire frames hidden; point cloud hidden
+	// - super tile wire frames hidden; annotations hidden
+	private toggleModelVisibility(): void {
+		let newState = this.uiState.modelVisibility + 1
+		if (!ModelVisibility[newState])
+			newState = ModelVisibility.ALL_VISIBLE
+		this.setModelVisibility(newState)
+	}
+
+	private setModelVisibility(newState: ModelVisibility): void {
+		if (this.uiState.isLiveMode) return
+
+		this.uiState.modelVisibility = newState
+		switch (this.uiState.modelVisibility) {
+			case ModelVisibility.HIDE_SUPER_TILES:
+				log.info('hiding super tiles')
+				this.hideSuperTiles()
+				this.showPointCloud()
+				this.showAnnotations()
+				break
+			case ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD:
+				log.info('hiding point cloud')
+				this.hideSuperTiles()
+				this.hidePointCloud()
+				this.showAnnotations()
+				break
+			case ModelVisibility.HIDE_SUPER_TILES_AND_ANNOTATIONS:
+				log.info('hiding annotations')
+				this.hideSuperTiles()
+				this.showPointCloud()
+				this.hideAnnotations()
+				break
+			default:
+				this.showSuperTiles()
+				this.showPointCloud()
+				this.showAnnotations()
+				break
+		}
+	}
+
+	private hidePointCloud(): void {
+		this.scene.remove(this.tileManager.pointCloud)
+		if (this.pointCloudBoundingBox)
+			this.scene.remove(this.pointCloudBoundingBox)
+		this.uiState.isPointCloudVisible = false
+	}
+
+	private showPointCloud(): void {
+		this.scene.add(this.tileManager.pointCloud)
+		if (this.pointCloudBoundingBox)
+			this.scene.add(this.pointCloudBoundingBox)
+		this.uiState.isPointCloudVisible = true
+	}
+
+	private hideAnnotations(): void {
+		// this.annotationManager.hideAnnotations() // todo
+		this.uiState.isAnnotationsVisible = false
+	}
+
+	private showAnnotations(): void {
+		// this.annotationManager.showAnnotations() // todo
+		this.uiState.isAnnotationsVisible = true
+	}
+
 	private loadCarModel(): void {
 		const manager = new THREE.LoadingManager()
 		const loader = new (THREE as any).OBJLoader(manager)
@@ -1536,7 +1638,7 @@ class Annotator {
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
-			if (!this.isLiveMode) return
+			if (!this.uiState.isLiveMode) return
 
 			const state = Models.InertialStateMessage.decode(msg)
 			if (
@@ -1568,7 +1670,7 @@ class Annotator {
 	 */
 	private toggleListen(): void {
 		let hideMenu
-		if (this.isLiveMode) {
+		if (this.uiState.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
 			hideMenu = this.stopListening()
 		} else {
@@ -1579,10 +1681,11 @@ class Annotator {
 	}
 
 	private listen(): boolean {
-		if (this.isLiveMode) return this.isLiveMode
+		if (this.uiState.isLiveMode) return this.uiState.isLiveMode
 
 		log.info('Listening for messages...')
-		this.isLiveMode = true
+		this.uiState.isLiveMode = true
+		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
 			this.scene.remove(this.axis)
 		this.plane.visible = false
@@ -1594,14 +1697,15 @@ class Annotator {
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering / 2
-		return this.isLiveMode
+		return this.uiState.isLiveMode
 	}
 
 	private stopListening(): boolean {
-		if (!this.isLiveMode) return this.isLiveMode
+		if (!this.uiState.isLiveMode) return this.uiState.isLiveMode
 
 		log.info('Stopped listening for messages...')
-		this.isLiveMode = false
+		this.uiState.isLiveMode = false
+		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
 			this.scene.add(this.axis)
 		this.plane.visible = true
@@ -1613,7 +1717,7 @@ class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
-		return this.isLiveMode
+		return this.uiState.isLiveMode
 	}
 
 	// Show or hide the menu as requested.
