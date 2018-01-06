@@ -447,7 +447,6 @@ class Annotator {
 			.then(() => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
-				this.scene.add(this.tileManager.pointCloud)
 				this.tileManager.generateVoxels()
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
