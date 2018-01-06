@@ -448,6 +448,7 @@ class Annotator {
 			.then(() => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
+				this.tileManager.generateVoxels()
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(true)
@@ -1772,9 +1773,17 @@ class Annotator {
 		let hideMenu
 		if (this.uiState.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
+			this.scene.add(this.tileManager.pointCloud)
+			this.tileManager.voxelsMeshGroup.forEach( mesh => {
+				this.scene.remove(mesh)
+			})
 			hideMenu = this.stopListening()
 		} else {
 			this.annotationManager.setLiveMode()
+			this.scene.remove(this.tileManager.pointCloud)
+			this.tileManager.voxelsMeshGroup.forEach( mesh => {
+				this.scene.add(mesh)
+			})
 			hideMenu = this.listen()
 		}
 		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
