@@ -337,7 +337,7 @@ export class Lane extends Annotation {
 		this.updateLaneWidth()
 
 		// There is no mesh or side lines to compute if we don't have enough markers
-		if (this.markers.length < 4) {
+		if (this.isValid()) {
 			return
 		}
 
