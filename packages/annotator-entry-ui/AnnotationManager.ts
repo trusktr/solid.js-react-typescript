@@ -9,8 +9,8 @@ import {isNullOrUndefined} from "util"
 import * as THREE from 'three'
 import {AnnotationType} from "./annotations/AnnotationType"
 import {
-	AnnotationId, AnnotationJsonInputInterface, AnnotationJsonOutputInterface,
-	AnnotationUuid
+	Annotation, AnnotationId, AnnotationJsonInputInterface,
+	AnnotationJsonOutputInterface, AnnotationUuid
 } from 'annotator-entry-ui/annotations/AnnotationBase'
 import {
 	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds,
@@ -1138,9 +1138,13 @@ export class AnnotationManager extends UtmInterface {
 			annotations: [],
 		}
 
-		data.annotations = data.annotations.concat(this.laneAnnotations.map(a => a.toJSON(pointConverter)))
-		data.annotations = data.annotations.concat(this.connectionAnnotations.map(a => a.toJSON(pointConverter)))
-		data.annotations = data.annotations.concat(this.trafficSignAnnotations.map(a => a.toJSON(pointConverter)))
+		let allAnnotations: Annotation[] = []
+		allAnnotations = allAnnotations.concat(this.laneAnnotations)
+		allAnnotations = allAnnotations.concat(this.connectionAnnotations)
+		allAnnotations = allAnnotations.concat(this.trafficSignAnnotations)
+		data.annotations = allAnnotations
+			.filter(a => a.hasMarkers())
+			.map(a => a.toJSON(pointConverter))
 
 		return data
 	}
