@@ -133,11 +133,14 @@ export class TileManager extends UtmInterface {
 	// All points are stored with reference to UTM origin and offset,
 	// but using the local coordinate system which has different axes.
 	pointCloud: THREE.Points
+	voxelsMeshGroup: Array<THREE.Mesh>
+	voxelsDictionary: Set<THREE.Vector3>
+	voxelSize: number
 	private onSuperTileUnload: (superTile: SuperTile) => void
 	private initialSuperTilesToLoad: number // preload some super tiles; initially we don't know how many points they will contain
 	private maximumPointsToLoad: number // after loading super tiles we can trim them back by point count
 	private samplingStep: number
-
+ 
 	constructor(onSuperTileUnload: (superTile: SuperTile) => void) {
 		super()
 		this.storage = new LocalStorage()
@@ -150,6 +153,9 @@ export class TileManager extends UtmInterface {
 			new THREE.BufferGeometry(),
 			new THREE.PointsMaterial({size: pointsSize, vertexColors: THREE.VertexColors})
 		)
+		this.voxelsMeshGroup = []
+		this.voxelsDictionary = new Set<THREE.Vector3>()
+		this.voxelSize = 0.3
 		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
 		this.maximumPointsToLoad = parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000
 		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
@@ -221,6 +227,114 @@ export class TileManager extends UtmInterface {
 		this.pointCloud.geometry = newGeometry
 		this.hasGeometry = true // Wouldn't it be nice if BufferGeometry had a method to do this?
 		oldGeometry.dispose() // There is a vague and scary note in the docs about doing this, so here we go.
+	}
+
+	/**
+     * Create voxels geometry given a list of indices for the occupied voxels
+     */
+    generateVoxels(): void {
+
+    	log.warn(`There are ${this.voxelsDictionary.size} voxels. Start creating them....`)
+
+		// Voxel params
+		let voxelSizeForRender = 0.9 * this.voxelSize
+		let maxVoxelsPerArray: number = 100000
+
+		// Voxels buffers
+    	const allPositions = new Array<Array<number>>()
+		let positions: Array<number> = []
+
+		// Generate voxels
+		let count: number = 0
+		let voxelIndex: THREE.Vector3
+		for (voxelIndex of this.voxelsDictionary) {
+
+			if (count % maxVoxelsPerArray === 0) {
+				positions = new Array<number>()
+				allPositions.push(positions)
+				log.warn(`Processing voxel ${count}`)
+			}
+			count++
+
+			let p11 = voxelIndex.clone()
+			p11.multiplyScalar(this.voxelSize)
+			let p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
+			let p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
+			let p14 = new THREE.Vector3(p11.x, (p11.y + voxelSizeForRender), p11.z)
+
+			let p21 = new THREE.Vector3(p11.x, p11.y, (p11.z + voxelSizeForRender))
+			let p22 = new THREE.Vector3(p12.x, p12.y, (p12.z + voxelSizeForRender))
+			let p23 = new THREE.Vector3(p13.x, p13.y, (p13.z + voxelSizeForRender))
+			let p24 = new THREE.Vector3(p14.x, p14.y, (p14.z + voxelSizeForRender))
+
+			// Top
+			positions.push(p11.x, p11.y, p11.z)
+			positions.push(p12.x, p12.y, p12.z)
+			positions.push(p13.x, p13.y, p13.z)
+
+			positions.push(p11.x, p11.y, p11.z)
+			positions.push(p13.x, p13.y, p13.z)
+			positions.push(p14.x, p14.y, p14.z)
+
+			// Bottom
+			positions.push(p21.x, p21.y, p21.z)
+			positions.push(p22.x, p22.y, p22.z)
+			positions.push(p23.x, p23.y, p23.z)
+
+			positions.push(p21.x, p21.y, p21.z)
+			positions.push(p23.x, p23.y, p23.z)
+			positions.push(p24.x, p24.y, p24.z)
+
+			// Side 1
+			positions.push(p11.x, p11.y, p11.z)
+			positions.push(p12.x, p12.y, p12.z)
+			positions.push(p22.x, p22.y, p22.z)
+
+			positions.push(p11.x, p11.y, p11.z)
+			positions.push(p22.x, p22.y, p22.z)
+			positions.push(p21.x, p21.y, p21.z)
+
+			// Side 2
+			positions.push(p12.x, p12.y, p12.z)
+			positions.push(p13.x, p13.y, p13.z)
+			positions.push(p23.x, p23.y, p23.z)
+
+			positions.push(p12.x, p12.y, p12.z)
+			positions.push(p23.x, p23.y, p23.z)
+			positions.push(p22.x, p22.y, p22.z)
+
+			// Side 3
+			positions.push(p13.x, p13.y, p13.z)
+			positions.push(p14.x, p14.y, p14.z)
+			positions.push(p24.x, p24.y, p24.z)
+
+			positions.push(p13.x, p13.y, p13.z)
+			positions.push(p24.x, p24.y, p24.z)
+			positions.push(p23.x, p23.y, p23.z)
+
+			// Side 4
+			positions.push(p14.x, p14.y, p14.z)
+			positions.push(p11.x, p11.y, p11.z)
+			positions.push(p21.x, p21.y, p21.z)
+
+			positions.push(p14.x, p14.y, p14.z)
+			positions.push(p21.x, p21.y, p21.z)
+			positions.push(p24.x, p24.y, p24.z)
+		}
+		log.warn('Done generating voxels.')
+
+		log.warn('Add them to the mesh....')
+		for (let j = 0; j < allPositions.length; j++) {
+			let floatBuffer = new THREE.Float32BufferAttribute(allPositions[j], 3)
+			let buffer = new THREE.BufferGeometry()
+			buffer.addAttribute('position', floatBuffer);
+			let voxelsMesh = new THREE.Mesh(buffer, new THREE.MeshLambertMaterial({
+				color: new THREE.Color(1, 1, 1),
+				side: THREE.DoubleSide
+			}))
+			this.voxelsMeshGroup.push(voxelsMesh)
+		}
+		log.warn('Done adding them to the mesh.')
 	}
 
 	/**
@@ -349,6 +463,7 @@ export class TileManager extends UtmInterface {
 			newPositions[i] = threePoint.x
 			newPositions[i + 1] = threePoint.y
 			newPositions[i + 2] = threePoint.z
+			this.voxelsDictionary.add(threePoint.divideScalar(this.voxelSize).floor())
 		}
 
 		return newPositions
