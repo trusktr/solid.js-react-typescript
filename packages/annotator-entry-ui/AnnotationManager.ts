@@ -119,7 +119,17 @@ export class AnnotationManager extends UtmInterface {
 	addLaneAnnotation(scene: THREE.Scene, obj?: LaneJsonInputInterfaceV3): THREE.Box3 | null {
 		if (this.isLiveMode) return null
 
-		this.laneAnnotations.push(new Lane(obj))
+		if (obj) {
+			const newAnnotation = new Lane(obj)
+			if (!newAnnotation.markers.length)
+				return null
+			if (this.laneAnnotations.some(a => a.uuid === newAnnotation.uuid))
+				return null
+			this.laneAnnotations.push(newAnnotation)
+		} else {
+			this.laneAnnotations.push(new Lane())
+		}
+
 		const newAnnotationIndex = this.laneAnnotations.length - 1
 		const mesh = this.laneAnnotations[newAnnotationIndex].laneMesh
 		this.annotationMeshes.push(mesh)
@@ -132,7 +142,17 @@ export class AnnotationManager extends UtmInterface {
 	addTrafficSignAnnotation(scene: THREE.Scene, obj?: TrafficSignJsonInputInterface): THREE.Box3 | null {
 		if (this.isLiveMode) return null
 
-		this.trafficSignAnnotations.push(new TrafficSign(obj))
+		if (obj) {
+			const newAnnotation = new TrafficSign(obj)
+			if (!newAnnotation.markers.length)
+				return null
+			if (this.trafficSignAnnotations.some(a => a.uuid === newAnnotation.uuid))
+				return null
+			this.trafficSignAnnotations.push(newAnnotation)
+		} else {
+			this.trafficSignAnnotations.push(new TrafficSign())
+		}
+
 		const newAnnotationIndex = this.trafficSignAnnotations.length - 1
 		const mesh = this.trafficSignAnnotations[newAnnotationIndex].trafficSignMesh
 		this.annotationMeshes.push(mesh)
@@ -145,7 +165,17 @@ export class AnnotationManager extends UtmInterface {
 	addConnectionAnnotation(scene: THREE.Scene, obj?: ConnectionJsonInputInterface): THREE.Box3 | null {
 		if (this.isLiveMode) return null
 
-		this.connectionAnnotations.push(new Connection(obj))
+		if (obj) {
+			const newAnnotation = new Connection(obj)
+			if (!newAnnotation.markers.length)
+				return null
+			if (this.connectionAnnotations.some(a => a.uuid === newAnnotation.uuid))
+				return null
+			this.connectionAnnotations.push(newAnnotation)
+		} else {
+			this.connectionAnnotations.push(new Connection())
+		}
+
 		const newAnnotationIndex = this.connectionAnnotations.length - 1
 		const mesh = this.connectionAnnotations[newAnnotationIndex].connectionMesh
 		this.annotationMeshes.push(mesh)
@@ -1004,6 +1034,7 @@ export class AnnotationManager extends UtmInterface {
 					self.convertCoordinates(data)
 					let boundingBox = new THREE.Box3()
 					// Each element is an annotation
+					let invalid = 0
 					data['annotations'].forEach((element: AnnotationJsonInputInterface) => {
 						const annotationType = AnnotationType[element.annotationType]
 						let box: THREE.Box3 | null = null
@@ -1020,8 +1051,13 @@ export class AnnotationManager extends UtmInterface {
 							default:
 								log.warn(`discarding annotation with invalid type ${element.annotationType}`)
 						}
-						if (box) boundingBox = boundingBox.union(box)
+						if (box)
+							boundingBox = boundingBox.union(box)
+						else
+							invalid++
 					})
+					if (invalid)
+						log.warn(`discarding ${invalid} invalid annotations`)
 					self.metadataState.clean()
 					if (boundingBox.isEmpty()) {
 						resolve(null)
