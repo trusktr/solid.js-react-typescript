@@ -144,7 +144,7 @@ export class TileManager extends UtmInterface {
 		this.onSuperTileUnload = onSuperTileUnload
 		this.hasGeometry = false
 		this.superTiles = OrderedMap()
-		this.setLoadedSuperTileKeys(OrderedSet())
+		this.loadedSuperTileKeys = OrderedSet()
 		const pointsSize = parseFloat(config.get('annotator.point_render_size')) || 1
 		this.pointCloud = new THREE.Points(
 			new THREE.BufferGeometry(),
@@ -172,8 +172,7 @@ export class TileManager extends UtmInterface {
 	}
 
 	private setSuperTilesPreference(): void {
-		if (!this.loadedSuperTileKeys.isEmpty())
-			this.storage.setItem(loadedSuperTileKeysKey, JSON.stringify(this.loadedSuperTileKeys.toArray()))
+		this.storage.setItem(loadedSuperTileKeysKey, JSON.stringify(this.loadedSuperTileKeys.toArray()))
 	}
 
 	private getSuperTilesPreference(): Option<OrderedSet<string>> {
