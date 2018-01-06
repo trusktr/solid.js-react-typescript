@@ -227,7 +227,7 @@ THREE.TransformGizmo.prototype.update = function (rotation: Euler, eye: Vector3)
 
 }
 
-THREE.TransformGizmoTranslate = function (): void {
+THREE.TransformGizmoTranslate = function (enableThreeAxisTranslation: boolean): void {
 
 	THREE.TransformGizmo.call(this)
 
@@ -264,13 +264,6 @@ THREE.TransformGizmoTranslate = function (): void {
 			[new THREE.Line(lineZGeometry, new GizmoLineMaterial({color: 0x0000ff}))]
 		],
 
-		XYZ: [
-			[new THREE.Mesh(new THREE.OctahedronGeometry(0.1, 0), new GizmoMaterial({
-				color: 0xffffff,
-				opacity: 0.25
-			})), [0, 0, 0], [0, 0, 0]]
-		],
-
 		XY: [
 			[new THREE.Mesh(new THREE.PlaneBufferGeometry(0.29, 0.29), new GizmoMaterial({
 				color: 0xffff00,
@@ -292,6 +285,15 @@ THREE.TransformGizmoTranslate = function (): void {
 			})), [0.15, 0, 0.15], [-Math.PI / 2, 0, 0]]
 		]
 
+	}
+
+	if (enableThreeAxisTranslation) {
+		this.handleGizmos['XYZ'] = [
+			[new THREE.Mesh(new THREE.OctahedronGeometry(0.1, 0), new GizmoMaterial({
+				color: 0xffffff,
+				opacity: 0.25
+			})), [0, 0, 0], [0, 0, 0]]
+		]
 	}
 
 	this.pickerGizmos = {
@@ -618,7 +620,7 @@ THREE.TransformGizmoScale = function () {
 THREE.TransformGizmoScale.prototype = Object.create(THREE.TransformGizmo.prototype)
 THREE.TransformGizmoScale.prototype.constructor = THREE.TransformGizmoScale
 
-THREE.TransformControls = function (camera: any, domElement: any) {
+THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxisTranslation: boolean) {
 
 	THREE.Object3D.call(this)
 
@@ -638,7 +640,7 @@ THREE.TransformControls = function (camera: any, domElement: any) {
 	let _dragging = false
 	const _gizmo = {
 
-		"translate": new THREE.TransformGizmoTranslate(),
+		"translate": new THREE.TransformGizmoTranslate(enableThreeAxisTranslation),
 		"rotate": new THREE.TransformGizmoRotate(),
 		"scale": new THREE.TransformGizmoScale()
 	}
