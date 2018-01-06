@@ -199,8 +199,8 @@ export class Lane extends Annotation {
 		this.renderingProperties = new LaneRenderingProperties(color)
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
-		this.laneLeftLine = new THREE.Line()
-		this.laneRightLine = new THREE.Line()
+		this.laneLeftLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
+		this.laneRightLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
 		this.laneDirectionMarkers = []
 		this.waypoints = []
 		this.inTrajectory = false
@@ -338,8 +338,8 @@ export class Lane extends Annotation {
 		}
 
 		// Update side lines first
-		this.updateLaneSideLinesGeometry()
 		this.updateLaneSideLinesMaterial()
+		this.updateLaneSideLinesGeometry()
 
 		// Update lane mesh
 		const newGeometry = new THREE.Geometry()
@@ -561,7 +561,7 @@ export class Lane extends Annotation {
 		const centerPoints = spline.getPoints(100)
 		for (let i = 0; i < centerPoints.length; i++) {
 			lineGeometry.vertices[i] = centerPoints[i]
-			lineGeometry.vertices[i].y += 0.05
+			lineGeometry.vertices[i].y += 0.02
 		}
 		lineGeometry.computeLineDistances()
 		this.laneCenterLine.geometry = lineGeometry
@@ -611,7 +611,7 @@ export class Lane extends Annotation {
 		this.laneCenterLine.visible = false
 		this.laneRightLine.visible = false
 		this.laneLeftLine.visible = false
-		this.renderingProperties.liveModeMaterial.color.setHex(0xffc300)
+		this.renderingProperties.liveModeMaterial.color.setHex(0xffaa00)
 	}
 
 	private setParkingLiveModeRendering(): void {
@@ -620,7 +620,7 @@ export class Lane extends Annotation {
 		this.laneCenterLine.visible = false
 		this.laneRightLine.visible = false
 		this.laneLeftLine.visible = false
-		this.renderingProperties.liveModeMaterial.color.setHex(0x87ceeb)
+		this.renderingProperties.liveModeMaterial.color.setHex(0x3cb371)
 	}
 
 	private setBikeLaneLiveModeRendering(): void {
@@ -629,7 +629,7 @@ export class Lane extends Annotation {
 		this.laneCenterLine.visible = false
 		this.laneRightLine.visible = false
 		this.laneLeftLine.visible = false
-		this.renderingProperties.liveModeMaterial.color.setHex(0x3cb371)
+		this.renderingProperties.liveModeMaterial.color.setHex(0x33d720)
 	}
 
 	private setAllVehiclesLiveModeRendering(): void {
@@ -645,11 +645,13 @@ export class Lane extends Annotation {
 
 		for (let i = 0; i < this.markers.length; i += 2) {
 			rightLineGeometry.vertices.push(this.markers[i].position.clone())
-			rightLineGeometry.vertices[rightLineGeometry.vertices.length - 1].y += 0.05
+			rightLineGeometry.vertices[rightLineGeometry.vertices.length - 1].y += 0.02
 			leftLineGeometry.vertices.push(this.markers[i + 1].position.clone())
-			leftLineGeometry.vertices[leftLineGeometry.vertices.length - 1].y += 0.05
+			leftLineGeometry.vertices[leftLineGeometry.vertices.length - 1].y += 0.02
 		}
 
+		leftLineGeometry.computeLineDistances()
+		rightLineGeometry.computeLineDistances()
 		this.laneLeftLine.geometry = leftLineGeometry
 		this.laneRightLine.geometry = rightLineGeometry
 		this.laneLeftLine.geometry.verticesNeedUpdate = true
@@ -661,15 +663,16 @@ export class Lane extends Annotation {
 		const rightColor = this.lineColorToHex(this.rightLineColor)
 
 		if (this.leftLineType === LaneLineType.DASHED) {
-			this.laneLeftLine.material = new THREE.LineDashedMaterial({color: leftColor, dashSize: 3, gapSize: 1, linewidth: 2})
+			this.laneLeftLine.material = new THREE.LineDashedMaterial({color: leftColor, dashSize: 2, gapSize: 2, linewidth: 2})
 		} else {
 			this.laneLeftLine.material = new THREE.LineBasicMaterial({color: leftColor})
 		}
 		if (this.rightLineType === LaneLineType.DASHED) {
-			this.laneRightLine.material = new THREE.LineDashedMaterial({color: rightColor, dashSize: 3, gapSize: 1, linewidth: 2})
+			this.laneRightLine.material = new THREE.LineDashedMaterial({color: rightColor, dashSize: 2, gapSize: 2, linewidth: 2})
 		} else {
 			this.laneRightLine.material = new THREE.LineBasicMaterial({color: rightColor})
 		}
+
 
 		this.laneLeftLine.material.needsUpdate = true
 		this.laneRightLine.material.needsUpdate = true

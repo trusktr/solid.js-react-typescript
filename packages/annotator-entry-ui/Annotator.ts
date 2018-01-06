@@ -194,6 +194,7 @@ class Annotator {
 		this.light.shadow.mapSize.height = 1024
 		this.scene.add(this.light)
 
+
 		// Add a "ground plane" to facilitate annotations
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
@@ -1094,6 +1095,7 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcLeftType.children("option").filter(":selected").text())
 			activeAnnotation.leftLineType = +lcLeftType.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcLeftColor = $('#lp_select_left_color')
@@ -1103,6 +1105,7 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcLeftColor.children("option").filter(":selected").text())
 			activeAnnotation.leftLineColor = +lcLeftColor.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcRightType = $('#lp_select_right_type')
@@ -1112,6 +1115,7 @@ class Annotator {
 				return
 			log.info("Adding right side type: " + lcRightType.children("option").filter(":selected").text())
 			activeAnnotation.rightLineType = +lcRightType.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcRightColor = $('#lp_select_right_color')
@@ -1121,6 +1125,7 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcRightColor.children("option").filter(":selected").text())
 			activeAnnotation.rightLineColor = +lcRightColor.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcEntry = $('#lp_select_entry')
