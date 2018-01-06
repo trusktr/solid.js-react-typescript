@@ -240,88 +240,133 @@ export class TileManager extends UtmInterface {
 
 		log.warn(`There are ${this.voxelsDictionary.size} voxels`)
 
-		let positions: Array<number> = []
+		let positions: Array<number> = new Array<number>(this.voxelsDictionary.size * 108)
+		// positions.length = 600000 * 108  // 6 side * 2 triangles * 3 points * 3 coordinates
 		let voxelSizeForRender = 0.9 * this.voxelSize
 		let count: number = 0
+		let i: number = 0
 		for (let voxelIndex of this.voxelsDictionary) {
 
-			try {
-				let voxelBottomLeft = voxelIndex.multiplyScalar(this.voxelSize)
-				count++
-				if (count % 500000 === 0) {
-					break
-				}
-				if (count % 100000 === 0) {
-					log.warn(`Processing ${count}`)
-				}
-
-				let p11 = voxelBottomLeft.clone()
-				let p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
-				let p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
-				let p14 = new THREE.Vector3(p11.x, (p11.y + voxelSizeForRender), p11.z)
-
-				let p21 = new THREE.Vector3(p11.x, p11.y, (p11.z + voxelSizeForRender))
-				let p22 = new THREE.Vector3(p12.x, p12.y, (p12.z + voxelSizeForRender))
-				let p23 = new THREE.Vector3(p13.x, p13.y, (p13.z + voxelSizeForRender))
-				let p24 = new THREE.Vector3(p14.x, p14.y, (p14.z + voxelSizeForRender))
-
-				// Top
-				positions.push(p11.x, p11.y, p11.z)
-				positions.push(p12.x, p12.y, p12.z)
-				positions.push(p13.x, p13.y, p13.z)
-
-				positions.push(p11.x, p11.y, p11.z)
-				positions.push(p13.x, p13.y, p13.z)
-				positions.push(p14.x, p14.y, p14.z)
-
-				// Bottom
-				positions.push(p21.x, p21.y, p21.z)
-				positions.push(p22.x, p22.y, p22.z)
-				positions.push(p23.x, p23.y, p23.z)
-
-				positions.push(p21.x, p21.y, p21.z)
-				positions.push(p23.x, p23.y, p23.z)
-				positions.push(p24.x, p24.y, p24.z)
-
-				// Side 1
-				positions.push(p11.x, p11.y, p11.z)
-				positions.push(p12.x, p12.y, p12.z)
-				positions.push(p22.x, p22.y, p22.z)
-
-				positions.push(p11.x, p11.y, p11.z)
-				positions.push(p22.x, p22.y, p22.z)
-				positions.push(p21.x, p21.y, p21.z)
-
-				// Side 2
-				positions.push(p12.x, p12.y, p12.z)
-				positions.push(p13.x, p13.y, p13.z)
-				positions.push(p23.x, p23.y, p23.z)
-
-				positions.push(p12.x, p12.y, p12.z)
-				positions.push(p23.x, p23.y, p23.z)
-				positions.push(p22.x, p22.y, p22.z)
-
-				// Side 3
-				positions.push(p13.x, p13.y, p13.z)
-				positions.push(p14.x, p14.y, p14.z)
-				positions.push(p24.x, p24.y, p24.z)
-
-				positions.push(p13.x, p13.y, p13.z)
-				positions.push(p24.x, p24.y, p24.z)
-				positions.push(p23.x, p23.y, p23.z)
-
-				// Side 4
-				positions.push(p14.x, p14.y, p14.z)
-				positions.push(p11.x, p11.y, p11.z)
-				positions.push(p21.x, p21.y, p21.z)
-
-				positions.push(p14.x, p14.y, p14.z)
-				positions.push(p21.x, p21.y, p21.z)
-				positions.push(p24.x, p24.y, p24.z)
-			} catch (e) {
-				log.error(e.text)
-				log.warn(e)
+			let voxelBottomLeft = voxelIndex.multiplyScalar(this.voxelSize)
+			count++
+			// if (count % 500000 === 0) {
+			// 	break
+			// }
+			if (count % 100000 === 0) {
+				log.warn(`Processing ${count}`)
 			}
+
+			let p11 = voxelBottomLeft.clone()
+			let p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
+			let p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
+			let p14 = new THREE.Vector3(p11.x, (p11.y + voxelSizeForRender), p11.z)
+
+			let p21 = new THREE.Vector3(p11.x, p11.y, (p11.z + voxelSizeForRender))
+			let p22 = new THREE.Vector3(p12.x, p12.y, (p12.z + voxelSizeForRender))
+			let p23 = new THREE.Vector3(p13.x, p13.y, (p13.z + voxelSizeForRender))
+			let p24 = new THREE.Vector3(p14.x, p14.y, (p14.z + voxelSizeForRender))
+
+			// Top
+			positions[i++] = p11.x
+			positions[i++] = p11.y
+			positions[i++] = p11.z
+			positions[i++] = p12.x
+			positions[i++] = p12.y
+			positions[i++] = p12.z
+			positions[i++] = p13.x
+			positions[i++] = p13.y
+			positions[i++] = p13.z
+
+			positions[i++] = p11.x
+			positions[i++] = p11.y
+			positions[i++] = p11.z
+			positions[i++] = p13.x
+			positions[i++] = p13.y
+			positions[i++] = p13.z
+			positions[i++] = p14.x
+			positions[i++] = p14.y
+			positions[i++] = p14.z
+
+			// Bottom
+			positions[i++] = p21.x
+			positions[i++] = p21.y
+			positions[i++] = p21.z
+			positions[i++] = p22.x
+			positions[i++] = p22.y
+			positions[i++] = p22.z
+			positions[i++] = p23.x
+			positions[i++] = p23.y
+			positions[i++] = p23.z
+
+			positions[i++] = p21.x
+			positions[i++] = p21.y
+			positions[i++] = p21.z
+			positions[i++] = p23.x
+			positions[i++] = p23.y
+			positions[i++] = p23.z
+			positions[i++] = p24.x
+			positions[i++] = p24.y
+			positions[i++] = p24.z
+
+			// Side 1
+			positions[i++] = p11.x
+			positions[i++] = p11.y
+			positions[i++] = p11.z
+			positions[i++] = p12.x
+			positions[i++] = p12.y
+			positions[i++] = p12.z
+			positions[i++] = p22.x
+			positions[i++] = p22.y
+			positions[i++] = p22.z
+
+			positions[i++] = p11.x
+			positions[i++] = p11.y
+			positions[i++] = p11.z
+			positions[i++] = p22.x
+			positions[i++] = p22.y
+			positions[i++] = p22.z
+			positions[i++] = p21.x
+			positions[i++] = p21.y
+			positions[i++] = p21.z
+
+			// Side 2
+			positions[i++] = p12.x
+			positions[i++] = p12.y
+			positions[i++] = p12.z
+			positions[i++] = p13.x
+			positions[i++] = p13.y
+			positions[i++] = p13.z
+			positions[i++] = p23.x
+			positions[i++] = p23.y
+			positions[i++] = p23.z
+
+			positions[i++] = p12.x
+			positions[i++] = p12.y
+			positions[i++] = p12.z
+			positions[i++] = p23.x
+			positions[i++] = p23.y
+			positions[i++] = p23.z
+			positions[i++] = p22.x
+			positions[i++] = p22.y
+			positions[i++] = p22.z
+
+			// Side 3
+			// positions.push(p13.x, p13.y, p13.z)
+			// positions.push(p14.x, p14.y, p14.z)
+			// positions.push(p24.x, p24.y, p24.z)
+			//
+			// positions.push(p13.x, p13.y, p13.z)
+			// positions.push(p24.x, p24.y, p24.z)
+			// positions.push(p23.x, p23.y, p23.z)
+			//
+			// // Side 4
+			// positions.push(p14.x, p14.y, p14.z)
+			// positions.push(p11.x, p11.y, p11.z)
+			// positions.push(p21.x, p21.y, p21.z)
+			//
+			// positions.push(p14.x, p14.y, p14.z)
+			// positions.push(p21.x, p21.y, p21.z)
+			// positions.push(p24.x, p24.y, p24.z)
 		}
 
 		let floatBuffer = new THREE.Float32BufferAttribute(positions, 3)
