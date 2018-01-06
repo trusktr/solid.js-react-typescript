@@ -94,6 +94,10 @@ export class Connection extends Annotation {
 		this.endLaneUuid = endLaneUuid
 	}
 
+	isValid(): boolean {
+		return this.markers.length > 3
+	}
+
 	addMarker(position: THREE.Vector3): boolean {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry,
 			                          ConnectionRenderingProperties.markerMaterial)

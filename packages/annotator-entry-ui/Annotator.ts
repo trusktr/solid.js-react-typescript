@@ -194,6 +194,7 @@ class Annotator {
 		this.light.shadow.mapSize.height = 1024
 		this.scene.add(this.light)
 
+
 		// Add a "ground plane" to facilitate annotations
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
@@ -263,7 +264,7 @@ class Annotator {
 		})
 
 		// Add listeners
-		window.addEventListener('beforeunload', this.onBeforeunload)
+		window.addEventListener('beforeunload', this.onBeforeUnload)
 		window.addEventListener('resize', this.onWindowResize)
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
@@ -371,7 +372,7 @@ class Annotator {
 			rotationThreeJs.normalize()
 
 			this.updateCarPose(positionThreeJs, rotationThreeJs)
-			this.updateCameraPose()
+			//this.updateCameraPose()
 		}
 
 		this.flythroughSettings.currentPoseIndex++
@@ -455,13 +456,28 @@ class Annotator {
 	}
 
 	// Incrementally load the point cloud for a single super tile.
-	private loadSuperTileData(superTile: SuperTile): void {
+	private loadSuperTileData(superTile: SuperTile): Promise<void> {
 		if (!this.uiState.isPointCloudVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
-		this.tileManager.loadFromSuperTile(superTile)
+		return this.tileManager.loadFromSuperTile(superTile)
 			.then(() => {
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(false)
+			})
+	}
+
+	private loadAllSuperTileData(): void {
+		if (this.uiState.isLiveMode) return
+
+		log.info('loading all super tiles')
+		const promises = this.pendingSuperTileBoxes.map(box =>
+			this.loadSuperTileData(box.userData as SuperTile)
+		)
+		Promise.all(promises)
+			.then(() => {
+				this.unHighlightSuperTileBox()
+				this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
+				this.pendingSuperTileBoxes = []
 			})
 	}
 
@@ -585,8 +601,7 @@ class Annotator {
 	}
 
 	/**
-	 * Used in combination with "keyA". If the mouse was clicked while pressing
-	 * the "a" key, drop a lane marker.
+	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
 	 */
 	private addLaneAnnotationMarker = (event: MouseEvent): void => {
 		if (this.uiState.isAddMarkerKeyPressed === false) {
@@ -648,6 +663,8 @@ class Annotator {
 					case AnnotationType.TRAFFIC_SIGN:
 						this.resetTrafficSignProp()
 						break
+					default:
+						// nothing to see here
 				}
 			}
 		}
@@ -735,7 +752,7 @@ class Annotator {
 			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
 			this.scene.remove(this.highlightedSuperTileBox)
 			this.unHighlightSuperTileBox()
-			this.loadSuperTileData(superTile)
+			this.loadSuperTileData(superTile).then()
 		}
 	}
 
@@ -765,7 +782,7 @@ class Annotator {
 	 * Make a best effort to save annotations before exiting. There is no guarantee the
 	 * promise will complete, but it seems to work in practice.
 	 */
-	private onBeforeunload: (e: BeforeUnloadEvent) => void = (_: BeforeUnloadEvent) => {
+	private onBeforeUnload: (e: BeforeUnloadEvent) => void = (_: BeforeUnloadEvent) => {
 		this.annotationManager.immediateAutoSave().then()
 	}
 
@@ -796,79 +813,83 @@ class Annotator {
 		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else
-			switch (event.code) {
-				case 'KeyA': {
+			switch (event.key) {
+				case 'a': {
 					this.uiState.isAddMarkerKeyPressed = true
 					break
 				}
-				case 'KeyC': {
+				case 'c': {
 					this.focusOnPointCloud()
 					break
 				}
-				case 'KeyD': {
+				case 'd': {
 					log.info("Deleting last marker")
 					if (this.annotationManager.deleteLastMarker())
 						this.hideTransform()
 					break
 				}
-				case 'KeyN': {
+				case 'n': {
 					this.addLane()
 					break
 				}
-				case 'KeyZ': {
+				case 'z': {
 					this.deleteActiveAnnotation()
 					break
 				}
-				case 'KeyF': {
+				case 'f': {
 					this.addFront()
 					break
 				}
-				case 'KeyH': {
+				case 'h': {
 					this.toggleModelVisibility()
 					break
 				}
-				case 'KeyL': {
+				case 'l': {
 					this.addLeftSame()
 					break
 				}
-				case 'KeyK': {
+				case 'L': {
+					this.loadAllSuperTileData()
+					break
+				}
+				case 'k': {
 					this.addLeftReverse()
 					break
 				}
-				case 'KeyR': {
+				case 'r': {
 					this.addRightSame()
 					break
 				}
-				case 'KeyE': {
+				case 'e': {
 					this.addRightReverse()
 					break
 				}
-				case 'KeyS': {
+				case 's': {
 					this.saveToFile()
 					break
 				}
-				case 'KeyM': {
+				case 'm': {
 					this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
 						.catch(err => log.warn('saveToKML failed: ' + err.message))
 					break
 				}
-				case 'KeyO': {
+				case 'o': {
 					this.toggleListen()
 					break
 				}
-				case 'KeyT': {
+				case 't': {
 					this.addTrafficSign()
 					break
 				}
-				case 'KeyU': {
+				case 'U': {
 					this.unloadPointCloudData()
 					break
 				}
-				case 'KeyQ': {
+				case 'q': {
 					this.uiState.isAddTrafficSignMarkerKeyPressed = true
 					break
 				}
-				case 'KeyW': {
+				case 'w': {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
 					break
 				}
@@ -1095,6 +1116,7 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcLeftType.children("option").filter(":selected").text())
 			activeAnnotation.leftLineType = +lcLeftType.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcLeftColor = $('#lp_select_left_color')
@@ -1104,6 +1126,7 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcLeftColor.children("option").filter(":selected").text())
 			activeAnnotation.leftLineColor = +lcLeftColor.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcRightType = $('#lp_select_right_type')
@@ -1113,6 +1136,7 @@ class Annotator {
 				return
 			log.info("Adding right side type: " + lcRightType.children("option").filter(":selected").text())
 			activeAnnotation.rightLineType = +lcRightType.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcRightColor = $('#lp_select_right_color')
@@ -1122,6 +1146,7 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcRightColor.children("option").filter(":selected").text())
 			activeAnnotation.rightLineColor = +lcRightColor.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcEntry = $('#lp_select_entry')
@@ -1774,8 +1799,8 @@ class Annotator {
 			this.scene.remove(this.axis)
 		this.plane.visible = false
 		this.grid.visible = false
-		this.orbitControls.enabled = false
-		this.camera.matrixAutoUpdate = false
+		//this.orbitControls.enabled = false
+		//this.camera.matrixAutoUpdate = false
 		this.hideSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false

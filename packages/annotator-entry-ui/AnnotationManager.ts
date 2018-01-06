@@ -1143,7 +1143,7 @@ export class AnnotationManager extends UtmInterface {
 		allAnnotations = allAnnotations.concat(this.connectionAnnotations)
 		allAnnotations = allAnnotations.concat(this.trafficSignAnnotations)
 		data.annotations = allAnnotations
-			.filter(a => a.hasMarkers())
+			.filter(a => a.isValid())
 			.map(a => a.toJSON(pointConverter))
 
 		return data

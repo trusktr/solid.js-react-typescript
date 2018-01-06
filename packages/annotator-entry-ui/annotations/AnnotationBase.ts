@@ -26,8 +26,8 @@ export interface AnnotationJsonOutputInterface {
 }
 
 export namespace AnnotationRenderingProperties {
-	export const markerPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
-	export const markerHighlightPointGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3)
+	export const markerPointGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2)
+	export const markerHighlightPointGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
 }
 
 export abstract class Annotation {
@@ -44,6 +44,7 @@ export abstract class Annotation {
 	}
 
 	abstract toJSON(pointConverter?: (p: THREE.Vector3) => Object): AnnotationJsonOutputInterface
+	abstract isValid(): boolean
 	abstract addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean
 	abstract deleteLastMarker(): boolean
 	abstract makeActive(): void
@@ -51,10 +52,6 @@ export abstract class Annotation {
 	abstract setLiveMode(): void
 	abstract unsetLiveMode(): void
 	abstract updateVisualization(): void
-
-	hasMarkers(): boolean {
-		return !!this.markers.length
-	}
 
 	/**
 	 * Intersect requested markers with active markers.

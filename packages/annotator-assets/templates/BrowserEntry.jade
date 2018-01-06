@@ -218,7 +218,7 @@ html(lang="en")
 			}
 
 		meta(name="viewport",content="width=device-width, initial-scale=1")
-		title!="Annotator"
+		title!="Mapper Visualizer"
 
 	body
 		#root
@@ -280,14 +280,29 @@ html(lang="en")
 				h3#exp_head_5.dropdown_head Help
 				#exp_body_5.dropdown_body
 					p.div_help.
-						Key Shortcuts:<br>
-						1-9 - Press when highlighting a marker to move its neighbors too<br>
-						A - Keep pressed to add more markers<br>
-						C - Center the camera on the tiles<br>
-						D - Delete last marker<br>
-						H - Hide super tiles/point cloud/annotations<br>
-						M - Save road network waypoints to KML file<br>
-						N - Create new lane<br>
-						O - Listen/stop listening for live location data<br>
-						U - Unload point cloud<br>
-						Z - Delete current active lane
+						<strong>Point cloud</strong><br>
+						c - Center the camera on the tiles<br>
+						h - Hide super tiles/point cloud/annotations<br>
+						U - Unload the point cloud<br>
+						L - Load all super tiles in point cloud<br>
+
+						<strong>Annotations</strong><br>
+						s - Save annotations JSON file<br>
+						m - Save road network waypoints to KML file<br>
+						n - Create new lane<br>
+						z - Delete current active lane<br>
+						f - Add connected lane to front<br>
+						l - Add connected lane to left; same direction<br>
+						k - Add connected lane to left; reverse direction<br>
+						r - Add connected lane to right; same direction<br>
+						e - Add connected lane to right; reverse direction<br>
+
+						<strong>Annotation Markers</strong><br>
+						a - Hold to add lane markers<br>
+						q - Hold to add traffic sign markers<br>
+						w - Hold to add the final traffic sign marker<br>
+						d - Delete last marker<br>
+						1-9 - Hold when highlighting a marker to move its neighbors too<br>
+
+						<strong>Live Mode</strong><br>
+						o - Listen/stop listening for live location data<br>
