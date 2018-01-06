@@ -83,6 +83,7 @@ interface UiState {
 	isSuperTilesVisible: boolean
 	isPointCloudVisible: boolean
 	isAnnotationsVisible: boolean
+	isShiftKeyPressed: boolean
 	isAddMarkerKeyPressed: boolean
 	isAddTrafficSignMarkerKeyPressed: boolean
 	isLastTrafficSignMarkerKeyPressed: boolean
@@ -141,6 +142,7 @@ class Annotator {
 			isSuperTilesVisible: true,
 			isPointCloudVisible: true,
 			isAnnotationsVisible: true,
+			isShiftKeyPressed: false,
 			isAddMarkerKeyPressed: false,
 			isAddTrafficSignMarkerKeyPressed: false,
 			isLastTrafficSignMarkerKeyPressed: false,
@@ -758,6 +760,7 @@ class Annotator {
 	// Draw the box in a more solid form to indicate that it is active.
 	private highlightSuperTileBox(superTileBox: THREE.Mesh): void {
 		if (this.uiState.isLiveMode) return
+		if (!this.uiState.isShiftKeyPressed) return
 
 		const material = superTileBox.material as THREE.MeshBasicMaterial
 		material.wireframe = false
@@ -813,6 +816,10 @@ class Annotator {
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else
 			switch (event.key) {
+				case 'Shift': {
+					this.uiState.isShiftKeyPressed = true
+					break
+				}
 				case 'a': {
 					this.uiState.isAddMarkerKeyPressed = true
 					break
@@ -898,6 +905,7 @@ class Annotator {
 	}
 
 	private onKeyUp = (): void => {
+		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
 		this.uiState.isAddTrafficSignMarkerKeyPressed = false
 		this.uiState.isLastTrafficSignMarkerKeyPressed = false
