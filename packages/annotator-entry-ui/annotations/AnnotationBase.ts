@@ -26,8 +26,8 @@ export interface AnnotationJsonOutputInterface {
 }
 
 export namespace AnnotationRenderingProperties {
-	export const markerPointGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
-	export const markerHighlightPointGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3)
+	export const markerPointGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2)
+	export const markerHighlightPointGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
 }
 
 export abstract class Annotation {
