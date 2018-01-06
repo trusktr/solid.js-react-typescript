@@ -83,6 +83,7 @@ interface UiState {
 	isSuperTilesVisible: boolean
 	isPointCloudVisible: boolean
 	isAnnotationsVisible: boolean
+	isControlKeyPressed: boolean
 	isShiftKeyPressed: boolean
 	isAddMarkerKeyPressed: boolean
 	isAddTrafficSignMarkerKeyPressed: boolean
@@ -142,6 +143,7 @@ class Annotator {
 			isSuperTilesVisible: true,
 			isPointCloudVisible: true,
 			isAnnotationsVisible: true,
+			isControlKeyPressed: false,
 			isShiftKeyPressed: false,
 			isAddMarkerKeyPressed: false,
 			isAddTrafficSignMarkerKeyPressed: false,
@@ -643,6 +645,7 @@ class Annotator {
 	 */
 	private checkForAnnotationSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
+		if (this.uiState.isControlKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
@@ -681,6 +684,8 @@ class Annotator {
 		if (this.uiState.isMouseButtonPressed) {
 			return
 		}
+		if (this.uiState.isControlKeyPressed) return
+
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
 		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
@@ -816,6 +821,10 @@ class Annotator {
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else
 			switch (event.key) {
+				case 'Control': {
+					this.uiState.isControlKeyPressed = true
+					break
+				}
 				case 'Shift': {
 					this.uiState.isShiftKeyPressed = true
 					break
@@ -905,6 +914,7 @@ class Annotator {
 	}
 
 	private onKeyUp = (): void => {
+		this.uiState.isControlKeyPressed = false
 		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
 		this.uiState.isAddTrafficSignMarkerKeyPressed = false
