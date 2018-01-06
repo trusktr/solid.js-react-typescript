@@ -1413,12 +1413,16 @@ class Annotator {
 		if (this.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
 			this.scene.add(this.tileManager.pointCloud)
-			this.scene.remove(this.tileManager.voxelsMesh)
+			this.tileManager.voxelsMeshGroup.forEach( mesh => {
+				this.scene.remove(mesh)
+			})
 			hideMenu = this.stopListening()
 		} else {
 			this.annotationManager.setLiveMode()
 			this.scene.remove(this.tileManager.pointCloud)
-			this.scene.add(this.tileManager.voxelsMesh)
+			this.tileManager.voxelsMeshGroup.forEach( mesh => {
+				this.scene.add(mesh)
+			})
 			hideMenu = this.listen()
 		}
 		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)

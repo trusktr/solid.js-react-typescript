@@ -9,6 +9,9 @@ const
 	url = require('url'),
 	Path = require('path')
 
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=6096')
+
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win: BrowserWindow | null
