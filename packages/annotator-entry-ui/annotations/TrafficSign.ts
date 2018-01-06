@@ -67,6 +67,10 @@ export class TrafficSign extends Annotation {
 		}
 	}
 
+	isValid(): boolean {
+		return this.markers.length > 2
+	}
+
 	addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean {
 		// Don't allow addition of markers if the isComplete flag is active
 		if (this.isComplete) {
