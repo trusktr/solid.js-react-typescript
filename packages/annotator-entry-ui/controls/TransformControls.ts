@@ -310,10 +310,6 @@ THREE.TransformGizmoTranslate = function (enableThreeAxisTranslation: boolean): 
 			[new THREE.Mesh(new THREE.CylinderBufferGeometry(0.2, 0, 1, 4, 1, false), pickerMaterial), [0, 0, 0.6], [Math.PI / 2, 0, 0]]
 		],
 
-		XYZ: [
-			[new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), pickerMaterial)]
-		],
-
 		XY: [
 			[new THREE.Mesh(new THREE.PlaneBufferGeometry(0.4, 0.4), pickerMaterial), [0.2, 0.2, 0]]
 		],
@@ -326,6 +322,12 @@ THREE.TransformGizmoTranslate = function (enableThreeAxisTranslation: boolean): 
 			[new THREE.Mesh(new THREE.PlaneBufferGeometry(0.4, 0.4), pickerMaterial), [0.2, 0, 0.2], [-Math.PI / 2, 0, 0]]
 		]
 
+	}
+
+	if (enableThreeAxisTranslation) {
+		this.handleGizmos['XYZ'] = [
+			[new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), pickerMaterial)]
+		]
 	}
 
 	this.setActivePlane = function (axis: string, eye: Vector3): void {
