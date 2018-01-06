@@ -371,7 +371,7 @@ class Annotator {
 			rotationThreeJs.normalize()
 
 			this.updateCarPose(positionThreeJs, rotationThreeJs)
-			this.updateCameraPose()
+			//this.updateCameraPose()
 		}
 
 		this.flythroughSettings.currentPoseIndex++
@@ -1765,8 +1765,8 @@ class Annotator {
 			this.scene.remove(this.axis)
 		this.plane.visible = false
 		this.grid.visible = false
-		this.orbitControls.enabled = false
-		this.camera.matrixAutoUpdate = false
+		//this.orbitControls.enabled = false
+		//this.camera.matrixAutoUpdate = false
 		this.hideSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false

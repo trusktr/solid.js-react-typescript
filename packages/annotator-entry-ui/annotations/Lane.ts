@@ -104,7 +104,7 @@ class LaneRenderingProperties {
 		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side: THREE.DoubleSide})
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side: THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial({color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2})
-		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
+		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.6, side: THREE.DoubleSide})
 	}
 }
 
@@ -157,6 +157,8 @@ export class Lane extends Annotation {
 	renderingProperties: LaneRenderingProperties
 	waypoints: Array<THREE.Vector3>
 	laneCenterLine: THREE.Line
+	laneLeftLine: THREE.Line
+	laneRightLine: THREE.Line
 	laneDirectionMarkers: Array<THREE.Mesh>
 	laneMesh: THREE.Mesh
 	neighborsIds: LaneNeighborsIds
@@ -197,6 +199,8 @@ export class Lane extends Annotation {
 		this.renderingProperties = new LaneRenderingProperties(color)
 		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
+		this.laneLeftLine = new THREE.Line()
+		this.laneRightLine = new THREE.Line()
 		this.laneDirectionMarkers = []
 		this.waypoints = []
 		this.inTrajectory = false
@@ -212,10 +216,8 @@ export class Lane extends Annotation {
 		// Group display objects so we can easily add them to the screen
 		this.renderingObject.add(this.laneMesh)
 		this.renderingObject.add(this.laneCenterLine)
-	}
-
-	setType(type: LaneType): void {
-		this.type = type
+		this.renderingObject.add(this.laneLeftLine)
+		this.renderingObject.add(this.laneRightLine)
 	}
 
 	/**
@@ -295,20 +297,16 @@ export class Lane extends Annotation {
 	setLiveMode(): void {
 		switch (this.type) {
 			case LaneType.BIKE_ONLY:
-				// green
-				this.renderingProperties.liveModeMaterial.color.setHex(0x3cb371)
+				this.setBikeLaneLiveModeRendering()
 				break
 			case LaneType.CROSSWALK:
-				// yellow
-				this.renderingProperties.liveModeMaterial.color.setHex(0xffffe0)
+				this.setCrosswalkLiveModeRendering()
 				break
 			case LaneType.PARKING:
-				// blue
-				this.renderingProperties.liveModeMaterial.color.setHex(0x87ceeb)
+				this.setParkingLiveModeRendering()
 				break
 			default:
-				this.laneCenterLine.visible = true
-				this.renderingProperties.liveModeMaterial.color.setHex(0x443333)
+				this.setAllVehiclesLiveModeRendering()
 		}
 
 		this.markers.forEach((marker) => {
@@ -322,40 +320,44 @@ export class Lane extends Annotation {
 		this.markers.forEach((marker) => {
 			marker.visible = true
 		})
+		this.showDirectionMarkers()
 		this.makeInactive()
 	}
 
 	/**
-	 * Recompute mesh from markers.
+	 * Recompute lane rendering components from marker positions and current lane properties.
 	 */
 	updateVisualization(): void {
 
 		// First thing first, update lane width
 		this.updateLaneWidth()
 
-		if (this.markers.length === 0) {
+		// There is no mesh or side lines to compute if we don't have enough markers
+		if (this.markers.length < 4) {
 			return
 		}
 
+		// Update side lines first
+		this.updateLaneSideLinesGeometry()
+		this.updateLaneSideLinesMaterial()
+
+		// Update lane mesh
 		const newGeometry = new THREE.Geometry()
 
-		// We need at least 3 vertices to generate a mesh
-		if (this.markers.length > 2) {
-			// Add all vertices
-			this.markers.forEach((marker) => {
-				newGeometry.vertices.push(marker.position)
-			})
+		// Add all vertices
+		this.markers.forEach((marker) => {
+			newGeometry.vertices.push(marker.position.clone())
+		})
 
-			// Add faces
-			for (let i = 0; i < this.markers.length - 2; i++) {
-				if (i % 2 === 0) {
-					newGeometry.faces.push(new THREE.Face3(i + 2, i + 1, i))
-				} else {
-					newGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))
-				}
-
+		// Add faces
+		for (let i = 0; i < this.markers.length - 2; i++) {
+			if (i % 2 === 0) {
+				newGeometry.faces.push(new THREE.Face3(i + 2, i + 1, i))
+			} else {
+				newGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))
 			}
 		}
+
 		newGeometry.computeFaceNormals()
 		this.laneMesh.geometry = newGeometry
 		this.laneMesh.geometry.verticesNeedUpdate = true
@@ -508,6 +510,11 @@ export class Lane extends Annotation {
 		return sum / (markers.length / 2)
 	}
 
+	updateLaneWidth(): void {
+		const laneWidth = $('#lp_width_value')
+		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")
+	}
+
 	/**
 	 *  Use the last two points to create a guess of the
 	 * location of the left marker
@@ -586,8 +593,100 @@ export class Lane extends Annotation {
 		}
 	}
 
-	updateLaneWidth(): void {
-		const laneWidth = $('#lp_width_value')
-		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")
+	private hideDirectionMarkers(): void {
+		this.laneDirectionMarkers.forEach( (m) => {
+			m.visible = false;
+		})
+	}
+
+	private showDirectionMarkers(): void {
+		this.laneDirectionMarkers.forEach( (m) => {
+			m.visible = true;
+		})
+	}
+
+	private setCrosswalkLiveModeRendering(): void {
+		// No direction markers, no center line, no side lines and yellow color
+		this.hideDirectionMarkers()
+		this.laneCenterLine.visible = false
+		this.laneRightLine.visible = false
+		this.laneLeftLine.visible = false
+		this.renderingProperties.liveModeMaterial.color.setHex(0xffc300)
+	}
+
+	private setParkingLiveModeRendering(): void {
+		// No direction markers, no center line, no side lines and blue color
+		this.hideDirectionMarkers()
+		this.laneCenterLine.visible = false
+		this.laneRightLine.visible = false
+		this.laneLeftLine.visible = false
+		this.renderingProperties.liveModeMaterial.color.setHex(0x87ceeb)
+	}
+
+	private setBikeLaneLiveModeRendering(): void {
+		// No direction markers, no center line, no side lines and green color
+		this.hideDirectionMarkers()
+		this.laneCenterLine.visible = false
+		this.laneRightLine.visible = false
+		this.laneLeftLine.visible = false
+		this.renderingProperties.liveModeMaterial.color.setHex(0x3cb371)
+	}
+
+	private setAllVehiclesLiveModeRendering(): void {
+		this.laneCenterLine.visible = false
+		this.laneRightLine.visible = true
+		this.laneLeftLine.visible = true
+		this.renderingProperties.liveModeMaterial.color.setHex(0x443333)
+	}
+
+	private updateLaneSideLinesGeometry(): void {
+		const leftLineGeometry = new THREE.Geometry()
+		const rightLineGeometry = new THREE.Geometry()
+
+		for (let i = 0; i < this.markers.length; i += 2) {
+			rightLineGeometry.vertices.push(this.markers[i].position.clone())
+			rightLineGeometry.vertices[rightLineGeometry.vertices.length - 1].y += 0.05
+			leftLineGeometry.vertices.push(this.markers[i + 1].position.clone())
+			leftLineGeometry.vertices[leftLineGeometry.vertices.length - 1].y += 0.05
+		}
+
+		this.laneLeftLine.geometry = leftLineGeometry
+		this.laneRightLine.geometry = rightLineGeometry
+		this.laneLeftLine.geometry.verticesNeedUpdate = true
+		this.laneRightLine.geometry.verticesNeedUpdate = true
+	}
+
+	private updateLaneSideLinesMaterial(): void {
+		const leftColor = this.lineColorToHex(this.leftLineColor)
+		const rightColor = this.lineColorToHex(this.rightLineColor)
+
+		if (this.leftLineType === LaneLineType.DASHED) {
+			this.laneLeftLine.material = new THREE.LineDashedMaterial({color: leftColor, dashSize: 3, gapSize: 1, linewidth: 2})
+		} else {
+			this.laneLeftLine.material = new THREE.LineBasicMaterial({color: leftColor})
+		}
+		if (this.rightLineType === LaneLineType.DASHED) {
+			this.laneRightLine.material = new THREE.LineDashedMaterial({color: rightColor, dashSize: 3, gapSize: 1, linewidth: 2})
+		} else {
+			this.laneRightLine.material = new THREE.LineBasicMaterial({color: rightColor})
+		}
+
+		this.laneLeftLine.material.needsUpdate = true
+		this.laneRightLine.material.needsUpdate = true
+	}
+
+	private lineColorToHex(color: LaneLineColor): number {
+		switch (color) {
+			case LaneLineColor.WHITE:
+				return 0xffffff
+			case LaneLineColor.YELLOW:
+				return 0xffaa00
+			case LaneLineColor.BLUE:
+				return 0x4682b4
+			case LaneLineColor.RED:
+				return 0xdc143c
+			default:
+				return 0x333333
+		}
 	}
 }
