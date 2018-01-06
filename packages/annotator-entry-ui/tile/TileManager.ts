@@ -155,7 +155,7 @@ export class TileManager extends UtmInterface {
 		)
 		this.voxelsMeshGroup = []
 		this.voxelsDictionary = new Set<THREE.Vector3>()
-		this.voxelSize = 0.2
+		this.voxelSize = 0.3
 		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
 		this.maximumPointsToLoad = parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000
 		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
