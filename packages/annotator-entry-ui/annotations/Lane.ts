@@ -104,7 +104,7 @@ class LaneRenderingProperties {
 		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side: THREE.DoubleSide})
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side: THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial({color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2})
-		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.6, side: THREE.DoubleSide})
+		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.5, side: THREE.DoubleSide})
 	}
 }
 
@@ -611,7 +611,7 @@ export class Lane extends Annotation {
 		this.laneCenterLine.visible = false
 		this.laneRightLine.visible = false
 		this.laneLeftLine.visible = false
-		this.renderingProperties.liveModeMaterial.color.setHex(0xffaa00)
+		this.renderingProperties.liveModeMaterial.color.setHex(0xaa6600)
 	}
 
 	private setParkingLiveModeRendering(): void {
@@ -663,12 +663,12 @@ export class Lane extends Annotation {
 		const rightColor = this.lineColorToHex(this.rightLineColor)
 
 		if (this.leftLineType === LaneLineType.DASHED) {
-			this.laneLeftLine.material = new THREE.LineDashedMaterial({color: leftColor, dashSize: 2, gapSize: 2, linewidth: 2})
+			this.laneLeftLine.material = new THREE.LineDashedMaterial({color: leftColor, dashSize: 1, gapSize: 5, linewidth: 2})
 		} else {
 			this.laneLeftLine.material = new THREE.LineBasicMaterial({color: leftColor})
 		}
 		if (this.rightLineType === LaneLineType.DASHED) {
-			this.laneRightLine.material = new THREE.LineDashedMaterial({color: rightColor, dashSize: 2, gapSize: 2, linewidth: 2})
+			this.laneRightLine.material = new THREE.LineDashedMaterial({color: rightColor, dashSize: 1, gapSize: 5, linewidth: 2})
 		} else {
 			this.laneRightLine.material = new THREE.LineBasicMaterial({color: rightColor})
 		}
