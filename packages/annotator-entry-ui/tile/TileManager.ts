@@ -237,47 +237,36 @@ export class TileManager extends UtmInterface {
 
     	log.warn(`There are ${this.voxelsDictionary.size} voxels. Start creating them...`)
 
+		// Voxel params
+		let voxelSizeForRender = 0.9 * this.voxelSize
+		let maxVoxelsPerArray: number = 100000
 		// Voxels buffers
     	const allPositions = new Array<Array<number>>()
 		let positions: Array<number> = []
 		
-		let voxelSizeForRender = 0.9 * this.voxelSize
-		let count:number = 0
-		//let i: number = 0
-		let j:number = 0
-		let voxelIndex: THREE.Vector3
-		let voxelBottomLeft: THREE.Vector3
+		// Voxel corners
 		let p11 = new THREE.Vector3()
 		let p12 = new THREE.Vector3()
 		let p13 = new THREE.Vector3()
 		let p14 = new THREE.Vector3()
-		
 		let p21 = new THREE.Vector3()
 		let p22 = new THREE.Vector3()
 		let p23 = new THREE.Vector3()
 		let p24 = new THREE.Vector3()
 		
-		const voxels = new Array<THREE.Vector3>(this.voxelsDictionary.size)
-		
-		for (let voxel of this.voxelsDictionary) {
-			voxels[j] = voxel
-			j++
-		}
-		
-		log.info("Going to spread")
-		for (j = 0; j < voxels.length; j++) {
-			if (count % 100000 === 0) {
+		// Generate voxels
+		let count: number = 0
+		let voxelIndex: THREE.Vector3
+		for (voxelIndex of this.voxelsDictionary) {
+
+			if (count % maxVoxelsPerArray === 0) {
 				positions = new Array<number>()
 				allPositions.push(positions)
-				
 				log.warn(`Processing ${count}`)
 			}
-			voxelIndex = voxels[j]
-			
-			// for (voxelIndex of this.voxelsDictionary) {
 			count++
 			
-			p11 = voxels[j].clone()
+			p11 = voxelIndex.clone()
 			p11.multiplyScalar(this.voxelSize)
 			p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
 			p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
@@ -343,6 +332,7 @@ export class TileManager extends UtmInterface {
 			positions.push(p24.x, p24.y, p24.z)
 		}
 		
+		let j:number = 0
 		for (j = 0; j < allPositions.length; j++) {
 			let floatBuffer = new THREE.Float32BufferAttribute(allPositions[j], 3)
 			let buffer = new THREE.BufferGeometry()
