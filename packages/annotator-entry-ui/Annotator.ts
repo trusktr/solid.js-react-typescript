@@ -952,7 +952,7 @@ class Annotator {
 	 * Create Transform controls object. This allows for the translation of an object in the scene.
 	 */
 	private initTransformControls(): void {
-		this.transformControls = new TransformControls(this.camera, this.renderer.domElement)
+		this.transformControls = new TransformControls(this.camera, this.renderer.domElement, false)
 		this.transformControls.addEventListener('change', this.render)
 		this.scene.add(this.transformControls)
 
