@@ -235,25 +235,16 @@ export class TileManager extends UtmInterface {
      */
     generateVoxels(): void {
 
-    	log.warn(`There are ${this.voxelsDictionary.size} voxels. Start creating them...`)
+    	log.warn(`There are ${this.voxelsDictionary.size} voxels. Start creating them....`)
 
 		// Voxel params
 		let voxelSizeForRender = 0.9 * this.voxelSize
 		let maxVoxelsPerArray: number = 100000
+
 		// Voxels buffers
     	const allPositions = new Array<Array<number>>()
 		let positions: Array<number> = []
-		
-		// Voxel corners
-		let p11 = new THREE.Vector3()
-		let p12 = new THREE.Vector3()
-		let p13 = new THREE.Vector3()
-		let p14 = new THREE.Vector3()
-		let p21 = new THREE.Vector3()
-		let p22 = new THREE.Vector3()
-		let p23 = new THREE.Vector3()
-		let p24 = new THREE.Vector3()
-		
+
 		// Generate voxels
 		let count: number = 0
 		let voxelIndex: THREE.Vector3
@@ -262,78 +253,79 @@ export class TileManager extends UtmInterface {
 			if (count % maxVoxelsPerArray === 0) {
 				positions = new Array<number>()
 				allPositions.push(positions)
-				log.warn(`Processing ${count}`)
+				log.warn(`Processing voxel ${count}`)
 			}
 			count++
-			
-			p11 = voxelIndex.clone()
+
+			let p11 = voxelIndex.clone()
 			p11.multiplyScalar(this.voxelSize)
-			p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
-			p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
-			p14 = new THREE.Vector3(p11.x, (p11.y + voxelSizeForRender), p11.z)
-			
-			p21 = new THREE.Vector3(p11.x, p11.y, (p11.z + voxelSizeForRender))
-			p22 = new THREE.Vector3(p12.x, p12.y, (p12.z + voxelSizeForRender))
-			p23 = new THREE.Vector3(p13.x, p13.y, (p13.z + voxelSizeForRender))
-			p24 = new THREE.Vector3(p14.x, p14.y, (p14.z + voxelSizeForRender))
-			
+			let p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
+			let p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
+			let p14 = new THREE.Vector3(p11.x, (p11.y + voxelSizeForRender), p11.z)
+
+			let p21 = new THREE.Vector3(p11.x, p11.y, (p11.z + voxelSizeForRender))
+			let p22 = new THREE.Vector3(p12.x, p12.y, (p12.z + voxelSizeForRender))
+			let p23 = new THREE.Vector3(p13.x, p13.y, (p13.z + voxelSizeForRender))
+			let p24 = new THREE.Vector3(p14.x, p14.y, (p14.z + voxelSizeForRender))
+
 			// Top
 			positions.push(p11.x, p11.y, p11.z)
 			positions.push(p12.x, p12.y, p12.z)
 			positions.push(p13.x, p13.y, p13.z)
-			
+
 			positions.push(p11.x, p11.y, p11.z)
 			positions.push(p13.x, p13.y, p13.z)
 			positions.push(p14.x, p14.y, p14.z)
-			
+
 			// Bottom
 			positions.push(p21.x, p21.y, p21.z)
 			positions.push(p22.x, p22.y, p22.z)
 			positions.push(p23.x, p23.y, p23.z)
-			
+
 			positions.push(p21.x, p21.y, p21.z)
 			positions.push(p23.x, p23.y, p23.z)
 			positions.push(p24.x, p24.y, p24.z)
-			
+
 			// Side 1
 			positions.push(p11.x, p11.y, p11.z)
 			positions.push(p12.x, p12.y, p12.z)
 			positions.push(p22.x, p22.y, p22.z)
-			
+
 			positions.push(p11.x, p11.y, p11.z)
 			positions.push(p22.x, p22.y, p22.z)
 			positions.push(p21.x, p21.y, p21.z)
-			
+
 			// Side 2
 			positions.push(p12.x, p12.y, p12.z)
 			positions.push(p13.x, p13.y, p13.z)
 			positions.push(p23.x, p23.y, p23.z)
-			
+
 			positions.push(p12.x, p12.y, p12.z)
 			positions.push(p23.x, p23.y, p23.z)
 			positions.push(p22.x, p22.y, p22.z)
-			
+
 			// Side 3
 			positions.push(p13.x, p13.y, p13.z)
 			positions.push(p14.x, p14.y, p14.z)
 			positions.push(p24.x, p24.y, p24.z)
-			
+
 			positions.push(p13.x, p13.y, p13.z)
 			positions.push(p24.x, p24.y, p24.z)
 			positions.push(p23.x, p23.y, p23.z)
-			
+
 			// Side 4
 			positions.push(p14.x, p14.y, p14.z)
 			positions.push(p11.x, p11.y, p11.z)
 			positions.push(p21.x, p21.y, p21.z)
-			
+
 			positions.push(p14.x, p14.y, p14.z)
 			positions.push(p21.x, p21.y, p21.z)
 			positions.push(p24.x, p24.y, p24.z)
 		}
-		
-		let j:number = 0
-		for (j = 0; j < allPositions.length; j++) {
+		log.warn('Done generating voxels.')
+
+		log.warn('Add them to the mesh....')
+		for (let j = 0; j < allPositions.length; j++) {
 			let floatBuffer = new THREE.Float32BufferAttribute(allPositions[j], 3)
 			let buffer = new THREE.BufferGeometry()
 			buffer.addAttribute('position', floatBuffer);
@@ -343,6 +335,7 @@ export class TileManager extends UtmInterface {
 			}))
 			this.voxelsMeshGroup.push(voxelsMesh)
 		}
+		log.warn('Done adding them to the mesh.')
 	}
 
 	/**
