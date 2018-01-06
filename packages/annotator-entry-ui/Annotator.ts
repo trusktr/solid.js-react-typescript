@@ -455,13 +455,28 @@ class Annotator {
 	}
 
 	// Incrementally load the point cloud for a single super tile.
-	private loadSuperTileData(superTile: SuperTile): void {
+	private loadSuperTileData(superTile: SuperTile): Promise<void> {
 		if (!this.uiState.isPointCloudVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
-		this.tileManager.loadFromSuperTile(superTile)
+		return this.tileManager.loadFromSuperTile(superTile)
 			.then(() => {
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(false)
+			})
+	}
+
+	private loadAllSuperTileData(): void {
+		if (this.uiState.isLiveMode) return
+
+		log.info('loading all super tiles')
+		const promises = this.pendingSuperTileBoxes.map(box =>
+			this.loadSuperTileData(box.userData as SuperTile)
+		)
+		Promise.all(promises)
+			.then(() => {
+				this.unHighlightSuperTileBox()
+				this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
+				this.pendingSuperTileBoxes = []
 			})
 	}
 
@@ -736,7 +751,7 @@ class Annotator {
 			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
 			this.scene.remove(this.highlightedSuperTileBox)
 			this.unHighlightSuperTileBox()
-			this.loadSuperTileData(superTile)
+			this.loadSuperTileData(superTile).then()
 		}
 	}
 
@@ -830,6 +845,10 @@ class Annotator {
 				}
 				case 'l': {
 					this.addLeftSame()
+					break
+				}
+				case 'L': {
+					this.loadAllSuperTileData()
 					break
 				}
 				case 'k': {
