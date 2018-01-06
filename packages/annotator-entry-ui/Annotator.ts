@@ -647,6 +647,8 @@ class Annotator {
 					case AnnotationType.TRAFFIC_SIGN:
 						this.resetTrafficSignProp()
 						break
+					default:
+						// nothing to see here
 				}
 			}
 		}
@@ -859,7 +861,7 @@ class Annotator {
 					this.addTrafficSign()
 					break
 				}
-				case 'u': {
+				case 'U': {
 					this.unloadPointCloudData()
 					break
 				}
