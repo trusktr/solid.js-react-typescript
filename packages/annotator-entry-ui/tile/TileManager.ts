@@ -229,139 +229,129 @@ export class TileManager extends UtmInterface {
 		this.hasGeometry = true // Wouldn't it be nice if BufferGeometry had a method to do this?
 		oldGeometry.dispose() // There is a vague and scary note in the docs about doing this, so here we go.
 	}
-	
-	
+
 	/**
      * Create voxels geometry given a list of indices for the occupied voxels
      */
     generateVoxels(): void {
+
+    	log.warn(`There are ${this.voxelsDictionary.size} voxels. Start creating them...`)
+
+		// Voxels buffers
     	const allPositions = new Array<Array<number>>()
-    	let positions: Array<number> = []
+		let positions: Array<number> = []
 		
-		log.warn(`There are ${this.voxelsDictionary.size} voxels`)
-		try {
-			
-			//console.warn("allocated")
-			
-			// positions.length = 600000 * 108  // 6 side * 2 triangles * 3 points * 3 coordinates
-			let voxelSizeForRender = 0.9 * this.voxelSize
-			let count: number = 0
-			//let i: number = 0
-			let j:number = 0
-			let voxelIndex: THREE.Vector3
-			let voxelBottomLeft: THREE.Vector3
-			let p11 = new THREE.Vector3()
-			let p12 = new THREE.Vector3()
-			let p13 = new THREE.Vector3()
-			let p14 = new THREE.Vector3()
-
-			let p21 = new THREE.Vector3()
-			let p22 = new THREE.Vector3()
-			let p23 = new THREE.Vector3()
-			let p24 = new THREE.Vector3()
-
-			const voxels = new Array<THREE.Vector3>(this.voxelsDictionary.size)
-
-			for (let voxel of this.voxelsDictionary) {
-				voxels[j] = voxel
-				j++
+		let voxelSizeForRender = 0.9 * this.voxelSize
+		let count:number = 0
+		//let i: number = 0
+		let j:number = 0
+		let voxelIndex: THREE.Vector3
+		let voxelBottomLeft: THREE.Vector3
+		let p11 = new THREE.Vector3()
+		let p12 = new THREE.Vector3()
+		let p13 = new THREE.Vector3()
+		let p14 = new THREE.Vector3()
+		
+		let p21 = new THREE.Vector3()
+		let p22 = new THREE.Vector3()
+		let p23 = new THREE.Vector3()
+		let p24 = new THREE.Vector3()
+		
+		const voxels = new Array<THREE.Vector3>(this.voxelsDictionary.size)
+		
+		for (let voxel of this.voxelsDictionary) {
+			voxels[j] = voxel
+			j++
+		}
+		
+		log.info("Going to spread")
+		for (j = 0; j < voxels.length; j++) {
+			if (count % 100000 === 0) {
+				positions = new Array<number>()
+				allPositions.push(positions)
+				
+				log.warn(`Processing ${count}`)
 			}
+			voxelIndex = voxels[j]
 			
-			log.info("Going to spread")
-			for (j = 0; j <  voxels.length; j++) {
-				if (count % 100000 === 0) {
-					positions = new Array<number>()
-					allPositions.push(positions)
-					
-					log.warn(`Processing ${count}`)
-				}
-				voxelIndex = voxels[j]
-			// }
-			//
 			// for (voxelIndex of this.voxelsDictionary) {
-				voxelBottomLeft = voxelIndex.multiplyScalar(this.voxelSize)
-				//let voxelBottomLeft = voxelIndex.multiplyScalar(this.voxelSize)
-				count++
-				// if (count % 500000 === 0) {
-				// 	break
-				// }
-				
-				
-				p11 = voxelBottomLeft.clone()
-				p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
-				p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
-				p14 = new THREE.Vector3(p11.x, (p11.y + voxelSizeForRender), p11.z)
-
-				p21 = new THREE.Vector3(p11.x, p11.y, (p11.z + voxelSizeForRender))
-				p22 = new THREE.Vector3(p12.x, p12.y, (p12.z + voxelSizeForRender))
-				p23 = new THREE.Vector3(p13.x, p13.y, (p13.z + voxelSizeForRender))
-				p24 = new THREE.Vector3(p14.x, p14.y, (p14.z + voxelSizeForRender))
-
-				// Top
-				positions.push(p11.x, p11.y, p11.z)
-				positions.push(p12.x, p12.y, p12.z)
-				positions.push(p13.x, p13.y, p13.z)
-				
-				positions.push(p11.x, p11.y, p11.z)
-				positions.push(p13.x, p13.y, p13.z)
-				positions.push(p14.x, p14.y, p14.z)
-				
-				// Bottom
-				positions.push(p21.x, p21.y, p21.z)
-				positions.push(p22.x, p22.y, p22.z)
-				positions.push(p23.x, p23.y, p23.z)
-				
-				positions.push(p21.x, p21.y, p21.z)
-				positions.push(p23.x, p23.y, p23.z)
-				positions.push(p24.x, p24.y, p24.z)
-				
-				// Side 1
-				positions.push(p11.x, p11.y, p11.z)
-				positions.push(p12.x, p12.y, p12.z)
-				positions.push(p22.x, p22.y, p22.z)
-				
-				positions.push(p11.x, p11.y, p11.z)
-				positions.push(p22.x, p22.y, p22.z)
-				positions.push(p21.x, p21.y, p21.z)
-				
-				// Side 2
-				positions.push(p12.x, p12.y, p12.z)
-				positions.push(p13.x, p13.y, p13.z)
-				positions.push(p23.x, p23.y, p23.z)
-				
-				positions.push(p12.x, p12.y, p12.z)
-				positions.push(p23.x, p23.y, p23.z)
-				positions.push(p22.x, p22.y, p22.z)
-				
-				// Side 3
-				positions.push(p13.x, p13.y, p13.z)
-				positions.push(p14.x, p14.y, p14.z)
-				positions.push(p24.x, p24.y, p24.z)
-				
-				positions.push(p13.x, p13.y, p13.z)
-				positions.push(p24.x, p24.y, p24.z)
-				positions.push(p23.x, p23.y, p23.z)
-				
-				// Side 4
-				positions.push(p14.x, p14.y, p14.z)
-				positions.push(p11.x, p11.y, p11.z)
-				positions.push(p21.x, p21.y, p21.z)
-				
-				positions.push(p14.x, p14.y, p14.z)
-				positions.push(p21.x, p21.y, p21.z)
-				positions.push(p24.x, p24.y, p24.z)
-			}
+			count++
 			
-			for (j = 0; j < allPositions.length; j++) {
-				let floatBuffer = new THREE.Float32BufferAttribute(allPositions[j], 3)
-				let buffer = new THREE.BufferGeometry()
-				buffer.addAttribute('position', floatBuffer);
-				let voxelsMesh = new THREE.Mesh(buffer, new THREE.MeshLambertMaterial({color: new THREE.Color(1, 1, 1), side: THREE.DoubleSide}))
-				this.voxelsMeshGroup.push(voxelsMesh)
-			}
-		} catch (e) {
-    		debugger
-			log.error("Unable to process",e)
+			p11 = voxels[j].clone()
+			p11.multiplyScalar(this.voxelSize)
+			p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
+			p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
+			p14 = new THREE.Vector3(p11.x, (p11.y + voxelSizeForRender), p11.z)
+			
+			p21 = new THREE.Vector3(p11.x, p11.y, (p11.z + voxelSizeForRender))
+			p22 = new THREE.Vector3(p12.x, p12.y, (p12.z + voxelSizeForRender))
+			p23 = new THREE.Vector3(p13.x, p13.y, (p13.z + voxelSizeForRender))
+			p24 = new THREE.Vector3(p14.x, p14.y, (p14.z + voxelSizeForRender))
+			
+			// Top
+			positions.push(p11.x, p11.y, p11.z)
+			positions.push(p12.x, p12.y, p12.z)
+			positions.push(p13.x, p13.y, p13.z)
+			
+			positions.push(p11.x, p11.y, p11.z)
+			positions.push(p13.x, p13.y, p13.z)
+			positions.push(p14.x, p14.y, p14.z)
+			
+			// Bottom
+			positions.push(p21.x, p21.y, p21.z)
+			positions.push(p22.x, p22.y, p22.z)
+			positions.push(p23.x, p23.y, p23.z)
+			
+			positions.push(p21.x, p21.y, p21.z)
+			positions.push(p23.x, p23.y, p23.z)
+			positions.push(p24.x, p24.y, p24.z)
+			
+			// Side 1
+			positions.push(p11.x, p11.y, p11.z)
+			positions.push(p12.x, p12.y, p12.z)
+			positions.push(p22.x, p22.y, p22.z)
+			
+			positions.push(p11.x, p11.y, p11.z)
+			positions.push(p22.x, p22.y, p22.z)
+			positions.push(p21.x, p21.y, p21.z)
+			
+			// Side 2
+			positions.push(p12.x, p12.y, p12.z)
+			positions.push(p13.x, p13.y, p13.z)
+			positions.push(p23.x, p23.y, p23.z)
+			
+			positions.push(p12.x, p12.y, p12.z)
+			positions.push(p23.x, p23.y, p23.z)
+			positions.push(p22.x, p22.y, p22.z)
+			
+			// Side 3
+			positions.push(p13.x, p13.y, p13.z)
+			positions.push(p14.x, p14.y, p14.z)
+			positions.push(p24.x, p24.y, p24.z)
+			
+			positions.push(p13.x, p13.y, p13.z)
+			positions.push(p24.x, p24.y, p24.z)
+			positions.push(p23.x, p23.y, p23.z)
+			
+			// Side 4
+			positions.push(p14.x, p14.y, p14.z)
+			positions.push(p11.x, p11.y, p11.z)
+			positions.push(p21.x, p21.y, p21.z)
+			
+			positions.push(p14.x, p14.y, p14.z)
+			positions.push(p21.x, p21.y, p21.z)
+			positions.push(p24.x, p24.y, p24.z)
+		}
+		
+		for (j = 0; j < allPositions.length; j++) {
+			let floatBuffer = new THREE.Float32BufferAttribute(allPositions[j], 3)
+			let buffer = new THREE.BufferGeometry()
+			buffer.addAttribute('position', floatBuffer);
+			let voxelsMesh = new THREE.Mesh(buffer, new THREE.MeshLambertMaterial({
+				color: new THREE.Color(1, 1, 1),
+				side: THREE.DoubleSide
+			}))
+			this.voxelsMeshGroup.push(voxelsMesh)
 		}
 	}
 
