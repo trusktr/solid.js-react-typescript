@@ -44,6 +44,7 @@ export abstract class Annotation {
 	}
 
 	abstract toJSON(pointConverter?: (p: THREE.Vector3) => Object): AnnotationJsonOutputInterface
+	abstract isValid(): boolean
 	abstract addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean
 	abstract deleteLastMarker(): boolean
 	abstract makeActive(): void
@@ -51,10 +52,6 @@ export abstract class Annotation {
 	abstract setLiveMode(): void
 	abstract unsetLiveMode(): void
 	abstract updateVisualization(): void
-
-	hasMarkers(): boolean {
-		return !!this.markers.length
-	}
 
 	/**
 	 * Intersect requested markers with active markers.
