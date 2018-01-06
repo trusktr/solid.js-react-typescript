@@ -220,6 +220,10 @@ export class Lane extends Annotation {
 		this.renderingObject.add(this.laneRightLine)
 	}
 
+	isValid(): boolean {
+		return this.markers.length > 3
+	}
+
 	/**
 	 * Add a single marker to the annotation and the scene.
 	 */

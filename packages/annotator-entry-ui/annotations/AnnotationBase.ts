@@ -43,6 +43,8 @@ export abstract class Annotation {
 		this.renderingObject = new THREE.Object3D()
 	}
 
+	abstract toJSON(pointConverter?: (p: THREE.Vector3) => Object): AnnotationJsonOutputInterface
+	abstract isValid(): boolean
 	abstract addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean
 	abstract deleteLastMarker(): boolean
 	abstract makeActive(): void
