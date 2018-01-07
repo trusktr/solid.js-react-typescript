@@ -481,6 +481,8 @@ export class AnnotationManager extends UtmInterface {
 				annotation.unsetLiveMode()
 			})
 			this.isLiveMode = false
+			this.activeAnnotationType = AnnotationType.UNKNOWN
+			this.activeAnnotationIndex = -1
 		}
 	}
 

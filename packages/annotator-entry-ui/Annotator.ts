@@ -376,7 +376,7 @@ class Annotator {
 			rotationThreeJs.normalize()
 
 			this.updateCarPose(positionThreeJs, rotationThreeJs)
-			//this.updateCameraPose()
+			this.updateCameraPose()
 		}
 
 		this.flythroughSettings.currentPoseIndex++
@@ -1817,8 +1817,8 @@ class Annotator {
 			this.scene.remove(this.axis)
 		this.plane.visible = false
 		this.grid.visible = false
-		//this.orbitControls.enabled = false
-		//this.camera.matrixAutoUpdate = false
+		this.orbitControls.enabled = false
+		this.camera.matrixAutoUpdate = false
 		this.hideSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
@@ -1877,8 +1877,8 @@ class Annotator {
 		this.carModel.setRotationFromQuaternion(rotation)
 		this.carModel.rotateY(-3.14)
 		// Bring the model close to the ground (approx height of the sensors)
-		//const p = this.carModel.getWorldPosition()
-		//this.carModel.position.set(p.x, 0, p.z)
+		const p = this.carModel.getWorldPosition()
+		this.carModel.position.set(p.x, p.y - 2, p.z)
 	}
 
 	private updateCameraPose(): void {
