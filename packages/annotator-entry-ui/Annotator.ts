@@ -375,7 +375,7 @@ class Annotator {
 			rotationThreeJs.normalize()
 
 			this.updateCarPose(positionThreeJs, rotationThreeJs)
-			this.updateCameraPose()
+			//this.updateCameraPose()
 		}
 
 		this.flythroughSettings.currentPoseIndex++
@@ -610,10 +610,9 @@ class Annotator {
 															AnnotationType.TRAFFIC_SIGN)
 		)
 	}
-
+	
 	/**
-	 * Used in combination with "keyA". If the mouse was clicked while pressing
-	 * the "a" key, drop a lane marker.
+	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
 	 */
 	private addLaneAnnotationMarker = (event: MouseEvent): void => {
 		if (this.uiState.isAddMarkerKeyPressed === false) {
@@ -676,6 +675,8 @@ class Annotator {
 					case AnnotationType.TRAFFIC_SIGN:
 						this.resetTrafficSignProp()
 						break
+					default:
+						// nothing to see here
 				}
 			}
 		}
@@ -828,6 +829,14 @@ class Annotator {
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else
 			switch (event.key) {
+				case 'Control': {
+					this.uiState.isControlKeyPressed = true
+					break
+				}
+				case 'Shift': {
+					this.uiState.isShiftKeyPressed = true
+					break
+				}
 				case 'a': {
 					this.uiState.isAddMarkerKeyPressed = true
 					break
@@ -908,7 +917,7 @@ class Annotator {
 					break
 				}
 				default:
-				// nothing to see here
+					// nothing to see here
 			}
 	}
 
@@ -1132,6 +1141,7 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcLeftType.children("option").filter(":selected").text())
 			activeAnnotation.leftLineType = +lcLeftType.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcLeftColor = $('#lp_select_left_color')
@@ -1150,6 +1160,7 @@ class Annotator {
 				return
 			log.info("Adding right side type: " + lcRightType.children("option").filter(":selected").text())
 			activeAnnotation.rightLineType = +lcRightType.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcRightColor = $('#lp_select_right_color')
@@ -1811,8 +1822,8 @@ class Annotator {
 			this.scene.remove(this.axis)
 		this.plane.visible = false
 		this.grid.visible = false
-		this.orbitControls.enabled = false
-		this.camera.matrixAutoUpdate = false
+		//this.orbitControls.enabled = false
+		//this.camera.matrixAutoUpdate = false
 		this.hideSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
