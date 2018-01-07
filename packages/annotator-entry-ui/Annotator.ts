@@ -300,27 +300,28 @@ class Annotator {
 
 		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
 
-		const pointCloudDir = config.get('startup.point_cloud_directory')
-		let pointCloudResult: Promise<void>
-		if (pointCloudDir) {
-			log.info('loading pre-configured data set ' + pointCloudDir)
-			pointCloudResult = this.loadPointCloudData(pointCloudDir)
-				.catch(err => log.warn('loadPointCloudData failed: ' + err.message))
-		} else
-			pointCloudResult = Promise.resolve()
-
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
 		if (annotationsPath) {
-			annotationsResult = pointCloudResult
+			log.info('loading pre-configured annotations ' + annotationsPath)
+			annotationsResult =  this.loadAnnotations(annotationsPath)
+				.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+		} else
+			annotationsResult = Promise.resolve()
+
+		const pointCloudDir = config.get('startup.point_cloud_directory')
+		let pointCloudResult: Promise<void>
+		if (pointCloudDir) {
+			pointCloudResult = annotationsResult
 				.then(() => {
-					log.info('loading pre-configured annotations ' + annotationsPath)
-					return this.loadAnnotations(annotationsPath)
-						.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+					log.info('loading pre-configured data set ' + pointCloudDir)
+					return this.loadPointCloudData(pointCloudDir)
+						.catch(err => log.warn('loadPointCloudData failed: ' + err.message))
 				})
 		} else
-			annotationsResult = pointCloudResult
-		return annotationsResult
+			pointCloudResult = annotationsResult
+
+		return pointCloudResult
 	}
 
 	/**
@@ -460,7 +461,10 @@ class Annotator {
 	}
 
 	// Compute corresponding height for each voxel based on near by annotations
-	private computeVoxelsHeights() : void {
+	private computeVoxelsHeights(): void {
+		if (this.annotationManager.laneAnnotations.length === 0)
+			log.error(`Unable to compute voxels height, there are no annotations.`)
+
 		for (let v = 0; v < this.tileManager.voxelsDictionary.size; v++) {
 			this.tileManager.voxelsHeight.push(Math.random() * 7)
 		}
