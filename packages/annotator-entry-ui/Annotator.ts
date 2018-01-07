@@ -194,7 +194,6 @@ class Annotator {
 		this.light.shadow.mapSize.height = 1024
 		this.scene.add(this.light)
 
-
 		// Add a "ground plane" to facilitate annotations
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
@@ -264,7 +263,7 @@ class Annotator {
 		})
 
 		// Add listeners
-		window.addEventListener('beforeunload', this.onBeforeUnload)
+		window.addEventListener('beforeunload', this.onBeforeunload)
 		window.addEventListener('resize', this.onWindowResize)
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
@@ -372,7 +371,7 @@ class Annotator {
 			rotationThreeJs.normalize()
 
 			this.updateCarPose(positionThreeJs, rotationThreeJs)
-			//this.updateCameraPose()
+			this.updateCameraPose()
 		}
 
 		this.flythroughSettings.currentPoseIndex++
@@ -448,6 +447,7 @@ class Annotator {
 			.then(() => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
+				this.computeVoxelsHeights() // This is based on pre-loaded annotations
 				this.tileManager.generateVoxels()
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
@@ -455,29 +455,21 @@ class Annotator {
 			})
 	}
 
+	// Compute corresponding height for each voxel based on near by annotations
+	private computeVoxelsHeights() : void {
+		for (let v = 0; v < this.tileManager.voxelsDictionary.size; v++) {
+			this.tileManager.voxelsHeight.push(Math.random() * 7)
+		}
+	}
+
 	// Incrementally load the point cloud for a single super tile.
-	private loadSuperTileData(superTile: SuperTile): Promise<void> {
+	private loadSuperTileData(superTile: SuperTile): void {
 		if (!this.uiState.isPointCloudVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
-		return this.tileManager.loadFromSuperTile(superTile)
+		this.tileManager.loadFromSuperTile(superTile)
 			.then(() => {
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(false)
-			})
-	}
-
-	private loadAllSuperTileData(): void {
-		if (this.uiState.isLiveMode) return
-
-		log.info('loading all super tiles')
-		const promises = this.pendingSuperTileBoxes.map(box =>
-			this.loadSuperTileData(box.userData as SuperTile)
-		)
-		Promise.all(promises)
-			.then(() => {
-				this.unHighlightSuperTileBox()
-				this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
-				this.pendingSuperTileBoxes = []
 			})
 	}
 
@@ -601,7 +593,8 @@ class Annotator {
 	}
 
 	/**
-	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
+	 * Used in combination with "keyA". If the mouse was clicked while pressing
+	 * the "a" key, drop a lane marker.
 	 */
 	private addLaneAnnotationMarker = (event: MouseEvent): void => {
 		if (this.uiState.isAddMarkerKeyPressed === false) {
@@ -663,8 +656,6 @@ class Annotator {
 					case AnnotationType.TRAFFIC_SIGN:
 						this.resetTrafficSignProp()
 						break
-					default:
-						// nothing to see here
 				}
 			}
 		}
@@ -752,7 +743,7 @@ class Annotator {
 			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
 			this.scene.remove(this.highlightedSuperTileBox)
 			this.unHighlightSuperTileBox()
-			this.loadSuperTileData(superTile).then()
+			this.loadSuperTileData(superTile)
 		}
 	}
 
@@ -782,7 +773,7 @@ class Annotator {
 	 * Make a best effort to save annotations before exiting. There is no guarantee the
 	 * promise will complete, but it seems to work in practice.
 	 */
-	private onBeforeUnload: (e: BeforeUnloadEvent) => void = (_: BeforeUnloadEvent) => {
+	private onBeforeunload: (e: BeforeUnloadEvent) => void = (_: BeforeUnloadEvent) => {
 		this.annotationManager.immediateAutoSave().then()
 	}
 
@@ -813,83 +804,79 @@ class Annotator {
 		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else
-			switch (event.key) {
-				case 'a': {
+			switch (event.code) {
+				case 'KeyA': {
 					this.uiState.isAddMarkerKeyPressed = true
 					break
 				}
-				case 'c': {
+				case 'KeyC': {
 					this.focusOnPointCloud()
 					break
 				}
-				case 'd': {
+				case 'KeyD': {
 					log.info("Deleting last marker")
 					if (this.annotationManager.deleteLastMarker())
 						this.hideTransform()
 					break
 				}
-				case 'n': {
+				case 'KeyN': {
 					this.addLane()
 					break
 				}
-				case 'z': {
+				case 'KeyZ': {
 					this.deleteActiveAnnotation()
 					break
 				}
-				case 'f': {
+				case 'KeyF': {
 					this.addFront()
 					break
 				}
-				case 'h': {
+				case 'KeyH': {
 					this.toggleModelVisibility()
 					break
 				}
-				case 'l': {
+				case 'KeyL': {
 					this.addLeftSame()
 					break
 				}
-				case 'L': {
-					this.loadAllSuperTileData()
-					break
-				}
-				case 'k': {
+				case 'KeyK': {
 					this.addLeftReverse()
 					break
 				}
-				case 'r': {
+				case 'KeyR': {
 					this.addRightSame()
 					break
 				}
-				case 'e': {
+				case 'KeyE': {
 					this.addRightReverse()
 					break
 				}
-				case 's': {
+				case 'KeyS': {
 					this.saveToFile()
 					break
 				}
-				case 'm': {
+				case 'KeyM': {
 					this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
 						.catch(err => log.warn('saveToKML failed: ' + err.message))
 					break
 				}
-				case 'o': {
+				case 'KeyO': {
 					this.toggleListen()
 					break
 				}
-				case 't': {
+				case 'KeyT': {
 					this.addTrafficSign()
 					break
 				}
-				case 'U': {
+				case 'KeyU': {
 					this.unloadPointCloudData()
 					break
 				}
-				case 'q': {
+				case 'KeyQ': {
 					this.uiState.isAddTrafficSignMarkerKeyPressed = true
 					break
 				}
-				case 'w': {
+				case 'KeyW': {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
 					break
 				}
@@ -1116,7 +1103,6 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcLeftType.children("option").filter(":selected").text())
 			activeAnnotation.leftLineType = +lcLeftType.val()
-			activeAnnotation.updateVisualization()
 		})
 
 		const lcLeftColor = $('#lp_select_left_color')
@@ -1126,7 +1112,6 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcLeftColor.children("option").filter(":selected").text())
 			activeAnnotation.leftLineColor = +lcLeftColor.val()
-			activeAnnotation.updateVisualization()
 		})
 
 		const lcRightType = $('#lp_select_right_type')
@@ -1136,7 +1121,6 @@ class Annotator {
 				return
 			log.info("Adding right side type: " + lcRightType.children("option").filter(":selected").text())
 			activeAnnotation.rightLineType = +lcRightType.val()
-			activeAnnotation.updateVisualization()
 		})
 
 		const lcRightColor = $('#lp_select_right_color')
@@ -1146,7 +1130,6 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcRightColor.children("option").filter(":selected").text())
 			activeAnnotation.rightLineColor = +lcRightColor.val()
-			activeAnnotation.updateVisualization()
 		})
 
 		const lcEntry = $('#lp_select_entry')
@@ -1799,8 +1782,8 @@ class Annotator {
 			this.scene.remove(this.axis)
 		this.plane.visible = false
 		this.grid.visible = false
-		//this.orbitControls.enabled = false
-		//this.camera.matrixAutoUpdate = false
+		this.orbitControls.enabled = false
+		this.camera.matrixAutoUpdate = false
 		this.hideSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
