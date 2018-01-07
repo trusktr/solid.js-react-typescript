@@ -267,7 +267,7 @@ class Annotator {
 		})
 
 		// Add listeners
-		window.addEventListener('beforeunload', this.onBeforeunload)
+		window.addEventListener('beforeunload', this.onBeforeUnload)
 		window.addEventListener('resize', this.onWindowResize)
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
@@ -467,13 +467,28 @@ class Annotator {
 	}
 
 	// Incrementally load the point cloud for a single super tile.
-	private loadSuperTileData(superTile: SuperTile): void {
+	private loadSuperTileData(superTile: SuperTile): Promise<void> {
 		if (!this.uiState.isPointCloudVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
-		this.tileManager.loadFromSuperTile(superTile)
+		return this.tileManager.loadFromSuperTile(superTile)
 			.then(() => {
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(false)
+			})
+	}
+
+	private loadAllSuperTileData(): void {
+		if (this.uiState.isLiveMode) return
+
+		log.info('loading all super tiles')
+		const promises = this.pendingSuperTileBoxes.map(box =>
+			this.loadSuperTileData(box.userData as SuperTile)
+		)
+		Promise.all(promises)
+			.then(() => {
+				this.unHighlightSuperTileBox()
+				this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
+				this.pendingSuperTileBoxes = []
 			})
 	}
 
@@ -781,7 +796,7 @@ class Annotator {
 	 * Make a best effort to save annotations before exiting. There is no guarantee the
 	 * promise will complete, but it seems to work in practice.
 	 */
-	private onBeforeunload: (e: BeforeUnloadEvent) => void = (_: BeforeUnloadEvent) => {
+	private onBeforeUnload: (e: BeforeUnloadEvent) => void = (_: BeforeUnloadEvent) => {
 		this.annotationManager.immediateAutoSave().then()
 	}
 
@@ -813,91 +828,87 @@ class Annotator {
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else
 			switch (event.key) {
-				case 'Control': {
-					this.uiState.isControlKeyPressed = true
-					break
-				}
-				case 'Shift': {
-					this.uiState.isShiftKeyPressed = true
-					break
-				}
 				case 'a': {
 					this.uiState.isAddMarkerKeyPressed = true
 					break
 				}
-				case 'KeyC': {
+				case 'c': {
 					this.focusOnPointCloud()
 					break
 				}
-				case 'KeyD': {
+				case 'd': {
 					log.info("Deleting last marker")
 					if (this.annotationManager.deleteLastMarker())
 						this.hideTransform()
 					break
 				}
-				case 'KeyN': {
+				case 'n': {
 					this.addLane()
 					break
 				}
-				case 'KeyZ': {
+				case 'z': {
 					this.deleteActiveAnnotation()
 					break
 				}
-				case 'KeyF': {
+				case 'f': {
 					this.addFront()
 					break
 				}
-				case 'KeyH': {
+				case 'h': {
 					this.toggleModelVisibility()
 					break
 				}
-				case 'KeyL': {
+				case 'l': {
 					this.addLeftSame()
 					break
 				}
-				case 'KeyK': {
+				case 'L': {
+					this.loadAllSuperTileData()
+					break
+				}
+				case 'k': {
 					this.addLeftReverse()
 					break
 				}
-				case 'KeyR': {
+				case 'r': {
 					this.addRightSame()
 					break
 				}
-				case 'KeyE': {
+				case 'e': {
 					this.addRightReverse()
 					break
 				}
-				case 'KeyS': {
+				case 's': {
 					this.saveToFile()
 					break
 				}
-				case 'KeyM': {
+				case 'm': {
 					this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
 						.catch(err => log.warn('saveToKML failed: ' + err.message))
 					break
 				}
-				case 'KeyO': {
+				case 'o': {
 					this.toggleListen()
 					break
 				}
-				case 'KeyT': {
+				case 't': {
 					this.addTrafficSign()
 					break
 				}
-				case 'KeyU': {
+				case 'U': {
 					this.unloadPointCloudData()
 					break
 				}
-				case 'KeyQ': {
+				case 'q': {
 					this.uiState.isAddTrafficSignMarkerKeyPressed = true
 					break
 				}
-				case 'KeyW': {
+				case 'w': {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
 					break
 				}
 				default:
-					// nothing to see here
+				// nothing to see here
 			}
 	}
 
