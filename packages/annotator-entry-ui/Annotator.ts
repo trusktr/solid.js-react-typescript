@@ -198,7 +198,6 @@ class Annotator {
 		this.light.shadow.mapSize.height = 1024
 		this.scene.add(this.light)
 
-
 		// Add a "ground plane" to facilitate annotations
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
@@ -301,27 +300,28 @@ class Annotator {
 
 		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
 
-		const pointCloudDir = config.get('startup.point_cloud_directory')
-		let pointCloudResult: Promise<void>
-		if (pointCloudDir) {
-			log.info('loading pre-configured data set ' + pointCloudDir)
-			pointCloudResult = this.loadPointCloudData(pointCloudDir)
-				.catch(err => log.warn('loadPointCloudData failed: ' + err.message))
-		} else
-			pointCloudResult = Promise.resolve()
-
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
 		if (annotationsPath) {
-			annotationsResult = pointCloudResult
+			log.info('loading pre-configured annotations ' + annotationsPath)
+			annotationsResult =  this.loadAnnotations(annotationsPath)
+				.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+		} else
+			annotationsResult = Promise.resolve()
+
+		const pointCloudDir = config.get('startup.point_cloud_directory')
+		let pointCloudResult: Promise<void>
+		if (pointCloudDir) {
+			pointCloudResult = annotationsResult
 				.then(() => {
-					log.info('loading pre-configured annotations ' + annotationsPath)
-					return this.loadAnnotations(annotationsPath)
-						.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+					log.info('loading pre-configured data set ' + pointCloudDir)
+					return this.loadPointCloudData(pointCloudDir)
+						.catch(err => log.warn('loadPointCloudData failed: ' + err.message))
 				})
 		} else
-			annotationsResult = pointCloudResult
-		return annotationsResult
+			pointCloudResult = annotationsResult
+
+		return pointCloudResult
 	}
 
 	/**
@@ -452,11 +452,49 @@ class Annotator {
 			.then(() => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
+				this.computeVoxelsHeights() // This is based on pre-loaded annotations
 				this.tileManager.generateVoxels()
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(true)
 			})
+	}
+
+	// Compute corresponding height for each voxel based on near by annotations
+	private computeVoxelsHeights(): void {
+		if (this.annotationManager.laneAnnotations.length === 0)
+			log.error(`Unable to compute voxels height, there are no annotations.`)
+
+		let voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
+		let voxelSize: number = this.tileManager.voxelSize
+		let annotationCutoffDistance: number = 5 * 5 // 5 meters
+		for (let voxel of voxels) {
+			let x: number = voxel.x * voxelSize
+			let y: number = voxel.y * voxelSize
+			let z: number = voxel.z * voxelSize
+			let minDistance: number = 99999
+			let minDistanceHeight: number = y   // in case there is no annotation close enough
+                                                // these voxels will be all colored the same
+			for (let annotation of this.annotationManager.laneAnnotations) {
+				for (let wayPoint of annotation.waypoints) {
+					let dx: number = wayPoint.x - x
+					let dz: number = wayPoint.z - z
+					let distance = dx * dx + dz * dz
+					if (distance < minDistance) {
+						minDistance = distance
+						minDistanceHeight = wayPoint.y
+					}
+					if (minDistance < annotationCutoffDistance) {
+						break
+					}
+				}
+				if (minDistance < annotationCutoffDistance) {
+					break
+				}
+			}
+			let height: number = y - minDistanceHeight
+			this.tileManager.voxelsHeight.push(height)
+		}
 	}
 
 	// Incrementally load the point cloud for a single super tile.

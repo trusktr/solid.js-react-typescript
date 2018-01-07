@@ -135,12 +135,15 @@ export class TileManager extends UtmInterface {
 	pointCloud: THREE.Points
 	voxelsMeshGroup: Array<THREE.Mesh>
 	voxelsDictionary: Set<THREE.Vector3>
+	voxelsHeight: Array<number>
 	voxelSize: number
+	voxelsMaxHeigh: number
+	private HSVGradient: Array<THREE.Vector3>
 	private onSuperTileUnload: (superTile: SuperTile) => void
 	private initialSuperTilesToLoad: number // preload some super tiles; initially we don't know how many points they will contain
 	private maximumPointsToLoad: number // after loading super tiles we can trim them back by point count
 	private samplingStep: number
- 
+
 	constructor(onSuperTileUnload: (superTile: SuperTile) => void) {
 		super()
 		this.storage = new LocalStorage()
@@ -154,8 +157,12 @@ export class TileManager extends UtmInterface {
 			new THREE.PointsMaterial({size: pointsSize, vertexColors: THREE.VertexColors})
 		)
 		this.voxelsMeshGroup = []
+		this.voxelsHeight = []
 		this.voxelsDictionary = new Set<THREE.Vector3>()
 		this.voxelSize = 0.3
+		this.voxelsMaxHeigh = 7
+		this.HSVGradient = []
+		this.generateGradient()
 		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
 		this.maximumPointsToLoad = parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000
 		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
@@ -230,9 +237,73 @@ export class TileManager extends UtmInterface {
 	}
 
 	/**
+	 * Generate a new color palette using HSV space
+	 */
+	private generateGradient(): void {
+		log.info(`Generate color palette....`)
+		let gradientValues: number = Math.floor((this.voxelsMaxHeigh / this.voxelSize + 1))
+		let height: number = this.voxelSize / 2
+		for (let i = 0; i < gradientValues; ++i ) {
+			this.HSVGradient.push(this.HeightToColor(height, this.voxelsMaxHeigh))
+			height += this.voxelSize
+		}
+		log.info(`Color palette ready !`)
+	}
+
+	/**
+	 * Assign an RGB color for a height value, given a fixed range [0, scale]
+	 */
+	private HeightToColor(height: number, scale: number): THREE.Vector3 {
+		let x = (height / scale) * 360;
+		if (x > 360.0)
+			x = 360.0
+
+		let color: THREE.Vector3 = new THREE.Vector3()
+		let kMax: number = 1.0
+		let kMin: number = 0.0
+		let posSlope: number = (kMax - kMin) / 60.0
+		let negSlope: number = (kMin - kMax) / 60.0
+
+		if ( x < 60.0 ) {
+			color[0] = kMax
+			color[1] = posSlope * x + kMin
+			color[2] = kMin
+		} else if ( x < 120.0 ) {
+			color[0] = negSlope * x + 2 * kMax + kMin
+			color[1] = kMax
+			color[2] = kMin
+		} else if ( x < 180.0 ) {
+			color[0] = kMin
+			color[1] = kMax
+			color[2] = posSlope * x - 2 * kMax + kMin
+		} else if ( x < 240.0 ) {
+			color[0] = kMin
+			color[1] = negSlope * x + 4 * kMax + kMin
+			color[2] = kMax
+		} else if ( x <= 360 ) {
+			color[0] = posSlope * x - 4 * kMax + kMin
+			color[1] = kMin
+			color[2] = kMax
+		}
+		return color
+	}
+
+	/**
      * Create voxels geometry given a list of indices for the occupied voxels
      */
-    generateVoxels(): void {
+	generateVoxels(): void {
+		let maxBandValue: number = Math.floor((this.voxelsMaxHeigh / this.voxelSize + 1))
+		for (let band = 0; band < maxBandValue; band++) {
+			log.info(`Processing height band ${band}...`)
+			this.generateSingleBandVoxels(band, this.HSVGradient[band])
+			log.info(`Height band ${band} done.`)
+		}
+	}
+
+	/**
+	 * Generate voxels in a single height band
+	 */
+    private generateSingleBandVoxels(heightBand: number, color: THREE.Vector3): void {
 
     	log.warn(`There are ${this.voxelsDictionary.size} voxels. Start creating them....`)
 
@@ -241,21 +312,30 @@ export class TileManager extends UtmInterface {
 		let maxVoxelsPerArray: number = 100000
 
 		// Voxels buffers
-    	const allPositions = new Array<Array<number>>()
+    	const allPositions: Array<Array<number>> = []
 		let positions: Array<number> = []
 
 		// Generate voxels
+		let heightIndex: number = 0
 		let count: number = 0
 		let voxelIndex: THREE.Vector3
 		for (voxelIndex of this.voxelsDictionary) {
 
+			// Prepare voxel color from voxel height
+			let height = this.voxelsHeight[heightIndex]
+			heightIndex++
+			let currentHeightBand = Math.floor((height / this.voxelSize))
+			if (currentHeightBand !== heightBand) {
+				continue
+			}
+
 			if (count % maxVoxelsPerArray === 0) {
-				positions = new Array<number>()
+				positions = []
 				allPositions.push(positions)
 				log.warn(`Processing voxel ${count}`)
 			}
-			count++
 
+			// Prepare voxel geometry
 			let p11 = voxelIndex.clone()
 			p11.multiplyScalar(this.voxelSize)
 			let p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
@@ -320,16 +400,18 @@ export class TileManager extends UtmInterface {
 			positions.push(p14.x, p14.y, p14.z)
 			positions.push(p21.x, p21.y, p21.z)
 			positions.push(p24.x, p24.y, p24.z)
+
+			count++
 		}
 		log.warn('Done generating voxels.')
 
 		log.warn('Add them to the mesh....')
 		for (let j = 0; j < allPositions.length; j++) {
-			let floatBuffer = new THREE.Float32BufferAttribute(allPositions[j], 3)
+			let pointsBuffer = new THREE.Float32BufferAttribute(allPositions[j], 3)
 			let buffer = new THREE.BufferGeometry()
-			buffer.addAttribute('position', floatBuffer);
+			buffer.addAttribute('position', pointsBuffer)
 			let voxelsMesh = new THREE.Mesh(buffer, new THREE.MeshLambertMaterial({
-				color: new THREE.Color(1, 1, 1),
+				color: new THREE.Color(color[0], color[1], color[2]),
 				side: THREE.DoubleSide
 			}))
 			this.voxelsMeshGroup.push(voxelsMesh)
