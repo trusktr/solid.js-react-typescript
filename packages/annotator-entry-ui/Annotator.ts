@@ -185,7 +185,7 @@ class Annotator {
 
 		// Create scene and camera
 		this.scene = new THREE.Scene()
-		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10010)
+		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 1000)
 		this.scene.add(this.camera)
 
 		// Add some lights
@@ -452,7 +452,9 @@ class Annotator {
 			.then(() => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
-				this.tileManager.generateVoxels()
+				if (config.get('live_mode.compute_voxels')) {
+					this.tileManager.generateVoxels()
+				}
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(true)
@@ -1883,7 +1885,7 @@ class Annotator {
 
 	private updateCameraPose(): void {
 		const p = this.carModel.getWorldPosition()
-		const offset = new THREE.Vector3(20, 15, 0)
+		const offset = new THREE.Vector3(12, 10, 0)
 		offset.applyQuaternion(this.carModel.quaternion)
 		offset.add(p)
 		log.info(p.x)

@@ -104,7 +104,7 @@ class LaneRenderingProperties {
 		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side: THREE.DoubleSide})
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side: THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial({color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2})
-		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.5, side: THREE.DoubleSide})
+		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.3, side: THREE.DoubleSide})
 	}
 }
 
@@ -696,4 +696,5 @@ export class Lane extends Annotation {
 				return 0x333333
 		}
 	}
+
 }
