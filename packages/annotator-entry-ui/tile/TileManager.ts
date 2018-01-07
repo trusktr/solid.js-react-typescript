@@ -293,7 +293,7 @@ export class TileManager extends UtmInterface {
      */
 	generateVoxels(): void {
 		let maxBandValue: number = Math.floor((this.voxelsMaxHeigh / this.voxelSize + 1))
-		for (let band = 0; band <= maxBandValue; band++) {
+		for (let band = 0; band < maxBandValue; band++) {
 			log.info(`Processing height band ${band}...`)
 			this.generateSingleBandVoxels(band, this.HSVGradient[band])
 			log.info(`Height band ${band} done.`)

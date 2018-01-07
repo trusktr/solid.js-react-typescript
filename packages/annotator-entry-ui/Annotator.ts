@@ -465,8 +465,33 @@ class Annotator {
 		if (this.annotationManager.laneAnnotations.length === 0)
 			log.error(`Unable to compute voxels height, there are no annotations.`)
 
-		for (let v = 0; v < this.tileManager.voxelsDictionary.size; v++) {
-			this.tileManager.voxelsHeight.push(Math.random() * 7)
+		let voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
+		let voxelSize: number = this.tileManager.voxelSize
+		for (let voxel of voxels) {
+			let x: number = voxel.x * voxelSize
+			let y: number = voxel.y * voxelSize
+			let z: number = voxel.z * voxelSize
+			let minDistance: number = 99999
+			let minDistanceHeight: number = 0
+			for (let annotation of this.annotationManager.laneAnnotations) {
+				for (let wayPoint of annotation.waypoints) {
+					let dx: number = wayPoint.x - x
+					let dz: number = wayPoint.z - z
+					let distance = dx * dx + dz * dz
+					if (distance < minDistance) {
+						minDistance = distance
+						minDistanceHeight = wayPoint.y
+					}
+					if (minDistance < 25.0) {
+						break
+					}
+				}
+				if (minDistance < 25.0) {
+					break
+				}
+			}
+			let height: number = y - minDistanceHeight
+			this.tileManager.voxelsHeight.push(height)
 		}
 	}
 
