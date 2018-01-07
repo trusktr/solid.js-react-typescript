@@ -610,7 +610,7 @@ class Annotator {
 															AnnotationType.TRAFFIC_SIGN)
 		)
 	}
-	
+
 	/**
 	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
 	 */
@@ -766,7 +766,7 @@ class Annotator {
 			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
 			this.scene.remove(this.highlightedSuperTileBox)
 			this.unHighlightSuperTileBox()
-			this.loadSuperTileData(superTile)
+			this.loadSuperTileData(superTile).then()
 		}
 	}
 
@@ -1151,6 +1151,7 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcLeftColor.children("option").filter(":selected").text())
 			activeAnnotation.leftLineColor = +lcLeftColor.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcRightType = $('#lp_select_right_type')
@@ -1170,6 +1171,7 @@ class Annotator {
 				return
 			log.info("Adding left side type: " + lcRightColor.children("option").filter(":selected").text())
 			activeAnnotation.rightLineColor = +lcRightColor.val()
+			activeAnnotation.updateVisualization()
 		})
 
 		const lcEntry = $('#lp_select_entry')
