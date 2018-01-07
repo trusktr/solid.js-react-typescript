@@ -467,12 +467,14 @@ class Annotator {
 
 		let voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
 		let voxelSize: number = this.tileManager.voxelSize
+		let annotationCutoffDistance: number = 5 * 5 // 5 meters
 		for (let voxel of voxels) {
 			let x: number = voxel.x * voxelSize
 			let y: number = voxel.y * voxelSize
 			let z: number = voxel.z * voxelSize
 			let minDistance: number = 99999
-			let minDistanceHeight: number = 0
+			let minDistanceHeight: number = y   // in case there is no annotation close enough
+                                                // these voxels will be all colored the same
 			for (let annotation of this.annotationManager.laneAnnotations) {
 				for (let wayPoint of annotation.waypoints) {
 					let dx: number = wayPoint.x - x
@@ -482,11 +484,11 @@ class Annotator {
 						minDistance = distance
 						minDistanceHeight = wayPoint.y
 					}
-					if (minDistance < 25.0) {
+					if (minDistance < annotationCutoffDistance) {
 						break
 					}
 				}
-				if (minDistance < 25.0) {
+				if (minDistance < annotationCutoffDistance) {
 					break
 				}
 			}
