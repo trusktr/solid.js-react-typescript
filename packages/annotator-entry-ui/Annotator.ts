@@ -73,6 +73,7 @@ interface AnnotatorSettings {
 }
 
 interface FlyThroughSettings {
+	enabled: boolean
 	startPoseIndex: number
 	endPoseIndex: number
 	currentPoseIndex: number
@@ -166,8 +167,9 @@ class Annotator {
 		this.pointCloudBoundingBox = null
 
 		this.flythroughSettings = {
+			enabled: false,
 			startPoseIndex: 0,
-			endPoseIndex: 10000,
+			endPoseIndex: Number.MAX_VALUE,
 			currentPoseIndex: 0,
 			fps: 10
 		}
@@ -289,6 +291,7 @@ class Annotator {
 		const trajectoryPath = config.get('live_mode.trajectory_path')
 		if (trajectoryPath) {
 			this.loadFlythroughTrajectory(trajectoryPath).then( msg => {
+				this.flythroughSettings.enabled = true
 				this.flythroughTrajectory = msg
 				if (this.flythroughSettings.endPoseIndex >= this.flythroughTrajectory.states.length) {
 					this.flythroughSettings.endPoseIndex = this.flythroughTrajectory.states.length
@@ -1867,8 +1870,10 @@ class Annotator {
 		this.carModel.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering / 2
 
-		this.flythroughSettings.currentPoseIndex = this.flythroughSettings.startPoseIndex
-		this.runFlythrough()
+		if (this.flythroughSettings.enabled) {
+			this.flythroughSettings.currentPoseIndex = this.flythroughSettings.startPoseIndex
+			this.runFlythrough()
+		}
 
 		return this.uiState.isLiveMode
 	}
