@@ -104,6 +104,8 @@ class Annotator {
 	private uiState: UiState
 	private scene: THREE.Scene
 	private camera: THREE.PerspectiveCamera
+	private cameraOffset: THREE.Vector3
+	private cameraOffsetDelta: number
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
@@ -165,6 +167,8 @@ class Annotator {
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
+		this.cameraOffset = new THREE.Vector3(12, 10, 0)
+		this.cameraOffsetDelta = 1 // in meters
 
 		this.flythroughSettings = {
 			enabled: false,
@@ -875,7 +879,28 @@ class Annotator {
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
-		} else
+		} else if (event.keyCode >= 37 && event.keyCode <= 40) {
+			switch (event.keyCode) {
+				case 37:  { // left arrow
+					this.cameraOffset.x += this.cameraOffsetDelta
+					break
+				}
+				case 38: { // up arrow
+					this.cameraOffset.y += this.cameraOffsetDelta
+					break
+				}
+				case 39: { // right arrow
+					this.cameraOffset.x -= this.cameraOffsetDelta
+					break
+				}
+				case 40: { // down arrow
+					this.cameraOffset.y -= this.cameraOffsetDelta
+					break
+				}
+				default:
+					// nothing to do here
+			}
+		} else {
 			switch (event.key) {
 				case 'Control': {
 					this.uiState.isControlKeyPressed = true
@@ -965,8 +990,9 @@ class Annotator {
 					break
 				}
 				default:
-					// nothing to see here
+				// nothing to see here
 			}
+		}
 	}
 
 	private onKeyUp = (): void => {
@@ -1846,21 +1872,21 @@ class Annotator {
 		let hideMenu
 		if (this.uiState.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
-			/*
+
 			this.scene.add(this.tileManager.pointCloud)
 			this.tileManager.voxelsMeshGroup.forEach( mesh => {
 				this.scene.remove(mesh)
 			})
-			*/
+
 			hideMenu = this.stopListening()
 		} else {
 			this.annotationManager.setLiveMode()
-			/*
+
 			this.scene.remove(this.tileManager.pointCloud)
 			this.tileManager.voxelsMeshGroup.forEach( mesh => {
 				this.scene.add(mesh)
 			})
-			*/
+
 			hideMenu = this.listen()
 		}
 		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
@@ -1944,7 +1970,7 @@ class Annotator {
 
 	private updateCameraPose(): void {
 		const p = this.carModel.getWorldPosition().clone()
-		const offset = new THREE.Vector3(15, 10, 0)
+		const offset = this.cameraOffset.clone()
 		offset.applyQuaternion(this.carModel.quaternion)
 		offset.add(p)
 		//log.info(p.x)
