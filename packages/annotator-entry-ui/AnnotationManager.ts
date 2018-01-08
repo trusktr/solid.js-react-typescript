@@ -1353,6 +1353,66 @@ export class AnnotationManager extends UtmInterface {
 		})
 	}
 
+	private removeMeshFromInternalArray(query_mesh): boolean {
+		const index = this.annotationMeshes.findIndex((mesh) => {
+			return mesh === query_mesh
+		})
+		if (index < 0) {
+			log.error("Couldn't find associated mesh in internal mesh array. This should never happen")
+			return false
+		}
+
+		this.annotationMeshes.splice(index, 1)
+		return true
+	}
+
+	private removeUuidFromArray( uuidArray: Array<AnnotationUuid>, uuidToRemove: AnnotationUuid): boolean {
+		const index = uuidArray.findIndex( (element) => {
+			return element === uuidToRemove
+		})
+
+		if (index < 0) {
+			return false
+		}
+
+		uuidArray.splice(index, 1)
+		return true
+	}
+
+	private removeUuidFromLaneNeighbors(laneUuid: AnnotationUuid, uuidToRemove: AnnotationUuid): boolean {
+		const index = this.laneAnnotations.findIndex( (annotation) => {
+			return annotation.uuid === laneUuid
+		})
+
+		if (index < 0) {
+			log.error("Couldn't remove neighbor. Requested lane uuid doesn't exist")
+			return false
+		}
+
+		// Check on all directions for the uuid to remove
+		if (this.removeUuidFromArray(this.laneAnnotations[index].neighborsIds.back, uuidToRemove)) {
+			return true
+		}
+
+		if (this.removeUuidFromArray(this.laneAnnotations[index].neighborsIds.front, uuidToRemove)) {
+			return true
+		}
+
+		if (this.laneAnnotations[index].neighborsIds.left &&
+			this.laneAnnotations[index].neighborsIds.left === uuidToRemove) {
+			this.laneAnnotations[index].neighborsIds.left = null
+			return true
+		}
+
+		if (this.laneAnnotations[index].neighborsIds.right &&
+			this.laneAnnotations[index].neighborsIds.right === uuidToRemove) {
+			this.laneAnnotations[index].neighborsIds.right = null
+			return true
+		}
+
+		return false
+	}
+
 	/**
 	 * Delete given annotation
 	 */
@@ -1361,14 +1421,7 @@ export class AnnotationManager extends UtmInterface {
 		scene.remove(annotation.renderingObject)
 
 		// Remove mesh from internal array of meshes.
-		const index = this.annotationMeshes.findIndex((mesh) => {
-			return mesh === annotation.laneMesh
-		})
-		if (index < 0) {
-			log.error("Couldn't find associated mesh in internal mesh array. This should never happen")
-			return false
-		}
-		this.annotationMeshes.splice(index, 1)
+		this.removeMeshFromInternalArray(annotation.laneMesh)
 
 		// Make sure we remove references to this annotation from it's neighbors (if any).
 		this.deleteConnectionToNeighbors(scene, annotation)
@@ -1385,6 +1438,9 @@ export class AnnotationManager extends UtmInterface {
 		// Remove lane from scene.
 		scene.remove(annotation.renderingObject)
 
+		// Remove mesh from internal array of meshes.
+		this.removeMeshFromInternalArray(annotation.trafficSignMesh)
+
 		// Remove annotation from internal array of annotations.
 		const eraseIndex = this.trafficSignAnnotations.findIndex((item) => {
 								return item.uuid === annotation.uuid
@@ -1396,8 +1452,15 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	private deleteConnection(scene: THREE.Scene, annotation: Connection): boolean {
-		// Remove lane from scene.
+		// Remove connection from scene.
 		scene.remove(annotation.renderingObject)
+
+		// Remove mesh from internal array of meshes.
+		this.removeMeshFromInternalArray(annotation.connectionMesh)
+
+		// Make sure we remove references to this annotation from it's neighbors (if any).
+		this.removeUuidFromLaneNeighbors(annotation.startLaneUuid, annotation.uuid)
+		this.removeUuidFromLaneNeighbors(annotation.endLaneUuid, annotation.uuid)
 
 		// Remove annotation from internal array of annotations.
 		const eraseIndex = this.connectionAnnotations.findIndex((item) => {
