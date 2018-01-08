@@ -194,12 +194,15 @@ export class AnnotationManager extends UtmInterface {
 		})
 	}
 
-	/**
-	 * Get the index of the annotation associated with the given mesh.
-	 */
 	getTrafficSignAnnotationIndex(object: THREE.Mesh): number {
 		return this.trafficSignAnnotations.findIndex((element) => {
 			return element.trafficSignMesh === object
+		})
+	}
+
+	getConnectionAnnotationIndex(object: THREE.Mesh): number {
+		return this.connectionAnnotations.findIndex((element) => {
+			return element.connectionMesh === object
 		})
 	}
 
@@ -745,11 +748,20 @@ export class AnnotationManager extends UtmInterface {
 		// Selected object didn't match any lanes. Check for traffic sign annotations
 		index = this.getTrafficSignAnnotationIndex(object)
 
-		if (index < 0 || (index === this.activeAnnotationIndex && this.activeAnnotationType === AnnotationType.TRAFFIC_SIGN)) {
+		if (index >= 0) {
+			if (index === this.activeAnnotationIndex && this.activeAnnotationType === AnnotationType.TRAFFIC_SIGN) {
+				return [-1, AnnotationType.UNKNOWN]
+			}
+			return [index, AnnotationType.TRAFFIC_SIGN]
+		}
+
+		index = this.getConnectionAnnotationIndex(object)
+
+		if (index < 0 || (index === this.activeAnnotationIndex && this.activeAnnotationType === AnnotationType.CONNECTION)) {
 			return [-1, AnnotationType.UNKNOWN]
 		}
 
-		return [index, AnnotationType.TRAFFIC_SIGN]
+		return [index, AnnotationType.CONNECTION]
 	}
 
 	/**
