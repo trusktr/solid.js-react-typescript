@@ -20,7 +20,7 @@ import {AxesHelper} from "./controls/AxesHelper"
 import {AnnotationType} from "./annotations/AnnotationType"
 import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
+import {NeighborLocation, NeighborDirection, LaneType} from 'annotator-entry-ui/annotations/Lane'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
@@ -467,7 +467,7 @@ class Annotator {
 
 		let voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
 		let voxelSize: number = this.tileManager.voxelSize
-		let annotationCutoffDistance: number = 5 * 5 // 5 meters
+		let annotationCutoffDistance: number = 1 * 1 // 1 meter
 		for (let voxel of voxels) {
 			let x: number = voxel.x * voxelSize
 			let y: number = voxel.y * voxelSize
@@ -475,6 +475,7 @@ class Annotator {
 			let minDistance: number = 99999
 			let minDistanceHeight: number = y   // in case there is no annotation close enough
                                                 // these voxels will be all colored the same
+			let laneType: LaneType = LaneType.UNKNOWN
 			for (let annotation of this.annotationManager.laneAnnotations) {
 				for (let wayPoint of annotation.waypoints) {
 					let dx: number = wayPoint.x - x
@@ -483,6 +484,7 @@ class Annotator {
 					if (distance < minDistance) {
 						minDistance = distance
 						minDistanceHeight = wayPoint.y
+						laneType = annotation.type
 					}
 					if (minDistance < annotationCutoffDistance) {
 						break
@@ -493,7 +495,14 @@ class Annotator {
 				}
 			}
 			let height: number = y - minDistanceHeight
-			this.tileManager.voxelsHeight.push(height)
+			// TODO: Remove this voxel filtering. For CES only
+			// if (laneType === LaneType.PARKING && height < 2 && minDistance < (1 * 1)) {
+			//	this.tileManager.voxelsHeight.push(-1)
+			if (laneType === LaneType.ALL_VEHICLES && height < 2 && minDistance < (2.5 * 2.5)) {
+				this.tileManager.voxelsHeight.push(-1)
+			} else {
+				this.tileManager.voxelsHeight.push(height)
+			}
 		}
 	}
 
