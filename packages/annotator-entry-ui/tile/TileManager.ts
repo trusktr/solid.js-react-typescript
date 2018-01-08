@@ -137,7 +137,7 @@ export class TileManager extends UtmInterface {
 	voxelsDictionary: Set<THREE.Vector3>
 	voxelsHeight: Array<number>
 	voxelSize: number
-	voxelsMaxHeigh: number
+	private voxelsMaxHeight: number
 	private HSVGradient: Array<THREE.Vector3>
 	private onSuperTileUnload: (superTile: SuperTile) => void
 	private initialSuperTilesToLoad: number // preload some super tiles; initially we don't know how many points they will contain
@@ -160,7 +160,7 @@ export class TileManager extends UtmInterface {
 		this.voxelsHeight = []
 		this.voxelsDictionary = new Set<THREE.Vector3>()
 		this.voxelSize = 0.3
-		this.voxelsMaxHeigh = 7
+		this.voxelsMaxHeight = 7
 		this.HSVGradient = []
 		this.generateGradient()
 		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
@@ -241,10 +241,10 @@ export class TileManager extends UtmInterface {
 	 */
 	private generateGradient(): void {
 		log.info(`Generate color palette....`)
-		let gradientValues: number = Math.floor((this.voxelsMaxHeigh / this.voxelSize + 1))
+		let gradientValues: number = Math.floor((this.voxelsMaxHeight / this.voxelSize + 1))
 		let height: number = this.voxelSize / 2
 		for (let i = 0; i < gradientValues; ++i ) {
-			this.HSVGradient.push(this.HeightToColor(height, this.voxelsMaxHeigh))
+			this.HSVGradient.push(TileManager.heightToColor(height, this.voxelsMaxHeight))
 			height += this.voxelSize
 		}
 		log.info(`Color palette ready !`)
@@ -253,7 +253,7 @@ export class TileManager extends UtmInterface {
 	/**
 	 * Assign an RGB color for a height value, given a fixed range [0, scale]
 	 */
-	private HeightToColor(height: number, scale: number): THREE.Vector3 {
+	private static heightToColor(height: number, scale: number): THREE.Vector3 {
 		let x = (height / scale) * 360;
 		if (x > 360.0)
 			x = 360.0
@@ -289,10 +289,10 @@ export class TileManager extends UtmInterface {
 	}
 
 	/**
-     * Create voxels geometry given a list of indices for the occupied voxels
-     */
+	 * Create voxels geometry given a list of indices for the occupied voxels
+	 */
 	generateVoxels(): void {
-		let maxBandValue: number = Math.floor((this.voxelsMaxHeigh / this.voxelSize + 1))
+		let maxBandValue: number = Math.floor((this.voxelsMaxHeight / this.voxelSize + 1))
 		for (let band = 0; band < maxBandValue; band++) {
 			log.info(`Processing height band ${band}...`)
 			this.generateSingleBandVoxels(band, this.HSVGradient[band])
@@ -303,16 +303,16 @@ export class TileManager extends UtmInterface {
 	/**
 	 * Generate voxels in a single height band
 	 */
-    private generateSingleBandVoxels(heightBand: number, color: THREE.Vector3): void {
+	private generateSingleBandVoxels(heightBand: number, color: THREE.Vector3): void {
 
-    	log.warn(`There are ${this.voxelsDictionary.size} voxels. Start creating them....`)
+		log.info(`There are ${this.voxelsDictionary.size} voxels. Start creating them....`)
 
 		// Voxel params
 		let voxelSizeForRender = 0.9 * this.voxelSize
 		let maxVoxelsPerArray: number = 100000
 
 		// Voxels buffers
-    	const allPositions: Array<Array<number>> = []
+		const allPositions: Array<Array<number>> = []
 		let positions: Array<number> = []
 
 		// Generate voxels
@@ -332,7 +332,7 @@ export class TileManager extends UtmInterface {
 			if (count % maxVoxelsPerArray === 0) {
 				positions = []
 				allPositions.push(positions)
-				log.warn(`Processing voxel ${count}`)
+				log.info(`Processing voxel ${count}`)
 			}
 
 			// Prepare voxel geometry
@@ -403,9 +403,9 @@ export class TileManager extends UtmInterface {
 
 			count++
 		}
-		log.warn('Done generating voxels.')
+		log.info('Done generating voxels.')
 
-		log.warn('Add them to the mesh....')
+		log.info('Add them to the mesh....')
 		for (let j = 0; j < allPositions.length; j++) {
 			let pointsBuffer = new THREE.Float32BufferAttribute(allPositions[j], 3)
 			let buffer = new THREE.BufferGeometry()
@@ -416,7 +416,7 @@ export class TileManager extends UtmInterface {
 			}))
 			this.voxelsMeshGroup.push(voxelsMesh)
 		}
-		log.warn('Done adding them to the mesh.')
+		log.info('Done adding them to the mesh.')
 	}
 
 	/**
