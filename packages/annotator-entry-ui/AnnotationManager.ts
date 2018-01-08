@@ -702,6 +702,14 @@ export class AnnotationManager extends UtmInterface {
 				return trafficSignAnnotation
 		}
 
+		const connectionAnnotation = this.connectionAnnotations.find(a => a.mesh === object)
+		if (connectionAnnotation) {
+			if (this.activeAnnotation && this.activeAnnotation.uuid === connectionAnnotation.uuid)
+				return null
+			else
+				return connectionAnnotation
+		}
+
 		return null
 	}
 
@@ -1215,6 +1223,66 @@ export class AnnotationManager extends UtmInterface {
 		})
 	}
 
+	private removeMeshFromArray(meshArray: Array<THREE.Mesh>, queryMesh: THREE.Mesh): boolean {
+		const index = meshArray.findIndex((mesh) => {
+			return mesh === queryMesh
+		})
+		if (index < 0) {
+			log.error("Couldn't find associated mesh in internal mesh array. This should never happen")
+			return false
+		}
+
+		this.annotationMeshes.splice(index, 1)
+		return true
+	}
+
+	private removeUuidFromArray( uuidArray: Array<AnnotationUuid>, uuidToRemove: AnnotationUuid): boolean {
+		const index = uuidArray.findIndex( (element) => {
+			return element === uuidToRemove
+		})
+
+		if (index < 0) {
+			return false
+		}
+
+		uuidArray.splice(index, 1)
+		return true
+	}
+
+	private removeUuidFromLaneNeighbors(laneUuid: AnnotationUuid, uuidToRemove: AnnotationUuid): boolean {
+		const index = this.laneAnnotations.findIndex( (annotation) => {
+			return annotation.uuid === laneUuid
+		})
+
+		if (index < 0) {
+			log.error("Couldn't remove neighbor. Requested lane uuid doesn't exist")
+			return false
+		}
+
+		// Check on all directions for the uuid to remove
+		if (this.removeUuidFromArray(this.laneAnnotations[index].neighborsIds.back, uuidToRemove)) {
+			return true
+		}
+
+		if (this.removeUuidFromArray(this.laneAnnotations[index].neighborsIds.front, uuidToRemove)) {
+			return true
+		}
+
+		if (this.laneAnnotations[index].neighborsIds.left &&
+			this.laneAnnotations[index].neighborsIds.left === uuidToRemove) {
+			this.laneAnnotations[index].neighborsIds.left = null
+			return true
+		}
+
+		if (this.laneAnnotations[index].neighborsIds.right &&
+			this.laneAnnotations[index].neighborsIds.right === uuidToRemove) {
+			this.laneAnnotations[index].neighborsIds.right = null
+			return true
+		}
+
+		return false
+	}
+
 	/**
 	 * Delete given annotation
 	 */
@@ -1223,14 +1291,7 @@ export class AnnotationManager extends UtmInterface {
 		this.scene.remove(annotation.renderingObject)
 
 		// Remove mesh from internal array of meshes.
-		const index = this.annotationMeshes.findIndex((mesh) => {
-			return mesh === annotation.mesh
-		})
-		if (index < 0) {
-			log.error("Couldn't find associated mesh in internal mesh array. This should never happen")
-			return false
-		}
-		this.annotationMeshes.splice(index, 1)
+		this.removeMeshFromArray(this.annotationMeshes, annotation.mesh)
 
 		// Make sure we remove references to this annotation from it's neighbors (if any).
 		this.deleteConnectionToNeighbors(annotation)
@@ -1247,6 +1308,9 @@ export class AnnotationManager extends UtmInterface {
 		// Remove lane from scene.
 		this.scene.remove(annotation.renderingObject)
 
+		// Remove mesh from internal array of meshes.
+		this.removeMeshFromArray(this.annotationMeshes, annotation.mesh)
+
 		// Remove annotation from internal array of annotations.
 		const eraseIndex = this.getAnnotationIndexFromUuid(this.trafficSignAnnotations, annotation.uuid)
 		this.trafficSignAnnotations.splice(eraseIndex, 1)
@@ -1256,8 +1320,15 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	private deleteConnection(annotation: Connection): boolean {
-		// Remove lane from scene.
+		// Remove connection from scene.
 		this.scene.remove(annotation.renderingObject)
+
+		// Remove mesh from internal array of meshes.
+		this.removeMeshFromArray(this.annotationMeshes, annotation.mesh)
+
+		// Make sure we remove references to this annotation from it's neighbors (if any).
+		this.removeUuidFromLaneNeighbors(annotation.startLaneUuid, annotation.uuid)
+		this.removeUuidFromLaneNeighbors(annotation.endLaneUuid, annotation.uuid)
 
 		// Remove annotation from internal array of annotations.
 		const eraseIndex = this.getAnnotationIndexFromUuid(this.connectionAnnotations, annotation.uuid)
