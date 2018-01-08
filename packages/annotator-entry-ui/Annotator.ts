@@ -68,6 +68,7 @@ interface AnnotatorSettings {
 	defaultFpsRendering: number
 	fpsRendering: number
 	estimateGroundPlane: boolean
+	generateVoxelsOnPointLoad: boolean
 	drawBoundingBox: boolean
 }
 
@@ -135,6 +136,7 @@ class Annotator {
 			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
 			fpsRendering: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
+			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
 		}
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
@@ -452,8 +454,10 @@ class Annotator {
 			.then(() => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
-				this.computeVoxelsHeights() // This is based on pre-loaded annotations
-				this.tileManager.generateVoxels()
+				if (this.settings.generateVoxelsOnPointLoad) {
+					this.computeVoxelsHeights() // This is based on pre-loaded annotations
+					this.tileManager.generateVoxels()
+				}
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(true)
@@ -472,7 +476,7 @@ class Annotator {
 			let x: number = voxel.x * voxelSize
 			let y: number = voxel.y * voxelSize
 			let z: number = voxel.z * voxelSize
-			let minDistance: number = 99999
+			let minDistance: number = Number.MAX_VALUE
 			let minDistanceHeight: number = y   // in case there is no annotation close enough
                                                 // these voxels will be all colored the same
 			for (let annotation of this.annotationManager.laneAnnotations) {
