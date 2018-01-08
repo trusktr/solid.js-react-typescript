@@ -392,6 +392,48 @@ export class Lane extends Annotation {
 		}
 	}
 
+	/*
+	 * Delete the neighbor if it exists on either side.
+	 */
+	deleteLeftOrRightNeighbor(neighborId: AnnotationUuid): boolean {
+		if (this.neighborsIds.right === neighborId) {
+			this.neighborsIds.right = null
+			return true
+		} else if (this.neighborsIds.left === neighborId) {
+			this.neighborsIds.left = null
+			return true
+		} else {
+			log.error("Non-reciprocal neighbor relation detected. This should never happen.")
+			return false
+		}
+	}
+
+	deleteFrontNeighbor(neighborId: AnnotationUuid): boolean {
+		const index = this.neighborsIds.front.findIndex((uuid) => {
+			return uuid === neighborId
+		})
+		if (index >= 0) {
+			this.neighborsIds.front.splice(index, 1)
+			return true
+		} else {
+			log.error("Couldn't find connection to front neighbor. This should never happen.")
+			return false
+		}
+	}
+
+	deleteBackNeighbor(neighborId: AnnotationUuid): boolean {
+		const index = this.neighborsIds.back.findIndex((uuid) => {
+			return uuid === neighborId
+		})
+		if (index >= 0) {
+			this.neighborsIds.back.splice(index, 1)
+			return true
+		} else {
+			log.error("Couldn't find connection to back neighbor. This should never happen.")
+			return false
+		}
+	}
+
 	/**
 	 * Make this annotation part of the car path
 	 */

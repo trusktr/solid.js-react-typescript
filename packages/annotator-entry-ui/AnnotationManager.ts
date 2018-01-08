@@ -680,6 +680,19 @@ export class AnnotationManager extends UtmInterface {
 		mkdirp(dirName, writeFile)
 	}
 
+	private findAnnotationByUuid(uuid: AnnotationUuid): Annotation | null {
+		const lane = this.laneAnnotations.find(a => a.uuid === uuid)
+		if (lane) return lane
+
+		const connection = this.connectionAnnotations.find(a => a.uuid === uuid)
+		if (connection) return connection
+
+		const trafficSign = this.trafficSignAnnotations.find(a => a.uuid === uuid)
+		if (trafficSign) return trafficSign
+
+		return null
+	}
+
 	/**
 	 * Check if the passed mesh corresponds to an inactive annotation.
 	 */
@@ -974,6 +987,14 @@ export class AnnotationManager extends UtmInterface {
 		})
 	}
 
+	unloadAllAnnotations(): void {
+		log.info('deleting all annotations')
+		// slice() makes a local copy of each array, since the delete() methods mutate the arrays.
+		this.connectionAnnotations.slice().forEach(a => this.deleteConnection(a))
+		this.trafficSignAnnotations.slice().forEach(a => this.deleteTrafficSign(a))
+		this.laneAnnotations.slice().forEach(a => this.deleteLane(a))
+	}
+
 	enableAutoSave(): void {
 		this.metadataState.enableAutoSave()
 	}
@@ -997,16 +1018,9 @@ export class AnnotationManager extends UtmInterface {
 		}
 		const self = this
 		const dirName = fileName.substring(0, fileName.lastIndexOf("/"))
-		const writeFile = function (er: Error): Promise<void> {
-			if (er) {
-				return Promise.reject(er)
-			} else {
-				const strAnnotations = JSON.stringify(self.toJSON(format))
-				return AsyncFile.writeTextFile(fileName, strAnnotations)
-					.then(() => self.metadataState.clean())
-			}
-		}
-		return mkdirp(dirName, writeFile)
+		return Promise.resolve(mkdirp.sync(dirName))
+			.then(() => AsyncFile.writeTextFile(fileName, JSON.stringify(self.toJSON(format))))
+			.then(() => self.metadataState.clean())
 	}
 
 	toJSON(format: OutputFormat): AnnotationManagerJsonOutputInterface {
@@ -1250,33 +1264,29 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	private removeUuidFromLaneNeighbors(laneUuid: AnnotationUuid, uuidToRemove: AnnotationUuid): boolean {
-		const index = this.laneAnnotations.findIndex( (annotation) => {
-			return annotation.uuid === laneUuid
-		})
+		const lane = this.laneAnnotations.find(a => a.uuid === laneUuid)
 
-		if (index < 0) {
+		if (!lane) {
 			log.error("Couldn't remove neighbor. Requested lane uuid doesn't exist")
 			return false
 		}
 
 		// Check on all directions for the uuid to remove
-		if (this.removeUuidFromArray(this.laneAnnotations[index].neighborsIds.back, uuidToRemove)) {
+		if (this.removeUuidFromArray(lane.neighborsIds.back, uuidToRemove)) {
 			return true
 		}
 
-		if (this.removeUuidFromArray(this.laneAnnotations[index].neighborsIds.front, uuidToRemove)) {
+		if (this.removeUuidFromArray(lane.neighborsIds.front, uuidToRemove)) {
 			return true
 		}
 
-		if (this.laneAnnotations[index].neighborsIds.left &&
-			this.laneAnnotations[index].neighborsIds.left === uuidToRemove) {
-			this.laneAnnotations[index].neighborsIds.left = null
+		if (lane.neighborsIds.left === uuidToRemove) {
+			lane.neighborsIds.left = null
 			return true
 		}
 
-		if (this.laneAnnotations[index].neighborsIds.right &&
-			this.laneAnnotations[index].neighborsIds.right === uuidToRemove) {
-			this.laneAnnotations[index].neighborsIds.right = null
+		if (lane.neighborsIds.right === uuidToRemove) {
+			lane.neighborsIds.right = null
 			return true
 		}
 
@@ -1287,6 +1297,10 @@ export class AnnotationManager extends UtmInterface {
 	 * Delete given annotation
 	 */
 	private deleteLane(annotation: Lane): boolean {
+		// It can't be active after it's gone.
+		if (this.activeAnnotation && this.activeAnnotation.uuid === annotation.uuid)
+			this.activeAnnotation = null
+
 		// Remove lane from scene.
 		this.scene.remove(annotation.renderingObject)
 
@@ -1305,6 +1319,10 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	private deleteTrafficSign(annotation: TrafficSign): boolean {
+		// It can't be active after it's gone.
+		if (this.activeAnnotation && this.activeAnnotation.uuid === annotation.uuid)
+			this.activeAnnotation = null
+
 		// Remove lane from scene.
 		this.scene.remove(annotation.renderingObject)
 
@@ -1320,6 +1338,10 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	private deleteConnection(annotation: Connection): boolean {
+		// It can't be active after it's gone.
+		if (this.activeAnnotation && this.activeAnnotation.uuid === annotation.uuid)
+			this.activeAnnotation = null
+
 		// Remove connection from scene.
 		this.scene.remove(annotation.renderingObject)
 
@@ -1504,132 +1526,56 @@ export class AnnotationManager extends UtmInterface {
 		return true
 	}
 
-	private findAnnotationIndexByUuid(uuid: AnnotationUuid): [number, AnnotationType] {
-		const laneIndex = this.laneAnnotations.findIndex((annotation) => {
-			return annotation.uuid === uuid
-		})
-
-		if (laneIndex >= 0) {
-			return [laneIndex, AnnotationType.LANE]
-		}
-
-		const connectionIndex = this.connectionAnnotations.findIndex( (annotation) => {
-			return annotation.uuid === uuid
-		})
-
-		if (connectionIndex >= 0) {
-			return [connectionIndex, AnnotationType.CONNECTION]
-		}
-
-		const trafficSignIndex = this.trafficSignAnnotations.findIndex((annotation) => {
-			return annotation.uuid === uuid
-		})
-
-		if (trafficSignIndex >= 0) {
-			return [trafficSignIndex, AnnotationType.TRAFFIC_SIGN]
-		}
-
-		return [-1, AnnotationType.UNKNOWN]
-	}
-
 	private deleteConnectionToNeighbors(annotation: Lane): void {
 		let modifications = 0
 
-		if (annotation.neighborsIds.right != null) {
-			const [index, type]: [number, AnnotationType] = this.findAnnotationIndexByUuid(annotation.neighborsIds.right)
-			if (index < 0 || type !== AnnotationType.LANE) {
-				log.error("Couldn't find right neighbor. This should never happen.")
-			}
-			const rightNeighbor = this.laneAnnotations[index]
-
-			if (rightNeighbor.neighborsIds.right === annotation.uuid) {
-				log.info("Deleted connection to right neighbor.")
-				rightNeighbor.neighborsIds.right = null
-				modifications++
-			} else if (rightNeighbor.neighborsIds.left === annotation.uuid) {
-				log.info("Deleted connection to right neighbor.")
-				rightNeighbor.neighborsIds.left = null
-				modifications++
+		if (annotation.neighborsIds.right) {
+			const rightNeighbor = this.findAnnotationByUuid(annotation.neighborsIds.right)
+			if (rightNeighbor && rightNeighbor instanceof Lane) {
+				if (rightNeighbor.deleteLeftOrRightNeighbor(annotation.uuid))
+					modifications++
 			} else {
-				log.error("Non-reciprocal neighbor relation detected. This should never happen.")
+				log.error("Couldn't find right neighbor. This should never happen.")
 			}
 		}
 
-		if (annotation.neighborsIds.left != null) {
-			const [index, type] = this.findAnnotationIndexByUuid(annotation.neighborsIds.left)
-			if (index < 0 || type !== AnnotationType.LANE) {
-				log.error("Couldn't find left neighbor. This should never happen.")
-			}
-			const leftNeighbor = this.laneAnnotations[index]
-
-			if (leftNeighbor.neighborsIds.right === annotation.uuid) {
-				log.info("Deleted connection to left neighbor.")
-				leftNeighbor.neighborsIds.right = null
-				modifications++
-			} else if (leftNeighbor.neighborsIds.left === annotation.uuid) {
-				log.info("Deleted connection to left neighbor.")
-				leftNeighbor.neighborsIds.left = null
-				modifications++
+		if (annotation.neighborsIds.left) {
+			const leftNeighbor = this.findAnnotationByUuid(annotation.neighborsIds.left)
+			if (leftNeighbor && leftNeighbor instanceof Lane) {
+				if (leftNeighbor.deleteLeftOrRightNeighbor(annotation.uuid))
+					modifications++
 			} else {
-				log.error("Non-reciprocal neighbor relation detected. This should never happen.")
+				log.error("Couldn't find left neighbor. This should never happen.")
 			}
 		}
 
 		for (let i = 0; i < annotation.neighborsIds.front.length; i++) {
-			const [index, type]: [number, AnnotationType] = this.findAnnotationIndexByUuid(annotation.neighborsIds.front[i])
-			if (index < 0) {
-				log.error("Couldn't find front neighbor. This should never happen.")
-			}
-
-			if (type === AnnotationType.LANE) {
+			const frontNeighbor = this.findAnnotationByUuid(annotation.neighborsIds.front[i])
+			if (frontNeighbor instanceof Lane) {
 				// If the front neighbor is another lane, delete the reference to this lane from its neighbors
-				const frontNeighbor = this.laneAnnotations[index]
-				const index2 = frontNeighbor.neighborsIds.back.findIndex((uuid) => {
-					return uuid === annotation.uuid
-				})
-
-				if (index2 >= 0) {
-					// delete the forward connection
-					log.info("Deleted connection to front neighbor.")
-					frontNeighbor.neighborsIds.back.splice(index2, 1)
+				if (frontNeighbor.deleteBackNeighbor(annotation.uuid))
 					modifications++
-				}
-
-			} else if (type === AnnotationType.CONNECTION) {
+			} else if (frontNeighbor instanceof Connection) {
 				// If the front neighbor is a connection delete it
-				const frontNeighbor = this.connectionAnnotations[index]
-				this.deleteConnection(frontNeighbor)
-				modifications++
+				if (this.deleteConnection(frontNeighbor))
+					modifications++
 			} else {
 				log.error('Not valid front neighbor')
 			}
 		}
 
 		for (let i = 0; i < annotation.neighborsIds.back.length; i++) {
-			const [index, type]: [number, AnnotationType] = this.findAnnotationIndexByUuid(annotation.neighborsIds.back[i])
-			if (index < 0) {
-				log.error("Couldn't find back neighbor. This should never happen.")
-			}
-
-			if (type === AnnotationType.LANE) {
+			const backNeighbor = this.findAnnotationByUuid(annotation.neighborsIds.back[i])
+			if (backNeighbor instanceof Lane) {
 				// If the back neighbor is another lane, delete the reference to this lane from its neighbors
-				const backNeighbor = this.laneAnnotations[index]
-				const index2 = backNeighbor.neighborsIds.front.findIndex((uuid) => {
-					return uuid === annotation.uuid
-				})
-				if (index2 >= 0) {
-					// delete the backward connection
-					log.info("Deleted connection to back neighbor.")
-					backNeighbor.neighborsIds.front.splice(index2, 1)
+				if (backNeighbor.deleteFrontNeighbor(annotation.uuid))
 					modifications++
-				}
-			} else if (type === AnnotationType.CONNECTION) {
+			} else if (backNeighbor instanceof Connection) {
 				// If the back neighbor is a connection delete it
-				const backNeighbor = this.connectionAnnotations[index]
-				this.deleteConnection(backNeighbor)
-				modifications++
+				if (this.deleteConnection(backNeighbor))
+					modifications++
 			} else {
-				log.error('Not valid front neighbor')
+				log.error('Not valid back neighbor')
 			}
 		}
 

@@ -20,6 +20,7 @@ import {AxesHelper} from "./controls/AxesHelper"
 import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane, LaneType} from 'annotator-entry-ui/annotations/Lane'
+import {Connection} from "./annotations/Connection"
 import {TrafficSign} from "./annotations/TrafficSign"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -47,6 +48,10 @@ OBJLoader(THREE)
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const root = $("#root")
+
+function noop(): void {
+	return
+}
 
 enum MenuVisibility {
 	HIDE = 0,
@@ -713,6 +718,8 @@ class Annotator {
 					this.resetLaneProp()
 				else if (inactive instanceof TrafficSign)
 					this.resetTrafficSignProp()
+				else if (inactive instanceof Connection)
+					noop() // Connection doesn't have any menus to maintain; this keeps the compiler from complaining.
 				else
 					log.warn(`unknown annotation type ${inactive}`)
 			}
@@ -874,6 +881,11 @@ class Annotator {
 					this.uiState.isShiftKeyPressed = true
 					break
 				}
+				case 'A': {
+					this.annotationManager.immediateAutoSave()
+						.then(() => this.annotationManager.unloadAllAnnotations())
+					break
+				}
 				case 'a': {
 					this.uiState.isAddMarkerKeyPressed = true
 					break
@@ -888,12 +900,8 @@ class Annotator {
 						this.hideTransform()
 					break
 				}
-				case 'n': {
-					this.addLane()
-					break
-				}
-				case 'z': {
-					this.deleteActiveAnnotation()
+				case 'e': {
+					this.addRightReverse()
 					break
 				}
 				case 'f': {
@@ -904,28 +912,16 @@ class Annotator {
 					this.toggleModelVisibility()
 					break
 				}
-				case 'l': {
-					this.addLeftSame()
+				case 'k': {
+					this.addLeftReverse()
 					break
 				}
 				case 'L': {
 					this.loadAllSuperTileData()
 					break
 				}
-				case 'k': {
-					this.addLeftReverse()
-					break
-				}
-				case 'r': {
-					this.addRightSame()
-					break
-				}
-				case 'e': {
-					this.addRightReverse()
-					break
-				}
-				case 's': {
-					this.saveToFile()
+				case 'l': {
+					this.addLeftSame()
 					break
 				}
 				case 'm': {
@@ -933,8 +929,24 @@ class Annotator {
 						.catch(err => log.warn('saveToKML failed: ' + err.message))
 					break
 				}
+				case 'n': {
+					this.addLane()
+					break
+				}
 				case 'o': {
 					this.toggleListen()
+					break
+				}
+				case 'q': {
+					this.uiState.isAddTrafficSignMarkerKeyPressed = true
+					break
+				}
+				case 'r': {
+					this.addRightSame()
+					break
+				}
+				case 's': {
+					this.saveToFile()
 					break
 				}
 				case 't': {
@@ -945,16 +957,16 @@ class Annotator {
 					this.unloadPointCloudData()
 					break
 				}
-				case 'q': {
-					this.uiState.isAddTrafficSignMarkerKeyPressed = true
-					break
-				}
 				case 'v': {
 					this.toggleVoxelsAndPointClouds()
 					break
 				}
 				case 'w': {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
+					break
+				}
+				case 'z': {
+					this.deleteActiveAnnotation()
 					break
 				}
 				default:
