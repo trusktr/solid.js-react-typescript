@@ -102,7 +102,7 @@ interface UiState {
  */
 class Annotator {
 	private uiState: UiState
-	private scene: THREE.Scene
+	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
 	private camera: THREE.PerspectiveCamera
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
@@ -226,7 +226,7 @@ class Annotator {
 
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
-		this.annotationManager = new AnnotationManager()
+		this.annotationManager = new AnnotationManager(this.scene)
 
 		// Point cloud is empty. It will be populated later.
 		this.scene.add(this.tileManager.pointCloud)
@@ -597,7 +597,7 @@ class Annotator {
 			log.info('Loading annotations')
 			if (!this.uiState.isAnnotationsVisible)
 				this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
-			const focalPoint = await this.annotationManager.loadAnnotationsFromFile(fileName, this.scene)
+			const focalPoint = await this.annotationManager.loadAnnotationsFromFile(fileName)
 			if (!this.tileManager.setOriginWithInterface(this.annotationManager)) {
 				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
 			}
@@ -628,7 +628,7 @@ class Annotator {
 		}
 		// This creates a new lane and add it to the scene for display
 		return !!(
-			this.annotationManager.addLaneAnnotation(this.scene) &&
+			this.annotationManager.addLaneAnnotation() &&
 			this.annotationManager.changeActiveAnnotation(this.annotationManager.laneAnnotations.length - 1,
 															AnnotationType.LANE)
 		)
@@ -643,7 +643,7 @@ class Annotator {
 		}
 
 		return !!(
-			this.annotationManager.addTrafficSignAnnotation(this.scene) &&
+			this.annotationManager.addTrafficSignAnnotation() &&
 			this.annotationManager.changeActiveAnnotation(this.annotationManager.trafficSignAnnotations.length - 1,
 															AnnotationType.TRAFFIC_SIGN)
 		)
@@ -699,7 +699,7 @@ class Annotator {
 
 		if (intersects.length > 0) {
 			const object = intersects[0].object
-			const [index, type] = this.annotationManager.checkForInactiveAnnotation(object as any)
+			const [index, type]: [number, AnnotationType] = this.annotationManager.checkForInactiveAnnotation(object as any)
 
 			// We clicked an inactive annotation, make it active
 			if (index >= 0) {
@@ -1073,7 +1073,7 @@ class Annotator {
 			this.annotationManager.deleteLaneFromPath()
 		}
 
-		if (this.annotationManager.deleteActiveAnnotation(this.scene)) {
+		if (this.annotationManager.deleteActiveAnnotation()) {
 			log.info("Deleted selected annotation")
 			Annotator.deactivateLaneProp()
 			this.hideTransform()
@@ -1126,35 +1126,35 @@ class Annotator {
 
 	private addFront(): void {
 		log.info("Adding connected annotation to the front")
-		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
+		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
 			Annotator.deactivateFrontSideNeighbours()
 		}
 	}
 
 	private addLeftSame(): void {
 		log.info("Adding connected annotation to the left - same direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
+		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
 	private addLeftReverse(): void {
 		log.info("Adding connected annotation to the left - reverse direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
+		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
 	private addRightSame(): void {
 		log.info("Adding connected annotation to the right - same direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
+		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
 	}
 
 	private addRightReverse(): void {
 		log.info("Adding connected annotation to the right - reverse direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
+		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
 	}
@@ -1328,7 +1328,7 @@ class Annotator {
 				}
 
 				log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
-				if (this.annotationManager.addRelation(this.scene, lcFrom, lcTo, lcRelation)) {
+				if (this.annotationManager.addRelation(lcFrom, lcTo, lcRelation)) {
 					this.resetLaneProp()
 				}
 			})
