@@ -62,7 +62,7 @@ export class Connection extends Annotation {
 	endLaneUuid: AnnotationUuid
 	directionMarkers: Array<THREE.Mesh>
 	waypoints: Array<THREE.Vector3>
-	connectionMesh: THREE.Mesh
+	mesh: THREE.Mesh
 
 	constructor(obj?: ConnectionJsonInputInterface) {
 		super(obj)
@@ -77,8 +77,8 @@ export class Connection extends Annotation {
 		}
 		this.directionMarkers = []
 		this.waypoints = []
-		this.connectionMesh = new THREE.Mesh(new THREE.Geometry(), ConnectionRenderingProperties.activeMaterial)
-		this.renderingObject.add(this.connectionMesh)
+		this.mesh = new THREE.Mesh(new THREE.Geometry(), ConnectionRenderingProperties.activeMaterial)
+		this.renderingObject.add(this.mesh)
 
 		if (obj && obj.markers.length > 0) {
 			obj.markers.forEach( (marker) => {
@@ -111,11 +111,11 @@ export class Connection extends Annotation {
 	deleteLastMarker(): boolean  { return false}
 
 	makeActive(): void {
-		this.connectionMesh.material = ConnectionRenderingProperties.activeMaterial
+		this.mesh.material = ConnectionRenderingProperties.activeMaterial
 	}
 
 	makeInactive(): void {
-		this.connectionMesh.material = ConnectionRenderingProperties.inactiveMaterial
+		this.mesh.material = ConnectionRenderingProperties.inactiveMaterial
 		this.unhighlightMarkers()
 	}
 
@@ -123,7 +123,7 @@ export class Connection extends Annotation {
 		this.markers.forEach((marker) => {
 			marker.visible = false
 		})
-		this.connectionMesh.material = ConnectionRenderingProperties.liveModeMaterial
+		this.mesh.material = ConnectionRenderingProperties.liveModeMaterial
 	}
 
 	unsetLiveMode(): void {
@@ -158,8 +158,8 @@ export class Connection extends Annotation {
 			}
 		}
 		newGeometry.computeFaceNormals()
-		this.connectionMesh.geometry = newGeometry
-		this.connectionMesh.geometry.verticesNeedUpdate = true
+		this.mesh.geometry = newGeometry
+		this.mesh.geometry.verticesNeedUpdate = true
 
 		this.computeWaypoints()
 	}

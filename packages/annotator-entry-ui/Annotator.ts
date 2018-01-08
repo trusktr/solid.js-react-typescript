@@ -17,10 +17,10 @@ import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
-import {AnnotationType} from "./annotations/AnnotationType"
 import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {NeighborLocation, NeighborDirection} from 'annotator-entry-ui/annotations/Lane'
+import {NeighborLocation, NeighborDirection, Lane} from 'annotator-entry-ui/annotations/Lane'
+import {TrafficSign} from "./annotations/TrafficSign"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
@@ -622,30 +622,25 @@ class Annotator {
 	private addLaneAnnotation(): boolean {
 		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotationIndex >= 0 &&
-			this.annotationManager.activeMarkers.length === 0) {
+		if (this.annotationManager.activeAnnotation &&
+			!this.annotationManager.activeAnnotation.isValid()) {
 			return false
 		}
 		// This creates a new lane and add it to the scene for display
-		return !!(
-			this.annotationManager.addLaneAnnotation() &&
-			this.annotationManager.changeActiveAnnotation(this.annotationManager.laneAnnotations.length - 1,
-															AnnotationType.LANE)
+		return this.annotationManager.changeActiveAnnotation(
+			this.annotationManager.addLaneAnnotation()
 		)
 	}
 
 	private addTrafficSignAnnotation(): boolean {
 		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotationIndex >= 0 &&
-			this.annotationManager.activeMarkers.length === 0) {
+		if (this.annotationManager.activeAnnotation &&
+			!this.annotationManager.activeAnnotation.isValid()) {
 			return false
 		}
-
-		return !!(
-			this.annotationManager.addTrafficSignAnnotation() &&
-			this.annotationManager.changeActiveAnnotation(this.annotationManager.trafficSignAnnotations.length - 1,
-															AnnotationType.TRAFFIC_SIGN)
+		return this.annotationManager.changeActiveAnnotation(
+			this.annotationManager.addTrafficSignAnnotation()
 		)
 	}
 
@@ -699,23 +694,18 @@ class Annotator {
 
 		if (intersects.length > 0) {
 			const object = intersects[0].object
-			const [index, type]: [number, AnnotationType] = this.annotationManager.checkForInactiveAnnotation(object as any)
+			const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Mesh)
 
 			// We clicked an inactive annotation, make it active
-			if (index >= 0) {
+			if (inactive) {
 				this.cleanTransformControls()
-				this.annotationManager.changeActiveAnnotation(index, type)
-
-				switch (type) {
-					case AnnotationType.LANE:
-						this.resetLaneProp()
-						break
-					case AnnotationType.TRAFFIC_SIGN:
-						this.resetTrafficSignProp()
-						break
-					default:
-						// nothing to see here
-				}
+				this.annotationManager.changeActiveAnnotation(inactive)
+				if (inactive instanceof Lane)
+					this.resetLaneProp()
+				else if (inactive instanceof TrafficSign)
+					this.resetTrafficSignProp()
+				else
+					log.warn(`unknown annotation type ${inactive}`)
 			}
 		}
 	}
@@ -734,7 +724,7 @@ class Annotator {
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
+		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers())
 
 		if (intersects.length > 0) {
 			const marker = intersects[0].object as THREE.Mesh
@@ -1069,10 +1059,7 @@ class Annotator {
 	 */
 	private deleteActiveAnnotation(): void {
 		// Delete annotation from scene
-		if (this.annotationManager.activeAnnotationType === AnnotationType.LANE) {
-			this.annotationManager.deleteLaneFromPath()
-		}
-
+		this.annotationManager.deleteActiveLaneFromPath()
 		if (this.annotationManager.deleteActiveAnnotation()) {
 			log.info("Deleted selected annotation")
 			Annotator.deactivateLaneProp()

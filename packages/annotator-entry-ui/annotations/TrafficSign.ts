@@ -40,7 +40,7 @@ export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInte
 export class TrafficSign extends Annotation {
 	type: TrafficSignType
 	trafficSignContour: THREE.Line
-	trafficSignMesh: THREE.Mesh
+	mesh: THREE.Mesh
 	isComplete: boolean
 
 	constructor(obj?: TrafficSignJsonInputInterface) {
@@ -52,10 +52,10 @@ export class TrafficSign extends Annotation {
 		}
 		this.isComplete = false
 		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficSignRenderingProperties.contourMaterial)
-		this.trafficSignMesh = new THREE.Mesh(new THREE.Geometry(), TrafficSignRenderingProperties.meshMaterial)
-		this.renderingObject.add(this.trafficSignMesh)
+		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficSignRenderingProperties.meshMaterial)
+		this.renderingObject.add(this.mesh)
 		this.renderingObject.add(this.trafficSignContour)
-		this.trafficSignMesh.visible = false
+		this.mesh.visible = false
 
 		if (obj && obj.markers.length > 0) {
 			obj.markers.forEach( (marker) => {
@@ -110,11 +110,11 @@ export class TrafficSign extends Annotation {
 	}
 
 	makeActive(): void {
-		this.trafficSignMesh.visible = false
+		this.mesh.visible = false
 	}
 
 	makeInactive(): void {
-		this.trafficSignMesh.visible = true
+		this.mesh.visible = true
 		this.unhighlightMarkers()
 	}
 
@@ -177,8 +177,8 @@ export class TrafficSign extends Annotation {
 			}
 		}
 		newMeshGeometry.computeFaceNormals()
-		this.trafficSignMesh.geometry = newMeshGeometry
-		this.trafficSignMesh.geometry.verticesNeedUpdate = true
+		this.mesh.geometry = newMeshGeometry
+		this.mesh.geometry.verticesNeedUpdate = true
 	}
 
 	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficSignJsonOutputInterface {
