@@ -957,6 +957,10 @@ class Annotator {
 					this.uiState.isAddTrafficSignMarkerKeyPressed = true
 					break
 				}
+				case 'v': {
+					this.toggleVoxelsAndPointClouds()
+					break
+				}
 				case 'w': {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
 					break
@@ -1843,17 +1847,9 @@ class Annotator {
 		let hideMenu
 		if (this.uiState.isLiveMode) {
 			this.annotationManager.unsetLiveMode()
-			this.scene.add(this.tileManager.pointCloud)
-			this.tileManager.voxelsMeshGroup.forEach( mesh => {
-				this.scene.remove(mesh)
-			})
 			hideMenu = this.stopListening()
 		} else {
 			this.annotationManager.setLiveMode()
-			this.scene.remove(this.tileManager.pointCloud)
-			this.tileManager.voxelsMeshGroup.forEach( mesh => {
-				this.scene.add(mesh)
-			})
 			hideMenu = this.listen()
 		}
 		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
@@ -1946,6 +1942,26 @@ class Annotator {
 		this.camera.updateMatrix()
 	}
 
+	/**
+	 * Switch between voxel and point cloud rendering.
+	 * TODO: We might be able to do this by setting the 'visible' parameter of the
+	 * corresponding 3D objects.
+	 */
+	private toggleVoxelsAndPointClouds() {
+		if (this.uiState.isPointCloudVisible) {
+			this.scene.remove(this.tileManager.pointCloud)
+			this.tileManager.voxelsMeshGroup.forEach( mesh => {
+				this.scene.add(mesh)
+			})
+			this.uiState.isPointCloudVisible = false
+		} else {
+			this.scene.add(this.tileManager.pointCloud)
+			this.tileManager.voxelsMeshGroup.forEach( mesh => {
+				this.scene.remove(mesh)
+			})
+			this.uiState.isPointCloudVisible = true
+		}
+	}
 }
 
 export const annotator = new Annotator()
