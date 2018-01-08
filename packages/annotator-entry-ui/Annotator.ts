@@ -474,7 +474,7 @@ class Annotator {
 
 		let voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
 		let voxelSize: number = this.tileManager.voxelSize
-		let annotationCutoffDistance: number = 1 * 1 // 1 meter
+		let annotationCutoffDistance: number = 1.2 * 1.2 // 1.2 meters radius
 		for (let voxel of voxels) {
 			let x: number = voxel.x * voxelSize
 			let y: number = voxel.y * voxelSize
@@ -484,7 +484,7 @@ class Annotator {
                                                 // these voxels will be all colored the same
 			let laneType: LaneType = LaneType.UNKNOWN
 			for (let annotation of this.annotationManager.laneAnnotations) {
-				for (let wayPoint of annotation.waypoints) {
+				for (let wayPoint of annotation.denseWaypoints) {
 					let dx: number = wayPoint.x - x
 					let dz: number = wayPoint.z - z
 					let distance = dx * dx + dz * dz
@@ -503,9 +503,7 @@ class Annotator {
 			}
 			let height: number = y - minDistanceHeight
 			// TODO: Remove this voxel filtering. For CES only
-			// if (laneType === LaneType.PARKING && height < 2 && minDistance < (1 * 1)) {
-			//	this.tileManager.voxelsHeight.push(-1)
-			if (laneType === LaneType.ALL_VEHICLES && height < 2 && minDistance < (2.5 * 2.5)) {
+			if (height < 2.0 && minDistance < annotationCutoffDistance) {
 				this.tileManager.voxelsHeight.push(-1)
 			} else {
 				this.tileManager.voxelsHeight.push(height)
