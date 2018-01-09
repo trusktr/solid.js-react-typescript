@@ -287,29 +287,22 @@ class Annotator {
 		// Live mode data
 		this.loadCarModel()
 
-		const trajectoryPath = config.get('live_mode.trajectory_path')
-		if (trajectoryPath) {
-			this.loadFlythroughTrajectory(trajectoryPath).then( msg => {
-				this.flythroughSettings.enabled = true
-				this.flythroughTrajectory = msg
-				if (this.flythroughSettings.endPoseIndex >= this.flythroughTrajectory.states.length) {
-					this.flythroughSettings.endPoseIndex = this.flythroughTrajectory.states.length
-				}
-			})
-		}
-
 		// Bind events
 		this.bind()
 		Annotator.deactivateLaneProp()
 
 		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
 
+		return this.loadUserData()
+	}
+
+	// Load up any data which configuration has asked for on start-up.
+	loadUserData(): Promise<void> {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
 		if (annotationsPath) {
 			log.info('loading pre-configured annotations ' + annotationsPath)
 			annotationsResult = this.loadAnnotations(annotationsPath)
-				.catch(err => log.warn('loadAnnotations failed: ' + err.message))
 		} else
 			annotationsResult = Promise.resolve()
 
@@ -320,12 +313,22 @@ class Annotator {
 				.then(() => {
 					log.info('loading pre-configured data set ' + pointCloudDir)
 					return this.loadPointCloudData(pointCloudDir)
-						.catch(err => log.warn('loadPointCloudData failed: ' + err.message))
 				})
 		} else
 			pointCloudResult = annotationsResult
 
-		return pointCloudResult
+		let trajectoryResult: Promise<void>
+		const trajectoryPath = config.get('live_mode.trajectory_path')
+		if (trajectoryPath) {
+			trajectoryResult = pointCloudResult
+				.then(() => {
+					log.info('loading pre-configured trajectory ' + trajectoryPath)
+					return this.loadFlythroughTrajectory(trajectoryPath)
+				})
+		} else
+			trajectoryResult = pointCloudResult
+
+		return trajectoryResult
 	}
 
 	/**
@@ -342,12 +345,20 @@ class Annotator {
 		this.transformControls.update()
 	}
 
-	private loadFlythroughTrajectory(filename: string): Promise<Models.TrajectoryMessage>  {
+	private loadFlythroughTrajectory(filename: string): Promise<void>  {
 		return AsyncFile.readFile(filename)
 			.then(buffer => Models.TrajectoryMessage.decode(buffer))
 			.then(msg => {
 				log.info('Number of trajectory poses: ' + msg.states.length)
-				return msg
+				this.flythroughSettings.enabled = true
+				this.flythroughTrajectory = msg
+				if (this.flythroughSettings.endPoseIndex >= this.flythroughTrajectory.states.length) {
+					this.flythroughSettings.endPoseIndex = this.flythroughTrajectory.states.length
+				}
+			})
+			.catch(err => {
+				log.error(err.message)
+				dialog.showErrorBox('Fly-through Load Error', err.message)
 			})
 	}
 
@@ -449,7 +460,6 @@ class Annotator {
 	 * Center the stage and the camera on the point cloud.
 	 */
 	private loadPointCloudData(pathToTiles: string): Promise<void> {
-		log.info('loading dataset')
 		if (!this.uiState.isPointCloudVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR)
@@ -463,6 +473,10 @@ class Annotator {
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(true)
+			})
+			.catch(err => {
+				log.error(err.message)
+				dialog.showErrorBox('Point Cloud Load Error', err.message)
 			})
 	}
 
@@ -610,8 +624,9 @@ class Annotator {
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
 				if (focalPoint)
 					this.setStageByVector(focalPoint)
-			}).catch(err => {
-				log.warn(err.message)
+			})
+			.catch(err => {
+				log.error(err.message)
 				dialog.showErrorBox('Annotation Load Error', err.message)
 			})
 	}
@@ -1936,7 +1951,6 @@ class Annotator {
 		const offset = new THREE.Vector3(20, 15, 0)
 		offset.applyQuaternion(this.carModel.quaternion)
 		offset.add(p)
-		log.info(p.x)
 		this.camera.position.set(offset.x, offset.y, offset.z)
 		this.camera.lookAt(p)
 		this.camera.updateMatrix()
@@ -1947,7 +1961,7 @@ class Annotator {
 	 * TODO: We might be able to do this by setting the 'visible' parameter of the
 	 * corresponding 3D objects.
 	 */
-	private toggleVoxelsAndPointClouds() {
+	private toggleVoxelsAndPointClouds(): void {
 		if (this.uiState.isPointCloudVisible) {
 			this.scene.remove(this.tileManager.pointCloud)
 			this.tileManager.voxelsMeshGroup.forEach( mesh => {
