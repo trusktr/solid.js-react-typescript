@@ -159,7 +159,7 @@ export class TileManager extends UtmInterface {
 		this.voxelsMeshGroup = []
 		this.voxelsHeight = []
 		this.voxelsDictionary = new Set<THREE.Vector3>()
-		this.voxelSize = 0.3
+		this.voxelSize = 0.15
 		this.voxelsMaxHeight = 7
 		this.HSVGradient = []
 		this.generateGradient()
