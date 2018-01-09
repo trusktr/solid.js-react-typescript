@@ -72,8 +72,8 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 	// Set to false to disable use of the keys
 	this.enableKeys = true
 
-	// The four arrow keys
-	this.keys = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40}
+	// The four arrow keys for panning and + and - for zoom
+	this.keys = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40, IN: 187, OUT: 189}
 
 	// Mouse buttons
 	this.mouseButtons = {ORBIT: THREE.MOUSE.RIGHT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.LEFT}
@@ -521,6 +521,17 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 				scope.update()
 				break
 
+			case scope.keys.IN:
+				// yes, this is backwards from the way you or I would do it
+				dollyOut(getZoomScale())
+				scope.update()
+				break
+
+			case scope.keys.OUT:
+				dollyIn(getZoomScale())
+				scope.update()
+				break
+
 			default:
 		}
 
@@ -722,7 +733,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 	function onKeyDown(event: KeyboardEvent): void {
 
-		if (scope.enabled === false || scope.enableKeys === false || scope.enablePan === false) return
+		if (scope.enabled === false || scope.enableKeys === false) return
 
 		handleKeyDown(event)
 
