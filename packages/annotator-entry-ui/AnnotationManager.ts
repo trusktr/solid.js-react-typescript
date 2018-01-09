@@ -984,6 +984,7 @@ export class AnnotationManager extends UtmInterface {
 					reject(Error(`UTM Zone for new annotations (${zoneId}) does not match existing zone in ${self.getOrigin()}`))
 				}
 			})
+				.catch(err => reject(err))
 		})
 	}
 
