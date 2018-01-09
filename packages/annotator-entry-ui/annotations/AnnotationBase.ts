@@ -34,6 +34,7 @@ export abstract class Annotation {
 	id: AnnotationId	 				// A small integer, for use in the UI during one session
 	uuid: AnnotationUuid 				// A UUID, for use across distributed applications
 	markers: Array<THREE.Mesh> 			// Control point used to edit the annotation
+	abstract mesh: THREE.Mesh           // Represents the physical extents of the annotation
 	renderingObject: THREE.Object3D		// Object that is added to the scene for display
 
 	constructor(inputInterface?: AnnotationJsonInputInterface) {
@@ -52,6 +53,11 @@ export abstract class Annotation {
 	abstract setLiveMode(): void
 	abstract unsetLiveMode(): void
 	abstract updateVisualization(): void
+
+	boundingBox(): THREE.Box3 {
+		this.mesh.geometry.computeBoundingBox()
+		return this.mesh.geometry.boundingBox
+	}
 
 	/**
 	 * Intersect requested markers with active markers.

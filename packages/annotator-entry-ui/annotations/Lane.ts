@@ -161,7 +161,7 @@ export class Lane extends Annotation {
 	laneLeftLine: THREE.Line
 	laneRightLine: THREE.Line
 	laneDirectionMarkers: Array<THREE.Mesh>
-	laneMesh: THREE.Mesh
+	mesh: THREE.Mesh
 	neighborsIds: LaneNeighborsIds
 	leftLineType: LaneLineType
 	leftLineColor: LaneLineColor
@@ -198,7 +198,7 @@ export class Lane extends Annotation {
 		}
 
 		this.renderingProperties = new LaneRenderingProperties(color)
-		this.laneMesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
+		this.mesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
 		this.laneLeftLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
 		this.laneRightLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
@@ -216,7 +216,7 @@ export class Lane extends Annotation {
 		}
 
 		// Group display objects so we can easily add them to the screen
-		this.renderingObject.add(this.laneMesh)
+		this.renderingObject.add(this.mesh)
 		this.renderingObject.add(this.laneCenterLine)
 		this.renderingObject.add(this.laneLeftLine)
 		this.renderingObject.add(this.laneRightLine)
@@ -283,7 +283,7 @@ export class Lane extends Annotation {
 	 * Make this annotation active. This changes the displayed material.
 	 */
 	makeActive(): void {
-		this.laneMesh.material = this.renderingProperties.activeMaterial
+		this.mesh.material = this.renderingProperties.activeMaterial
 		this.laneCenterLine.visible = false
 	}
 
@@ -292,9 +292,9 @@ export class Lane extends Annotation {
 	 */
 	makeInactive(): void {
 		if (this.inTrajectory) {
-			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
+			this.mesh.material = this.renderingProperties.trajectoryMaterial
 		} else {
-			this.laneMesh.material = this.renderingProperties.inactiveMaterial
+			this.mesh.material = this.renderingProperties.inactiveMaterial
 		}
 		this.laneCenterLine.visible = true
 		this.unhighlightMarkers()
@@ -319,7 +319,7 @@ export class Lane extends Annotation {
 			marker.visible = false
 		})
 
-		this.laneMesh.material = this.renderingProperties.liveModeMaterial
+		this.mesh.material = this.renderingProperties.liveModeMaterial
 	}
 
 	unsetLiveMode(): void {
@@ -365,8 +365,8 @@ export class Lane extends Annotation {
 		}
 
 		newGeometry.computeFaceNormals()
-		this.laneMesh.geometry = newGeometry
-		this.laneMesh.geometry.verticesNeedUpdate = true
+		this.mesh.geometry = newGeometry
+		this.mesh.geometry.verticesNeedUpdate = true
 
 		// Generate center lane indication and direction markers
 		this.computeWaypoints()
@@ -394,6 +394,48 @@ export class Lane extends Annotation {
 		}
 	}
 
+	/*
+	 * Delete the neighbor if it exists on either side.
+	 */
+	deleteLeftOrRightNeighbor(neighborId: AnnotationUuid): boolean {
+		if (this.neighborsIds.right === neighborId) {
+			this.neighborsIds.right = null
+			return true
+		} else if (this.neighborsIds.left === neighborId) {
+			this.neighborsIds.left = null
+			return true
+		} else {
+			log.error("Non-reciprocal neighbor relation detected. This should never happen.")
+			return false
+		}
+	}
+
+	deleteFrontNeighbor(neighborId: AnnotationUuid): boolean {
+		const index = this.neighborsIds.front.findIndex((uuid) => {
+			return uuid === neighborId
+		})
+		if (index >= 0) {
+			this.neighborsIds.front.splice(index, 1)
+			return true
+		} else {
+			log.error("Couldn't find connection to front neighbor. This should never happen.")
+			return false
+		}
+	}
+
+	deleteBackNeighbor(neighborId: AnnotationUuid): boolean {
+		const index = this.neighborsIds.back.findIndex((uuid) => {
+			return uuid === neighborId
+		})
+		if (index >= 0) {
+			this.neighborsIds.back.splice(index, 1)
+			return true
+		} else {
+			log.error("Couldn't find connection to back neighbor. This should never happen.")
+			return false
+		}
+	}
+
 	/**
 	 * Make this annotation part of the car path
 	 */
@@ -406,9 +448,9 @@ export class Lane extends Annotation {
 		}
 
 		if (this.inTrajectory) {
-			this.laneMesh.material = this.renderingProperties.trajectoryMaterial
+			this.mesh.material = this.renderingProperties.trajectoryMaterial
 		} else {
-			this.laneMesh.material = this.renderingProperties.inactiveMaterial
+			this.mesh.material = this.renderingProperties.inactiveMaterial
 		}
 	}
 
@@ -681,7 +723,6 @@ export class Lane extends Annotation {
 		} else {
 			this.laneRightLine.material = new THREE.LineBasicMaterial({color: rightColor})
 		}
-
 
 		this.laneLeftLine.material.needsUpdate = true
 		this.laneRightLine.material.needsUpdate = true
