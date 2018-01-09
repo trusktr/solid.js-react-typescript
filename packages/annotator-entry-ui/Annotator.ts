@@ -16,6 +16,7 @@ import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
+import {CompassRose} from "./controls/CompassRose"
 import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane, LaneType} from 'annotator-entry-ui/annotations/Lane'
@@ -117,6 +118,7 @@ class Annotator {
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper // visible grid attached to the reference plane
 	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
+	private compassRose: THREE.Object3D | null // indicates the direction of North
 	private light: THREE.SpotLight
 	private stats: Stats
 	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
@@ -227,6 +229,14 @@ class Annotator {
 			this.scene.add(this.axis)
 		} else
 			this.axis = null
+
+		const compassRoseLength = parseFloat(config.get('annotator.compass_rose_length')) || 0
+		if (compassRoseLength > 0) {
+			this.compassRose = CompassRose(compassRoseLength)
+			this.compassRose.rotateX(Math.PI / -2)
+			this.scene.add(this.compassRose)
+		} else
+			this.compassRose = null
 
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
@@ -451,6 +461,21 @@ class Annotator {
 		}
 	}
 
+	// Display the compass rose just outside the bounding box of the point cloud.
+	private setCompassRoseByPointCloud(): void {
+		if (!this.compassRose) return
+		const boundingBox = this.tileManager.boundingBox()
+		if (!boundingBox) return
+
+		// Find the center of one of the sides of the bounding box. This is the side that is
+		// considered to be North given the current implementation of UtmInterface.utmToThreeJs().
+		const topPoint = boundingBox.getCenter().setZ(boundingBox.min.z)
+		const boundingBoxHeight = Math.abs(boundingBox.max.z - boundingBox.min.z)
+		const zOffset = boundingBoxHeight / 10
+
+		this.compassRose.position.set(topPoint.x, topPoint.y, topPoint.z - zOffset)
+	}
+
 	/**
 	 * Set the point cloud as the center of the visible world.
 	 */
@@ -487,6 +512,7 @@ class Annotator {
 				}
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
+				this.setCompassRoseByPointCloud()
 				this.setStageByPointCloud(true)
 			})
 			.catch(err => {
@@ -546,6 +572,7 @@ class Annotator {
 		return this.tileManager.loadFromSuperTile(superTile)
 			.then(() => {
 				this.updatePointCloudBoundingBox()
+				this.setCompassRoseByPointCloud()
 				this.setStageByPointCloud(false)
 			})
 	}
@@ -1889,6 +1916,8 @@ class Annotator {
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
 			this.scene.remove(this.axis)
+		if (this.compassRose)
+			this.scene.remove(this.compassRose)
 		this.plane.visible = false
 		this.grid.visible = false
 		this.orbitControls.enabled = false
@@ -1915,6 +1944,8 @@ class Annotator {
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
 			this.scene.add(this.axis)
+		if (this.compassRose)
+			this.scene.add(this.compassRose)
 		this.plane.visible = true
 		this.grid.visible = true
 		this.orbitControls.enabled = true
