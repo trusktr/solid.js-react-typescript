@@ -424,7 +424,13 @@ export class TileManager extends UtmInterface {
 	 */
 	loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<void> {
 		// Consider all tiles within datasetPath.
-		const fileMetadatas = Fs.readdirSync(datasetPath)
+		let names: string[]
+		try {
+			names = Fs.readdirSync(datasetPath)
+		} catch (err) {
+			return Promise.reject(Error(`can't load tile files at ${datasetPath}`))
+		}
+		const fileMetadatas = names
 			.map(name => tileFileNameToTileMetadata(name))
 			.filter(metadata => metadata !== null)
 		if (!fileMetadatas.length)
