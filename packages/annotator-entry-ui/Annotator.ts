@@ -1075,7 +1075,7 @@ class Annotator {
 
 		// If the object attached to the transform object has changed, do something.
 		this.transformControls.addEventListener('objectChange', () => {
-			this.annotationManager.updateActiveLaneMesh()
+			this.annotationManager.updateActiveAnnotationMesh()
 		})
 	}
 

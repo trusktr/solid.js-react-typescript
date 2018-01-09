@@ -136,8 +136,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 		this.laneAnnotations.push(newAnnotation)
 
-		const mesh = newAnnotation.mesh
-		this.annotationMeshes.push(mesh)
+		this.annotationMeshes.push(newAnnotation.mesh)
 		this.scene.add(newAnnotation.renderingObject)
 
 		return newAnnotation
@@ -158,8 +157,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 		this.trafficSignAnnotations.push(newAnnotation)
 
-		const mesh = newAnnotation.mesh
-		this.annotationMeshes.push(mesh)
+		this.annotationMeshes.push(newAnnotation.mesh)
 		this.scene.add(newAnnotation.renderingObject)
 
 		return newAnnotation
@@ -180,8 +178,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 		this.connectionAnnotations.push(newAnnotation)
 
-		const mesh = newAnnotation.mesh
-		this.annotationMeshes.push(mesh)
+		this.annotationMeshes.push(newAnnotation.mesh)
 		this.scene.add(newAnnotation.renderingObject)
 
 		return newAnnotation
@@ -491,7 +488,10 @@ export class AnnotationManager extends UtmInterface {
 			// check for valid front neighbor
 			if (neighbor !== null) {
 
-				const frontLane = this.laneAnnotations[this.getAnnotationIndexFromUuid(this.laneAnnotations, neighbor)]
+				const frontLaneIndex = this.getAnnotationIndexFromUuid(this.laneAnnotations, neighbor)
+				if (frontLaneIndex === -1)
+					return frontLaneIndex
+				const frontLane = this.laneAnnotations[frontLaneIndex]
 				const frontLaneNeighbors = frontLane.neighborsIds
 				if (frontLaneNeighbors.right !== null &&
 					this.isUuidInList(this.carPath, frontLaneNeighbors.right)) {
@@ -836,7 +836,7 @@ export class AnnotationManager extends UtmInterface {
 	 * Update the mesh of the active annotation. This is used if the lane marker positions
 	 * where changed externally (e.g. by the transform controls)
 	 */
-	updateActiveLaneMesh(): void {
+	updateActiveAnnotationMesh(): void {
 		if (!this.activeAnnotation) {
 			log.info("No active annotation. Can't update mesh")
 			return
