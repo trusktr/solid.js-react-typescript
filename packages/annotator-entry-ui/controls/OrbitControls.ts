@@ -12,9 +12,9 @@ const THREE = require('three')
 // This set of controls performs orbiting, dollying (zooming), and panning.
 // Unlike TrackballControls, it maintains the "up" direction object.up (+Y by default).
 //
-//    Orbit - left mouse / touch: one finger move
+//    Orbit - right mouse, or ctrl+left mouse / touch: one finger move
 //    Zoom - middle mouse, or mousewheel / touch: two finger spread or squish
-//    Pan - right mouse, or arrow keys / touch: three finger swipe
+//    Pan - left mouse, or arrow keys / touch: three finger swipe
 
 THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): void {
 
@@ -76,7 +76,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 	this.keys = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40}
 
 	// Mouse buttons
-	this.mouseButtons = {ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT}
+	this.mouseButtons = {ORBIT: THREE.MOUSE.RIGHT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.LEFT}
 
 	// for reset
 	this.target0 = this.target.clone()
@@ -624,23 +624,23 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 		event.preventDefault()
 
 		if (
-			event.button === scope.mouseButtons.PAN
-			|| (event.button === scope.mouseButtons.ORBIT && event.ctrlKey)
+			event.button === scope.mouseButtons.ORBIT
+			|| (event.button === scope.mouseButtons.PAN && event.ctrlKey)
 		) {
-
-			if (scope.enablePan === false) return
-
-			handleMouseDownPan(event)
-
-			state = STATE.PAN
-
-		} else if (event.button === scope.mouseButtons.ORBIT) {
 
 			if (scope.enableRotate === false) return
 
 			handleMouseDownRotate(event)
 
 			state = STATE.ROTATE
+
+		} else if (event.button === scope.mouseButtons.PAN) {
+
+			if (scope.enablePan === false) return
+
+			handleMouseDownPan(event)
+
+			state = STATE.PAN
 
 		} else if (event.button === scope.mouseButtons.ZOOM) {
 
