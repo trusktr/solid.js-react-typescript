@@ -136,7 +136,7 @@ class Annotator {
 	constructor() {
 		this.settings = {
 			background: config.get('startup.background_color') || '#082839',
-			cameraOffset: new THREE.Vector3(40, 120, 40),
+			cameraOffset: new THREE.Vector3(0, 400, 200),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
 			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
 			fpsRendering: 0,
@@ -456,8 +456,18 @@ class Annotator {
 	 */
 	private focusOnPointCloud(): void {
 		const center = this.tileManager.centerPoint()
-		if (center) this.setStageByVector(center)
-		else log.warn('point cloud has not been initialized')
+		if (center)
+			this.orbitControls.target.set(center.x, center.y, center.z)
+		else
+			log.warn('point cloud has not been initialized')
+	}
+
+	// Set the camera directly above the current target, looking down.
+	private resetTiltAndCompass(): void {
+		const distanceCameraToTarget = this.camera.position.clone().sub(this.orbitControls.target).length()
+		this.camera.position.x = this.orbitControls.target.x
+		this.camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
+		this.camera.position.z = this.orbitControls.target.z
 	}
 
 	/**
@@ -958,6 +968,10 @@ class Annotator {
 				}
 				case 's': {
 					this.saveToFile()
+					break
+				}
+				case 'R': {
+					this.resetTiltAndCompass()
 					break
 				}
 				case 't': {
@@ -1937,7 +1951,6 @@ class Annotator {
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
 		this.carModel.position.set(position.x, position.y, position.z)
 		this.carModel.setRotationFromQuaternion(rotation)
-		this.carModel.rotateY(-3.14)
 		// Bring the model close to the ground (approx height of the sensors)
 		const p = this.carModel.getWorldPosition()
 		this.carModel.position.set(p.x, p.y - 2, p.z)
