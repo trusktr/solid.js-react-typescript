@@ -1,5 +1,3 @@
-import * as AsyncFile from "async-file";
-
 /**
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
@@ -7,6 +5,7 @@ import * as AsyncFile from "async-file";
 
 const config = require('../config')
 import * as $ from 'jquery'
+import * as AsyncFile from "async-file";
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {
@@ -309,7 +308,7 @@ class Annotator {
 		let annotationsResult: Promise<void>
 		if (annotationsPath) {
 			log.info('loading pre-configured annotations ' + annotationsPath)
-			annotationsResult =  this.loadAnnotations(annotationsPath)
+			annotationsResult = this.loadAnnotations(annotationsPath)
 				.catch(err => log.warn('loadAnnotations failed: ' + err.message))
 		} else
 			annotationsResult = Promise.resolve()
@@ -601,21 +600,20 @@ class Annotator {
 	 * and to the scene.
 	 * Center the stage and the camera on the annotations model.
 	 */
-	private async loadAnnotations(fileName: string): Promise<void> {
-		try {
-			log.info('Loading annotations')
-			if (!this.uiState.isAnnotationsVisible)
-				this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
-			const focalPoint = await this.annotationManager.loadAnnotationsFromFile(fileName, this.scene)
-			if (!this.tileManager.setOriginWithInterface(this.annotationManager)) {
-				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
-			}
-			if (focalPoint) this.setStageByVector(focalPoint)
-		} catch (err) {
-			log.warn(err.message)
-			dialog.showErrorBox("Annotation Load Error",
-				"Annotator failed to load annotation file.")
-		}
+	private loadAnnotations(fileName: string): Promise<void> {
+		log.info('Loading annotations')
+		if (!this.uiState.isAnnotationsVisible)
+			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		return this.annotationManager.loadAnnotationsFromFile(fileName, this.scene)
+			.then(focalPoint => {
+				if (!this.tileManager.setOriginWithInterface(this.annotationManager))
+					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
+				if (focalPoint)
+					this.setStageByVector(focalPoint)
+			}).catch(err => {
+				log.warn(err.message)
+				dialog.showErrorBox('Annotation Load Error', err.message)
+			})
 	}
 
 	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
