@@ -10,7 +10,7 @@ import * as THREE from 'three'
 import {AnnotationType} from "./annotations/AnnotationType"
 import {
 	Annotation, AnnotationId, AnnotationJsonInputInterface,
-	AnnotationJsonOutputInterface, AnnotationUuid
+	AnnotationJsonOutputInterface, AnnotationUuid, LlaJson, UtmJson
 } from 'annotator-entry-ui/annotations/AnnotationBase'
 import {
 	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds,
@@ -942,6 +942,25 @@ export class AnnotationManager extends UtmInterface {
 							exitType: LaneEntryExitType[v1.exitType],
 						} as LaneJsonInputInterfaceV3
 					})
+				} else if (version === 3) {
+					const flipUtmV3 = (utm: UtmJson): UtmJson => {
+						return {'E': -utm['N'], 'N': utm['E'], 'alt': utm['alt']}
+					}
+					data['annotations'] = data['annotations'].map((v3: Object) => {
+						v3['markers'] = v3['markers'].map(m => flipUtmV3(m))
+						v3['waypoints'] = v3['waypoints'].map(w => flipUtmV3(w))
+						return v3
+					})
+				}
+				{ // TODO Fix UTM conversion throughout the app, and remove this.
+					const flipUtmV4 = (utm: UtmJson): UtmJson => {
+						return {'E': utm['N'], 'N': -utm['E'], 'alt': utm['alt']}
+					}
+					data['annotations'] = data['annotations'].map((v4: Object) => {
+						v4['markers'] = v4['markers'].map(m => flipUtmV4(m))
+						v4['waypoints'] = v4['waypoints'].map(w => flipUtmV4(w))
+						return v4
+					})
 				}
 				if (self.checkCoordinateSystem(data, version)) {
 					self.convertCoordinates(data)
@@ -1047,7 +1066,7 @@ export class AnnotationManager extends UtmInterface {
 			throw new Error('unknown OutputFormat: ' + format)
 		}
 		const data: AnnotationManagerJsonOutputInterface = {
-			version: 3,
+			version: 4,
 			created: new Date().toISOString(),
 			coordinateReferenceSystem: crs,
 			annotations: [],
@@ -1158,17 +1177,19 @@ export class AnnotationManager extends UtmInterface {
 		this.metadataState.dirty()
 	}
 
-	private threeJsToUtmJsonObject(): (p: THREE.Vector3) => Object {
+	private threeJsToUtmJsonObject(): (p: THREE.Vector3) => UtmJson {
 		const self = this
-		return function (p: THREE.Vector3): Object {
+		return function (p: THREE.Vector3): UtmJson {
 			const utm = self.threeJsToUtm(p)
-			return {'E': utm.x, 'N': utm.y, 'alt': utm.z}
+			// TODO Fix UTM conversion throughout the app, and restore this to the correct format:
+			// return {'E': utm.x, 'N': utm.y, 'alt': utm.z}
+			return {'E': -utm.y, 'N': utm.x, 'alt': utm.z}
 		}
 	}
 
-	private threeJsToLlaJsonObject(): (p: THREE.Vector3) => Object {
+	private threeJsToLlaJsonObject(): (p: THREE.Vector3) => LlaJson {
 		const self = this
-		return function (p: THREE.Vector3): Object {
+		return function (p: THREE.Vector3): LlaJson {
 			const lngLatAlt = self.threeJsToLngLatAlt(p)
 			return {'lng': lngLatAlt.x, 'lat': lngLatAlt.y, 'alt': lngLatAlt.z}
 		}
@@ -1214,7 +1235,7 @@ export class AnnotationManager extends UtmInterface {
 		for (let i = 0; !first && i < data['annotations'].length; i++) {
 			const annotation = data['annotations'][i]
 			if (annotation['markers'] && annotation['markers'].length > 0) {
-				const pos = annotation['markers'][0]
+				const pos = annotation['markers'][0] as UtmJson
 				first = new THREE.Vector3(trunc(pos['E']), trunc(pos['N']), trunc(pos['alt']))
 			}
 		}
@@ -1231,7 +1252,7 @@ export class AnnotationManager extends UtmInterface {
 		data['annotations'].forEach((annotation: {}) => {
 			if (annotation['markers']) {
 				for (let i = 0; i < annotation['markers'].length; i++) {
-					const pos = annotation['markers'][i]
+					const pos = annotation['markers'][i] as UtmJson
 					annotation['markers'][i] = this.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
 				}
 			}
