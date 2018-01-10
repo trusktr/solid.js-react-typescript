@@ -13,6 +13,18 @@ namespace AnnotationCounter {
 	}
 }
 
+export interface UtmJson {
+	'E': number,
+	'N': number,
+	'alt': number,
+}
+
+export interface LlaJson {
+	'lng': number,
+	'lat': number,
+	'alt': number,
+}
+
 export interface AnnotationJsonInputInterface {
 	annotationType: string // stringified instance of enum AnnotationType
 	uuid: AnnotationUuid
