@@ -12,9 +12,9 @@ const THREE = require('three')
 // This set of controls performs orbiting, dollying (zooming), and panning.
 // Unlike TrackballControls, it maintains the "up" direction object.up (+Y by default).
 //
-//    Orbit - right mouse, or ctrl+left mouse / touch: one finger move
+//    Orbit - left mouse / touch: one finger move
 //    Zoom - middle mouse, or mousewheel / touch: two finger spread or squish
-//    Pan - left mouse, or arrow keys / touch: three finger swipe
+//    Pan - right mouse, or arrow keys / touch: three finger swipe
 
 THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): void {
 
@@ -72,11 +72,11 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 	// Set to false to disable use of the keys
 	this.enableKeys = true
 
-	// The four arrow keys for panning and + and - for zoom
-	this.keys = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40, IN: 187, OUT: 189}
+	// The four arrow keys
+	this.keys = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40}
 
 	// Mouse buttons
-	this.mouseButtons = {ORBIT: THREE.MOUSE.RIGHT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.LEFT}
+	this.mouseButtons = {ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT}
 
 	// for reset
 	this.target0 = this.target.clone()
@@ -521,17 +521,6 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 				scope.update()
 				break
 
-			case scope.keys.IN:
-				// yes, this is backwards from the way you or I would do it
-				dollyOut(getZoomScale())
-				scope.update()
-				break
-
-			case scope.keys.OUT:
-				dollyIn(getZoomScale())
-				scope.update()
-				break
-
 			default:
 		}
 
@@ -635,23 +624,23 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 		event.preventDefault()
 
 		if (
-			event.button === scope.mouseButtons.ORBIT
-			|| (event.button === scope.mouseButtons.PAN && event.ctrlKey)
+			event.button === scope.mouseButtons.PAN
+			|| (event.button === scope.mouseButtons.ORBIT && event.ctrlKey)
 		) {
-
-			if (scope.enableRotate === false) return
-
-			handleMouseDownRotate(event)
-
-			state = STATE.ROTATE
-
-		} else if (event.button === scope.mouseButtons.PAN) {
 
 			if (scope.enablePan === false) return
 
 			handleMouseDownPan(event)
 
 			state = STATE.PAN
+
+		} else if (event.button === scope.mouseButtons.ORBIT) {
+
+			if (scope.enableRotate === false) return
+
+			handleMouseDownRotate(event)
+
+			state = STATE.ROTATE
 
 		} else if (event.button === scope.mouseButtons.ZOOM) {
 
@@ -733,7 +722,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 	function onKeyDown(event: KeyboardEvent): void {
 
-		if (scope.enabled === false || scope.enableKeys === false) return
+		if (scope.enabled === false || scope.enableKeys === false || scope.enablePan === false) return
 
 		handleKeyDown(event)
 
