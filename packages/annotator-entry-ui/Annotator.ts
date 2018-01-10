@@ -1,5 +1,3 @@
-import * as AsyncFile from "async-file";
-
 /**
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
@@ -7,6 +5,7 @@ import * as AsyncFile from "async-file";
 
 const config = require('../config')
 import * as $ from 'jquery'
+import * as AsyncFile from "async-file";
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {
@@ -17,10 +16,11 @@ import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
-import {AnnotationType} from "./annotations/AnnotationType"
 import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {NeighborLocation, NeighborDirection, LaneType} from 'annotator-entry-ui/annotations/Lane'
+import {NeighborLocation, NeighborDirection, Lane, LaneType} from 'annotator-entry-ui/annotations/Lane'
+import {Connection} from "./annotations/Connection"
+import {TrafficSign} from "./annotations/TrafficSign"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
@@ -47,6 +47,10 @@ OBJLoader(THREE)
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const root = $("#root")
+
+function noop(): void {
+	return
+}
 
 enum MenuVisibility {
 	HIDE = 0,
@@ -102,7 +106,7 @@ interface UiState {
  */
 class Annotator {
 	private uiState: UiState
-	private scene: THREE.Scene
+	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
 	private camera: THREE.PerspectiveCamera
 	private cameraOffset: THREE.Vector3
 	private cameraOffsetDelta: number
@@ -230,7 +234,7 @@ class Annotator {
 
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
-		this.annotationManager = new AnnotationManager()
+		this.annotationManager = new AnnotationManager(this.scene)
 
 		// Point cloud is empty. It will be populated later.
 		this.scene.add(this.tileManager.pointCloud)
@@ -292,29 +296,22 @@ class Annotator {
 		// Live mode data
 		this.loadCarModel()
 
-		const trajectoryPath = config.get('live_mode.trajectory_path')
-		if (trajectoryPath) {
-			this.loadFlythroughTrajectory(trajectoryPath).then( msg => {
-				this.flythroughSettings.enabled = true
-				this.flythroughTrajectory = msg
-				if (this.flythroughSettings.endPoseIndex >= this.flythroughTrajectory.states.length) {
-					this.flythroughSettings.endPoseIndex = this.flythroughTrajectory.states.length
-				}
-			})
-		}
-
 		// Bind events
 		this.bind()
 		Annotator.deactivateLaneProp()
 
 		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
 
+		return this.loadUserData()
+	}
+
+	// Load up any data which configuration has asked for on start-up.
+	loadUserData(): Promise<void> {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
 		if (annotationsPath) {
 			log.info('loading pre-configured annotations ' + annotationsPath)
-			annotationsResult =  this.loadAnnotations(annotationsPath)
-				.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+			annotationsResult = this.loadAnnotations(annotationsPath)
 		} else
 			annotationsResult = Promise.resolve()
 
@@ -325,12 +322,22 @@ class Annotator {
 				.then(() => {
 					log.info('loading pre-configured data set ' + pointCloudDir)
 					return this.loadPointCloudData(pointCloudDir)
-						.catch(err => log.warn('loadPointCloudData failed: ' + err.message))
 				})
 		} else
 			pointCloudResult = annotationsResult
 
-		return pointCloudResult
+		let trajectoryResult: Promise<void>
+		const trajectoryPath = config.get('live_mode.trajectory_path')
+		if (trajectoryPath) {
+			trajectoryResult = pointCloudResult
+				.then(() => {
+					log.info('loading pre-configured trajectory ' + trajectoryPath)
+					return this.loadFlythroughTrajectory(trajectoryPath)
+				})
+		} else
+			trajectoryResult = pointCloudResult
+
+		return trajectoryResult
 	}
 
 	/**
@@ -347,12 +354,20 @@ class Annotator {
 		this.transformControls.update()
 	}
 
-	private loadFlythroughTrajectory(filename: string): Promise<Models.TrajectoryMessage>  {
+	private loadFlythroughTrajectory(filename: string): Promise<void>  {
 		return AsyncFile.readFile(filename)
 			.then(buffer => Models.TrajectoryMessage.decode(buffer))
 			.then(msg => {
 				log.info('Number of trajectory poses: ' + msg.states.length)
-				return msg
+				this.flythroughSettings.enabled = true
+				this.flythroughTrajectory = msg
+				if (this.flythroughSettings.endPoseIndex >= this.flythroughTrajectory.states.length) {
+					this.flythroughSettings.endPoseIndex = this.flythroughTrajectory.states.length
+				}
+			})
+			.catch(err => {
+				log.error(err.message)
+				dialog.showErrorBox('Fly-through Load Error', err.message)
 			})
 	}
 
@@ -454,7 +469,6 @@ class Annotator {
 	 * Center the stage and the camera on the point cloud.
 	 */
 	private loadPointCloudData(pathToTiles: string): Promise<void> {
-		log.info('loading dataset')
 		if (!this.uiState.isPointCloudVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR)
@@ -470,6 +484,10 @@ class Annotator {
 				this.updatePointCloudBoundingBox()
 				this.setStageByPointCloud(true)
 			})
+			.catch(err => {
+				log.error(err.message)
+				dialog.showErrorBox('Point Cloud Load Error', err.message)
+			})
 	}
 
 	// Compute corresponding height for each voxel based on near by annotations
@@ -479,7 +497,7 @@ class Annotator {
 
 		let voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
 		let voxelSize: number = this.tileManager.voxelSize
-		let annotationCutoffDistance: number = 1 * 1 // 1 meter
+		let annotationCutoffDistance: number = 1.2 * 1.2 // 1.2 meters radius
 		for (let voxel of voxels) {
 			let x: number = voxel.x * voxelSize
 			let y: number = voxel.y * voxelSize
@@ -489,7 +507,7 @@ class Annotator {
                                                 // these voxels will be all colored the same
 			let laneType: LaneType = LaneType.UNKNOWN
 			for (let annotation of this.annotationManager.laneAnnotations) {
-				for (let wayPoint of annotation.waypoints) {
+				for (let wayPoint of annotation.denseWaypoints) {
 					let dx: number = wayPoint.x - x
 					let dz: number = wayPoint.z - z
 					let distance = dx * dx + dz * dz
@@ -508,9 +526,7 @@ class Annotator {
 			}
 			let height: number = y - minDistanceHeight
 			// TODO: Remove this voxel filtering. For CES only
-			// if (laneType === LaneType.PARKING && height < 2 && minDistance < (1 * 1)) {
-			//	this.tileManager.voxelsHeight.push(-1)
-			if (laneType === LaneType.ALL_VEHICLES && height < 2 && minDistance < (2.5 * 2.5)) {
+			if (height < 2.0 && minDistance < annotationCutoffDistance) {
 				this.tileManager.voxelsHeight.push(-1)
 			} else {
 				this.tileManager.voxelsHeight.push(height)
@@ -606,21 +622,21 @@ class Annotator {
 	 * and to the scene.
 	 * Center the stage and the camera on the annotations model.
 	 */
-	private async loadAnnotations(fileName: string): Promise<void> {
-		try {
-			log.info('Loading annotations')
-			if (!this.uiState.isAnnotationsVisible)
-				this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
-			const focalPoint = await this.annotationManager.loadAnnotationsFromFile(fileName, this.scene)
-			if (!this.tileManager.setOriginWithInterface(this.annotationManager)) {
-				log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
-			}
-			if (focalPoint) this.setStageByVector(focalPoint)
-		} catch (err) {
-			log.warn(err.message)
-			dialog.showErrorBox("Annotation Load Error",
-				"Annotator failed to load annotation file.")
-		}
+	private loadAnnotations(fileName: string): Promise<void> {
+		log.info('Loading annotations')
+		if (!this.uiState.isAnnotationsVisible)
+			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		return this.annotationManager.loadAnnotationsFromFile(fileName)
+			.then(focalPoint => {
+				if (!this.tileManager.setOriginWithInterface(this.annotationManager))
+					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
+				if (focalPoint)
+					this.setStageByVector(focalPoint)
+			})
+			.catch(err => {
+				log.error(err.message)
+				dialog.showErrorBox('Annotation Load Error', err.message)
+			})
 	}
 
 	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
@@ -636,30 +652,25 @@ class Annotator {
 	private addLaneAnnotation(): boolean {
 		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotationIndex >= 0 &&
-			this.annotationManager.activeMarkers.length === 0) {
+		if (this.annotationManager.activeAnnotation &&
+			!this.annotationManager.activeAnnotation.isValid()) {
 			return false
 		}
 		// This creates a new lane and add it to the scene for display
-		return !!(
-			this.annotationManager.addLaneAnnotation(this.scene) &&
-			this.annotationManager.changeActiveAnnotation(this.annotationManager.laneAnnotations.length - 1,
-															AnnotationType.LANE)
+		return this.annotationManager.changeActiveAnnotation(
+			this.annotationManager.addLaneAnnotation()
 		)
 	}
 
 	private addTrafficSignAnnotation(): boolean {
 		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotationIndex >= 0 &&
-			this.annotationManager.activeMarkers.length === 0) {
+		if (this.annotationManager.activeAnnotation &&
+			!this.annotationManager.activeAnnotation.isValid()) {
 			return false
 		}
-
-		return !!(
-			this.annotationManager.addTrafficSignAnnotation(this.scene) &&
-			this.annotationManager.changeActiveAnnotation(this.annotationManager.trafficSignAnnotations.length - 1,
-															AnnotationType.TRAFFIC_SIGN)
+		return this.annotationManager.changeActiveAnnotation(
+			this.annotationManager.addTrafficSignAnnotation()
 		)
 	}
 
@@ -713,23 +724,20 @@ class Annotator {
 
 		if (intersects.length > 0) {
 			const object = intersects[0].object
-			const [index, type] = this.annotationManager.checkForInactiveAnnotation(object as any)
+			const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Mesh)
 
 			// We clicked an inactive annotation, make it active
-			if (index >= 0) {
+			if (inactive) {
 				this.cleanTransformControls()
-				this.annotationManager.changeActiveAnnotation(index, type)
-
-				switch (type) {
-					case AnnotationType.LANE:
-						this.resetLaneProp()
-						break
-					case AnnotationType.TRAFFIC_SIGN:
-						this.resetTrafficSignProp()
-						break
-					default:
-						// nothing to see here
-				}
+				this.annotationManager.changeActiveAnnotation(inactive)
+				if (inactive instanceof Lane)
+					this.resetLaneProp()
+				else if (inactive instanceof TrafficSign)
+					this.resetTrafficSignProp()
+				else if (inactive instanceof Connection)
+					noop() // Connection doesn't have any menus to maintain; this keeps the compiler from complaining.
+				else
+					log.warn(`unknown annotation type ${inactive}`)
 			}
 		}
 	}
@@ -748,7 +756,7 @@ class Annotator {
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers)
+		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers())
 
 		if (intersects.length > 0) {
 			const marker = intersects[0].object as THREE.Mesh
@@ -910,6 +918,11 @@ class Annotator {
 					this.uiState.isShiftKeyPressed = true
 					break
 				}
+				case 'A': {
+					this.annotationManager.immediateAutoSave()
+						.then(() => this.annotationManager.unloadAllAnnotations())
+					break
+				}
 				case 'a': {
 					this.uiState.isAddMarkerKeyPressed = true
 					break
@@ -924,12 +937,8 @@ class Annotator {
 						this.hideTransform()
 					break
 				}
-				case 'n': {
-					this.addLane()
-					break
-				}
-				case 'z': {
-					this.deleteActiveAnnotation()
+				case 'e': {
+					this.addRightReverse()
 					break
 				}
 				case 'f': {
@@ -940,28 +949,16 @@ class Annotator {
 					this.toggleModelVisibility()
 					break
 				}
-				case 'l': {
-					this.addLeftSame()
+				case 'k': {
+					this.addLeftReverse()
 					break
 				}
 				case 'L': {
 					this.loadAllSuperTileData()
 					break
 				}
-				case 'k': {
-					this.addLeftReverse()
-					break
-				}
-				case 'r': {
-					this.addRightSame()
-					break
-				}
-				case 'e': {
-					this.addRightReverse()
-					break
-				}
-				case 's': {
-					this.saveToFile()
+				case 'l': {
+					this.addLeftSame()
 					break
 				}
 				case 'm': {
@@ -969,8 +966,24 @@ class Annotator {
 						.catch(err => log.warn('saveToKML failed: ' + err.message))
 					break
 				}
+				case 'n': {
+					this.addLane()
+					break
+				}
 				case 'o': {
 					this.toggleListen()
+					break
+				}
+				case 'q': {
+					this.uiState.isAddTrafficSignMarkerKeyPressed = true
+					break
+				}
+				case 'r': {
+					this.addRightSame()
+					break
+				}
+				case 's': {
+					this.saveToFile()
 					break
 				}
 				case 't': {
@@ -981,16 +994,16 @@ class Annotator {
 					this.unloadPointCloudData()
 					break
 				}
-				case 'q': {
-					this.uiState.isAddTrafficSignMarkerKeyPressed = true
-					break
-				}
 				case 'v': {
 					this.toggleVoxelsAndPointClouds()
 					break
 				}
 				case 'w': {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
+					break
+				}
+				case 'z': {
+					this.deleteActiveAnnotation()
 					break
 				}
 				default:
@@ -1100,7 +1113,7 @@ class Annotator {
 
 		// If the object attached to the transform object has changed, do something.
 		this.transformControls.addEventListener('objectChange', () => {
-			this.annotationManager.updateActiveLaneMesh()
+			this.annotationManager.updateActiveAnnotationMesh()
 		})
 	}
 
@@ -1109,11 +1122,8 @@ class Annotator {
 	 */
 	private deleteActiveAnnotation(): void {
 		// Delete annotation from scene
-		if (this.annotationManager.activeAnnotationType === AnnotationType.LANE) {
-			this.annotationManager.deleteLaneFromPath()
-		}
-
-		if (this.annotationManager.deleteActiveAnnotation(this.scene)) {
+		this.annotationManager.deleteActiveLaneFromPath()
+		if (this.annotationManager.deleteActiveAnnotation()) {
 			log.info("Deleted selected annotation")
 			Annotator.deactivateLaneProp()
 			this.hideTransform()
@@ -1166,35 +1176,35 @@ class Annotator {
 
 	private addFront(): void {
 		log.info("Adding connected annotation to the front")
-		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.FRONT, NeighborDirection.SAME)) {
+		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
 			Annotator.deactivateFrontSideNeighbours()
 		}
 	}
 
 	private addLeftSame(): void {
 		log.info("Adding connected annotation to the left - same direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.SAME)) {
+		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
 	private addLeftReverse(): void {
 		log.info("Adding connected annotation to the left - reverse direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
+		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
 	}
 
 	private addRightSame(): void {
 		log.info("Adding connected annotation to the right - same direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.SAME)) {
+		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
 	}
 
 	private addRightReverse(): void {
 		log.info("Adding connected annotation to the right - reverse direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(this.scene, NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
+		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
 	}
@@ -1368,7 +1378,7 @@ class Annotator {
 				}
 
 				log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
-				if (this.annotationManager.addRelation(this.scene, lcFrom, lcTo, lcRelation)) {
+				if (this.annotationManager.addRelation(lcFrom, lcTo, lcRelation)) {
 					this.resetLaneProp()
 				}
 			})
@@ -1965,8 +1975,6 @@ class Annotator {
 		const offset = this.cameraOffset.clone()
 		offset.applyQuaternion(this.carModel.quaternion)
 		offset.add(p)
-		//log.info(p.x)
-		p.add(new THREE.Vector3(0, 2, 0))
 		this.camera.position.set(offset.x, offset.y, offset.z)
 		this.camera.lookAt(p)
 		this.camera.updateMatrix()
@@ -1977,7 +1985,7 @@ class Annotator {
 	 * TODO: We might be able to do this by setting the 'visible' parameter of the
 	 * corresponding 3D objects.
 	 */
-	private toggleVoxelsAndPointClouds() {
+	private toggleVoxelsAndPointClouds(): void {
 		if (this.uiState.isPointCloudVisible) {
 			this.scene.remove(this.tileManager.pointCloud)
 			this.tileManager.voxelsMeshGroup.forEach( mesh => {
