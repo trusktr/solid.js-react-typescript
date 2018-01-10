@@ -172,7 +172,7 @@ class Annotator {
 
 		this.flythroughSettings = {
 			enabled: false,
-			startPoseIndex: 0,
+			startPoseIndex: 100,
 			endPoseIndex: Number.MAX_VALUE,
 			currentPoseIndex: 0,
 			fps: 10
