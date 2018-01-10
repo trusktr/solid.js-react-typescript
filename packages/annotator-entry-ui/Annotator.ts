@@ -176,7 +176,7 @@ class Annotator {
 
 		this.flythroughSettings = {
 			enabled: false,
-			startPoseIndex: 100,
+			startPoseIndex: 0,
 			endPoseIndex: Number.MAX_VALUE,
 			currentPoseIndex: 0,
 			fps: 10
@@ -197,7 +197,7 @@ class Annotator {
 
 		// Create scene and camera
 		this.scene = new THREE.Scene()
-		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 1000)
+		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
 		this.scene.add(this.camera)
 
 		// Add some lights
