@@ -62,6 +62,8 @@ function getMarkerInBetween(marker1: Vector3, marker2: Vector3, atDistance: numb
 	return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
 }
 
+const currentAnnotationFileVersion = 4
+
 interface AnnotationManagerJsonOutputInterface {
 	version: number
 	created: string
@@ -924,83 +926,87 @@ export class AnnotationManager extends UtmInterface {
 			AsyncFile.readFile(fileName, 'ascii').then((text: string) => {
 				const data = JSON.parse(text)
 				const version = AnnotationManager.annotationsFileVersion(data)
-				if (version === 1 || version === 2) {
-					data['annotations'] = data['annotations'].map((v1: LaneJsonInputInterfaceV1) => {
-						return {
-							annotationType: "LANE",
-							uuid: v1.uuid,
-							laneType: "UNKNOWN",
-							color: v1.color,
-							markers: v1.markerPositions,
-							waypoints: v1.waypoints,
-							neighborsIds: v1.neighborsIds,
-							leftLineType: LaneLineType[v1.leftSideType],
-							leftLineColor: "UNKNOWN",
-							rightLineType: LaneLineType[v1.rightSideType],
-							rightLineColor: "UNKNOWN",
-							entryType: LaneEntryExitType[v1.entryType],
-							exitType: LaneEntryExitType[v1.exitType],
-						} as LaneJsonInputInterfaceV3
-					})
-				} else if (version === 3) {
-					const flipUtmV3 = (utm: UtmJson): UtmJson => {
-						return {'E': -utm['N'], 'N': utm['E'], 'alt': utm['alt']}
-					}
-					data['annotations'] = data['annotations'].map((v3: Object) => {
-						v3['markers'] = v3['markers'].map(m => flipUtmV3(m))
-						v3['waypoints'] = v3['waypoints'].map(w => flipUtmV3(w))
-						return v3
-					})
-				}
-				{ // TODO Fix UTM conversion throughout the app, and remove this.
-					const flipUtmV4 = (utm: UtmJson): UtmJson => {
-						return {'E': utm['N'], 'N': -utm['E'], 'alt': utm['alt']}
-					}
-					data['annotations'] = data['annotations'].map((v4: Object) => {
-						v4['markers'] = v4['markers'].map(m => flipUtmV4(m))
-						v4['waypoints'] = v4['waypoints'].map(w => flipUtmV4(w))
-						return v4
-					})
-				}
-				if (self.checkCoordinateSystem(data, version)) {
-					self.convertCoordinates(data)
-					let boundingBox = new THREE.Box3()
-					// Each element is an annotation
-					let invalid = 0
-					data['annotations'].forEach((element: AnnotationJsonInputInterface) => {
-						const annotationType = AnnotationType[element.annotationType]
-						let newAnnotation: Annotation | null = null
-						switch (annotationType) {
-							case AnnotationType.LANE:
-								newAnnotation = self.addLaneAnnotation(element as LaneJsonInputInterfaceV3)
-								break
-							case AnnotationType.TRAFFIC_SIGN:
-								newAnnotation = self.addTrafficSignAnnotation(element as TrafficSignJsonInputInterface)
-								break
-							case AnnotationType.CONNECTION:
-								newAnnotation = self.addConnectionAnnotation(element as ConnectionJsonInputInterface)
-								break
-							default:
-								log.warn(`discarding annotation with invalid type ${element.annotationType}`)
+				if (version > currentAnnotationFileVersion)
+					reject(Error(`unable to load annotations file with version ${version}`))
+				else {
+					if (version === 1 || version === 2) {
+						data['annotations'] = data['annotations'].map((v1: LaneJsonInputInterfaceV1) => {
+							return {
+								annotationType: "LANE",
+								uuid: v1.uuid,
+								laneType: "UNKNOWN",
+								color: v1.color,
+								markers: v1.markerPositions,
+								waypoints: v1.waypoints,
+								neighborsIds: v1.neighborsIds,
+								leftLineType: LaneLineType[v1.leftSideType],
+								leftLineColor: "UNKNOWN",
+								rightLineType: LaneLineType[v1.rightSideType],
+								rightLineColor: "UNKNOWN",
+								entryType: LaneEntryExitType[v1.entryType],
+								exitType: LaneEntryExitType[v1.exitType],
+							} as LaneJsonInputInterfaceV3
+						})
+					} else if (version === 3) {
+						const flipUtmV3 = (utm: UtmJson): UtmJson => {
+							return {'E': -utm['N'], 'N': utm['E'], 'alt': utm['alt']}
 						}
-						if (newAnnotation)
-							boundingBox = boundingBox.union(newAnnotation.boundingBox())
-						else
-							invalid++
-					})
-					if (invalid)
-						log.warn(`discarding ${invalid} invalid annotations`)
-					self.metadataState.clean()
-					if (boundingBox.isEmpty()) {
-						resolve(null)
-					} else {
-						resolve(boundingBox.getCenter().setY(boundingBox.min.y))
+						data['annotations'] = data['annotations'].map((v3: Object) => {
+							v3['markers'] = v3['markers'].map(m => flipUtmV3(m))
+							v3['waypoints'] = v3['waypoints'].map(w => flipUtmV3(w))
+							return v3
+						})
 					}
-				} else {
-					const zoneId = version === 1
-						? `${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneLetter']}`
-						: `${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneNorthernHemisphere']}`
-					reject(Error(`UTM Zone for new annotations (${zoneId}) does not match existing zone in ${self.getOrigin()}`))
+					{ // TODO Fix UTM conversion throughout the app, and remove this.
+						const flipUtmV4 = (utm: UtmJson): UtmJson => {
+							return {'E': utm['N'], 'N': -utm['E'], 'alt': utm['alt']}
+						}
+						data['annotations'] = data['annotations'].map((v4: Object) => {
+							v4['markers'] = v4['markers'].map(m => flipUtmV4(m))
+							v4['waypoints'] = v4['waypoints'].map(w => flipUtmV4(w))
+							return v4
+						})
+					}
+					if (self.checkCoordinateSystem(data, version)) {
+						self.convertCoordinates(data)
+						let boundingBox = new THREE.Box3()
+						// Each element is an annotation
+						let invalid = 0
+						data['annotations'].forEach((element: AnnotationJsonInputInterface) => {
+							const annotationType = AnnotationType[element.annotationType]
+							let newAnnotation: Annotation | null = null
+							switch (annotationType) {
+								case AnnotationType.LANE:
+									newAnnotation = self.addLaneAnnotation(element as LaneJsonInputInterfaceV3)
+									break
+								case AnnotationType.TRAFFIC_SIGN:
+									newAnnotation = self.addTrafficSignAnnotation(element as TrafficSignJsonInputInterface)
+									break
+								case AnnotationType.CONNECTION:
+									newAnnotation = self.addConnectionAnnotation(element as ConnectionJsonInputInterface)
+									break
+								default:
+									log.warn(`discarding annotation with invalid type ${element.annotationType}`)
+							}
+							if (newAnnotation)
+								boundingBox = boundingBox.union(newAnnotation.boundingBox())
+							else
+								invalid++
+						})
+						if (invalid)
+							log.warn(`discarding ${invalid} invalid annotations`)
+						self.metadataState.clean()
+						if (boundingBox.isEmpty()) {
+							resolve(null)
+						} else {
+							resolve(boundingBox.getCenter().setY(boundingBox.min.y))
+						}
+					} else {
+						const zoneId = version === 1
+							? `${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneLetter']}`
+							: `${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneNorthernHemisphere']}`
+						reject(Error(`UTM Zone for new annotations (${zoneId}) does not match existing zone in ${self.getOrigin()}`))
+					}
 				}
 			})
 				.catch(err => reject(err))
@@ -1066,7 +1072,7 @@ export class AnnotationManager extends UtmInterface {
 			throw new Error('unknown OutputFormat: ' + format)
 		}
 		const data: AnnotationManagerJsonOutputInterface = {
-			version: 4,
+			version: currentAnnotationFileVersion,
 			created: new Date().toISOString(),
 			coordinateReferenceSystem: crs,
 			annotations: [],
