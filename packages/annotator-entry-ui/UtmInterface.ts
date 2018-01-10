@@ -70,7 +70,7 @@ export class UtmInterface implements UtmLocalOrigin {
 
 	threeJsToUtm(p: THREE.Vector3): THREE.Vector3 {
 		// Convert ThreeJS point to (easting, northing, altitude)
-		const utmPoint = new THREE.Vector3(p.z, p.x, p.y)
+		const utmPoint = new THREE.Vector3(-p.z, p.x, -p.y)
 		utmPoint.add(this.offset)
 		return utmPoint
 	}
@@ -79,7 +79,7 @@ export class UtmInterface implements UtmLocalOrigin {
 		const tmp = new THREE.Vector3(easting, northing, altitude)
 		tmp.sub(this.offset)
 		// In ThreeJS x=northing, y=altitude, z=easting
-		return new THREE.Vector3(tmp.y, tmp.z, tmp.x)
+		return new THREE.Vector3(-tmp.y, tmp.z, -tmp.x)
 	}
 
 	threeJsToLngLatAlt(p: THREE.Vector3): THREE.Vector3 {
