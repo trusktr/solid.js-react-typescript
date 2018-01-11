@@ -1024,9 +1024,9 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	async saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
-		if (this.laneAnnotations.length === 0
-			&& this.connectionAnnotations.length === 0
-			&& this.trafficSignAnnotations.length === 0) {
+		if (this.laneAnnotations.filter(a => a.isValid()).length === 0
+			&& this.connectionAnnotations.filter(a => a.isValid()).length === 0
+			&& this.trafficSignAnnotations.filter(a => a.isValid()).length === 0) {
 			return Promise.reject(new Error('failed to save empty set of annotations'))
 		}
 		if (!this.hasOrigin() && !config.get('output.annotations.debug.allow_annotations_without_utm_origin')) {
