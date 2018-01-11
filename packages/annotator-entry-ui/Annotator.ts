@@ -81,6 +81,8 @@ interface FlyThroughSettings {
 	startPoseIndex: number
 	endPoseIndex: number
 	currentPoseIndex: number
+	cameraOffset: THREE.Vector3
+	cameraOffsetDelta: number
 	fps: number
 }
 
@@ -108,8 +110,6 @@ class Annotator {
 	private uiState: UiState
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
 	private camera: THREE.PerspectiveCamera
-	private cameraOffset: THREE.Vector3
-	private cameraOffsetDelta: number
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
@@ -171,16 +171,17 @@ class Annotator {
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
-		this.cameraOffset = new THREE.Vector3(12, 10, 0)
-		this.cameraOffsetDelta = 1 // in meters
 
 		this.flythroughSettings = {
 			enabled: false,
 			startPoseIndex: 0,
 			endPoseIndex: Number.MAX_VALUE,
 			currentPoseIndex: 0,
+			cameraOffset: new THREE.Vector3(12, 10, 0),
+			cameraOffsetDelta: 1,
 			fps: 10
 		}
+
 		// Initialize socket for use when "live mode" operation is on
 		this.initClient()
 	}
@@ -890,19 +891,19 @@ class Annotator {
 		} else if (event.keyCode >= 37 && event.keyCode <= 40) {
 			switch (event.keyCode) {
 				case 37:  { // left arrow
-					this.cameraOffset.x += this.cameraOffsetDelta
+					this.flythroughSettings.cameraOffset.x += this.flythroughSettings.cameraOffsetDelta
 					break
 				}
 				case 38: { // up arrow
-					this.cameraOffset.y += this.cameraOffsetDelta
+					this.flythroughSettings.cameraOffset.y += this.flythroughSettings.cameraOffsetDelta
 					break
 				}
 				case 39: { // right arrow
-					this.cameraOffset.x -= this.cameraOffsetDelta
+					this.flythroughSettings.cameraOffset.x -= this.flythroughSettings.cameraOffsetDelta
 					break
 				}
 				case 40: { // down arrow
-					this.cameraOffset.y -= this.cameraOffsetDelta
+					this.flythroughSettings.cameraOffset.y -= this.flythroughSettings.cameraOffsetDelta
 					break
 				}
 				default:
@@ -1972,7 +1973,7 @@ class Annotator {
 
 	private updateCameraPose(): void {
 		const p = this.carModel.getWorldPosition().clone()
-		const offset = this.cameraOffset.clone()
+		const offset = this.flythroughSettings.cameraOffset.clone()
 		offset.applyQuaternion(this.carModel.quaternion)
 		offset.add(p)
 		this.camera.position.set(offset.x, offset.y, offset.z)
