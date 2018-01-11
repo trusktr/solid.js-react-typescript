@@ -5,6 +5,7 @@
 
 const config = require('../config')
 const vsprintf = require("sprintf-js").vsprintf
+import * as lodash from 'lodash'
 import {isNullOrUndefined} from "util"
 import * as THREE from 'three'
 import {AnnotationType} from "./annotations/AnnotationType"
@@ -1076,38 +1077,15 @@ export class AnnotationManager extends UtmInterface {
 		return data
 	}
 
-	saveAndExportToKml(jar: string, main: string, input: string, output: string): Promise<void> {
-		const exportToKml = (): void => {
-			const command = [jar, main, input, output].join(' ')
-			log.debug('executing child process: ' + command)
-			const exec = require('child_process').exec
-			exec(command, (error: Error | null, stdout: string, stderr: string) => {
-				if (error) {
-					log.error(`exec error: ${error}`)
-					return
-				}
-				if (stdout) log.debug(`stdout: ${stdout}`)
-				if (stderr) log.debug(`stderr: ${stderr}`)
-			})
-		}
-
-		return this.saveAnnotationsToFile(input, OutputFormat.LLA)
-			.then(() => exportToKml())
-			.catch(error => log.warn('save-to-JSON failed for KML conversion; aborting: ' + error.message))
-	}
-
+	// Save lane waypoints (only) to KML.
 	saveToKML(fileName: string): Promise<void> {
-		// Get all the points
-		let points: Array<THREE.Vector3> = []
-		this.laneAnnotations.forEach((annotation) => {
-			points = points.concat(annotation.waypoints)
-		})
-
-		// Convert points to lat lon
-		const geopoints: Array<THREE.Vector3> = []
-		points.forEach((p) => {
-			geopoints.push(this.threeJsToLngLatAlt(p))
-		})
+		// Get all the points and convert to lat lon
+		const geopoints: Array<THREE.Vector3> =
+			lodash.flatten(
+				this.laneAnnotations.map(lane =>
+					lane.waypoints.map(p => this.threeJsToLngLatAlt(p))
+				)
+			)
 
 		// Save file
 		const kml = new SimpleKML()
