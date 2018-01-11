@@ -16,6 +16,7 @@ import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
+import {CompassRose} from "./controls/CompassRose"
 import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane, LaneType} from 'annotator-entry-ui/annotations/Lane'
@@ -117,6 +118,7 @@ class Annotator {
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper // visible grid attached to the reference plane
 	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
+	private compassRose: THREE.Object3D | null // indicates the direction of North
 	private light: THREE.SpotLight
 	private stats: Stats
 	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
@@ -136,7 +138,7 @@ class Annotator {
 	constructor() {
 		this.settings = {
 			background: config.get('startup.background_color') || '#082839',
-			cameraOffset: new THREE.Vector3(40, 120, 40),
+			cameraOffset: new THREE.Vector3(0, 400, 200),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
 			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
 			fpsRendering: 0,
@@ -227,6 +229,14 @@ class Annotator {
 			this.scene.add(this.axis)
 		} else
 			this.axis = null
+
+		const compassRoseLength = parseFloat(config.get('annotator.compass_rose_length')) || 0
+		if (compassRoseLength > 0) {
+			this.compassRose = CompassRose(compassRoseLength)
+			this.compassRose.rotateX(Math.PI / -2)
+			this.scene.add(this.compassRose)
+		} else
+			this.compassRose = null
 
 		// Init empty annotation. This will have to be changed
 		// to work in response to a menu, panel or keyboard event.
@@ -451,13 +461,38 @@ class Annotator {
 		}
 	}
 
+	// Display the compass rose just outside the bounding box of the point cloud.
+	private setCompassRoseByPointCloud(): void {
+		if (!this.compassRose) return
+		const boundingBox = this.tileManager.boundingBox()
+		if (!boundingBox) return
+
+		// Find the center of one of the sides of the bounding box. This is the side that is
+		// considered to be North given the current implementation of UtmInterface.utmToThreeJs().
+		const topPoint = boundingBox.getCenter().setZ(boundingBox.min.z)
+		const boundingBoxHeight = Math.abs(boundingBox.max.z - boundingBox.min.z)
+		const zOffset = boundingBoxHeight / 10
+
+		this.compassRose.position.set(topPoint.x, topPoint.y, topPoint.z - zOffset)
+	}
+
 	/**
 	 * Set the point cloud as the center of the visible world.
 	 */
 	private focusOnPointCloud(): void {
 		const center = this.tileManager.centerPoint()
-		if (center) this.setStageByVector(center)
-		else log.warn('point cloud has not been initialized')
+		if (center)
+			this.orbitControls.target.set(center.x, center.y, center.z)
+		else
+			log.warn('point cloud has not been initialized')
+	}
+
+	// Set the camera directly above the current target, looking down.
+	private resetTiltAndCompass(): void {
+		const distanceCameraToTarget = this.camera.position.clone().sub(this.orbitControls.target).length()
+		this.camera.position.x = this.orbitControls.target.x
+		this.camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
+		this.camera.position.z = this.orbitControls.target.z
 	}
 
 	/**
@@ -477,6 +512,7 @@ class Annotator {
 				}
 				this.renderEmptySuperTiles()
 				this.updatePointCloudBoundingBox()
+				this.setCompassRoseByPointCloud()
 				this.setStageByPointCloud(true)
 			})
 			.catch(err => {
@@ -536,6 +572,7 @@ class Annotator {
 		return this.tileManager.loadFromSuperTile(superTile)
 			.then(() => {
 				this.updatePointCloudBoundingBox()
+				this.setCompassRoseByPointCloud()
 				this.setStageByPointCloud(false)
 			})
 	}
@@ -958,6 +995,10 @@ class Annotator {
 				}
 				case 's': {
 					this.saveToFile()
+					break
+				}
+				case 'R': {
+					this.resetTiltAndCompass()
 					break
 				}
 				case 't': {
@@ -1875,6 +1916,8 @@ class Annotator {
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
 			this.scene.remove(this.axis)
+		if (this.compassRose)
+			this.scene.remove(this.compassRose)
 		this.plane.visible = false
 		this.grid.visible = false
 		this.orbitControls.enabled = false
@@ -1901,6 +1944,8 @@ class Annotator {
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
 			this.scene.add(this.axis)
+		if (this.compassRose)
+			this.scene.add(this.compassRose)
 		this.plane.visible = true
 		this.grid.visible = true
 		this.orbitControls.enabled = true
