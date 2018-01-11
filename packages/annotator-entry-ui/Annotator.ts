@@ -388,10 +388,10 @@ class Annotator {
 			&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
 		) {
 			const inputPosition = new THREE.Vector3(state.pose.x, state.pose.y, state.pose.z)
-			const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.LIDAR)
+			const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
 			const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
 			const inputRotation = new THREE.Quaternion(state.pose.q0, state.pose.q1, state.pose.q2, state.pose.q3)
-			const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.LIDAR)
+			const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
 			const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
 			rotationThreeJs.normalize()
 
@@ -467,7 +467,7 @@ class Annotator {
 	private loadPointCloudData(pathToTiles: string): Promise<void> {
 		if (!this.uiState.isPointCloudVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
-		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.LIDAR)
+		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.STANDARD)
 			.then(() => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
@@ -1937,7 +1937,6 @@ class Annotator {
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
 		this.carModel.position.set(position.x, position.y, position.z)
 		this.carModel.setRotationFromQuaternion(rotation)
-		this.carModel.rotateY(-3.14)
 		// Bring the model close to the ground (approx height of the sensors)
 		const p = this.carModel.getWorldPosition()
 		this.carModel.position.set(p.x, p.y - 2, p.z)
