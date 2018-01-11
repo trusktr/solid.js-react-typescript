@@ -112,7 +112,6 @@ class LaneRenderingProperties {
 export interface LaneJsonInputInterfaceV1 {
 	uuid: AnnotationUuid
 	type: number
-	color: number
 	markerPositions: Array<THREE.Vector3>
 	neighborsIds: LaneNeighborsIds
 	leftSideType: LaneLineType
@@ -123,7 +122,6 @@ export interface LaneJsonInputInterfaceV1 {
 
 export interface LaneJsonInputInterfaceV3 extends AnnotationJsonInputInterface {
 	laneType: string
-	color: number
 	neighborsIds: LaneNeighborsIds
 	leftLineType: string
 	leftLineColor: string
@@ -135,7 +133,6 @@ export interface LaneJsonInputInterfaceV3 extends AnnotationJsonInputInterface {
 
 export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface {
 	laneType: string
-	color: number
 	neighborsIds: LaneNeighborsIds
 	leftLineType: string
 	leftLineColor: string
@@ -171,10 +168,8 @@ export class Lane extends Annotation {
 	constructor(obj?: LaneJsonInputInterfaceV3) {
 		// Call the base constructor
 		super(obj)
-		let color: number
 		if (obj) {
 			this.type = isNullOrUndefined(LaneType[obj.laneType]) ? LaneType.UNKNOWN : LaneType[obj.laneType]
-			color = obj.color
 			this.neighborsIds = obj.neighborsIds
 			this.leftLineType = isNullOrUndefined(LaneLineType[obj.leftLineType]) ? LaneLineType.UNKNOWN : LaneLineType[obj.leftLineType]
 			this.rightLineType = isNullOrUndefined(LaneLineType[obj.rightLineType]) ? LaneLineType.UNKNOWN : LaneLineType[obj.rightLineType]
@@ -184,7 +179,6 @@ export class Lane extends Annotation {
 			this.exitType = isNullOrUndefined(LaneEntryExitType[obj.exitType]) ? LaneEntryExitType.UNKNOWN : LaneEntryExitType[obj.exitType]
 		} else {
 			this.type = LaneType.UNKNOWN
-			color = Math.random() * 0xffffff
 			this.neighborsIds = new LaneNeighborsIds()
 			this.leftLineType = LaneLineType.UNKNOWN
 			this.rightLineType = LaneLineType.UNKNOWN
@@ -194,6 +188,7 @@ export class Lane extends Annotation {
 			this.exitType = LaneEntryExitType.UNKNOWN
 		}
 
+		const color = Math.random() * 0xffffff
 		this.renderingProperties = new LaneRenderingProperties(color)
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
@@ -458,7 +453,6 @@ export class Lane extends Annotation {
 			annotationType: AnnotationType[AnnotationType.LANE],
 			uuid: this.uuid,
 			laneType: LaneType[this.type],
-			color: this.renderingProperties.color,
 			leftLineType: LaneLineType[this.leftLineType],
 			leftLineColor: LaneLineColor[this.leftLineColor],
 			rightLineType: LaneLineType[this.rightLineType],

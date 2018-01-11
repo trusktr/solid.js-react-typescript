@@ -935,7 +935,6 @@ export class AnnotationManager extends UtmInterface {
 								annotationType: "LANE",
 								uuid: v1.uuid,
 								laneType: "UNKNOWN",
-								color: v1.color,
 								markers: v1.markerPositions,
 								neighborsIds: v1.neighborsIds,
 								leftLineType: LaneLineType[v1.leftSideType],
