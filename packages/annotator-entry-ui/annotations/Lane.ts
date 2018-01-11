@@ -114,7 +114,6 @@ export interface LaneJsonInputInterfaceV1 {
 	type: number
 	color: number
 	markerPositions: Array<THREE.Vector3>
-	waypoints: Array<THREE.Vector3>
 	neighborsIds: LaneNeighborsIds
 	leftSideType: LaneLineType
 	rightSideType: LaneLineType
@@ -125,7 +124,6 @@ export interface LaneJsonInputInterfaceV1 {
 export interface LaneJsonInputInterfaceV3 extends AnnotationJsonInputInterface {
 	laneType: string
 	color: number
-	waypoints: Array<THREE.Vector3>
 	neighborsIds: LaneNeighborsIds
 	leftLineType: string
 	leftLineColor: string
@@ -138,7 +136,6 @@ export interface LaneJsonInputInterfaceV3 extends AnnotationJsonInputInterface {
 export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface {
 	laneType: string
 	color: number
-	waypoints: Array<Object>
 	neighborsIds: LaneNeighborsIds
 	leftLineType: string
 	leftLineColor: string
@@ -470,17 +467,6 @@ export class Lane extends Annotation {
 			exitType: LaneEntryExitType[this.exitType],
 			neighborsIds: this.neighborsIds,
 			markers: [],
-			waypoints: []
-		}
-
-		if (this.waypoints) {
-			if (pointConverter) {
-				this.waypoints.forEach((p) => {
-					data.waypoints.push(pointConverter(p))
-				})
-			} else {
-				data.waypoints = this.waypoints
-			}
 		}
 
 		if (this.markers) {

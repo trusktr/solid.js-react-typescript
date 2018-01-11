@@ -937,7 +937,6 @@ export class AnnotationManager extends UtmInterface {
 								laneType: "UNKNOWN",
 								color: v1.color,
 								markers: v1.markerPositions,
-								waypoints: v1.waypoints,
 								neighborsIds: v1.neighborsIds,
 								leftLineType: LaneLineType[v1.leftSideType],
 								leftLineColor: "UNKNOWN",
@@ -953,7 +952,6 @@ export class AnnotationManager extends UtmInterface {
 						}
 						data['annotations'] = data['annotations'].map((v3: Object) => {
 							v3['markers'] = v3['markers'].map(m => flipUtmV3(m))
-							v3['waypoints'] = v3['waypoints'].map(w => flipUtmV3(w))
 							return v3
 						})
 					}
