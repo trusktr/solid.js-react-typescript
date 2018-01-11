@@ -10,6 +10,9 @@ import * as THREE from 'three'
 // at [0, 0, 0]. In THREE.AxesHelper the axes converge at
 // [-length/2, -length/2, -length/2] which is too confusing.
 export function AxesHelper(length: number): THREE.Object3D {
+	if (length <= 0)
+		throw Error(`invalid length ${length} for AxesHelper`)
+
 	const origin = new THREE.Vector3(0, 0, 0)
 	let x = new THREE.ArrowHelper(
 		new THREE.Vector3(1, 0, 0),

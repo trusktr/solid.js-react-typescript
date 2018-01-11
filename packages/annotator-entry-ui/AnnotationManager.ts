@@ -957,16 +957,6 @@ export class AnnotationManager extends UtmInterface {
 							return v3
 						})
 					}
-					{ // TODO Fix UTM conversion throughout the app, and remove this.
-						const flipUtmV4 = (utm: UtmJson): UtmJson => {
-							return {'E': utm['N'], 'N': -utm['E'], 'alt': utm['alt']}
-						}
-						data['annotations'] = data['annotations'].map((v4: Object) => {
-							v4['markers'] = v4['markers'].map(m => flipUtmV4(m))
-							v4['waypoints'] = v4['waypoints'].map(w => flipUtmV4(w))
-							return v4
-						})
-					}
 					if (self.checkCoordinateSystem(data, version)) {
 						self.convertCoordinates(data)
 						let boundingBox = new THREE.Box3()
@@ -1187,9 +1177,7 @@ export class AnnotationManager extends UtmInterface {
 		const self = this
 		return function (p: THREE.Vector3): UtmJson {
 			const utm = self.threeJsToUtm(p)
-			// TODO Fix UTM conversion throughout the app, and restore this to the correct format:
-			// return {'E': utm.x, 'N': utm.y, 'alt': utm.z}
-			return {'E': -utm.y, 'N': utm.x, 'alt': utm.z}
+			return {'E': utm.x, 'N': utm.y, 'alt': utm.z}
 		}
 	}
 

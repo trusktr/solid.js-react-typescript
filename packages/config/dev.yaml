@@ -23,6 +23,7 @@ annotator.add_points_to_estimated_ground_plane: true
 annotator.generate_voxels_on_point_load: true
 annotator.draw_bounding_box: false
 annotator.axes_helper_length: 10
+annotator.compass_rose_length: 50
 annotator.point_render_size: 0.05
 
 # persistence of a data file

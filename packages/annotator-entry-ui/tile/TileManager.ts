@@ -637,6 +637,17 @@ export class TileManager extends UtmInterface {
 			.reduce((a, b) => a + b, 0)
 	}
 
+	// Bounding box of the visible point cloud.
+	boundingBox(): THREE.Box3 | null {
+		if (this.hasGeometry) {
+			const geometry = this.pointCloud.geometry
+			geometry.computeBoundingBox()
+			return geometry.boundingBox
+		} else {
+			return null
+		}
+	}
+
 	/**
 	 * Finds the center of the bottom of the bounding box, so that when we view the model
 	 * the whole thing appears above the artificial ground plane.
