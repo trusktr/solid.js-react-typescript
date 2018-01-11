@@ -7,6 +7,9 @@ import * as THREE from 'three'
 
 // Create an object which points North as a visual aid.
 export function CompassRose(length: number): THREE.Object3D {
+	if (length <= 0)
+		throw Error(`invalid length ${length} for CompassRose`)
+
 	const color = 0xffffff
 	const letterLength = length / 2
 	const letterThickness = letterLength / 30
