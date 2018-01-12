@@ -82,6 +82,8 @@ interface FlyThroughSettings {
 	startPoseIndex: number
 	endPoseIndex: number
 	currentPoseIndex: number
+	cameraOffset: THREE.Vector3
+	cameraOffsetDelta: number
 	fps: number
 }
 
@@ -177,8 +179,11 @@ class Annotator {
 			startPoseIndex: 0,
 			endPoseIndex: Number.MAX_VALUE,
 			currentPoseIndex: 0,
+			cameraOffset: new THREE.Vector3(12, 10, 0),
+			cameraOffsetDelta: 1,
 			fps: 10
 		}
+
 		// Initialize socket for use when "live mode" operation is on
 		this.initClient()
 	}
@@ -195,7 +200,7 @@ class Annotator {
 
 		// Create scene and camera
 		this.scene = new THREE.Scene()
-		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10010)
+		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
 		this.scene.add(this.camera)
 
 		// Add some lights
@@ -506,6 +511,7 @@ class Annotator {
 			.then(() => {
 				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
+
 				if (this.settings.generateVoxelsOnPointLoad) {
 					this.computeVoxelsHeights() // This is based on pre-loaded annotations
 					this.tileManager.generateVoxels()
@@ -919,7 +925,28 @@ class Annotator {
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
-		} else
+		} else if (event.keyCode >= 37 && event.keyCode <= 40) {
+			switch (event.keyCode) {
+				case 37:  { // left arrow
+					this.flythroughSettings.cameraOffset.x += this.flythroughSettings.cameraOffsetDelta
+					break
+				}
+				case 38: { // up arrow
+					this.flythroughSettings.cameraOffset.y += this.flythroughSettings.cameraOffsetDelta
+					break
+				}
+				case 39: { // right arrow
+					this.flythroughSettings.cameraOffset.x -= this.flythroughSettings.cameraOffsetDelta
+					break
+				}
+				case 40: { // down arrow
+					this.flythroughSettings.cameraOffset.y -= this.flythroughSettings.cameraOffsetDelta
+					break
+				}
+				default:
+					// nothing to do here
+			}
+		} else {
 			switch (event.key) {
 				case 'Control': {
 					this.uiState.isControlKeyPressed = true
@@ -1022,8 +1049,9 @@ class Annotator {
 					break
 				}
 				default:
-					// nothing to see here
+				// nothing to see here
 			}
+		}
 	}
 
 	private onKeyUp = (): void => {
@@ -1988,8 +2016,8 @@ class Annotator {
 	}
 
 	private updateCameraPose(): void {
-		const p = this.carModel.getWorldPosition()
-		const offset = new THREE.Vector3(20, 15, 0)
+		const p = this.carModel.getWorldPosition().clone()
+		const offset = this.flythroughSettings.cameraOffset.clone()
 		offset.applyQuaternion(this.carModel.quaternion)
 		offset.add(p)
 		this.camera.position.set(offset.x, offset.y, offset.z)
