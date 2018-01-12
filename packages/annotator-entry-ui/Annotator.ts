@@ -1000,8 +1000,7 @@ class Annotator {
 					break
 				}
 				case 'm': {
-					this.annotationManager.saveToKML(config.get('output.annotations.kml.path'))
-						.catch(err => log.warn('saveToKML failed: ' + err.message))
+					this.saveWaypointsKml().then()
 					break
 				}
 				case 'n': {
@@ -1020,8 +1019,12 @@ class Annotator {
 					this.addRightSame()
 					break
 				}
+				case 'S': {
+					this.saveToFile(OutputFormat.LLA).then()
+					break
+				}
 				case 's': {
-					this.saveToFile()
+					this.saveToFile(OutputFormat.UTM).then()
 					break
 				}
 				case 'R': {
@@ -1061,26 +1064,6 @@ class Annotator {
 		this.uiState.isAddTrafficSignMarkerKeyPressed = false
 		this.uiState.isLastTrafficSignMarkerKeyPressed = false
 		this.uiState.numberKeyPressed = null
-	}
-
-	private saveAnnotations(): Promise<void> {
-		return this.annotationManager.saveAnnotationsToFile(config.get('output.annotations.json.path'), OutputFormat.UTM)
-	}
-
-	private exportAnnotationsToKml(): Promise<void> {
-		const jar = config.get('conversion.kml.jar')
-		const main = config.get('conversion.kml.main_class')
-		let input = config.get('conversion.kml.input.path')
-		let output = config.get('conversion.kml.output.path')
-		if (!jar || !main || !input || !output) {
-			return Promise.reject("incomplete configuration for KML conversion; aborting")
-		} else {
-			if (!(input.substr(0, 1) === '/'))
-				input = process.env.PWD + '/' + input
-			if (!(output.substr(0, 1) === '/'))
-				output = process.env.PWD + '/' + output
-			return this.annotationManager.saveAndExportToKml(jar, main, input, output)
-		}
 	}
 
 	private delayHideTransform = (): void => {
@@ -1190,16 +1173,25 @@ class Annotator {
 		}
 	}
 
-	private saveToFile(): void {
-		log.info("Saving annotations to JSON")
-		this.saveAnnotations()
+	// Save all annotation data.
+	private saveToFile(format: OutputFormat): Promise<void> {
+		// Attempt to insert a string representing the coordinate system format into the requested path, then save.
+		const basePath = config.get('output.annotations.json.path')
+		const i = basePath.indexOf('.json')
+		const formattedPath = i >= 0
+			? basePath.slice(0, i) + '-' + OutputFormat[format] + basePath.slice(i, basePath.length)
+			: basePath
+		log.info(`Saving annotations JSON to ${formattedPath}`)
+		return this.annotationManager.saveAnnotationsToFile(formattedPath, format)
 			.catch(error => log.warn("save to file failed: " + error.message))
 	}
 
-	private exportKml(): void {
-		log.info("Exporting annotations to KML")
-		this.exportAnnotationsToKml()
-			.catch(error => log.warn("export to KML failed: " + error.message))
+	// Save lane waypoints only.
+	private saveWaypointsKml(): Promise<void> {
+		const basePath = config.get('output.annotations.kml.path')
+		log.info(`Saving waypoints KML to ${basePath}`)
+		return this.annotationManager.saveToKML(basePath)
+			.catch(err => log.warn('saveToKML failed: ' + err.message))
 	}
 
 	private loadFromFile(): Promise<void> {
@@ -1519,7 +1511,7 @@ class Annotator {
 		const toolsSave = document.getElementById('tools_save')
 		if (toolsSave)
 			toolsSave.addEventListener('click', _ => {
-				this.saveToFile()
+				this.saveToFile(OutputFormat.UTM).then()
 			})
 		else
 			log.warn('missing element tools_save')
@@ -1527,7 +1519,7 @@ class Annotator {
 		const toolsExportKml = document.getElementById('tools_export_kml')
 		if (toolsExportKml)
 			toolsExportKml.addEventListener('click', _ => {
-				this.exportKml()
+				this.saveWaypointsKml().then()
 			})
 		else
 			log.warn('missing element tools_export_kml')

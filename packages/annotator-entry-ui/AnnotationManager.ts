@@ -5,16 +5,17 @@
 
 const config = require('../config')
 const vsprintf = require("sprintf-js").vsprintf
+import * as lodash from 'lodash'
 import {isNullOrUndefined} from "util"
 import * as THREE from 'three'
 import {AnnotationType} from "./annotations/AnnotationType"
+import {currentAnnotationFileVersion, toCurrentAnnotationVersion} from "./annotations/SerializedVersion"
 import {
 	Annotation, AnnotationId, AnnotationJsonInputInterface,
 	AnnotationJsonOutputInterface, AnnotationUuid, LlaJson, UtmJson
 } from 'annotator-entry-ui/annotations/AnnotationBase'
 import {
-	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds,
-	LaneJsonInputInterfaceV3, LaneJsonInputInterfaceV1, LaneLineType, LaneEntryExitType
+	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds, LaneJsonInputInterfaceV3
 } from 'annotator-entry-ui/annotations/Lane'
 import {TrafficSign, TrafficSignJsonInputInterface} from 'annotator-entry-ui/annotations/TrafficSign'
 import {Connection, ConnectionJsonInputInterface} from 'annotator-entry-ui/annotations/Connection'
@@ -61,8 +62,6 @@ export enum OutputFormat {
 function getMarkerInBetween(marker1: Vector3, marker2: Vector3, atDistance: number): Vector3 {
 	return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
 }
-
-const currentAnnotationFileVersion = 4
 
 interface AnnotationManagerJsonOutputInterface {
 	version: number
@@ -921,86 +920,59 @@ export class AnnotationManager extends UtmInterface {
 	loadAnnotationsFromFile(fileName: string): Promise<THREE.Vector3 | null> {
 		if (this.isLiveMode) return Promise.reject(new Error("can't load annotations while in live presentation mode"))
 
-		const self = this
-		return new Promise((resolve: (value: THREE.Vector3 | null) => void, reject: (reason: Error) => void): void => {
-			AsyncFile.readFile(fileName, 'ascii').then((text: string) => {
-				const data = JSON.parse(text)
-				const version = AnnotationManager.annotationsFileVersion(data)
-				if (version > currentAnnotationFileVersion)
-					reject(Error(`unable to load annotations file with version ${version}`))
-				else {
-					if (version === 1 || version === 2) {
-						data['annotations'] = data['annotations'].map((v1: LaneJsonInputInterfaceV1) => {
-							return {
-								annotationType: "LANE",
-								uuid: v1.uuid,
-								laneType: "UNKNOWN",
-								color: v1.color,
-								markers: v1.markerPositions,
-								waypoints: v1.waypoints,
-								neighborsIds: v1.neighborsIds,
-								leftLineType: LaneLineType[v1.leftSideType],
-								leftLineColor: "UNKNOWN",
-								rightLineType: LaneLineType[v1.rightSideType],
-								rightLineColor: "UNKNOWN",
-								entryType: LaneEntryExitType[v1.entryType],
-								exitType: LaneEntryExitType[v1.exitType],
-							} as LaneJsonInputInterfaceV3
-						})
-					} else if (version === 3) {
-						const flipUtmV3 = (utm: UtmJson): UtmJson => {
-							return {'E': -utm['N'], 'N': utm['E'], 'alt': utm['alt']}
-						}
-						data['annotations'] = data['annotations'].map((v3: Object) => {
-							v3['markers'] = v3['markers'].map(m => flipUtmV3(m))
-							v3['waypoints'] = v3['waypoints'].map(w => flipUtmV3(w))
-							return v3
-						})
-					}
-					if (self.checkCoordinateSystem(data, version)) {
-						self.convertCoordinates(data)
-						let boundingBox = new THREE.Box3()
-						// Each element is an annotation
-						let invalid = 0
-						data['annotations'].forEach((element: AnnotationJsonInputInterface) => {
-							const annotationType = AnnotationType[element.annotationType]
-							let newAnnotation: Annotation | null = null
-							switch (annotationType) {
-								case AnnotationType.LANE:
-									newAnnotation = self.addLaneAnnotation(element as LaneJsonInputInterfaceV3)
-									break
-								case AnnotationType.TRAFFIC_SIGN:
-									newAnnotation = self.addTrafficSignAnnotation(element as TrafficSignJsonInputInterface)
-									break
-								case AnnotationType.CONNECTION:
-									newAnnotation = self.addConnectionAnnotation(element as ConnectionJsonInputInterface)
-									break
-								default:
-									log.warn(`discarding annotation with invalid type ${element.annotationType}`)
-							}
-							if (newAnnotation)
-								boundingBox = boundingBox.union(newAnnotation.boundingBox())
-							else
-								invalid++
-						})
-						if (invalid)
-							log.warn(`discarding ${invalid} invalid annotations`)
-						self.metadataState.clean()
-						if (boundingBox.isEmpty()) {
-							resolve(null)
-						} else {
-							resolve(boundingBox.getCenter().setY(boundingBox.min.y))
-						}
-					} else {
-						const zoneId = version === 1
-							? `${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneLetter']}`
-							: `${data['coordinateReferenceSystem']['parameters']['utmZoneNumber']}${data['coordinateReferenceSystem']['parameters']['utmZoneNorthernHemisphere']}`
-						reject(Error(`UTM Zone for new annotations (${zoneId}) does not match existing zone in ${self.getOrigin()}`))
-					}
-				}
-			})
-				.catch(err => reject(err))
+		return AsyncFile.readFile(fileName, 'ascii')
+			.then((text: string) => this.loadAnnotationsFromObject(JSON.parse(text)))
+	}
+
+	// Get a usable data structure from raw JSON. There are plenty of ways for this to throw errors.
+	// Assume that they are caught and handled upstream.
+	private loadAnnotationsFromObject(rawData: Object): THREE.Vector3 | null {
+		// Check versioning and coordinate system
+		const data = toCurrentAnnotationVersion(rawData)
+		if (!data['annotations']) {
+			throw Error(`got an annotation file with no annotations`)
+		}
+		if (!this.checkCoordinateSystem(data)) {
+			const params = data['coordinateReferenceSystem']['parameters']
+			const zoneId = `${params['utmZoneNumber']}${params['utmZoneNorthernHemisphere']}`
+			throw Error(`UTM Zone for new annotations (${zoneId}) does not match existing zone in ${this.getOrigin()}`)
+		}
+		this.convertCoordinates(data)
+
+		// Convert data to annotations
+		let boundingBox = new THREE.Box3()
+		let invalid = 0
+		data['annotations'].forEach((element: AnnotationJsonInputInterface) => {
+			const annotationType = AnnotationType[element.annotationType]
+			let newAnnotation: Annotation | null = null
+			switch (annotationType) {
+				case AnnotationType.LANE:
+					newAnnotation = this.addLaneAnnotation(element as LaneJsonInputInterfaceV3)
+					break
+				case AnnotationType.TRAFFIC_SIGN:
+					newAnnotation = this.addTrafficSignAnnotation(element as TrafficSignJsonInputInterface)
+					break
+				case AnnotationType.CONNECTION:
+					newAnnotation = this.addConnectionAnnotation(element as ConnectionJsonInputInterface)
+					break
+				default:
+					log.warn(`discarding annotation with invalid type ${element.annotationType}`)
+			}
+			if (newAnnotation)
+				boundingBox = boundingBox.union(newAnnotation.boundingBox())
+			else
+				invalid++
 		})
+
+		// Clean up and go home
+		if (invalid)
+			log.warn(`discarding ${invalid} invalid annotations`)
+		this.metadataState.clean()
+
+		if (boundingBox.isEmpty())
+			return null
+		else
+			return boundingBox.getCenter().setY(boundingBox.min.y)
 	}
 
 	unloadAllAnnotations(): void {
@@ -1024,9 +996,9 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	async saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
-		if (this.laneAnnotations.length === 0
-			&& this.connectionAnnotations.length === 0
-			&& this.trafficSignAnnotations.length === 0) {
+		if (this.laneAnnotations.filter(a => a.isValid()).length === 0
+			&& this.connectionAnnotations.filter(a => a.isValid()).length === 0
+			&& this.trafficSignAnnotations.filter(a => a.isValid()).length === 0) {
 			return Promise.reject(new Error('failed to save empty set of annotations'))
 		}
 		if (!this.hasOrigin() && !config.get('output.annotations.debug.allow_annotations_without_utm_origin')) {
@@ -1079,38 +1051,15 @@ export class AnnotationManager extends UtmInterface {
 		return data
 	}
 
-	saveAndExportToKml(jar: string, main: string, input: string, output: string): Promise<void> {
-		const exportToKml = (): void => {
-			const command = [jar, main, input, output].join(' ')
-			log.debug('executing child process: ' + command)
-			const exec = require('child_process').exec
-			exec(command, (error: Error | null, stdout: string, stderr: string) => {
-				if (error) {
-					log.error(`exec error: ${error}`)
-					return
-				}
-				if (stdout) log.debug(`stdout: ${stdout}`)
-				if (stderr) log.debug(`stderr: ${stderr}`)
-			})
-		}
-
-		return this.saveAnnotationsToFile(input, OutputFormat.LLA)
-			.then(() => exportToKml())
-			.catch(error => log.warn('save-to-JSON failed for KML conversion; aborting: ' + error.message))
-	}
-
+	// Save lane waypoints (only) to KML.
 	saveToKML(fileName: string): Promise<void> {
-		// Get all the points
-		let points: Array<THREE.Vector3> = []
-		this.laneAnnotations.forEach((annotation) => {
-			points = points.concat(annotation.waypoints)
-		})
-
-		// Convert points to lat lon
-		const geopoints: Array<THREE.Vector3> = []
-		points.forEach((p) => {
-			geopoints.push(this.threeJsToLngLatAlt(p))
-		})
+		// Get all the points and convert to lat lon
+		const geopoints: Array<THREE.Vector3> =
+			lodash.flatten(
+				this.laneAnnotations.map(lane =>
+					lane.waypoints.map(p => this.threeJsToLngLatAlt(p))
+				)
+			)
 
 		// Save file
 		const kml = new SimpleKML()
@@ -1189,37 +1138,19 @@ export class AnnotationManager extends UtmInterface {
 		}
 	}
 
-	// Get the file-format version of a saved annotation.
-	private static annotationsFileVersion(data: Object): number {
-		let version = parseInt(data['version'], 10)
-		if (isNaN(version))
-			return 1
-		else
-			return version
-	}
-
 	/**
 	 * This expects the serialized UtmCrs structure produced by toJSON().
 	 */
-	private checkCoordinateSystem(data: Object, version: number): boolean {
+	private checkCoordinateSystem(data: Object): boolean {
 		const crs = data['coordinateReferenceSystem']
 		if (crs['coordinateSystem'] !== 'UTM') return false
 		if (crs['datum'] !== this.datum) return false
-		let num: number
-		let northernHemisphere: boolean
-		if (version === 1) {
-			// Files generated under this version, in late 2017, were marked with MGRS zone 18S regardless
-			// of whether the data came from DC or SF. We have no way of knowing the difference. Assume SF.
-			num = 10
-			northernHemisphere = true
-		} else {
-			if (isNullOrUndefined(crs['parameters']['utmZoneNumber']))
-				return false
-			num = crs['parameters']['utmZoneNumber']
-			if (isNullOrUndefined(crs['parameters']['utmZoneNorthernHemisphere']))
-				return false
-			northernHemisphere = !!crs['parameters']['utmZoneNorthernHemisphere']
-		}
+		if (isNullOrUndefined(crs['parameters']['utmZoneNumber']))
+			return false
+		const num = crs['parameters']['utmZoneNumber']
+		if (isNullOrUndefined(crs['parameters']['utmZoneNorthernHemisphere']))
+			return false
+		const northernHemisphere = !!crs['parameters']['utmZoneNorthernHemisphere']
 
 		if (!data['annotations']) return false
 		// generate an arbitrary offset for internal use, given the first point in the data set
