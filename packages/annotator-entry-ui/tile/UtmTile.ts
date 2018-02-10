@@ -9,7 +9,8 @@ import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
 /*
  * A collection of point cloud data for a rectangular volume of UTM space.
  * This assumes a single UTM zone, which is a Cartesian 3D space.
- * In practice this comes directly from a PointCloudTileMessage protobuf.
+ * In practice this comes directly from a PointCloudTileMessage or
+ * BaseGeometryTileMessage protobuf.
  */
 export class UtmTile {
 	hasPointCloud: boolean

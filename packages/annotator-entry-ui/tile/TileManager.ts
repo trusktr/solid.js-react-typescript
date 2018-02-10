@@ -14,6 +14,10 @@ import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as TypeLogger from 'typelogger'
+import {
+	baseGeometryTileMessageToTileMessage, pointCloudTileMessageToTileMessage,
+	TileMessage, TileMessageFormat
+} from "./TileMessage"
 import {SuperTile} from "./SuperTile"
 import {UtmTile} from "./UtmTile"
 import {UtmInterface} from "../UtmInterface"
@@ -47,12 +51,17 @@ const threeDStepSize: number = 3
 const loadedSuperTileKeysKey = 'loadedSuperTileKeys'
 let warningDelivered = false
 
-/**
- * Load a point cloud tile message from a proto binary file
- */
-function loadTile(filename: string): Promise<Models.PointCloudTileMessage> {
+function loadBaseGeometryTileMessage(filename: string): Promise<TileMessage> {
+	return AsyncFile.readFile(filename)
+		.then(buffer => Models.BaseGeometryTileMessage.decode(buffer))
+		.catch(err => {throw Error('protobuf read failed: ' + err.message)})
+		.then(msg => baseGeometryTileMessageToTileMessage(msg))
+}
+
+function loadPointCloudTileMessage(filename: string): Promise<TileMessage> {
 	return AsyncFile.readFile(filename)
 		.then(buffer => Models.PointCloudTileMessage.decode(buffer))
+		.catch(err => {throw Error('protobuf read failed: ' + err.message)})
 		.then(msg => {
 			// Perception doesn't set UTM zone correctly. For now we have to assume the data are from San Francisco.
 			if (!warningDelivered) {
@@ -63,6 +72,7 @@ function loadTile(filename: string): Promise<Models.PointCloudTileMessage> {
 			msg.utmZoneNorthernHemisphere = true
 			return msg
 		})
+		.then(msg => pointCloudTileMessageToTileMessage(msg))
 }
 
 interface TileMetadata {
@@ -94,17 +104,17 @@ function tileFileNameToTileMetadata(name: string): TileMetadata | null {
 	}
 }
 
-const sampleData = (msg: Models.PointCloudTileMessage, step: number): Array<Array<number>> => {
+const sampleData = (msg: TileMessage, step: number): Array<Array<number>> => {
 	if (step <= 0) {
 		log.error("Can't sample data. Step should be > 0.")
 		return []
 	}
 	if (!msg.points) {
-		log.error("PointCloudTileMessage is missing points")
+		log.error("tile message is missing points")
 		return []
 	}
 	if (!msg.colors) {
-		log.error("PointCloudTileMessage is missing colors")
+		log.error("tile message is missing colors")
 		return []
 	}
 
@@ -140,6 +150,7 @@ export class TileManager extends UtmInterface {
 	private voxelsMaxHeight: number
 	private HSVGradient: Array<THREE.Vector3>
 	private onSuperTileUnload: (superTile: SuperTile) => void
+	private tileMessageFormat: TileMessageFormat
 	private initialSuperTilesToLoad: number // preload some super tiles; initially we don't know how many points they will contain
 	private maximumPointsToLoad: number // after loading super tiles we can trim them back by point count
 	private samplingStep: number
@@ -163,6 +174,9 @@ export class TileManager extends UtmInterface {
 		this.voxelsMaxHeight = 7
 		this.HSVGradient = []
 		this.generateGradient()
+		this.tileMessageFormat = TileMessageFormat[config.get('tile_manager.tile_message_format') as string]
+		if (!this.tileMessageFormat)
+			throw Error('bad tile_manager.tile_message_format: ' + config.get('tile_manager.tile_message_format'))
 		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
 		this.maximumPointsToLoad = parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000
 		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
@@ -211,13 +225,12 @@ export class TileManager extends UtmInterface {
 
 	// The first tile we see defines the local origin and UTM zone for the lifetime of the application.
 	// All other data is expected to lie in the same zone.
-	private checkCoordinateSystem(msg: Models.PointCloudTileMessage, inputCoordinateFrame: CoordinateFrameType): boolean {
+	private checkCoordinateSystem(msg: TileMessage, inputCoordinateFrame: CoordinateFrameType): boolean {
 		const num = msg.utmZoneNumber
 		const northernHemisphere = msg.utmZoneNorthernHemisphere
 		if (!num || northernHemisphere === null)
 			return false
-		const inputPoint = new THREE.Vector3(msg.originX, msg.originY, msg.originZ)
-		const p = convertToStandardCoordinateFrame(inputPoint, inputCoordinateFrame)
+		const p = convertToStandardCoordinateFrame(msg.origin, inputCoordinateFrame)
 
 		if (this.setOrigin(num, northernHemisphere, p))
 			return true
@@ -420,6 +433,20 @@ export class TileManager extends UtmInterface {
 	}
 
 	/**
+	 * Load a point cloud tile message from a proto binary file
+	 */
+	private loadTile(filename: string): Promise<TileMessage> {
+		switch (this.tileMessageFormat) {
+			case TileMessageFormat.BaseGeometryTileMessage:
+				return loadBaseGeometryTileMessage(filename)
+			case TileMessageFormat.PointCloudTileMessage:
+				return loadPointCloudTileMessage(filename)
+			default:
+				return Promise.reject(Error('unknown tileMessageFormat: ' + this.tileMessageFormat))
+		}
+	}
+
+	/**
 	 * Given a path to a dataset, find all super tiles. Load point cloud data for some of them.
 	 */
 	loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<void> {
@@ -437,7 +464,7 @@ export class TileManager extends UtmInterface {
 			return Promise.reject(Error('no tiles found at ' + datasetPath))
 
 		// Ensure that we have a valid coordinate system before doing anything else.
-		const firstTilePromise = loadTile(Path.join(datasetPath, fileMetadatas[0]!.name))
+		const firstTilePromise = this.loadTile(Path.join(datasetPath, fileMetadatas[0]!.name))
 			.then(firstMessage => {
 				if (this.checkCoordinateSystem(firstMessage, coordinateFrame))
 					return Promise.resolve()
@@ -473,7 +500,7 @@ export class TileManager extends UtmInterface {
 	//  - count of points
 	private pointCloudFileLoader(filename: string, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[], number]> {
 		return (): Promise<[number[], number[], number]> =>
-			loadTile(filename)
+			this.loadTile(filename)
 				.then(msg => {
 					if (!msg.points || msg.points.length === 0) {
 						return [[], [], 0] as [number[], number[], number]

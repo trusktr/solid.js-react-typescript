@@ -12,6 +12,7 @@ startup.point_cloud_directory:
 startup.annotations_path:
 
 # parameters for loading a tile
+tile_manager.tile_message_format: BaseGeometryTileMessage # PointCloudTileMessage or BaseGeometryTileMessage
 tile_manager.utm_tile_scale: [10, 10, 10] # conversion from tile index numbers to physical dimensions
 tile_manager.super_tile_scale: [100, 100, 50] # ditto; must contain multiples of utm_tile_scale
 tile_manager.initial_super_tiles_to_load: 8
