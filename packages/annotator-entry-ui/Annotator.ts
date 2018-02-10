@@ -99,7 +99,8 @@ interface UiState {
 	isLastTrafficSignMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	numberKeyPressed: number | null
-	isLiveMode: boolean
+	isLiveMode: boolean // enables a trajectory fly-through, while allowing minimal user input
+	isKioskMode: boolean // turns on live mode permanently, with even less user input
 }
 
 /**
@@ -162,6 +163,7 @@ class Annotator {
 			isMouseButtonPressed: false,
 			numberKeyPressed: null,
 			isLiveMode: false,
+			isKioskMode: !!config.get('startup.kiosk_mode'),
 		}
 		this.hovered = null
 		this.raycasterPlane = new THREE.Raycaster()
@@ -181,7 +183,7 @@ class Annotator {
 			currentPoseIndex: 0,
 			cameraOffset: new THREE.Vector3(12, 10, 0),
 			cameraOffsetDelta: 1,
-			fps: 10
+			fps: parseFloat(config.get('fly_through.render.fps')) || 10
 		}
 
 		// Initialize socket for use when "live mode" operation is on
@@ -304,16 +306,20 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
 
-		// Live mode data
-		this.loadCarModel()
-
 		// Bind events
-		this.bind()
+		if (!this.uiState.isKioskMode)
+			this.bind()
 		Annotator.deactivateLaneProp()
 
-		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
+		this.displayMenu(
+			config.get('startup.show_menu') && !this.uiState.isKioskMode
+				? MenuVisibility.SHOW
+				: MenuVisibility.HIDE
+		)
 
-		return this.loadUserData()
+		return this.loadCarModel()
+			.then(_ => this.loadUserData())
+			.then(_ => {if (this.uiState.isKioskMode) this.toggleListen()})
 	}
 
 	// Load up any data which configuration has asked for on start-up.
@@ -338,7 +344,7 @@ class Annotator {
 			pointCloudResult = annotationsResult
 
 		let trajectoryResult: Promise<void>
-		const trajectoryPath = config.get('live_mode.trajectory_path')
+		const trajectoryPath = config.get('fly_through.trajectory_path')
 		if (trajectoryPath) {
 			trajectoryResult = pointCloudResult
 				.then(() => {
@@ -923,29 +929,38 @@ class Annotator {
 	 * Handle keyboard events
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
+		if (this.uiState.isLiveMode)
+			this.onKeyDownLiveMode(event)
+		else
+			this.onKeyDownInteractiveMode(event)
+	}
+
+	private onKeyDownLiveMode = (event: KeyboardEvent): void => {
+		switch (event.keyCode) {
+			case 37: { // left arrow
+				this.flythroughSettings.cameraOffset.x += this.flythroughSettings.cameraOffsetDelta
+				break
+			}
+			case 38: { // up arrow
+				this.flythroughSettings.cameraOffset.y += this.flythroughSettings.cameraOffsetDelta
+				break
+			}
+			case 39: { // right arrow
+				this.flythroughSettings.cameraOffset.x -= this.flythroughSettings.cameraOffsetDelta
+				break
+			}
+			case 40: { // down arrow
+				this.flythroughSettings.cameraOffset.y -= this.flythroughSettings.cameraOffsetDelta
+				break
+			}
+			default:
+			// nothing to do here
+		}
+	}
+
+	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
 		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
-		} else if (event.keyCode >= 37 && event.keyCode <= 40) {
-			switch (event.keyCode) {
-				case 37:  { // left arrow
-					this.flythroughSettings.cameraOffset.x += this.flythroughSettings.cameraOffsetDelta
-					break
-				}
-				case 38: { // up arrow
-					this.flythroughSettings.cameraOffset.y += this.flythroughSettings.cameraOffsetDelta
-					break
-				}
-				case 39: { // right arrow
-					this.flythroughSettings.cameraOffset.x -= this.flythroughSettings.cameraOffsetDelta
-					break
-				}
-				case 40: { // down arrow
-					this.flythroughSettings.cameraOffset.y -= this.flythroughSettings.cameraOffsetDelta
-					break
-				}
-				default:
-					// nothing to do here
-			}
 		} else {
 			switch (event.key) {
 				case 'Control': {
@@ -1865,20 +1880,27 @@ class Annotator {
 		this.uiState.isAnnotationsVisible = true
 	}
 
-	private loadCarModel(): void {
-		const manager = new THREE.LoadingManager()
-		const loader = new (THREE as any).OBJLoader(manager)
-		const car = require('../annotator-assets/models/BMW_X5_4.obj')
-		loader.load(car, (object: any) => {
-			const boundingBox = new THREE.Box3().setFromObject(object)
-			const boxSize = boundingBox.getSize().toArray()
-			const modelLength = Math.max(...boxSize)
-			const carLength = 4.5 // approx in meters
-			const scaleFactor = carLength / modelLength
-			this.carModel = object
-			this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
-			this.carModel.visible = false
-			this.scene.add(object)
+	private loadCarModel(): Promise<void> {
+		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
+			try {
+				const manager = new THREE.LoadingManager()
+				const loader = new (THREE as any).OBJLoader(manager)
+				const car = require('../annotator-assets/models/BMW_X5_4.obj')
+				loader.load(car, (object: any) => {
+					const boundingBox = new THREE.Box3().setFromObject(object)
+					const boxSize = boundingBox.getSize().toArray()
+					const modelLength = Math.max(...boxSize)
+					const carLength = 4.5 // approx in meters
+					const scaleFactor = carLength / modelLength
+					this.carModel = object
+					this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
+					this.carModel.visible = false
+					this.scene.add(object)
+					resolve()
+				})
+			} catch (err) {
+				reject(err)
+			}
 		})
 	}
 
@@ -1946,7 +1968,7 @@ class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
-		this.settings.fpsRendering = this.settings.defaultFpsRendering / 2
+		this.settings.fpsRendering = this.flythroughSettings.fps
 
 		if (this.flythroughSettings.enabled) {
 			this.flythroughSettings.currentPoseIndex = this.flythroughSettings.startPoseIndex
