@@ -35,13 +35,13 @@ const {dialog} = require('electron').remote
 
 // tslint:disable:no-string-literal
 
-enum LinkType {
+export enum LinkType {
 	FORWARD = 1,
 	SIDE = 2,
 	OTHER = 3
 }
 
-class Link {
+export class Link {
 	index: number
 	type: LinkType
 
@@ -63,7 +63,7 @@ function getMarkerInBetween(marker1: Vector3, marker2: Vector3, atDistance: numb
 	return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
 }
 
-interface AnnotationManagerJsonOutputInterface {
+export interface AnnotationManagerJsonOutputInterface {
 	version: number
 	created: string
 	coordinateReferenceSystem: CRS.CoordinateReferenceSystem

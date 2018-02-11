@@ -19,7 +19,7 @@ import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
 import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
 import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {NeighborLocation, NeighborDirection, Lane, LaneType} from 'annotator-entry-ui/annotations/Lane'
+import {NeighborLocation, NeighborDirection, Lane} from 'annotator-entry-ui/annotations/Lane'
 import {Connection} from "./annotations/Connection"
 import {TrafficSign} from "./annotations/TrafficSign"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
@@ -108,7 +108,7 @@ interface UiState {
  * and the annotations. It also handles the mouse and keyboard events needed to select
  * and modify the annotations.
  */
-class Annotator {
+export class Annotator {
 	private uiState: UiState
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
 	private camera: THREE.PerspectiveCamera
@@ -548,7 +548,6 @@ class Annotator {
 			let minDistance: number = Number.MAX_VALUE
 			let minDistanceHeight: number = y   // in case there is no annotation close enough
                                                 // these voxels will be all colored the same
-			let laneType: LaneType = LaneType.UNKNOWN
 			for (let annotation of this.annotationManager.laneAnnotations) {
 				for (let wayPoint of annotation.denseWaypoints) {
 					let dx: number = wayPoint.x - x
@@ -557,7 +556,6 @@ class Annotator {
 					if (distance < minDistance) {
 						minDistance = distance
 						minDistanceHeight = wayPoint.y
-						laneType = annotation.type
 					}
 					if (minDistance < annotationCutoffDistance) {
 						break
