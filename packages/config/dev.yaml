@@ -3,6 +3,7 @@
 startup.electron.window.default.width: 0
 startup.electron.window.default.height: 0
 startup.render.fps: 60
+startup.kiosk_mode: false
 startup.background_color: '#082839'
 startup.show_color_picker: true
 startup.show_stats_module: true
@@ -34,7 +35,8 @@ output.annotations.autosave.directory.path: ./data/autosave
 output.annotations.autosave.interval.seconds: 300
 
 # Fly-through trajectory file
-live_mode.trajectory_path:
+fly_through.trajectory_path:
+fly_through.render.fps: 10
 
 # persist trajectories
 output.trajectory.csv.path: ./data/trajectory.csv
