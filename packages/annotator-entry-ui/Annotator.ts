@@ -391,6 +391,8 @@ class Annotator {
 			})
 	}
 
+	// Move the camera and the car model through poses loaded from a file on disk.
+	// See also initClient().
 	private runFlythrough(): void {
 		if (!this.uiState.isLiveMode) {
 			return
@@ -1907,6 +1909,8 @@ class Annotator {
 		})
 	}
 
+	// Move the camera and the car model through poses streamed from ZMQ.
+	// See also runFlythrough().
 	private initClient(): void {
 		this.liveSubscribeSocket = zmq.socket('sub')
 
