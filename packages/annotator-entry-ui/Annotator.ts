@@ -343,6 +343,9 @@ export class Annotator {
 		} else
 			pointCloudResult = annotationsResult
 
+		if (config.get('live_mode.trajectory_path'))
+			log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
+
 		let trajectoryResult: Promise<void>
 		const trajectoryPath = config.get('fly_through.trajectory_path')
 		if (trajectoryPath) {
@@ -388,6 +391,8 @@ export class Annotator {
 			})
 	}
 
+	// Move the camera and the car model through poses loaded from a file on disk.
+	// See also initClient().
 	private runFlythrough(): void {
 		if (!this.uiState.isLiveMode) {
 			return
@@ -1902,6 +1907,8 @@ export class Annotator {
 		})
 	}
 
+	// Move the camera and the car model through poses streamed from ZMQ.
+	// See also runFlythrough().
 	private initClient(): void {
 		this.liveSubscribeSocket = zmq.socket('sub')
 
