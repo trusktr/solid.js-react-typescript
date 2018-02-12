@@ -3,6 +3,7 @@
 startup.electron.window.default.width: 0
 startup.electron.window.default.height: 0
 startup.render.fps: 60
+startup.kiosk_mode: false
 startup.background_color: '#082839'
 startup.show_color_picker: true
 startup.show_stats_module: true
@@ -12,6 +13,7 @@ startup.point_cloud_directory:
 startup.annotations_path:
 
 # parameters for loading a tile
+tile_manager.tile_message_format: BaseGeometryTileMessage # PointCloudTileMessage or BaseGeometryTileMessage
 tile_manager.utm_tile_scale: [10, 10, 10] # conversion from tile index numbers to physical dimensions
 tile_manager.super_tile_scale: [100, 100, 50] # ditto; must contain multiples of utm_tile_scale
 tile_manager.initial_super_tiles_to_load: 8
@@ -33,7 +35,8 @@ output.annotations.autosave.directory.path: ./data/autosave
 output.annotations.autosave.interval.seconds: 300
 
 # Fly-through trajectory file
-live_mode.trajectory_path:
+fly_through.trajectory_path:
+fly_through.render.fps: 10
 
 # persist trajectories
 output.trajectory.csv.path: ./data/trajectory.csv
