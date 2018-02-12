@@ -343,6 +343,9 @@ class Annotator {
 		} else
 			pointCloudResult = annotationsResult
 
+		if (config.get('live_mode.trajectory_path'))
+			log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
+
 		let trajectoryResult: Promise<void>
 		const trajectoryPath = config.get('fly_through.trajectory_path')
 		if (trajectoryPath) {
