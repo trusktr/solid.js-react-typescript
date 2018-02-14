@@ -2,7 +2,8 @@
 
 echo off
 echo Copying app to shared location...
-cp -r /usr/local/mapper/mapper-annotator /app/
-chmod 777 -R /app/mapper-annotator
+PROJECT=mapper-annotator
+cp -r /usr/local/mapper/${PROJECT} /app/
+chmod 777 -R /app/${PROJECT}
 
 echo Copy complete
