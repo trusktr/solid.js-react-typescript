@@ -26,6 +26,8 @@ import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry
 import {Scale3D} from "../geometry/Scale3D"
 import {TileIndex} from "../model/TileIndex"
 import LocalStorage from "../state/LocalStorage"
+import {TileServiceClient} from "./TileServiceClient"
+import {RangeSearch} from "../model/RangeSearch"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -134,6 +136,8 @@ const sampleData = (msg: TileMessage, step: number): Array<Array<number>> => {
 	return [sampledPoints, sampledColors]
 }
 
+// TileManager loads tile data from disk or from the network. Tiles are aggregated into SuperTiles,
+// which serve as a local cache for chunks of tile data.
 export class TileManager extends UtmInterface {
 	private storage: LocalStorage // persistent state for UI settings
 	hasGeometry: boolean
@@ -154,6 +158,7 @@ export class TileManager extends UtmInterface {
 	private initialSuperTilesToLoad: number // preload some super tiles; initially we don't know how many points they will contain
 	private maximumPointsToLoad: number // after loading super tiles we can trim them back by point count
 	private samplingStep: number
+	private tileServiceClient: TileServiceClient
 
 	constructor(onSuperTileUnload: (superTile: SuperTile) => void) {
 		super()
@@ -180,6 +185,7 @@ export class TileManager extends UtmInterface {
 		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
 		this.maximumPointsToLoad = parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000
 		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
+		this.tileServiceClient = new TileServiceClient()
 	}
 
 	toString(): string {
@@ -260,7 +266,6 @@ export class TileManager extends UtmInterface {
 			this.HSVGradient.push(TileManager.heightToColor(height, this.voxelsMaxHeight))
 			height += this.voxelSize
 		}
-		log.info(`Color palette ready !`)
 	}
 
 	/**
@@ -449,7 +454,7 @@ export class TileManager extends UtmInterface {
 	/**
 	 * Given a path to a dataset, find all super tiles. Load point cloud data for some of them.
 	 */
-	loadFromDataset(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<void> {
+	loadFromDirectory(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<void> {
 		// Consider all tiles within datasetPath.
 		let names: string[]
 		try {
@@ -481,9 +486,24 @@ export class TileManager extends UtmInterface {
 						new TileIndex(utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z),
 						this.pointCloudFileLoader(Path.join(datasetPath, metadata!.name), coordinateFrame),
 					)
-					const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale), coordinateFrame)
-					if (!superTile.addTile(utmTile))
-						log.warn(`addTile() failed for ${metadata!.name}`)
+					this.addTileToSuperTile(utmTile, coordinateFrame, metadata!.name)
+				})
+
+				const promises = this.identifyFirstSuperTilesToLoad()
+					.map(st => this.loadSuperTile(st))
+				return Promise.all(promises)
+			})
+			.then(() => this.generatePointCloudFromSuperTiles())
+	}
+
+	// Get the tiles that exist within a RangeSearch and load them into SuperTiles.
+	// TODO maximally fill the super tiles?
+	loadFromMapServer(search: RangeSearch, coordinateFrame: CoordinateFrameType): Promise<void> {
+		return this.tileServiceClient.getTilesByCoordinateRange(search)
+			.then(metadatas => {
+				metadatas.forEach(metadata => {
+					const utmTile = new UtmTile(metadata.tileIndex, this.pointCloudFileLoader(metadata.path, coordinateFrame))
+					this.addTileToSuperTile(utmTile, coordinateFrame, metadata.path)
 				})
 
 				const promises = this.identifyFirstSuperTilesToLoad()
@@ -515,6 +535,13 @@ export class TileManager extends UtmInterface {
 				})
 	}
 
+	// Tiles are collected into super tiles. Later the super tiles will manage loading and unloading point cloud data.
+	private addTileToSuperTile(utmTile: UtmTile, coordinateFrame: CoordinateFrameType, tileName: string): void {
+		const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale), coordinateFrame)
+		if (!superTile.addTile(utmTile))
+			log.warn(`addTile() failed for ${tileName}`)
+	}
+
 	private identifyFirstSuperTilesToLoad(): SuperTile[] {
 		let toLoad: SuperTile[] = []
 
@@ -537,7 +564,7 @@ export class TileManager extends UtmInterface {
 		return toLoad
 	}
 
-	// Load data for a single SuperTile. This assumes that loadFromDataset() already happened.
+	// Load data for a single SuperTile. This assumes that loadFromDirectory() or loadFromMapServer() already happened.
 	// Side effect: prune old SuperTiles as necessary.
 	loadFromSuperTile(superTile: SuperTile): Promise<void> {
 		const key = superTile.index.toString()

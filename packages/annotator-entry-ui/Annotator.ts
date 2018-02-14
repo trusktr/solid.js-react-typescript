@@ -329,19 +329,30 @@ export class Annotator {
 		if (annotationsPath) {
 			log.info('loading pre-configured annotations ' + annotationsPath)
 			annotationsResult = this.loadAnnotations(annotationsPath)
-		} else
+		} else {
 			annotationsResult = Promise.resolve()
+		}
 
-		const pointCloudDir = config.get('startup.point_cloud_directory')
+		const pointCloudDir: string = config.get('startup.point_cloud_directory')
+		const pointCloudBbox: [number, number, number, number, number, number] = config.get('startup.point_cloud_bounding_box')
 		let pointCloudResult: Promise<void>
 		if (pointCloudDir) {
+			if (pointCloudBbox)
+				log.warn(`don't set startup.point_cloud_directory and startup.point_cloud_bounding_box config options at the same time`)
 			pointCloudResult = annotationsResult
 				.then(() => {
 					log.info('loading pre-configured data set ' + pointCloudDir)
-					return this.loadPointCloudData(pointCloudDir)
+					return this.loadPointCloudDataFromDirectory(pointCloudDir)
 				})
-		} else
+		} else if (pointCloudBbox) {
 			pointCloudResult = annotationsResult
+				.then(() => {
+					log.info('loading pre-configured bounding box ' + pointCloudBbox)
+					return this.loadPointCloudDataFromMapServer(pointCloudBbox)
+				})
+		} else {
+			pointCloudResult = annotationsResult
+		}
 
 		if (config.get('live_mode.trajectory_path'))
 			log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
@@ -354,8 +365,9 @@ export class Annotator {
 					log.info('loading pre-configured trajectory ' + trajectoryPath)
 					return this.loadFlythroughTrajectory(trajectoryPath)
 				})
-		} else
+		} else {
 			trajectoryResult = pointCloudResult
+		}
 
 		return trajectoryResult
 	}
@@ -511,31 +523,59 @@ export class Annotator {
 		this.camera.position.z = this.orbitControls.target.z
 	}
 
-	/**
-	 * Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
-	 * Center the stage and the camera on the point cloud.
-	 */
-	private loadPointCloudData(pathToTiles: string): Promise<void> {
+	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
+	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
+		log.info('loadPointCloudDataFromDirectory')
+		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
+			.then(() => this.pointCloudLoadedSideEffects())
+			.catch(err => Annotator.pointCloudLoadedError(err))
+	}
+
+	// Load tiles within a bounding box and add them to the scene.
+	private loadPointCloudDataFromMapServer(bbox: number[]): Promise<void> {
+		let configError: Error | null = null
+		if (!Array.isArray(bbox) || bbox.length !== 6)
+			configError = Error('invalid point cloud bounding box config')
+		else
+			bbox.forEach(n => {
+				if (isNaN(n)) configError = Error('invalid point cloud bounding box config')
+			})
+
+		if (configError) {
+			Annotator.pointCloudLoadedError(configError)
+			return Promise.resolve()
+		} else {
+			const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])
+			const p2 = new THREE.Vector3(bbox[3], bbox[4], bbox[5])
+			return this.tileManager.loadFromMapServer({minPoint: p1, maxPoint: p2}, CoordinateFrameType.STANDARD)
+				.then(() => this.pointCloudLoadedSideEffects())
+				.catch(err => Annotator.pointCloudLoadedError(err))
+		}
+	}
+
+	// Do some house keeping after loading a point cloud, such as drawing decorations
+	// and centering the stage and the camera on the point cloud.
+	private pointCloudLoadedSideEffects(): void {
+		if (!this.annotationManager.setOriginWithInterface(this.tileManager))
+			log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
+
 		if (!this.uiState.isPointCloudVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
-		return this.tileManager.loadFromDataset(pathToTiles, CoordinateFrameType.STANDARD)
-			.then(() => {
-				if (!this.annotationManager.setOriginWithInterface(this.tileManager))
-					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
 
-				if (this.settings.generateVoxelsOnPointLoad) {
-					this.computeVoxelsHeights() // This is based on pre-loaded annotations
-					this.tileManager.generateVoxels()
-				}
-				this.renderEmptySuperTiles()
-				this.updatePointCloudBoundingBox()
-				this.setCompassRoseByPointCloud()
-				this.setStageByPointCloud(true)
-			})
-			.catch(err => {
-				log.error(err.message)
-				dialog.showErrorBox('Point Cloud Load Error', err.message)
-			})
+		if (this.settings.generateVoxelsOnPointLoad) {
+			this.computeVoxelsHeights() // This is based on pre-loaded annotations
+			this.tileManager.generateVoxels()
+		}
+
+		this.renderEmptySuperTiles()
+		this.updatePointCloudBoundingBox()
+		this.setCompassRoseByPointCloud()
+		this.setStageByPointCloud(true)
+	}
+
+	private static pointCloudLoadedError(err: Error): void {
+		log.error(err.message)
+		dialog.showErrorBox('Point Cloud Load Error', err.message)
 	}
 
 	// Compute corresponding height for each voxel based on near by annotations
@@ -1223,7 +1263,7 @@ export class Annotator {
 		if (this.tileManager.hasGeometry)
 			log.warn('you should probably unload the existing point cloud before loading another')
 		log.info('Loading point cloud from ' + pathElectron[0])
-		return this.loadPointCloudData(pathElectron[0])
+		return this.loadPointCloudDataFromDirectory(pathElectron[0])
 	}
 
 	private addFront(): void {
