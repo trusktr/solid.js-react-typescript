@@ -1937,7 +1937,7 @@ class Annotator {
 				log.warn('got an InertialStateMessage without a pose')
 		})
 
-		this.liveSubscribeSocket.connect("ipc:///tmp/InertialState")
+		this.liveSubscribeSocket.connect("tcp://localhost:5564")
 		this.liveSubscribeSocket.subscribe("")
 	}
 
