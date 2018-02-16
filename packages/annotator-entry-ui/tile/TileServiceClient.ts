@@ -72,9 +72,9 @@ export class TileServiceClient {
 		const corner2 = new GeographicPoint3DMessage()
 		corner2.setSrid(this.srid)
 		// todo fix off by one at max edge
-		corner2.setX(search.maxPoint.x)
-		corner2.setY(search.maxPoint.y)
-		corner2.setZ(search.maxPoint.z)
+		corner2.setX(search.maxPoint.x - 0.001)
+		corner2.setY(search.maxPoint.y - 0.001)
+		corner2.setZ(search.maxPoint.z - 0.001)
 		return this.getTiles(corner1, corner2)
 	}
 
@@ -88,15 +88,13 @@ export class TileServiceClient {
 		const corner2 = new GeographicPoint3DMessage()
 		corner2.setSrid(this.srid)
 		// todo fix off by one at max edge
-		corner2.setX(search.maxTileIndex.origin.x + search.maxTileIndex.scale.xSize)
-		corner2.setY(search.maxTileIndex.origin.y + search.maxTileIndex.scale.ySize)
-		corner2.setZ(search.maxTileIndex.origin.z + search.maxTileIndex.scale.zSize)
+		corner2.setX(search.maxTileIndex.origin.x + search.maxTileIndex.scale.xSize - 0.001)
+		corner2.setY(search.maxTileIndex.origin.y + search.maxTileIndex.scale.ySize - 0.001)
+		corner2.setZ(search.maxTileIndex.origin.z + search.maxTileIndex.scale.zSize - 0.001)
 		return this.getTiles(corner1, corner2)
 	}
 
 	private getTiles(corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<FileSystemTileMetadata[]> {
-		log.info('getTiles', corner1, corner2)
-
 		const rangeSearch = new RangeSearchMessage()
 		rangeSearch.setCorner1(corner1)
 		rangeSearch.setCorner2(corner2)
@@ -108,9 +106,8 @@ export class TileServiceClient {
 		return new Promise((resolve: (tile: FileSystemTileMetadata[]) => void, reject: (reason?: Error) => void): void => {
 			this.client.searchTiles(request, (err: Error, response: SearchTilesResponse): void => {
 				if (err) {
-					reject(err)
+					reject(Error(`TileServiceClient search failed: ${err.message}`))
 				} else {
-					log.info('tiles count', response.getTileInstancesList().length)
 					const tiles: FileSystemTileMetadata[] = []
 					response.getTileInstancesList().forEach(instance => {
 						const tileIndex = spatialTileIndexMessageToTileIndex(instance.getId())

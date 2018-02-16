@@ -48,6 +48,10 @@ export class TileIndex {
 			&& this.zIndex === that.zIndex
 			&& this.scale.equals(that.scale)
 	}
+
+	copy(xIndex: TileIndexDimension, yIndex: TileIndexDimension, zIndex: TileIndexDimension): TileIndex {
+		return new TileIndex(this.scale, xIndex, yIndex, zIndex)
+	}
 }
 
 export function tileIndexFromCoordinates(scale: Scale3D, x: number, y: number, z: number): TileIndex {

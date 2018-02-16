@@ -12,8 +12,11 @@ import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame
 } from "./geometry/CoordinateFrame"
+import {isTupleOfNumbers} from "./util/Validation"
 import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
+import {RangeSearch} from "./model/RangeSearch"
+import {BusyError} from "./tile/TileManager"
 import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
@@ -53,6 +56,8 @@ function noop(): void {
 	return
 }
 
+const cameraCenter = new THREE.Vector2(0, 0)
+
 enum MenuVisibility {
 	HIDE = 0,
 	SHOW,
@@ -75,6 +80,10 @@ interface AnnotatorSettings {
 	estimateGroundPlane: boolean
 	generateVoxelsOnPointLoad: boolean
 	drawBoundingBox: boolean
+	superTileBboxMaterial: THREE.Material // for visualizing available, but unpopulated, super tiles
+	superTileBboxColor: THREE.Color
+	aoiBboxColor: THREE.Color
+	aoiHalfSize: THREE.Vector3 // half the dimensions of an AOI box, which will be constructed around a center point
 }
 
 interface FlyThroughSettings {
@@ -103,6 +112,13 @@ interface UiState {
 	isKioskMode: boolean // turns on live mode permanently, with even less user input
 }
 
+// Area of Interest: where to load point clouds
+interface AoiState {
+	enabled: boolean // enable auto-loading points around the AOI
+	focalPoint: THREE.Vector3 | null, // cached value for the center of the AOI
+	boundingBox: THREE.BoxHelper | null // a box drawn around the current area of interest
+}
+
 /**
  * The Annotator class is in charge of rendering the 3d Scene that includes the point clouds
  * and the annotations. It also handles the mouse and keyboard events needed to select
@@ -110,6 +126,7 @@ interface UiState {
  */
 export class Annotator {
 	private uiState: UiState
+	private aoiState: AoiState
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
 	private camera: THREE.PerspectiveCamera
 	private renderer: THREE.WebGLRenderer
@@ -148,7 +165,16 @@ export class Annotator {
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
+			superTileBboxMaterial: new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true}),
+			superTileBboxColor: new THREE.Color(0xff0000),
+			aoiBboxColor: new THREE.Color(0x00ff00),
+			aoiHalfSize: new THREE.Vector3(15, 15, 15)
 		}
+		const aoiSize: [number, number, number] = config.get('annotator.area_of_interest.size')
+		if (isTupleOfNumbers(aoiSize, 3))
+			this.settings.aoiHalfSize = new THREE.Vector3(aoiSize[0] / 2, aoiSize[1] / 2, aoiSize[2] / 2)
+		else if (aoiSize)
+			log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		this.uiState = {
 			modelVisibility: ModelVisibility.ALL_VISIBLE,
@@ -164,6 +190,11 @@ export class Annotator {
 			numberKeyPressed: null,
 			isLiveMode: false,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
+		}
+		this.aoiState = {
+			enabled: !!config.get('annotator.area_of_interest.enable'),
+			focalPoint: null,
+			boundingBox: null,
 		}
 		this.hovered = null
 		this.raycasterPlane = new THREE.Raycaster()
@@ -318,8 +349,8 @@ export class Annotator {
 		)
 
 		return this.loadCarModel()
-			.then(_ => this.loadUserData())
-			.then(_ => {if (this.uiState.isKioskMode) this.toggleListen()})
+			.then(() => this.loadUserData())
+			.then(() => {if (this.uiState.isKioskMode) this.toggleListen()})
 	}
 
 	// Load up any data which configuration has asked for on start-up.
@@ -348,7 +379,7 @@ export class Annotator {
 			pointCloudResult = annotationsResult
 				.then(() => {
 					log.info('loading pre-configured bounding box ' + pointCloudBbox)
-					return this.loadPointCloudDataFromMapServer(pointCloudBbox)
+					return this.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
 				})
 		} else {
 			pointCloudResult = annotationsResult
@@ -380,6 +411,8 @@ export class Annotator {
 			requestAnimationFrame(this.animate)
 		}, 1000 / this.settings.fpsRendering)
 
+		if (this.aoiState.enabled)
+			this.updatePointCloudAoi()
 		this.render()
 		if (this.stats) this.stats.update()
 		this.orbitControls.update()
@@ -532,30 +565,27 @@ export class Annotator {
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
-	private loadPointCloudDataFromMapServer(bbox: number[]): Promise<void> {
-		let configError: Error | null = null
-		if (!Array.isArray(bbox) || bbox.length !== 6)
-			configError = Error('invalid point cloud bounding box config')
-		else
-			bbox.forEach(n => {
-				if (isNaN(n)) configError = Error('invalid point cloud bounding box config')
-			})
-
-		if (configError) {
-			Annotator.pointCloudLoadedError(configError)
+	private loadPointCloudDataFromConfigBoundingBox(bbox: number[]): Promise<void> {
+		if (!isTupleOfNumbers(bbox, 6)) {
+			Annotator.pointCloudLoadedError(Error('invalid point cloud bounding box config'))
 			return Promise.resolve()
 		} else {
 			const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])
 			const p2 = new THREE.Vector3(bbox[3], bbox[4], bbox[5])
-			return this.tileManager.loadFromMapServer({minPoint: p1, maxPoint: p2}, CoordinateFrameType.STANDARD)
-				.then(() => this.pointCloudLoadedSideEffects())
-				.catch(err => Annotator.pointCloudLoadedError(err))
+			return this.loadPointCloudDataFromMapServer({minPoint: p1, maxPoint: p2})
 		}
+	}
+
+	// Load tiles within a bounding box and add them to the scene.
+	private loadPointCloudDataFromMapServer(search: RangeSearch, loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
+		return this.tileManager.loadFromMapServer(search, CoordinateFrameType.STANDARD, loadAllPoints)
+			.then(() => this.pointCloudLoadedSideEffects(resetCamera))
+			.catch(err => Annotator.pointCloudLoadedError(err))
 	}
 
 	// Do some house keeping after loading a point cloud, such as drawing decorations
 	// and centering the stage and the camera on the point cloud.
-	private pointCloudLoadedSideEffects(): void {
+	private pointCloudLoadedSideEffects(resetCamera: boolean = true): void {
 		if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 			log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
 
@@ -570,12 +600,16 @@ export class Annotator {
 		this.renderEmptySuperTiles()
 		this.updatePointCloudBoundingBox()
 		this.setCompassRoseByPointCloud()
-		this.setStageByPointCloud(true)
+		this.setStageByPointCloud(resetCamera)
 	}
 
 	private static pointCloudLoadedError(err: Error): void {
-		log.error(err.message)
-		dialog.showErrorBox('Point Cloud Load Error', err.message)
+		if (err instanceof BusyError) {
+			log.warn(err.message)
+		} else {
+			log.error(err.message)
+			dialog.showErrorBox('Point Cloud Load Error', err.message)
+		}
 	}
 
 	// Compute corresponding height for each voxel based on near by annotations
@@ -674,8 +708,7 @@ export class Annotator {
 			const size = getSize(superTile.threeJsBoundingBox)
 			const center = getCenter(superTile.threeJsBoundingBox)
 			const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
-			const material = new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true})
-			const box = new THREE.Mesh(geometry, material)
+			const box = new THREE.Mesh(geometry, this.settings.superTileBboxMaterial)
 			box.geometry.translate(center.x, center.y, center.z)
 			box.userData = superTile
 			this.scene.add(box)
@@ -699,8 +732,59 @@ export class Annotator {
 		if (this.settings.drawBoundingBox) {
 			if (this.pointCloudBoundingBox)
 				this.scene.remove(this.pointCloudBoundingBox)
-			this.pointCloudBoundingBox = new THREE.BoxHelper(this.tileManager.pointCloud, new THREE.Color(0xff0000))
+			this.pointCloudBoundingBox = new THREE.BoxHelper(this.tileManager.pointCloud, this.settings.superTileBboxColor)
 			this.scene.add(this.pointCloudBoundingBox)
+		}
+	}
+
+	// Track where the camera is pointing. Set the AOI for loading point clouds.
+	private updatePointCloudAoi(): void {
+		this.raycasterPlane.setFromCamera(cameraCenter, this.camera)
+		const intersections = this.raycasterPlane.intersectObject(this.plane)
+		if (intersections.length > 0) {
+			const oldPoint = this.aoiState.focalPoint
+			const newPoint = intersections[0].point.round()
+			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
+			if (!samePoint) {
+				this.aoiState.focalPoint = newPoint
+				this.updatePointCloudAoiBoundingBox()
+			}
+		} else {
+			if (this.aoiState.focalPoint !== null) {
+				this.aoiState.focalPoint = null
+				this.updatePointCloudAoiBoundingBox()
+			}
+		}
+	}
+
+	// Create a bounding box around the current AOI and optionally display it.
+	// Then load the points in and around the AOI.
+	private updatePointCloudAoiBoundingBox(): void {
+		if (this.settings.drawBoundingBox && this.aoiState.boundingBox) {
+			this.scene.remove(this.aoiState.boundingBox)
+			this.aoiState.boundingBox = null
+		}
+
+		if (this.aoiState.focalPoint) {
+			const minCorner = this.aoiState.focalPoint.clone().sub(this.settings.aoiHalfSize)
+			const maxCorner = this.aoiState.focalPoint.clone().add(this.settings.aoiHalfSize)
+
+			if (this.settings.drawBoundingBox) {
+				const geom = new THREE.Geometry()
+				geom.vertices.push(minCorner, maxCorner)
+				this.aoiState.boundingBox = new THREE.BoxHelper(new THREE.Points(geom), this.settings.aoiBboxColor)
+				this.scene.add(this.aoiState.boundingBox)
+			}
+
+			this.loadPointCloudDataFromMapServer(
+				{
+					minPoint: this.tileManager.threeJsToUtm(minCorner),
+					maxPoint: this.tileManager.threeJsToUtm(maxCorner),
+				},
+				true,
+				false
+			)
+				.catch(err => {log.warn(err.message)})
 		}
 	}
 
