@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-echo "**** Installing npm"
+echo "**** Installing dependencies"
 npm install
-echo "**** Installing npm complete"
+echo "**** Installing dependencies complete"
 
 echo "**** Rebuilding electron..."
 ./node_modules/.bin/electron-rebuild
