@@ -1390,7 +1390,7 @@ export class Annotator {
 	 */
 	private bindLanePropertiesPanel(): void {
 		const lcType = $('#lp_select_type')
-		lcType.on('change', _ => {
+		lcType.on('change', () => {
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1399,7 +1399,7 @@ export class Annotator {
 		})
 
 		const lcLeftType = $('#lp_select_left_type')
-		lcLeftType.on('change', _ => {
+		lcLeftType.on('change', () => {
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1409,7 +1409,7 @@ export class Annotator {
 		})
 
 		const lcLeftColor = $('#lp_select_left_color')
-		lcLeftColor.on('change', _ => {
+		lcLeftColor.on('change', () => {
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1419,7 +1419,7 @@ export class Annotator {
 		})
 
 		const lcRightType = $('#lp_select_right_type')
-		lcRightType.on('change', _ => {
+		lcRightType.on('change', () => {
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1429,7 +1429,7 @@ export class Annotator {
 		})
 
 		const lcRightColor = $('#lp_select_right_color')
-		lcRightColor.on('change', _ => {
+		lcRightColor.on('change', () => {
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1439,7 +1439,7 @@ export class Annotator {
 		})
 
 		const lcEntry = $('#lp_select_entry')
-		lcEntry.on('change', _ => {
+		lcEntry.on('change', () => {
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1448,7 +1448,7 @@ export class Annotator {
 		})
 
 		const lcExit = $('#lp_select_exit')
-		lcExit.on('change', _ => {
+		lcExit.on('change', () => {
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1460,7 +1460,7 @@ export class Annotator {
 	private bindLaneNeighborsPanel(): void {
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
 		if (lpAddLeftOpposite)
-			lpAddLeftOpposite.addEventListener('click', _ => {
+			lpAddLeftOpposite.addEventListener('click', () => {
 				this.addLeftReverse()
 			})
 		else
@@ -1468,7 +1468,7 @@ export class Annotator {
 
 		const lpAddLeftSame = document.getElementById('lp_add_left_same')
 		if (lpAddLeftSame)
-			lpAddLeftSame.addEventListener('click', _ => {
+			lpAddLeftSame.addEventListener('click', () => {
 				this.addLeftSame()
 			})
 		else
@@ -1476,7 +1476,7 @@ export class Annotator {
 
 		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
 		if (lpAddRightOpposite)
-			lpAddRightOpposite.addEventListener('click', _ => {
+			lpAddRightOpposite.addEventListener('click', () => {
 				this.addRightReverse()
 			})
 		else
@@ -1484,7 +1484,7 @@ export class Annotator {
 
 		const lpAddRightSame = document.getElementById('lp_add_right_same')
 		if (lpAddRightSame)
-			lpAddRightSame.addEventListener('click', _ => {
+			lpAddRightSame.addEventListener('click', () => {
 				this.addRightSame()
 			})
 		else
@@ -1492,7 +1492,7 @@ export class Annotator {
 
 		const lpAddFront = document.getElementById('lp_add_forward')
 		if (lpAddFront)
-			lpAddFront.addEventListener('click', _ => {
+			lpAddFront.addEventListener('click', () => {
 				this.addFront()
 			})
 		else
@@ -1502,7 +1502,7 @@ export class Annotator {
 	private bindRelationsPanel(): void {
 		const lcSelectFrom = document.getElementById('lc_select_from')
 		if (lcSelectFrom)
-			lcSelectFrom.addEventListener('mousedown', _ => {
+			lcSelectFrom.addEventListener('mousedown', () => {
 				// Get ids
 				const ids = this.annotationManager.getValidIds()
 				// Add ids
@@ -1519,7 +1519,7 @@ export class Annotator {
 
 		const lcSelectTo = document.getElementById('lc_select_to')
 		if (lcSelectTo)
-			lcSelectTo.addEventListener('mousedown', _ => {
+			lcSelectTo.addEventListener('mousedown', () => {
 				// Get ids
 				const ids = this.annotationManager.getValidIds()
 				// Add ids
@@ -1536,7 +1536,7 @@ export class Annotator {
 
 		const lcAdd = document.getElementById('lc_add')
 		if (lcAdd)
-			lcAdd.addEventListener('click', _ => {
+			lcAdd.addEventListener('click', () => {
 				const lcTo: AnnotationId = Number($('#lc_select_to').val())
 				const lcFrom: AnnotationId = Number($('#lc_select_from').val())
 				const lcRelation = $('#lc_select_relation').val()
@@ -1564,7 +1564,7 @@ export class Annotator {
 
 	private bindTrafficSignPropertiesPanel(): void {
 		const tpType = $('#tp_select_type')
-		tpType.on('change', _ => {
+		tpType.on('change', () => {
 			const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1581,7 +1581,7 @@ export class Annotator {
 
 		const menuButton = document.getElementById('menu_control_btn')
 		if (menuButton)
-			menuButton.addEventListener('click', _ => {
+			menuButton.addEventListener('click', () => {
 				if (this.uiState.isLiveMode) {
 					log.info("Disable live location mode first to access the menu.")
 				} else {
@@ -1594,7 +1594,7 @@ export class Annotator {
 
 		const liveLocationControlButton = document.getElementById('live_location_control_btn')
 		if (liveLocationControlButton)
-			liveLocationControlButton.addEventListener('click', _ => {
+			liveLocationControlButton.addEventListener('click', () => {
 				this.toggleListen()
 			})
 		else
@@ -1602,7 +1602,7 @@ export class Annotator {
 
 		const toolsDelete = document.getElementById('tools_delete')
 		if (toolsDelete)
-			toolsDelete.addEventListener('click', _ => {
+			toolsDelete.addEventListener('click', () => {
 				this.deleteActiveAnnotation()
 			})
 		else
@@ -1610,7 +1610,7 @@ export class Annotator {
 
 		const toolsAddLane = document.getElementById('tools_add_lane')
 		if (toolsAddLane)
-			toolsAddLane.addEventListener('click', _ => {
+			toolsAddLane.addEventListener('click', () => {
 				this.addLane()
 			})
 		else
@@ -1618,7 +1618,7 @@ export class Annotator {
 
 		const toolsAddTrafficSign = document.getElementById('tools_add_traffic_sign')
 		if (toolsAddTrafficSign)
-			toolsAddTrafficSign.addEventListener('click', _ => {
+			toolsAddTrafficSign.addEventListener('click', () => {
 				this.addTrafficSign()
 			})
 		else
@@ -1626,7 +1626,7 @@ export class Annotator {
 
 		const toolsLoad = document.getElementById('tools_load')
 		if (toolsLoad)
-			toolsLoad.addEventListener('click', _ => {
+			toolsLoad.addEventListener('click', () => {
 				this.loadFromFile()
 					.catch(err => log.warn('loadFromFile failed: ' + err.message))
 			})
@@ -1635,7 +1635,7 @@ export class Annotator {
 
 		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 		if (toolsLoadAnnotation)
-			toolsLoadAnnotation.addEventListener('click', _ => {
+			toolsLoadAnnotation.addEventListener('click', () => {
 				const pathElectron = dialog.showOpenDialog({
 					filters: [{name: 'json', extensions: ['json']}]
 				})
@@ -1652,7 +1652,7 @@ export class Annotator {
 
 		const toolsSave = document.getElementById('tools_save')
 		if (toolsSave)
-			toolsSave.addEventListener('click', _ => {
+			toolsSave.addEventListener('click', () => {
 				this.saveToFile(OutputFormat.UTM).then()
 			})
 		else
@@ -1660,14 +1660,14 @@ export class Annotator {
 
 		const toolsExportKml = document.getElementById('tools_export_kml')
 		if (toolsExportKml)
-			toolsExportKml.addEventListener('click', _ => {
+			toolsExportKml.addEventListener('click', () => {
 				this.saveWaypointsKml().then()
 			})
 		else
 			log.warn('missing element tools_export_kml')
 
 		const trAdd = $('#tr_add')
-		trAdd.on('click', _ => {
+		trAdd.on('click', () => {
 			log.info("Add/remove lane to/from car path.")
 			if (this.annotationManager.addLaneToPath()) {
 				if (trAdd.text() === "Add") {
@@ -1679,7 +1679,7 @@ export class Annotator {
 		})
 
 		const trShow = $('#tr_show')
-		trShow.on('click', _ => {
+		trShow.on('click', () => {
 			log.info("Show/hide car path.")
 			if (!this.annotationManager.showPath()) {
 				return
@@ -1694,7 +1694,7 @@ export class Annotator {
 		})
 
 		const savePath = $('#save_path')
-		savePath.on('click', _ => {
+		savePath.on('click', () => {
 			log.info("Save car path to file.")
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
