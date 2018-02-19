@@ -6,6 +6,7 @@
 const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file";
+const vsprintf = require("sprintf-js").vsprintf
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {
@@ -13,6 +14,7 @@ import {
 	cvtQuaternionToStandardCoordinateFrame
 } from "./geometry/CoordinateFrame"
 import {isTupleOfNumbers} from "./util/Validation"
+import {StatusWindowController} from "./status/StatusWindowController"
 import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
@@ -57,6 +59,10 @@ function noop(): void {
 }
 
 const cameraCenter = new THREE.Vector2(0, 0)
+
+const statusKey = {
+	carPosition: 'carPosition',
+}
 
 enum MenuVisibility {
 	HIDE = 0,
@@ -127,6 +133,7 @@ interface AoiState {
 export class Annotator {
 	private uiState: UiState
 	private aoiState: AoiState
+	private statusWindow: StatusWindowController // a place to print status messages
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
 	private camera: THREE.PerspectiveCamera
 	private renderer: THREE.WebGLRenderer
@@ -196,6 +203,7 @@ export class Annotator {
 			focalPoint: null,
 			boundingBox: null,
 		}
+		this.statusWindow = new StatusWindowController()
 		this.hovered = null
 		this.raycasterPlane = new THREE.Raycaster()
 		this.raycasterPlane.params.Points!.threshold = 0.1
@@ -296,6 +304,16 @@ export class Annotator {
 			this.stats = new statsModule()
 			root.append(this.stats.dom)
 		}
+
+		// Give the status window a place to draw in.
+		const statusElementId = 'status_window'
+		const elem = document.getElementById(statusElementId)
+		if (elem)
+			this.statusWindow
+				.setContainer(elem)
+				.setEnabled(!!config.get('startup.show_status_panel'))
+		else
+			log.warn('missing element ' + statusElementId)
 
 		// Initialize all control objects.
 		this.initOrbitControls()
@@ -466,6 +484,7 @@ export class Annotator {
 			const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
 			rotationThreeJs.normalize()
 
+			this.updateCarStatus(standardPosition)
 			this.updateCarPose(positionThreeJs, rotationThreeJs)
 			this.updateCameraPose()
 		}
@@ -2049,10 +2068,11 @@ export class Annotator {
 
 				// Move the car and the camera
 				const position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
-				log.info(state.pose.x + " " + position.x)
 
 				const rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
 				rotation.normalize()
+
+				this.updateCarStatus(position)
 				this.updateCarPose(position, rotation)
 				this.updateCameraPose()
 			} else
@@ -2097,7 +2117,6 @@ export class Annotator {
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
 		this.settings.fpsRendering = this.flythroughSettings.fps
-
 		if (this.flythroughSettings.enabled) {
 			this.flythroughSettings.currentPoseIndex = this.flythroughSettings.startPoseIndex
 			this.runFlythrough()
@@ -2124,6 +2143,8 @@ export class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
+		this.statusWindow.setMessage(statusKey.carPosition, '')
+
 		return this.uiState.isLiveMode
 	}
 
@@ -2146,6 +2167,11 @@ export class Annotator {
 			}
 		else
 			log.warn('missing element menu')
+	}
+
+	private updateCarStatus(positionUtm: THREE.Vector3): void {
+		const message = vsprintf('UTM: %.1fE %.1fN %.1falt', positionUtm.toArray())
+		this.statusWindow.setMessage(statusKey.carPosition, message)
 	}
 
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
