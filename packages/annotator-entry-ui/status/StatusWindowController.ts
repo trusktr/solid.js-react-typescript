@@ -23,6 +23,10 @@ export class StatusWindowController {
 		return this
 	}
 
+	isEnabled(): boolean {
+		return this.enabled
+	}
+
 	setEnabled(enabled: boolean): StatusWindowController {
 		if (this.enabled !== enabled) {
 			if (this.statusElement)

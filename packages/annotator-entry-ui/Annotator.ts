@@ -1598,6 +1598,12 @@ export class Annotator {
 		this.bindRelationsPanel()
 		this.bindTrafficSignPropertiesPanel()
 
+		const menuControlElement = document.getElementById('menu_control')
+		if (menuControlElement)
+			menuControlElement.style.visibility = 'visible'
+		else
+			log.warn('missing element menu_control')
+
 		const menuButton = document.getElementById('menu_control_btn')
 		if (menuButton)
 			menuButton.addEventListener('click', () => {
@@ -1618,6 +1624,14 @@ export class Annotator {
 			})
 		else
 			log.warn('missing element live_location_control_btn')
+
+		const statusWindowControlButton = document.getElementById('status_window_control_btn')
+		if (statusWindowControlButton)
+			statusWindowControlButton.addEventListener('click', () => {
+				this.toggleStatusWindow()
+			})
+		else
+			log.warn('missing element status_window_control_btn')
 
 		const toolsDelete = document.getElementById('tools_delete')
 		if (toolsDelete)
@@ -2146,6 +2160,11 @@ export class Annotator {
 		this.statusWindow.setMessage(statusKey.carPosition, '')
 
 		return this.uiState.isLiveMode
+	}
+
+	// Toggle whether to display the status window.
+	private toggleStatusWindow(): void {
+		this.statusWindow.setEnabled(!this.statusWindow.isEnabled())
 	}
 
 	// Show or hide the menu as requested.
