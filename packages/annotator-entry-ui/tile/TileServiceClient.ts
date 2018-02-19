@@ -49,8 +49,8 @@ function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undef
 export class TileServiceClient {
 	private srid: SpatialReferenceSystemIdentifier
 	private scale: SpatialTileScale
-	private baseTileLayerId: string
-	private layerIdsQuery: string[]
+	private baseTileLayerId: LayerId
+	private layerIdsQuery: LayerId[]
 	private client: GrpcClient
 
 	constructor() {
