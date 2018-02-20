@@ -651,7 +651,8 @@ proto.mapper.models.SpatialReferenceSystemIdentifier = {
  * @enum {number}
  */
 proto.mapper.models.SpatialTileScale = {
-  _010_010_010: 0
+  _010_010_010: 0,
+  _008_008_008: 1
 };
 
 goog.object.extend(exports, proto.mapper.models);

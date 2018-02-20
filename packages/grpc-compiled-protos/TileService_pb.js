@@ -171,9 +171,7 @@ proto.mapper.models.SearchTilesRequest.deserializeBinaryFromReader = function(ms
 proto.mapper.models.SearchTilesRequest.prototype.serializeBinary = function() {
   var writer = new jspb.BinaryWriter();
   proto.mapper.models.SearchTilesRequest.serializeBinaryToWriter(this, writer);
-  const x = writer.getResultBuffer();
-  // console.info('ser', x);
-  return x;
+  return writer.getResultBuffer();
 };
 
 
@@ -185,10 +183,8 @@ proto.mapper.models.SearchTilesRequest.prototype.serializeBinary = function() {
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.SearchTilesRequest.serializeBinaryToWriter = function(message, writer) {
-	// console.info('serializeBinaryToWriter', message);
   var f = undefined;
   f = message.getRangeSearch();
-  // console.info('r1', f);
   if (f != null) {
     writer.writeMessage(
       1,
@@ -197,8 +193,7 @@ proto.mapper.models.SearchTilesRequest.serializeBinaryToWriter = function(messag
     );
   }
   f = message.getRadiusSearch();
-	// console.info('r2', f);
-	if (f != null) {
+  if (f != null) {
     writer.writeMessage(
       2,
       f,
@@ -206,16 +201,14 @@ proto.mapper.models.SearchTilesRequest.serializeBinaryToWriter = function(messag
     );
   }
   f = message.getLayerIdsList();
-	// console.info('r3', f);
-	if (f.length > 0) {
+  if (f.length > 0) {
     writer.writeRepeatedString(
       3,
       f
     );
   }
   f = message.getGetIfEmpty();
-	// console.info('r4', f);
-	if (f) {
+  if (f) {
     writer.writeBool(
       4,
       f
