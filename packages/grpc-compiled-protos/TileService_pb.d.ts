@@ -1,6 +1,8 @@
 // package: mapper.models
 // file: TileService.proto
 
+/* tslint:disable */
+
 import * as jspb from "google-protobuf";
 import * as CoordinateReferenceSystem_pb from "./CoordinateReferenceSystem_pb";
 
