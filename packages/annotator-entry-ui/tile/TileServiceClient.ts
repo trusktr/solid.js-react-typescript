@@ -4,6 +4,7 @@
  */
 
 const config = require('../../config')
+import {isNullOrUndefined} from "util"
 import * as grpc from 'grpc'
 import * as TypeLogger from 'typelogger'
 import {TileServiceClient as GrpcClient} from '../../grpc-compiled-protos/TileService_grpc_pb'
@@ -22,11 +23,25 @@ import {FileSystemTileMetadata} from "./FileSystemTileMetadata"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-// tslint:disable-next-line:variable-name
+// tslint:disable:variable-name
+const scale_008_008_008 = new Scale3D([8, 8, 8])
 const scale_010_010_010 = new Scale3D([10, 10, 10])
+
+function stringToSpatialTileScale(str: string): SpatialTileScale | null {
+	switch (str) {
+		case '_008_008_008':
+			return SpatialTileScale._008_008_008
+		case '_010_010_010':
+			return SpatialTileScale._010_010_010
+		default:
+			return null
+	}
+}
 
 function spatialTileScaleToScale3D(msg: SpatialTileScale): Scale3D | null {
 	switch (msg) {
+		case SpatialTileScale._008_008_008:
+			return scale_008_008_008
 		case SpatialTileScale._010_010_010:
 			return scale_010_010_010
 		default:
@@ -57,7 +72,10 @@ export class TileServiceClient {
 
 	constructor() {
 		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO config: UTM_10N
-		this.scale = SpatialTileScale._010_010_010 // TODO config
+		const scale = stringToSpatialTileScale(config.get('tile_client.tile_scale') || '_010_010_010')
+		if (isNullOrUndefined(scale))
+			throw Error(`invalid tile_client.tile_scale config: ${config.get('tile_client.tile_scale')}`)
+		this.scale = scale
 		this.baseTileLayerId = 'base1' // TODO config
 		this.layerIdsQuery = [this.baseTileLayerId]
 		const tileServiceHost = config.get('tile_client.service_host') || 'localhost'

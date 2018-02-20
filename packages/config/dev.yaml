@@ -24,6 +24,7 @@ tile_manager.sampling_step: 5
 # retrieving tiles from a remote service
 tile_client.service_host: localhost
 tile_client.service_port: 30123
+tile_client.tile_scale: _008_008_008
 
 # annotator controls
 annotator.add_points_to_estimated_ground_plane: true
