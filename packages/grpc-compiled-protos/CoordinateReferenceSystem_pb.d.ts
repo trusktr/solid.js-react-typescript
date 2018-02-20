@@ -210,5 +210,4 @@ export enum SpatialReferenceSystemIdentifier {
 
 export enum SpatialTileScale {
     _010_010_010 = 0,
-    _008_008_008 = 1,
 }
