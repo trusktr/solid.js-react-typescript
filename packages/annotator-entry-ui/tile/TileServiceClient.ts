@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+const config = require('../../config')
 import * as grpc from 'grpc'
 import * as TypeLogger from 'typelogger'
 import {TileServiceClient as GrpcClient} from '../../grpc-compiled-protos/TileService_grpc_pb'
@@ -51,15 +52,25 @@ export class TileServiceClient {
 	private scale: SpatialTileScale
 	private baseTileLayerId: LayerId
 	private layerIdsQuery: LayerId[]
-	private client: GrpcClient
+	private tileServiceAddress: string
+	private client: GrpcClient | null
 
 	constructor() {
 		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO config: UTM_10N
 		this.scale = SpatialTileScale._010_010_010 // TODO config
 		this.baseTileLayerId = 'base1' // TODO config
 		this.layerIdsQuery = [this.baseTileLayerId]
-		const tileServiceAddress = 'localhost:50051' // TODO config
-		this.client = new GrpcClient(tileServiceAddress, grpc.credentials.createInsecure())
+		const tileServiceHost = config.get('tile_client.service_host') || 'localhost'
+		const tileServicePort = config.get('tile_client.service_port') || '50051'
+		this.tileServiceAddress = tileServiceHost + ':' + tileServicePort
+		this.client = null
+	}
+
+	// TODO time out on failed connection
+	connect(): boolean {
+		log.info('connecting to tile server at', this.tileServiceAddress)
+		this.client = new GrpcClient(this.tileServiceAddress, grpc.credentials.createInsecure())
+		return true
 	}
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum points.
@@ -95,6 +106,10 @@ export class TileServiceClient {
 	}
 
 	private getTiles(corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<FileSystemTileMetadata[]> {
+		if (!this.client)
+			if (!this.connect())
+				return Promise.reject(Error(`failed to connect to tile server at ${this.tileServiceAddress}`))
+
 		const rangeSearch = new RangeSearchMessage()
 		rangeSearch.setCorner1(corner1)
 		rangeSearch.setCorner2(corner2)
@@ -104,7 +119,7 @@ export class TileServiceClient {
 		request.setLayerIdsList(this.layerIdsQuery)
 
 		return new Promise((resolve: (tile: FileSystemTileMetadata[]) => void, reject: (reason?: Error) => void): void => {
-			this.client.searchTiles(request, (err: Error, response: SearchTilesResponse): void => {
+			this.client!.searchTiles(request, (err: Error, response: SearchTilesResponse): void => {
 				if (err) {
 					reject(Error(`TileServiceClient search failed: ${err.message}`))
 				} else {
