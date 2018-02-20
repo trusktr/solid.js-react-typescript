@@ -39,7 +39,6 @@ function deserialize_mapper_models_SearchTilesResponse(buffer_arg) {
 }
 
 
-// todo docs
 var TileServiceService = exports.TileServiceService = {
   ping: {
     path: '/mapper.models.TileService/Ping',
