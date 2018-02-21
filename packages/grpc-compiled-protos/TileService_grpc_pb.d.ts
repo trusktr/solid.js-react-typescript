@@ -7,9 +7,9 @@ import * as grpc from "grpc";
 import * as TileService_pb from "./TileService_pb";
 import * as CoordinateReferenceSystem_pb from "./CoordinateReferenceSystem_pb";
 
-interface ITileServiceService extends grpc.ServiceDefinition<grpc.UntypedServiceImplementation> {
-    searchTiles: ISearchTiles;
-}
+// interface ITileServiceService extends grpc.ServiceDefinition<grpc.UntypedServiceImplementation> {
+//     searchTiles: ISearchTiles;
+// }
 
 interface ISearchTiles {
     path: string; // "/mapper.models.TileService/SearchTiles"
@@ -28,7 +28,7 @@ export interface ITileServiceClient {
     searchTiles(request: TileService_pb.SearchTilesRequest, metadata: grpc.Metadata, callback: (error: Error | null, response: TileService_pb.SearchTilesResponse) => void): grpc.ClientUnaryCall;
 }
 
-export const TileServiceService: ITileServiceService;
+// export const TileServiceService: ITileServiceService;
 export class TileServiceClient extends grpc.Client implements ITileServiceClient {
     constructor(address: string, credentials: grpc.ChannelCredentials, options?: object);
     public searchTiles(request: TileService_pb.SearchTilesRequest, callback: (error: Error | null, response: TileService_pb.SearchTilesResponse) => void): grpc.ClientUnaryCall;
