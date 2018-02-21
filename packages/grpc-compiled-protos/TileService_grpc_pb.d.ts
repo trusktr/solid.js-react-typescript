@@ -7,10 +7,10 @@ import * as grpc from "grpc";
 import * as TileService_pb from "./TileService_pb";
 import * as CoordinateReferenceSystem_pb from "./CoordinateReferenceSystem_pb";
 
-interface ITileServiceService extends grpc.ServiceDefinition<grpc.UntypedServiceImplementation> {
-    ping: IPing;
-    searchTiles: ISearchTiles;
-}
+// interface ITileServiceService extends grpc.ServiceDefinition<grpc.UntypedServiceImplementation> {
+//     ping: IPing;
+//     searchTiles: ISearchTiles;
+// }
 
 interface IPing {
     path: string; // "/mapper.models.TileService/Ping"
@@ -42,7 +42,7 @@ export interface ITileServiceClient {
     searchTiles(request: TileService_pb.SearchTilesRequest, metadata: grpc.Metadata, callback: (error: Error | null, response: TileService_pb.SearchTilesResponse) => void): grpc.ClientUnaryCall;
 }
 
-export const TileServiceService: ITileServiceService;
+// export const TileServiceService: ITileServiceService;
 export class TileServiceClient extends grpc.Client implements ITileServiceClient {
     constructor(address: string, credentials: grpc.ChannelCredentials, options?: object);
     public ping(request: TileService_pb.PingRequest, callback: (error: Error | null, response: TileService_pb.PingRequest) => void): grpc.ClientUnaryCall;
