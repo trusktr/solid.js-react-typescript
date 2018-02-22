@@ -5,6 +5,17 @@ var grpc = require('grpc');
 var TileService_pb = require('./TileService_pb.js');
 var CoordinateReferenceSystem_pb = require('./CoordinateReferenceSystem_pb.js');
 
+function serialize_mapper_models_PingRequest(arg) {
+  if (!(arg instanceof TileService_pb.PingRequest)) {
+    throw new Error('Expected argument of type mapper.models.PingRequest');
+  }
+  return new Buffer(arg.serializeBinary());
+}
+
+function deserialize_mapper_models_PingRequest(buffer_arg) {
+  return TileService_pb.PingRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
 function serialize_mapper_models_SearchTilesRequest(arg) {
   if (!(arg instanceof TileService_pb.SearchTilesRequest)) {
     throw new Error('Expected argument of type mapper.models.SearchTilesRequest');
@@ -29,6 +40,17 @@ function deserialize_mapper_models_SearchTilesResponse(buffer_arg) {
 
 
 var TileServiceService = exports.TileServiceService = {
+  ping: {
+    path: '/mapper.models.TileService/Ping',
+    requestStream: false,
+    responseStream: false,
+    requestType: TileService_pb.PingRequest,
+    responseType: TileService_pb.PingRequest,
+    requestSerialize: serialize_mapper_models_PingRequest,
+    requestDeserialize: deserialize_mapper_models_PingRequest,
+    responseSerialize: serialize_mapper_models_PingRequest,
+    responseDeserialize: deserialize_mapper_models_PingRequest,
+  },
   searchTiles: {
     path: '/mapper.models.TileService/SearchTiles',
     requestStream: false,
