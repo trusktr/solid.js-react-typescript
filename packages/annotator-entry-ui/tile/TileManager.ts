@@ -203,7 +203,10 @@ export class TileManager extends UtmInterface {
 	private samplingStep: number
 	private tileServiceClient: TileServiceClient
 
-	constructor(onSuperTileUnload: (superTile: SuperTile) => void) {
+	constructor(
+		onSuperTileUnload: (superTile: SuperTile) => void,
+		onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
+	) {
 		super()
 		this.storage = new LocalStorage()
 		this.coordinateSystemInitialized = false
@@ -230,7 +233,7 @@ export class TileManager extends UtmInterface {
 		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
 		this.maximumPointsToLoad = parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000
 		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
-		this.tileServiceClient = new TileServiceClient()
+		this.tileServiceClient = new TileServiceClient(onTileServiceStatusUpdate)
 	}
 
 	toString(): string {

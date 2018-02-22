@@ -62,6 +62,7 @@ const cameraCenter = new THREE.Vector2(0, 0)
 
 const statusKey = {
 	carPosition: 'carPosition',
+	tileServer: 'tileServer',
 }
 
 enum MenuVisibility {
@@ -90,6 +91,8 @@ interface AnnotatorSettings {
 	superTileBboxColor: THREE.Color
 	aoiBboxColor: THREE.Color
 	aoiHalfSize: THREE.Vector3 // half the dimensions of an AOI box, which will be constructed around a center point
+	timeBetweenErrorDialogsMs: number
+	timeToDisplayHealthyStatusMs: number
 }
 
 interface FlyThroughSettings {
@@ -116,6 +119,7 @@ interface UiState {
 	numberKeyPressed: number | null
 	isLiveMode: boolean // enables a trajectory fly-through, while allowing minimal user input
 	isKioskMode: boolean // turns on live mode permanently, with even less user input
+	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
 }
 
 // Area of Interest: where to load point clouds
@@ -140,7 +144,7 @@ export class Annotator {
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
 	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
-	private carModel: THREE.Object3D // displayed during live mode, moving along a preset trajectory
+	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private tileManager: TileManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper // visible grid attached to the reference plane
@@ -151,6 +155,7 @@ export class Annotator {
 	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
 	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: NodeJS.Timer
+	private serverStatusDisplayTimer: NodeJS.Timer
 	private annotationManager: AnnotationManager
 	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
 	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
@@ -175,7 +180,9 @@ export class Annotator {
 			superTileBboxMaterial: new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true}),
 			superTileBboxColor: new THREE.Color(0xff0000),
 			aoiBboxColor: new THREE.Color(0x00ff00),
-			aoiHalfSize: new THREE.Vector3(15, 15, 15)
+			aoiHalfSize: new THREE.Vector3(15, 15, 15),
+			timeBetweenErrorDialogsMs: 30000,
+			timeToDisplayHealthyStatusMs: 10000,
 		}
 		const aoiSize: [number, number, number] = config.get('annotator.area_of_interest.size')
 		if (isTupleOfNumbers(aoiSize, 3))
@@ -197,6 +204,7 @@ export class Annotator {
 			numberKeyPressed: null,
 			isLiveMode: false,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
+			lastPointCloudLoadedErrorModalMs: 0,
 		}
 		this.aoiState = {
 			enabled: !!config.get('annotator.area_of_interest.enable'),
@@ -210,7 +218,7 @@ export class Annotator {
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterSuperTiles = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
-		this.tileManager = new TileManager(this.onSuperTileUnload)
+		this.tileManager = new TileManager(this.onSuperTileUnload, this.onTileServiceStatusUpdate)
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
@@ -580,13 +588,13 @@ export class Annotator {
 		log.info('loadPointCloudDataFromDirectory')
 		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
 			.then(() => this.pointCloudLoadedSideEffects())
-			.catch(err => Annotator.pointCloudLoadedError(err))
+			.catch(err => this.pointCloudLoadedError(err))
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
 	private loadPointCloudDataFromConfigBoundingBox(bbox: number[]): Promise<void> {
 		if (!isTupleOfNumbers(bbox, 6)) {
-			Annotator.pointCloudLoadedError(Error('invalid point cloud bounding box config'))
+			this.pointCloudLoadedError(Error('invalid point cloud bounding box config'))
 			return Promise.resolve()
 		} else {
 			const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])
@@ -599,7 +607,7 @@ export class Annotator {
 	private loadPointCloudDataFromMapServer(search: RangeSearch, loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
 		return this.tileManager.loadFromMapServer(search, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(() => this.pointCloudLoadedSideEffects(resetCamera))
-			.catch(err => Annotator.pointCloudLoadedError(err))
+			.catch(err => this.pointCloudLoadedError(err))
 	}
 
 	// Do some house keeping after loading a point cloud, such as drawing decorations
@@ -622,12 +630,18 @@ export class Annotator {
 		this.setStageByPointCloud(resetCamera)
 	}
 
-	private static pointCloudLoadedError(err: Error): void {
-		if (err instanceof BusyError) {
+	private pointCloudLoadedError(err: Error): void {
+		if (this.uiState.isKioskMode || err instanceof BusyError) {
 			log.warn(err.message)
 		} else {
-			log.error(err.message)
-			dialog.showErrorBox('Point Cloud Load Error', err.message)
+			const now = new Date().getTime()
+			if (now - this.uiState.lastPointCloudLoadedErrorModalMs < this.settings.timeBetweenErrorDialogsMs) {
+				log.warn(err.message)
+			} else {
+				log.error(err.message)
+				dialog.showErrorBox('Point Cloud Load Error', err.message)
+				this.uiState.lastPointCloudLoadedErrorModalMs = now
+			}
 		}
 	}
 
@@ -2231,6 +2245,37 @@ export class Annotator {
 			this.uiState.isPointCloudVisible = true
 		}
 	}
+
+	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
+	// and success messages disappear after a time-out.
+	private onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
+		let message = 'Tile server status: '
+		if (tileServiceStatus) {
+			message += '<span class="statusOk">available</span>'
+			this.delayHideTileServiceStatus()
+		} else {
+			message += '<span class="statusError">unavailable</span>'
+			this.cancelHideTileServiceStatus()
+		}
+		this.statusWindow.setMessage(statusKey.tileServer, message)
+	}
+
+	private delayHideTileServiceStatus = (): void => {
+		this.cancelHideTileServiceStatus()
+		this.hideTileServiceStatus()
+	}
+
+	private cancelHideTileServiceStatus = (): void => {
+		if (this.serverStatusDisplayTimer)
+			clearTimeout(this.serverStatusDisplayTimer)
+	}
+
+	private hideTileServiceStatus = (): void => {
+		this.serverStatusDisplayTimer = setTimeout(() => {
+			this.statusWindow.setMessage(statusKey.tileServer, '')
+		}, this.settings.timeToDisplayHealthyStatusMs)
+	}
+
 }
 
 export const annotator = new Annotator()
