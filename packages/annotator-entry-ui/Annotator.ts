@@ -228,7 +228,7 @@ export class Annotator {
 			startPoseIndex: 0,
 			endPoseIndex: Number.MAX_VALUE,
 			currentPoseIndex: 0,
-			cameraOffset: new THREE.Vector3(12, 10, 0),
+			cameraOffset: new THREE.Vector3(30, 10, 0),
 			cameraOffsetDelta: 1,
 			fps: parseFloat(config.get('fly_through.render.fps')) || 10
 		}
