@@ -1,6 +1,6 @@
 # Annotator
 
-This is a web-based GUI to allow humans to mark up vector features on top of our raster data sets.
+This is a web-based GUI to allow humans to visualize point cloud data sets and to mark up vector features on top of them.
 
 ## Prerequisites
 - [Node.js (includes npm)](https://nodejs.org/en/download/)
