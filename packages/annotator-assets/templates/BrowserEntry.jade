@@ -39,6 +39,15 @@ html(lang="en")
 				padding-left: 5px;
 			}
 		style.
+			#status_window {
+				position: fixed;
+				z-index: 3;
+				bottom: 0;
+				right: 0;
+				background-color: rgba(255, 255, 255, 0.5);
+				padding: 5px;
+			}
+		style.
 			#menu {
 				height: 100%;
 				width: 250px;
@@ -54,7 +63,7 @@ html(lang="en")
 		style.
 			#menu_control {
 				height: 50px;
-				width: 100px;
+				width: 150px;
 				position: fixed;
 				z-index: 1;
 				top: 0;
@@ -62,6 +71,7 @@ html(lang="en")
 				background-color: transparent;
 				padding-right: 5px;
 				text-align: right;
+				visibility: hidden;
 			}
 		style.
 			.menu_btn {
@@ -226,7 +236,9 @@ html(lang="en")
 				require(process.cwd() + "/dist/app/annotator-entry-ui")
 		#logo
 			img(src="https://www.dropbox.com/s/hpyckdew3xc2s7u/signature_with_arrow_white.png?dl=1", height="30px", width="auto")
+		#status_window
 		#menu_control
+			button#status_window_control_btn.menu_btn &#x2139;
 			button#live_location_control_btn.menu_btn &#x2388;
 			button#menu_control_btn.menu_btn &#9776;
 		#menu
