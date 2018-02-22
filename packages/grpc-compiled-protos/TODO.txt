@@ -1,0 +1,2 @@
+# TODO
+These classes are copied from protos in https://github.com/Signafy/mapper-models/, and generated with grpc-tools (https://github.com/grpc/grpc/blob/master/examples/node/static_codegen/README.md). The mapper-models build uses Protobuf.js, which makes a nice bundled artifact but doesn't support gRPC bindings. grpc-tools doesn't have as nice an interface, but it supports gRPC. We should figure out how to build & bundle it in mapper-models.
