@@ -4,3 +4,4 @@
  */
 
 type TileIndexDimension = number // but really it's an integer
+type LayerId = string

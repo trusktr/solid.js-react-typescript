@@ -7,9 +7,11 @@ startup.kiosk_mode: false
 startup.background_color: '#082839'
 startup.show_color_picker: true
 startup.show_stats_module: true
+startup.show_status_panel: false
 startup.show_menu: true
 startup.show_dev_tools: true
 startup.point_cloud_directory:
+startup.point_cloud_bounding_box:
 startup.annotations_path:
 
 # parameters for loading a tile
@@ -27,6 +29,8 @@ annotator.draw_bounding_box: false
 annotator.axes_helper_length: 10
 annotator.compass_rose_length: 50
 annotator.point_render_size: 0.05
+annotator.area_of_interest.enable: false
+annotator.area_of_interest.size: [200, 50, 200]
 
 # persistence of a data file
 output.annotations.json.path: ./data/annotations.json

@@ -40,3 +40,14 @@ If you pull down the latest version of the code base and things stop working, tr
     npm rebuild
     ./node_modules/.bin/electron-rebuild
     ./etc/scripts/compile-watch.js 
+
+### gRPC binary
+The `electron-rebuild` script installs a `grpc_node.node` binary, among other things. If you get an error like this at runtime:
+
+    Cannot find module '.../node_modules/grpc/src/node/extension_binary/electron-v1.7-darwin-x64-unknown/grpc_node.node'
+
+...you might already have the correct binary, but with the wrong name. Monkey-patch it until we come up with something better. Grab the name of the electron binary directory from the error message, and link it to the electron binary directory that was installed, something like this:
+
+    pushd node_modules/grpc/src/node/extension_binary/
+    ln -s electron-v1.7-darwin-x64-\{libc\} electron-v1.7-darwin-x64-unknown
+    popd
