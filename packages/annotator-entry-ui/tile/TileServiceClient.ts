@@ -8,7 +8,10 @@ import {isNullOrUndefined} from "util"
 import * as grpc from 'grpc'
 import * as TypeLogger from 'typelogger'
 import {TileServiceClient as GrpcClient} from '../../grpc-compiled-protos/TileService_grpc_pb'
-import {RangeSearchMessage, SearchTilesRequest, SearchTilesResponse} from "../../grpc-compiled-protos/TileService_pb"
+import {
+	PingRequest, RangeSearchMessage, SearchTilesRequest,
+	SearchTilesResponse
+} from "../../grpc-compiled-protos/TileService_pb"
 import {
 	GeographicPoint3DMessage, SpatialReferenceSystemIdentifier, SpatialTileIndexMessage,
 	SpatialTileScale
@@ -62,6 +65,8 @@ function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undef
 	)
 }
 
+const pingRequest = new PingRequest()
+
 export class TileServiceClient {
 	private srid: SpatialReferenceSystemIdentifier
 	private scale: SpatialTileScale
@@ -69,8 +74,17 @@ export class TileServiceClient {
 	private layerIdsQuery: LayerId[]
 	private tileServiceAddress: string
 	private client: GrpcClient | null
+	private onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void
+	private serverStatus: boolean | null // null == untested; true == available; false == unavailable
+	private pingInFlight: boolean // semaphore for pingServer()
+	private healthCheckInterval: number // configuration for pinging the server
 
-	constructor() {
+	constructor(onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void) {
+		this.serverStatus = null
+		this.pingInFlight = false
+		this.onTileServiceStatusUpdate = onTileServiceStatusUpdate
+		this.healthCheckInterval = config.get('tile_client.service.health_check.interval.seconds') * 1000
+
 		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO config: UTM_10N
 		const scale = stringToSpatialTileScale(config.get('tile_client.tile_scale') || '_010_010_010')
 		if (isNullOrUndefined(scale))
@@ -78,17 +92,59 @@ export class TileServiceClient {
 		this.scale = scale
 		this.baseTileLayerId = 'base1' // TODO config
 		this.layerIdsQuery = [this.baseTileLayerId]
-		const tileServiceHost = config.get('tile_client.service_host') || 'localhost'
-		const tileServicePort = config.get('tile_client.service_port') || '50051'
+		const tileServiceHost = config.get('tile_client.service.host') || 'localhost'
+		const tileServicePort = config.get('tile_client.service.port') || '50051'
 		this.tileServiceAddress = tileServiceHost + ':' + tileServicePort
 		this.client = null
 	}
 
-	// TODO time out on failed connection
-	connect(): boolean {
+	// Lazily create the gRPC client and initiate server health checks. All gRPC requests (except the ping check)
+	// must call connect() first.
+	private connect(): Promise<void> {
+		if (this.client)
+			return Promise.resolve()
+
 		log.info('connecting to tile server at', this.tileServiceAddress)
 		this.client = new GrpcClient(this.tileServiceAddress, grpc.credentials.createInsecure())
-		return true
+
+		const result = this.pingServer()
+		this.periodicallyCheckServerStatus()
+		return result
+	}
+
+	private periodicallyCheckServerStatus(): void {
+		if (this.healthCheckInterval) {
+			const self = this
+			setInterval(
+				(): Promise<void> => self.pingServer().then(),
+				this.healthCheckInterval
+			)
+		}
+	}
+
+	// Ping checks and this.serverStatus maintain a local copy of server state, for diagnostics.
+	// TODO The gRPC client has a default timeout of 20s when the server is unresponsive. It would be nice to reduce that for pings.
+	private pingServer(): Promise<void> {
+		if (!this.client)
+			return Promise.reject(Error('attempted to pingServer() before initializing client'))
+		if (this.pingInFlight)
+			return Promise.resolve()
+		this.pingInFlight = true
+
+		return new Promise((resolve: () => void): void => {
+			this.client!.ping(pingRequest, (err: Error): void => {
+				this.setServerStatus(!err)
+				this.pingInFlight = false
+				resolve()
+			})
+		})
+	}
+
+	private setServerStatus(newStatus: boolean): void {
+		if (this.serverStatus === null || this.serverStatus !== newStatus) {
+			this.serverStatus = newStatus
+			this.onTileServiceStatusUpdate(newStatus)
+		}
 	}
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum points.
@@ -104,7 +160,9 @@ export class TileServiceClient {
 		corner2.setX(search.maxPoint.x - 0.001)
 		corner2.setY(search.maxPoint.y - 0.001)
 		corner2.setZ(search.maxPoint.z - 0.001)
-		return this.getTiles(corner1, corner2)
+
+		return this.connect()
+			.then(() => this.getTiles(corner1, corner2))
 	}
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum corner tiles.
@@ -120,14 +178,12 @@ export class TileServiceClient {
 		corner2.setX(search.maxTileIndex.origin.x + search.maxTileIndex.scale.xSize - 0.001)
 		corner2.setY(search.maxTileIndex.origin.y + search.maxTileIndex.scale.ySize - 0.001)
 		corner2.setZ(search.maxTileIndex.origin.z + search.maxTileIndex.scale.zSize - 0.001)
-		return this.getTiles(corner1, corner2)
+
+		return this.connect()
+			.then(() => this.getTiles(corner1, corner2))
 	}
 
 	private getTiles(corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<FileSystemTileMetadata[]> {
-		if (!this.client)
-			if (!this.connect())
-				return Promise.reject(Error(`failed to connect to tile server at ${this.tileServiceAddress}`))
-
 		const rangeSearch = new RangeSearchMessage()
 		rangeSearch.setCorner1(corner1)
 		rangeSearch.setCorner2(corner2)
