@@ -650,9 +650,9 @@ export class Annotator {
 		if (this.annotationManager.laneAnnotations.length === 0)
 			log.error(`Unable to compute voxels height, there are no annotations.`)
 
-		let voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
-		let voxelSize: number = this.tileManager.voxelSize
-		let annotationCutoffDistance: number = 1.2 * 1.2 // 1.2 meters radius
+		const voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
+		const voxelSize: number = this.tileManager.voxelsConfig.voxelSize
+		const annotationCutoffDistance: number = 1.2 * 1.2 // 1.2 meters radius
 		for (let voxel of voxels) {
 			let x: number = voxel.x * voxelSize
 			let y: number = voxel.y * voxelSize
