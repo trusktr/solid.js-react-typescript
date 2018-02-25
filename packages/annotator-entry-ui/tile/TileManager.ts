@@ -28,6 +28,7 @@ import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
 import LocalStorage from "../state/LocalStorage"
 import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "../model/RangeSearch"
+import {LocalTileInstance, RemoteTileInstance, TileInstance} from "../model/TileInstance"
 import {isTupleOfNumbers} from "../util/Validation"
 
 // tslint:disable-next-line:no-any
@@ -52,30 +53,6 @@ const loadedSuperTileKeysKey = 'loadedSuperTileKeys'
 let warningDelivered = false
 
 export class BusyError extends Error {}
-
-function loadBaseGeometryTileMessage(filename: string): Promise<TileMessage> {
-	return AsyncFile.readFile(filename)
-		.then(buffer => Models.BaseGeometryTileMessage.decode(buffer))
-		.catch(err => {throw Error('protobuf read failed: ' + err.message)})
-		.then(msg => baseGeometryTileMessageToTileMessage(msg))
-}
-
-function loadPointCloudTileMessage(filename: string): Promise<TileMessage> {
-	return AsyncFile.readFile(filename)
-		.then(buffer => Models.PointCloudTileMessage.decode(buffer))
-		.catch(err => {throw Error('protobuf read failed: ' + err.message)})
-		.then(msg => {
-			// Perception doesn't set UTM zone correctly. For now we have to assume the data are from San Francisco.
-			if (!warningDelivered) {
-				log.warn('forcing tiles into UTM zone 10N')
-				warningDelivered = true
-			}
-			msg.utmZoneNumber = 10
-			msg.utmZoneNorthernHemisphere = true
-			return msg
-		})
-		.then(msg => pointCloudTileMessageToTileMessage(msg))
-}
 
 interface TileMetadata {
 	name: string // file name
@@ -501,15 +478,58 @@ export class TileManager extends UtmInterface {
 	/**
 	 * Load a point cloud tile message from a proto binary file
 	 */
-	private loadTile(filename: string): Promise<TileMessage> {
-		switch (this.config.tileMessageFormat) {
-			case TileMessageFormat.BaseGeometryTileMessage:
-				return loadBaseGeometryTileMessage(filename)
-			case TileMessageFormat.PointCloudTileMessage:
-				return loadPointCloudTileMessage(filename)
-			default:
-				return Promise.reject(Error('unknown tileMessageFormat: ' + this.config.tileMessageFormat))
+	private loadTile(tileInstance: TileInstance): Promise<TileMessage> {
+		let loader: Promise<Uint8Array>
+		let parser: (buffer: Uint8Array) => TileMessage
+
+		if (tileInstance instanceof LocalTileInstance) {
+			loader = AsyncFile.readFile(tileInstance.fileSystemPath)
+			switch (this.config.tileMessageFormat) {
+				case TileMessageFormat.BaseGeometryTileMessage:
+					parser = TileManager.parseBaseGeometryTileMessage
+					break
+				case TileMessageFormat.PointCloudTileMessage:
+					parser = TileManager.parsePointCloudTileMessage
+					break
+				default:
+					return Promise.reject(Error('unknown tileMessageFormat: ' + this.config.tileMessageFormat))
+			}
+		} else if (tileInstance instanceof RemoteTileInstance) {
+			loader = this.tileServiceClient.getTileContents(tileInstance.url)
+			// TODO map tileInstance.layerId to parser
+			parser = TileManager.parseBaseGeometryTileMessage
+		} else {
+			return Promise.reject(Error('unknown tileInstance: ' + tileInstance))
 		}
+
+		return loader.then(buffer => parser(buffer))
+	}
+
+	private static parseBaseGeometryTileMessage(buffer: Uint8Array): TileMessage {
+		let msg
+		try {
+			msg = Models.BaseGeometryTileMessage.decode(buffer)
+		} catch (err) {
+			throw Error('protobuf read failed: ' + err.message)
+		}
+		return baseGeometryTileMessageToTileMessage(msg)
+	}
+
+	private static parsePointCloudTileMessage(buffer: Uint8Array): TileMessage {
+		let msg
+		try {
+			msg = Models.PointCloudTileMessage.decode(buffer)
+		} catch (err) {
+			throw Error('protobuf read failed: ' + err.message)
+		}
+		// Perception doesn't set UTM zone correctly. For now we have to assume the data are from San Francisco.
+		if (!warningDelivered) {
+			log.warn('forcing tiles into UTM zone 10N')
+			warningDelivered = true
+		}
+		msg.utmZoneNumber = 10
+		msg.utmZoneNorthernHemisphere = true
+		return pointCloudTileMessageToTileMessage(msg)
 	}
 
 	/**
@@ -566,8 +586,11 @@ export class TileManager extends UtmInterface {
 		let firstTilePromise: Promise<void>
 		if (this.coordinateSystemInitialized)
 			firstTilePromise = Promise.resolve()
-		else
-			firstTilePromise = this.loadTile(Path.join(datasetPath, fileMetadataList[0]!.name))
+		else {
+			const metadata = fileMetadataList[0]!
+			const tileIndex = new TileIndex(utmTileScale, metadata.index.x, metadata.index.y, metadata.index.z)
+			const tileInstance = new LocalTileInstance(tileIndex, Path.join(datasetPath, metadata!.name))
+			firstTilePromise = this.loadTile(tileInstance)
 				.then(firstMessage => {
 					if (this.checkCoordinateSystem(firstMessage, coordinateFrame)) {
 						this.coordinateSystemInitialized = true
@@ -576,15 +599,18 @@ export class TileManager extends UtmInterface {
 						return Promise.reject(Error('checkCoordinateSystem failed on first tile: ' + fileMetadataList[0]!.name))
 					}
 				})
+		}
 
 		// Instantiate tile and super tile classes for all the data.
 		// Load some of the data to get us started.
 		return firstTilePromise
 			.then(() => {
 				fileMetadataList.forEach(metadata => {
+					const tileIndex = new TileIndex(utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z)
+					const tileInstance = new LocalTileInstance(tileIndex, Path.join(datasetPath, metadata!.name))
 					const utmTile = new UtmTile(
-						new TileIndex(utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z),
-						this.pointCloudFileLoader(Path.join(datasetPath, metadata!.name), coordinateFrame),
+						tileIndex,
+						this.pointCloudFileLoader(tileInstance, coordinateFrame),
 					)
 					this.addTileToSuperTile(utmTile, coordinateFrame, metadata!.name)
 				})
@@ -636,13 +662,13 @@ export class TileManager extends UtmInterface {
 					}
 					// TODO merge these into fewer API requests
 					return this.tileServiceClient.getTilesByCoordinateRange(superTileSearch)
-						.then(tileMetadataList => {
-							if (tileMetadataList.length === 0) {
+						.then(tileInstances => {
+							if (tileInstances.length === 0) {
 								this.getOrCreateSuperTile(stIndex, coordinateFrame)
 							} else
-								tileMetadataList.forEach(metadata => {
-									const utmTile = new UtmTile(metadata.tileIndex, this.pointCloudFileLoader(metadata.path, coordinateFrame))
-									this.addTileToSuperTile(utmTile, coordinateFrame, metadata.path)
+								tileInstances.forEach(tileInstance => {
+									const utmTile = new UtmTile(tileInstance.tileIndex, this.pointCloudFileLoader(tileInstance, coordinateFrame))
+									this.addTileToSuperTile(utmTile, coordinateFrame, tileInstance.url)
 								})
 						})
 				})
@@ -671,14 +697,14 @@ export class TileManager extends UtmInterface {
 	//  - array of raw position data
 	//  - array of raw color data
 	//  - count of points
-	private pointCloudFileLoader(filename: string, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[], number]> {
+	private pointCloudFileLoader(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[], number]> {
 		return (): Promise<[number[], number[], number]> =>
-			this.loadTile(filename)
+			this.loadTile(tileInstance)
 				.then(msg => {
 					if (!msg.points || msg.points.length === 0) {
 						return [[], [], 0] as [number[], number[], number]
 					} else if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
-						throw Error('checkCoordinateSystem failed on: ' + filename)
+						throw Error('checkCoordinateSystem failed on: ' + tileInstance.url)
 					} else {
 						const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.config.samplingStep)
 						const positions = this.rawDataToPositions(sampledPoints, coordinateFrame)

@@ -9,6 +9,7 @@ import * as grpc from 'grpc'
 import * as TypeLogger from 'typelogger'
 import {TileServiceClient as GrpcClient} from '../../grpc-compiled-protos/TileService_grpc_pb'
 import {
+	GetTilesRequest, GetTilesResponse,
 	PingRequest, RangeSearchMessage, SearchTilesRequest,
 	SearchTilesResponse
 } from "../../grpc-compiled-protos/TileService_pb"
@@ -20,7 +21,7 @@ import {TileRangeSearch} from "../model/TileRangeSearch"
 import {RangeSearch} from "../model/RangeSearch"
 import {TileIndex} from "../model/TileIndex"
 import {Scale3D} from "../geometry/Scale3D"
-import {FileSystemTileMetadata} from "./FileSystemTileMetadata"
+import {RemoteTileInstance} from "../model/TileInstance"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -148,7 +149,7 @@ export class TileServiceClient {
 	}
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum points.
-	getTilesByCoordinateRange(search: RangeSearch): Promise<FileSystemTileMetadata[]> {
+	getTilesByCoordinateRange(search: RangeSearch): Promise<RemoteTileInstance[]> {
 		const corner1 = new GeographicPoint3DMessage()
 		corner1.setSrid(this.srid)
 		corner1.setX(search.minPoint.x)
@@ -166,7 +167,7 @@ export class TileServiceClient {
 	}
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum corner tiles.
-	getTilesByTileRange(search: TileRangeSearch): Promise<FileSystemTileMetadata[]> {
+	getTilesByTileRange(search: TileRangeSearch): Promise<RemoteTileInstance[]> {
 		const corner1 = new GeographicPoint3DMessage()
 		corner1.setSrid(this.srid)
 		corner1.setX(search.minTileIndex.origin.x)
@@ -183,7 +184,7 @@ export class TileServiceClient {
 			.then(() => this.getTiles(corner1, corner2))
 	}
 
-	private getTiles(corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<FileSystemTileMetadata[]> {
+	private getTiles(corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<RemoteTileInstance[]> {
 		const rangeSearch = new RangeSearchMessage()
 		rangeSearch.setCorner1(corner1)
 		rangeSearch.setCorner2(corner2)
@@ -192,33 +193,57 @@ export class TileServiceClient {
 		request.setRangeSearch(rangeSearch)
 		request.setLayerIdsList(this.layerIdsQuery)
 
-		return new Promise((resolve: (tile: FileSystemTileMetadata[]) => void, reject: (reason?: Error) => void): void => {
+		return new Promise((resolve: (tile: RemoteTileInstance[]) => void, reject: (reason?: Error) => void): void => {
 			this.client!.searchTiles(request, (err: Error, response: SearchTilesResponse): void => {
 				if (err) {
-					reject(Error(`TileServiceClient search failed: ${err.message}`))
+					reject(Error(`searchTiles() failed: ${err.message}`))
 				} else {
-					const tiles: FileSystemTileMetadata[] = []
+					const tiles: RemoteTileInstance[] = []
 					response.getTileInstancesList().forEach(instance => {
 						const tileIndex = spatialTileIndexMessageToTileIndex(instance.getId())
 						if (tileIndex) {
-							instance.getLayersMap().forEach((layerUrl, layerId) => {
-								if (layerId === this.baseTileLayerId) { // should be always true
-									// For now we are assuming a tile service running on localhost.
-									if (layerUrl.indexOf('file://') === 0)
-										layerUrl = layerUrl.substring(7)
-									else
-										log.warn(`found a tile with unknown url type: ${layerUrl}`)
-									tiles.push({
-										tileIndex: tileIndex,
-										path: layerUrl,
-									})
-								}
-							})
+							instance.getLayersMap()
+								.forEach((layerUrl, layerId) => {
+									if (layerId === this.baseTileLayerId) // should be always true
+										tiles.push(new RemoteTileInstance(
+											tileIndex,
+											layerId,
+											layerUrl,
+										))
+								})
 						} else {
 							log.warn('found tile with bad SpatialTileIndexMessage')
 						}
 					})
 					resolve(tiles)
+				}
+			})
+		})
+	}
+
+	getTileContents(url: string): Promise<Uint8Array> {
+		return this.connect()
+			.then(() => this.getTileContentsImpl(url))
+	}
+
+	private getTileContentsImpl(url: string): Promise<Uint8Array> {
+		const request = new GetTilesRequest()
+		request.addUrls(url)
+
+		return new Promise((resolve: (tile: Uint8Array) => void, reject: (reason?: Error) => void): void => {
+			this.client!.getTiles(request, (err: Error, response: GetTilesResponse): void => {
+				if (err) {
+					reject(Error(`getTiles() failed: ${err.message}`))
+				} else {
+					if (!response.getTileContentsList().length) {
+						reject(Error(`getTiles() return no results`))
+					} else {
+						const firstResult = response.getTileContentsList()[0]
+						if (firstResult.getUrl() === url)  // should be always true
+							resolve(firstResult.getContents_asU8())
+						else
+							reject(Error(`getTiles() returned unknown url ${firstResult.getUrl()}`))
+					}
 				}
 			})
 		})
