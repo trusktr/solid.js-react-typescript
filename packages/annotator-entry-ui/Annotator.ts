@@ -15,7 +15,7 @@ import {
 } from "./geometry/CoordinateFrame"
 import {isTupleOfNumbers} from "./util/Validation"
 import {StatusWindowController} from "./status/StatusWindowController"
-import {TileManager}  from 'annotator-entry-ui/tile/TileManager'
+import {TileManager} from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
 import {BusyError} from "./tile/TileManager"
@@ -90,7 +90,8 @@ interface AnnotatorSettings {
 	superTileBboxMaterial: THREE.Material // for visualizing available, but unpopulated, super tiles
 	superTileBboxColor: THREE.Color
 	aoiBboxColor: THREE.Color
-	aoiHalfSize: THREE.Vector3 // half the dimensions of an AOI box, which will be constructed around a center point
+	aoiFullSize: THREE.Vector3 // the dimensions of an AOI box, which will be constructed around a center point
+	aoiHalfSize: THREE.Vector3 // half the dimensions of an AOI box
 	timeBetweenErrorDialogsMs: number
 	timeToDisplayHealthyStatusMs: number
 }
@@ -126,7 +127,8 @@ interface UiState {
 interface AoiState {
 	enabled: boolean // enable auto-loading points around the AOI
 	focalPoint: THREE.Vector3 | null, // cached value for the center of the AOI
-	boundingBox: THREE.BoxHelper | null // a box drawn around the current area of interest
+	boundingBoxes: THREE.BoxHelper[] // boxes drawn around the current area of interest
+	currentHeading: THREE.Vector3 | null // in fly-through mode: where the vehicle is heading
 }
 
 /**
@@ -180,15 +182,18 @@ export class Annotator {
 			superTileBboxMaterial: new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true}),
 			superTileBboxColor: new THREE.Color(0xff0000),
 			aoiBboxColor: new THREE.Color(0x00ff00),
+			aoiFullSize: new THREE.Vector3(30, 30, 30),
 			aoiHalfSize: new THREE.Vector3(15, 15, 15),
 			timeBetweenErrorDialogsMs: 30000,
 			timeToDisplayHealthyStatusMs: 10000,
 		}
 		const aoiSize: [number, number, number] = config.get('annotator.area_of_interest.size')
-		if (isTupleOfNumbers(aoiSize, 3))
-			this.settings.aoiHalfSize = new THREE.Vector3(aoiSize[0] / 2, aoiSize[1] / 2, aoiSize[2] / 2)
-		else if (aoiSize)
+		if (isTupleOfNumbers(aoiSize, 3)) {
+			this.settings.aoiFullSize = new THREE.Vector3(aoiSize[0], aoiSize[1], aoiSize[2])
+			this.settings.aoiHalfSize = this.settings.aoiFullSize.clone().divideScalar(2)
+		} else if (aoiSize) {
 			log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)
+		}
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		this.uiState = {
 			modelVisibility: ModelVisibility.ALL_VISIBLE,
@@ -209,7 +214,8 @@ export class Annotator {
 		this.aoiState = {
 			enabled: !!config.get('annotator.area_of_interest.enable'),
 			focalPoint: null,
-			boundingBox: null,
+			boundingBoxes: [],
+			currentHeading: null,
 		}
 		this.statusWindow = new StatusWindowController()
 		this.hovered = null
@@ -445,7 +451,7 @@ export class Annotator {
 		this.transformControls.update()
 	}
 
-	private loadFlythroughTrajectory(filename: string): Promise<void>  {
+	private loadFlythroughTrajectory(filename: string): Promise<void> {
 		return AsyncFile.readFile(filename)
 			.then(buffer => Models.TrajectoryMessage.decode(buffer))
 			.then(msg => {
@@ -492,6 +498,7 @@ export class Annotator {
 			const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
 			rotationThreeJs.normalize()
 
+			this.updateAoiHeading(rotationThreeJs)
 			this.updateCarStatus(standardPosition)
 			this.updateCarPose(positionThreeJs, rotationThreeJs)
 			this.updateCameraPose()
@@ -599,13 +606,13 @@ export class Annotator {
 		} else {
 			const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])
 			const p2 = new THREE.Vector3(bbox[3], bbox[4], bbox[5])
-			return this.loadPointCloudDataFromMapServer({minPoint: p1, maxPoint: p2})
+			return this.loadPointCloudDataFromMapServer([{minPoint: p1, maxPoint: p2}])
 		}
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
-	private loadPointCloudDataFromMapServer(search: RangeSearch, loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
-		return this.tileManager.loadFromMapServer(search, CoordinateFrameType.STANDARD, loadAllPoints)
+	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
+		return this.tileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(() => this.pointCloudLoadedSideEffects(resetCamera))
 			.catch(err => this.pointCloudLoadedError(err))
 	}
@@ -791,29 +798,47 @@ export class Annotator {
 	}
 
 	// Create a bounding box around the current AOI and optionally display it.
-	// Then load the points in and around the AOI.
+	// Then load the points in and around the AOI. If we have a current heading,
+	// extend the AOI with another bounding box in the direction of motion.
 	private updatePointCloudAoiBoundingBox(): void {
-		if (this.settings.drawBoundingBox && this.aoiState.boundingBox) {
-			this.scene.remove(this.aoiState.boundingBox)
-			this.aoiState.boundingBox = null
+		if (this.settings.drawBoundingBox) {
+			this.aoiState.boundingBoxes.forEach(bbox => this.scene.remove(bbox))
+			this.aoiState.boundingBoxes = []
 		}
 
 		if (this.aoiState.focalPoint) {
-			const minCorner = this.aoiState.focalPoint.clone().sub(this.settings.aoiHalfSize)
-			const maxCorner = this.aoiState.focalPoint.clone().add(this.settings.aoiHalfSize)
+			const threeJsSearches: RangeSearch[] = [{
+				minPoint: this.aoiState.focalPoint.clone().sub(this.settings.aoiHalfSize),
+				maxPoint: this.aoiState.focalPoint.clone().add(this.settings.aoiHalfSize),
+			}]
+
+			// What could be better than one AOI, but two? Add another one so we see more of what's in front.
+			if (this.aoiState.currentHeading) {
+				const extendedFocalPoint = this.aoiState.focalPoint.clone()
+					.add(this.settings.aoiFullSize.clone().multiply(this.aoiState.currentHeading))
+				threeJsSearches.push({
+					minPoint: extendedFocalPoint.clone().sub(this.settings.aoiHalfSize),
+					maxPoint: extendedFocalPoint.clone().add(this.settings.aoiHalfSize),
+				})
+			}
 
 			if (this.settings.drawBoundingBox) {
-				const geom = new THREE.Geometry()
-				geom.vertices.push(minCorner, maxCorner)
-				this.aoiState.boundingBox = new THREE.BoxHelper(new THREE.Points(geom), this.settings.aoiBboxColor)
-				this.scene.add(this.aoiState.boundingBox)
+				threeJsSearches.forEach(search => {
+					const geom = new THREE.Geometry()
+					geom.vertices.push(search.minPoint, search.maxPoint)
+					const bbox = new THREE.BoxHelper(new THREE.Points(geom), this.settings.aoiBboxColor)
+					this.aoiState.boundingBoxes.push(bbox)
+					this.scene.add(bbox)
+				})
 			}
 
 			this.loadPointCloudDataFromMapServer(
-				{
-					minPoint: this.tileManager.threeJsToUtm(minCorner),
-					maxPoint: this.tileManager.threeJsToUtm(maxCorner),
-				},
+				threeJsSearches.map(threeJs => {
+					return {
+						minPoint: this.tileManager.threeJsToUtm(threeJs.minPoint),
+						maxPoint: this.tileManager.threeJsToUtm(threeJs.maxPoint),
+					}
+				}),
 				true,
 				false
 			)
@@ -1750,7 +1775,7 @@ export class Annotator {
 	/**
 	 * Reset lane properties elements based on the current active lane
 	 */
-	private resetLaneProp(): void  {
+	private resetLaneProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 		if (activeAnnotation === null) {
 			return
@@ -1838,7 +1863,7 @@ export class Annotator {
 	/**
 	 * Reset traffic sign properties elements based on the current active traffic sign
 	 */
-	private resetTrafficSignProp(): void  {
+	private resetTrafficSignProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
 		if (activeAnnotation === null) {
 			return
@@ -2100,6 +2125,7 @@ export class Annotator {
 				const rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
 				rotation.normalize()
 
+				this.updateAoiHeading(rotation) // TODO might be nice to detect when messages stop coming, and null this out
 				this.updateCarStatus(position)
 				this.updateCarPose(position, rotation)
 				this.updateCameraPose()
@@ -2172,6 +2198,7 @@ export class Annotator {
 			this.pointCloudBoundingBox.material.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		this.statusWindow.setMessage(statusKey.carPosition, '')
+		this.updateAoiHeading(null)
 
 		return this.uiState.isLiveMode
 	}
@@ -2200,6 +2227,13 @@ export class Annotator {
 			}
 		else
 			log.warn('missing element menu')
+	}
+
+	private updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
+		if (this.aoiState.enabled)
+			this.aoiState.currentHeading = rotationThreeJs
+				? new THREE.Vector3(-1, 0, 0).applyQuaternion(rotationThreeJs)
+				: null
 	}
 
 	private updateCarStatus(positionUtm: THREE.Vector3): void {
@@ -2233,13 +2267,13 @@ export class Annotator {
 	private toggleVoxelsAndPointClouds(): void {
 		if (this.uiState.isPointCloudVisible) {
 			this.scene.remove(this.tileManager.pointCloud)
-			this.tileManager.voxelsMeshGroup.forEach( mesh => {
+			this.tileManager.voxelsMeshGroup.forEach(mesh => {
 				this.scene.add(mesh)
 			})
 			this.uiState.isPointCloudVisible = false
 		} else {
 			this.scene.add(this.tileManager.pointCloud)
-			this.tileManager.voxelsMeshGroup.forEach( mesh => {
+			this.tileManager.voxelsMeshGroup.forEach(mesh => {
 				this.scene.remove(mesh)
 			})
 			this.uiState.isPointCloudVisible = true
