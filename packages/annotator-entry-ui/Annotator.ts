@@ -414,14 +414,16 @@ export class Annotator {
 
 		if (config.get('live_mode.trajectory_path'))
 			log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
+		if (config.get('fly_through.trajectory_path'))
+			log.warn('config option fly_through.trajectory_path is now a list: fly_through.trajectory_path.list')
 
 		let trajectoryResult: Promise<void>
-		const trajectoryPath = config.get('fly_through.trajectory_path')
-		if (trajectoryPath) {
+		const trajectoryPaths = config.get('fly_through.trajectory_path.list')
+		if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
 			trajectoryResult = pointCloudResult
 				.then(() => {
-					log.info('loading pre-configured trajectory ' + trajectoryPath)
-					return this.loadFlythroughTrajectory(trajectoryPath)
+					log.info('loading pre-configured trajectories')
+					return this.loadFlyThroughTrajectories(trajectoryPaths)
 				})
 		} else {
 			trajectoryResult = pointCloudResult
@@ -446,17 +448,21 @@ export class Annotator {
 		this.transformControls.update()
 	}
 
-	private loadFlythroughTrajectory(filename: string): Promise<void>  {
-		return AsyncFile.readFile(filename)
-			.then(buffer => Models.TrajectoryMessage.decode(buffer))
-			.then(msg => {
-				this.flyThroughTrajectoryPoses = msg.states
-					.filter(state =>
-						state && state.pose
-						&& state.pose.x !== null && state.pose.y !== null && state.pose.z !== null
-						&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
-					)
-					.map(state => state.pose! as Models.PoseMessage)
+	private loadFlyThroughTrajectories(paths: string[]): Promise<void> {
+		return Promise.all(paths.map(path => AsyncFile.readFile(path)))
+			.then(buffers => {
+				this.flyThroughTrajectoryPoses = []
+				buffers.forEach(buffer => {
+					const msg = Models.TrajectoryMessage.decode(buffer)
+					const poses = msg.states
+						.filter(state =>
+							state && state.pose
+							&& state.pose.x !== null && state.pose.y !== null && state.pose.z !== null
+							&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
+						)
+						.map(state => state.pose! as Models.PoseMessage)
+					this.flyThroughTrajectoryPoses = this.flyThroughTrajectoryPoses.concat(poses)
+				})
 				if (this.flyThroughTrajectoryPoses.length) {
 					this.flyThroughSettings.endPoseIndex = this.flyThroughTrajectoryPoses.length
 					this.flyThroughSettings.enabled = true
