@@ -80,7 +80,11 @@ export class TileServiceClient {
 			return Promise.resolve()
 
 		log.info('connecting to tile server at', this.tileServiceAddress)
-		this.client = new GrpcClient(this.tileServiceAddress, grpc.credentials.createInsecure())
+		this.client = new GrpcClient(
+			this.tileServiceAddress,
+			grpc.credentials.createInsecure(),
+			{'grpc.max_receive_message_length': 100 * 1024 * 1024} // tiles should be maximum 10s of MB
+		)
 
 		const result = this.pingServer()
 		this.periodicallyCheckServerStatus()
