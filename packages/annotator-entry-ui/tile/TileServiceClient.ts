@@ -20,38 +20,12 @@ import {
 import {TileRangeSearch} from "../model/TileRangeSearch"
 import {RangeSearch} from "../model/RangeSearch"
 import {TileIndex} from "../model/TileIndex"
-import {Scale3D} from "../geometry/Scale3D"
 import {RemoteTileInstance} from "../model/TileInstance"
+import {spatialTileScaleToScale3D, stringToSpatialTileScale} from "./ScaleUtil"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-
-// tslint:disable:variable-name
-const scale_008_008_008 = new Scale3D([8, 8, 8])
-const scale_010_010_010 = new Scale3D([10, 10, 10])
-
-function stringToSpatialTileScale(str: string): SpatialTileScale | null {
-	switch (str) {
-		case '_008_008_008':
-			return SpatialTileScale._008_008_008
-		case '_010_010_010':
-			return SpatialTileScale._010_010_010
-		default:
-			return null
-	}
-}
-
-function spatialTileScaleToScale3D(msg: SpatialTileScale): Scale3D | null {
-	switch (msg) {
-		case SpatialTileScale._008_008_008:
-			return scale_008_008_008
-		case SpatialTileScale._010_010_010:
-			return scale_010_010_010
-		default:
-			return null
-	}
-}
 
 function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undefined): TileIndex | null {
 	if (!msg) return null
