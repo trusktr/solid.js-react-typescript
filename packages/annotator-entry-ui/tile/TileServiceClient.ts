@@ -42,6 +42,11 @@ function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undef
 
 const pingRequest = new PingRequest()
 
+// We generate tile searches using the boundaries of super tiles. Tile boundaries are inclusive on the
+// lower faces and exclusive on the upper faces. Apply an offset from the upper boundaries to avoid
+// retrieving a bunch of extra tiles there.
+const tileSearchOffset = -0.001
+
 export class TileServiceClient {
 	private srid: SpatialReferenceSystemIdentifier
 	private scale: SpatialTileScale
@@ -135,10 +140,9 @@ export class TileServiceClient {
 		corner1.setZ(search.minPoint.z)
 		const corner2 = new GeographicPoint3DMessage()
 		corner2.setSrid(this.srid)
-		// todo fix off by one at max edge
-		corner2.setX(search.maxPoint.x - 0.001)
-		corner2.setY(search.maxPoint.y - 0.001)
-		corner2.setZ(search.maxPoint.z - 0.001)
+		corner2.setX(search.maxPoint.x + tileSearchOffset)
+		corner2.setY(search.maxPoint.y + tileSearchOffset)
+		corner2.setZ(search.maxPoint.z + tileSearchOffset)
 
 		return this.connect()
 			.then(() => this.getTiles(corner1, corner2))
@@ -153,10 +157,9 @@ export class TileServiceClient {
 		corner1.setZ(search.minTileIndex.origin.z)
 		const corner2 = new GeographicPoint3DMessage()
 		corner2.setSrid(this.srid)
-		// todo fix off by one at max edge
-		corner2.setX(search.maxTileIndex.origin.x + search.maxTileIndex.scale.xSize - 0.001)
-		corner2.setY(search.maxTileIndex.origin.y + search.maxTileIndex.scale.ySize - 0.001)
-		corner2.setZ(search.maxTileIndex.origin.z + search.maxTileIndex.scale.zSize - 0.001)
+		corner2.setX(search.maxTileIndex.origin.x + search.maxTileIndex.scale.xSize + tileSearchOffset)
+		corner2.setY(search.maxTileIndex.origin.y + search.maxTileIndex.scale.ySize + tileSearchOffset)
+		corner2.setZ(search.maxTileIndex.origin.z + search.maxTileIndex.scale.zSize + tileSearchOffset)
 
 		return this.connect()
 			.then(() => this.getTiles(corner1, corner2))
