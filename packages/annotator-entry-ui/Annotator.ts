@@ -2,7 +2,7 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
-import {MapCapStatusClient} from "./status/MapCapStatusClient";
+import {LocationServerStatusClient} from "./status/LocationServerStatusClient";
 
 const config = require('../config')
 import * as $ from 'jquery'
@@ -170,7 +170,7 @@ export class Annotator {
 	private settings: AnnotatorSettings
 	private flythroughTrajectory: Models.TrajectoryMessage
 	private flythroughSettings: FlyThroughSettings
-	private mapCapStatusClient: MapCapStatusClient
+	private locationServerStatusClient: LocationServerStatusClient
 	private gui: any
 
 	constructor() {
@@ -232,7 +232,7 @@ export class Annotator {
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
-		this.mapCapStatusClient = new MapCapStatusClient(this.onMapCapStatusUpdate)
+		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
 		this.flythroughSettings = {
 			enabled: false,
@@ -2113,7 +2113,7 @@ export class Annotator {
 	// Move the camera and the car model through poses streamed from ZMQ.
 	// See also runFlythrough().
 	private initClient(): void {
-		this.mapCapStatusClient.connect().then(
+		this.locationServerStatusClient.connect().then(
 			() => log.info(
 				"Connected to location server status"
 			)
@@ -2328,32 +2328,32 @@ export class Annotator {
 
 	// Display a UI element to tell the user what is happening with MapCao.
 	// Error messages persist,  and success messages disappear after a time-out.
-	private onMapCapStatusUpdate: (mapCapStatus: boolean) => void = (mapCapStatus: boolean) => {
+	private onLocationServerStatusUpdate: (serverStatus: boolean) => void = (serverStatus: boolean) => {
 		// If we aren't listening then we don't care
 		if (!this.uiState.isLiveMode) return
 
 		let message = 'Location status: '
-		if (mapCapStatus) {
+		if (serverStatus) {
 			message += '<span class="statusOk">available</span>'
-			this.delayHideMapCapStatus()
+			this.delayLocationServerStatus()
 		} else {
 			message += '<span class="statusError">unavailable</span>'
-			this.cancelHideMapCapStatus()
+			this.cancelHideLocationServerStatus()
 		}
 		this.statusWindow.setMessage(statusKey.locationServer, message)
 	}
 
-	private delayHideMapCapStatus = (): void => {
-		this.cancelHideMapCapStatus()
-		this.hideMapCapStatus()
+	private delayLocationServerStatus = (): void => {
+		this.cancelHideLocationServerStatus()
+		this.hideLocationServerStatus()
 	}
 
-	private cancelHideMapCapStatus = (): void => {
+	private cancelHideLocationServerStatus = (): void => {
 		if (this.locationServerStatusDisplayTimer)
 			clearTimeout(this.locationServerStatusDisplayTimer)
 	}
 
-	private hideMapCapStatus = (): void => {
+	private hideLocationServerStatus = (): void => {
 		this.locationServerStatusDisplayTimer = setTimeout(() => {
 			this.statusWindow.setMessage(statusKey.locationServer, '')
 		}, this.settings.timeToDisplayHealthyStatusMs)

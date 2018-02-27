@@ -16,23 +16,23 @@ import Models = MapperProtos.mapper.models
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-export class MapCapStatusClient {
+export class LocationServerStatusClient {
 	private statusClient: Socket | null
 	private onStatusUpdate: (status: boolean) => void
 	private serverStatus: boolean | null // null == untested; true == available; false == unavailable
 	private reqInFlight: boolean // semaphore for pingServer()
 	private statusCheckInterval: number // configuration for pinging the server
-	private mapCapStatusAddress: string
+	private locationServerStatusAddress: string
 
 	constructor(onStatusUpdate: (status: boolean) => void) {
 		this.serverStatus = null
 		this.reqInFlight = false
 		this.onStatusUpdate = onStatusUpdate
-		this.statusCheckInterval = config.get('mapcap.status.health_check.interval.seconds') * 1000
+		this.statusCheckInterval = config.get('location_server.status.health_check.interval.seconds') * 1000
 
-		const mapCapStatusHost = config.get('mapcap.status.host') || 'localhost'
-		const mapCapStatusPort = config.get('mapcap.status.port') || '26502'
-		this.mapCapStatusAddress = "tcp://" + mapCapStatusHost + ':' + mapCapStatusPort
+		const locationServerStatusHost = config.get('location_server.status.host') || 'localhost'
+		const locationServerStatusPort = config.get('location_server.status.port') || '26502'
+		this.locationServerStatusAddress = "tcp://" + locationServerStatusHost + ':' + locationServerStatusPort
 		this.statusClient = null
 	}
 
@@ -41,7 +41,7 @@ export class MapCapStatusClient {
 		if (this.statusClient)
 			return Promise.resolve()
 
-		log.info('Connecting to location server status provider at', this.mapCapStatusAddress)
+		log.info('Connecting to location server status provider at', this.locationServerStatusAddress)
 		var self = this
 		// For anything but "connect", we aren't getting status from the
 		// location server.
@@ -60,7 +60,7 @@ export class MapCapStatusClient {
 			.on("message", function(reply: Buffer) {
 				self.reqInFlight = false
 				self.parseStatus(reply)
-		}).connect(this.mapCapStatusAddress)
+		}).connect(this.locationServerStatusAddress)
 
 		const result = this.pingServer()
 		this.periodicallyCheckServerStatus()
@@ -78,9 +78,12 @@ export class MapCapStatusClient {
 		} else {
 			status.statusResponses!.responses!.forEach(
 				response => {
-					this.setServerStatus(
-						response.status === Models.StatusType.kStatusReady
-					)
+					if (response.source
+							=== Models.SystemModule.kSystemModuleMapCap) {
+						this.setServerStatus(
+							response.status === Models.StatusType.kStatusReady
+						)
+					}
 				}
 			)
 		}
