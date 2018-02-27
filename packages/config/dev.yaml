@@ -45,7 +45,7 @@ output.annotations.autosave.directory.path: ./data/autosave
 output.annotations.autosave.interval.seconds: 300
 
 # Fly-through trajectory file
-fly_through.trajectory_path:
+fly_through.trajectory_path.list:
 fly_through.render.fps: 10
 
 # persist trajectories

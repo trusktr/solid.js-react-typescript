@@ -63,6 +63,7 @@ const cameraCenter = new THREE.Vector2(0, 0)
 
 const statusKey = {
 	carPosition: 'carPosition',
+	flyThrough: 'flyThrough',
 	tileServer: 'tileServer',
 	locationServer: 'locationServer'
 }
@@ -168,8 +169,8 @@ export class Annotator {
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
-	private flythroughTrajectory: Models.TrajectoryMessage
-	private flythroughSettings: FlyThroughSettings
+	private flyThroughTrajectoryPoses: Models.PoseMessage[]
+	private flyThroughSettings: FlyThroughSettings
 	private locationServerStatusClient: LocationServerStatusClient
 	private gui: any
 
@@ -234,10 +235,10 @@ export class Annotator {
 		this.pointCloudBoundingBox = null
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
-		this.flythroughSettings = {
+		this.flyThroughSettings = {
 			enabled: false,
 			startPoseIndex: 0,
-			endPoseIndex: Number.MAX_VALUE,
+			endPoseIndex: 0,
 			currentPoseIndex: 0,
 			cameraOffset: new THREE.Vector3(30, 10, 0),
 			cameraOffsetDelta: 1,
@@ -426,14 +427,16 @@ export class Annotator {
 
 		if (config.get('live_mode.trajectory_path'))
 			log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
+		if (config.get('fly_through.trajectory_path'))
+			log.warn('config option fly_through.trajectory_path is now a list: fly_through.trajectory_path.list')
 
 		let trajectoryResult: Promise<void>
-		const trajectoryPath = config.get('fly_through.trajectory_path')
-		if (trajectoryPath) {
+		const trajectoryPaths = config.get('fly_through.trajectory_path.list')
+		if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
 			trajectoryResult = pointCloudResult
 				.then(() => {
-					log.info('loading pre-configured trajectory ' + trajectoryPath)
-					return this.loadFlythroughTrajectory(trajectoryPath)
+					log.info('loading pre-configured trajectories')
+					return this.loadFlyThroughTrajectories(trajectoryPaths)
 				})
 		} else {
 			trajectoryResult = pointCloudResult
@@ -458,15 +461,27 @@ export class Annotator {
 		this.transformControls.update()
 	}
 
-	private loadFlythroughTrajectory(filename: string): Promise<void> {
-		return AsyncFile.readFile(filename)
-			.then(buffer => Models.TrajectoryMessage.decode(buffer))
-			.then(msg => {
-				log.info('Number of trajectory poses: ' + msg.states.length)
-				this.flythroughSettings.enabled = true
-				this.flythroughTrajectory = msg
-				if (this.flythroughSettings.endPoseIndex >= this.flythroughTrajectory.states.length) {
-					this.flythroughSettings.endPoseIndex = this.flythroughTrajectory.states.length
+	private loadFlyThroughTrajectories(paths: string[]): Promise<void> {
+		return Promise.all(paths.map(path => AsyncFile.readFile(path)))
+			.then(buffers => {
+				this.flyThroughTrajectoryPoses = []
+				buffers.forEach(buffer => {
+					const msg = Models.TrajectoryMessage.decode(buffer)
+					const poses = msg.states
+						.filter(state =>
+							state && state.pose
+							&& state.pose.x !== null && state.pose.y !== null && state.pose.z !== null
+							&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
+						)
+						.map(state => state.pose! as Models.PoseMessage)
+					this.flyThroughTrajectoryPoses = this.flyThroughTrajectoryPoses.concat(poses)
+				})
+				if (this.flyThroughTrajectoryPoses.length) {
+					this.flyThroughSettings.endPoseIndex = this.flyThroughTrajectoryPoses.length
+					this.flyThroughSettings.enabled = true
+					log.info(`loaded ${this.flyThroughSettings.endPoseIndex} trajectory poses`)
+				} else {
+					throw Error('failed to load trajectory poses')
 				}
 			})
 			.catch(err => {
@@ -484,34 +499,28 @@ export class Annotator {
 
 		setTimeout(() => {
 			this.runFlythrough()
-		}, 1000 / this.flythroughSettings.fps)
+		}, 1000 / this.flyThroughSettings.fps)
 
-		if (this.flythroughSettings.currentPoseIndex >= this.flythroughSettings.endPoseIndex) {
-			this.flythroughSettings.currentPoseIndex = this.flythroughSettings.startPoseIndex
-		}
-		const state = this.flythroughTrajectory.states[this.flythroughSettings.currentPoseIndex]
+		if (this.flyThroughSettings.currentPoseIndex >= this.flyThroughSettings.endPoseIndex)
+			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
+		const pose = this.flyThroughTrajectoryPoses[this.flyThroughSettings.currentPoseIndex]
+		this.statusWindow.setMessage(statusKey.flyThrough, `Pose ${this.flyThroughSettings.currentPoseIndex + 1} of ${this.flyThroughSettings.endPoseIndex}`)
 
 		// Move the car and the camera
-		if (
-			state && state.pose
-			&& state.pose.x !== null && state.pose.y !== null && state.pose.z !== null
-			&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
-		) {
-			const inputPosition = new THREE.Vector3(state.pose.x, state.pose.y, state.pose.z)
-			const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
-			const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
-			const inputRotation = new THREE.Quaternion(state.pose.q0, state.pose.q1, state.pose.q2, state.pose.q3)
-			const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
-			const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
-			rotationThreeJs.normalize()
+		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
+		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
+		const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+		const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
+		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
+		const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
+		rotationThreeJs.normalize()
 
-			this.updateAoiHeading(rotationThreeJs)
-			this.updateCarStatus(standardPosition)
-			this.updateCarPose(positionThreeJs, rotationThreeJs)
-			this.updateCameraPose()
-		}
+		this.updateAoiHeading(rotationThreeJs)
+		this.updateCarStatus(standardPosition)
+		this.updateCarPose(positionThreeJs, rotationThreeJs)
+		this.updateCameraPose()
 
-		this.flythroughSettings.currentPoseIndex++
+		this.flyThroughSettings.currentPoseIndex++
 	}
 
 	/**
@@ -1130,19 +1139,19 @@ export class Annotator {
 	private onKeyDownLiveMode = (event: KeyboardEvent): void => {
 		switch (event.keyCode) {
 			case 37: { // left arrow
-				this.flythroughSettings.cameraOffset.x += this.flythroughSettings.cameraOffsetDelta
+				this.flyThroughSettings.cameraOffset.x += this.flyThroughSettings.cameraOffsetDelta
 				break
 			}
 			case 38: { // up arrow
-				this.flythroughSettings.cameraOffset.y += this.flythroughSettings.cameraOffsetDelta
+				this.flyThroughSettings.cameraOffset.y += this.flyThroughSettings.cameraOffsetDelta
 				break
 			}
 			case 39: { // right arrow
-				this.flythroughSettings.cameraOffset.x -= this.flythroughSettings.cameraOffsetDelta
+				this.flyThroughSettings.cameraOffset.x -= this.flyThroughSettings.cameraOffsetDelta
 				break
 			}
 			case 40: { // down arrow
-				this.flythroughSettings.cameraOffset.y -= this.flythroughSettings.cameraOffsetDelta
+				this.flyThroughSettings.cameraOffset.y -= this.flyThroughSettings.cameraOffsetDelta
 				break
 			}
 			default:
@@ -2186,9 +2195,9 @@ export class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
-		this.settings.fpsRendering = this.flythroughSettings.fps
-		if (this.flythroughSettings.enabled) {
-			this.flythroughSettings.currentPoseIndex = this.flythroughSettings.startPoseIndex
+		this.settings.fpsRendering = this.flyThroughSettings.fps
+		if (this.flyThroughSettings.enabled) {
+			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
 			this.runFlythrough()
 		}
 
@@ -2214,6 +2223,7 @@ export class Annotator {
 			this.pointCloudBoundingBox.material.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		this.statusWindow.setMessage(statusKey.carPosition, '')
+		this.statusWindow.setMessage(statusKey.flyThrough, '')
 		this.updateAoiHeading(null)
 
 		return this.uiState.isLiveMode
@@ -2267,7 +2277,7 @@ export class Annotator {
 
 	private updateCameraPose(): void {
 		const p = this.carModel.getWorldPosition().clone()
-		const offset = this.flythroughSettings.cameraOffset.clone()
+		const offset = this.flyThroughSettings.cameraOffset.clone()
 		offset.applyQuaternion(this.carModel.quaternion)
 		offset.add(p)
 		this.camera.position.set(offset.x, offset.y, offset.z)
