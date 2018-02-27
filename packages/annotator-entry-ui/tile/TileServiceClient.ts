@@ -20,38 +20,12 @@ import {
 import {TileRangeSearch} from "../model/TileRangeSearch"
 import {RangeSearch} from "../model/RangeSearch"
 import {TileIndex} from "../model/TileIndex"
-import {Scale3D} from "../geometry/Scale3D"
 import {RemoteTileInstance} from "../model/TileInstance"
+import {spatialTileScaleToScale3D, stringToSpatialTileScale} from "./ScaleUtil"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-
-// tslint:disable:variable-name
-const scale_008_008_008 = new Scale3D([8, 8, 8])
-const scale_010_010_010 = new Scale3D([10, 10, 10])
-
-function stringToSpatialTileScale(str: string): SpatialTileScale | null {
-	switch (str) {
-		case '_008_008_008':
-			return SpatialTileScale._008_008_008
-		case '_010_010_010':
-			return SpatialTileScale._010_010_010
-		default:
-			return null
-	}
-}
-
-function spatialTileScaleToScale3D(msg: SpatialTileScale): Scale3D | null {
-	switch (msg) {
-		case SpatialTileScale._008_008_008:
-			return scale_008_008_008
-		case SpatialTileScale._010_010_010:
-			return scale_010_010_010
-		default:
-			return null
-	}
-}
 
 function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undefined): TileIndex | null {
 	if (!msg) return null
@@ -67,6 +41,11 @@ function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undef
 }
 
 const pingRequest = new PingRequest()
+
+// We generate tile searches using the boundaries of super tiles. Tile boundaries are inclusive on the
+// lower faces and exclusive on the upper faces. Apply an offset from the upper boundaries to avoid
+// retrieving a bunch of extra tiles there.
+const tileSearchOffset = -0.001
 
 export class TileServiceClient {
 	private srid: SpatialReferenceSystemIdentifier
@@ -106,7 +85,11 @@ export class TileServiceClient {
 			return Promise.resolve()
 
 		log.info('connecting to tile server at', this.tileServiceAddress)
-		this.client = new GrpcClient(this.tileServiceAddress, grpc.credentials.createInsecure())
+		this.client = new GrpcClient(
+			this.tileServiceAddress,
+			grpc.credentials.createInsecure(),
+			{'grpc.max_receive_message_length': 100 * 1024 * 1024} // tiles should be maximum 10s of MB
+		)
 
 		const result = this.pingServer()
 		this.periodicallyCheckServerStatus()
@@ -157,10 +140,9 @@ export class TileServiceClient {
 		corner1.setZ(search.minPoint.z)
 		const corner2 = new GeographicPoint3DMessage()
 		corner2.setSrid(this.srid)
-		// todo fix off by one at max edge
-		corner2.setX(search.maxPoint.x - 0.001)
-		corner2.setY(search.maxPoint.y - 0.001)
-		corner2.setZ(search.maxPoint.z - 0.001)
+		corner2.setX(search.maxPoint.x + tileSearchOffset)
+		corner2.setY(search.maxPoint.y + tileSearchOffset)
+		corner2.setZ(search.maxPoint.z + tileSearchOffset)
 
 		return this.connect()
 			.then(() => this.getTiles(corner1, corner2))
@@ -175,10 +157,9 @@ export class TileServiceClient {
 		corner1.setZ(search.minTileIndex.origin.z)
 		const corner2 = new GeographicPoint3DMessage()
 		corner2.setSrid(this.srid)
-		// todo fix off by one at max edge
-		corner2.setX(search.maxTileIndex.origin.x + search.maxTileIndex.scale.xSize - 0.001)
-		corner2.setY(search.maxTileIndex.origin.y + search.maxTileIndex.scale.ySize - 0.001)
-		corner2.setZ(search.maxTileIndex.origin.z + search.maxTileIndex.scale.zSize - 0.001)
+		corner2.setX(search.maxTileIndex.origin.x + search.maxTileIndex.scale.xSize + tileSearchOffset)
+		corner2.setY(search.maxTileIndex.origin.y + search.maxTileIndex.scale.ySize + tileSearchOffset)
+		corner2.setZ(search.maxTileIndex.origin.z + search.maxTileIndex.scale.zSize + tileSearchOffset)
 
 		return this.connect()
 			.then(() => this.getTiles(corner1, corner2))

@@ -22,15 +22,22 @@ function createWindow(): void {
 	const width = parseInt(config.get('startup.electron.window.default.width'), 10)
 	const height = parseInt(config.get('startup.electron.window.default.height'), 10)
 	let maximize = false
+	let goFullscreen = false
 	if (width && height) {
 		options.width = width
 		options.height = height
-	} else
+	} else if (config.get('startup.kiosk_mode')) {
+		goFullscreen = true
+	} else {
 		maximize = true
+	}
 	win = new BrowserWindow(options)
-	if (maximize)
+	if (goFullscreen) {
+		win.setFullScreen(true)
+	} else if (maximize) {
 		win.maximize()
-
+	}
+	
 	// Open the DevTools.
 	if (!!config.get('startup.show_dev_tools'))
 		win.webContents.openDevTools()

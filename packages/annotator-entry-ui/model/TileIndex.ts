@@ -19,6 +19,7 @@ export class TileIndex {
 	zIndex: TileIndexDimension
 	origin: THREE.Vector3
 	boundingBox: THREE.Box3
+	private cachedString: string | null
 
 	constructor(scale: Scale3D, xIndex: TileIndexDimension, yIndex: TileIndexDimension, zIndex: TileIndexDimension) {
 		this.scale = scale
@@ -34,12 +35,22 @@ export class TileIndex {
 			this.origin,
 			this.origin.clone().add(this.scale.toVector())
 		)
+		this.cachedString = null
 	}
 
 	toString(separator: string = defaultSeparator): string {
-		return this.xIndex.toString() + separator +
-			this.yIndex.toString() + separator +
-			this.zIndex.toString()
+		if (separator === defaultSeparator) {
+			if (this.cachedString === null) {
+				this.cachedString = this.xIndex.toString() + separator +
+					this.yIndex.toString() + separator +
+					this.zIndex.toString()
+			}
+			return this.cachedString
+		} else {
+			return this.xIndex.toString() + separator +
+				this.yIndex.toString() + separator +
+				this.zIndex.toString()
+		}
 	}
 
 	equals(that: TileIndex): boolean {

@@ -128,9 +128,31 @@ function makeTileMessageForCurrentUtmZone(origin: THREE.Vector3): TileMessage {
 // SuperTiles have a simple caching strategy for their constituent tiles; that is, they cache
 // data for tiles they already know about. We make it simpler by populating all the constituent
 // tiles up front. Then we can treat a SuperTile as the basic unit of cache within TileManager.
-// This expands the input range search to cover the entire volume of the SuperTiles that are
-// intersected by the search, and it converts the range to an array of all those SuperTiles.
-function enumerateIntersectingSuperTileIndexes(search: RangeSearch): TileIndex[] {
+// This expands the input range searches to cover the entire volume of the SuperTiles that are
+// intersected by the searches, and it converts the ranges to an array of all those SuperTiles.
+function enumerateIntersectingSuperTileIndexes(searches: RangeSearch[]): TileIndex[] {
+	switch (searches.length) {
+		case 0:
+			return []
+		case 1:
+			return enumerateOneRange(searches[0])
+		default:
+			const enumerations = searches.map(search => enumerateOneRange(search))
+			const uniqueTileIndexes = enumerations[0]
+			const seen: Set<string> = new Set(uniqueTileIndexes.map(ti => ti.toString()))
+			for (let n = 1; n < enumerations.length; n++) {
+				enumerations[n].forEach(ti => {
+					if (!seen.has(ti.toString())) {
+						seen.add(ti.toString())
+						uniqueTileIndexes.push(ti)
+					}
+				})
+			}
+			return uniqueTileIndexes
+	}
+}
+
+function enumerateOneRange(search: RangeSearch): TileIndex[] {
 	const min = tileIndexFromVector3(superTileScale, search.minPoint)
 	const max = tileIndexFromVector3(superTileScale, search.maxPoint)
 	const indexes: TileIndex[] = []
@@ -547,12 +569,12 @@ export class TileManager extends UtmInterface {
 	// Given a range search, find all intersecting super tiles. Load point cloud data for as many
 	// as allowed by configuration, or all if loadAllPoints.
 	// Side effect: Prune old SuperTiles as necessary.
-	loadFromMapServer(search: RangeSearch, coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<void> {
+	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<void> {
 		if (this.isLoadingPointCloud)
 			return Promise.reject(new BusyError('busy loading point cloud'))
 		this.isLoadingPointCloud = true
 		return this.resetIsLoadingPointCloud(
-			this.loadFromMapServerImpl(search, coordinateFrame, loadAllPoints)
+			this.loadFromMapServerImpl(searches, coordinateFrame, loadAllPoints)
 		)
 	}
 
@@ -623,9 +645,9 @@ export class TileManager extends UtmInterface {
 	}
 
 	// The useful bits of loadFromMapServer()
-	private loadFromMapServerImpl(search: RangeSearch, coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<void> {
+	private loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<void> {
 		// Figure out which super tiles to load.
-		const allStIndexes = enumerateIntersectingSuperTileIndexes(search)
+		const allStIndexes = enumerateIntersectingSuperTileIndexes(searches)
 		const filteredStIndexes = allStIndexes
 			.filter(sti => this.superTiles.get(sti.toString()) === undefined)
 		if (!filteredStIndexes.length)
