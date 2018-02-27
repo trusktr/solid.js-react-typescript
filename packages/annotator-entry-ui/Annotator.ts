@@ -2,6 +2,7 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
+import {MapCapStatusClient} from "./status/MapCapStatusClient";
 
 const config = require('../config')
 import * as $ from 'jquery'
@@ -63,6 +64,7 @@ const cameraCenter = new THREE.Vector2(0, 0)
 const statusKey = {
 	carPosition: 'carPosition',
 	tileServer: 'tileServer',
+	locationServer: 'locationServer'
 }
 
 enum MenuVisibility {
@@ -158,6 +160,7 @@ export class Annotator {
 	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: NodeJS.Timer
 	private serverStatusDisplayTimer: NodeJS.Timer
+	private locationServerStatusDisplayTimer: NodeJS.Timer
 	private annotationManager: AnnotationManager
 	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
 	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
@@ -167,6 +170,7 @@ export class Annotator {
 	private settings: AnnotatorSettings
 	private flythroughTrajectory: Models.TrajectoryMessage
 	private flythroughSettings: FlyThroughSettings
+	private mapCapStatusClient: MapCapStatusClient
 	private gui: any
 
 	constructor() {
@@ -228,6 +232,7 @@ export class Annotator {
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
+		this.mapCapStatusClient = new MapCapStatusClient(this.onMapCapStatusUpdate)
 
 		this.flythroughSettings = {
 			enabled: false,
@@ -239,8 +244,6 @@ export class Annotator {
 			fps: parseFloat(config.get('fly_through.render.fps')) || 10
 		}
 
-		// Initialize socket for use when "live mode" operation is on
-		this.initClient()
 	}
 
 	/**
@@ -381,8 +384,12 @@ export class Annotator {
 		)
 
 		return this.loadCarModel()
-			.then(() => this.loadUserData())
-			.then(() => {if (this.uiState.isKioskMode) this.toggleListen()})
+			.then(() => {
+				this.loadUserData()
+				if (this.uiState.isKioskMode) this.toggleListen()
+				// Initialize socket for use when "live mode" operation is on
+				this.initClient()
+			})
 	}
 
 	// Load up any data which configuration has asked for on start-up.
@@ -2106,6 +2113,17 @@ export class Annotator {
 	// Move the camera and the car model through poses streamed from ZMQ.
 	// See also runFlythrough().
 	private initClient(): void {
+		this.mapCapStatusClient.connect().then(
+			() => log.info(
+				"Connected to location server status"
+			)
+		).catch(
+			() => {
+				let errorStr = "Could not connect to location server status"
+				log.error(errorStr)
+				this.statusWindow.setMessage(statusKey.locationServer, errorStr)
+			}
+		)
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
@@ -2117,8 +2135,6 @@ export class Annotator {
 				state.pose.x != null && state.pose.y != null && state.pose.z != null &&
 				state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
 			) {
-				log.info("Received message: " + state.pose.timestamp)
-
 				// Move the car and the camera
 				const position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
 
@@ -2309,6 +2325,40 @@ export class Annotator {
 			this.statusWindow.setMessage(statusKey.tileServer, '')
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
+
+	// Display a UI element to tell the user what is happening with MapCao.
+	// Error messages persist,  and success messages disappear after a time-out.
+	private onMapCapStatusUpdate: (mapCapStatus: boolean) => void = (mapCapStatus: boolean) => {
+		// If we aren't listening then we don't care
+		if (!this.uiState.isLiveMode) return
+
+		let message = 'Location status: '
+		if (mapCapStatus) {
+			message += '<span class="statusOk">available</span>'
+			this.delayHideMapCapStatus()
+		} else {
+			message += '<span class="statusError">unavailable</span>'
+			this.cancelHideMapCapStatus()
+		}
+		this.statusWindow.setMessage(statusKey.locationServer, message)
+	}
+
+	private delayHideMapCapStatus = (): void => {
+		this.cancelHideMapCapStatus()
+		this.hideMapCapStatus()
+	}
+
+	private cancelHideMapCapStatus = (): void => {
+		if (this.locationServerStatusDisplayTimer)
+			clearTimeout(this.locationServerStatusDisplayTimer)
+	}
+
+	private hideMapCapStatus = (): void => {
+		this.locationServerStatusDisplayTimer = setTimeout(() => {
+			this.statusWindow.setMessage(statusKey.locationServer, '')
+		}, this.settings.timeToDisplayHealthyStatusMs)
+	}
+
 
 }
 
