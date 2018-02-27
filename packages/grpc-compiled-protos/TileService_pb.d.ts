@@ -203,3 +203,76 @@ export namespace RadiusSearchMessage {
         scale: CoordinateReferenceSystem_pb.SpatialTileScale,
     }
 }
+
+export class GetTilesRequest extends jspb.Message { 
+    clearUrlsList(): void;
+    getUrlsList(): Array<string>;
+    setUrlsList(value: Array<string>): void;
+    addUrls(value: string, index?: number): string;
+
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): GetTilesRequest.AsObject;
+    static toObject(includeInstance: boolean, msg: GetTilesRequest): GetTilesRequest.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: GetTilesRequest, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): GetTilesRequest;
+    static deserializeBinaryFromReader(message: GetTilesRequest, reader: jspb.BinaryReader): GetTilesRequest;
+}
+
+export namespace GetTilesRequest {
+    export type AsObject = {
+        urlsList: Array<string>,
+    }
+}
+
+export class GetTilesResponse extends jspb.Message { 
+    clearTileContentsList(): void;
+    getTileContentsList(): Array<TileContentsMessage>;
+    setTileContentsList(value: Array<TileContentsMessage>): void;
+    addTileContents(value?: TileContentsMessage, index?: number): TileContentsMessage;
+
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): GetTilesResponse.AsObject;
+    static toObject(includeInstance: boolean, msg: GetTilesResponse): GetTilesResponse.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: GetTilesResponse, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): GetTilesResponse;
+    static deserializeBinaryFromReader(message: GetTilesResponse, reader: jspb.BinaryReader): GetTilesResponse;
+}
+
+export namespace GetTilesResponse {
+    export type AsObject = {
+        tileContentsList: Array<TileContentsMessage.AsObject>,
+    }
+}
+
+export class TileContentsMessage extends jspb.Message { 
+    getUrl(): string;
+    setUrl(value: string): void;
+
+    getContents(): Uint8Array | string;
+    getContents_asU8(): Uint8Array;
+    getContents_asB64(): string;
+    setContents(value: Uint8Array | string): void;
+
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): TileContentsMessage.AsObject;
+    static toObject(includeInstance: boolean, msg: TileContentsMessage): TileContentsMessage.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: TileContentsMessage, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): TileContentsMessage;
+    static deserializeBinaryFromReader(message: TileContentsMessage, reader: jspb.BinaryReader): TileContentsMessage;
+}
+
+export namespace TileContentsMessage {
+    export type AsObject = {
+        url: string,
+        contents: Uint8Array | string,
+    }
+}

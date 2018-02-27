@@ -28,6 +28,7 @@ import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
 import LocalStorage from "../state/LocalStorage"
 import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "../model/RangeSearch"
+import {LocalTileInstance, RemoteTileInstance, TileInstance} from "../model/TileInstance"
 import {isTupleOfNumbers} from "../util/Validation"
 
 // tslint:disable-next-line:no-any
@@ -52,30 +53,6 @@ const loadedSuperTileKeysKey = 'loadedSuperTileKeys'
 let warningDelivered = false
 
 export class BusyError extends Error {}
-
-function loadBaseGeometryTileMessage(filename: string): Promise<TileMessage> {
-	return AsyncFile.readFile(filename)
-		.then(buffer => Models.BaseGeometryTileMessage.decode(buffer))
-		.catch(err => {throw Error('protobuf read failed: ' + err.message)})
-		.then(msg => baseGeometryTileMessageToTileMessage(msg))
-}
-
-function loadPointCloudTileMessage(filename: string): Promise<TileMessage> {
-	return AsyncFile.readFile(filename)
-		.then(buffer => Models.PointCloudTileMessage.decode(buffer))
-		.catch(err => {throw Error('protobuf read failed: ' + err.message)})
-		.then(msg => {
-			// Perception doesn't set UTM zone correctly. For now we have to assume the data are from San Francisco.
-			if (!warningDelivered) {
-				log.warn('forcing tiles into UTM zone 10N')
-				warningDelivered = true
-			}
-			msg.utmZoneNumber = 10
-			msg.utmZoneNorthernHemisphere = true
-			return msg
-		})
-		.then(msg => pointCloudTileMessageToTileMessage(msg))
-}
 
 interface TileMetadata {
 	name: string // file name
@@ -195,9 +172,24 @@ function enumerateOneRange(search: RangeSearch): TileIndex[] {
 	return indexes
 }
 
+interface TileManagerConfig {
+	pointsSize: number,
+	tileMessageFormat: TileMessageFormat,
+	initialSuperTilesToLoad: number, // preload some super tiles; initially we don't know how many points they will contain
+	maximumPointsToLoad: number, // after loading super tiles we can trim them back by point count
+	samplingStep: number,
+}
+
+interface VoxelsConfig {
+	voxelSize: number,
+	voxelsMaxHeight: number,
+}
+
 // TileManager loads tile data from disk or from the network. Tiles are aggregated into SuperTiles,
 // which serve as a local cache for chunks of tile data.
 export class TileManager extends UtmInterface {
+	private config: TileManagerConfig
+	voxelsConfig: VoxelsConfig
 	private storage: LocalStorage // persistent state for UI settings
 	private coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin
 	hasGeometry: boolean
@@ -215,14 +207,8 @@ export class TileManager extends UtmInterface {
 	voxelsMeshGroup: Array<THREE.Mesh>
 	voxelsDictionary: Set<THREE.Vector3>
 	voxelsHeight: Array<number>
-	voxelSize: number
-	private voxelsMaxHeight: number
 	private HSVGradient: Array<THREE.Vector3>
 	private onSuperTileUnload: (superTile: SuperTile) => void
-	private tileMessageFormat: TileMessageFormat
-	private initialSuperTilesToLoad: number // preload some super tiles; initially we don't know how many points they will contain
-	private maximumPointsToLoad: number // after loading super tiles we can trim them back by point count
-	private samplingStep: number
 	private tileServiceClient: TileServiceClient
 
 	constructor(
@@ -230,31 +216,35 @@ export class TileManager extends UtmInterface {
 		onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
 	) {
 		super()
+		this.config = {
+			pointsSize: parseFloat(config.get('annotator.point_render_size')) || 1,
+			tileMessageFormat: TileMessageFormat[config.get('tile_manager.tile_message_format') as string],
+			initialSuperTilesToLoad: parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4,
+			maximumPointsToLoad: parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000,
+			samplingStep: parseInt(config.get('tile_manager.sampling_step'), 10) || 5,
+		}
+		if (!this.config.tileMessageFormat)
+			throw Error('bad tile_manager.tile_message_format: ' + config.get('tile_manager.tile_message_format'))
+		this.voxelsConfig = {
+			voxelSize: 0.15,
+			voxelsMaxHeight: 7,
+		}
 		this.storage = new LocalStorage()
 		this.coordinateSystemInitialized = false
 		this.onSuperTileUnload = onSuperTileUnload
 		this.hasGeometry = false
 		this.superTiles = OrderedMap()
 		this.loadedSuperTileKeys = OrderedSet()
-		const pointsSize = parseFloat(config.get('annotator.point_render_size')) || 1
 		this.pointCloud = new THREE.Points(
 			new THREE.BufferGeometry(),
-			new THREE.PointsMaterial({size: pointsSize, vertexColors: THREE.VertexColors})
+			new THREE.PointsMaterial({size: this.config.pointsSize, vertexColors: THREE.VertexColors})
 		)
 		this.isLoadingPointCloud = false
 		this.voxelsMeshGroup = []
 		this.voxelsHeight = []
 		this.voxelsDictionary = new Set<THREE.Vector3>()
-		this.voxelSize = 0.15
-		this.voxelsMaxHeight = 7
 		this.HSVGradient = []
 		this.generateGradient()
-		this.tileMessageFormat = TileMessageFormat[config.get('tile_manager.tile_message_format') as string]
-		if (!this.tileMessageFormat)
-			throw Error('bad tile_manager.tile_message_format: ' + config.get('tile_manager.tile_message_format'))
-		this.initialSuperTilesToLoad = parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4
-		this.maximumPointsToLoad = parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000
-		this.samplingStep = parseInt(config.get('tile_manager.sampling_step'), 10) || 5
 		this.tileServiceClient = new TileServiceClient(onTileServiceStatusUpdate)
 	}
 
@@ -330,11 +320,11 @@ export class TileManager extends UtmInterface {
 	 */
 	private generateGradient(): void {
 		log.info(`Generate color palette....`)
-		let gradientValues: number = Math.floor((this.voxelsMaxHeight / this.voxelSize + 1))
-		let height: number = this.voxelSize / 2
+		let gradientValues: number = Math.floor((this.voxelsConfig.voxelsMaxHeight / this.voxelsConfig.voxelSize + 1))
+		let height: number = this.voxelsConfig.voxelSize / 2
 		for (let i = 0; i < gradientValues; ++i ) {
-			this.HSVGradient.push(TileManager.heightToColor(height, this.voxelsMaxHeight))
-			height += this.voxelSize
+			this.HSVGradient.push(TileManager.heightToColor(height, this.voxelsConfig.voxelsMaxHeight))
+			height += this.voxelsConfig.voxelSize
 		}
 	}
 
@@ -380,7 +370,7 @@ export class TileManager extends UtmInterface {
 	 * Create voxels geometry given a list of indices for the occupied voxels
 	 */
 	generateVoxels(): void {
-		let maxBandValue: number = Math.floor((this.voxelsMaxHeight / this.voxelSize + 1))
+		let maxBandValue: number = Math.floor((this.voxelsConfig.voxelsMaxHeight / this.voxelsConfig.voxelSize + 1))
 		for (let band = 0; band < maxBandValue; band++) {
 			log.info(`Processing height band ${band}...`)
 			this.generateSingleBandVoxels(band, this.HSVGradient[band])
@@ -396,7 +386,7 @@ export class TileManager extends UtmInterface {
 		log.info(`There are ${this.voxelsDictionary.size} voxels. Start creating them....`)
 
 		// Voxel params
-		let voxelSizeForRender = 0.9 * this.voxelSize
+		let voxelSizeForRender = 0.9 * this.voxelsConfig.voxelSize
 		let maxVoxelsPerArray: number = 100000
 
 		// Voxels buffers
@@ -412,7 +402,7 @@ export class TileManager extends UtmInterface {
 			// Prepare voxel color from voxel height
 			let height = this.voxelsHeight[heightIndex]
 			heightIndex++
-			let currentHeightBand = Math.floor((height / this.voxelSize))
+			let currentHeightBand = Math.floor((height / this.voxelsConfig.voxelSize))
 			if (currentHeightBand !== heightBand) {
 				continue
 			}
@@ -425,7 +415,7 @@ export class TileManager extends UtmInterface {
 
 			// Prepare voxel geometry
 			let p11 = voxelIndex.clone()
-			p11.multiplyScalar(this.voxelSize)
+			p11.multiplyScalar(this.voxelsConfig.voxelSize)
 			let p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
 			let p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
 			let p14 = new THREE.Vector3(p11.x, (p11.y + voxelSizeForRender), p11.z)
@@ -510,15 +500,58 @@ export class TileManager extends UtmInterface {
 	/**
 	 * Load a point cloud tile message from a proto binary file
 	 */
-	private loadTile(filename: string): Promise<TileMessage> {
-		switch (this.tileMessageFormat) {
-			case TileMessageFormat.BaseGeometryTileMessage:
-				return loadBaseGeometryTileMessage(filename)
-			case TileMessageFormat.PointCloudTileMessage:
-				return loadPointCloudTileMessage(filename)
-			default:
-				return Promise.reject(Error('unknown tileMessageFormat: ' + this.tileMessageFormat))
+	private loadTile(tileInstance: TileInstance): Promise<TileMessage> {
+		let loader: Promise<Uint8Array>
+		let parser: (buffer: Uint8Array) => TileMessage
+
+		if (tileInstance instanceof LocalTileInstance) {
+			loader = AsyncFile.readFile(tileInstance.fileSystemPath)
+			switch (this.config.tileMessageFormat) {
+				case TileMessageFormat.BaseGeometryTileMessage:
+					parser = TileManager.parseBaseGeometryTileMessage
+					break
+				case TileMessageFormat.PointCloudTileMessage:
+					parser = TileManager.parsePointCloudTileMessage
+					break
+				default:
+					return Promise.reject(Error('unknown tileMessageFormat: ' + this.config.tileMessageFormat))
+			}
+		} else if (tileInstance instanceof RemoteTileInstance) {
+			loader = this.tileServiceClient.getTileContents(tileInstance.url)
+			// TODO map tileInstance.layerId to parser
+			parser = TileManager.parseBaseGeometryTileMessage
+		} else {
+			return Promise.reject(Error('unknown tileInstance: ' + tileInstance))
 		}
+
+		return loader.then(buffer => parser(buffer))
+	}
+
+	private static parseBaseGeometryTileMessage(buffer: Uint8Array): TileMessage {
+		let msg
+		try {
+			msg = Models.BaseGeometryTileMessage.decode(buffer)
+		} catch (err) {
+			throw Error('protobuf read failed: ' + err.message)
+		}
+		return baseGeometryTileMessageToTileMessage(msg)
+	}
+
+	private static parsePointCloudTileMessage(buffer: Uint8Array): TileMessage {
+		let msg
+		try {
+			msg = Models.PointCloudTileMessage.decode(buffer)
+		} catch (err) {
+			throw Error('protobuf read failed: ' + err.message)
+		}
+		// Perception doesn't set UTM zone correctly. For now we have to assume the data are from San Francisco.
+		if (!warningDelivered) {
+			log.warn('forcing tiles into UTM zone 10N')
+			warningDelivered = true
+		}
+		msg.utmZoneNumber = 10
+		msg.utmZoneNorthernHemisphere = true
+		return pointCloudTileMessageToTileMessage(msg)
 	}
 
 	/**
@@ -575,8 +608,11 @@ export class TileManager extends UtmInterface {
 		let firstTilePromise: Promise<void>
 		if (this.coordinateSystemInitialized)
 			firstTilePromise = Promise.resolve()
-		else
-			firstTilePromise = this.loadTile(Path.join(datasetPath, fileMetadataList[0]!.name))
+		else {
+			const metadata = fileMetadataList[0]!
+			const tileIndex = new TileIndex(utmTileScale, metadata.index.x, metadata.index.y, metadata.index.z)
+			const tileInstance = new LocalTileInstance(tileIndex, Path.join(datasetPath, metadata!.name))
+			firstTilePromise = this.loadTile(tileInstance)
 				.then(firstMessage => {
 					if (this.checkCoordinateSystem(firstMessage, coordinateFrame)) {
 						this.coordinateSystemInitialized = true
@@ -585,15 +621,18 @@ export class TileManager extends UtmInterface {
 						return Promise.reject(Error('checkCoordinateSystem failed on first tile: ' + fileMetadataList[0]!.name))
 					}
 				})
+		}
 
 		// Instantiate tile and super tile classes for all the data.
 		// Load some of the data to get us started.
 		return firstTilePromise
 			.then(() => {
 				fileMetadataList.forEach(metadata => {
+					const tileIndex = new TileIndex(utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z)
+					const tileInstance = new LocalTileInstance(tileIndex, Path.join(datasetPath, metadata!.name))
 					const utmTile = new UtmTile(
-						new TileIndex(utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z),
-						this.pointCloudFileLoader(Path.join(datasetPath, metadata!.name), coordinateFrame),
+						tileIndex,
+						this.pointCloudFileLoader(tileInstance, coordinateFrame),
 					)
 					this.addTileToSuperTile(utmTile, coordinateFrame, metadata!.name)
 				})
@@ -613,8 +652,8 @@ export class TileManager extends UtmInterface {
 			.filter(sti => this.superTiles.get(sti.toString()) === undefined)
 		if (!filteredStIndexes.length)
 			return Promise.resolve()
-		if (!loadAllPoints && filteredStIndexes.length > this.initialSuperTilesToLoad)
-			filteredStIndexes.length = this.initialSuperTilesToLoad
+		if (!loadAllPoints && filteredStIndexes.length > this.config.initialSuperTilesToLoad)
+			filteredStIndexes.length = this.config.initialSuperTilesToLoad
 
 		// Ensure that we have a valid coordinate system before doing anything else.
 		let firstTilePromise: Promise<void>
@@ -645,13 +684,13 @@ export class TileManager extends UtmInterface {
 					}
 					// TODO merge these into fewer API requests
 					return this.tileServiceClient.getTilesByCoordinateRange(superTileSearch)
-						.then(tileMetadataList => {
-							if (tileMetadataList.length === 0) {
+						.then(tileInstances => {
+							if (tileInstances.length === 0) {
 								this.getOrCreateSuperTile(stIndex, coordinateFrame)
 							} else
-								tileMetadataList.forEach(metadata => {
-									const utmTile = new UtmTile(metadata.tileIndex, this.pointCloudFileLoader(metadata.path, coordinateFrame))
-									this.addTileToSuperTile(utmTile, coordinateFrame, metadata.path)
+								tileInstances.forEach(tileInstance => {
+									const utmTile = new UtmTile(tileInstance.tileIndex, this.pointCloudFileLoader(tileInstance, coordinateFrame))
+									this.addTileToSuperTile(utmTile, coordinateFrame, tileInstance.url)
 								})
 						})
 				})
@@ -680,16 +719,16 @@ export class TileManager extends UtmInterface {
 	//  - array of raw position data
 	//  - array of raw color data
 	//  - count of points
-	private pointCloudFileLoader(filename: string, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[], number]> {
+	private pointCloudFileLoader(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[], number]> {
 		return (): Promise<[number[], number[], number]> =>
-			this.loadTile(filename)
+			this.loadTile(tileInstance)
 				.then(msg => {
 					if (!msg.points || msg.points.length === 0) {
 						return [[], [], 0] as [number[], number[], number]
 					} else if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
-						throw Error('checkCoordinateSystem failed on: ' + filename)
+						throw Error('checkCoordinateSystem failed on: ' + tileInstance.url)
 					} else {
-						const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.samplingStep)
+						const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.config.samplingStep)
 						const positions = this.rawDataToPositions(sampledPoints, coordinateFrame)
 						const pointCount = positions.length / threeDStepSize
 						return [positions, sampledColors, pointCount] as [number[], number[], number]
@@ -720,7 +759,7 @@ export class TileManager extends UtmInterface {
 		// If not, default behavior is to take the first few in the list.
 		if (!toLoad.length)
 			toLoad = this.superTiles
-				.take(this.initialSuperTilesToLoad)
+				.take(this.config.initialSuperTilesToLoad)
 				.valueSeq().toArray()
 
 		return toLoad
@@ -771,7 +810,7 @@ export class TileManager extends UtmInterface {
 			newPositions[i] = threePoint.x
 			newPositions[i + 1] = threePoint.y
 			newPositions[i + 2] = threePoint.z
-			this.voxelsDictionary.add(threePoint.divideScalar(this.voxelSize).floor())
+			this.voxelsDictionary.add(threePoint.divideScalar(this.voxelsConfig.voxelSize).floor())
 		}
 
 		return newPositions
@@ -780,7 +819,7 @@ export class TileManager extends UtmInterface {
 	// When we exceed maximumPointsToLoad, unload old SuperTiles, keeping a minimum of one in memory.
 	private pruneSuperTiles(): void {
 		let count = 0
-		while (this.loadedSuperTileKeys.size > 1 && this.pointCount() > this.maximumPointsToLoad) {
+		while (this.loadedSuperTileKeys.size > 1 && this.pointCount() > this.config.maximumPointsToLoad) {
 			const oldestKey = this.loadedSuperTileKeys.first()
 			this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.skip(1).toOrderedSet())
 			const foundSuperTile = this.superTiles.get(oldestKey)
