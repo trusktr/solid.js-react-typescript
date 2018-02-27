@@ -39,6 +39,7 @@ If you pull down the latest version of the code base and things stop working, tr
     npm install
     npm rebuild
     ./node_modules/.bin/electron-rebuild
+    rm -rf dist
     ./etc/scripts/compile-watch.js 
 
 ### gRPC binary
