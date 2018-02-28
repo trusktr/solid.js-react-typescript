@@ -50,3 +50,8 @@ fly_through.render.fps: 10
 
 # persist trajectories
 output.trajectory.csv.path: ./data/trajectory.csv
+
+# Location server info
+location_server.status.health_check.interval.seconds: 5
+location_server.status.host: localhost
+location_server.status.port: 26502

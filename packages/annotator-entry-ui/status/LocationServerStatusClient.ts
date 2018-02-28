@@ -28,7 +28,7 @@ export class LocationServerStatusClient {
 		this.serverStatus = null
 		this.reqInFlight = false
 		this.onStatusUpdate = onStatusUpdate
-		this.statusCheckInterval = config.get('location_server.status.health_check.interval.seconds') * 1000
+		this.statusCheckInterval = (config.get('location_server.status.health_check.interval.seconds') || 5) * 1000
 
 		const locationServerStatusHost = config.get('location_server.status.host') || 'localhost'
 		const locationServerStatusPort = config.get('location_server.status.port') || '26502'
@@ -56,7 +56,7 @@ export class LocationServerStatusClient {
 			.on("close_error", function() { self.handleMonitorEvent() })
 			.on("disconnect", function() { self.handleMonitorEvent() })
 			.on("monitor_error", function() { self.handleMonitorEvent() })
-			.monitor(500, 0) // The second arg (zero) says to get all available events
+			.monitor(this.statusCheckInterval, 0) // The second arg (zero) says to get all available events
 			.on("message", function(reply: Buffer) {
 				self.reqInFlight = false
 				self.parseStatus(reply)
