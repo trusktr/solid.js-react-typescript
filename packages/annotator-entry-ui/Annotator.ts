@@ -506,19 +506,7 @@ export class Annotator {
 		const pose = this.flyThroughTrajectoryPoses[this.flyThroughSettings.currentPoseIndex]
 		this.statusWindow.setMessage(statusKey.flyThrough, `Pose ${this.flyThroughSettings.currentPoseIndex + 1} of ${this.flyThroughSettings.endPoseIndex}`)
 
-		// Move the car and the camera
-		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
-		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
-		const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
-		const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
-		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
-		const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
-		rotationThreeJs.normalize()
-
-		this.updateAoiHeading(rotationThreeJs)
-		this.updateCarStatus(standardPosition)
-		this.updateCarPose(positionThreeJs, rotationThreeJs)
-		this.updateCameraPose()
+		this.updateCarWithPose(pose)
 
 		this.flyThroughSettings.currentPoseIndex++
 	}
@@ -2144,16 +2132,7 @@ export class Annotator {
 				state.pose.x != null && state.pose.y != null && state.pose.z != null &&
 				state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
 			) {
-				// Move the car and the camera
-				const position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
-
-				const rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
-				rotation.normalize()
-
-				this.updateAoiHeading(rotation) // TODO might be nice to detect when messages stop coming, and null this out
-				this.updateCarStatus(position)
-				this.updateCarPose(position, rotation)
-				this.updateCameraPose()
+				this.updateCarWithPose(state.pose as Models.PoseMessage)
 			} else
 				log.warn('got an InertialStateMessage without a pose')
 		})
@@ -2260,6 +2239,22 @@ export class Annotator {
 			this.aoiState.currentHeading = rotationThreeJs
 				? new THREE.Vector3(-1, 0, 0).applyQuaternion(rotationThreeJs)
 				: null
+	}
+
+	private updateCarWithPose(pose: Models.PoseMessage): void {
+		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
+		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
+		const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+		const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
+		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
+		const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
+		rotationThreeJs.normalize()
+
+		this.updateAoiHeading(rotationThreeJs)
+		this.updateCarStatus(standardPosition)
+		this.updateCarPose(positionThreeJs, rotationThreeJs)
+		this.updateCameraPose()
+
 	}
 
 	private updateCarStatus(positionUtm: THREE.Vector3): void {
