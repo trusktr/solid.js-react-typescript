@@ -37,7 +37,7 @@ function createWindow(): void {
 	} else if (maximize) {
 		win.maximize()
 	}
-	
+
 	// Open the DevTools.
 	if (!!config.get('startup.show_dev_tools'))
 		win.webContents.openDevTools()
