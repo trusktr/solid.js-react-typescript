@@ -6,7 +6,7 @@
 const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file";
-const vsprintf = require("sprintf-js").vsprintf
+const sprintf = require("sprintf-js").sprintf
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {
@@ -2247,7 +2247,7 @@ export class Annotator {
 	}
 
 	private updateCarStatus(positionUtm: THREE.Vector3): void {
-		const message = vsprintf('UTM: %.1fE %.1fN %.1falt', positionUtm.toArray())
+		const message = sprintf('UTM %s: %.1fE %.1fN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
 		this.statusWindow.setMessage(statusKey.carPosition, message)
 	}
 
