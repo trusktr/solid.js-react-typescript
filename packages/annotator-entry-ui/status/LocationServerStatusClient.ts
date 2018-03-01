@@ -45,9 +45,9 @@ export class LocationServerStatusClient {
 	}
 
 	// Lazily create the statusClient and initiate server health checks.
-	public connect(): Promise<void> {
+	public connect(): void {
 		if (this.statusClient)
-			return Promise.resolve()
+			return
 
 		log.info('Connecting to location server status provider at', this.locationServerStatusAddress)
 		var self = this
@@ -70,9 +70,8 @@ export class LocationServerStatusClient {
 				self.parseStatus(reply)
 		}).connect(this.locationServerStatusAddress)
 
-		const result = this.pingServer()
+		this.pingServer()
 		this.periodicallyCheckServerStatus()
-		return result
 	}
 
 	private handleMonitorEvent() : void {
@@ -118,33 +117,34 @@ export class LocationServerStatusClient {
 		if (this.statusCheckInterval) {
 			const self = this
 			setInterval(
-				(): Promise<void> => self.pingServer().then(),
+				(): void => self.pingServer(),
 				this.statusCheckInterval
 			)
 		}
 	}
 
 	// Ping checks and this.serverStatus maintain a local copy of server state, for diagnostics.
-	private pingServer(): Promise<void> {
-		if (!this.statusClient)
-			return Promise.reject(Error('attempted to pingServer() before initializing client'))
+	private pingServer(): void {
+		if (!this.statusClient) {
+			log.error("Attempted to ping location server before initailizing client")
+			return
+		}
 		if (this.reqInFlight)
-			return Promise.resolve()
+			return
 		this.reqInFlight = true
 
-		return new Promise((resolve: () => void): void => {
-			var statusRequestPayload = { "target" : this.locationServerStatusTarget }
-			var errMsg = Models.StatusRequestMessage.verify(statusRequestPayload)
-			if (errMsg) {
-				log.error(errMsg)
-				resolve()
-			}
-			var request = Models.StatusRequestMessage.create(statusRequestPayload)
-			var buffer = Models.StatusRequestMessage.encode(request).finish()
+		var statusRequestPayload = { "target" : this.locationServerStatusTarget }
+		var errMsg = Models.StatusRequestMessage.verify(statusRequestPayload)
+		if (errMsg) {
+			log.error(errMsg)
+			return
+		}
+		var request = Models.StatusRequestMessage.create(statusRequestPayload)
+		var buffer = Models.StatusRequestMessage.encode(request).finish()
 
-			log.info("Sending message " + request.toJSON())
-			this.statusClient!.send(buffer.toString())
-		})
+		log.info("Sending message " + request.toJSON())
+		// We will receive the error via the .on("message") callback
+		this.statusClient!.send(buffer.toString())
 	}
 
 	private setServerStatus(level: LocationServerStatusLevel, newStatus: string): void {

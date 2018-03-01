@@ -2109,17 +2109,7 @@ export class Annotator {
 	// Move the camera and the car model through poses streamed from ZMQ.
 	// See also runFlythrough().
 	private initClient(): void {
-		this.locationServerStatusClient.connect().then(
-			() => log.info(
-				"Connected to location server status"
-			)
-		).catch(
-			() => {
-				let errorStr = "Could not connect to location server status"
-				log.error(errorStr)
-				this.statusWindow.setMessage(statusKey.locationServer, errorStr)
-			}
-		)
+		this.locationServerStatusClient.connect()
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
@@ -2330,7 +2320,7 @@ export class Annotator {
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
 
-	// Display a UI element to tell the user what is happening with MapCao.
+	// Display a UI element to tell the user what is happening with the location server.
 	// Error messages persist,  and success messages disappear after a time-out.
 	private onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string)
 			=> void = (level: LocationServerStatusLevel, serverStatus: string) => {
