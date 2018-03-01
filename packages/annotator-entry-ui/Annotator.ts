@@ -2,8 +2,6 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
-import {LocationServerStatusClient} from "./status/LocationServerStatusClient";
-
 const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file";
@@ -36,6 +34,7 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
+import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient";
 
 declare global {
 	namespace THREE {
@@ -2306,10 +2305,10 @@ export class Annotator {
 	private onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
 		let message = 'Tile server status: '
 		if (tileServiceStatus) {
-			message += '<span class="statusOk">available</span>'
+			message += '<span class="statusOk">Available</span>'
 			this.delayHideTileServiceStatus()
 		} else {
-			message += '<span class="statusError">unavailable</span>'
+			message += '<span class="statusError">Unavailable</span>'
 			this.cancelHideTileServiceStatus()
 		}
 		this.statusWindow.setMessage(statusKey.tileServer, message)
@@ -2333,17 +2332,25 @@ export class Annotator {
 
 	// Display a UI element to tell the user what is happening with MapCao.
 	// Error messages persist,  and success messages disappear after a time-out.
-	private onLocationServerStatusUpdate: (serverStatus: boolean) => void = (serverStatus: boolean) => {
+	private onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string)
+			=> void = (level: LocationServerStatusLevel, serverStatus: string) => {
 		// If we aren't listening then we don't care
 		if (!this.uiState.isLiveMode) return
 
 		let message = 'Location status: '
-		if (serverStatus) {
-			message += '<span class="statusOk">available</span>'
-			this.delayLocationServerStatus()
-		} else {
-			message += '<span class="statusError">unavailable</span>'
-			this.cancelHideLocationServerStatus()
+		switch (level) {
+			case LocationServerStatusLevel.INFO:
+				message += '<span class="statusOk">' + serverStatus + '</span>'
+				this.delayLocationServerStatus()
+				break
+			case LocationServerStatusLevel.WARNING:
+				message += '<span class="statusWarning">' + serverStatus + '</span>'
+				this.cancelHideLocationServerStatus()
+				break
+			case LocationServerStatusLevel.ERROR:
+				message += '<span class="statusError">' + serverStatus + '</span>'
+				this.cancelHideLocationServerStatus()
+				break
 		}
 		this.statusWindow.setMessage(statusKey.locationServer, message)
 	}

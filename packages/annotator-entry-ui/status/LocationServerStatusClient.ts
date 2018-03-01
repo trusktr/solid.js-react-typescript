@@ -16,23 +16,31 @@ import Models = MapperProtos.mapper.models
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
+export enum LocationServerStatusLevel {
+	INFO = 0,
+	WARNING,
+	ERROR
+}
+
 export class LocationServerStatusClient {
 	private statusClient: Socket | null
-	private onStatusUpdate: (status: boolean) => void
-	private serverStatus: boolean | null // null == untested; true == available; false == unavailable
+	private onStatusUpdate: (level: LocationServerStatusLevel, status: string) => void
+	private serverStatus: string | null // null == untested; true == available; false == unavailable
 	private reqInFlight: boolean // semaphore for pingServer()
 	private statusCheckInterval: number // configuration for pinging the server
 	private locationServerStatusAddress: string
+	private locationServerStatusTarget: Models.SystemModule
 
-	constructor(onStatusUpdate: (status: boolean) => void) {
+	constructor(onStatusUpdate: (level: LocationServerStatusLevel, status: string) => void) {
 		this.serverStatus = null
 		this.reqInFlight = false
 		this.onStatusUpdate = onStatusUpdate
 		this.statusCheckInterval = (config.get('location_server.status.health_check.interval.seconds') || 5) * 1000
 
 		const locationServerStatusHost = config.get('location_server.status.host') || 'localhost'
-		const locationServerStatusPort = config.get('location_server.status.port') || '26502'
+		const locationServerStatusPort = config.get('location_server.status.port') || '26600'
 		this.locationServerStatusAddress = "tcp://" + locationServerStatusHost + ':' + locationServerStatusPort
+		this.locationServerStatusTarget = Models.SystemModule.kSystemModuleMapCap
 		this.statusClient = null
 	}
 
@@ -68,24 +76,41 @@ export class LocationServerStatusClient {
 	}
 
 	private handleMonitorEvent() : void {
-		this.setServerStatus(false)
+		this.setServerStatus(LocationServerStatusLevel.ERROR, "Unavailable")
 	}
 
 	private parseStatus(message: Buffer): void {
-		const status = Models.MasterControlResponseMessage.decode(message)
-		if (!status) {
+		const responseMessage = Models.StatusResponseMessage.decode(message)
+		if (!responseMessage) {
 			log.error("Invalid location server response")
+			this.setServerStatus(LocationServerStatusLevel.ERROR, "Invalid response")
 		} else {
-			status.statusResponses!.responses!.forEach(
-				response => {
-					if (response.source
-							=== Models.SystemModule.kSystemModuleMapCap) {
-						this.setServerStatus(
-							response.status === Models.StatusType.kStatusReady
-						)
-					}
+			var level: LocationServerStatusLevel
+			level = LocationServerStatusLevel.ERROR
+			if (responseMessage.source !== this.locationServerStatusTarget) {
+				log.error(
+					"Status is from wrong source (" + responseMessage.source + "): " + responseMessage.statusString
+				)
+			} else {
+				switch (responseMessage.status) {
+					case Models.StatusType.kStatusInitializing:
+						level = LocationServerStatusLevel.WARNING
+						break
+					case Models.StatusType.kStatusOffline:
+						level = LocationServerStatusLevel.ERROR
+						break
+					case Models.StatusType.kStatusReady:
+						level = LocationServerStatusLevel.INFO
+						break
+					case Models.StatusType.kStatusDataRecording:
+						level = LocationServerStatusLevel.INFO
+						break
+					default:
+						level = LocationServerStatusLevel.ERROR
 				}
-			)
+
+			}
+			this.setServerStatus(level, responseMessage.statusString)
 		}
 	}
 
@@ -108,30 +133,25 @@ export class LocationServerStatusClient {
 		this.reqInFlight = true
 
 		return new Promise((resolve: () => void): void => {
-			var statusRequestPayload = { "target" : Models.SystemModule.kSystemModuleMapCap }
-			var statusRequestsPayload = { "requests" : [statusRequestPayload] }
-			var mcRequestsPayload = {
-				"type" : Models.MasterControlMessageType.kMCMTStatus,
-				"statusRequests" : statusRequestsPayload
-			}
-			var errMsg = Models.MasterControlRequestMessage.verify(mcRequestsPayload)
+			var statusRequestPayload = { "target" : this.locationServerStatusTarget }
+			var errMsg = Models.StatusRequestMessage.verify(statusRequestPayload)
 			if (errMsg) {
 				log.error(errMsg)
 				resolve()
 			}
-			var mcRequests = Models.MasterControlRequestMessage.create(mcRequestsPayload)
-			var buffer = Models.MasterControlRequestMessage.encode(mcRequests).finish()
+			var request = Models.StatusRequestMessage.create(statusRequestPayload)
+			var buffer = Models.StatusRequestMessage.encode(request).finish()
 
+			log.info("Sending message " + request.toJSON())
 			this.statusClient!.send(buffer.toString())
 		})
 	}
 
-	private setServerStatus(newStatus: boolean): void {
+	private setServerStatus(level: LocationServerStatusLevel, newStatus: string): void {
 		if (this.serverStatus === null || this.serverStatus !== newStatus) {
 			this.serverStatus = newStatus
-			log.info("Location server is  " +
-				(this.serverStatus ? "available" : "unavailable"))
-			this.onStatusUpdate(newStatus)
+			log.info("Location server is" + this.serverStatus)
+			this.onStatusUpdate(level, newStatus)
 		}
 	}
 
