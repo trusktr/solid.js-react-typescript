@@ -232,7 +232,6 @@ export class TileManager extends UtmInterface {
 		this.storage = new LocalStorage()
 		this.coordinateSystemInitialized = false
 		this.onSuperTileUnload = onSuperTileUnload
-		this.hasGeometry = false
 		this.superTiles = OrderedMap()
 		this.loadedSuperTileKeys = OrderedSet()
 		this.pointCloud = new THREE.Points(
@@ -308,10 +307,9 @@ export class TileManager extends UtmInterface {
 	/**
 	 * Replace existing geometry with a new one.
 	 */
-	private setGeometry(newGeometry: BufferGeometry, hasPoints: boolean): void {
+	private setGeometry(newGeometry: BufferGeometry): void {
 		const oldGeometry = this.pointCloud.geometry
 		this.pointCloud.geometry = newGeometry
-		this.hasGeometry = this.hasGeometry || hasPoints // Wouldn't it be nice if BufferGeometry had a method to do this?
 		oldGeometry.dispose() // There is a vague and scary note in the docs about doing this, so here we go.
 	}
 
@@ -871,7 +869,7 @@ export class TileManager extends UtmInterface {
 		const geometry = new THREE.BufferGeometry()
 		geometry.addAttribute('position', new THREE.BufferAttribute(rawPositions, threeDStepSize))
 		geometry.addAttribute('color', new THREE.BufferAttribute(rawColors, threeDStepSize))
-		this.setGeometry(geometry, totalPoints > 0)
+		this.setGeometry(geometry)
 	}
 
 	// This is a trivial solution to finding the local ground plane. Simply find a band of Y values with the most
@@ -918,13 +916,13 @@ export class TileManager extends UtmInterface {
 
 	// Bounding box of the visible point cloud.
 	boundingBox(): THREE.Box3 | null {
-		if (this.hasGeometry) {
-			const geometry = this.pointCloud.geometry
-			geometry.computeBoundingBox()
-			return geometry.boundingBox
-		} else {
+		const geometry = this.pointCloud.geometry
+		geometry.computeBoundingBox()
+		const bbox = geometry.boundingBox
+		if (!bbox || bbox.min.x === null || bbox.min.x === Infinity)
 			return null
-		}
+		else
+			return bbox
 	}
 
 	/**
@@ -932,13 +930,11 @@ export class TileManager extends UtmInterface {
 	 * the whole thing appears above the artificial ground plane.
 	 */
 	centerPoint(): THREE.Vector3 | null {
-		if (this.hasGeometry) {
-			const geometry = this.pointCloud.geometry
-			geometry.computeBoundingBox()
-			return geometry.boundingBox.getCenter().setY(geometry.boundingBox.min.y)
-		} else {
+		const bbox = this.boundingBox()
+		if (bbox)
+			return bbox.getCenter().setY(bbox.min.y)
+		else
 			return null
-		}
 	}
 
 	/**
@@ -947,7 +943,6 @@ export class TileManager extends UtmInterface {
 	unloadAllPoints(): void {
 		this.setLoadedSuperTileKeys(OrderedSet())
 		this.superTiles = OrderedMap()
-		this.setGeometry(new THREE.BufferGeometry(), false)
-		this.hasGeometry = false
+		this.setGeometry(new THREE.BufferGeometry())
 	}
 }
