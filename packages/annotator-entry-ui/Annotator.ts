@@ -18,7 +18,7 @@ import {StatusWindowController} from "./status/StatusWindowController"
 import {TileManager} from 'annotator-entry-ui/tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
-import {BusyError} from "./tile/TileManager"
+import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
 import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
@@ -651,7 +651,9 @@ export class Annotator {
 	}
 
 	private pointCloudLoadedError(err: Error): void {
-		if (this.uiState.isKioskMode || err instanceof BusyError) {
+		if (err instanceof BusyError) {
+			log.info(err.message)
+		} else if (this.uiState.isKioskMode) {
 			log.warn(err.message)
 		} else {
 			const now = new Date().getTime()
@@ -753,9 +755,22 @@ export class Annotator {
 	}
 
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
-	private onSuperTileUnload: (superTile: SuperTile) => void = (superTile: SuperTile) => {
-		this.superTileToBoundingBox(superTile)
-	}
+	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void =
+		(superTile: SuperTile, action: SuperTileUnloadAction) => {
+			switch (action) {
+				case SuperTileUnloadAction.Unload:
+					this.superTileToBoundingBox(superTile)
+					break
+				case SuperTileUnloadAction.Delete:
+					const name = superTile.name()
+					this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(bbox => bbox.name !== name)
+					if (this.highlightedSuperTileBox && this.highlightedSuperTileBox.name === name)
+						this.unHighlightSuperTileBox()
+					break
+				default:
+					log.error('unknown SuperTileUnloadAction: ' + action)
+			}
+		}
 
 	private superTileToBoundingBox(superTile: SuperTile): void {
 		if (!superTile.hasPointCloud) {
@@ -765,6 +780,7 @@ export class Annotator {
 			const box = new THREE.Mesh(geometry, this.settings.superTileBboxMaterial)
 			box.geometry.translate(center.x, center.y, center.z)
 			box.userData = superTile
+			box.name = superTile.name()
 			this.scene.add(box)
 			this.pendingSuperTileBoxes.push(box)
 		}

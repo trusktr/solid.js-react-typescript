@@ -49,6 +49,10 @@ export class SuperTile extends UtmInterface {
 		this.rawColors = []
 	}
 
+	name(): string {
+		return this.index.toString()
+	}
+
 	// SuperTile doesn't have to be filled densely with tiles. Add tiles only if they are not empty.
 	addTile(tile: UtmTile): boolean {
 		if (this.hasPointCloud)
