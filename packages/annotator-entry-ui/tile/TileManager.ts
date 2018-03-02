@@ -181,6 +181,7 @@ interface TileManagerConfig {
 }
 
 interface VoxelsConfig {
+	enable: boolean,
 	voxelSize: number,
 	voxelsMaxHeight: number,
 }
@@ -212,6 +213,7 @@ export class TileManager extends UtmInterface {
 	private tileServiceClient: TileServiceClient
 
 	constructor(
+		enableVoxels: boolean,
 		onSuperTileUnload: (superTile: SuperTile) => void,
 		onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
 	) {
@@ -226,6 +228,7 @@ export class TileManager extends UtmInterface {
 		if (!this.config.tileMessageFormat)
 			throw Error('bad tile_manager.tile_message_format: ' + config.get('tile_manager.tile_message_format'))
 		this.voxelsConfig = {
+			enable: enableVoxels,
 			voxelSize: 0.15,
 			voxelsMaxHeight: 7,
 		}
@@ -368,6 +371,10 @@ export class TileManager extends UtmInterface {
 	 * Create voxels geometry given a list of indices for the occupied voxels
 	 */
 	generateVoxels(): void {
+		if (!this.voxelsConfig.enable) {
+			log.error('called generateVoxels() without enabling voxelsConfig')
+			return
+		}
 		let maxBandValue: number = Math.floor((this.voxelsConfig.voxelsMaxHeight / this.voxelsConfig.voxelSize + 1))
 		for (let band = 0; band < maxBandValue; band++) {
 			log.info(`Processing height band ${band}...`)
@@ -644,6 +651,9 @@ export class TileManager extends UtmInterface {
 
 	// The useful bits of loadFromMapServer()
 	private loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<void> {
+		if (this.voxelsConfig.enable)
+			log.warn('This app will leak memory when generating voxels while incrementally loading tiles. Fix it.')
+
 		// Figure out which super tiles to load.
 		const allStIndexes = enumerateIntersectingSuperTileIndexes(searches)
 		const filteredStIndexes = allStIndexes
@@ -808,7 +818,11 @@ export class TileManager extends UtmInterface {
 			newPositions[i] = threePoint.x
 			newPositions[i + 1] = threePoint.y
 			newPositions[i + 2] = threePoint.z
-			this.voxelsDictionary.add(threePoint.divideScalar(this.voxelsConfig.voxelSize).floor())
+			if (this.voxelsConfig.enable) {
+				// TODO this.voxelsDictionary should be spread out among super tiles so that voxels can be
+				// TODO unloaded along with point clouds
+				this.voxelsDictionary.add(threePoint.divideScalar(this.voxelsConfig.voxelSize).floor())
+			}
 		}
 
 		return newPositions

@@ -225,7 +225,11 @@ export class Annotator {
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterSuperTiles = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
-		this.tileManager = new TileManager(this.onSuperTileUnload, this.onTileServiceStatusUpdate)
+		this.tileManager = new TileManager(
+			this.settings.generateVoxelsOnPointLoad,
+			this.onSuperTileUnload,
+			this.onTileServiceStatusUpdate
+		)
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
@@ -669,6 +673,7 @@ export class Annotator {
 		const voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
 		const voxelSize: number = this.tileManager.voxelsConfig.voxelSize
 		const annotationCutoffDistance: number = 1.2 * 1.2 // 1.2 meters radius
+		this.tileManager.voxelsHeight = []
 		for (let voxel of voxels) {
 			let x: number = voxel.x * voxelSize
 			let y: number = voxel.y * voxelSize
