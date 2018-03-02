@@ -2,7 +2,6 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
-
 const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file";
@@ -35,6 +34,7 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
+import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient";
 
 declare global {
 	namespace THREE {
@@ -64,6 +64,7 @@ const statusKey = {
 	carPosition: 'carPosition',
 	flyThrough: 'flyThrough',
 	tileServer: 'tileServer',
+	locationServer: 'locationServer'
 }
 
 enum MenuVisibility {
@@ -159,6 +160,7 @@ export class Annotator {
 	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: NodeJS.Timer
 	private serverStatusDisplayTimer: NodeJS.Timer
+	private locationServerStatusDisplayTimer: NodeJS.Timer
 	private annotationManager: AnnotationManager
 	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
 	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
@@ -168,6 +170,7 @@ export class Annotator {
 	private settings: AnnotatorSettings
 	private flyThroughTrajectoryPoses: Models.PoseMessage[]
 	private flyThroughSettings: FlyThroughSettings
+	private locationServerStatusClient: LocationServerStatusClient
 	private gui: any
 
 	constructor() {
@@ -229,6 +232,7 @@ export class Annotator {
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.pointCloudBoundingBox = null
+		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
 		this.flyThroughSettings = {
 			enabled: false,
@@ -240,8 +244,6 @@ export class Annotator {
 			fps: parseFloat(config.get('fly_through.render.fps')) || 10
 		}
 
-		// Initialize socket for use when "live mode" operation is on
-		this.initClient()
 	}
 
 	/**
@@ -382,8 +384,12 @@ export class Annotator {
 		)
 
 		return this.loadCarModel()
-			.then(() => this.loadUserData())
-			.then(() => {if (this.uiState.isKioskMode) this.toggleListen()})
+			.then(() => {
+				this.loadUserData()
+				if (this.uiState.isKioskMode) this.toggleListen()
+				// Initialize socket for use when "live mode" operation is on
+				this.initClient()
+			})
 	}
 
 	// Load up any data which configuration has asked for on start-up.
@@ -499,19 +505,7 @@ export class Annotator {
 		const pose = this.flyThroughTrajectoryPoses[this.flyThroughSettings.currentPoseIndex]
 		this.statusWindow.setMessage(statusKey.flyThrough, `Pose ${this.flyThroughSettings.currentPoseIndex + 1} of ${this.flyThroughSettings.endPoseIndex}`)
 
-		// Move the car and the camera
-		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
-		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
-		const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
-		const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
-		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
-		const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
-		rotationThreeJs.normalize()
-
-		this.updateAoiHeading(rotationThreeJs)
-		this.updateCarStatus(standardPosition)
-		this.updateCarPose(positionThreeJs, rotationThreeJs)
-		this.updateCameraPose()
+		this.updateCarWithPose(pose)
 
 		this.flyThroughSettings.currentPoseIndex++
 	}
@@ -2115,6 +2109,7 @@ export class Annotator {
 	// Move the camera and the car model through poses streamed from ZMQ.
 	// See also runFlythrough().
 	private initClient(): void {
+		this.locationServerStatusClient.connect()
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
@@ -2126,18 +2121,7 @@ export class Annotator {
 				state.pose.x != null && state.pose.y != null && state.pose.z != null &&
 				state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
 			) {
-				log.info("Received message: " + state.pose.timestamp)
-
-				// Move the car and the camera
-				const position = this.tileManager.utmToThreeJs(state.pose.x, state.pose.y, state.pose.z)
-
-				const rotation = new THREE.Quaternion(state.pose.q0, -state.pose.q1, -state.pose.q2, state.pose.q3)
-				rotation.normalize()
-
-				this.updateAoiHeading(rotation) // TODO might be nice to detect when messages stop coming, and null this out
-				this.updateCarStatus(position)
-				this.updateCarPose(position, rotation)
-				this.updateCameraPose()
+				this.updateCarWithPose(state.pose as Models.PoseMessage)
 			} else
 				log.warn('got an InertialStateMessage without a pose')
 		})
@@ -2246,6 +2230,22 @@ export class Annotator {
 				: null
 	}
 
+	private updateCarWithPose(pose: Models.PoseMessage): void {
+		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
+		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
+		const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+		const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
+		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
+		const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
+		rotationThreeJs.normalize()
+
+		this.updateAoiHeading(rotationThreeJs)
+		this.updateCarStatus(standardPosition)
+		this.updateCarPose(positionThreeJs, rotationThreeJs)
+		this.updateCameraPose()
+
+	}
+
 	private updateCarStatus(positionUtm: THREE.Vector3): void {
 		const message = sprintf('UTM %s: %.1fE %.1fN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
 		this.statusWindow.setMessage(statusKey.carPosition, message)
@@ -2295,10 +2295,10 @@ export class Annotator {
 	private onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
 		let message = 'Tile server status: '
 		if (tileServiceStatus) {
-			message += '<span class="statusOk">available</span>'
+			message += '<span class="statusOk">Available</span>'
 			this.delayHideTileServiceStatus()
 		} else {
-			message += '<span class="statusError">unavailable</span>'
+			message += '<span class="statusError">Unavailable</span>'
 			this.cancelHideTileServiceStatus()
 		}
 		this.statusWindow.setMessage(statusKey.tileServer, message)
@@ -2319,6 +2319,48 @@ export class Annotator {
 			this.statusWindow.setMessage(statusKey.tileServer, '')
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
+
+	// Display a UI element to tell the user what is happening with the location server.
+	// Error messages persist,  and success messages disappear after a time-out.
+	private onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string)
+			=> void = (level: LocationServerStatusLevel, serverStatus: string) => {
+		// If we aren't listening then we don't care
+		if (!this.uiState.isLiveMode) return
+
+		let message = 'Location status: '
+		switch (level) {
+			case LocationServerStatusLevel.INFO:
+				message += '<span class="statusOk">' + serverStatus + '</span>'
+				this.delayLocationServerStatus()
+				break
+			case LocationServerStatusLevel.WARNING:
+				message += '<span class="statusWarning">' + serverStatus + '</span>'
+				this.cancelHideLocationServerStatus()
+				break
+			case LocationServerStatusLevel.ERROR:
+				message += '<span class="statusError">' + serverStatus + '</span>'
+				this.cancelHideLocationServerStatus()
+				break
+		}
+		this.statusWindow.setMessage(statusKey.locationServer, message)
+	}
+
+	private delayLocationServerStatus = (): void => {
+		this.cancelHideLocationServerStatus()
+		this.hideLocationServerStatus()
+	}
+
+	private cancelHideLocationServerStatus = (): void => {
+		if (this.locationServerStatusDisplayTimer)
+			clearTimeout(this.locationServerStatusDisplayTimer)
+	}
+
+	private hideLocationServerStatus = (): void => {
+		this.locationServerStatusDisplayTimer = setTimeout(() => {
+			this.statusWindow.setMessage(statusKey.locationServer, '')
+		}, this.settings.timeToDisplayHealthyStatusMs)
+	}
+
 
 }
 

@@ -36,6 +36,7 @@ export class StatusWindowController {
 					this.statusElement.style.visibility = 'hidden'
 			this.enabled = enabled
 		}
+		if (this.enabled) this.render()
 		return this
 	}
 
