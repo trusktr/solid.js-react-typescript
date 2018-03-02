@@ -25,7 +25,7 @@ export enum LocationServerStatusLevel {
 export class LocationServerStatusClient {
 	private statusClient: Socket | null
 	private onStatusUpdate: (level: LocationServerStatusLevel, status: string) => void
-	private serverStatus: string | null // null == untested; true == available; false == unavailable
+	private serverStatus: string | null // null == untested; string provides description otherwise
 	private reqInFlight: boolean // semaphore for pingServer()
 	private statusCheckInterval: number // configuration for pinging the server
 	private locationServerStatusAddress: string
@@ -142,7 +142,6 @@ export class LocationServerStatusClient {
 		var request = Models.StatusRequestMessage.create(statusRequestPayload)
 		var buffer = Models.StatusRequestMessage.encode(request).finish()
 
-		log.info("Sending message " + request.toJSON())
 		// We will receive the error via the .on("message") callback
 		this.statusClient!.send(buffer.toString())
 	}
