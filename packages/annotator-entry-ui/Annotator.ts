@@ -2130,7 +2130,6 @@ export class Annotator {
 	// Move the camera and the car model through poses streamed from ZMQ.
 	// See also runFlythrough().
 	private initClient(): void {
-		this.locationServerStatusClient.connect()
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
@@ -2172,6 +2171,7 @@ export class Annotator {
 
 		log.info('Listening for messages...')
 		this.uiState.isLiveMode = true
+		this.locationServerStatusClient.connect()
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
 			this.scene.remove(this.axis)
