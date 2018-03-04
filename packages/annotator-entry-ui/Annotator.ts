@@ -771,7 +771,7 @@ export class Annotator {
 			const size = getSize(superTile.threeJsBoundingBox)
 			const center = getCenter(superTile.threeJsBoundingBox)
 			const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
-			const box = new THREE.Mesh(geometry, this.settings.superTileBboxMaterial)
+			const box = new THREE.Mesh(geometry, this.settings.superTileBboxMaterial.clone())
 			box.geometry.translate(center.x, center.y, center.z)
 			box.userData = superTile
 			box.name = superTile.name()
