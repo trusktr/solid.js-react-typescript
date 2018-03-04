@@ -388,8 +388,8 @@ export class Annotator {
 		)
 
 		return this.loadCarModel()
+			.then(() => this.loadUserData())
 			.then(() => {
-				this.loadUserData()
 				if (this.uiState.isKioskMode) this.toggleListen()
 				// Initialize socket for use when "live mode" operation is on
 				this.initClient()
