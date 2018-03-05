@@ -825,13 +825,28 @@ export class Annotator {
 		}
 	}
 
-	// Track where the camera is pointing. Set the AOI for loading point clouds.
+	// Find the point in the scene that is most interesting to a human user.
+	private currentAoi(): THREE.Vector3 | null {
+		if (this.uiState.isLiveMode) {
+			// In live mode track the car, regardless of what the camera does.
+			return this.carModel.position
+		} else {
+			// In interactive mode intersect the camera with the ground plane.
+			this.raycasterPlane.setFromCamera(cameraCenter, this.camera)
+			const intersections = this.raycasterPlane.intersectObject(this.plane)
+			if (intersections.length > 0)
+				return intersections[0].point
+			else
+				return null
+		}
+	}
+
+	// Set the area of interest for loading point clouds.
 	private updatePointCloudAoi(): void {
-		this.raycasterPlane.setFromCamera(cameraCenter, this.camera)
-		const intersections = this.raycasterPlane.intersectObject(this.plane)
-		if (intersections.length > 0) {
+		const currentAoi = this.currentAoi()
+		if (currentAoi) {
 			const oldPoint = this.aoiState.focalPoint
-			const newPoint = intersections[0].point.round()
+			const newPoint = currentAoi.clone().round()
 			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
 			if (!samePoint) {
 				this.aoiState.focalPoint = newPoint
