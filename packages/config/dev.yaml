@@ -13,6 +13,7 @@ startup.show_dev_tools: true
 startup.point_cloud_directory:
 startup.point_cloud_bounding_box:
 startup.annotations_path:
+startup.watch_for_rebuilds.enable: false
 
 # parameters for loading a tile
 tile_manager.tile_message_format: BaseGeometryTileMessage # PointCloudTileMessage or BaseGeometryTileMessage; used when reading tiles from local file system
