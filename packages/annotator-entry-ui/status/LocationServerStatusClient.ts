@@ -37,7 +37,7 @@ export class LocationServerStatusClient {
 		this.onStatusUpdate = onStatusUpdate
 		this.statusCheckInterval = (config.get('location_server.status.health_check.interval.seconds') || 5) * 1000
 
-		const locationServerStatusHost = config.get('location_server.status.host') || 'localhost'
+		const locationServerStatusHost = config.get('location_server.host') || 'localhost'
 		const locationServerStatusPort = config.get('location_server.status.port') || '26600'
 		this.locationServerStatusAddress = "tcp://" + locationServerStatusHost + ':' + locationServerStatusPort
 		this.locationServerStatusTarget = Models.SystemModule.kSystemModuleMapCap
