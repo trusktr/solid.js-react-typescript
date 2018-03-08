@@ -1,6 +1,3 @@
-///<reference path="../../../node_modules/@types/zmq/index.d.ts"/>
-import * as MapperProtos from "@mapperai/mapper-models";
-
 /**
  *  Copyright 2018 Mapper Inc.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
@@ -10,6 +7,7 @@ const config = require('../../config')
 import * as TypeLogger from 'typelogger'
 import {Socket} from 'zmq'
 const zmq = require('zmq')
+import * as MapperProtos from "@mapperai/mapper-models";
 import Models = MapperProtos.mapper.models
 
 // tslint:disable-next-line:no-any
@@ -74,7 +72,7 @@ export class LocationServerStatusClient {
 		this.periodicallyCheckServerStatus()
 	}
 
-	private handleMonitorEvent() : void {
+	private handleMonitorEvent(): void {
 		this.setServerStatus(LocationServerStatusLevel.ERROR, "Unavailable")
 	}
 

@@ -121,8 +121,10 @@ interface UiState {
 	isLastTrafficSignMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	numberKeyPressed: number | null
-	isLiveMode: boolean // enables a trajectory fly-through, while allowing minimal user input
-	isKioskMode: boolean // turns on live mode permanently, with even less user input
+	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
+	// file (if this.flyThroughSettings.enabled is true) or messages on a live socket.
+	isLiveMode: boolean
+	isKioskMode: boolean // hides window chrome and turns on live mode permanently, with even less user input
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
 }
 
@@ -228,9 +230,9 @@ export class Annotator {
 		this.raycasterPlane.params.Points!.threshold = 0.1
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterSuperTiles = new THREE.Raycaster()
-		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager(
 			this.settings.generateVoxelsOnPointLoad,
+			this.onSuperTileLoad,
 			this.onSuperTileUnload,
 			this.onTileServiceStatusUpdate
 		)
@@ -339,9 +341,6 @@ export class Annotator {
 		// to work in response to a menu, panel or keyboard event.
 		this.annotationManager = new AnnotationManager(this.scene)
 
-		// Point cloud is empty. It will be populated later.
-		this.scene.add(this.tileManager.pointCloud)
-
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
 		this.renderer.setClearColor(new THREE.Color(this.settings.background))
@@ -418,8 +417,8 @@ export class Annotator {
 		)
 
 		return this.loadCarModel()
+			.then(() => this.loadUserData())
 			.then(() => {
-				this.loadUserData()
 				if (this.uiState.isKioskMode) this.toggleListen()
 				// Initialize socket for use when "live mode" operation is on
 				this.initClient()
@@ -526,9 +525,8 @@ export class Annotator {
 	// Move the camera and the car model through poses loaded from a file on disk.
 	// See also initClient().
 	private runFlythrough(): void {
-		if (!this.uiState.isLiveMode) {
-			return
-		}
+		if (!this.uiState.isLiveMode) return
+		if (!this.flyThroughSettings.enabled) return
 
 		setTimeout(() => {
 			this.runFlythrough()
@@ -596,7 +594,7 @@ export class Annotator {
 	// Display the compass rose just outside the bounding box of the point cloud.
 	private setCompassRoseByPointCloud(): void {
 		if (!this.compassRose) return
-		const boundingBox = this.tileManager.boundingBox()
+		const boundingBox = this.tileManager.getPointCloudBoundingBox()
 		if (!boundingBox) return
 
 		// Find the center of one of the sides of the bounding box. This is the side that is
@@ -763,11 +761,14 @@ export class Annotator {
 
 	private unloadPointCloudData(): void {
 		log.info("unloadPointCloudData")
-		this.tileManager.unloadAllPoints()
-		this.unHighlightSuperTileBox()
-		this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
-		if (this.pointCloudBoundingBox)
-			this.scene.remove(this.pointCloudBoundingBox)
+		if (this.tileManager.unloadAllPoints()) {
+			this.unHighlightSuperTileBox()
+			this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
+			if (this.pointCloudBoundingBox)
+				this.scene.remove(this.pointCloudBoundingBox)
+		} else {
+			log.warn('unloadPointCloudData failed')
+		}
 	}
 
 	// Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
@@ -778,15 +779,29 @@ export class Annotator {
 			this.hideSuperTiles()
 	}
 
+	// When TileManager loads a super tile, update Annotator's parallel data structure.
+	private onSuperTileLoad: (superTile: SuperTile) => void =
+		(superTile: SuperTile) => {
+			if (superTile.pointCloud)
+				this.scene.add(superTile.pointCloud)
+			else
+				log.error('onSuperTileLoad() got a super tile with no point cloud')
+		}
+
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
 	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void =
 		(superTile: SuperTile, action: SuperTileUnloadAction) => {
+			if (superTile.pointCloud)
+				this.scene.remove(superTile.pointCloud)
+			else
+				log.error('onSuperTileUnload() got a super tile with no point cloud')
+
 			switch (action) {
 				case SuperTileUnloadAction.Unload:
 					this.superTileToBoundingBox(superTile)
 					break
 				case SuperTileUnloadAction.Delete:
-					const name = superTile.name()
+					const name = superTile.key()
 					this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(bbox => bbox.name !== name)
 					if (this.highlightedSuperTileBox && this.highlightedSuperTileBox.name === name)
 						this.unHighlightSuperTileBox()
@@ -797,14 +812,14 @@ export class Annotator {
 		}
 
 	private superTileToBoundingBox(superTile: SuperTile): void {
-		if (!superTile.hasPointCloud) {
+		if (!superTile.pointCloud) {
 			const size = getSize(superTile.threeJsBoundingBox)
 			const center = getCenter(superTile.threeJsBoundingBox)
 			const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
-			const box = new THREE.Mesh(geometry, this.settings.superTileBboxMaterial)
+			const box = new THREE.Mesh(geometry, this.settings.superTileBboxMaterial.clone())
 			box.geometry.translate(center.x, center.y, center.z)
 			box.userData = superTile
-			box.name = superTile.name()
+			box.name = superTile.key()
 			this.scene.add(box)
 			this.pendingSuperTileBoxes.push(box)
 		}
@@ -824,20 +839,45 @@ export class Annotator {
 	// Draw a box around the data. Useful for debugging.
 	private updatePointCloudBoundingBox(): void {
 		if (this.settings.drawBoundingBox) {
-			if (this.pointCloudBoundingBox)
+			if (this.pointCloudBoundingBox) {
 				this.scene.remove(this.pointCloudBoundingBox)
-			this.pointCloudBoundingBox = new THREE.BoxHelper(this.tileManager.pointCloud, this.settings.superTileBboxColor)
-			this.scene.add(this.pointCloudBoundingBox)
+				this.pointCloudBoundingBox = null
+			}
+
+			const bbox = this.tileManager.getPointCloudBoundingBox()
+			if (bbox) {
+				// BoxHelper wants an Object3D, but a three.js bounding box is a Box3, which is not an Object3D.
+				// Maybe BoxHelper isn't so helpful after all. But guess what? It will take a Box3 anyway and
+				// do the right thing with it.
+				// tslint:disable-next-line:no-any
+				this.pointCloudBoundingBox = new THREE.BoxHelper(bbox as any, this.settings.superTileBboxColor)
+				this.scene.add(this.pointCloudBoundingBox)
+			}
 		}
 	}
 
-	// Track where the camera is pointing. Set the AOI for loading point clouds.
+	// Find the point in the scene that is most interesting to a human user.
+	private currentAoi(): THREE.Vector3 | null {
+		if (this.uiState.isLiveMode) {
+			// In live mode track the car, regardless of what the camera does.
+			return this.carModel.position
+		} else {
+			// In interactive mode intersect the camera with the ground plane.
+			this.raycasterPlane.setFromCamera(cameraCenter, this.camera)
+			const intersections = this.raycasterPlane.intersectObject(this.plane)
+			if (intersections.length > 0)
+				return intersections[0].point
+			else
+				return null
+		}
+	}
+
+	// Set the area of interest for loading point clouds.
 	private updatePointCloudAoi(): void {
-		this.raycasterPlane.setFromCamera(cameraCenter, this.camera)
-		const intersections = this.raycasterPlane.intersectObject(this.plane)
-		if (intersections.length > 0) {
+		const currentAoi = this.currentAoi()
+		if (currentAoi) {
 			const oldPoint = this.aoiState.focalPoint
-			const newPoint = intersections[0].point.round()
+			const newPoint = currentAoi.clone().round()
 			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
 			if (!samePoint) {
 				this.aoiState.focalPoint = newPoint
@@ -968,10 +1008,10 @@ export class Annotator {
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
-		if (this.settings.estimateGroundPlane || !this.tileManager.pointCloud) {
+		if (this.settings.estimateGroundPlane || !this.tileManager.getPointClouds().length) {
 			intersections = this.raycasterPlane.intersectObject(this.plane)
 		} else {
-			intersections = this.raycasterPlane.intersectObject(this.tileManager.pointCloud)
+			intersections = this.raycasterPlane.intersectObjects(this.tileManager.getPointClouds())
 		}
 
 		if (intersections.length > 0) {
@@ -987,7 +1027,7 @@ export class Annotator {
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
-		let intersections = this.raycasterPlane.intersectObject(this.tileManager.pointCloud)
+		let intersections = this.raycasterPlane.intersectObjects(this.tileManager.getPointClouds())
 
 		if (intersections.length > 0) {
 			this.annotationManager.addTrafficSignMarker(intersections[0].point, this.uiState.isLastTrafficSignMarkerKeyPressed)
@@ -1456,7 +1496,7 @@ export class Annotator {
 		if (!(pathElectron && pathElectron[0]))
 			return Promise.resolve()
 
-		if (this.tileManager.hasGeometry)
+		if (this.tileManager.getPointClouds().length)
 			log.warn('you should probably unload the existing point cloud before loading another')
 		log.info('Loading point cloud from ' + pathElectron[0])
 		return this.loadPointCloudDataFromDirectory(pathElectron[0])
@@ -2110,14 +2150,14 @@ export class Annotator {
 	}
 
 	private hidePointCloud(): void {
-		this.scene.remove(this.tileManager.pointCloud)
+		this.tileManager.getPointClouds().forEach(pc => this.scene.remove(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.remove(this.pointCloudBoundingBox)
 		this.uiState.isPointCloudVisible = false
 	}
 
 	private showPointCloud(): void {
-		this.scene.add(this.tileManager.pointCloud)
+		this.tileManager.getPointClouds().forEach(pc => this.scene.add(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.add(this.pointCloudBoundingBox)
 		this.uiState.isPointCloudVisible = true
@@ -2160,11 +2200,11 @@ export class Annotator {
 	// Move the camera and the car model through poses streamed from ZMQ.
 	// See also runFlythrough().
 	private initClient(): void {
-		this.locationServerStatusClient.connect()
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
 			if (!this.uiState.isLiveMode) return
+			if (this.flyThroughSettings.enabled) return
 
 			const state = Models.InertialStateMessage.decode(msg)
 			if (
@@ -2190,10 +2230,8 @@ export class Annotator {
 	private toggleListen(): void {
 		let hideMenu
 		if (this.uiState.isLiveMode) {
-			this.annotationManager.unsetLiveMode()
 			hideMenu = this.stopListening()
 		} else {
-			this.annotationManager.setLiveMode()
 			hideMenu = this.listen()
 		}
 		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
@@ -2203,6 +2241,7 @@ export class Annotator {
 		if (this.uiState.isLiveMode) return this.uiState.isLiveMode
 
 		log.info('Listening for messages...')
+		this.annotationManager.setLiveMode()
 		this.uiState.isLiveMode = true
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
@@ -2220,6 +2259,8 @@ export class Annotator {
 		if (this.flyThroughSettings.enabled) {
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
 			this.runFlythrough()
+		} else {
+			this.locationServerStatusClient.connect()
 		}
 
 		return this.uiState.isLiveMode
@@ -2229,6 +2270,7 @@ export class Annotator {
 		if (!this.uiState.isLiveMode) return this.uiState.isLiveMode
 
 		log.info('Stopped listening for messages...')
+		this.annotationManager.unsetLiveMode()
 		this.uiState.isLiveMode = false
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
@@ -2329,17 +2371,15 @@ export class Annotator {
 	 */
 	private toggleVoxelsAndPointClouds(): void {
 		if (this.uiState.isPointCloudVisible) {
-			this.scene.remove(this.tileManager.pointCloud)
+			this.hidePointCloud()
 			this.tileManager.voxelsMeshGroup.forEach(mesh => {
 				this.scene.add(mesh)
 			})
-			this.uiState.isPointCloudVisible = false
 		} else {
-			this.scene.add(this.tileManager.pointCloud)
+			this.showPointCloud()
 			this.tileManager.voxelsMeshGroup.forEach(mesh => {
 				this.scene.remove(mesh)
 			})
-			this.uiState.isPointCloudVisible = true
 		}
 	}
 
@@ -2379,6 +2419,7 @@ export class Annotator {
 			=> void = (level: LocationServerStatusLevel, serverStatus: string) => {
 		// If we aren't listening then we don't care
 		if (!this.uiState.isLiveMode) return
+		if (this.flyThroughSettings.enabled) return
 
 		let message = 'Location status: '
 		switch (level) {
@@ -2394,6 +2435,8 @@ export class Annotator {
 				message += '<span class="statusError">' + serverStatus + '</span>'
 				this.cancelHideLocationServerStatus()
 				break
+			default:
+				log.error('unknown LocationServerStatusLevel ' + LocationServerStatusLevel.ERROR)
 		}
 		this.statusWindow.setMessage(statusKey.locationServer, message)
 	}
