@@ -96,7 +96,7 @@ const lcSelectsId = ['lc_select_from', 'lc_select_to', 'lc_select_relation']
 const lcSelectsItems = [
 	[],
 	[],
-	['left', 'left reverse', 'right', 'front', 'back']]
+	['front', 'left', 'left reverse', 'right', 'back']]
 const lcSelects: Array<HTMLSelectElement> = []
 for (const i in lcSelectsId) {
 	if (lcSelectsId.hasOwnProperty(i)) {

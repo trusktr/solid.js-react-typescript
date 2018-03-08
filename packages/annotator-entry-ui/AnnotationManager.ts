@@ -1121,6 +1121,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Create a new lane connection between given lanes
 	 */
+	/*
 	private addConnection(laneFrom: Lane, laneTo: Lane): void {
 
 		if (laneFrom.markers.length < 4 || laneTo.markers.length < 4) {
@@ -1163,6 +1164,68 @@ export class AnnotationManager extends UtmInterface {
 		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6))
 		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4))
 		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6))
+
+		// Add annotation to the scene
+		this.scene.add(connection.renderingObject)
+		this.annotationMeshes.push(connection.mesh)
+
+		connection.makeInactive()
+		connection.updateVisualization()
+		this.metadataState.dirty()
+	}
+*/
+	private addConnection(laneFrom: Lane, laneTo: Lane): void {
+
+		if (laneFrom.markers.length < 4 || laneTo.markers.length < 4) {
+			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unable to generate forward relation." +
+				"Possible reasons: one of the two lanes connected does not have at least 4 markers.")
+			return
+		}
+
+		// Create new connection
+		const connection = new Connection()
+		connection.setConnectionEndPoints(laneFrom.uuid, laneTo.uuid)
+		this.connectionAnnotations.push(connection)
+
+		// Glue neighbors
+		laneFrom.neighborsIds.front.push(connection.uuid)
+		laneTo.neighborsIds.back.push(connection.uuid)
+
+		// Compute path
+		const lastIndex = laneFrom.markers.length - 1
+
+		const lp0 = laneFrom.markers[lastIndex - 3].position.clone()
+		const lp1 = laneFrom.markers[lastIndex - 1].position.clone()
+		const lp2 = laneTo.markers[0].position.clone()
+		const lp3 = laneTo.markers[2].position.clone()
+		const rp0 = laneFrom.markers[lastIndex - 2].position.clone()
+		const rp1 = laneFrom.markers[lastIndex].position.clone()
+		const rp2 = laneTo.markers[1].position.clone()
+		const rp3 = laneTo.markers[3].position.clone()
+
+		const scaleFactor = 8
+		let lcp1 = new THREE.Vector3()
+		let lcp2 = new THREE.Vector3()
+		lcp1.subVectors(lp1, lp0).normalize().multiplyScalar(scaleFactor).add(lp1)
+		lcp2.subVectors(lp2, lp3).normalize().multiplyScalar(scaleFactor).add(lp2)
+		let rcp1 = new THREE.Vector3()
+		let rcp2 = new THREE.Vector3()
+		rcp1.subVectors(rp1, rp0).normalize().multiplyScalar(scaleFactor).add(rp1)
+		rcp2.subVectors(rp2, rp3).normalize().multiplyScalar(scaleFactor).add(rp2)
+
+		const curveLeft = new THREE.CubicBezierCurve3(lp1, lcp1, lcp2, lp2)
+		const curveRight = new THREE.CubicBezierCurve3(rp1, rcp1, rcp2, rp2)
+
+		const numPoints = 10
+		const leftPoints = curveLeft.getPoints(numPoints)
+		const rightPoints = curveRight.getPoints(numPoints)
+
+		for (let i = 0; i < numPoints; i++) {
+			connection.addMarker(getMarkerInBetween(rightPoints[i], leftPoints[i], 0.4))
+			connection.addMarker(getMarkerInBetween(rightPoints[i], leftPoints[i], 0.6))
+		}
+		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.4))
+		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.6))
 
 		// Add annotation to the scene
 		this.scene.add(connection.renderingObject)
