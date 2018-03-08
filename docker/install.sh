@@ -10,8 +10,6 @@ fi
 
 
 echo "**** Installing dependencies"
-npm install electron
-npm install watch
 npm install
 echo "**** Installing dependencies complete"
 
