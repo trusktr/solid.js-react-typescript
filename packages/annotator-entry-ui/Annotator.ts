@@ -120,8 +120,10 @@ interface UiState {
 	isLastTrafficSignMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	numberKeyPressed: number | null
-	isLiveMode: boolean // enables a trajectory fly-through, while allowing minimal user input
-	isKioskMode: boolean // turns on live mode permanently, with even less user input
+	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
+	// file (if this.flyThroughSettings.enabled is true) or messages on a live socket.
+	isLiveMode: boolean
+	isKioskMode: boolean // hides window chrome and turns on live mode permanently, with even less user input
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
 }
 
@@ -493,9 +495,8 @@ export class Annotator {
 	// Move the camera and the car model through poses loaded from a file on disk.
 	// See also initClient().
 	private runFlythrough(): void {
-		if (!this.uiState.isLiveMode) {
-			return
-		}
+		if (!this.uiState.isLiveMode) return
+		if (!this.flyThroughSettings.enabled) return
 
 		setTimeout(() => {
 			this.runFlythrough()
@@ -2173,6 +2174,7 @@ export class Annotator {
 
 		this.liveSubscribeSocket.on('message', (msg) => {
 			if (!this.uiState.isLiveMode) return
+			if (this.flyThroughSettings.enabled) return
 
 			const state = Models.InertialStateMessage.decode(msg)
 			if (
@@ -2196,10 +2198,8 @@ export class Annotator {
 	private toggleListen(): void {
 		let hideMenu
 		if (this.uiState.isLiveMode) {
-			this.annotationManager.unsetLiveMode()
 			hideMenu = this.stopListening()
 		} else {
-			this.annotationManager.setLiveMode()
 			hideMenu = this.listen()
 		}
 		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
@@ -2209,8 +2209,8 @@ export class Annotator {
 		if (this.uiState.isLiveMode) return this.uiState.isLiveMode
 
 		log.info('Listening for messages...')
+		this.annotationManager.setLiveMode()
 		this.uiState.isLiveMode = true
-		this.locationServerStatusClient.connect()
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
 			this.scene.remove(this.axis)
@@ -2227,6 +2227,8 @@ export class Annotator {
 		if (this.flyThroughSettings.enabled) {
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
 			this.runFlythrough()
+		} else {
+			this.locationServerStatusClient.connect()
 		}
 
 		return this.uiState.isLiveMode
@@ -2236,6 +2238,7 @@ export class Annotator {
 		if (!this.uiState.isLiveMode) return this.uiState.isLiveMode
 
 		log.info('Stopped listening for messages...')
+		this.annotationManager.unsetLiveMode()
 		this.uiState.isLiveMode = false
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		if (this.axis)
@@ -2384,6 +2387,7 @@ export class Annotator {
 			=> void = (level: LocationServerStatusLevel, serverStatus: string) => {
 		// If we aren't listening then we don't care
 		if (!this.uiState.isLiveMode) return
+		if (this.flyThroughSettings.enabled) return
 
 		let message = 'Location status: '
 		switch (level) {
@@ -2399,6 +2403,8 @@ export class Annotator {
 				message += '<span class="statusError">' + serverStatus + '</span>'
 				this.cancelHideLocationServerStatus()
 				break
+			default:
+				log.error('unknown LocationServerStatusLevel ' + LocationServerStatusLevel.ERROR)
 		}
 		this.statusWindow.setMessage(statusKey.locationServer, message)
 	}
