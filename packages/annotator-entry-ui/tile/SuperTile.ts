@@ -100,14 +100,14 @@ export class SuperTile extends UtmInterface {
 
 				const rawPositions = new Float32Array(arraySize)
 				const rawColors = new Float32Array(arraySize)
-				let n = 0
+				let m = 0
 				results.forEach(result => {
 					const superTilePositions = result[0]
-					for (let i = 0; i < superTilePositions.length; i++, n++) {
-						rawPositions[n] = superTilePositions[i]
+					for (let i = 0; i < superTilePositions.length; i++, m++) {
+						rawPositions[m] = superTilePositions[i]
 					}
 				})
-				n = 0
+				let n = 0
 				results.forEach(result => {
 					const superTileColors = result[1]
 					for (let i = 0; i < superTileColors.length; i++, n++) {
