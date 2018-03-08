@@ -35,6 +35,7 @@ import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
 import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient";
+const  watch = require('watch')
 
 declare global {
 	namespace THREE {
@@ -248,6 +249,35 @@ export class Annotator {
 			fps: parseFloat(config.get('fly_through.render.fps')) || 10
 		}
 
+		const watchForRebuilds: boolean = config.get('startup.watch_for_rebuilds.enable') || false
+		if (watchForRebuilds) {
+			// Watch for rebuilds and exit if we get rebuilt.
+			// This relies on a script or something else to restart after we exit
+			const self = this
+			watch.createMonitor(
+				'/tmp',
+				{
+					filter: function (f): boolean {
+						return f === '/tmp/visualizer-rebuilt.flag'
+					}
+				},
+				function (monitor): void {
+					monitor.on("created", function (): void {
+						log.info("Rebuilt flag file created, exiting app")
+						self.exitApp()
+					})
+					monitor.on("changed", function (): void {
+						log.info("Rebuilt flag file modified, exiting app")
+						self.exitApp()
+					})
+				})
+		}
+	}
+
+	exitApp(): void {
+		const remote = require('electron').remote
+		let w = remote.getCurrentWindow()
+		w.close()
 	}
 
 	/**
