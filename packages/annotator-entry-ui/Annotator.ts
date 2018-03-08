@@ -2177,7 +2177,9 @@ export class Annotator {
 				log.warn('got an InertialStateMessage without a pose')
 		})
 
-		this.liveSubscribeSocket.connect("tcp://localhost:5564")
+		const locationHost = config.get('location_server.host') || 'localhost'
+		const locationPort = config.get('location_server.port') || '5564'
+		this.liveSubscribeSocket.connect("tcp://" + locationHost + ":" + locationPort)
 		this.liveSubscribeSocket.subscribe("")
 	}
 

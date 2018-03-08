@@ -55,5 +55,6 @@ output.trajectory.csv.path: ./data/trajectory.csv
 
 # Location server info
 location_server.status.health_check.interval.seconds: 5
-location_server.status.host: localhost
+location_server.host: localhost
+location_server.port: 5564
 location_server.status.port: 26600
