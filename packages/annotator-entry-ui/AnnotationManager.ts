@@ -19,6 +19,7 @@ import {
 } from 'annotator-entry-ui/annotations/Lane'
 import {TrafficSign, TrafficSignJsonInputInterface} from 'annotator-entry-ui/annotations/TrafficSign'
 import {Connection, ConnectionJsonInputInterface} from 'annotator-entry-ui/annotations/Connection'
+import {Boundary, BoundaryJsonInputInterface} from 'annotator-entry-ui/annotations/Boundary'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -79,6 +80,7 @@ export class AnnotationManager extends UtmInterface {
 	private datum: string = 'WGS84'
 	private scene: THREE.Scene // where objects are placed on behalf of Annotator
 	laneAnnotations: Array<Lane>
+	boundaryAnnotations: Array<Boundary>
 	trafficSignAnnotations: Array<TrafficSign>
 	connectionAnnotations: Array<Connection>
 	annotationMeshes: Array<THREE.Mesh>
@@ -92,6 +94,7 @@ export class AnnotationManager extends UtmInterface {
 		super()
 		this.scene = scene
 		this.laneAnnotations = []
+		this.boundaryAnnotations = []
 		this.trafficSignAnnotations = []
 		this.connectionAnnotations = []
 		this.annotationMeshes = []
@@ -142,6 +145,27 @@ export class AnnotationManager extends UtmInterface {
 
 		return newAnnotation
 	}
+
+	addBoundaryAnnotation(obj?: BoundaryJsonInputInterface): Boundary | null {
+		if (this.isLiveMode) return null
+
+		let newAnnotation: Boundary
+		if (obj) {
+			newAnnotation = new Boundary(obj)
+			if (!newAnnotation.markers.length)
+				return null
+			if (this.boundaryAnnotations.some(a => a.uuid === newAnnotation.uuid))
+				return null
+		} else {
+			newAnnotation = new Boundary()
+		}
+		this.boundaryAnnotations.push(newAnnotation)
+
+		this.annotationMeshes.push(newAnnotation.mesh)
+		this.scene.add(newAnnotation.renderingObject)
+		return newAnnotation
+	}
+
 
 	addTrafficSignAnnotation(obj?: TrafficSignJsonInputInterface): TrafficSign | null {
 		if (this.isLiveMode) return null

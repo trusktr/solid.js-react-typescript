@@ -5,7 +5,7 @@
 
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
-import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
 import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase";
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
@@ -20,7 +20,7 @@ export enum BoundaryType {
 	SOLID,
 	DASHED,
 	DOUBLE_SOLID,
-	DOUBLE_DASHED
+	DOUBLE_DASHED,
 	SOLID_DASHED,
 	DASHED_SOLID
 }
@@ -55,6 +55,7 @@ export class Boundary extends Annotation {
 	type: BoundaryType
 	color: BoundaryColor
 	boundaryContour: THREE.Line
+	mesh: THREE.Mesh
 
 	constructor(obj?: BoundaryJsonInputInterface) {
 		super(obj)
@@ -71,7 +72,7 @@ export class Boundary extends Annotation {
 
 		if (obj && obj.markers.length > 0) {
 			obj.markers.forEach( (marker) => {
-				this.addMarker(marker, false)
+				this.addMarker(marker)
 			})
 			this.updateVisualization()
 			this.makeInactive()
@@ -82,7 +83,7 @@ export class Boundary extends Annotation {
 		return this.markers.length > 2
 	}
 
-	addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean {
+	addMarker(position: THREE.Vector3): boolean {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, BoundaryRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
