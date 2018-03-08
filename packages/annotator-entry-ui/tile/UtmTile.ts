@@ -14,18 +14,16 @@ import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
  */
 export class UtmTile {
 	hasPointCloud: boolean
-	pointCount: number
 	index: TileIndex
-	private pointCloudLoader: () => Promise<[number[], number[], number]>
+	private pointCloudLoader: () => Promise<[number[], number[]]>
 	private rawPositions: Array<number>
 	private rawColors: Array<number>
 
 	constructor(
 		index: TileIndex,
-		pointCloudLoader: () => Promise<[number[], number[], number]>
+		pointCloudLoader: () => Promise<[number[], number[]]>
 	) {
 		this.hasPointCloud = false
-		this.pointCount = 0
 		this.index = index
 		this.pointCloudLoader = pointCloudLoader
 	}
@@ -37,17 +35,16 @@ export class UtmTile {
 		return tileIndexFromVector3(superTileScale, this.index.origin)
 	}
 
-	loadPointCloud(): Promise<[number[], number[], number]> {
+	loadPointCloud(): Promise<[number[], number[]]> {
 		if (this.hasPointCloud)
-			return Promise.resolve<[number[], number[], number]>([this.rawPositions, this.rawColors, this.pointCount])
+			return Promise.resolve<[number[], number[]]>([this.rawPositions, this.rawColors])
 
 		return this.pointCloudLoader()
 			.then(result => {
 				this.rawPositions = result[0]
 				this.rawColors = result[1]
-				this.pointCount = result[2]
 				this.hasPointCloud = true
-				return [this.rawPositions, this.rawColors, this.pointCount] as [number[], number[], number]
+				return [this.rawPositions, this.rawColors] as [number[], number[]]
 			})
 	}
 
