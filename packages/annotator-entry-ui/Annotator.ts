@@ -253,7 +253,7 @@ export class Annotator {
 		if (watchForRebuilds) {
 			// Watch for rebuilds and exit if we get rebuilt.
 			// This relies on a script or something else to restart after we exit
-			var self = this
+			const self = this
 			watch.createMonitor(
 				'/tmp',
 				{
