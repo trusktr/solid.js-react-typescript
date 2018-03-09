@@ -37,8 +37,9 @@ export enum BoundaryColor {
 // Some variables used for rendering
 namespace BoundaryRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-	export const meshMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
-	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
+	export const activeMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
+	export const inactiveMaterial = new THREE.LineBasicMaterial({color: 0x00ffff})
+
 }
 
 export interface BoundaryJsonInputInterface extends AnnotationJsonInputInterface {
@@ -66,8 +67,8 @@ export class Boundary extends Annotation {
 			this.type = BoundaryType.UNKNOWN
 			this.color = BoundaryColor.NONE
 		}
-		this.boundaryContour = new THREE.Line(new THREE.Geometry(), BoundaryRenderingProperties.contourMaterial)
-		this.mesh = new THREE.Mesh(new THREE.Geometry(), BoundaryRenderingProperties.meshMaterial)
+		this.boundaryContour = new THREE.Line(new THREE.Geometry(), BoundaryRenderingProperties.activeMaterial)
+		this.mesh = new THREE.Mesh()
 		this.renderingObject.add(this.boundaryContour)
 
 		if (obj && obj.markers.length > 0) {
@@ -106,11 +107,11 @@ export class Boundary extends Annotation {
 	}
 
 	makeActive(): void {
-		this.mesh.visible = false
+		this.boundaryContour.material = BoundaryRenderingProperties.activeMaterial
 	}
 
 	makeInactive(): void {
-		this.mesh.visible = true
+		this.boundaryContour.material = BoundaryRenderingProperties.inactiveMaterial
 		this.unhighlightMarkers()
 	}
 
@@ -127,8 +128,9 @@ export class Boundary extends Annotation {
 		this.makeInactive()
 	}
 
+
 	updateVisualization(): void {
-		// Check if there are at least two markers
+		// Check if there are at least two markers to draw a line
 		if (this.markers.length < 2) {
 			return
 		}

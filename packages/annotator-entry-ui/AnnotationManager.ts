@@ -84,6 +84,7 @@ export class AnnotationManager extends UtmInterface {
 	trafficSignAnnotations: Array<TrafficSign>
 	connectionAnnotations: Array<Connection>
 	annotationMeshes: Array<THREE.Mesh>
+	annotationObjects: Array<THREE.Object3D>
 	activeAnnotation: Annotation | null
 	private carPath: Array<AnnotationUuid>
 	private carPathActivation: boolean
@@ -98,6 +99,7 @@ export class AnnotationManager extends UtmInterface {
 		this.trafficSignAnnotations = []
 		this.connectionAnnotations = []
 		this.annotationMeshes = []
+		this.annotationObjects = []
 		this.activeAnnotation = null
 		this.carPath = []
 		this.carPathActivation = false
@@ -162,6 +164,7 @@ export class AnnotationManager extends UtmInterface {
 		this.boundaryAnnotations.push(newAnnotation)
 
 		this.annotationMeshes.push(newAnnotation.mesh)
+		this.annotationObjects.push(newAnnotation.renderingObject)
 		this.scene.add(newAnnotation.renderingObject)
 		return newAnnotation
 	}
@@ -824,6 +827,20 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
+	 * Check if the passed object corresponds to an inactive annotation.
+	 */
+	checkForInactiveAnnotationObject(object: THREE.Object3D): Annotation | null {
+		const boundaryAnnotation = this.boundaryAnnotations.find(a => a.boundaryContour === object)
+		if (boundaryAnnotation) {
+			if (this.activeAnnotation && this.activeAnnotation.uuid === boundaryAnnotation.uuid)
+				return null
+			else
+				return boundaryAnnotation
+		}
+		return null
+	}
+
+	/**
 	 * Check if the passed mesh corresponds to an inactive annotation.
 	 */
 	checkForInactiveAnnotation(object: THREE.Mesh): Annotation | null {
@@ -833,14 +850,6 @@ export class AnnotationManager extends UtmInterface {
 				return null
 			else
 				return laneAnnotation
-		}
-
-		const boundaryAnnotation = this.boundaryAnnotations.find(a => a.mesh === object)
-		if (boundaryAnnotation) {
-			if (this.activeAnnotation && this.activeAnnotation.uuid === boundaryAnnotation.uuid)
-				return null
-			else
-				return boundaryAnnotation
 		}
 
 		const trafficSignAnnotation = this.trafficSignAnnotations.find(a => a.mesh === object)
