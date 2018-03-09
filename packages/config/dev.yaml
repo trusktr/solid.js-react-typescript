@@ -4,7 +4,7 @@ startup.electron.window.default.width: 0
 startup.electron.window.default.height: 0
 startup.render.fps: 60
 startup.kiosk_mode: false
-startup.background_color: '#082839'
+startup.background_color: '#444444'
 startup.show_color_picker: true
 startup.show_stats_module: true
 startup.show_status_panel: false
@@ -36,7 +36,7 @@ annotator.generate_voxels_on_point_load: false
 annotator.draw_bounding_box: false
 annotator.axes_helper_length: 10
 annotator.compass_rose_length: 50
-annotator.point_render_size: 0.05
+annotator.point_render_size: 0.5
 annotator.area_of_interest.enable: false
 annotator.area_of_interest.size: [200, 50, 200]
 

@@ -85,6 +85,7 @@ interface AnnotatorSettings {
 	background: string
 	cameraOffset: THREE.Vector3
 	lightOffset: THREE.Vector3
+	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
 	defaultFpsRendering: number
 	fpsRendering: number
 	estimateGroundPlane: boolean
@@ -146,7 +147,9 @@ export class Annotator {
 	private aoiState: AoiState
 	private statusWindow: StatusWindowController // a place to print status messages
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
-	private camera: THREE.PerspectiveCamera
+	private perspectiveCamera: THREE.PerspectiveCamera
+	private orthographicCamera: THREE.OrthographicCamera
+	private camera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
@@ -181,6 +184,7 @@ export class Annotator {
 			background: config.get('startup.background_color') || '#082839',
 			cameraOffset: new THREE.Vector3(0, 400, 200),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
+			orthoCameraHeight: 100, // enough to view ~1 city block of data
 			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
 			fpsRendering: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
@@ -292,10 +296,13 @@ export class Annotator {
 
 		const [width, height]: Array<number> = this.getContainerSize()
 
+		this.perspectiveCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
+		this.orthographicCamera = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 1000)
+		this.setOrthographicCameraDimensions(width, height)
+
 		// Create scene and camera
 		this.scene = new THREE.Scene()
-		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		this.scene.add(this.camera)
+		this.camera = this.orthographicCamera
 
 		// Add some lights
 		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
@@ -1199,9 +1206,24 @@ export class Annotator {
 
 		const [width, height]: Array<number> = this.getContainerSize()
 
-		this.camera.aspect = width / height
-		this.camera.updateProjectionMatrix()
+		this.perspectiveCamera.aspect = width / height
+		this.perspectiveCamera.updateProjectionMatrix()
+
+		this.setOrthographicCameraDimensions(width, height)
+
 		this.renderer.setSize(width, height)
+	}
+
+	// Scale the ortho camera frustum along with window dimensions to preserve a 1:1
+	// proportion for model width:height.
+	private setOrthographicCameraDimensions(width: number, height: number): void {
+		const orthoWidth = this.settings.orthoCameraHeight * (width / height)
+		const orthoHeight = this.settings.orthoCameraHeight
+		this.orthographicCamera.left = orthoWidth / -2
+		this.orthographicCamera.right = orthoWidth / 2
+		this.orthographicCamera.top = orthoHeight / 2
+		this.orthographicCamera.bottom = orthoHeight / -2
+		this.orthographicCamera.updateProjectionMatrix()
 	}
 
 	/**
@@ -1331,6 +1353,10 @@ export class Annotator {
 				}
 				case 'U': {
 					this.unloadPointCloudData()
+					break
+				}
+				case 'V': {
+					this.toggleCameraType()
 					break
 				}
 				case 'v': {
@@ -2104,6 +2130,21 @@ export class Annotator {
 			lpAddFront.removeAttribute('disabled')
 		else
 			log.warn('missing element lp_add_forward')
+	}
+
+	private toggleCameraType(): void {
+		if (this.camera === this.perspectiveCamera) {
+			log.info('switch to orthographic view')
+			this.camera = this.orthographicCamera
+		} else {
+			log.info('switch to perspective view')
+			this.camera = this.perspectiveCamera
+		}
+		this.transformControls.setCamera(this.camera)
+		{
+			// tslint:disable-next-line:no-any
+			(this.orbitControls as any).setCamera(this.camera)
+		}
 	}
 
 	// In normal edit mode, toggles through the states defined in ModelVisibility:

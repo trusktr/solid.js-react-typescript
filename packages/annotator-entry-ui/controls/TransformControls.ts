@@ -2,7 +2,7 @@
  * @author arodic / https://github.com/arodic
  */
 
-import {BufferGeometry, Euler, Object3D, Vector3} from "three"
+import {BufferGeometry, Camera, Euler, Object3D, Vector3} from "three"
 
 // tslint:disable:no-string-literal
 
@@ -747,6 +747,12 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 		this.objects = []
 		this.visible = false
 		this.axis = null
+
+	}
+
+	this.setCamera = function (newCamera: Camera): void {
+
+		scope.camera = newCamera
 
 	}
 

@@ -251,7 +251,11 @@ export class TileManager extends UtmInterface {
 		this.superTiles = OrderedMap()
 		this.loadedSuperTileKeys = OrderedSet()
 		this.superTileUnloadBehavior = SuperTileUnloadAction.Unload
-		this.pointsMaterial = new THREE.PointsMaterial({size: this.config.pointsSize, vertexColors: THREE.VertexColors})
+		this.pointsMaterial = new THREE.PointsMaterial({
+			size: this.config.pointsSize,
+			sizeAttenuation: false,
+			vertexColors: THREE.VertexColors,
+		})
 		this.isLoadingPointCloud = false
 		this.pointCloudsBoundingBox = null
 		this.voxelsMeshGroup = []
