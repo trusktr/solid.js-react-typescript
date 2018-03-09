@@ -26,6 +26,7 @@ import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane} from 'annotator-entry-ui/annotations/Lane'
 import {Connection} from "./annotations/Connection"
 import {TrafficSign} from "./annotations/TrafficSign"
+import {Boundary} from "./annotations/Boundary"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
@@ -38,7 +39,7 @@ import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/Lo
 
 declare global {
 	namespace THREE {
-		const OBJLoader: any
+		const OBJLoader: {}
 	}
 }
 
@@ -157,7 +158,7 @@ export class Annotator {
 	private light: THREE.SpotLight
 	private stats: Stats
 	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
-	private transformControls: any // controller for translating an object within the scene
+	private transformControls: {} // controller for translating an object within the scene
 	private hideTransformControlTimer: NodeJS.Timer
 	private serverStatusDisplayTimer: NodeJS.Timer
 	private locationServerStatusDisplayTimer: NodeJS.Timer
@@ -171,7 +172,7 @@ export class Annotator {
 	private flyThroughTrajectoryPoses: Models.PoseMessage[]
 	private flyThroughSettings: FlyThroughSettings
 	private locationServerStatusClient: LocationServerStatusClient
-	private gui: any
+	private gui: {}
 
 	constructor() {
 		this.settings = {
@@ -346,7 +347,7 @@ export class Annotator {
 		// Add panel to change the settings
 		if (config.get('startup.show_color_picker')) {
 			this.gui = new datModule.GUI()
-			this.gui.addColor(this.settings, 'background').onChange((value: any) => {
+			this.gui.addColor(this.settings, 'background').onChange((value: {}) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
 			this.gui.domElement.className = 'threeJs_gui'
@@ -370,6 +371,7 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
+		this.renderer.domElement.addEventListener('mouseup', this.addBoundaryAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
@@ -915,6 +917,19 @@ export class Annotator {
 		)
 	}
 
+	private addBoundaryAnnotation(): boolean {
+		// Can't create a new boundary if the current active annotation doesn't have any markers (because if we did
+		// that annotation wouldn't be selectable and it would be lost)
+		if (this.annotationManager.activeAnnotation &&
+			!this.annotationManager.activeAnnotation.isValid()) {
+			return false
+		}
+		// This creates a new lane and add it to the scene for display
+		return this.annotationManager.changeActiveAnnotation(
+			this.annotationManager.addBoundaryAnnotation()
+		)
+	}
+
 	private addTrafficSignAnnotation(): boolean {
 		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost)
@@ -947,6 +962,20 @@ export class Annotator {
 		if (intersections.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
 			this.annotationManager.addLaneMarker(intersections[0].point)
+		}
+	}
+
+	private addBoundaryAnnotationMarker = (event: MouseEvent): void => {
+		if (this.uiState.isAddMarkerKeyPressed === false) {
+			return
+		}
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterPlane.setFromCamera(mouse, this.camera)
+		let intersections = this.raycasterPlane.intersectObject(this.tileManager.pointCloud)
+
+		if (intersections.length > 0) {
+			this.annotationManager.addBoundaryMarker(intersections[0].point)
 		}
 	}
 
@@ -985,6 +1014,8 @@ export class Annotator {
 				this.annotationManager.changeActiveAnnotation(inactive)
 				if (inactive instanceof Lane)
 					this.resetLaneProp()
+				else if (inactive instanceof Boundary)
+					this.resetBoundaryProp()
 				else if (inactive instanceof TrafficSign)
 					this.resetTrafficSignProp()
 				else if (inactive instanceof Connection)
@@ -1189,6 +1220,10 @@ export class Annotator {
 					this.uiState.isAddMarkerKeyPressed = true
 					break
 				}
+				case 'b': {
+					this.addBoundary()
+					break
+				}
 				case 'c': {
 					this.focusOnPointCloud()
 					break
@@ -1383,6 +1418,15 @@ export class Annotator {
 		// Add lane to scene
 		if (this.addLaneAnnotation()) {
 			log.info("Added new lane annotation")
+			this.resetLaneProp()
+			this.hideTransform()
+		}
+	}
+
+	private addBoundary(): void {
+		// Add lane to scene
+		if (this.addBoundaryAnnotation()) {
+			log.info("Added new boundary annotation")
 			this.resetLaneProp()
 			this.hideTransform()
 		}
@@ -1905,6 +1949,16 @@ export class Annotator {
 	}
 
 	/**
+	 * Reset boundary properties elements based on the current active boundary
+	 */
+	private resetBoundaryProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
+		if (activeAnnotation === null) {
+			return
+		}
+	}
+
+	/**
 	 * Deactivate lane properties menu panel
 	 */
 	private static deactivateLaneProp(): void {
@@ -2107,9 +2161,9 @@ export class Annotator {
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
 			try {
 				const manager = new THREE.LoadingManager()
-				const loader = new (THREE as any).OBJLoader(manager)
+				const loader = new (THREE as {}).OBJLoader(manager)
 				const car = require('../annotator-assets/models/BMW_X5_4.obj')
-				loader.load(car, (object: any) => {
+				loader.load(car, (object: {}) => {
 					const boundingBox = new THREE.Box3().setFromObject(object)
 					const boxSize = boundingBox.getSize().toArray()
 					const modelLength = Math.max(...boxSize)
@@ -2381,7 +2435,6 @@ export class Annotator {
 			this.statusWindow.setMessage(statusKey.locationServer, '')
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
-
 
 }
 
