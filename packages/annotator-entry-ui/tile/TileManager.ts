@@ -199,7 +199,6 @@ export class TileManager extends UtmInterface {
 	voxelsConfig: VoxelsConfig
 	private storage: LocalStorage // persistent state for UI settings
 	private coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin
-	hasGeometry: boolean
 	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
 	// Keys to super tiles which have points loaded in memory. It is ordered so that it works as a least-recently-used
 	// cache when it comes time to unload excess super tiles.

@@ -83,7 +83,6 @@ export class AnnotationManager extends UtmInterface {
 	boundaryAnnotations: Array<Boundary>
 	trafficSignAnnotations: Array<TrafficSign>
 	connectionAnnotations: Array<Connection>
-	annotationMeshes: Array<THREE.Mesh>
 	annotationObjects: Array<THREE.Object3D>
 	activeAnnotation: Annotation | null
 	private carPath: Array<AnnotationUuid>
@@ -98,7 +97,6 @@ export class AnnotationManager extends UtmInterface {
 		this.boundaryAnnotations = []
 		this.trafficSignAnnotations = []
 		this.connectionAnnotations = []
-		this.annotationMeshes = []
 		this.annotationObjects = []
 		this.activeAnnotation = null
 		this.carPath = []
@@ -142,7 +140,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 		this.laneAnnotations.push(newAnnotation)
 
-		this.annotationMeshes.push(newAnnotation.mesh)
+		this.annotationObjects.push(newAnnotation.renderingObject)
 		this.scene.add(newAnnotation.renderingObject)
 
 		return newAnnotation
@@ -162,8 +160,6 @@ export class AnnotationManager extends UtmInterface {
 			newAnnotation = new Boundary()
 		}
 		this.boundaryAnnotations.push(newAnnotation)
-
-		this.annotationMeshes.push(newAnnotation.mesh)
 		this.annotationObjects.push(newAnnotation.renderingObject)
 		this.scene.add(newAnnotation.renderingObject)
 		return newAnnotation
@@ -183,8 +179,7 @@ export class AnnotationManager extends UtmInterface {
 			newAnnotation = new TrafficSign()
 		}
 		this.trafficSignAnnotations.push(newAnnotation)
-
-		this.annotationMeshes.push(newAnnotation.mesh)
+		this.annotationObjects.push(newAnnotation.renderingObject)
 		this.scene.add(newAnnotation.renderingObject)
 
 		return newAnnotation
@@ -204,8 +199,7 @@ export class AnnotationManager extends UtmInterface {
 			newAnnotation = new Connection()
 		}
 		this.connectionAnnotations.push(newAnnotation)
-
-		this.annotationMeshes.push(newAnnotation.mesh)
+		this.annotationObjects.push(newAnnotation.renderingObject)
 		this.scene.add(newAnnotation.renderingObject)
 
 		return newAnnotation
@@ -222,8 +216,8 @@ export class AnnotationManager extends UtmInterface {
 		// Remove lane from scene.
 		this.scene.remove(annotation.renderingObject)
 
-		// Remove mesh from internal array of meshes.
-		this.removeMeshFromArray(this.annotationMeshes, annotation.mesh)
+		// Remove rendering object from internal array of objects.
+		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
 
 		// Make sure we remove references to this annotation from it's neighbors (if any).
 		this.deleteConnectionToNeighbors(annotation)
@@ -245,10 +239,10 @@ export class AnnotationManager extends UtmInterface {
 		this.scene.remove(annotation.renderingObject)
 
 		// Remove mesh from internal array of meshes.
-		this.removeMeshFromArray(this.annotationMeshes, annotation.mesh)
+		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
 
 		// Remove annotation from internal array of annotations.
-		const eraseIndex = this.getAnnotationIndexFromUuid(this.trafficSignAnnotations, annotation.uuid)
+		const eraseIndex = this.getAnnotationIndexFromUuid(this.boundaryAnnotations, annotation.uuid)
 		this.boundaryAnnotations.splice(eraseIndex, 1)
 
 		this.metadataState.dirty()
@@ -264,7 +258,7 @@ export class AnnotationManager extends UtmInterface {
 		this.scene.remove(annotation.renderingObject)
 
 		// Remove mesh from internal array of meshes.
-		this.removeMeshFromArray(this.annotationMeshes, annotation.mesh)
+		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
 
 		// Remove annotation from internal array of annotations.
 		const eraseIndex = this.getAnnotationIndexFromUuid(this.trafficSignAnnotations, annotation.uuid)
@@ -283,7 +277,7 @@ export class AnnotationManager extends UtmInterface {
 		this.scene.remove(annotation.renderingObject)
 
 		// Remove mesh from internal array of meshes.
-		this.removeMeshFromArray(this.annotationMeshes, annotation.mesh)
+		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
 
 		// Make sure we remove references to this annotation from it's neighbors (if any).
 		this.removeUuidFromLaneNeighbors(annotation.startLaneUuid, annotation.uuid)
@@ -827,24 +821,18 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
-	 * Check if the passed object corresponds to an inactive annotation.
+	 * Check if the passed mesh corresponds to an inactive annotation.
 	 */
-	checkForInactiveAnnotationObject(object: THREE.Object3D): Annotation | null {
-		const boundaryAnnotation = this.boundaryAnnotations.find(a => a.boundaryContour === object)
+	checkForInactiveAnnotation(object: THREE.Object3D): Annotation | null {
+		const boundaryAnnotation = this.boundaryAnnotations.find(a => a.renderingObject === object)
 		if (boundaryAnnotation) {
 			if (this.activeAnnotation && this.activeAnnotation.uuid === boundaryAnnotation.uuid)
 				return null
 			else
 				return boundaryAnnotation
 		}
-		return null
-	}
 
-	/**
-	 * Check if the passed mesh corresponds to an inactive annotation.
-	 */
-	checkForInactiveAnnotation(object: THREE.Mesh): Annotation | null {
-		const laneAnnotation = this.laneAnnotations.find(a => a.mesh === object)
+		const laneAnnotation = this.laneAnnotations.find(a => a.renderingObject === object)
 		if (laneAnnotation) {
 			if (this.activeAnnotation && this.activeAnnotation.uuid === laneAnnotation.uuid)
 				return null
@@ -852,7 +840,7 @@ export class AnnotationManager extends UtmInterface {
 				return laneAnnotation
 		}
 
-		const trafficSignAnnotation = this.trafficSignAnnotations.find(a => a.mesh === object)
+		const trafficSignAnnotation = this.trafficSignAnnotations.find(a => a.renderingObject === object)
 		if (trafficSignAnnotation) {
 			if (this.activeAnnotation && this.activeAnnotation.uuid === trafficSignAnnotation.uuid)
 				return null
@@ -860,7 +848,7 @@ export class AnnotationManager extends UtmInterface {
 				return trafficSignAnnotation
 		}
 
-		const connectionAnnotation = this.connectionAnnotations.find(a => a.mesh === object)
+		const connectionAnnotation = this.connectionAnnotations.find(a => a.renderingObject === object)
 		if (connectionAnnotation) {
 			if (this.activeAnnotation && this.activeAnnotation.uuid === connectionAnnotation.uuid)
 				return null
@@ -1282,7 +1270,7 @@ export class AnnotationManager extends UtmInterface {
 
 		// Add annotation to the scene
 		this.scene.add(connection.renderingObject)
-		this.annotationMeshes.push(connection.mesh)
+		this.annotationObjects.push(connection.renderingObject)
 
 		connection.makeInactive()
 		connection.updateVisualization()
@@ -1350,17 +1338,17 @@ export class AnnotationManager extends UtmInterface {
 			}
 		})
 	}
-
-	private removeMeshFromArray(meshArray: Array<THREE.Mesh>, queryMesh: THREE.Mesh): boolean {
-		const index = meshArray.findIndex((mesh) => {
-			return mesh === queryMesh
+	x
+	private removeRenderingObjectFromArray(objectArrray: Array<THREE.Object3D>, queryObject: THREE.Object3D): boolean {
+		const index = objectArrray.findIndex((obj) => {
+			return obj === queryObject
 		})
 		if (index < 0) {
-			log.error("Couldn't find associated mesh in internal mesh array. This should never happen")
+			log.error("Couldn't find associated object in internal object array. This should never happen")
 			return false
 		}
 
-		this.annotationMeshes.splice(index, 1)
+		this.annotationObjects.splice(index, 1)
 		return true
 	}
 

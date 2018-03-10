@@ -376,7 +376,6 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addBoundaryAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection2)
 		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
@@ -956,7 +955,7 @@ export class Annotator {
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
-		if (this.settings.estimateGroundPlane || !this.tileManager.pointCloud) {
+		if (this.settings.estimateGroundPlane || this.tileManager.pointCount() === 0) {
 			intersections = this.raycasterPlane.intersectObject(this.plane)
 		} else {
 			intersections = this.raycasterPlane.intersectObject(this.tileManager.pointCloud)
@@ -1007,12 +1006,12 @@ export class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
-		this.raycasterMarker.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.annotationMeshes)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
 
 		if (intersects.length > 0) {
-			const object = intersects[0].object
-			const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Mesh)
+			const object = intersects[0].object.parent
+			const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
 
 			// We clicked an inactive annotation, make it active
 			if (inactive) {
@@ -1020,33 +1019,14 @@ export class Annotator {
 				this.annotationManager.changeActiveAnnotation(inactive)
 				if (inactive instanceof Lane)
 					this.resetLaneProp()
+				else if (inactive instanceof  Boundary)
+					this.resetBoundaryProp()
 				else if (inactive instanceof TrafficSign)
 					this.resetTrafficSignProp()
 				else if (inactive instanceof Connection)
 					noop() // Connection doesn't have any menus to maintain; this keeps the compiler from complaining.
 				else
 					log.warn(`unknown annotation type ${inactive}`)
-			}
-		}
-	}
-
-	private checkForAnnotationSelection2 = (event: MouseEvent): void => {
-		if (this.uiState.isLiveMode) return
-		if (this.uiState.isControlKeyPressed) return
-
-		const mouse = this.getMouseCoordinates(event)
-		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
-
-		if (intersects.length > 0) {
-			const object = intersects[0].object
-			const inactive = this.annotationManager.checkForInactiveAnnotationObject(object as THREE.Object3D)
-
-			// We clicked an inactive annotation, make it active
-			if (inactive) {
-				this.cleanTransformControls()
-				this.annotationManager.changeActiveAnnotation(inactive)
-				this.resetBoundaryProp()
 			}
 		}
 	}
