@@ -14,6 +14,7 @@ import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as TypeLogger from 'typelogger'
+import {threeDStepSize} from "./Constant"
 import {
 	baseGeometryTileMessageToTileMessage, pointCloudTileMessageToTileMessage,
 	TileMessage, TileMessageFormat
@@ -21,7 +22,6 @@ import {
 import {SuperTile} from "./SuperTile"
 import {UtmTile} from "./UtmTile"
 import {UtmInterface} from "../UtmInterface"
-import {BufferGeometry} from "three"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
 import {Scale3D} from "../geometry/Scale3D"
 import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
@@ -48,7 +48,6 @@ const superTileScale = configToSharedScale('tile_manager.super_tile_scale')
 if (!superTileScale.isMultipleOf(utmTileScale))
 	throw Error('super_tile_scale must be a multiple of utm_tile_scale')
 
-const threeDStepSize: number = 3
 const loadedSuperTileKeysKey = 'loadedSuperTileKeys'
 let warningDelivered = false
 
@@ -96,6 +95,9 @@ const sampleData = (msg: TileMessage, step: number): Array<Array<number>> => {
 		log.error("tile message is missing colors")
 		return []
 	}
+
+	if (step === 1)
+		return [msg.points, msg.colors]
 
 	const sampledPoints: Array<number> = []
 	const sampledColors: Array<number> = []
@@ -193,7 +195,10 @@ interface VoxelsConfig {
 }
 
 // TileManager loads tile data from disk or from the network. Tiles are aggregated into SuperTiles,
-// which serve as a local cache for chunks of tile data.
+// which serve as a local cache for chunks of tile data. Each SuperTile has a point cloud, which
+// when loaded is provided as a single structure for three.js rendering.
+// All points are stored with reference to UTM origin and offset, but using the local coordinate
+// system which has different axes.
 export class TileManager extends UtmInterface {
 	private config: TileManagerConfig
 	voxelsConfig: VoxelsConfig
@@ -202,24 +207,24 @@ export class TileManager extends UtmInterface {
 	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
 	// Keys to super tiles which have points loaded in memory. It is ordered so that it works as a least-recently-used
 	// cache when it comes time to unload excess super tiles.
-	loadedSuperTileKeys: OrderedSet<string>
-	superTileUnloadBehavior: SuperTileUnloadAction
-	// This composite point cloud contains all super tile data, in a single structure for three.js rendering.
-	// All points are stored with reference to UTM origin and offset,
-	// but using the local coordinate system which has different axes.
-	pointCloud: THREE.Points
+	private loadedSuperTileKeys: OrderedSet<string>
+	private superTileUnloadBehavior: SuperTileUnloadAction
+	private pointsMaterial: THREE.PointsMaterial
 	// TileManager makes some assumptions about the state of super tiles and point clouds which lead to problems
 	// with asynchronous requests to load points. Allow only one request at a time.
 	private isLoadingPointCloud: boolean
+	private pointCloudsBoundingBox: THREE.Box3 | null // cached state of the point clouds for all super tiles
 	voxelsMeshGroup: Array<THREE.Mesh>
 	voxelsDictionary: Set<THREE.Vector3>
 	voxelsHeight: Array<number>
 	private HSVGradient: Array<THREE.Vector3>
+	private onSuperTileLoad: (superTile: SuperTile) => void
 	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void
 	private tileServiceClient: TileServiceClient
 
 	constructor(
 		enableVoxels: boolean,
+		onSuperTileLoad: (superTile: SuperTile) => void,
 		onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void,
 		onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
 	) {
@@ -241,15 +246,14 @@ export class TileManager extends UtmInterface {
 		}
 		this.storage = new LocalStorage()
 		this.coordinateSystemInitialized = false
+		this.onSuperTileLoad = onSuperTileLoad
 		this.onSuperTileUnload = onSuperTileUnload
 		this.superTiles = OrderedMap()
 		this.loadedSuperTileKeys = OrderedSet()
 		this.superTileUnloadBehavior = SuperTileUnloadAction.Unload
-		this.pointCloud = new THREE.Points(
-			new THREE.BufferGeometry(),
-			new THREE.PointsMaterial({size: this.config.pointsSize, vertexColors: THREE.VertexColors})
-		)
+		this.pointsMaterial = new THREE.PointsMaterial({size: this.config.pointsSize, vertexColors: THREE.VertexColors})
 		this.isLoadingPointCloud = false
+		this.pointCloudsBoundingBox = null
 		this.voxelsMeshGroup = []
 		this.voxelsHeight = []
 		this.voxelsDictionary = new Set<THREE.Vector3>()
@@ -266,6 +270,14 @@ export class TileManager extends UtmInterface {
 			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
 		}
 		return 'TileManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneNorthernHemisphere + ', offset: [' + offsetStr + '])'
+	}
+
+	// Get all populated point clouds from all the super tiles.
+	getPointClouds(): THREE.Points[] {
+		return this.superTiles
+			.valueSeq().toArray()
+			.filter(st => !!st.pointCloud)
+			.map(st => st.pointCloud!)
 	}
 
 	// Update state of which super tiles are loaded; and save that state for use when the application is reloaded.
@@ -313,15 +325,6 @@ export class TileManager extends UtmInterface {
 		else
 			return TileManager.isDefaultUtmZone(num, northernHemisphere)
 				|| this.utmZoneNumber === num && this.utmZoneNorthernHemisphere === northernHemisphere
-	}
-
-	/**
-	 * Replace existing geometry with a new one.
-	 */
-	private setGeometry(newGeometry: BufferGeometry): void {
-		const oldGeometry = this.pointCloud.geometry
-		this.pointCloud.geometry = newGeometry
-		oldGeometry.dispose() // There is a vague and scary note in the docs about doing this, so here we go.
 	}
 
 	/**
@@ -655,7 +658,7 @@ export class TileManager extends UtmInterface {
 					.map(st => this.loadSuperTile(st))
 				return Promise.all(promises)
 			})
-			.then(() => this.generatePointCloudFromSuperTiles())
+			.then(() => {return})
 	}
 
 	// The useful bits of loadFromMapServer()
@@ -727,7 +730,6 @@ export class TileManager extends UtmInterface {
 			return Promise.all(promises)
 		})
 			.then(() => this.pruneSuperTiles())
-			.then(() => this.generatePointCloudFromSuperTiles())
 	}
 
 	// Look up SuperTiles (that have already been instantiated) for a list of indexes.
@@ -742,19 +744,18 @@ export class TileManager extends UtmInterface {
 	//  - array of raw position data
 	//  - array of raw color data
 	//  - count of points
-	private pointCloudFileLoader(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[], number]> {
-		return (): Promise<[number[], number[], number]> =>
+	private pointCloudFileLoader(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[]]> {
+		return (): Promise<[number[], number[]]> =>
 			this.loadTile(tileInstance)
 				.then(msg => {
 					if (!msg.points || msg.points.length === 0) {
-						return [[], [], 0] as [number[], number[], number]
+						return [[], []] as [number[], number[]]
 					} else if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
 						throw Error('checkCoordinateSystem failed on: ' + tileInstance.url)
 					} else {
 						const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.config.samplingStep)
 						const positions = this.rawDataToPositions(sampledPoints, coordinateFrame)
-						const pointCount = positions.length / threeDStepSize
-						return [positions, sampledColors, pointCount] as [number[], number[], number]
+						return [positions, sampledColors] as [number[], number[]]
 					}
 				})
 	}
@@ -763,7 +764,7 @@ export class TileManager extends UtmInterface {
 	private addTileToSuperTile(utmTile: UtmTile, coordinateFrame: CoordinateFrameType, tileName: string): void {
 		const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale), coordinateFrame)
 		if (!superTile.addTile(utmTile))
-			log.warn(`addTile() to ${superTile.index.toString()} failed for ${tileName}`)
+			log.warn(`addTile() to ${superTile.key()} failed for ${tileName}`)
 	}
 
 	private identifyFirstSuperTilesToLoad(): SuperTile[] {
@@ -791,31 +792,54 @@ export class TileManager extends UtmInterface {
 	// Load data for a single SuperTile. This assumes that loadFromDirectory() or loadFromMapServer() already happened.
 	// Side effect: prune old SuperTiles as necessary.
 	loadFromSuperTile(superTile: SuperTile): Promise<void> {
-		const key = superTile.index.toString()
-		const foundSuperTile = this.superTiles.get(key)
+		const foundSuperTile = this.superTiles.get(superTile.key())
 		if (!foundSuperTile)
-			return Promise.reject(`can't load nonexistent super tile '${key}'`)
+			return Promise.reject(`can't load nonexistent super tile '${superTile.key()}'`)
 		else
 			return this.loadSuperTile(foundSuperTile)
 				.then(() => this.pruneSuperTiles())
-				.then(() => this.generatePointCloudFromSuperTiles())
 	}
 
 	private loadSuperTile(superTile: SuperTile): Promise<boolean> {
-		const key = superTile.index.toString()
-		if (this.loadedSuperTileKeys.contains(key)) {
+		if (this.loadedSuperTileKeys.contains(superTile.key())) {
 			// Move it to the end of the queue for pruning super tiles.
-			this.loadedSuperTileKeys.delete(key)
-			this.loadedSuperTileKeys.add(key)
+			this.loadedSuperTileKeys.delete(superTile.key())
+			this.loadedSuperTileKeys.add(superTile.key())
 			this.setSuperTilesPreference()
 			return Promise.resolve(true)
 		} else
-			return superTile.loadPointCloud()
+			return superTile.loadPointCloud(this.pointsMaterial)
 				.then(success => {
-					if (success)
-						this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.add(key))
+					if (success) {
+						this.pointCloudsBoundingBox = null
+						this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.add(superTile.key()))
+						this.onSuperTileLoad(superTile)
+					}
 					return success
 				})
+	}
+
+	private unloadSuperTile(superTile: SuperTile): boolean {
+		this.onSuperTileUnload(superTile, this.superTileUnloadBehavior)
+		let success = false
+		switch (this.superTileUnloadBehavior) {
+			case SuperTileUnloadAction.Unload:
+				superTile.unloadPointCloud()
+				success = true
+				break
+			case SuperTileUnloadAction.Delete:
+				this.superTiles = this.superTiles.remove(superTile.key())
+				success = true
+				break
+			default:
+				log.error('unknown SuperTileUnloadAction: ' + this.superTileUnloadBehavior)
+				success = false
+		}
+		if (success) {
+			this.pointCloudsBoundingBox = null
+			this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.remove(superTile.key()))
+		}
+		return success
 	}
 
 	// Transform protobuf data to the correct coordinate frame and instantiate a tile.
@@ -845,72 +869,26 @@ export class TileManager extends UtmInterface {
 
 	// When we exceed maximumPointsToLoad, unload old SuperTiles, keeping a minimum of one in memory.
 	private pruneSuperTiles(): void {
-		let count = 0
+		let removedCount = 0
+		let currentPointCount = this.pointCount()
+		let superTilesCount = this.loadedSuperTileKeys.size
 		while (
-			this.loadedSuperTileKeys.size > 1 &&
-			(this.loadedSuperTileKeys.size > this.config.maximumSuperTilesToLoad || this.pointCount() > this.config.maximumPointsToLoad)
+			superTilesCount > 1 &&
+			(superTilesCount > this.config.maximumSuperTilesToLoad || currentPointCount > this.config.maximumPointsToLoad)
 		) {
 			const oldestKey = this.loadedSuperTileKeys.first()
-			this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.skip(1).toOrderedSet())
 			const foundSuperTile = this.superTiles.get(oldestKey)
 			if (foundSuperTile) {
-				switch (this.superTileUnloadBehavior) {
-					case SuperTileUnloadAction.Unload:
-						foundSuperTile.unloadPointCloud()
-						break
-					case SuperTileUnloadAction.Delete:
-						this.superTiles = this.superTiles.remove(oldestKey)
-						break
-					default:
-						log.error('unknown SuperTileUnloadAction: ' + this.superTileUnloadBehavior)
+				const superTilePointCount = foundSuperTile.pointCount
+				if (this.unloadSuperTile(foundSuperTile)) {
+					currentPointCount -= superTilePointCount
+					superTilesCount--
+					removedCount++
 				}
-				this.onSuperTileUnload(foundSuperTile, this.superTileUnloadBehavior)
-				count++
 			}
 		}
-		if (count)
-			log.info(`unloaded ${count} super tiles for better performance`)
-	}
-
-	/*
-	 * Set the current denormalized point cloud.
-	 * Return some summary values for UI display.
-	 */
-	private generatePointCloudFromSuperTiles(): void {
-		let totalPoints = 0
-		const positionsAry: number[][] = []
-		const colorsAry: number[][] = []
-		this.superTiles.forEach(st => {
-			if (st && st.hasPointCloud) {
-				const positions = st.getRawPositions()
-				const length = positions.length
-				if (length) {
-					totalPoints += length
-					positionsAry.push(positions)
-					colorsAry.push(st.getRawColors())
-				}
-			}
-		})
-
-		const rawPositions = new Float32Array(totalPoints)
-		const rawColors = new Float32Array(totalPoints)
-		let n = 0
-		positionsAry.forEach(superTilePositions => {
-			for (let i = 0; i < superTilePositions.length; i++, n++) {
-				rawPositions[n] = superTilePositions[i]
-			}
-		})
-		n = 0
-		colorsAry.forEach(superTileColors => {
-			for (let i = 0; i < superTileColors.length; i++, n++) {
-				rawColors[n] = superTileColors[i]
-			}
-		})
-
-		const geometry = new THREE.BufferGeometry()
-		geometry.addAttribute('position', new THREE.BufferAttribute(rawPositions, threeDStepSize))
-		geometry.addAttribute('color', new THREE.BufferAttribute(rawColors, threeDStepSize))
-		this.setGeometry(geometry)
+		if (removedCount)
+			log.info(`unloaded ${removedCount} super tiles for better performance`)
 	}
 
 	// This is a trivial solution to finding the local ground plane. Simply find a band of Y values with the most
@@ -922,16 +900,14 @@ export class TileManager extends UtmInterface {
 		let biggestBinCount = 0
 
 		this.superTiles.forEach(st => {
-			if (st && st.hasPointCloud) {
-				const rawPositions = st.getRawPositions()
-				for (let i = 0; i < rawPositions.length; i += threeDStepSize) {
-					const yValue = rawPositions[i + 1]
-					const yIndex = Math.floor(yValue / yValueBinSize)
-					if (yValueHistogram.has(yIndex))
-						yValueHistogram.set(yIndex, yValueHistogram.get(yIndex)! + 1)
-					else
-						yValueHistogram.set(yIndex, 1)
-				}
+			const rawPositions = st!.getRawPositions()
+			for (let i = 0; i < rawPositions.length; i += threeDStepSize) {
+				const yValue = rawPositions[i + 1]
+				const yIndex = Math.floor(yValue / yValueBinSize)
+				if (yValueHistogram.has(yIndex))
+					yValueHistogram.set(yIndex, yValueHistogram.get(yIndex)! + 1)
+				else
+					yValueHistogram.set(yIndex, 1)
 			}
 		})
 
@@ -949,21 +925,30 @@ export class TileManager extends UtmInterface {
 
 	// The number of points in all SuperTiles which have been loaded to memory.
 	pointCount(): number {
-		return this.superTiles
-			.valueSeq().toArray()
-			.map(st => st.pointCount)
-			.reduce((a, b) => a + b, 0)
+		let count = 0
+		this.superTiles.forEach(st => count += st!.pointCount)
+		return count
 	}
 
-	// Bounding box of the visible point cloud.
-	boundingBox(): THREE.Box3 | null {
-		const geometry = this.pointCloud.geometry
-		geometry.computeBoundingBox()
-		const bbox = geometry.boundingBox
-		if (!bbox || bbox.min.x === null || bbox.min.x === Infinity)
+	// Bounding box of the union of all point clouds.
+	getPointCloudBoundingBox(): THREE.Box3 | null {
+		if (this.pointCloudsBoundingBox) {
+			return this.pointCloudsBoundingBox
+		} else if (this.superTiles.isEmpty()) {
 			return null
-		else
-			return bbox
+		} else {
+			let bbox = new THREE.Box3()
+			this.superTiles.forEach(st => {
+				const newBbox = st!.getPointCloudBoundingBox()
+				if (newBbox && newBbox.min.x !== null && newBbox.min.x !== Infinity)
+					bbox = bbox.union(newBbox)
+			})
+			if (bbox.min.x === null || bbox.min.x === Infinity)
+				this.pointCloudsBoundingBox = null
+			else
+				this.pointCloudsBoundingBox = bbox
+			return this.pointCloudsBoundingBox
+		}
 	}
 
 	/**
@@ -971,19 +956,18 @@ export class TileManager extends UtmInterface {
 	 * the whole thing appears above the artificial ground plane.
 	 */
 	centerPoint(): THREE.Vector3 | null {
-		const bbox = this.boundingBox()
+		const bbox = this.getPointCloudBoundingBox()
 		if (bbox)
 			return bbox.getCenter().setY(bbox.min.y)
 		else
 			return null
 	}
 
-	/**
-	 * Clean slate.
-	 */
-	unloadAllPoints(): void {
-		this.setLoadedSuperTileKeys(OrderedSet())
-		this.superTiles = OrderedMap()
-		this.setGeometry(new THREE.BufferGeometry())
+	// Clean slate
+	unloadAllPoints(): boolean {
+		if (this.isLoadingPointCloud)
+			return false
+		this.superTiles.forEach(st => this.unloadSuperTile(st!))
+		return true
 	}
 }

@@ -1,6 +1,3 @@
-///<reference path="../../../node_modules/@types/zmq/index.d.ts"/>
-import * as MapperProtos from "@mapperai/mapper-models";
-
 /**
  *  Copyright 2018 Mapper Inc.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
@@ -10,6 +7,7 @@ const config = require('../../config')
 import * as TypeLogger from 'typelogger'
 import {Socket} from 'zmq'
 const zmq = require('zmq')
+import * as MapperProtos from "@mapperai/mapper-models";
 import Models = MapperProtos.mapper.models
 
 // tslint:disable-next-line:no-any
@@ -37,7 +35,7 @@ export class LocationServerStatusClient {
 		this.onStatusUpdate = onStatusUpdate
 		this.statusCheckInterval = (config.get('location_server.status.health_check.interval.seconds') || 5) * 1000
 
-		const locationServerStatusHost = config.get('location_server.status.host') || 'localhost'
+		const locationServerStatusHost = config.get('location_server.host') || 'localhost'
 		const locationServerStatusPort = config.get('location_server.status.port') || '26600'
 		this.locationServerStatusAddress = "tcp://" + locationServerStatusHost + ':' + locationServerStatusPort
 		this.locationServerStatusTarget = Models.SystemModule.kSystemModuleMapCap
@@ -74,7 +72,7 @@ export class LocationServerStatusClient {
 		this.periodicallyCheckServerStatus()
 	}
 
-	private handleMonitorEvent() : void {
+	private handleMonitorEvent(): void {
 		this.setServerStatus(LocationServerStatusLevel.ERROR, "Unavailable")
 	}
 

@@ -1,6 +1,6 @@
 {
   "name": "@mapperai/mapper-annotator",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Mapper.ai Point Cloud Annotator",
   "scripts": {
     "lint": "./node_modules/.bin/tslint \"packages/**/*.ts\" --force",
@@ -111,6 +111,7 @@
     "typelogger": "1.0.29",
     "utm": "1.1.1",
     "uuid": "3.1.0",
+    "watch": "1.0.2",
     "zmq": "2.15.3"
   }
 }
