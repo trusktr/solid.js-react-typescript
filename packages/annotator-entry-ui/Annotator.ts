@@ -1432,7 +1432,7 @@ export class Annotator {
 		// Add lane to scene
 		if (this.addBoundaryAnnotation()) {
 			log.info("Added new boundary annotation")
-			this.resetLaneProp()
+			this.resetBoundaryProp()
 			this.hideTransform()
 		}
 	}

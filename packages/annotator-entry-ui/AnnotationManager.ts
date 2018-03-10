@@ -1338,7 +1338,7 @@ export class AnnotationManager extends UtmInterface {
 			}
 		})
 	}
-	x
+
 	private removeRenderingObjectFromArray(objectArrray: Array<THREE.Object3D>, queryObject: THREE.Object3D): boolean {
 		const index = objectArrray.findIndex((obj) => {
 			return obj === queryObject
