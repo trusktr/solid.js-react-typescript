@@ -2,6 +2,7 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
+
 const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file";
@@ -629,7 +630,7 @@ export class Annotator {
 	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
 		log.info('loadPointCloudDataFromDirectory')
 		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
-			.then(() => this.pointCloudLoadedSideEffects())
+			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
 			.catch(err => this.pointCloudLoadedError(err))
 	}
 
@@ -648,7 +649,7 @@ export class Annotator {
 	// Load tiles within a bounding box and add them to the scene.
 	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
 		return this.tileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
-			.then(() => this.pointCloudLoadedSideEffects(resetCamera))
+			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
 			.catch(err => this.pointCloudLoadedError(err))
 	}
 
