@@ -1300,6 +1300,10 @@ export class Annotator {
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else {
 			switch (event.key) {
+				case 'Backspace': {
+					this.deleteActiveAnnotation()
+					break
+				}
 				case 'Control': {
 					this.uiState.isControlKeyPressed = true
 					break
@@ -1397,10 +1401,6 @@ export class Annotator {
 				}
 				case 'w': {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
-					break
-				}
-				case 'z': {
-					this.deleteActiveAnnotation()
 					break
 				}
 				default:
