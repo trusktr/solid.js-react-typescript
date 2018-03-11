@@ -36,7 +36,7 @@ annotator.generate_voxels_on_point_load: false
 annotator.draw_bounding_box: false
 annotator.axes_helper_length: 10
 annotator.compass_rose_length: 50
-annotator.point_render_size: 0.05
+annotator.point_render_size: 1.0
 annotator.area_of_interest.enable: false
 annotator.area_of_interest.size: [50, 50, 50]
 
