@@ -897,38 +897,6 @@ export class TileManager extends UtmInterface {
 			log.info(`unloaded ${removedCount} super tiles for better performance`)
 	}
 
-	// This is a trivial solution to finding the local ground plane. Simply find a band of Y values with the most
-	// points (arithmetic mode). Assume that band contains a large horizontal object which is a road.
-	estimateGroundPlaneYIndex(): number | null {
-		const yValueHistogram: Map<number, number> = new Map()
-		const yValueBinSize = 0.7 // arbitrary setting for the physical size of bins, yields ~20 bins given data sets ~10m high
-		let biggestBinIndex = 0
-		let biggestBinCount = 0
-
-		this.superTiles.forEach(st => {
-			const rawPositions = st!.getRawPositions()
-			for (let i = 0; i < rawPositions.length; i += threeDStepSize) {
-				const yValue = rawPositions[i + 1]
-				const yIndex = Math.floor(yValue / yValueBinSize)
-				if (yValueHistogram.has(yIndex))
-					yValueHistogram.set(yIndex, yValueHistogram.get(yIndex)! + 1)
-				else
-					yValueHistogram.set(yIndex, 1)
-			}
-		})
-
-		yValueHistogram.forEach((count, index) => {
-			if (count > biggestBinCount) {
-				biggestBinIndex = index
-				biggestBinCount = count
-			}
-		})
-
-		return biggestBinIndex > 0
-			? (biggestBinIndex + 0.5) * yValueBinSize // Get the midpoint of the most popular bin.
-			: null
-	}
-
 	// The number of points in all SuperTiles which have been loaded to memory.
 	pointCount(): number {
 		let count = 0
