@@ -1,5 +1,5 @@
 /**
- *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
+ *  Copyright 2018 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
