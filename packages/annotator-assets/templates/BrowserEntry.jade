@@ -266,8 +266,14 @@ html(lang="en")
 				button#tools_export_kml.ui-btn.ui-icon-location.ui-btn-icon-left Export KML
 
 			#menu_1.accordion
-				h3#exp_head_1.dropdown_head Lane Annotation
+				h3#exp_head_1.dropdown_head Boundary Annotation
 				#exp_body_1.dropdown_body
+					#boundary_prop.fieldset_content_style
+						button#remove.button_inline Show
+
+			#menu_2.accordion
+				h3#exp_head_2.dropdown_head Lane Annotation
+				#exp_body_2.dropdown_body
 					#lane_prop.fieldset_content_style
 						#lane_prop_1.div_properties
 						#lane_prop_2.div_glue Add Neighbor:
@@ -279,21 +285,21 @@ html(lang="en")
 							button#lp_current(disabled) C
 							button#lp_add_right_same &uarr;
 							button#lp_add_right_opposite &darr;
-			#menu_2.accordion
-				h3#exp_head_2.dropdown_head Neighbours
-				#exp_body_2.dropdown_body
+			#menu_3.accordion
+				h3#exp_head_3.dropdown_head Neighbours
+				#exp_body_3.dropdown_body
 					#lane_conn.fieldset_content_style
 					#lane_conn_btn.fieldset_content_style
 						button#lc_add.button_inline Add
-			#menu_3.accordion
-				h3#exp_head_3.dropdown_head Traffic Sign Annotation
-				#exp_body_3.dropdown_body
+			#menu_4.accordion
+				h3#exp_head_4.dropdown_head Traffic Sign Annotation
+				#exp_body_4.dropdown_body
 					#traffic_sign_prop_1.fieldset_content_style
 					#traffic_sign_prop_2.fieldset_content_style
 						button#test.button_inline Show
-			#menu_4.accordion
-				h3#exp_head_4.dropdown_head Trajectory
-				#exp_body_4.dropdown_body
+			#menu_5.accordion
+				h3#exp_head_5.dropdown_head Trajectory
+				#exp_body_5.dropdown_body
 					#trajectory_1.fieldset_content_style
 						text#tr_add_text.label_style Add to trajectory
 						button#tr_add.button_inline Add
@@ -302,9 +308,9 @@ html(lang="en")
 						button#tr_show.button_inline Show
 					#trajectory_3.fieldset_content_style
 						button#save_path.button_inline Save To File
-			#menu_5.accordion
-				h3#exp_head_5.dropdown_head Help
-				#exp_body_5.dropdown_body
+			#menu_6.accordion
+				h3#exp_head_6.dropdown_head Help
+				#exp_body_6.dropdown_body
 					p.div_help.
 						<strong>Point cloud</strong><br>
 						c - Center the camera on the tiles<br>
@@ -328,7 +334,8 @@ html(lang="en")
 
 						<strong>Annotation Markers</strong><br>
 						n - Create new lane<br>
-						a - Hold to add lane markers<br>
+						b - Create new boundary<br>
+						a - Hold to add lane/boundary markers<br>
 						t - Create new traffic sign<br>
 						q - Hold to add traffic sign markers<br>
 						w - Hold to add the final traffic sign marker<br>

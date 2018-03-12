@@ -29,6 +29,7 @@ import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane} from 'annotator-entry-ui/annotations/Lane'
 import {Connection} from "./annotations/Connection"
 import {TrafficSign} from "./annotations/TrafficSign"
+import {Boundary} from "./annotations/Boundary"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
@@ -155,6 +156,7 @@ export class Annotator {
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
 	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
+	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private tileManager: TileManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
@@ -237,6 +239,8 @@ export class Annotator {
 		this.raycasterPlane.params.Points!.threshold = 0.1
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterSuperTiles = new THREE.Raycaster()
+		this.raycasterAnnotation = new THREE.Raycaster()
+		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager(
 			this.settings.generateVoxelsOnPointLoad,
 			this.onSuperTileLoad,
@@ -404,10 +408,11 @@ export class Annotator {
 		window.addEventListener('keyup', this.onKeyUp)
 
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
+		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
+		this.renderer.domElement.addEventListener('mouseup', this.addBoundaryAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
@@ -416,6 +421,8 @@ export class Annotator {
 		if (!this.uiState.isKioskMode)
 			this.bind()
 		Annotator.deactivateLaneProp()
+		Annotator.deactivateBoundaryProp()
+		Annotator.deactivateTrafficSignProp()
 
 		this.displayMenu(
 			config.get('startup.show_menu') && !this.uiState.isKioskMode
@@ -1040,6 +1047,19 @@ export class Annotator {
 		)
 	}
 
+	private addBoundaryAnnotation(): boolean {
+		// Can't create a new boundary if the current active annotation doesn't have any markers (because if we did
+		// that annotation wouldn't be selectable and it would be lost)
+		if (this.annotationManager.activeAnnotation &&
+			!this.annotationManager.activeAnnotation.isValid()) {
+			return false
+		}
+		// This creates a new lane and add it to the scene for display
+		return this.annotationManager.changeActiveAnnotation(
+			this.annotationManager.addBoundaryAnnotation()
+		)
+	}
+
 	private addTrafficSignAnnotation(): boolean {
 		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost)
@@ -1063,7 +1083,7 @@ export class Annotator {
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
-		if (this.settings.estimateGroundPlane || !this.tileManager.getPointClouds().length) {
+		if (this.settings.estimateGroundPlane || !this.tileManager.pointCount()) {
 			if (this.allGroundPlanes.length)
 				intersections = this.raycasterPlane.intersectObjects(this.allGroundPlanes)
 			else
@@ -1075,6 +1095,23 @@ export class Annotator {
 		if (intersections.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
 			this.annotationManager.addLaneMarker(intersections[0].point)
+		}
+	}
+
+	private addBoundaryAnnotationMarker = (event: MouseEvent): void => {
+		if (this.uiState.isAddMarkerKeyPressed === false) {
+			return
+		}
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterPlane.setFromCamera(mouse, this.camera)
+
+		// This is for testing purposes. This should be updated to using either the point cloud or
+		// the ground planes.
+		const intersections = this.raycasterPlane.intersectObject(this.plane)
+
+		if (intersections.length > 0) {
+			this.annotationManager.addBoundaryMarker(intersections[0].point)
 		}
 	}
 
@@ -1100,12 +1137,12 @@ export class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
-		this.raycasterMarker.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.annotationMeshes)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
 
 		if (intersects.length > 0) {
-			const object = intersects[0].object
-			const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Mesh)
+			const object = intersects[0].object.parent
+			const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
 
 			// We clicked an inactive annotation, make it active
 			if (inactive) {
@@ -1113,6 +1150,8 @@ export class Annotator {
 				this.annotationManager.changeActiveAnnotation(inactive)
 				if (inactive instanceof Lane)
 					this.resetLaneProp()
+				else if (inactive instanceof  Boundary)
+					this.resetBoundaryProp()
 				else if (inactive instanceof TrafficSign)
 					this.resetTrafficSignProp()
 				else if (inactive instanceof Connection)
@@ -1317,6 +1356,10 @@ export class Annotator {
 					this.uiState.isAddMarkerKeyPressed = true
 					break
 				}
+				case 'b': {
+					this.addBoundary()
+					break
+				}
 				case 'c': {
 					this.focusOnPointCloud()
 					break
@@ -1511,7 +1554,20 @@ export class Annotator {
 		// Add lane to scene
 		if (this.addLaneAnnotation()) {
 			log.info("Added new lane annotation")
+			Annotator.deactivateBoundaryProp()
+			Annotator.deactivateTrafficSignProp()
 			this.resetLaneProp()
+			this.hideTransform()
+		}
+	}
+
+	private addBoundary(): void {
+		// Add lane to scene
+		if (this.addBoundaryAnnotation()) {
+			log.info("Added new boundary annotation")
+			Annotator.deactivateLaneProp()
+			Annotator.deactivateTrafficSignProp()
+			this.resetBoundaryProp()
 			this.hideTransform()
 		}
 	}
@@ -1520,6 +1576,8 @@ export class Annotator {
 		// Add lane to scene
 		if (this.addTrafficSignAnnotation()) {
 			log.info("Added new traffic sign annotation")
+			Annotator.deactivateLaneProp()
+			Annotator.deactivateBoundaryProp()
 			this.resetTrafficSignProp()
 			this.hideTransform()
 		}
@@ -2033,6 +2091,16 @@ export class Annotator {
 	}
 
 	/**
+	 * Reset boundary properties elements based on the current active boundary
+	 */
+	private resetBoundaryProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
+		if (activeAnnotation === null) {
+			return
+		}
+	}
+
+	/**
 	 * Deactivate lane properties menu panel
 	 */
 	private static deactivateLaneProp(): void {
@@ -2081,6 +2149,20 @@ export class Annotator {
 			trAdd.setAttribute('disabled', 'disabled')
 		else
 			log.warn('missing element tr_add')
+	}
+
+	/**
+	 * Deactivate boundary properties menu panel
+	 */
+	private static deactivateBoundaryProp(): void {
+		// TODO
+	}
+
+	/**
+	 * Deactivate traffic sign properties menu panel
+	 */
+	private static deactivateTrafficSignProp(): void {
+		// TODO
 	}
 
 	/**
@@ -2514,7 +2596,6 @@ export class Annotator {
 			this.statusWindow.setMessage(statusKey.locationServer, '')
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
-
 
 }
 
