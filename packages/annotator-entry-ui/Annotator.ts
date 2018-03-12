@@ -104,6 +104,9 @@ interface FlyThroughSettings {
 	startPoseIndex: number
 	endPoseIndex: number
 	currentPoseIndex: number
+}
+
+interface LiveModeSettings {
 	cameraOffset: THREE.Vector3
 	cameraOffsetDelta: number
 	fps: number
@@ -173,6 +176,7 @@ export class Annotator {
 	private settings: AnnotatorSettings
 	private flyThroughTrajectoryPoses: Models.PoseMessage[]
 	private flyThroughSettings: FlyThroughSettings
+	private liveModeSettings: LiveModeSettings
 	private locationServerStatusClient: LocationServerStatusClient
 	private gui: any
 
@@ -246,6 +250,8 @@ export class Annotator {
 			startPoseIndex: 0,
 			endPoseIndex: 0,
 			currentPoseIndex: 0,
+		}
+		this.liveModeSettings = {
 			cameraOffset: new THREE.Vector3(30, 10, 0),
 			cameraOffsetDelta: 1,
 			fps: parseFloat(config.get('fly_through.render.fps')) || 10
@@ -530,7 +536,7 @@ export class Annotator {
 
 		setTimeout(() => {
 			this.runFlythrough()
-		}, 1000 / this.flyThroughSettings.fps)
+		}, 1000 / this.liveModeSettings.fps)
 
 		if (this.flyThroughSettings.currentPoseIndex >= this.flyThroughSettings.endPoseIndex)
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
@@ -1217,19 +1223,19 @@ export class Annotator {
 	private onKeyDownLiveMode = (event: KeyboardEvent): void => {
 		switch (event.keyCode) {
 			case 37: { // left arrow
-				this.flyThroughSettings.cameraOffset.x += this.flyThroughSettings.cameraOffsetDelta
+				this.liveModeSettings.cameraOffset.x += this.liveModeSettings.cameraOffsetDelta
 				break
 			}
 			case 38: { // up arrow
-				this.flyThroughSettings.cameraOffset.y += this.flyThroughSettings.cameraOffsetDelta
+				this.liveModeSettings.cameraOffset.y += this.liveModeSettings.cameraOffsetDelta
 				break
 			}
 			case 39: { // right arrow
-				this.flyThroughSettings.cameraOffset.x -= this.flyThroughSettings.cameraOffsetDelta
+				this.liveModeSettings.cameraOffset.x -= this.liveModeSettings.cameraOffsetDelta
 				break
 			}
 			case 40: { // down arrow
-				this.flyThroughSettings.cameraOffset.y -= this.flyThroughSettings.cameraOffsetDelta
+				this.liveModeSettings.cameraOffset.y -= this.liveModeSettings.cameraOffsetDelta
 				break
 			}
 			default:
@@ -2255,7 +2261,7 @@ export class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
-		this.settings.fpsRendering = this.flyThroughSettings.fps
+		this.settings.fpsRendering = this.liveModeSettings.fps
 		if (this.flyThroughSettings.enabled) {
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
 			this.runFlythrough()
@@ -2356,7 +2362,7 @@ export class Annotator {
 
 	private updateCameraPose(): void {
 		const p = this.carModel.getWorldPosition().clone()
-		const offset = this.flyThroughSettings.cameraOffset.clone()
+		const offset = this.liveModeSettings.cameraOffset.clone()
 		offset.applyQuaternion(this.carModel.quaternion)
 		offset.add(p)
 		this.camera.position.set(offset.x, offset.y, offset.z)
