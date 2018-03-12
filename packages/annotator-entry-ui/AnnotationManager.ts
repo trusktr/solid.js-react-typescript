@@ -508,11 +508,11 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	showAnnotations(): void {
-		this.allAnnotations().forEach(annotation => annotation.makeVisible())
+		this.allAnnotations().forEach(a => a.makeVisible())
 	}
 
 	hideAnnotations(): void {
-		this.allAnnotations().forEach(annotation => annotation.makeInvisible())
+		this.allAnnotations().forEach(a => a.makeInvisible())
 	}
 
 	/**
