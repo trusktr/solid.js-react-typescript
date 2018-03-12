@@ -2298,6 +2298,7 @@ export class Annotator {
 				this.hideAnnotations()
 				break
 			default:
+				log.info('showing all objects')
 				this.showSuperTiles()
 				this.showPointCloud()
 				this.showAnnotations()
@@ -2320,12 +2321,12 @@ export class Annotator {
 	}
 
 	private hideAnnotations(): void {
-		// this.annotationManager.hideAnnotations() // todo
+		this.annotationManager.hideAnnotations()
 		this.uiState.isAnnotationsVisible = false
 	}
 
 	private showAnnotations(): void {
-		// this.annotationManager.showAnnotations() // todo
+		this.annotationManager.showAnnotations()
 		this.uiState.isAnnotationsVisible = true
 	}
 

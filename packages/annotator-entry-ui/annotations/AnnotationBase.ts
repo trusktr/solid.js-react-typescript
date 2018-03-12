@@ -92,4 +92,12 @@ export abstract class Annotation {
 			marker.geometry = AnnotationRenderingProperties.markerPointGeometry
 		})
 	}
+
+	makeVisible(): void {
+		this.renderingObject.visible = true
+	}
+
+	makeInvisible(): void {
+		this.renderingObject.visible = false
+	}
 }
