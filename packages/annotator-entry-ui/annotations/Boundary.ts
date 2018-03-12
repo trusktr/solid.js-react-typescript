@@ -22,16 +22,19 @@ export enum BoundaryType {
 	DOUBLE_SOLID,
 	DOUBLE_DASHED,
 	SOLID_DASHED,
-	DASHED_SOLID
+	DASHED_SOLID,
+	OTHER
 }
 
 export enum BoundaryColor {
-	NONE = 0,
+	UNKNOWN = 0,
+	NONE ,
 	WHITE,
 	YELLOW,
 	RED,
 	BLUE,
-	GREEN
+	GREEN,
+	OTHER
 }
 
 // Some variables used for rendering

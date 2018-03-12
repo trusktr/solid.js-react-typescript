@@ -414,6 +414,8 @@ export class Annotator {
 		if (!this.uiState.isKioskMode)
 			this.bind()
 		Annotator.deactivateLaneProp()
+		Annotator.deactivateBoundaryProp()
+		Annotator.deactivateTrafficSignProp()
 
 		this.displayMenu(
 			config.get('startup.show_menu') && !this.uiState.isKioskMode
@@ -1494,6 +1496,8 @@ export class Annotator {
 		// Add lane to scene
 		if (this.addLaneAnnotation()) {
 			log.info("Added new lane annotation")
+			Annotator.deactivateBoundaryProp()
+			Annotator.deactivateTrafficSignProp()
 			this.resetLaneProp()
 			this.hideTransform()
 		}
@@ -1503,6 +1507,8 @@ export class Annotator {
 		// Add lane to scene
 		if (this.addBoundaryAnnotation()) {
 			log.info("Added new boundary annotation")
+			Annotator.deactivateLaneProp()
+			Annotator.deactivateTrafficSignProp()
 			this.resetBoundaryProp()
 			this.hideTransform()
 		}
@@ -1512,6 +1518,8 @@ export class Annotator {
 		// Add lane to scene
 		if (this.addTrafficSignAnnotation()) {
 			log.info("Added new traffic sign annotation")
+			Annotator.deactivateLaneProp()
+			Annotator.deactivateBoundaryProp()
 			this.resetTrafficSignProp()
 			this.hideTransform()
 		}
@@ -2083,6 +2091,20 @@ export class Annotator {
 			trAdd.setAttribute('disabled', 'disabled')
 		else
 			log.warn('missing element tr_add')
+	}
+
+	/**
+	 * Deactivate boundary properties menu panel
+	 */
+	private static deactivateBoundaryProp(): void {
+		// TODO
+	}
+
+	/**
+	 * Deactivate traffic sign properties menu panel
+	 */
+	private static deactivateTrafficSignProp(): void {
+		// TODO
 	}
 
 	/**
