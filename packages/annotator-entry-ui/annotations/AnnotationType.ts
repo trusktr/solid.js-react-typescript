@@ -7,5 +7,6 @@ export enum AnnotationType {
 	UNKNOWN,
 	LANE,
 	TRAFFIC_SIGN,
-	CONNECTION
+	CONNECTION,
+	BOUNDARY
 }
