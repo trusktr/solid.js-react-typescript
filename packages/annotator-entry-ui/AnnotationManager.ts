@@ -751,6 +751,19 @@ export class AnnotationManager extends UtmInterface {
 		return true
 	}
 
+	// Make no annotations active.
+	unsetActiveAnnotation(): boolean {
+		if (this.isLiveMode) return false
+
+		if (this.activeAnnotation) {
+			this.activeAnnotation.makeInactive()
+			this.activeAnnotation = null
+			return true
+		} else {
+			return false
+		}
+	}
+
 	/**
 	 * Eliminate the current active annotation from the manager. Delete its associated
 	 * mesh and markers from the scene and reset any active annotation variables.
