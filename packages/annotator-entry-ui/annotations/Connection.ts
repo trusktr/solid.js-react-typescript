@@ -52,6 +52,9 @@ export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInter
 	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
+	// Waypoints are generated from markers. They are included in output for downstream
+	// convenience, but we don't read them back in.
+	waypoints: Array<Object>
 }
 
 export class Connection extends Annotation {
@@ -176,17 +179,24 @@ export class Connection extends Annotation {
 			startLaneUuid: this.startLaneUuid,
 			endLaneUuid: this.endLaneUuid,
 			markers: [],
+			waypoints: [],
 		}
 
-		if (this.markers) {
-			this.markers.forEach((marker) => {
-				if (pointConverter) {
-					data.markers.push(pointConverter(marker.position))
-				} else {
-					data.markers.push(marker.position)
-				}
-			})
-		}
+		this.markers.forEach((marker) => {
+			if (pointConverter) {
+				data.markers.push(pointConverter(marker.position))
+			} else {
+				data.markers.push(marker.position)
+			}
+		})
+
+		this.waypoints.forEach((waypoint) => {
+			if (pointConverter) {
+				data.waypoints.push(pointConverter(waypoint))
+			} else {
+				data.waypoints.push(waypoint)
+			}
+		})
 
 		return data
 	}
