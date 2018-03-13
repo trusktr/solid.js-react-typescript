@@ -591,7 +591,7 @@ export class Annotator {
 		this.setStage(point.x, point.y, point.z, resetCamera)
 	}
 
-	/*
+	/**
 	 * Set the stage at the bottom center of TileManager's point cloud.
 	 */
 	private setStageByPointCloud(resetCamera: boolean): void {
@@ -600,7 +600,9 @@ export class Annotator {
 			this.setStageByVector(focalPoint, resetCamera)
 	}
 
-	// Display the compass rose just outside the bounding box of the point cloud.
+	/**
+	 * 	Display the compass rose just outside the bounding box of the point cloud.
+	 */
 	private setCompassRoseByPointCloud(): void {
 		if (!this.compassRose) return
 		const boundingBox = this.tileManager.getPointCloudBoundingBox()
@@ -626,7 +628,9 @@ export class Annotator {
 			log.warn('point cloud has not been initialized')
 	}
 
-	// Set the camera directly above the current target, looking down.
+	/**
+	 * 	Set the camera directly above the current target, looking down.
+	 */
 	private resetTiltAndCompass(): void {
 		const distanceCameraToTarget = this.camera.position.clone().sub(this.orbitControls.target).length()
 		this.camera.position.x = this.orbitControls.target.x
@@ -698,7 +702,9 @@ export class Annotator {
 		}
 	}
 
-	// Compute corresponding height for each voxel based on near by annotations
+	/**
+	 * 	Compute corresponding height for each voxel based on near by annotations
+	 */
 	private computeVoxelsHeights(): void {
 		if (this.annotationManager.laneAnnotations.length === 0)
 			log.error(`Unable to compute voxels height, there are no annotations.`)
@@ -741,7 +747,9 @@ export class Annotator {
 		}
 	}
 
-	// Incrementally load the point cloud for a single super tile.
+	/**
+	 * 	Incrementally load the point cloud for a single super tile.
+	 */
 	private loadSuperTileData(superTile: SuperTile): Promise<void> {
 		if (!this.uiState.isPointCloudVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
@@ -780,7 +788,9 @@ export class Annotator {
 		}
 	}
 
-	// Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
+	/**
+	 * 	Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
+	 */
 	private renderEmptySuperTiles(): void {
 		this.tileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
 
@@ -898,7 +908,9 @@ export class Annotator {
 		this.uiState.isSuperTilesVisible = true
 	}
 
-	// Draw a box around the data. Useful for debugging.
+	/**
+	 * 	Draw a box around the data. Useful for debugging.
+	 */
 	private updatePointCloudBoundingBox(): void {
 		if (this.settings.drawBoundingBox) {
 			if (this.pointCloudBoundingBox) {

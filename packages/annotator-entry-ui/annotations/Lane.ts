@@ -321,7 +321,9 @@ export class Lane extends Annotation {
 		this.markers.forEach((marker) => {
 			marker.visible = true
 		})
-		this.showDirectionMarkers()
+		if (this.type !== LaneType.CROSSWALK) {
+			this.showDirectionMarkers()
+		}
 		this.makeInactive()
 	}
 
@@ -365,6 +367,11 @@ export class Lane extends Annotation {
 
 		// Generate center lane indication and direction markers
 		this.computeWaypoints()
+
+		if (this.type === LaneType.CROSSWALK) {
+			this.hideDirectionMarkers()
+			this.laneCenterLine.visible = false
+		}
 	}
 
 	/**
