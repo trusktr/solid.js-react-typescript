@@ -28,7 +28,7 @@ export enum BoundaryType {
 
 export enum BoundaryColor {
 	UNKNOWN = 0,
-	NONE ,
+	NONE,
 	WHITE,
 	YELLOW,
 	RED,
@@ -68,7 +68,7 @@ export class Boundary extends Annotation {
 			this.color = isNullOrUndefined(BoundaryType[obj.boundaryColor]) ? BoundaryColor.NONE : BoundaryType[obj.boundaryColor]
 		} else {
 			this.type = BoundaryType.UNKNOWN
-			this.color = BoundaryColor.NONE
+			this.color = BoundaryColor.UNKNOWN
 		}
 		this.boundaryContour = new THREE.Line(new THREE.Geometry(), BoundaryRenderingProperties.activeMaterial)
 		this.mesh = new THREE.Mesh()

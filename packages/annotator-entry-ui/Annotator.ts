@@ -415,13 +415,13 @@ export class Annotator {
 
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
+		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addBoundaryAnnotationMarker)
-		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
+		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
 
 		// Bind events
 		if (!this.uiState.isKioskMode)
@@ -1878,8 +1878,8 @@ export class Annotator {
 			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
 			if (activeAnnotation === null)
 				return
-			log.info("Adding boundary color: " + bpType.children("options").filter(":selected").text())
-			activeAnnotation.color = +bpType.val()
+			log.info("Adding boundary color: " + bpColor.children("options").filter(":selected").text())
+			activeAnnotation.color = +bpColor.val()
 		})
 	}
 
@@ -2141,6 +2141,20 @@ export class Annotator {
 		if (activeAnnotation === null) {
 			return
 		}
+
+		const bpId = document.getElementById('bp_id_value')
+		if (bpId)
+			bpId.textContent = activeAnnotation.id.toString()
+		else
+			log.warn('missing element bp_id_value')
+
+		const bpSelectType = $('#bp_select_type')
+		bpSelectType.removeAttr(A'disabled')
+		bpSelectType.val(activeAnnotation.type.toString())
+
+		const bpSelectColor = $('#bp_select_color')
+		bpSelectColor.removeAttr('disabled')
+		bpSelectColor.val(activeAnnotation.color.toString())
 	}
 
 	/**
@@ -2198,7 +2212,23 @@ export class Annotator {
 	 * Deactivate boundary properties menu panel
 	 */
 	private static deactivateBoundaryProp(): void {
-		// TODO
+		const bpId = document.getElementById('bp_id_value')
+		if (bpId)
+			bpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element bp_id_value')
+
+		const bpType = document.getElementById('bp_select_type')
+		if (bpType)
+			bpType.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element bp_select_type')
+
+		const bpColor = document.getElementById('bp_select_color')
+		if (bpColor)
+			bpColor.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element bp_select_color')
 	}
 
 	/**
