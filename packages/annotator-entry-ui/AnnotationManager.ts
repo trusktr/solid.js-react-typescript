@@ -362,7 +362,7 @@ export class AnnotationManager extends UtmInterface {
 					laneFrom.neighborsIds.left = laneTo.uuid
 					laneTo.neighborsIds.right = laneFrom.uuid
 				} else {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Left relation already exist.")
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, `${relation} relation already exists`)
 					return false
 				}
 				break
@@ -373,7 +373,7 @@ export class AnnotationManager extends UtmInterface {
 					laneFrom.neighborsIds.left = laneTo.uuid
 					laneTo.neighborsIds.left = laneFrom.uuid
 				} else {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Left relation already exist.")
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, `${relation} relation already exists`)
 					return false
 				}
 				break
@@ -384,17 +384,24 @@ export class AnnotationManager extends UtmInterface {
 					laneFrom.neighborsIds.right = laneTo.uuid
 					laneTo.neighborsIds.left = laneFrom.uuid
 				} else {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Right relation already exist.")
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, `${relation} relation already exists`)
 					return false
 				}
 				break
+			case 'back':
 			case 'front':
-				const index1 = laneFrom.neighborsIds.front.findIndex((neighbor) => {
-					return neighbor === laneTo!.uuid
-				})
-				const index2 = laneTo.neighborsIds.back.findIndex((neighbor) => {
-					return neighbor === laneFrom!.uuid
-				})
+				if (relation === 'back') {
+					const temp = laneFrom
+					laneFrom = laneTo
+					laneTo = temp
+				}
+
+				const index1 = laneFrom.neighborsIds.front.findIndex(neighbor =>
+					neighbor === laneTo!.uuid
+				)
+				const index2 = laneTo.neighborsIds.back.findIndex(neighbor =>
+					neighbor === laneFrom!.uuid
+				)
 				if (index1 === -1 && index2 === -1) {
 					// check if close enough
 					const laneFromPoint = laneFrom.markers[laneFrom.markers.length - 1].position
@@ -407,22 +414,7 @@ export class AnnotationManager extends UtmInterface {
 						this.addConnection(laneFrom, laneTo)
 					}
 				} else {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Front relation already exist.")
-					return false
-				}
-				break
-			case 'back':
-				const index3 = laneFrom.neighborsIds.back.findIndex((neighbor) => {
-					return neighbor === laneTo!.uuid
-				})
-				const index4 = laneTo.neighborsIds.front.findIndex((neighbor) => {
-					return neighbor === laneFrom!.uuid
-				})
-				if (index3 === -1 && index4 === -1) {
-					laneFrom.neighborsIds.back.push(laneTo.uuid)
-					laneTo.neighborsIds.front.push(laneFrom.uuid)
-				} else {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Back relation already exist.")
+					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, `${relation} relation already exists`)
 					return false
 				}
 				break
