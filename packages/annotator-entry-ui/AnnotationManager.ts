@@ -298,7 +298,7 @@ export class AnnotationManager extends UtmInterface {
 						laneFrom.neighborsIds.front.push(laneTo.uuid)
 					} else {
 						// Connection lane needed
-						this.addConnection(laneFrom, laneTo)
+						this.addConnectionWithBezier(laneFrom, laneTo)
 					}
 				} else {
 					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Front relation already exist.")
@@ -1119,10 +1119,10 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
-	 * Create a new lane connection between given lanes
+	 * Create a new lane connection between given lanes using a cubic spline.
+	 * This is the old implementation of former "addConnection" function.
 	 */
-	/*
-	private addConnection(laneFrom: Lane, laneTo: Lane): void {
+	private addConnectionWithSpline(laneFrom: Lane, laneTo: Lane): void {
 
 		if (laneFrom.markers.length < 4 || laneTo.markers.length < 4) {
 			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unable to generate forward relation." +
@@ -1173,8 +1173,12 @@ export class AnnotationManager extends UtmInterface {
 		connection.updateVisualization()
 		this.metadataState.dirty()
 	}
-*/
-	private addConnection(laneFrom: Lane, laneTo: Lane): void {
+
+	/**
+	 * Create a new lane connection between given lanes using a cubic Bezier curve
+	 * This is the new implementation of former "addConnection" function.
+	 */
+	private addConnectionWithBezier(laneFrom: Lane, laneTo: Lane): void {
 
 		if (laneFrom.markers.length < 4 || laneTo.markers.length < 4) {
 			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unable to generate forward relation." +
