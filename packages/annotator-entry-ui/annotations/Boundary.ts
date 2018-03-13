@@ -40,7 +40,7 @@ export enum BoundaryColor {
 // Some variables used for rendering
 namespace BoundaryRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-	export const activeMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
+	export const activeMaterial = new THREE.LineBasicMaterial({color: 0xf0d06e})
 	export const inactiveMaterial = new THREE.LineBasicMaterial({color: 0x00ffff})
 
 }

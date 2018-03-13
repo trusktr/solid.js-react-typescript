@@ -1078,12 +1078,7 @@ export class Annotator {
 		)
 	}
 
-	/**
-	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
-	 */
-	private addLaneAnnotationMarker = (event: MouseEvent): void => {
-		if (!this.uiState.isAddMarkerKeyPressed) return
-
+	private findRaycastIntersection(event: MouseEvent): THREE.Intersection[] {
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
@@ -1095,6 +1090,16 @@ export class Annotator {
 		} else {
 			intersections = this.raycasterPlane.intersectObjects(this.tileManager.getPointClouds())
 		}
+		return intersections
+	}
+
+	/**
+	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
+	 */
+	private addLaneAnnotationMarker = (event: MouseEvent): void => {
+		if (!this.uiState.isAddMarkerKeyPressed) return
+
+		const intersections = this.findRaycastIntersection(event)
 
 		if (intersections.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
@@ -1107,12 +1112,7 @@ export class Annotator {
 			return
 		}
 
-		const mouse = this.getMouseCoordinates(event)
-		this.raycasterPlane.setFromCamera(mouse, this.camera)
-
-		// This is for testing purposes. This should be updated to using either the point cloud or
-		// the ground planes.
-		const intersections = this.raycasterPlane.intersectObject(this.plane)
+		const intersections = this.findRaycastIntersection(event)
 
 		if (intersections.length > 0) {
 			this.annotationManager.addBoundaryMarker(intersections[0].point)
