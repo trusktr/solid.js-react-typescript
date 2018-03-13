@@ -65,7 +65,7 @@ export class Boundary extends Annotation {
 		super(obj)
 		if (obj) {
 			this.type = isNullOrUndefined(BoundaryType[obj.boundaryType]) ? BoundaryType.UNKNOWN : BoundaryType[obj.boundaryType]
-			this.color = isNullOrUndefined(BoundaryType[obj.boundaryColor]) ? BoundaryColor.NONE : BoundaryType[obj.boundaryColor]
+			this.color = isNullOrUndefined(BoundaryType[obj.boundaryColor]) ? BoundaryColor.UNKNOWN : BoundaryType[obj.boundaryColor]
 		} else {
 			this.type = BoundaryType.UNKNOWN
 			this.color = BoundaryColor.UNKNOWN
