@@ -2149,7 +2149,7 @@ export class Annotator {
 			log.warn('missing element bp_id_value')
 
 		const bpSelectType = $('#bp_select_type')
-		bpSelectType.removeAttr(A'disabled')
+		bpSelectType.removeAttr('disabled')
 		bpSelectType.val(activeAnnotation.type.toString())
 
 		const bpSelectColor = $('#bp_select_color')
