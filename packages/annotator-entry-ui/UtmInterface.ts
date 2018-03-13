@@ -21,6 +21,7 @@ export interface UtmLocalOrigin {
 export class UtmInterface implements UtmLocalOrigin {
 	private readonly defaultUtmZoneNumber: number = 18 // Washington, DC
 	private readonly defaultUtmZoneNorthernHemisphere: boolean = true // Washington, DC
+	private zoneAsString: string = ''
 
 	utmZoneNumber: number
 	utmZoneNorthernHemisphere: boolean
@@ -30,6 +31,17 @@ export class UtmInterface implements UtmLocalOrigin {
 
 	static isValidUtmZone(num: number, northernHemisphere: boolean): boolean {
 		return num >= 1 && num <= 60 && northernHemisphere !== null
+	}
+
+	utmZoneString(): string {
+		if (this.zoneAsString) {
+			return this.zoneAsString
+		} else if (this.hasOrigin()) {
+			this.zoneAsString = this.utmZoneNumber.toString() + (this.utmZoneNorthernHemisphere ? 'N' : 'S')
+			return this.zoneAsString
+		} else {
+			return ''
+		}
 	}
 
 	// Decide whether UTM values have been initialized.
@@ -73,6 +85,10 @@ export class UtmInterface implements UtmLocalOrigin {
 		const utmPoint = new THREE.Vector3(p.x, -p.z, p.y)
 		utmPoint.add(this.offset)
 		return utmPoint
+	}
+
+	utmVectorToThreeJs(utm: THREE.Vector3): THREE.Vector3 {
+		return this.utmToThreeJs(utm.x, utm.y, utm.z)
 	}
 
 	utmToThreeJs(easting: number, northing: number, altitude: number): THREE.Vector3 {

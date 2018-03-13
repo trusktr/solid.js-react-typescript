@@ -17,6 +17,7 @@ jspm_packages/
 # User-specific stuff:
 .idea/**/workspace.xml
 .idea/**/tasks.xml
+.idea/codeStyles
 .idea/dictionaries
 
 # Sensitive or high-churn files:
@@ -36,5 +37,5 @@ jspm_packages/
 data
 
 # developer config file
-local.yaml
-test.yaml
+local*.yaml
+test*.yaml

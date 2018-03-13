@@ -46,14 +46,12 @@ export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterfa
 	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
-	waypoints: Array<THREE.Vector3>
 }
 
 export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInterface {
 	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
-	waypoints: Array<Object>
 }
 
 export class Connection extends Annotation {
@@ -178,17 +176,6 @@ export class Connection extends Annotation {
 			startLaneUuid: this.startLaneUuid,
 			endLaneUuid: this.endLaneUuid,
 			markers: [],
-			waypoints: []
-		}
-
-		if (this.waypoints) {
-			if (pointConverter) {
-				this.waypoints.forEach((p) => {
-					data.waypoints.push(pointConverter(p))
-				})
-			} else {
-				data.waypoints = this.waypoints
-			}
 		}
 
 		if (this.markers) {

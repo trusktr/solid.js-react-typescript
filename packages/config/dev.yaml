@@ -3,45 +3,58 @@
 startup.electron.window.default.width: 0
 startup.electron.window.default.height: 0
 startup.render.fps: 60
+startup.kiosk_mode: false
 startup.background_color: '#082839'
 startup.show_color_picker: true
 startup.show_stats_module: true
+startup.show_status_panel: false
 startup.show_menu: true
 startup.show_dev_tools: true
 startup.point_cloud_directory:
+startup.point_cloud_bounding_box:
 startup.annotations_path:
+startup.watch_for_rebuilds.enable: false
 
 # parameters for loading a tile
-tile_manager.utm_tile_scale: [10, 10, 10] # conversion from tile index numbers to physical dimensions
-tile_manager.super_tile_scale: [100, 100, 50] # ditto; must contain multiples of utm_tile_scale
+tile_manager.tile_message_format: BaseGeometryTileMessage # PointCloudTileMessage or BaseGeometryTileMessage; used when reading tiles from local file system
+tile_manager.utm_tile_scale: [8, 8, 8] # conversion from tile index numbers to physical dimensions
+tile_manager.super_tile_scale: [16, 8, 16] # ditto; must contain multiples of utm_tile_scale
 tile_manager.initial_super_tiles_to_load: 8
+tile_manager.maximum_super_tiles_to_load: 10000
 tile_manager.maximum_points_to_load: 1000000
-tile_manager.sampling_step: 5
+tile_manager.sampling_step: 1
+
+# retrieving tiles from a remote service
+tile_client.service.health_check.interval.seconds: 3
+tile_client.service.host: localhost
+tile_client.service.port: 30123
+tile_client.tile_scale: _008_008_008
 
 # annotator controls
 annotator.add_points_to_estimated_ground_plane: true
-annotator.generate_voxels_on_point_load: true
+annotator.generate_voxels_on_point_load: false
 annotator.draw_bounding_box: false
 annotator.axes_helper_length: 10
 annotator.compass_rose_length: 50
-annotator.point_render_size: 0.05
+annotator.point_render_size: 1.0
+annotator.area_of_interest.enable: false
+annotator.area_of_interest.size: [50, 50, 50]
 
 # persistence of a data file
-output.annotations.json.path: ./data/annotations-utm.json
-output.annotations.kml.path: ./data/path.kml
+output.annotations.json.path: ./data/annotations.json
+output.annotations.kml.path: ./data/waypoints.kml
 output.annotations.autosave.directory.path: ./data/autosave
 output.annotations.autosave.interval.seconds: 300
 
 # Fly-through trajectory file
-live_mode.trajectory_path:
+fly_through.trajectory_path.list:
+fly_through.render.fps: 10
 
 # persist trajectories
 output.trajectory.csv.path: ./data/trajectory.csv
 
-# convert a data file to another format
-# You'll need to build the MapAccumulator project to get the jar file onto your system.
-# https://github.com/Signafy/Sandbox/tree/master/CloudServices/MapAccumulator#build
-conversion.kml.jar: java -classpath /Users/clyde/dev/mapper/Sandbox/CloudServices/MapAccumulator/target/scala-2.11/mapper-viewer.jar
-conversion.kml.main_class: ai.mapper.app.AnnotatorToTiles
-conversion.kml.input.path: ./data/annotations-lla.json
-conversion.kml.output.path: ./data/annotator-tiles.kml
+# Location server info
+location_server.status.health_check.interval.seconds: 5
+location_server.host: localhost
+location_server.port: 5564
+location_server.status.port: 26600
