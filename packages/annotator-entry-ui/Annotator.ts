@@ -1076,9 +1076,7 @@ export class Annotator {
 	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
 	 */
 	private addLaneAnnotationMarker = (event: MouseEvent): void => {
-		if (this.uiState.isAddMarkerKeyPressed === false) {
-			return
-		}
+		if (!this.uiState.isAddMarkerKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
@@ -1209,6 +1207,16 @@ export class Annotator {
 		}
 	}
 
+	// Unselect whatever is selected in the UI:
+	//  - an active control point
+	//  - a selected annotation
+	private escapeSelection(): void {
+		if (this.transformControls.isAttached())
+			this.cleanTransformControls()
+		else if (this.annotationManager.activeAnnotation)
+			this.annotationManager.unsetActiveAnnotation()
+	}
+
 	private checkForSuperTileSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseButtonPressed) return
@@ -1305,6 +1313,8 @@ export class Annotator {
 	 * Handle keyboard events
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
+		if (event.defaultPrevented) return
+
 		if (this.uiState.isLiveMode)
 			this.onKeyDownLiveMode(event)
 		else
@@ -1335,12 +1345,22 @@ export class Annotator {
 	}
 
 	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
-		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
+		if (event.repeat) {
+			noop()
+		} else if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else {
 			switch (event.key) {
+				case 'Backspace': {
+					this.deleteActiveAnnotation()
+					break
+				}
 				case 'Control': {
 					this.uiState.isControlKeyPressed = true
+					break
+				}
+				case 'Escape': {
+					this.escapeSelection()
 					break
 				}
 				case 'Shift': {
@@ -1440,10 +1460,6 @@ export class Annotator {
 				}
 				case 'w': {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
-					break
-				}
-				case 'z': {
-					this.deleteActiveAnnotation()
 					break
 				}
 				default:
@@ -2282,6 +2298,7 @@ export class Annotator {
 				this.hideAnnotations()
 				break
 			default:
+				log.info('showing all objects')
 				this.showSuperTiles()
 				this.showPointCloud()
 				this.showAnnotations()
@@ -2304,12 +2321,12 @@ export class Annotator {
 	}
 
 	private hideAnnotations(): void {
-		// this.annotationManager.hideAnnotations() // todo
+		this.annotationManager.hideAnnotations()
 		this.uiState.isAnnotationsVisible = false
 	}
 
 	private showAnnotations(): void {
-		// this.annotationManager.showAnnotations() // todo
+		this.annotationManager.showAnnotations()
 		this.uiState.isAnnotationsVisible = true
 	}
 

@@ -1,4 +1,4 @@
-#Mapper Annotator/Visualizer Docker Tools
+# Mapper Annotator/Visualizer Docker Tools
 Currently the docker container serves as a delivery method.  Scripts are used to copy the app to the host file system for native execution.
 
 ## Building
