@@ -415,13 +415,13 @@ export class Annotator {
 
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
+		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addBoundaryAnnotationMarker)
-		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
+		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
 
 		// Bind events
 		if (!this.uiState.isKioskMode)
@@ -1090,12 +1090,7 @@ export class Annotator {
 		)
 	}
 
-	/**
-	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
-	 */
-	private addLaneAnnotationMarker = (event: MouseEvent): void => {
-		if (!this.uiState.isAddMarkerKeyPressed) return
-
+	private findRaycastIntersection(event: MouseEvent): THREE.Intersection[] {
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
@@ -1107,6 +1102,16 @@ export class Annotator {
 		} else {
 			intersections = this.raycasterPlane.intersectObjects(this.tileManager.getPointClouds())
 		}
+		return intersections
+	}
+
+	/**
+	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
+	 */
+	private addLaneAnnotationMarker = (event: MouseEvent): void => {
+		if (!this.uiState.isAddMarkerKeyPressed) return
+
+		const intersections = this.findRaycastIntersection(event)
 
 		if (intersections.length > 0) {
 			// Remember x-z is the horizontal plane, y is the up-down axis
@@ -1119,12 +1124,7 @@ export class Annotator {
 			return
 		}
 
-		const mouse = this.getMouseCoordinates(event)
-		this.raycasterPlane.setFromCamera(mouse, this.camera)
-
-		// This is for testing purposes. This should be updated to using either the point cloud or
-		// the ground planes.
-		const intersections = this.raycasterPlane.intersectObject(this.plane)
+		const intersections = this.findRaycastIntersection(event)
 
 		if (intersections.length > 0) {
 			this.annotationManager.addBoundaryMarker(intersections[0].point)
@@ -1875,11 +1875,32 @@ export class Annotator {
 		})
 	}
 
+	private bindBoundaryPropertiesPanel(): void {
+		const bpType = $('#bp_select_type')
+		bpType.on('change', () => {
+			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding boundary type: " + bpType.children("options").filter(":selected").text())
+			activeAnnotation.type = +bpType.val()
+		})
+
+		const bpColor = $('#bp_select_color')
+		bpColor.on('change', () => {
+			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding boundary color: " + bpColor.children("options").filter(":selected").text())
+			activeAnnotation.color = +bpColor.val()
+		})
+	}
+
 	private bind(): void {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
 		this.bindRelationsPanel()
 		this.bindTrafficSignPropertiesPanel()
+		this.bindBoundaryPropertiesPanel()
 
 		const menuControlElement = document.getElementById('menu_control')
 		if (menuControlElement)
@@ -2132,6 +2153,20 @@ export class Annotator {
 		if (activeAnnotation === null) {
 			return
 		}
+
+		const bpId = document.getElementById('bp_id_value')
+		if (bpId)
+			bpId.textContent = activeAnnotation.id.toString()
+		else
+			log.warn('missing element bp_id_value')
+
+		const bpSelectType = $('#bp_select_type')
+		bpSelectType.removeAttr('disabled')
+		bpSelectType.val(activeAnnotation.type.toString())
+
+		const bpSelectColor = $('#bp_select_color')
+		bpSelectColor.removeAttr('disabled')
+		bpSelectColor.val(activeAnnotation.color.toString())
 	}
 
 	/**
@@ -2189,7 +2224,23 @@ export class Annotator {
 	 * Deactivate boundary properties menu panel
 	 */
 	private static deactivateBoundaryProp(): void {
-		// TODO
+		const bpId = document.getElementById('bp_id_value')
+		if (bpId)
+			bpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element bp_id_value')
+
+		const bpType = document.getElementById('bp_select_type')
+		if (bpType)
+			bpType.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element bp_select_type')
+
+		const bpColor = document.getElementById('bp_select_color')
+		if (bpColor)
+			bpColor.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element bp_select_color')
 	}
 
 	/**

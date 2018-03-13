@@ -28,7 +28,7 @@ export enum BoundaryType {
 
 export enum BoundaryColor {
 	UNKNOWN = 0,
-	NONE ,
+	NONE,
 	WHITE,
 	YELLOW,
 	RED,
@@ -40,7 +40,7 @@ export enum BoundaryColor {
 // Some variables used for rendering
 namespace BoundaryRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-	export const activeMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
+	export const activeMaterial = new THREE.LineBasicMaterial({color: 0xf0d06e})
 	export const inactiveMaterial = new THREE.LineBasicMaterial({color: 0x00ffff})
 
 }
@@ -65,10 +65,10 @@ export class Boundary extends Annotation {
 		super(obj)
 		if (obj) {
 			this.type = isNullOrUndefined(BoundaryType[obj.boundaryType]) ? BoundaryType.UNKNOWN : BoundaryType[obj.boundaryType]
-			this.color = isNullOrUndefined(BoundaryType[obj.boundaryColor]) ? BoundaryColor.NONE : BoundaryType[obj.boundaryColor]
+			this.color = isNullOrUndefined(BoundaryType[obj.boundaryColor]) ? BoundaryColor.UNKNOWN : BoundaryType[obj.boundaryColor]
 		} else {
 			this.type = BoundaryType.UNKNOWN
-			this.color = BoundaryColor.NONE
+			this.color = BoundaryColor.UNKNOWN
 		}
 		this.boundaryContour = new THREE.Line(new THREE.Geometry(), BoundaryRenderingProperties.activeMaterial)
 		this.mesh = new THREE.Mesh()
@@ -153,7 +153,7 @@ export class Boundary extends Annotation {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
 		const data: BoundaryJsonOutputInterface = {
-			annotationType: AnnotationType[AnnotationType.TRAFFIC_SIGN],
+			annotationType: AnnotationType[AnnotationType.BOUNDARY],
 			uuid: this.uuid,
 			boundaryType: BoundaryType[this.type],
 			boundaryColor: BoundaryColor[this.color],
