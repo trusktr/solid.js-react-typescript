@@ -153,7 +153,7 @@ export class Boundary extends Annotation {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
 		const data: BoundaryJsonOutputInterface = {
-			annotationType: AnnotationType[AnnotationType.TRAFFIC_SIGN],
+			annotationType: AnnotationType[AnnotationType.BOUNDARY],
 			uuid: this.uuid,
 			boundaryType: BoundaryType[this.type],
 			boundaryColor: BoundaryColor[this.color],
