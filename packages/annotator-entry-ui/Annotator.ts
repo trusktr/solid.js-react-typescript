@@ -1863,11 +1863,32 @@ export class Annotator {
 		})
 	}
 
+	private bindBoundaryPropertiesPanel(): void {
+		const bpType = $('#bp_select_type')
+		bpType.on('change', () => {
+			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding boundary type: " + bpType.children("options").filter(":selected").text())
+			activeAnnotation.type = +bpType.val()
+		})
+
+		const bpColor = $('#bp_select_color')
+		bpColor.on('change', () => {
+			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding boundary color: " + bpType.children("options").filter(":selected").text())
+			activeAnnotation.color = +bpType.val()
+		})
+	}
+
 	private bind(): void {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
 		this.bindRelationsPanel()
 		this.bindTrafficSignPropertiesPanel()
+		this.bindBoundaryPropertiesPanel()
 
 		const menuControlElement = document.getElementById('menu_control')
 		if (menuControlElement)
