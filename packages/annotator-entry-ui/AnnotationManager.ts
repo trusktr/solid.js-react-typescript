@@ -1285,7 +1285,7 @@ export class AnnotationManager extends UtmInterface {
 
 		// Add annotation to the scene
 		this.scene.add(connection.renderingObject)
-		this.annotationMeshes.push(connection.mesh)
+		this.annotationObjects.push(connection.renderingObject)
 
 		connection.makeInactive()
 		connection.updateVisualization()
