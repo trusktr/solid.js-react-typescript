@@ -587,7 +587,7 @@ export class Lane extends Annotation {
 			points.push(waypoint)
 		}
 
-		const distanceBetweenMarkers = 5.0 // in meters
+		const distanceBetweenMarkers = 3.0 // in meters
 		const spline = new THREE.CatmullRomCurve3(points)
 		const numPoints = spline.getLength() / distanceBetweenMarkers
 		this.waypoints = spline.getSpacedPoints(numPoints)
