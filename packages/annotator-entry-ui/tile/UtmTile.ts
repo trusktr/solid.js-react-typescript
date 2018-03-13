@@ -5,6 +5,10 @@
 
 import {Scale3D} from "../geometry/Scale3D"
 import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
+import {threeDStepSize} from "./Constant"
+
+const minPointsToDefineGround = 20 // arbitrary setting to avoid creating ground loadTileGroundPlanes for sparse tiles
+const maxPointsToDefineGround = 1000 // arbitrary setting to shorten the estimation for very dense tiles
 
 /*
  * A collection of point cloud data for a rectangular volume of UTM space.
@@ -53,5 +57,25 @@ export class UtmTile {
 		this.hasPointCloud = false
 		this.rawPositions = []
 		this.rawColors = []
+	}
+
+	// Find the average height of the ground within this tile. This assumes that the point cloud data
+	// has passed through RoadFilter, configured with --above_road_coloring_scheme=HEIGHT and
+	// --road_coloring_scheme=INTENSITY.
+	groundAverageYIndex(): number | null {
+		let totalYValues = 0
+		let countGrayPoints = 0
+		for (let i = 0; i < this.rawPositions.length && countGrayPoints < maxPointsToDefineGround; i += threeDStepSize) {
+			// If the point has gray color, assume it is part of the ground.
+			if (this.rawColors[i] === this.rawColors[i + 1] && this.rawColors[i + 1] === this.rawColors[i + 2]) {
+				totalYValues += this.rawPositions[i + 1]
+				countGrayPoints++
+			}
+		}
+
+		if (countGrayPoints < minPointsToDefineGround)
+			return null
+		else
+			return totalYValues / countGrayPoints
 	}
 }

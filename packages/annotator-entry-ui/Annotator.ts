@@ -2,10 +2,13 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
+
 const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file";
 const sprintf = require("sprintf-js").sprintf
+import * as lodash from 'lodash'
+import {Map} from 'immutable'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {
@@ -30,7 +33,7 @@ import {Boundary} from "./annotations/Boundary"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
-import {isNullOrUndefined, isUndefined} from "util"
+import {isNull, isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
@@ -40,7 +43,7 @@ const  watch = require('watch')
 
 declare global {
 	namespace THREE {
-		const OBJLoader: {}
+		const OBJLoader: any
 	}
 }
 
@@ -89,6 +92,7 @@ interface AnnotatorSettings {
 	defaultFpsRendering: number
 	fpsRendering: number
 	estimateGroundPlane: boolean
+	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	generateVoxelsOnPointLoad: boolean
 	drawBoundingBox: boolean
 	superTileBboxMaterial: THREE.Material // for visualizing available, but unpopulated, super tiles
@@ -162,13 +166,15 @@ export class Annotator {
 	private light: THREE.SpotLight
 	private stats: Stats
 	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
-	private transformControls: {} // controller for translating an object within the scene
+	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: NodeJS.Timer
 	private serverStatusDisplayTimer: NodeJS.Timer
 	private locationServerStatusDisplayTimer: NodeJS.Timer
 	private annotationManager: AnnotationManager
 	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
 	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
+	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
+	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
@@ -176,7 +182,7 @@ export class Annotator {
 	private flyThroughTrajectoryPoses: Models.PoseMessage[]
 	private flyThroughSettings: FlyThroughSettings
 	private locationServerStatusClient: LocationServerStatusClient
-	private gui: {}
+	private gui: any
 
 	constructor() {
 		this.settings = {
@@ -186,6 +192,7 @@ export class Annotator {
 			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
 			fpsRendering: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
+			tileGroundPlaneScale: 1.05,
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
 			superTileBboxMaterial: new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true}),
@@ -242,6 +249,8 @@ export class Annotator {
 		)
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
+		this.superTileGroundPlanes = Map()
+		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
@@ -315,9 +324,7 @@ export class Annotator {
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
 		const planeMaterial = new THREE.ShadowMaterial()
-		planeMaterial.opacity = 0.2
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
-		this.plane.receiveShadow = true
 		this.scene.add(this.plane)
 
 		// Add grid on top of the plane
@@ -379,7 +386,7 @@ export class Annotator {
 		// Add panel to change the settings
 		if (config.get('startup.show_color_picker')) {
 			this.gui = new datModule.GUI()
-			this.gui.addColor(this.settings, 'background').onChange((value: {}) => {
+			this.gui.addColor(this.settings, 'background').onChange((value: any) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
 			this.gui.domElement.className = 'threeJs_gui'
@@ -559,15 +566,11 @@ export class Annotator {
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
-	private setStage(x: number, y: number, z: number, resetCamera: boolean = true, gridYValue: number | null = null): void {
+	private setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
 		this.plane.geometry.center()
 		this.plane.geometry.translate(x, y, z)
 		this.grid.geometry.center()
 		this.grid.geometry.translate(x, y, z)
-		if (!isNullOrUndefined(gridYValue)) {
-			this.plane.position.y = gridYValue
-			this.grid.position.y = gridYValue
-		}
 		if (resetCamera) {
 			this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
@@ -578,8 +581,8 @@ export class Annotator {
 	/**
 	 * Set some point as the center of the visible world.
 	 */
-	private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true, gridYValue: number | null = null): void {
-		this.setStage(point.x, point.y, point.z, resetCamera, gridYValue)
+	private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true): void {
+		this.setStage(point.x, point.y, point.z, resetCamera)
 	}
 
 	/*
@@ -587,15 +590,8 @@ export class Annotator {
 	 */
 	private setStageByPointCloud(resetCamera: boolean): void {
 		const focalPoint = this.tileManager.centerPoint()
-		if (focalPoint) {
-			const groundPlaneYIndex = this.settings.estimateGroundPlane
-				? this.tileManager.estimateGroundPlaneYIndex()
-				: null
-			const gridYValue = isNullOrUndefined(groundPlaneYIndex)
-				? null
-				: groundPlaneYIndex - focalPoint.y
-			this.setStageByVector(focalPoint, resetCamera, gridYValue)
-		}
+		if (focalPoint)
+			this.setStageByVector(focalPoint, resetCamera)
 	}
 
 	// Display the compass rose just outside the bounding box of the point cloud.
@@ -636,7 +632,7 @@ export class Annotator {
 	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
 		log.info('loadPointCloudDataFromDirectory')
 		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
-			.then(() => this.pointCloudLoadedSideEffects())
+			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
 			.catch(err => this.pointCloudLoadedError(err))
 	}
 
@@ -655,7 +651,7 @@ export class Annotator {
 	// Load tiles within a bounding box and add them to the scene.
 	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
 		return this.tileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
-			.then(() => this.pointCloudLoadedSideEffects(resetCamera))
+			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
 			.catch(err => this.pointCloudLoadedError(err))
 	}
 
@@ -789,6 +785,8 @@ export class Annotator {
 	// When TileManager loads a super tile, update Annotator's parallel data structure.
 	private onSuperTileLoad: (superTile: SuperTile) => void =
 		(superTile: SuperTile) => {
+			this.loadTileGroundPlanes(superTile)
+
 			if (superTile.pointCloud)
 				this.scene.add(superTile.pointCloud)
 			else
@@ -798,6 +796,8 @@ export class Annotator {
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
 	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void =
 		(superTile: SuperTile, action: SuperTileUnloadAction) => {
+			this.unloadTileGroundPlanes(superTile)
+
 			if (superTile.pointCloud)
 				this.scene.remove(superTile.pointCloud)
 			else
@@ -817,6 +817,55 @@ export class Annotator {
 					log.error('unknown SuperTileUnloadAction: ' + action)
 			}
 		}
+
+	// Construct a set of 2D planes, each of which approximates the ground plane within a tile.
+	// This assumes that each ground plane is locally flat and normal to gravity.
+	// This assumes that the ground planes in neighboring tiles are close enough that the discrete
+	// jumps between them won't matter much.
+	private loadTileGroundPlanes(superTile: SuperTile): void {
+		if (!this.settings.estimateGroundPlane) return
+		if (!superTile.pointCloud) return
+		if (this.superTileGroundPlanes.has(superTile.key())) return
+
+		const groundPlanes: THREE.Mesh[] = []
+
+		superTile.tiles.forEach(tile => {
+			const y = tile.groundAverageYIndex()
+			if (!isNull(y)) {
+				const xSize = tile.index.scale.xSize
+				const zSize = tile.index.scale.zSize
+
+				const geometry = new THREE.PlaneGeometry(
+					xSize * this.settings.tileGroundPlaneScale,
+					zSize * this.settings.tileGroundPlaneScale
+				)
+				geometry.rotateX(-Math.PI / 2)
+
+				const material = new THREE.ShadowMaterial()
+				const plane = new THREE.Mesh(geometry, material)
+				const origin = this.tileManager.utmVectorToThreeJs(tile.index.origin)
+				plane.position.x = origin.x + xSize / 2
+				plane.position.y = y
+				plane.position.z = origin.z - zSize / 2
+
+				groundPlanes.push(plane)
+			}
+		})
+
+		this.superTileGroundPlanes = this.superTileGroundPlanes.set(superTile.key(), groundPlanes)
+		this.allGroundPlanes = this.allGroundPlanes.concat(groundPlanes)
+		groundPlanes.forEach(plane => this.scene.add(plane))
+	}
+
+	private unloadTileGroundPlanes(superTile: SuperTile): void {
+		if (!this.superTileGroundPlanes.has(superTile.key())) return
+
+		const groundPlanes = this.superTileGroundPlanes.get(superTile.key())!
+
+		this.superTileGroundPlanes = this.superTileGroundPlanes.remove(superTile.key())
+		this.allGroundPlanes = lodash.flatten(this.superTileGroundPlanes.valueSeq().toArray())
+		groundPlanes.forEach(plane => this.scene.remove(plane))
+	}
 
 	private superTileToBoundingBox(superTile: SuperTile): void {
 		if (!superTile.pointCloud) {
@@ -871,8 +920,14 @@ export class Annotator {
 		} else {
 			// In interactive mode intersect the camera with the ground plane.
 			this.raycasterPlane.setFromCamera(cameraCenter, this.camera)
-			const intersections = this.raycasterPlane.intersectObject(this.plane)
-			if (intersections.length > 0)
+
+			let intersections: THREE.Intersection[] = []
+			if (this.settings.estimateGroundPlane)
+				intersections = this.raycasterPlane.intersectObjects(this.allGroundPlanes)
+			if (!intersections.length)
+				intersections = this.raycasterPlane.intersectObject(this.plane)
+
+			if (intersections.length)
 				return intersections[0].point
 			else
 				return null
@@ -1021,15 +1076,16 @@ export class Annotator {
 	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
 	 */
 	private addLaneAnnotationMarker = (event: MouseEvent): void => {
-		if (this.uiState.isAddMarkerKeyPressed === false) {
-			return
-		}
+		if (!this.uiState.isAddMarkerKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
 		let intersections
-		if (this.settings.estimateGroundPlane || this.tileManager.pointCount() === 0) {
-			intersections = this.raycasterPlane.intersectObject(this.plane)
+		if (this.settings.estimateGroundPlane || !this.tileManager.pointCount()) {
+			if (this.allGroundPlanes.length)
+				intersections = this.raycasterPlane.intersectObjects(this.allGroundPlanes)
+			else
+				intersections = this.raycasterPlane.intersectObject(this.plane)
 		} else {
 			intersections = this.raycasterPlane.intersectObjects(this.tileManager.getPointClouds())
 		}
@@ -1151,6 +1207,16 @@ export class Annotator {
 		}
 	}
 
+	// Unselect whatever is selected in the UI:
+	//  - an active control point
+	//  - a selected annotation
+	private escapeSelection(): void {
+		if (this.transformControls.isAttached())
+			this.cleanTransformControls()
+		else if (this.annotationManager.activeAnnotation)
+			this.annotationManager.unsetActiveAnnotation()
+	}
+
 	private checkForSuperTileSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseButtonPressed) return
@@ -1247,6 +1313,8 @@ export class Annotator {
 	 * Handle keyboard events
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
+		if (event.defaultPrevented) return
+
 		if (this.uiState.isLiveMode)
 			this.onKeyDownLiveMode(event)
 		else
@@ -1277,12 +1345,22 @@ export class Annotator {
 	}
 
 	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
-		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
+		if (event.repeat) {
+			noop()
+		} else if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else {
 			switch (event.key) {
+				case 'Backspace': {
+					this.deleteActiveAnnotation()
+					break
+				}
 				case 'Control': {
 					this.uiState.isControlKeyPressed = true
+					break
+				}
+				case 'Escape': {
+					this.escapeSelection()
 					break
 				}
 				case 'Shift': {
@@ -1382,10 +1460,6 @@ export class Annotator {
 				}
 				case 'w': {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
-					break
-				}
-				case 'z': {
-					this.deleteActiveAnnotation()
 					break
 				}
 				default:
@@ -2224,6 +2298,7 @@ export class Annotator {
 				this.hideAnnotations()
 				break
 			default:
+				log.info('showing all objects')
 				this.showSuperTiles()
 				this.showPointCloud()
 				this.showAnnotations()
@@ -2246,12 +2321,12 @@ export class Annotator {
 	}
 
 	private hideAnnotations(): void {
-		// this.annotationManager.hideAnnotations() // todo
+		this.annotationManager.hideAnnotations()
 		this.uiState.isAnnotationsVisible = false
 	}
 
 	private showAnnotations(): void {
-		// this.annotationManager.showAnnotations() // todo
+		this.annotationManager.showAnnotations()
 		this.uiState.isAnnotationsVisible = true
 	}
 
@@ -2259,9 +2334,9 @@ export class Annotator {
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
 			try {
 				const manager = new THREE.LoadingManager()
-				const loader = new (THREE as {}).OBJLoader(manager)
+				const loader = new (THREE as any).OBJLoader(manager)
 				const car = require('../annotator-assets/models/BMW_X5_4.obj')
-				loader.load(car, (object: {}) => {
+				loader.load(car, (object: any) => {
 					const boundingBox = new THREE.Box3().setFromObject(object)
 					const boxSize = boundingBox.getSize().toArray()
 					const modelLength = Math.max(...boxSize)

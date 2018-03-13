@@ -87,6 +87,10 @@ export class UtmInterface implements UtmLocalOrigin {
 		return utmPoint
 	}
 
+	utmVectorToThreeJs(utm: THREE.Vector3): THREE.Vector3 {
+		return this.utmToThreeJs(utm.x, utm.y, utm.z)
+	}
+
 	utmToThreeJs(easting: number, northing: number, altitude: number): THREE.Vector3 {
 		const tmp = new THREE.Vector3(easting, northing, altitude)
 		tmp.sub(this.offset)
