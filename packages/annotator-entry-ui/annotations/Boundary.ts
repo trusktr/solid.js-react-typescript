@@ -16,7 +16,7 @@ const log = TypeLogger.getLogger(__filename)
 
 export enum BoundaryType {
 	UNKNOWN = 0,
-	CURVE,
+	CURB,
 	SOLID,
 	DASHED,
 	DOUBLE_SOLID,

@@ -1251,7 +1251,7 @@ export class AnnotationManager extends UtmInterface {
 		const rp2 = laneTo.markers[1].position.clone()
 		const rp3 = laneTo.markers[3].position.clone()
 
-		const scaleFactor = 8
+		const scaleFactor = 6
 		let lcp1 = new THREE.Vector3()
 		let lcp2 = new THREE.Vector3()
 		lcp1.subVectors(lp1, lp0).normalize().multiplyScalar(scaleFactor).add(lp1)
