@@ -887,7 +887,7 @@ export class AnnotationManager extends UtmInterface {
 
 		const activeBoundary = this.getActiveBoundaryAnnotation()
 		if (!activeBoundary) {
-			log.info("No active lane annotation. Can't add marker")
+			log.info("No active boundary annotation. Can't add marker")
 			return false
 		}
 

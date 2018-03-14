@@ -416,9 +416,8 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
+		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
-		this.renderer.domElement.addEventListener('mouseup', this.addBoundaryAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
 		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
@@ -1106,31 +1105,23 @@ export class Annotator {
 	}
 
 	/**
-	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
+	 * If the mouse was clicked while pressing the "a" key, drop an annotation marker.
 	 */
-	private addLaneAnnotationMarker = (event: MouseEvent): void => {
+	private addAnnotationMarker = (event: MouseEvent): void => {
 		if (!this.uiState.isAddMarkerKeyPressed) return
+		if (!this.annotationManager.activeAnnotation) return
 
 		const intersections = this.findRaycastIntersection(event)
-
-		if (intersections.length > 0) {
-			// Remember x-z is the horizontal plane, y is the up-down axis
-			this.annotationManager.addLaneMarker(intersections[0].point)
+		if (intersections.length) {
+			const firstPoint = intersections[0].point
+			if (this.annotationManager.getActiveLaneAnnotation())
+				this.annotationManager.addLaneMarker(firstPoint)
+			else if (this.annotationManager.getActiveBoundaryAnnotation())
+				this.annotationManager.addBoundaryMarker(firstPoint)
 		}
 	}
 
-	private addBoundaryAnnotationMarker = (event: MouseEvent): void => {
-		if (this.uiState.isAddMarkerKeyPressed === false) {
-			return
-		}
-
-		const intersections = this.findRaycastIntersection(event)
-
-		if (intersections.length > 0) {
-			this.annotationManager.addBoundaryMarker(intersections[0].point)
-		}
-	}
-
+	// todo merge with addAnnotationMarker
 	private addTrafficSignAnnotationMarker = (event: MouseEvent): void => {
 		if (this.uiState.isAddTrafficSignMarkerKeyPressed === false && this.uiState.isLastTrafficSignMarkerKeyPressed === false) {
 			return
@@ -1151,6 +1142,7 @@ export class Annotator {
 	private checkForAnnotationSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isControlKeyPressed) return
+		if (this.uiState.isAddMarkerKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
@@ -1185,10 +1177,9 @@ export class Annotator {
 	private checkForActiveMarker = (event: MouseEvent): void => {
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
-		if (this.uiState.isMouseButtonPressed) {
-			return
-		}
+		if (this.uiState.isMouseButtonPressed) return
 		if (this.uiState.isControlKeyPressed) return
+		if (this.uiState.isAddMarkerKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
