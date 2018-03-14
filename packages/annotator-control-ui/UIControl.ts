@@ -31,10 +31,10 @@ for (const i in bpLabelsText) {
 
 const bpSelectsId = ['bp_select_type', 'bp_select_color']
 const bpSelectsText = [
-	['UNKNOWN', 'CURVE', 'SOLID', 'DASHED', 'DOUBLE_SOLID', 'DOUBLE_DASHED', 'SOLID_DASHED', 'DASHED_SOLID', 'OTHER'],
+	['UNKNOWN', 'CURB', 'SOLID', 'DASHED', 'DOUBLE_SOLID', 'DOUBLE_DASHED', 'SOLID_DASHED', 'DASHED_SOLID', 'OTHER'],
 	['UNKNOWN', 'NONE', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'GREEN', 'OTHER']]
 const bpSelectsValue = [
-	[BoundaryType.UNKNOWN.toString(), BoundaryType.CURVE.toString(), BoundaryType.SOLID.toString(),
+	[BoundaryType.UNKNOWN.toString(), BoundaryType.CURB.toString(), BoundaryType.SOLID.toString(),
 		BoundaryType.DASHED.toString(), BoundaryType.DOUBLE_SOLID.toString(), BoundaryType.DOUBLE_DASHED.toString(),
 		BoundaryType.SOLID_DASHED.toString(), BoundaryType.DASHED_SOLID.toString(), BoundaryType.OTHER.toString()],
 	[BoundaryColor.UNKNOWN.toString(), BoundaryColor.NONE.toString(), BoundaryColor.WHITE.toString(),
