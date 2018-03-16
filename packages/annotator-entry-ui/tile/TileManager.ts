@@ -224,11 +224,12 @@ export class TileManager extends UtmInterface {
 
 	constructor(
 		enableVoxels: boolean,
+		onSetOrigin: () => void,
 		onSuperTileLoad: (superTile: SuperTile) => void,
 		onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void,
 		onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
 	) {
-		super()
+		super(onSetOrigin)
 		this.config = {
 			pointsSize: parseFloat(config.get('annotator.point_render_size')) || 1,
 			tileMessageFormat: TileMessageFormat[config.get('tile_manager.tile_message_format') as string],
