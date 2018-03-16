@@ -125,6 +125,7 @@ interface UiState {
 	isControlKeyPressed: boolean
 	isShiftKeyPressed: boolean
 	isAddMarkerKeyPressed: boolean
+	isAddConnectionKeyPressed: boolean
 	isAddTrafficSignMarkerKeyPressed: boolean
 	isLastTrafficSignMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
@@ -223,6 +224,7 @@ export class Annotator {
 			isControlKeyPressed: false,
 			isShiftKeyPressed: false,
 			isAddMarkerKeyPressed: false,
+			isAddConnectionKeyPressed: false,
 			isAddTrafficSignMarkerKeyPressed: false,
 			isLastTrafficSignMarkerKeyPressed: false,
 			isMouseButtonPressed: false,
@@ -417,6 +419,7 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
+		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
 		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
@@ -1121,6 +1124,44 @@ export class Annotator {
 		}
 	}
 
+	/**
+	 * If the mouse was clicked while pressing the "c" key, add new lane connection
+	 * between current active lane and the "clicked" lane
+	 */
+	private addLaneConnection = (event: MouseEvent): void => {
+		if (!this.uiState.isAddConnectionKeyPressed) return
+		// reject connection if active annotation is not a lane
+		const activeLane = this.annotationManager.getActiveLaneAnnotation()
+		if (!activeLane) {
+			log.info("No lane annotation is active.")
+			return
+		}
+
+		// get clicked object
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+		if (intersects.length === 0) {
+			return
+		}
+		const object = intersects[0].object.parent
+
+		// check if clicked object is an inactive lane
+		const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+		if (!(inactive && inactive instanceof Lane)) {
+			log.warn(`Clicked object is not an inactive lane.`)
+			return
+		}
+
+		// add connection
+		const fromUID = activeLane.id
+		const toUID = inactive.id
+		if (!this.annotationManager.addRelation(fromUID, toUID, 'front')) {
+			log.warn(`Lane connection failed.`)
+			return
+		}
+	}
+
 	// todo merge with addAnnotationMarker
 	private addTrafficSignAnnotationMarker = (event: MouseEvent): void => {
 		if (this.uiState.isAddTrafficSignMarkerKeyPressed === false && this.uiState.isLastTrafficSignMarkerKeyPressed === false) {
@@ -1143,6 +1184,7 @@ export class Annotator {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
+		if (this.uiState.isAddConnectionKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
@@ -1180,6 +1222,7 @@ export class Annotator {
 		if (this.uiState.isMouseButtonPressed) return
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
+		if (this.uiState.isAddConnectionKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
@@ -1230,6 +1273,7 @@ export class Annotator {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseButtonPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
+		if (this.uiState.isAddConnectionKeyPressed) return
 		if (!this.uiState.isSuperTilesVisible) return
 
 		const mouse = this.getMouseCoordinates(event)
@@ -1389,8 +1433,12 @@ export class Annotator {
 					this.addBoundary()
 					break
 				}
-				case 'c': {
+				case 'C': {
 					this.focusOnPointCloud()
+					break
+				}
+				case 'c': {
+					this.uiState.isAddConnectionKeyPressed = true
 					break
 				}
 				case 'd': {
@@ -1401,6 +1449,10 @@ export class Annotator {
 				}
 				case 'e': {
 					this.addRightReverse()
+					break
+				}
+				case 'F': {
+					this.reverseLaneDirection()
 					break
 				}
 				case 'f': {
@@ -1471,10 +1523,6 @@ export class Annotator {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
 					break
 				}
-				case 'F': {
-					this.reverseLaneDirection()
-					break
-				}
 				default:
 				// nothing to see here
 			}
@@ -1485,6 +1533,7 @@ export class Annotator {
 		this.uiState.isControlKeyPressed = false
 		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
+		this.uiState.isAddConnectionKeyPressed = false
 		this.uiState.isAddTrafficSignMarkerKeyPressed = false
 		this.uiState.isLastTrafficSignMarkerKeyPressed = false
 		this.uiState.numberKeyPressed = null
