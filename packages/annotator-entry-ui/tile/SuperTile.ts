@@ -22,7 +22,7 @@ export class SuperTile extends UtmInterface {
 	index: TileIndex
 	coordinateFrame: CoordinateFrameType
 	threeJsBoundingBox: THREE.Box3
-	private tiles: UtmTile[]
+	tiles: UtmTile[]
 	private rawPositions: Float32Array
 
 	constructor(

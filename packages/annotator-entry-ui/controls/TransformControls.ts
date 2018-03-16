@@ -700,6 +700,8 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 	const camPosition = new THREE.Vector3()
 	const camRotation = new THREE.Euler()
 
+	window.addEventListener("keydown", onKeyDown, false)
+
 	domElement.addEventListener("mousedown", onPointerDown, false)
 	domElement.addEventListener("touchstart", onPointerDown, false)
 
@@ -716,6 +718,8 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 	domElement.addEventListener("touchleave", onPointerUp, false)
 
 	this.dispose = function () {
+
+		window.removeEventListener("keydown", onKeyDown)
 
 		domElement.removeEventListener("mousedown", onPointerDown)
 		domElement.removeEventListener("touchstart", onPointerDown)
@@ -748,6 +752,10 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 		this.visible = false
 		this.axis = null
 
+	}
+
+	this.isAttached = function (): boolean {
+		return !!this.objects.length
 	}
 
 	this.setCamera = function (newCamera: Camera): void {
@@ -846,6 +854,32 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 
 		_gizmo[_mode].highlight(scope.axis)
 
+	}
+
+	function onKeyDown(event: any): void {
+		switch (event.key) {
+			case 'Escape': {
+				if (_dragging) {
+					// Interrupt the drag action. Revert attached objects to where they started the drag.
+					event.preventDefault()
+					event.stopPropagation()
+
+					for (let i = 0; i < scope.objects.length; i++) {
+						scope.objects[i].position.copy(oldPositions[i])
+					}
+
+					scope.axis = null
+					scope.update()
+					scope.dispatchEvent(changeEvent)
+					scope.dispatchEvent(objectChangeEvent)
+
+					_dragging = false
+				}
+				break
+			}
+			default:
+			// nothing to see here
+		}
 	}
 
 	function onPointerHover(event: any): void {

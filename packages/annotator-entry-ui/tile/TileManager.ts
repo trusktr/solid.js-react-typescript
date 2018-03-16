@@ -575,10 +575,9 @@ export class TileManager extends UtmInterface {
 		return pointCloudTileMessageToTileMessage(msg)
 	}
 
-	/**
-	 * Given a path to a dataset, find all super tiles. Load point cloud data for some of them.
-	 */
-	loadFromDirectory(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<void> {
+	// Given a path to a dataset, find all super tiles. Load point cloud data for some of them.
+	// Returns true if super tiles were loaded.
+	loadFromDirectory(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<boolean> {
 		if (this.isLoadingPointCloud)
 			return Promise.reject(new BusyError('busy loading point cloud'))
 		this.isLoadingPointCloud = true
@@ -590,7 +589,8 @@ export class TileManager extends UtmInterface {
 	// Given a range search, find all intersecting super tiles. Load point cloud data for as many
 	// as allowed by configuration, or all if loadAllPoints.
 	// Side effect: Prune old SuperTiles as necessary.
-	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<void> {
+	// Returns true if super tiles were loaded.
+	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<boolean> {
 		if (this.isLoadingPointCloud)
 			return Promise.reject(new BusyError('busy loading point cloud'))
 		this.isLoadingPointCloud = true
@@ -599,10 +599,11 @@ export class TileManager extends UtmInterface {
 		)
 	}
 
-	private resetIsLoadingPointCloud(pointCloudResult: Promise<void>): Promise<void> {
+	private resetIsLoadingPointCloud(pointCloudResult: Promise<boolean>): Promise<boolean> {
 		return pointCloudResult
-			.then(() => {
+			.then(loaded => {
 				this.isLoadingPointCloud = false
+				return loaded
 			})
 			.catch(err => {
 				this.isLoadingPointCloud = false
@@ -611,7 +612,7 @@ export class TileManager extends UtmInterface {
 	}
 
 	// The useful bits of loadFromDirectory()
-	private loadFromDirectoryImpl(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<void> {
+	private loadFromDirectoryImpl(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<boolean> {
 		// Consider all tiles within datasetPath.
 		let names: string[]
 		try {
@@ -662,11 +663,11 @@ export class TileManager extends UtmInterface {
 					.map(st => this.loadSuperTile(st))
 				return Promise.all(promises)
 			})
-			.then(() => {return})
+			.then(() => true) // true because we loaded some SuperTiles
 	}
 
 	// The useful bits of loadFromMapServer()
-	private loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<void> {
+	private loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<boolean> {
 		// Default behavior when a super tile is evicted from cache is to unload its point cloud without deleting it.
 		// That works well with a fixed data set which we would get with loadFromDirectory(). The UI allows a mix of
 		// loading from directory and from a map server at any time. If we ever see a request for map server tiles,
@@ -681,7 +682,7 @@ export class TileManager extends UtmInterface {
 		const filteredStIndexes = allStIndexes
 			.filter(sti => this.superTiles.get(sti.toString()) === undefined)
 		if (!filteredStIndexes.length)
-			return Promise.resolve()
+			return Promise.resolve(false)
 		if (!loadAllPoints && filteredStIndexes.length > this.config.initialSuperTilesToLoad)
 			filteredStIndexes.length = this.config.initialSuperTilesToLoad
 
@@ -734,6 +735,7 @@ export class TileManager extends UtmInterface {
 			return Promise.all(promises)
 		})
 			.then(() => this.pruneSuperTiles())
+			.then(() => true) // true because we loaded some SuperTiles
 	}
 
 	// Look up SuperTiles (that have already been instantiated) for a list of indexes.
@@ -893,38 +895,6 @@ export class TileManager extends UtmInterface {
 		}
 		if (removedCount)
 			log.info(`unloaded ${removedCount} super tiles for better performance`)
-	}
-
-	// This is a trivial solution to finding the local ground plane. Simply find a band of Y values with the most
-	// points (arithmetic mode). Assume that band contains a large horizontal object which is a road.
-	estimateGroundPlaneYIndex(): number | null {
-		const yValueHistogram: Map<number, number> = new Map()
-		const yValueBinSize = 0.7 // arbitrary setting for the physical size of bins, yields ~20 bins given data sets ~10m high
-		let biggestBinIndex = 0
-		let biggestBinCount = 0
-
-		this.superTiles.forEach(st => {
-			const rawPositions = st!.getRawPositions()
-			for (let i = 0; i < rawPositions.length; i += threeDStepSize) {
-				const yValue = rawPositions[i + 1]
-				const yIndex = Math.floor(yValue / yValueBinSize)
-				if (yValueHistogram.has(yIndex))
-					yValueHistogram.set(yIndex, yValueHistogram.get(yIndex)! + 1)
-				else
-					yValueHistogram.set(yIndex, 1)
-			}
-		})
-
-		yValueHistogram.forEach((count, index) => {
-			if (count > biggestBinCount) {
-				biggestBinIndex = index
-				biggestBinCount = count
-			}
-		})
-
-		return biggestBinIndex > 0
-			? (biggestBinIndex + 0.5) * yValueBinSize // Get the midpoint of the most popular bin.
-			: null
 	}
 
 	// The number of points in all SuperTiles which have been loaded to memory.

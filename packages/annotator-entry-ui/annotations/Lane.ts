@@ -140,6 +140,9 @@ export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface
 	rightLineColor: string
 	entryType: string
 	exitType: string
+	// Waypoints are generated from markers. They are included in output for downstream
+	// convenience, but we don't read them back in.
+	waypoints: Array<Object>
 }
 
 /**
@@ -318,7 +321,9 @@ export class Lane extends Annotation {
 		this.markers.forEach((marker) => {
 			marker.visible = true
 		})
-		this.showDirectionMarkers()
+		if (this.type !== LaneType.CROSSWALK) {
+			this.showDirectionMarkers()
+		}
 		this.makeInactive()
 	}
 
@@ -362,6 +367,11 @@ export class Lane extends Annotation {
 
 		// Generate center lane indication and direction markers
 		this.computeWaypoints()
+
+		if (this.type === LaneType.CROSSWALK) {
+			this.hideDirectionMarkers()
+			this.laneCenterLine.visible = false
+		}
 	}
 
 	/**
@@ -461,17 +471,24 @@ export class Lane extends Annotation {
 			exitType: LaneEntryExitType[this.exitType],
 			neighborsIds: this.neighborsIds,
 			markers: [],
+			waypoints: [],
 		}
 
-		if (this.markers) {
-			this.markers.forEach((marker) => {
-				if (pointConverter) {
-					data.markers.push(pointConverter(marker.position))
-				} else {
-					data.markers.push(marker.position)
-				}
-			})
-		}
+		this.markers.forEach((marker) => {
+			if (pointConverter) {
+				data.markers.push(pointConverter(marker.position))
+			} else {
+				data.markers.push(marker.position)
+			}
+		})
+
+		this.waypoints.forEach((waypoint) => {
+			if (pointConverter) {
+				data.waypoints.push(pointConverter(waypoint))
+			} else {
+				data.waypoints.push(waypoint)
+			}
+		})
 
 		return data
 	}
@@ -577,7 +594,7 @@ export class Lane extends Annotation {
 			points.push(waypoint)
 		}
 
-		const distanceBetweenMarkers = 5.0 // in meters
+		const distanceBetweenMarkers = 3.0 // in meters
 		const spline = new THREE.CatmullRomCurve3(points)
 		const numPoints = spline.getLength() / distanceBetweenMarkers
 		this.waypoints = spline.getSpacedPoints(numPoints)
