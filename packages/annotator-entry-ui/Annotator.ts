@@ -1471,6 +1471,10 @@ export class Annotator {
 					this.uiState.isLastTrafficSignMarkerKeyPressed = true
 					break
 				}
+				case 'F': {
+					this.reverseLaneDirection()
+					break
+				}
 				default:
 				// nothing to see here
 			}
@@ -1675,6 +1679,23 @@ export class Annotator {
 		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateRightSideNeighbours()
+		}
+	}
+
+	private reverseLaneDirection(): void {
+		log.info("Reverse lane direction.")
+		let {result, existLeftNeighbour, existRightNeighbour} = this.annotationManager.reverseLaneDirection()
+		if (result) {
+			if (existLeftNeighbour) {
+				Annotator.deactivateLeftSideNeighbours()
+			} else {
+				Annotator.activateLeftSideNeighbours()
+			}
+			if (existRightNeighbour) {
+				Annotator.deactivateRightSideNeighbours()
+			} else {
+				Annotator.activateRightSideNeighbours()
+			}
 		}
 	}
 

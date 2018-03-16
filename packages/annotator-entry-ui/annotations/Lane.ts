@@ -275,6 +275,35 @@ export class Lane extends Annotation {
 	}
 
 	/**
+	 * Revers markers (=change lane direction)
+	 */
+	reverseMarkers(): boolean {
+		// if less than 2 markers --> nothing to reverse
+		if (this.markers.length < 2) {
+			return false
+		}
+
+		// block reverse if lane connected with a front neighbour
+		if (this.neighborsIds.front.length > 0) {
+			log.error('Unable to reverse lane with connected front neighbour.')
+			return false
+		}
+
+		// in place markers reverse
+		this.markers.reverse()
+
+		// flip left-right neighbours
+		let aux = this.neighborsIds.left
+		this.neighborsIds.left = this.neighborsIds.right
+		this.neighborsIds.right = aux
+
+		// update rendering
+		this.updateVisualization()
+
+		return true
+	}
+
+	/**
 	 * Make this annotation active. This changes the displayed material.
 	 */
 	makeActive(): void {

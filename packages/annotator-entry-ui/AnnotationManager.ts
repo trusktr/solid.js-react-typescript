@@ -391,6 +391,28 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
+	 * If current annotation is a lane, try to reverse its direction. The presence
+	 * of neighbours to the left and right is returned to the caller (mainly for UI updates)
+	 * @returns [result, existLeftNeighbour, existRightNeighbour]
+	 */
+	reverseLaneDirection(): {result: boolean, existLeftNeighbour: boolean, existRightNeighbour: boolean} {
+		const activeLane = this.getActiveLaneAnnotation()
+		if (!activeLane) {
+			log.info("Can't reverse lane. No annotation is active.")
+			return {result: false, existLeftNeighbour: false, existRightNeighbour: false}
+		}
+
+		if (!activeLane.reverseMarkers()) {
+			log.info("Reverse lane failed.")
+			return {result: false, existLeftNeighbour: false, existRightNeighbour: false}
+		}
+
+		return {result: true,
+				existLeftNeighbour: activeLane.neighborsIds.left !== null,
+				existRightNeighbour: activeLane.neighborsIds.right !== null}
+	}
+
+	/**
 	 * Eliminate the current active annotation from the manager. Delete its associated
 	 * mesh and markers from the scene and reset any active annotation variables.
 	 */
