@@ -250,7 +250,9 @@ html(lang="en")
 			script.
 				require(process.cwd() + "/dist/app/annotator-entry-ui")
 		#logo
-			img(src="https://www.dropbox.com/s/hpyckdew3xc2s7u/signature_with_arrow_white.png?dl=1", height="30px", width="auto")
+			img(src=process.cwd() + "/packages/annotator-assets/images/signature_with_arrow_white.png",
+				height="30px",
+				width="auto")
 		#status_window
 		#menu_control
 			button#status_window_control_btn.menu_btn &#x2139;

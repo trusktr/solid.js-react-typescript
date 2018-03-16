@@ -112,6 +112,7 @@ interface FlyThroughSettings {
 }
 
 interface LiveModeSettings {
+	carModelMaterial: THREE.Material
 	cameraOffset: THREE.Vector3
 	cameraOffsetDelta: number
 	fps: number
@@ -265,6 +266,11 @@ export class Annotator {
 			currentPoseIndex: 0,
 		}
 		this.liveModeSettings = {
+			carModelMaterial: new THREE.MeshPhongMaterial({
+				color: 0x002233,
+				specular: 0x222222,
+				shininess: 0,
+			}),
 			cameraOffset: new THREE.Vector3(30, 10, 0),
 			cameraOffsetDelta: 1,
 			fps: parseFloat(config.get('fly_through.render.fps')) || 10
@@ -2394,9 +2400,9 @@ export class Annotator {
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
 			try {
 				const manager = new THREE.LoadingManager()
-				const loader = new (THREE as any).OBJLoader(manager)
+				const loader = new THREE.OBJLoader(manager)
 				const car = require('../annotator-assets/models/BMW_X5_4.obj')
-				loader.load(car, (object: any) => {
+				loader.load(car, (object: THREE.Object3D) => {
 					const boundingBox = new THREE.Box3().setFromObject(object)
 					const boxSize = boundingBox.getSize().toArray()
 					const modelLength = Math.max(...boxSize)
@@ -2405,6 +2411,10 @@ export class Annotator {
 					this.carModel = object
 					this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
 					this.carModel.visible = false
+					this.carModel.traverse(child => {
+						if (child instanceof THREE.Mesh)
+							child.material = this.liveModeSettings.carModelMaterial
+					})
 					this.scene.add(object)
 					resolve()
 				})
