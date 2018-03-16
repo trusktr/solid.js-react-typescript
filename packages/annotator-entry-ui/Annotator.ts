@@ -1153,9 +1153,14 @@ export class Annotator {
 			return
 		}
 
+		// fine lane order based on distances between end points: active --> inactive lane or inactive --> active lane
+		const inactiveToActive = inactive.markers[inactive.markers.length - 1].position.distanceTo(activeLane.markers[0].position)
+		const activeToInactive = activeLane.markers[activeLane.markers.length - 1].position.distanceTo(inactive.markers[0].position)
+
+		const fromUID = activeToInactive < inactiveToActive ? activeLane.id : inactive.id
+		const toUID = activeToInactive < inactiveToActive ? inactive.id : activeLane.id
+
 		// add connection
-		const fromUID = activeLane.id
-		const toUID = inactive.id
 		if (!this.annotationManager.addRelation(fromUID, toUID, 'front')) {
 			log.warn(`Lane connection failed.`)
 			return
