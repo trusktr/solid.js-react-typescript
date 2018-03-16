@@ -20,6 +20,8 @@ Get access to the @mapperai NPM repository, with your NPM username, from [Alonso
 ## Configure
 The application uses [nconf](https://www.npmjs.com/package/nconf) for configuration. It is set up to read configs from [yaml files](packages/config), from environment variables, or from the command line. The command line switch is formatted as `--CONFIG_NAME=CONFIG_VALUE`.
 
+See [the docs](documentation/configuration.md) for details.
+
 ## Build
 
 ### Run the incremental compiler
@@ -52,3 +54,14 @@ The `electron-rebuild` script installs a `grpc_node.node` binary, among other th
     pushd node_modules/grpc/src/node/extension_binary/
     ln -s electron-v1.7-darwin-x64-\{libc\} electron-v1.7-darwin-x64-unknown
     popd
+
+## Manipulating data
+
+### Point cloud tiles
+Point clouds are the foundation of both live visualization and creating annotations. They can be loaded in a batch or streamed in on demand. See [the docs](documentation/point_cloud_tiles.md).
+
+### Annotations
+Annotation data is saved locally within this project by default, in `./data`. A set of annotations can be loaded or saved to disk using the menus in the application. There are some shortcuts in [configuration](documentation/configuration.md). Annotation files on disk can be merged in memory by loading them sequentially in the annotator. The application runs an auto-save process for annotations. Those files are in `./data/autosave` if you need them.
+
+### Trajectory play-back
+The application can play back a sequence of trajectories to fly through the point cloud. Trajectories are stored in a sequence of [TrajectoryMessage](https://github.com/Signafy/mapper-models/blob/master/src/main/proto/TrajectoryMessage.proto) protobufs, usually found in a `trajectory_lidar.md` file. Trajectory files must be pre-loaded in a [configuration](documentation/configuration.md) setting.
