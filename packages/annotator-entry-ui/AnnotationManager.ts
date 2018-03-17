@@ -1322,8 +1322,13 @@ export class AnnotationManager extends UtmInterface {
 					modifications++
 			} else if (frontNeighbor instanceof Connection) {
 				// If the front neighbor is a connection delete it
-				if (this.deleteConnection(frontNeighbor))
+				if (this.deleteConnection(frontNeighbor)) {
+					// Remove connection from scene.
+					this.scene.remove(frontNeighbor.renderingObject)
+					// Remove rendering object from internal array of objects.
+					this.removeRenderingObjectFromArray(this.annotationObjects, frontNeighbor.renderingObject)
 					modifications++
+				}
 			} else {
 				log.error('Not valid front neighbor')
 			}
@@ -1337,8 +1342,13 @@ export class AnnotationManager extends UtmInterface {
 					modifications++
 			} else if (backNeighbor instanceof Connection) {
 				// If the back neighbor is a connection delete it
-				if (this.deleteConnection(backNeighbor))
+				if (this.deleteConnection(backNeighbor)) {
+					// Remove connection from scene.
+					this.scene.remove(backNeighbor.renderingObject)
+					// Remove rendering object from internal array of objects.
+					this.removeRenderingObjectFromArray(this.annotationObjects, backNeighbor.renderingObject)
 					modifications++
+				}
 			} else {
 				log.error('Not valid back neighbor')
 			}

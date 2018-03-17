@@ -1165,6 +1165,10 @@ export class Annotator {
 			log.warn(`Lane connection failed.`)
 			return
 		}
+
+		// update UI panel
+		if (activeLane.id === fromUID)
+			Annotator.deactivateFrontSideNeighbours()
 	}
 
 	// todo merge with addAnnotationMarker
