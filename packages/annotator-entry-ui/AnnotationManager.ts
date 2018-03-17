@@ -1050,7 +1050,6 @@ export class AnnotationManager extends UtmInterface {
 		return kml.saveToFile(fileName)
 	}
 
-
 	private findAnnotationByUuid(uuid: AnnotationUuid): Annotation | null {
 		const annotation = this.allAnnotations().find(a => a.uuid === uuid)
 		if (annotation) return annotation
