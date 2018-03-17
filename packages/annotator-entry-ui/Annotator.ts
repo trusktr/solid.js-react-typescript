@@ -69,7 +69,8 @@ const statusKey = {
 	carPosition: 'carPosition',
 	flyThrough: 'flyThrough',
 	tileServer: 'tileServer',
-	locationServer: 'locationServer'
+	locationServer: 'locationServer',
+	cameraType: 'cameraType',
 }
 
 enum MenuVisibility {
@@ -2348,19 +2349,34 @@ export class Annotator {
 			log.warn('missing element lp_add_forward')
 	}
 
+	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
 	private toggleCameraType(): void {
+		let oldCamera: THREE.Camera
+		let newCamera: THREE.Camera
+		let newType: string
 		if (this.camera === this.perspectiveCamera) {
-			log.info('switch to orthographic view')
-			this.camera = this.orthographicCamera
+			oldCamera = this.perspectiveCamera
+			newCamera = this.orthographicCamera
+			newType = 'orthographic'
 		} else {
-			log.info('switch to perspective view')
-			this.camera = this.perspectiveCamera
+			oldCamera = this.orthographicCamera
+			newCamera = this.perspectiveCamera
+			newType = 'perspective'
 		}
+
+		// Copy over the camera position. When the next animate() runs, the new camera will point at the
+		// same target as the old camera, since the target is maintained by OrbitControls. That takes
+		// care of position and orientation, but not zoom. PerspectiveCamera and OrthographicCamera
+		// calculate zoom differently. It would be nice to convert one to the other here.
+		newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
+		this.camera = newCamera
+
 		this.transformControls.setCamera(this.camera)
 		{
 			// tslint:disable-next-line:no-any
 			(this.orbitControls as any).setCamera(this.camera)
 		}
+		this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
 	}
 
 	// In normal edit mode, toggles through the states defined in ModelVisibility:
