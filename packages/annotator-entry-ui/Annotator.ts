@@ -9,6 +9,7 @@ import * as AsyncFile from "async-file";
 const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
+import LocalStorage from "./state/LocalStorage"
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {
@@ -71,6 +72,15 @@ const statusKey = {
 	tileServer: 'tileServer',
 	locationServer: 'locationServer',
 	cameraType: 'cameraType',
+}
+
+const preferenceKey = {
+	cameraPreference: 'cameraPreference',
+}
+
+const cameraTypeString = {
+	orthographic: 'orthographic',
+	perspective: 'perspective',
 }
 
 enum MenuVisibility {
@@ -152,6 +162,7 @@ interface AoiState {
  * and modify the annotations.
  */
 export class Annotator {
+	private storage: LocalStorage // persistent state for UI settings
 	private uiState: UiState
 	private aoiState: AoiState
 	private statusWindow: StatusWindowController // a place to print status messages
@@ -193,6 +204,7 @@ export class Annotator {
 	private gui: any
 
 	constructor() {
+		this.storage = new LocalStorage()
 		this.settings = {
 			background: config.get('startup.background_color') || '#082839',
 			cameraOffset: new THREE.Vector3(0, 400, 200),
@@ -322,7 +334,10 @@ export class Annotator {
 
 		// Create scene and camera
 		this.scene = new THREE.Scene()
-		this.camera = this.orthographicCamera
+		if (this.storage.getItem(preferenceKey.cameraPreference, cameraTypeString.perspective) === cameraTypeString.orthographic)
+			this.camera = this.orthographicCamera
+		else
+			this.camera = this.perspectiveCamera
 
 		// Add some lights
 		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
@@ -453,7 +468,7 @@ export class Annotator {
 	}
 
 	// Load up any data which configuration has asked for on start-up.
-	loadUserData(): Promise<void> {
+	private loadUserData(): Promise<void> {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
 		if (annotationsPath) {
@@ -2357,11 +2372,11 @@ export class Annotator {
 		if (this.camera === this.perspectiveCamera) {
 			oldCamera = this.perspectiveCamera
 			newCamera = this.orthographicCamera
-			newType = 'orthographic'
+			newType = cameraTypeString.orthographic
 		} else {
 			oldCamera = this.orthographicCamera
 			newCamera = this.perspectiveCamera
-			newType = 'perspective'
+			newType = cameraTypeString.perspective
 		}
 
 		// Copy over the camera position. When the next animate() runs, the new camera will point at the
@@ -2377,6 +2392,7 @@ export class Annotator {
 			(this.orbitControls as any).setCamera(this.camera)
 		}
 		this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
+		this.storage.setItem(preferenceKey.cameraPreference, newType)
 	}
 
 	// In normal edit mode, toggles through the states defined in ModelVisibility:
