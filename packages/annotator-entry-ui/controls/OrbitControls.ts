@@ -87,6 +87,12 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 	// public methods
 	//
 
+	this.setCamera = function (newCamera: Camera): void {
+
+		scope.object = newCamera
+
+	}
+
 	this.getPolarAngle = function (): number {
 
 		return spherical.phi

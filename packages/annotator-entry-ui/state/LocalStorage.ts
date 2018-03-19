@@ -24,10 +24,14 @@ export default class LocalStorage {
 			return
 	}
 
-	getItem(key: string): string | null {
-		if (this.isAvailable)
-			return localStorage.getItem(key)
-		else
+	getItem(key: string, defaultValue: string | null = null): string | null {
+		if (this.isAvailable) {
+			const item = localStorage.getItem(key)
+			if (item !== null)
+				return item
+			else
+				return defaultValue
+		} else
 			return null
 	}
 

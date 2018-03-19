@@ -9,6 +9,7 @@ import * as AsyncFile from "async-file";
 const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
+import LocalStorage from "./state/LocalStorage"
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {
@@ -69,7 +70,17 @@ const statusKey = {
 	carPosition: 'carPosition',
 	flyThrough: 'flyThrough',
 	tileServer: 'tileServer',
-	locationServer: 'locationServer'
+	locationServer: 'locationServer',
+	cameraType: 'cameraType',
+}
+
+const preferenceKey = {
+	cameraPreference: 'cameraPreference',
+}
+
+const cameraTypeString = {
+	orthographic: 'orthographic',
+	perspective: 'perspective',
 }
 
 enum MenuVisibility {
@@ -89,6 +100,7 @@ interface AnnotatorSettings {
 	background: string
 	cameraOffset: THREE.Vector3
 	lightOffset: THREE.Vector3
+	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
 	defaultFpsRendering: number
 	fpsRendering: number
 	estimateGroundPlane: boolean
@@ -151,11 +163,14 @@ interface AoiState {
  * and modify the annotations.
  */
 export class Annotator {
+	private storage: LocalStorage // persistent state for UI settings
 	private uiState: UiState
 	private aoiState: AoiState
 	private statusWindow: StatusWindowController // a place to print status messages
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
-	private camera: THREE.PerspectiveCamera
+	private perspectiveCamera: THREE.PerspectiveCamera
+	private orthographicCamera: THREE.OrthographicCamera
+	private camera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
@@ -190,10 +205,12 @@ export class Annotator {
 	private gui: any
 
 	constructor() {
+		this.storage = new LocalStorage()
 		this.settings = {
 			background: config.get('startup.background_color') || '#082839',
 			cameraOffset: new THREE.Vector3(0, 400, 200),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
+			orthoCameraHeight: 100, // enough to view ~1 city block of data
 			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
 			fpsRendering: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
@@ -317,10 +334,16 @@ export class Annotator {
 
 		const [width, height]: Array<number> = this.getContainerSize()
 
+		this.perspectiveCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
+		this.orthographicCamera = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 1000)
+		this.setOrthographicCameraDimensions(width, height)
+
 		// Create scene and camera
 		this.scene = new THREE.Scene()
-		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		this.scene.add(this.camera)
+		if (this.storage.getItem(preferenceKey.cameraPreference, cameraTypeString.perspective) === cameraTypeString.orthographic)
+			this.camera = this.orthographicCamera
+		else
+			this.camera = this.perspectiveCamera
 
 		// Add some lights
 		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
@@ -451,7 +474,7 @@ export class Annotator {
 	}
 
 	// Load up any data which configuration has asked for on start-up.
-	loadUserData(): Promise<void> {
+	private loadUserData(): Promise<void> {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
 		if (annotationsPath) {
@@ -1319,9 +1342,24 @@ export class Annotator {
 
 		const [width, height]: Array<number> = this.getContainerSize()
 
-		this.camera.aspect = width / height
-		this.camera.updateProjectionMatrix()
+		this.perspectiveCamera.aspect = width / height
+		this.perspectiveCamera.updateProjectionMatrix()
+
+		this.setOrthographicCameraDimensions(width, height)
+
 		this.renderer.setSize(width, height)
+	}
+
+	// Scale the ortho camera frustum along with window dimensions to preserve a 1:1
+	// proportion for model width:height.
+	private setOrthographicCameraDimensions(width: number, height: number): void {
+		const orthoWidth = this.settings.orthoCameraHeight * (width / height)
+		const orthoHeight = this.settings.orthoCameraHeight
+		this.orthographicCamera.left = orthoWidth / -2
+		this.orthographicCamera.right = orthoWidth / 2
+		this.orthographicCamera.top = orthoHeight / 2
+		this.orthographicCamera.bottom = orthoHeight / -2
+		this.orthographicCamera.updateProjectionMatrix()
 	}
 
 	/**
@@ -1467,6 +1505,10 @@ export class Annotator {
 				}
 				case 'U': {
 					this.unloadPointCloudData()
+					break
+				}
+				case 'V': {
+					this.toggleCameraType()
 					break
 				}
 				case 'v': {
@@ -2326,6 +2368,37 @@ export class Annotator {
 			lpAddFront.removeAttribute('disabled')
 		else
 			log.warn('missing element lp_add_forward')
+	}
+
+	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
+	private toggleCameraType(): void {
+		let oldCamera: THREE.Camera
+		let newCamera: THREE.Camera
+		let newType: string
+		if (this.camera === this.perspectiveCamera) {
+			oldCamera = this.perspectiveCamera
+			newCamera = this.orthographicCamera
+			newType = cameraTypeString.orthographic
+		} else {
+			oldCamera = this.orthographicCamera
+			newCamera = this.perspectiveCamera
+			newType = cameraTypeString.perspective
+		}
+
+		// Copy over the camera position. When the next animate() runs, the new camera will point at the
+		// same target as the old camera, since the target is maintained by OrbitControls. That takes
+		// care of position and orientation, but not zoom. PerspectiveCamera and OrthographicCamera
+		// calculate zoom differently. It would be nice to convert one to the other here.
+		newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
+		this.camera = newCamera
+
+		this.transformControls.setCamera(this.camera)
+		{
+			// tslint:disable-next-line:no-any
+			(this.orbitControls as any).setCamera(this.camera)
+		}
+		this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
+		this.storage.setItem(preferenceKey.cameraPreference, newType)
 	}
 
 	// In normal edit mode, toggles through the states defined in ModelVisibility:
