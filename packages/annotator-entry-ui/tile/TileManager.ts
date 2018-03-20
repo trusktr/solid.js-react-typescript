@@ -809,9 +809,11 @@ export class TileManager extends UtmInterface {
 	private loadSuperTile(superTile: SuperTile): Promise<boolean> {
 		if (this.loadedSuperTileKeys.contains(superTile.key())) {
 			// Move it to the end of the queue for pruning super tiles.
-			this.loadedSuperTileKeys.delete(superTile.key())
-			this.loadedSuperTileKeys.add(superTile.key())
-			this.setSuperTilesPreference()
+			if (this.loadedSuperTileKeys.last() !== superTile.key()) {
+				this.loadedSuperTileKeys.delete(superTile.key())
+				this.loadedSuperTileKeys.add(superTile.key())
+				this.setSuperTilesPreference()
+			}
 			return Promise.resolve(true)
 		} else
 			return superTile.loadPointCloud(this.pointsMaterial)
