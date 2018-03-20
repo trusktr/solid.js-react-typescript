@@ -73,6 +73,7 @@ const statusKey = {
 	tileServer: 'tileServer',
 	locationServer: 'locationServer',
 	cameraType: 'cameraType',
+	tileManagerStats: 'tileManagerStats',
 }
 
 const preferenceKey = {
@@ -108,6 +109,7 @@ interface AnnotatorSettings {
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	generateVoxelsOnPointLoad: boolean
 	drawBoundingBox: boolean
+	enableTileManagerStats: boolean
 	superTileBboxMaterial: THREE.Material // for visualizing available, but unpopulated, super tiles
 	superTileBboxColor: THREE.Color
 	aoiBboxColor: THREE.Color
@@ -220,6 +222,7 @@ export class Annotator {
 			tileGroundPlaneScale: 1.05,
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
+			enableTileManagerStats: !!config.get('tile_manager.stats_display.enable'),
 			superTileBboxMaterial: new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true}),
 			superTileBboxColor: new THREE.Color(0xff0000),
 			aoiBboxColor: new THREE.Color(0x00ff00),
@@ -668,7 +671,7 @@ export class Annotator {
 	 * 	Set the camera directly above the current target, looking down.
 	 */
 	private resetTiltAndCompass(): void {
-		const distanceCameraToTarget = this.camera.position.clone().sub(this.orbitControls.target).length()
+		const distanceCameraToTarget = this.camera.position.distanceTo(this.orbitControls.target)
 		this.camera.position.x = this.orbitControls.target.x
 		this.camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
 		this.camera.position.z = this.orbitControls.target.z
@@ -838,6 +841,7 @@ export class Annotator {
 	private onSuperTileLoad: (superTile: SuperTile) => void =
 		(superTile: SuperTile) => {
 			this.loadTileGroundPlanes(superTile)
+			this.updateTileManagerStats()
 
 			if (superTile.pointCloud)
 				this.scene.add(superTile.pointCloud)
@@ -849,6 +853,7 @@ export class Annotator {
 	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void =
 		(superTile: SuperTile, action: SuperTileUnloadAction) => {
 			this.unloadTileGroundPlanes(superTile)
+			this.updateTileManagerStats()
 
 			if (superTile.pointCloud)
 				this.scene.remove(superTile.pointCloud)
@@ -990,6 +995,11 @@ export class Annotator {
 
 	// Set the area of interest for loading point clouds.
 	private updatePointCloudAoi(): void {
+		// The only use of Control at the moment is to enable model rotation in OrbitControls. Updating AOI is useful
+		// mainly while panning across the model. Disable it during rotation for better rendering performance.
+		if (this.uiState.isControlKeyPressed) return
+		if (this.uiState.modelVisibility === ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD) return
+
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
 			const oldPoint = this.aoiState.focalPoint
@@ -997,12 +1007,12 @@ export class Annotator {
 			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
 			if (!samePoint) {
 				this.aoiState.focalPoint = newPoint
-				this.updatePointCloudAoiBoundingBox()
+				this.updatePointCloudAoiBoundingBox(this.aoiState.focalPoint)
 			}
 		} else {
 			if (this.aoiState.focalPoint !== null) {
 				this.aoiState.focalPoint = null
-				this.updatePointCloudAoiBoundingBox()
+				this.updatePointCloudAoiBoundingBox(this.aoiState.focalPoint)
 			}
 		}
 	}
@@ -1010,21 +1020,21 @@ export class Annotator {
 	// Create a bounding box around the current AOI and optionally display it.
 	// Then load the points in and around the AOI. If we have a current heading,
 	// extend the AOI with another bounding box in the direction of motion.
-	private updatePointCloudAoiBoundingBox(): void {
+	private updatePointCloudAoiBoundingBox(focalPoint: THREE.Vector3 | null): void {
 		if (this.settings.drawBoundingBox) {
 			this.aoiState.boundingBoxes.forEach(bbox => this.scene.remove(bbox))
 			this.aoiState.boundingBoxes = []
 		}
 
-		if (this.aoiState.focalPoint) {
+		if (focalPoint) {
 			const threeJsSearches: RangeSearch[] = [{
-				minPoint: this.aoiState.focalPoint.clone().sub(this.settings.aoiHalfSize),
-				maxPoint: this.aoiState.focalPoint.clone().add(this.settings.aoiHalfSize),
+				minPoint: focalPoint.clone().sub(this.settings.aoiHalfSize),
+				maxPoint: focalPoint.clone().add(this.settings.aoiHalfSize),
 			}]
 
 			// What could be better than one AOI, but two? Add another one so we see more of what's in front.
 			if (this.aoiState.currentHeading) {
-				const extendedFocalPoint = this.aoiState.focalPoint.clone()
+				const extendedFocalPoint = focalPoint.clone()
 					.add(this.settings.aoiFullSize.clone().multiply(this.aoiState.currentHeading))
 				threeJsSearches.push({
 					minPoint: extendedFocalPoint.clone().sub(this.settings.aoiHalfSize),
@@ -2776,6 +2786,15 @@ export class Annotator {
 				this.scene.remove(mesh)
 			})
 		}
+	}
+
+	// Print a message about how big our tiles are.
+	private updateTileManagerStats(): void {
+		if (!this.settings.enableTileManagerStats) return
+		if (!this.statusWindow.isEnabled()) return
+
+		const message = `Loaded ${this.tileManager.superTiles.size} super tiles; ${this.tileManager.pointCount()} points`
+		this.statusWindow.setMessage(statusKey.tileManagerStats, message)
 	}
 
 	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
