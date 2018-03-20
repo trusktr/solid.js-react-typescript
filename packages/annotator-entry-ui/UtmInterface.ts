@@ -104,4 +104,9 @@ export class UtmInterface implements UtmLocalOrigin {
 		const lngLat = utmConverter.toLatLon(utm.x, utm.y, this.utmZoneNumber, undefined, this.utmZoneNorthernHemisphere, true)
 		return new THREE.Vector3(lngLat.longitude, lngLat.latitude, utm.z)
 	}
+
+	utmVectorToLngLatAlt(utm: THREE.Vector3): THREE.Vector3 {
+		const lngLat = utmConverter.toLatLon(utm.x, utm.y, this.utmZoneNumber, undefined, this.utmZoneNorthernHemisphere, true)
+		return new THREE.Vector3(lngLat.longitude, lngLat.latitude, utm.z)
+	}
 }
