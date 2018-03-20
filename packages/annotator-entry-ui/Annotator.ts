@@ -998,6 +998,7 @@ export class Annotator {
 		// The only use of Control at the moment is to enable model rotation in OrbitControls. Updating AOI is useful
 		// mainly while panning across the model. Disable it during rotation for better rendering performance.
 		if (this.uiState.isControlKeyPressed) return
+		if (this.uiState.modelVisibility === ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
