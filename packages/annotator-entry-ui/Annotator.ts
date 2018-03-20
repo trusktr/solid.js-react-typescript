@@ -995,6 +995,10 @@ export class Annotator {
 
 	// Set the area of interest for loading point clouds.
 	private updatePointCloudAoi(): void {
+		// The only use of Control at the moment is to enable model rotation in OrbitControls. Updating AOI is useful
+		// mainly while panning across the model. Disable it during rotation for better rendering performance.
+		if (this.uiState.isControlKeyPressed) return
+
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
 			const oldPoint = this.aoiState.focalPoint
@@ -1002,12 +1006,12 @@ export class Annotator {
 			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
 			if (!samePoint) {
 				this.aoiState.focalPoint = newPoint
-				this.updatePointCloudAoiBoundingBox()
+				this.updatePointCloudAoiBoundingBox(this.aoiState.focalPoint)
 			}
 		} else {
 			if (this.aoiState.focalPoint !== null) {
 				this.aoiState.focalPoint = null
-				this.updatePointCloudAoiBoundingBox()
+				this.updatePointCloudAoiBoundingBox(this.aoiState.focalPoint)
 			}
 		}
 	}
@@ -1015,21 +1019,21 @@ export class Annotator {
 	// Create a bounding box around the current AOI and optionally display it.
 	// Then load the points in and around the AOI. If we have a current heading,
 	// extend the AOI with another bounding box in the direction of motion.
-	private updatePointCloudAoiBoundingBox(): void {
+	private updatePointCloudAoiBoundingBox(focalPoint: THREE.Vector3 | null): void {
 		if (this.settings.drawBoundingBox) {
 			this.aoiState.boundingBoxes.forEach(bbox => this.scene.remove(bbox))
 			this.aoiState.boundingBoxes = []
 		}
 
-		if (this.aoiState.focalPoint) {
+		if (focalPoint) {
 			const threeJsSearches: RangeSearch[] = [{
-				minPoint: this.aoiState.focalPoint.clone().sub(this.settings.aoiHalfSize),
-				maxPoint: this.aoiState.focalPoint.clone().add(this.settings.aoiHalfSize),
+				minPoint: focalPoint.clone().sub(this.settings.aoiHalfSize),
+				maxPoint: focalPoint.clone().add(this.settings.aoiHalfSize),
 			}]
 
 			// What could be better than one AOI, but two? Add another one so we see more of what's in front.
 			if (this.aoiState.currentHeading) {
-				const extendedFocalPoint = this.aoiState.focalPoint.clone()
+				const extendedFocalPoint = focalPoint.clone()
 					.add(this.settings.aoiFullSize.clone().multiply(this.aoiState.currentHeading))
 				threeJsSearches.push({
 					minPoint: extendedFocalPoint.clone().sub(this.settings.aoiHalfSize),
