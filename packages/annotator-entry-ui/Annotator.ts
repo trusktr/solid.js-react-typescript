@@ -663,7 +663,7 @@ export class Annotator {
 	 * 	Set the camera directly above the current target, looking down.
 	 */
 	private resetTiltAndCompass(): void {
-		const distanceCameraToTarget = this.camera.position.clone().sub(this.orbitControls.target).length()
+		const distanceCameraToTarget = this.camera.position.distanceTo(this.orbitControls.target)
 		this.camera.position.x = this.orbitControls.target.x
 		this.camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
 		this.camera.position.z = this.orbitControls.target.z
