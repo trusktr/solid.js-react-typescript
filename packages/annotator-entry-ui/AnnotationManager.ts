@@ -923,7 +923,7 @@ export class AnnotationManager extends UtmInterface {
 	 * Update the mesh of the active annotation. This is used if the lane marker positions
 	 * where changed externally (e.g. by the transform controls)
 	 */
-	updateActiveAnnotationMesh(): void {
+	updateActiveAnnotationMesh = (): void => {
 		if (!this.activeAnnotation) {
 			log.info("No active annotation. Can't update mesh")
 			return

@@ -1058,6 +1058,7 @@ export class Annotator {
 	// Display some info in the UI about where the camera is pointed.
 	private displayCameraInfo = (): void => {
 		if (this.uiState.isLiveMode) return
+		if (!this.statusWindow.isEnabled()) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
@@ -1655,14 +1656,10 @@ export class Annotator {
 		this.orbitControls.addEventListener('pan', this.displayCameraInfo)
 
 		// If we are controlling the scene don't hide any transform object.
-		this.orbitControls.addEventListener('start', () => {
-			this.cancelHideTransform()
-		})
+		this.orbitControls.addEventListener('start', this.cancelHideTransform)
 
 		// After the scene transformation is over start the timer to hide the transform object.
-		this.orbitControls.addEventListener('end', () => {
-			this.delayHideTransform()
-		})
+		this.orbitControls.addEventListener('end', this.delayHideTransform)
 	}
 
 	/**
@@ -1676,24 +1673,16 @@ export class Annotator {
 		// Add listeners.
 
 		// If we are interacting with the transform object don't hide it.
-		this.transformControls.addEventListener('change', () => {
-			this.cancelHideTransform()
-		})
+		this.transformControls.addEventListener('change', this.cancelHideTransform)
 
 		// If we just clicked on a transform object don't hide it.
-		this.transformControls.addEventListener('mouseDown', () => {
-			this.cancelHideTransform()
-		})
+		this.transformControls.addEventListener('mouseDown', this.cancelHideTransform)
 
 		// If we are done interacting with a transform object start hiding process.
-		this.transformControls.addEventListener('mouseUp', () => {
-			this.delayHideTransform()
-		})
+		this.transformControls.addEventListener('mouseUp', this.delayHideTransform)
 
 		// If the object attached to the transform object has changed, do something.
-		this.transformControls.addEventListener('objectChange', () => {
-			this.annotationManager.updateActiveAnnotationMesh()
-		})
+		this.transformControls.addEventListener('objectChange', this.annotationManager.updateActiveAnnotationMesh)
 	}
 
 	/**
