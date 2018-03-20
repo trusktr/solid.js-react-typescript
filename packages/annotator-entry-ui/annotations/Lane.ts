@@ -242,12 +242,13 @@ export class Lane extends Annotation {
 	addMarker(position: THREE.Vector3): boolean {
 
 		if (this.markers.length < 2) {
+			// Add first 2 points in any order
 			this.addRawMarker(position)
 		} else {
 			// From the third marker onwards, add markers in pairs by estimating the position
-			// of the left marker.
-			const leftMarker = this.computeLeftMarkerEstimatedPosition(position)
-			this.addRawMarker(leftMarker)
+			// of the paired marker.
+			const nextMarker = this.computeNextMarkerEstimatedPosition(position)
+			this.addRawMarker(nextMarker)
 			this.addRawMarker(position)
 		}
 
@@ -269,6 +270,35 @@ export class Lane extends Annotation {
 			this.renderingObject.remove(this.markers.pop()!)
 		}
 
+		this.updateVisualization()
+
+		return true
+	}
+
+	/**
+	 * Revers markers (=change lane direction)
+	 */
+	reverseMarkers(): boolean {
+		// if less than 2 markers --> nothing to reverse
+		if (this.markers.length < 2) {
+			return false
+		}
+
+		// block reverse if lane connected with a front neighbour
+		if (this.neighborsIds.front.length > 0) {
+			log.error('Unable to reverse lane with connected front neighbour.')
+			return false
+		}
+
+		// in place markers reverse
+		this.markers.reverse()
+
+		// flip left-right neighbours
+		let aux = this.neighborsIds.left
+		this.neighborsIds.left = this.neighborsIds.right
+		this.neighborsIds.right = aux
+
+		// update rendering
 		this.updateVisualization()
 
 		return true
@@ -561,24 +591,23 @@ export class Lane extends Annotation {
 	}
 
 	/**
-	 *  Use the last two points to create a guess of the
-	 * location of the left marker
+	 *  Use the last two points and a new "clicked" one to create a guess of
+	 *  the location of the next marker
 	 */
-	private computeLeftMarkerEstimatedPosition(newRightMarker: THREE.Vector3): THREE.Vector3 {
+	private computeNextMarkerEstimatedPosition(P3: THREE.Vector3): THREE.Vector3 {
+		// P3     ?     ?    P3
+		// P1 -> P2 or P2 <- P1
 		const lastIndex = this.markers.length
-		const lastRightMarker = this.markers[lastIndex - 1].position
-		const lastLeftMarker = this.markers[lastIndex - 2].position
-		const vectorRightToLeft = new THREE.Vector3()
-		vectorRightToLeft.subVectors(lastLeftMarker, lastRightMarker)
-		const vectorLastRightNewRight = new THREE.Vector3()
-		vectorLastRightNewRight.subVectors(newRightMarker, lastRightMarker)
+		const P1 = this.markers[lastIndex - 2].position
+		const P2 = this.markers[lastIndex - 1].position
+		const vectorP1ToP2 = new THREE.Vector3()
+		vectorP1ToP2.subVectors(P1, P2)
 
-		const newLeftMarker = new THREE.Vector3()
-		newLeftMarker.add(lastRightMarker)
-		newLeftMarker.add(vectorLastRightNewRight)
-		newLeftMarker.add(vectorRightToLeft)
+		// P4 = P3 + V(P1,P2)
+		const P4 = P3.clone()
+		P4.add(vectorP1ToP2)
 
-		return newLeftMarker
+		return P4
 	}
 
 	private computeWaypoints(): void {

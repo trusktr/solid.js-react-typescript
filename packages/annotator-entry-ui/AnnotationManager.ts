@@ -391,6 +391,28 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
+	 * If current annotation is a lane, try to reverse its direction. The presence
+	 * of neighbours to the left and right is returned to the caller (mainly for UI updates)
+	 * @returns [result, existLeftNeighbour, existRightNeighbour]
+	 */
+	reverseLaneDirection(): {result: boolean, existLeftNeighbour: boolean, existRightNeighbour: boolean} {
+		const activeLane = this.getActiveLaneAnnotation()
+		if (!activeLane) {
+			log.info("Can't reverse lane. No annotation is active.")
+			return {result: false, existLeftNeighbour: false, existRightNeighbour: false}
+		}
+
+		if (!activeLane.reverseMarkers()) {
+			log.info("Reverse lane failed.")
+			return {result: false, existLeftNeighbour: false, existRightNeighbour: false}
+		}
+
+		return {result: true,
+				existLeftNeighbour: activeLane.neighborsIds.left !== null,
+				existRightNeighbour: activeLane.neighborsIds.right !== null}
+	}
+
+	/**
 	 * Eliminate the current active annotation from the manager. Delete its associated
 	 * mesh and markers from the scene and reset any active annotation variables.
 	 */
@@ -1028,7 +1050,6 @@ export class AnnotationManager extends UtmInterface {
 		return kml.saveToFile(fileName)
 	}
 
-
 	private findAnnotationByUuid(uuid: AnnotationUuid): Annotation | null {
 		const annotation = this.allAnnotations().find(a => a.uuid === uuid)
 		if (annotation) return annotation
@@ -1300,8 +1321,13 @@ export class AnnotationManager extends UtmInterface {
 					modifications++
 			} else if (frontNeighbor instanceof Connection) {
 				// If the front neighbor is a connection delete it
-				if (this.deleteConnection(frontNeighbor))
+				if (this.deleteConnection(frontNeighbor)) {
+					// Remove connection from scene.
+					this.scene.remove(frontNeighbor.renderingObject)
+					// Remove rendering object from internal array of objects.
+					this.removeRenderingObjectFromArray(this.annotationObjects, frontNeighbor.renderingObject)
 					modifications++
+				}
 			} else {
 				log.error('Not valid front neighbor')
 			}
@@ -1315,8 +1341,13 @@ export class AnnotationManager extends UtmInterface {
 					modifications++
 			} else if (backNeighbor instanceof Connection) {
 				// If the back neighbor is a connection delete it
-				if (this.deleteConnection(backNeighbor))
+				if (this.deleteConnection(backNeighbor)) {
+					// Remove connection from scene.
+					this.scene.remove(backNeighbor.renderingObject)
+					// Remove rendering object from internal array of objects.
+					this.removeRenderingObjectFromArray(this.annotationObjects, backNeighbor.renderingObject)
 					modifications++
+				}
 			} else {
 				log.error('Not valid back neighbor')
 			}
