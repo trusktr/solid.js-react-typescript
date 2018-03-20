@@ -72,6 +72,7 @@ const statusKey = {
 	tileServer: 'tileServer',
 	locationServer: 'locationServer',
 	cameraType: 'cameraType',
+	tileManagerStats: 'tileManagerStats',
 }
 
 const preferenceKey = {
@@ -107,6 +108,7 @@ interface AnnotatorSettings {
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	generateVoxelsOnPointLoad: boolean
 	drawBoundingBox: boolean
+	enableTileManagerStats: boolean
 	superTileBboxMaterial: THREE.Material // for visualizing available, but unpopulated, super tiles
 	superTileBboxColor: THREE.Color
 	aoiBboxColor: THREE.Color
@@ -218,6 +220,7 @@ export class Annotator {
 			tileGroundPlaneScale: 1.05,
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
+			enableTileManagerStats: !!config.get('tile_manager.stats_display.enable'),
 			superTileBboxMaterial: new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true}),
 			superTileBboxColor: new THREE.Color(0xff0000),
 			aoiBboxColor: new THREE.Color(0x00ff00),
@@ -833,6 +836,7 @@ export class Annotator {
 	private onSuperTileLoad: (superTile: SuperTile) => void =
 		(superTile: SuperTile) => {
 			this.loadTileGroundPlanes(superTile)
+			this.updateTileManagerStats()
 
 			if (superTile.pointCloud)
 				this.scene.add(superTile.pointCloud)
@@ -844,6 +848,7 @@ export class Annotator {
 	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void =
 		(superTile: SuperTile, action: SuperTileUnloadAction) => {
 			this.unloadTileGroundPlanes(superTile)
+			this.updateTileManagerStats()
 
 			if (superTile.pointCloud)
 				this.scene.remove(superTile.pointCloud)
@@ -2760,6 +2765,15 @@ export class Annotator {
 				this.scene.remove(mesh)
 			})
 		}
+	}
+
+	// Print a message about how big our tiles are.
+	private updateTileManagerStats(): void {
+		if (!this.settings.enableTileManagerStats) return
+		if (!this.statusWindow.isEnabled()) return
+
+		const message = `Loaded ${this.tileManager.superTiles.size} super tiles; ${this.tileManager.pointCount()} points`
+		this.statusWindow.setMessage(statusKey.tileManagerStats, message)
 	}
 
 	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
