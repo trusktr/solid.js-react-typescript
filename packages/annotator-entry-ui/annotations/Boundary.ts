@@ -37,6 +37,16 @@ export enum BoundaryColor {
 	OTHER
 }
 
+const MapBoundaryColorToHex: { [key: string]: number } =  {}
+MapBoundaryColorToHex[BoundaryColor.YELLOW.toString()] = 0xffdb00
+MapBoundaryColorToHex[BoundaryColor.WHITE.toString()] = 0xffffff
+MapBoundaryColorToHex[BoundaryColor.RED.toString()] = 0xff0000
+MapBoundaryColorToHex[BoundaryColor.BLUE.toString()] = 0x0000ff
+MapBoundaryColorToHex[BoundaryColor.GREEN.toString()] = 0x00ff00
+MapBoundaryColorToHex[BoundaryColor.UNKNOWN.toString()] = 0x00ffff
+MapBoundaryColorToHex[BoundaryColor.NONE.toString()] = 0x00ffff
+MapBoundaryColorToHex[BoundaryColor.OTHER.toString()] = 0x00ffff
+
 // Some variables used for rendering
 namespace BoundaryRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
@@ -122,6 +132,18 @@ export class Boundary extends Annotation {
 		this.markers.forEach((marker) => {
 			marker.visible = false
 		})
+
+		const liveColor = MapBoundaryColorToHex[this.color.toString()]
+
+		switch (this.type) {
+			case BoundaryType.DASHED:
+			case BoundaryType.SOLID_DASHED:
+			case BoundaryType.DASHED_SOLID:
+				this.boundaryContour.material = new THREE.LineDashedMaterial({color: liveColor, dashSize: 1, gapSize: 1})
+				break
+			default:
+				this.boundaryContour.material = new THREE.LineBasicMaterial({color: liveColor})
+		}
 	}
 
 	unsetLiveMode(): void {
@@ -172,4 +194,6 @@ export class Boundary extends Annotation {
 
 		return data
 	}
+
+
 }
