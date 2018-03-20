@@ -67,7 +67,8 @@ function noop(): void {
 const cameraCenter = new THREE.Vector2(0, 0)
 
 const statusKey = {
-	carPosition: 'carPosition',
+	currentLocationLla: 'currentLocationLla',
+	currentLocationUtm: 'currentLocationUtm',
 	flyThrough: 'flyThrough',
 	tileServer: 'tileServer',
 	locationServer: 'locationServer',
@@ -148,6 +149,7 @@ interface UiState {
 	isLiveMode: boolean
 	isKioskMode: boolean // hides window chrome and turns on live mode permanently, with even less user input
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
+	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
 }
 
 // Area of Interest: where to load point clouds
@@ -250,6 +252,7 @@ export class Annotator {
 			isLiveMode: false,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
 			lastPointCloudLoadedErrorModalMs: 0,
+			lastCameraCenterPoint: null,
 		}
 		this.aoiState = {
 			enabled: !!config.get('annotator.area_of_interest.enable'),
@@ -653,10 +656,12 @@ export class Annotator {
 	 */
 	private focusOnPointCloud(): void {
 		const center = this.tileManager.centerPoint()
-		if (center)
+		if (center) {
 			this.orbitControls.target.set(center.x, center.y, center.z)
-		else
+			this.displayCameraInfo()
+		} else {
 			log.warn('point cloud has not been initialized')
+		}
 	}
 
 	/**
@@ -962,7 +967,7 @@ export class Annotator {
 	}
 
 	// Find the point in the scene that is most interesting to a human user.
-	private currentAoi(): THREE.Vector3 | null {
+	private currentPointOfInterest(): THREE.Vector3 | null {
 		if (this.uiState.isLiveMode) {
 			// In live mode track the car, regardless of what the camera does.
 			return this.carModel.position
@@ -985,10 +990,10 @@ export class Annotator {
 
 	// Set the area of interest for loading point clouds.
 	private updatePointCloudAoi(): void {
-		const currentAoi = this.currentAoi()
-		if (currentAoi) {
+		const currentPoint = this.currentPointOfInterest()
+		if (currentPoint) {
 			const oldPoint = this.aoiState.focalPoint
-			const newPoint = currentAoi.clone().round()
+			const newPoint = currentPoint.clone().round()
 			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
 			if (!samePoint) {
 				this.aoiState.focalPoint = newPoint
@@ -1048,6 +1053,24 @@ export class Annotator {
 				false
 			)
 				.catch(err => {log.warn(err.message)})
+		}
+	}
+
+	// Display some info in the UI about where the camera is pointed.
+	private displayCameraInfo = (): void => {
+		if (this.uiState.isLiveMode) return
+		if (!this.statusWindow.isEnabled()) return
+
+		const currentPoint = this.currentPointOfInterest()
+		if (currentPoint) {
+			const oldPoint = this.uiState.lastCameraCenterPoint
+			const newPoint = currentPoint.clone().round()
+			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
+			if (!samePoint) {
+				this.uiState.lastCameraCenterPoint = newPoint
+				const utm = this.tileManager.threeJsToUtm(newPoint)
+				this.updateCurrentLocationStatusMessage(utm)
+			}
 		}
 	}
 
@@ -1630,15 +1653,14 @@ export class Annotator {
 		// Render the scene again if we translated, rotated or zoomed.
 		this.orbitControls.addEventListener('change', this.render)
 
+		// Update some UI if the camera panned -- that is it moved in relation to the model.
+		this.orbitControls.addEventListener('pan', this.displayCameraInfo)
+
 		// If we are controlling the scene don't hide any transform object.
-		this.orbitControls.addEventListener('start', () => {
-			this.cancelHideTransform()
-		})
+		this.orbitControls.addEventListener('start', this.cancelHideTransform)
 
 		// After the scene transformation is over start the timer to hide the transform object.
-		this.orbitControls.addEventListener('end', () => {
-			this.delayHideTransform()
-		})
+		this.orbitControls.addEventListener('end', this.delayHideTransform)
 	}
 
 	/**
@@ -1652,24 +1674,16 @@ export class Annotator {
 		// Add listeners.
 
 		// If we are interacting with the transform object don't hide it.
-		this.transformControls.addEventListener('change', () => {
-			this.cancelHideTransform()
-		})
+		this.transformControls.addEventListener('change', this.cancelHideTransform)
 
 		// If we just clicked on a transform object don't hide it.
-		this.transformControls.addEventListener('mouseDown', () => {
-			this.cancelHideTransform()
-		})
+		this.transformControls.addEventListener('mouseDown', this.cancelHideTransform)
 
 		// If we are done interacting with a transform object start hiding process.
-		this.transformControls.addEventListener('mouseUp', () => {
-			this.delayHideTransform()
-		})
+		this.transformControls.addEventListener('mouseUp', this.delayHideTransform)
 
 		// If the object attached to the transform object has changed, do something.
-		this.transformControls.addEventListener('objectChange', () => {
-			this.annotationManager.updateActiveAnnotationMesh()
-		})
+		this.transformControls.addEventListener('objectChange', this.annotationManager.updateActiveAnnotationMesh)
 	}
 
 	/**
@@ -2664,7 +2678,6 @@ export class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = true
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
-		this.statusWindow.setMessage(statusKey.carPosition, '')
 		this.statusWindow.setMessage(statusKey.flyThrough, '')
 		this.updateAoiHeading(null)
 
@@ -2714,15 +2727,18 @@ export class Annotator {
 		rotationThreeJs.normalize()
 
 		this.updateAoiHeading(rotationThreeJs)
-		this.updateCarStatus(standardPosition)
+		this.updateCurrentLocationStatusMessage(standardPosition)
 		this.updateCarPose(positionThreeJs, rotationThreeJs)
 		this.updateCameraPose()
 
 	}
 
-	private updateCarStatus(positionUtm: THREE.Vector3): void {
-		const message = sprintf('UTM %s: %.1fE %.1fN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
-		this.statusWindow.setMessage(statusKey.carPosition, message)
+	private updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
+		const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
+		const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
+		this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
+		this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
 	}
 
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
