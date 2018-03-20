@@ -67,7 +67,8 @@ function noop(): void {
 const cameraCenter = new THREE.Vector2(0, 0)
 
 const statusKey = {
-	currentLocation: 'currentLocation',
+	currentLocationLla: 'currentLocationLla',
+	currentLocationUtm: 'currentLocationUtm',
 	flyThrough: 'flyThrough',
 	tileServer: 'tileServer',
 	locationServer: 'locationServer',
@@ -2733,8 +2734,11 @@ export class Annotator {
 	}
 
 	private updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
-		const message = sprintf('UTM %s: %dE %dN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
-		this.statusWindow.setMessage(statusKey.currentLocation, message)
+		const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
+		const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
+		this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
+		this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
 	}
 
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
