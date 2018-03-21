@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+
 const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file";
@@ -26,7 +27,7 @@ import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
 import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
-import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
+import {Annotation, AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane} from 'annotator-entry-ui/annotations/Lane'
 import {Connection} from "./annotations/Connection"
 import {TrafficSign} from "./annotations/TrafficSign"
@@ -135,6 +136,8 @@ interface LiveModeSettings {
 
 interface UiState {
 	modelVisibility: ModelVisibility
+	lockBoundaries: boolean
+	lockLanes: boolean
 	isSuperTilesVisible: boolean
 	isPointCloudVisible: boolean
 	isAnnotationsVisible: boolean
@@ -241,6 +244,8 @@ export class Annotator {
 		this.settings.fpsRendering = this.settings.defaultFpsRendering
 		this.uiState = {
 			modelVisibility: ModelVisibility.ALL_VISIBLE,
+			lockBoundaries: false,
+			lockLanes: false,
 			isSuperTilesVisible: true,
 			isPointCloudVisible: true,
 			isAnnotationsVisible: true,
@@ -431,6 +436,14 @@ export class Annotator {
 			this.gui = new datModule.GUI()
 			this.gui.addColor(this.settings, 'background').onChange((value: any) => {
 				this.renderer.setClearColor(new THREE.Color(value))
+			})
+			this.gui.add(this.uiState, 'lockBoundaries').onChange((value: boolean) => {
+				if (value && this.annotationManager.activeAnnotation instanceof Boundary)
+					this.annotationManager.unsetActiveAnnotation()
+			})
+			this.gui.add(this.uiState, 'lockLanes').onChange((value: boolean) => {
+				if (value && this.annotationManager.activeAnnotation instanceof Lane)
+					this.annotationManager.unsetActiveAnnotation()
 			})
 			this.gui.domElement.className = 'threeJs_gui'
 		}
@@ -1248,6 +1261,14 @@ export class Annotator {
 		}
 	}
 
+	private isAnnotationLocked(annotation: Annotation): boolean {
+		if (annotation instanceof Lane && this.uiState.lockLanes)
+			return true
+		if (annotation instanceof Boundary && this.uiState.lockBoundaries)
+			return true
+		return false
+	}
+
 	/**
 	 * Check if we clicked an annotation. If so, make it active for editing
 	 */
@@ -1267,6 +1288,9 @@ export class Annotator {
 
 			// We clicked an inactive annotation, make it active
 			if (inactive) {
+				if (this.isAnnotationLocked(inactive))
+					return
+
 				this.cleanTransformControls()
 				this.annotationManager.changeActiveAnnotation(inactive)
 				if (inactive instanceof Lane)
