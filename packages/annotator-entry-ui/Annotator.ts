@@ -434,8 +434,14 @@ export class Annotator {
 			this.gui.addColor(this.settings, 'background').onChange((value: any) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
-			this.gui.add(this.uiState, 'lockBoundaries')
-			this.gui.add(this.uiState, 'lockLanes')
+			this.gui.add(this.uiState, 'lockBoundaries').onChange((value: boolean) => {
+				if (value && this.annotationManager.activeAnnotation instanceof Boundary)
+					this.annotationManager.unsetActiveAnnotation()
+			})
+			this.gui.add(this.uiState, 'lockLanes').onChange((value: boolean) => {
+				if (value && this.annotationManager.activeAnnotation instanceof Lane)
+					this.annotationManager.unsetActiveAnnotation()
+			})
 			this.gui.domElement.className = 'threeJs_gui'
 		}
 
