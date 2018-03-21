@@ -94,7 +94,7 @@ export class Boundary extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length > 2
+		return this.markers.length > 1
 	}
 
 	addMarker(position: THREE.Vector3): boolean {
