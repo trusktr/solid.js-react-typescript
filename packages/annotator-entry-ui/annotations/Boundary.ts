@@ -75,7 +75,7 @@ export class Boundary extends Annotation {
 		super(obj)
 		if (obj) {
 			this.type = isNullOrUndefined(BoundaryType[obj.boundaryType]) ? BoundaryType.UNKNOWN : BoundaryType[obj.boundaryType]
-			this.color = isNullOrUndefined(BoundaryType[obj.boundaryColor]) ? BoundaryColor.UNKNOWN : BoundaryType[obj.boundaryColor]
+			this.color = isNullOrUndefined(BoundaryColor[obj.boundaryColor]) ? BoundaryColor.UNKNOWN : BoundaryColor[obj.boundaryColor]
 		} else {
 			this.type = BoundaryType.UNKNOWN
 			this.color = BoundaryColor.UNKNOWN
@@ -94,7 +94,7 @@ export class Boundary extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length > 2
+		return this.markers.length > 1
 	}
 
 	addMarker(position: THREE.Vector3): boolean {
