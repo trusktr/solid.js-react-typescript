@@ -3,7 +3,6 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-
 const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file";
@@ -11,6 +10,7 @@ const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
 import LocalStorage from "./state/LocalStorage"
+import {GUI as DatGui} from 'dat.gui'
 import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
 import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
 import {
@@ -50,7 +50,6 @@ declare global {
 }
 
 const statsModule = require("stats.js")
-const datModule = require("dat.gui/build/dat.gui")
 const {dialog} = require('electron').remote
 const zmq = require('zmq')
 const OBJLoader = require('three-obj-loader')
@@ -430,9 +429,8 @@ export class Annotator {
 
 		// Add panel to change the settings
 		if (config.get('startup.show_color_picker')) {
-			this.gui = new datModule.GUI()
-
-			this.gui.addColor(this.settings, 'background').name('Background color').onChange((value: any) => {
+			this.gui = new DatGui()
+			this.gui.addColor(this.settings, 'background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
 
