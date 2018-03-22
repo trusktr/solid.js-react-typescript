@@ -75,14 +75,14 @@ export enum LaneEntryExitType {
 }
 
 export class LaneNeighborsIds {
-	right: AnnotationUuid | null
-	left: AnnotationUuid | null
+	right: Array<AnnotationUuid>
+	left: Array<AnnotationUuid>
 	front: Array<AnnotationUuid>
 	back: Array<AnnotationUuid>
 
 	constructor() {
-		this.right = null
-		this.left = null
+		this.right = []
+		this.left = []
 		this.front = []
 		this.back = []
 	}
@@ -320,6 +320,39 @@ export class Lane extends Annotation {
 	}
 
 	/**
+	 * Join this lane with given lane by copying it's content
+	 */
+	join(lane: Lane): boolean {
+
+		if (!lane) {
+			log.error('Can not join an empty lane.')
+			return false
+		}
+
+		// add markers
+		lane.markers.forEach(marker =>	this.markers.push(marker))
+		lane.markers.forEach(marker => this.renderingObject.add(marker))
+
+		// add neighbors
+		this.neighborsIds.front.concat(lane.neighborsIds.front)
+		this.neighborsIds.back.concat(lane.neighborsIds.back)
+		this.neighborsIds.left.concat(lane.neighborsIds.left)
+		this.neighborsIds.right.concat(lane.neighborsIds.right)
+
+		// solve properties conflicts
+		this.exitType = lane.exitType
+		if (!this.leftLineType) this.leftLineType = lane.leftLineType
+		if (!this.leftLineColor) this.leftLineColor = lane.leftLineColor
+		if (!this.rightLineType) this.rightLineType = lane.rightLineType
+		if (!this.rightLineColor) this.rightLineColor = lane.rightLineColor
+
+		// update rendering
+		this.updateVisualization()
+
+		return true
+	}
+
+	/**
 	 * Make this annotation active. This changes the displayed material.
 	 */
 	makeActive(): void {
@@ -431,10 +464,10 @@ export class Lane extends Annotation {
 				this.neighborsIds.back.push(neighborId)
 				break
 			case NeighborLocation.LEFT:
-				this.neighborsIds.left = neighborId
+				this.neighborsIds.left.push(neighborId)
 				break
 			case NeighborLocation.RIGHT:
-				this.neighborsIds.right = neighborId
+				this.neighborsIds.right.push(neighborId)
 				break
 			default:
 				log.warn('Neighbor location not recognized')
@@ -445,16 +478,21 @@ export class Lane extends Annotation {
 	 * Delete the neighbor if it exists on either side.
 	 */
 	deleteLeftOrRightNeighbor(neighborId: AnnotationUuid): boolean {
-		if (this.neighborsIds.right === neighborId) {
-			this.neighborsIds.right = null
+
+		let index = this.neighborsIds.right.indexOf(neighborId, 0)
+		if (index > -1) {
+			this.neighborsIds.right.splice(index, 1)
 			return true
-		} else if (this.neighborsIds.left === neighborId) {
-			this.neighborsIds.left = null
-			return true
-		} else {
-			log.error("Non-reciprocal neighbor relation detected. This should never happen.")
-			return false
 		}
+
+		index = this.neighborsIds.left.indexOf(neighborId, 0)
+		if (index > -1) {
+			this.neighborsIds.left.splice(index, 1)
+			return true
+		}
+
+		log.error("Non-reciprocal neighbor relation detected. This should never happen.")
+		return false
 	}
 
 	deleteFrontNeighbor(neighborId: AnnotationUuid): boolean {
