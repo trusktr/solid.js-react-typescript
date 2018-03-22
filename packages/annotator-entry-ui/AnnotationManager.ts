@@ -454,21 +454,17 @@ export class AnnotationManager extends UtmInterface {
 
 	/**
 	 * Add marker to the active annotation at the given position and add it
-	 * to the scene. After the first two markers of a new annotation this function
-	 * will add two markers subsequently. The second of those markers is computed
-	 * as a linear combination of the first marker (given position) and the
-	 * previous two markers.
+	 * to the scene.
 	 */
-	addLaneMarker(position: Vector3): boolean {
+	addMarkerToActiveAnnotation(position: THREE.Vector3): boolean {
 		if (this.isLiveMode) return false
 
-		const activeLane = this.getActiveLaneAnnotation()
-		if (!activeLane) {
-			log.info("No active lane annotation. Can't add marker")
+		if (!this.activeAnnotation) {
+			log.info("No active annotation. Can't add marker")
 			return false
 		}
 
-		if (activeLane.addMarker(position)) {
+		if (this.activeAnnotation.addMarker(position)) {
 			this.metadataState.dirty()
 			return true
 		} else {
@@ -476,40 +472,9 @@ export class AnnotationManager extends UtmInterface {
 		}
 	}
 
-	addBoundaryMarker(position: Vector3): boolean {
-		if (this.isLiveMode) return false
-
-		const activeBoundary = this.getActiveBoundaryAnnotation()
-		if (!activeBoundary) {
-			log.info("No active boundary annotation. Can't add marker")
-			return false
-		}
-
-		if (activeBoundary.addMarker(position)) {
-			this.metadataState.dirty()
-			return true
-		} else {
-			return false
-		}
-	}
-
-	addTrafficSignMarker(position: THREE.Vector3): boolean {
-		if (this.isLiveMode) return false
-
-		const activeSign = this.getActiveTrafficSignAnnotation()
-		if (!activeSign) {
-			log.info("No active traffic sign annotation. Can't add marker")
-			return false
-		}
-
-		if (activeSign.addMarker(position)) {
-			this.metadataState.dirty()
-			return true
-		} else {
-			return false
-		}
-	}
-
+	/**
+	 * Close the loop of markers or do any other clean-up to designate an annotation "complete".
+	 */
 	completeActiveAnnotation(): boolean {
 		if (this.isLiveMode) return false
 

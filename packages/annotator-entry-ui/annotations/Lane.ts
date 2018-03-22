@@ -153,6 +153,7 @@ export class Lane extends Annotation {
 	type: LaneType
 	minimumMarkerCount: number
 	markersFormRing: boolean
+	allowNewMarkers: boolean
 	snapToGround: boolean
 	private renderingProperties: LaneRenderingProperties
 	waypoints: Array<THREE.Vector3>
@@ -196,6 +197,7 @@ export class Lane extends Annotation {
 
 		this.minimumMarkerCount = 4
 		this.markersFormRing = false
+		this.allowNewMarkers = true
 		this.snapToGround = true
 		const color = Math.random() * 0xffffff
 		this.renderingProperties = new LaneRenderingProperties(color)

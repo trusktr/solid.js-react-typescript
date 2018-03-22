@@ -61,6 +61,7 @@ export class Connection extends Annotation {
 	type: ConnectionType
 	minimumMarkerCount: number
 	markersFormRing: boolean
+	allowNewMarkers: boolean
 	snapToGround: boolean
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
@@ -82,6 +83,7 @@ export class Connection extends Annotation {
 
 		this.minimumMarkerCount = 4
 		this.markersFormRing = false
+		this.allowNewMarkers = false
 		this.snapToGround = true
 		this.directionMarkers = []
 		this.waypoints = []

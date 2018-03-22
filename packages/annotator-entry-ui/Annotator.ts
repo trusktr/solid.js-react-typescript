@@ -1169,6 +1169,7 @@ export class Annotator {
 	private addAnnotationMarker = (event: MouseEvent): void => {
 		if (!this.uiState.isAddMarkerKeyPressed) return
 		if (!this.annotationManager.activeAnnotation) return
+		if (!this.annotationManager.activeAnnotation.allowNewMarkers) return
 
 		const mouse = this.getMouseCoordinates(event)
 
@@ -1192,15 +1193,8 @@ export class Annotator {
 		else
 			intersections = this.intersectWithPointCloud(this.raycasterPlane)
 
-		if (intersections.length) {
-			const firstPoint = intersections[0].point
-			if (this.annotationManager.getActiveLaneAnnotation())
-				this.annotationManager.addLaneMarker(firstPoint)
-			else if (this.annotationManager.getActiveBoundaryAnnotation())
-				this.annotationManager.addBoundaryMarker(firstPoint)
-			else if (this.annotationManager.getActiveTrafficSignAnnotation())
-				this.annotationManager.addTrafficSignMarker(firstPoint)
-		}
+		if (intersections.length)
+			this.annotationManager.addMarkerToActiveAnnotation(intersections[0].point)
 	}
 
 	/**

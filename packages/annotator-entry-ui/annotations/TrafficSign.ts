@@ -41,6 +41,7 @@ export class TrafficSign extends Annotation {
 	type: TrafficSignType
 	minimumMarkerCount: number
 	markersFormRing: boolean
+	allowNewMarkers: boolean
 	snapToGround: boolean
 	trafficSignContour: THREE.Line
 	mesh: THREE.Mesh
@@ -56,6 +57,7 @@ export class TrafficSign extends Annotation {
 
 		this.minimumMarkerCount = 3
 		this.markersFormRing = true
+		this.allowNewMarkers = true
 		this.snapToGround = false
 		this.isComplete = false
 		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficSignRenderingProperties.contourMaterial)
