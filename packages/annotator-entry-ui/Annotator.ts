@@ -368,6 +368,7 @@ export class Annotator {
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
 		const planeMaterial = new THREE.ShadowMaterial()
+		planeMaterial.side = THREE.DoubleSide // enable raycaster intersections from both sides
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
 		this.scene.add(this.plane)
 
