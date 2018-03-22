@@ -464,7 +464,7 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
-		if (this.activeAnnotation.addMarker(position)) {
+		if (this.activeAnnotation.addMarker(position, true)) {
 			this.metadataState.dirty()
 			return true
 		} else {
@@ -1382,14 +1382,14 @@ export class AnnotationManager extends UtmInterface {
 		const splineRight = new THREE.CatmullRomCurve3(pointsRight)
 
 		// Add path to the connection
-		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.4))
-		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.6))
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.4))
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.6))
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.4))
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6))
-		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4))
-		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6))
+		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.4), false)
+		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.6), false)
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.4), false)
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.6), false)
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.4), false)
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6), false)
+		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4), false)
+		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6), false)
 
 		// Add annotation to the scene
 		this.scene.add(connection.renderingObject)
@@ -1451,11 +1451,11 @@ export class AnnotationManager extends UtmInterface {
 		const rightPoints = curveRight.getPoints(numPoints)
 
 		for (let i = 0; i < numPoints; i++) {
-			connection.addMarker(getMarkerInBetween(rightPoints[i], leftPoints[i], 0.4))
-			connection.addMarker(getMarkerInBetween(rightPoints[i], leftPoints[i], 0.6))
+			connection.addMarker(getMarkerInBetween(rightPoints[i], leftPoints[i], 0.4), false)
+			connection.addMarker(getMarkerInBetween(rightPoints[i], leftPoints[i], 0.6), false)
 		}
-		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.4))
-		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.6))
+		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.4), false)
+		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.6), false)
 
 		// Add annotation to the scene
 		this.scene.add(connection.renderingObject)

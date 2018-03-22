@@ -62,7 +62,7 @@ export abstract class Annotation {
 
 	abstract toJSON(pointConverter?: (p: THREE.Vector3) => Object): AnnotationJsonOutputInterface
 	abstract isValid(): boolean
-	abstract addMarker(position: THREE.Vector3): boolean
+	abstract addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean
 	abstract deleteLastMarker(): boolean
 	abstract complete(): boolean        // Close the loop of markers or do any other clean-up to designate an annotation "complete"
 	abstract makeActive(): void

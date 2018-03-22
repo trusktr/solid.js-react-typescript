@@ -92,7 +92,7 @@ export class Connection extends Annotation {
 
 		if (obj) {
 			if (obj.markers.length >= this.minimumMarkerCount) {
-				obj.markers.forEach(marker => this.addMarker(marker))
+				obj.markers.forEach(marker => this.addMarker(marker, false))
 				if (!this.isValid())
 					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
 				this.updateVisualization()
@@ -110,13 +110,14 @@ export class Connection extends Annotation {
 		return this.markers.length >= this.minimumMarkerCount
 	}
 
-	addMarker(position: THREE.Vector3): boolean {
+	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry,
 			                          ConnectionRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
 
+		if (updateVisualization) this.updateVisualization()
 		return true
 	}
 

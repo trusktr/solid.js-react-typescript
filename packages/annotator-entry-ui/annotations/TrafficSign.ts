@@ -68,7 +68,7 @@ export class TrafficSign extends Annotation {
 
 		if (obj) {
 			if (obj.markers.length >= this.minimumMarkerCount) {
-				obj.markers.forEach(marker => this.addMarker(marker))
+				obj.markers.forEach(marker => this.addMarker(marker, false))
 				this.isComplete = true
 				if (!this.isValid())
 					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
@@ -82,7 +82,7 @@ export class TrafficSign extends Annotation {
 		return this.markers.length >= this.minimumMarkerCount
 	}
 
-	addMarker(position: THREE.Vector3): boolean {
+	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 		// Don't allow addition of markers if the isComplete flag is active
 		if (this.isComplete) {
 			log.warn("Last marker was already added. Can't add more markers. Delete a marker to allow more marker additions.")
@@ -94,8 +94,7 @@ export class TrafficSign extends Annotation {
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
 
-		this.updateVisualization()
-
+		if (updateVisualization) this.updateVisualization()
 		return true
 	}
 

@@ -233,6 +233,7 @@ export class Lane extends Annotation {
 
 	/**
 	 * Add a single marker to the annotation and the scene.
+	 * Assume that the caller will execute this.updateVisualization() as appropriate after this method returns.
 	 */
 	addRawMarker(position: THREE.Vector3): void {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, this.renderingProperties.markerMaterial)
@@ -249,7 +250,7 @@ export class Lane extends Annotation {
 	 *      - Third and onwards: Two markers are added using the passed position and the
 	 *                           position of the last two markers.
 	 */
-	addMarker(position: THREE.Vector3): boolean {
+	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 
 		if (this.markers.length < 2) {
 			// Add first 2 points in any order
@@ -262,7 +263,7 @@ export class Lane extends Annotation {
 			this.addRawMarker(position)
 		}
 
-		this.updateVisualization()
+		if (updateVisualization) this.updateVisualization()
 		return true
 	}
 
