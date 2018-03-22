@@ -431,11 +431,11 @@ export class Annotator {
 		// Add panel to change the settings
 		if (config.get('startup.show_color_picker')) {
 			this.gui = new datModule.GUI()
-	/*
+
 			this.gui.addColor(this.settings, 'background').name('Background color').onChange((value: any) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
-*/
+
 			const folderLock = this.gui.addFolder('Lock')
 			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
 				if (value && this.annotationManager.activeAnnotation instanceof Boundary)
@@ -446,8 +446,9 @@ export class Annotator {
 					this.annotationManager.unsetActiveAnnotation()
 			})
 			folderLock.open()
+
 			const folderConnection = this.gui.addFolder('Connection params')
-			folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).name('Bezier factor')
+			folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
 			folderConnection.open()
 			this.gui.domElement.className = 'threeJs_gui'
 		}
