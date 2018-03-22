@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Install script for running on the HDK host.  Installs the payload delivered
+# via container
+
 # Exit if there is an error
 set -e
 

@@ -3,6 +3,9 @@
 # Builds the annotator from the command line.
 # MUST be run from the base directory (NOT from build-scripts)
 
+# Exit if there is an error
+set -e
+
 echo "**** Installing dependencies"
 npm install
 echo "**** Installing dependencies complete"

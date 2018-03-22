@@ -5,6 +5,7 @@ pipeline {
 			steps {
 				sh '''./build-scripts/get-ecr-auth.sh'''
 				sh '''./build-scripts/build.sh'''
+				sh '''./build-scripts/hdk-push.sh'''
 			}
 		}
 	}
