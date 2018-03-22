@@ -39,6 +39,7 @@ export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInte
 
 export class TrafficSign extends Annotation {
 	type: TrafficSignType
+	minimumMarkerCount: number
 	trafficSignContour: THREE.Line
 	mesh: THREE.Mesh
 	isComplete: boolean
@@ -50,6 +51,8 @@ export class TrafficSign extends Annotation {
 		} else {
 			this.type = TrafficSignType.UNKNOWN
 		}
+
+		this.minimumMarkerCount = 3
 		this.isComplete = false
 		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficSignRenderingProperties.contourMaterial)
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficSignRenderingProperties.meshMaterial)
@@ -57,18 +60,20 @@ export class TrafficSign extends Annotation {
 		this.renderingObject.add(this.trafficSignContour)
 		this.mesh.visible = false
 
-		if (obj && obj.markers.length > 0) {
-			obj.markers.forEach( (marker) => {
-				this.addMarker(marker, false)
-			})
-			this.isComplete = true
-			this.updateVisualization()
-			this.makeInactive()
+		if (obj) {
+			if (obj.markers.length >= this.minimumMarkerCount) {
+				obj.markers.forEach(marker => this.addMarker(marker, false))
+				this.isComplete = true
+				if (!this.isValid())
+					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
+				this.updateVisualization()
+				this.makeInactive()
+			}
 		}
 	}
 
 	isValid(): boolean {
-		return this.markers.length > 2
+		return this.markers.length >= this.minimumMarkerCount
 	}
 
 	addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean {

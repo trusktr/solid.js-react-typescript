@@ -67,6 +67,7 @@ export interface BoundaryJsonOutputInterface extends AnnotationJsonOutputInterfa
 
 export class Boundary extends Annotation {
 	type: BoundaryType
+	minimumMarkerCount: number
 	color: BoundaryColor
 	boundaryContour: THREE.Line
 	mesh: THREE.Mesh
@@ -80,21 +81,25 @@ export class Boundary extends Annotation {
 			this.type = BoundaryType.UNKNOWN
 			this.color = BoundaryColor.UNKNOWN
 		}
+
+		this.minimumMarkerCount = 2
 		this.boundaryContour = new THREE.Line(new THREE.Geometry(), BoundaryRenderingProperties.activeMaterial)
 		this.mesh = new THREE.Mesh()
 		this.renderingObject.add(this.boundaryContour)
 
-		if (obj && obj.markers.length > 0) {
-			obj.markers.forEach( (marker) => {
-				this.addMarker(marker)
-			})
-			this.updateVisualization()
-			this.makeInactive()
+		if (obj) {
+			if (obj.markers.length >= this.minimumMarkerCount) {
+				obj.markers.forEach(marker => this.addMarker(marker))
+				if (!this.isValid())
+					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
+				this.updateVisualization()
+				this.makeInactive()
+			}
 		}
 	}
 
 	isValid(): boolean {
-		return this.markers.length > 1
+		return this.markers.length >= this.minimumMarkerCount
 	}
 
 	addMarker(position: THREE.Vector3): boolean {
@@ -153,7 +158,6 @@ export class Boundary extends Annotation {
 		this.makeInactive()
 	}
 
-
 	updateVisualization(): void {
 		// Check if there are at least two markers to draw a line
 		if (this.markers.length < 2) {
@@ -194,6 +198,5 @@ export class Boundary extends Annotation {
 
 		return data
 	}
-
 
 }

@@ -151,6 +151,7 @@ export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface
 export class Lane extends Annotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	type: LaneType
+	minimumMarkerCount: number
 	private renderingProperties: LaneRenderingProperties
 	waypoints: Array<THREE.Vector3>
 	denseWaypoints: Array<THREE.Vector3>
@@ -191,6 +192,7 @@ export class Lane extends Annotation {
 			this.exitType = LaneEntryExitType.UNKNOWN
 		}
 
+		this.minimumMarkerCount = 4
 		const color = Math.random() * 0xffffff
 		this.renderingProperties = new LaneRenderingProperties(color)
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
@@ -202,12 +204,14 @@ export class Lane extends Annotation {
 		this.denseWaypoints = []
 		this.inTrajectory = false
 
-		if (obj && obj.markers.length > 0) {
-			obj.markers.forEach((position) => {
-				this.addRawMarker(new THREE.Vector3(position.x, position.y, position.z))
-			})
-			this.updateVisualization()
-			this.makeInactive()
+		if (obj) {
+			if (obj.markers.length >= this.minimumMarkerCount) {
+				obj.markers.forEach(position => this.addRawMarker(new THREE.Vector3(position.x, position.y, position.z)))
+				if (!this.isValid())
+					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
+				this.updateVisualization()
+				this.makeInactive()
+			}
 		}
 
 		// Group display objects so we can easily add them to the screen
@@ -218,7 +222,7 @@ export class Lane extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length > 3
+		return this.markers.length >= this.minimumMarkerCount
 	}
 
 	/**

@@ -59,6 +59,7 @@ export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInter
 
 export class Connection extends Annotation {
 	type: ConnectionType
+	minimumMarkerCount: number
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
 	directionMarkers: Array<THREE.Mesh>
@@ -76,17 +77,21 @@ export class Connection extends Annotation {
 			this.startLaneUuid = ""
 			this.endLaneUuid = ""
 		}
+
+		this.minimumMarkerCount = 4
 		this.directionMarkers = []
 		this.waypoints = []
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), ConnectionRenderingProperties.activeMaterial)
 		this.renderingObject.add(this.mesh)
 
-		if (obj && obj.markers.length > 0) {
-			obj.markers.forEach( (marker) => {
-				this.addMarker(marker)
-			})
-			this.updateVisualization()
-			this.makeInactive()
+		if (obj) {
+			if (obj.markers.length >= this.minimumMarkerCount) {
+				obj.markers.forEach(marker => this.addMarker(marker))
+				if (!this.isValid())
+					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
+				this.updateVisualization()
+				this.makeInactive()
+			}
 		}
 	}
 
@@ -96,7 +101,7 @@ export class Connection extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length > 3
+		return this.markers.length >= this.minimumMarkerCount
 	}
 
 	addMarker(position: THREE.Vector3): boolean {

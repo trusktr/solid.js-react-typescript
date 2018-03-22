@@ -46,6 +46,7 @@ export abstract class Annotation {
 	id: AnnotationId	 				// A small integer, for use in the UI during one session
 	uuid: AnnotationUuid 				// A UUID, for use across distributed applications
 	markers: Array<THREE.Mesh> 			// Control point used to edit the annotation
+	abstract minimumMarkerCount: number // Minimum to form a valid annotation
 	abstract mesh: THREE.Mesh           // Represents the physical extents of the annotation
 	renderingObject: THREE.Object3D		// Object that is added to the scene for display
 
