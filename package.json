@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@types/chrome": "0.0.42",
+    "@types/dat.gui": "0.6.0",
     "@types/jest": "19.2.2",
     "@types/jquery": "2.0.33",
     "@types/mkdirp": "0.5.2",
@@ -88,7 +89,7 @@
     "@mapperai/mapper-models": "1.9.8",
     "async-file": "2.0.2",
     "bluebird": "3.4.0",
-    "dat.gui": "0.6.1",
+    "dat.gui": "0.7.1",
     "google-protobuf": "3.5.0",
     "grpc": "1.7.3",
     "immutable": "3.8.2",
