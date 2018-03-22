@@ -145,8 +145,6 @@ interface UiState {
 	isShiftKeyPressed: boolean
 	isAddMarkerKeyPressed: boolean
 	isAddConnectionKeyPressed: boolean
-	isAddTrafficSignMarkerKeyPressed: boolean
-	isLastTrafficSignMarkerKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	numberKeyPressed: number | null
 	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
@@ -253,8 +251,6 @@ export class Annotator {
 			isShiftKeyPressed: false,
 			isAddMarkerKeyPressed: false,
 			isAddConnectionKeyPressed: false,
-			isAddTrafficSignMarkerKeyPressed: false,
-			isLastTrafficSignMarkerKeyPressed: false,
 			isMouseButtonPressed: false,
 			numberKeyPressed: null,
 			isLiveMode: false,
@@ -372,6 +368,7 @@ export class Annotator {
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
 		const planeMaterial = new THREE.ShadowMaterial()
+		planeMaterial.side = THREE.DoubleSide // enable raycaster intersections from both sides
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
 		this.scene.add(this.plane)
 
@@ -468,7 +465,6 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
-		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
 		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
@@ -1167,36 +1163,38 @@ export class Annotator {
 		)
 	}
 
-	private findRaycastIntersection(event: MouseEvent): THREE.Intersection[] {
-		const mouse = this.getMouseCoordinates(event)
-		this.raycasterPlane.setFromCamera(mouse, this.camera)
-		let intersections
-		if (this.settings.estimateGroundPlane || !this.tileManager.pointCount()) {
-			if (this.allGroundPlanes.length)
-				intersections = this.raycasterPlane.intersectObjects(this.allGroundPlanes)
-			else
-				intersections = this.raycasterPlane.intersectObject(this.plane)
-		} else {
-			intersections = this.raycasterPlane.intersectObjects(this.tileManager.getPointClouds())
-		}
-		return intersections
-	}
-
 	/**
 	 * If the mouse was clicked while pressing the "a" key, drop an annotation marker.
 	 */
 	private addAnnotationMarker = (event: MouseEvent): void => {
 		if (!this.uiState.isAddMarkerKeyPressed) return
 		if (!this.annotationManager.activeAnnotation) return
+		if (!this.annotationManager.activeAnnotation.allowNewMarkers) return
 
-		const intersections = this.findRaycastIntersection(event)
-		if (intersections.length) {
-			const firstPoint = intersections[0].point
-			if (this.annotationManager.getActiveLaneAnnotation())
-				this.annotationManager.addLaneMarker(firstPoint)
-			else if (this.annotationManager.getActiveBoundaryAnnotation())
-				this.annotationManager.addBoundaryMarker(firstPoint)
+		const mouse = this.getMouseCoordinates(event)
+
+		// If the click intersects the first marker of a ring-shaped annotation, close the annotation and return.
+		if (this.annotationManager.activeAnnotation.markersFormRing) {
+			this.raycasterMarker.setFromCamera(mouse, this.camera)
+			const markers = this.annotationManager.activeMarkers()
+			if (markers.length && this.raycasterMarker.intersectObject(markers[0]).length) {
+				if (this.annotationManager.completeActiveAnnotation())
+					this.annotationManager.unsetActiveAnnotation()
+				return
+			}
 		}
+
+		this.raycasterPlane.setFromCamera(mouse, this.camera)
+		let intersections: THREE.Intersection[]
+
+		// Find a 3D point where to place the new marker.
+		if (this.annotationManager.activeAnnotation.snapToGround)
+			intersections = this.intersectWithGround(this.raycasterPlane)
+		else
+			intersections = this.intersectWithPointCloud(this.raycasterPlane)
+
+		if (intersections.length)
+			this.annotationManager.addMarkerToActiveAnnotation(intersections[0].point)
 	}
 
 	/**
@@ -1244,21 +1242,6 @@ export class Annotator {
 		// update UI panel
 		if (activeLane.id === fromUID)
 			Annotator.deactivateFrontSideNeighbours()
-	}
-
-	// todo merge with addAnnotationMarker
-	private addTrafficSignAnnotationMarker = (event: MouseEvent): void => {
-		if (this.uiState.isAddTrafficSignMarkerKeyPressed === false && this.uiState.isLastTrafficSignMarkerKeyPressed === false) {
-			return
-		}
-
-		const mouse = this.getMouseCoordinates(event)
-		this.raycasterPlane.setFromCamera(mouse, this.camera)
-		let intersections = this.raycasterPlane.intersectObjects(this.tileManager.getPointClouds())
-
-		if (intersections.length > 0) {
-			this.annotationManager.addTrafficSignMarker(intersections[0].point, this.uiState.isLastTrafficSignMarkerKeyPressed)
-		}
 	}
 
 	private isAnnotationLocked(annotation: Annotation): boolean {
@@ -1362,6 +1345,23 @@ export class Annotator {
 			this.cleanTransformControls()
 		else if (this.annotationManager.activeAnnotation)
 			this.annotationManager.unsetActiveAnnotation()
+	}
+
+	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
+		let intersections: THREE.Intersection[]
+		if (this.settings.estimateGroundPlane || !this.tileManager.pointCount()) {
+			if (this.allGroundPlanes.length)
+				intersections = raycaster.intersectObjects(this.allGroundPlanes)
+			else
+				intersections = raycaster.intersectObject(this.plane)
+		} else {
+			intersections = raycaster.intersectObjects(this.tileManager.getPointClouds())
+		}
+		return intersections
+	}
+
+	private intersectWithPointCloud(raycaster: THREE.Raycaster): THREE.Intersection[] {
+		return raycaster.intersectObjects(this.tileManager.getPointClouds())
 	}
 
 	private checkForSuperTileSelection = (event: MouseEvent): void => {
@@ -1597,10 +1597,6 @@ export class Annotator {
 					this.toggleListen()
 					break
 				}
-				case 'q': {
-					this.uiState.isAddTrafficSignMarkerKeyPressed = true
-					break
-				}
 				case 'r': {
 					this.addRightSame()
 					break
@@ -1633,10 +1629,6 @@ export class Annotator {
 					this.toggleVoxelsAndPointClouds()
 					break
 				}
-				case 'w': {
-					this.uiState.isLastTrafficSignMarkerKeyPressed = true
-					break
-				}
 				default:
 				// nothing to see here
 			}
@@ -1648,8 +1640,6 @@ export class Annotator {
 		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
 		this.uiState.isAddConnectionKeyPressed = false
-		this.uiState.isAddTrafficSignMarkerKeyPressed = false
-		this.uiState.isLastTrafficSignMarkerKeyPressed = false
 		this.uiState.numberKeyPressed = null
 	}
 

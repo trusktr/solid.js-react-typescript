@@ -151,6 +151,10 @@ export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface
 export class Lane extends Annotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	type: LaneType
+	minimumMarkerCount: number
+	markersFormRing: boolean
+	allowNewMarkers: boolean
+	snapToGround: boolean
 	private renderingProperties: LaneRenderingProperties
 	waypoints: Array<THREE.Vector3>
 	denseWaypoints: Array<THREE.Vector3>
@@ -191,6 +195,10 @@ export class Lane extends Annotation {
 			this.exitType = LaneEntryExitType.UNKNOWN
 		}
 
+		this.minimumMarkerCount = 4
+		this.markersFormRing = false
+		this.allowNewMarkers = true
+		this.snapToGround = true
 		const color = Math.random() * 0xffffff
 		this.renderingProperties = new LaneRenderingProperties(color)
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
@@ -202,12 +210,14 @@ export class Lane extends Annotation {
 		this.denseWaypoints = []
 		this.inTrajectory = false
 
-		if (obj && obj.markers.length > 0) {
-			obj.markers.forEach((position) => {
-				this.addRawMarker(new THREE.Vector3(position.x, position.y, position.z))
-			})
-			this.updateVisualization()
-			this.makeInactive()
+		if (obj) {
+			if (obj.markers.length >= this.minimumMarkerCount) {
+				obj.markers.forEach(position => this.addRawMarker(new THREE.Vector3(position.x, position.y, position.z)))
+				if (!this.isValid())
+					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
+				this.updateVisualization()
+				this.makeInactive()
+			}
 		}
 
 		// Group display objects so we can easily add them to the screen
@@ -218,11 +228,12 @@ export class Lane extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length > 3
+		return this.markers.length >= this.minimumMarkerCount
 	}
 
 	/**
 	 * Add a single marker to the annotation and the scene.
+	 * Assume that the caller will execute this.updateVisualization() as appropriate after this method returns.
 	 */
 	addRawMarker(position: THREE.Vector3): void {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, this.renderingProperties.markerMaterial)
@@ -239,7 +250,7 @@ export class Lane extends Annotation {
 	 *      - Third and onwards: Two markers are added using the passed position and the
 	 *                           position of the last two markers.
 	 */
-	addMarker(position: THREE.Vector3): boolean {
+	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 
 		if (this.markers.length < 2) {
 			// Add first 2 points in any order
@@ -252,7 +263,7 @@ export class Lane extends Annotation {
 			this.addRawMarker(position)
 		}
 
-		this.updateVisualization()
+		if (updateVisualization) this.updateVisualization()
 		return true
 	}
 
@@ -272,6 +283,10 @@ export class Lane extends Annotation {
 
 		this.updateVisualization()
 
+		return true
+	}
+
+	complete(): boolean {
 		return true
 	}
 

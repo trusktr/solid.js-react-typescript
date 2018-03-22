@@ -46,8 +46,12 @@ export abstract class Annotation {
 	id: AnnotationId	 				// A small integer, for use in the UI during one session
 	uuid: AnnotationUuid 				// A UUID, for use across distributed applications
 	markers: Array<THREE.Mesh> 			// Control point used to edit the annotation
+	abstract minimumMarkerCount: number // Minimum to form a valid annotation
+	abstract markersFormRing: boolean   // The array of markers forms a closed loop when the annotation is complete
+	abstract allowNewMarkers: boolean   // Allow interactive addition of markers after the annotation is created
 	abstract mesh: THREE.Mesh           // Represents the physical extents of the annotation
 	renderingObject: THREE.Object3D		// Object that is added to the scene for display
+	abstract snapToGround: boolean      // Preference for where to place markers
 
 	constructor(inputInterface?: AnnotationJsonInputInterface) {
 		this.id = AnnotationCounter.nextId()
@@ -58,8 +62,9 @@ export abstract class Annotation {
 
 	abstract toJSON(pointConverter?: (p: THREE.Vector3) => Object): AnnotationJsonOutputInterface
 	abstract isValid(): boolean
-	abstract addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean
+	abstract addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean
 	abstract deleteLastMarker(): boolean
+	abstract complete(): boolean        // Close the loop of markers or do any other clean-up to designate an annotation "complete"
 	abstract makeActive(): void
 	abstract makeInactive(): void
 	abstract setLiveMode(): void
