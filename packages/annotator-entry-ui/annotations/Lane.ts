@@ -152,6 +152,8 @@ export class Lane extends Annotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	type: LaneType
 	minimumMarkerCount: number
+	markersFormRing: boolean
+	snapToGround: boolean
 	private renderingProperties: LaneRenderingProperties
 	waypoints: Array<THREE.Vector3>
 	denseWaypoints: Array<THREE.Vector3>
@@ -193,6 +195,8 @@ export class Lane extends Annotation {
 		}
 
 		this.minimumMarkerCount = 4
+		this.markersFormRing = false
+		this.snapToGround = true
 		const color = Math.random() * 0xffffff
 		this.renderingProperties = new LaneRenderingProperties(color)
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
@@ -276,6 +280,10 @@ export class Lane extends Annotation {
 
 		this.updateVisualization()
 
+		return true
+	}
+
+	complete(): boolean {
 		return true
 	}
 

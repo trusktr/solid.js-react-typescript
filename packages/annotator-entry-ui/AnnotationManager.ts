@@ -468,10 +468,12 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
-		activeLane.addMarker(position)
-
-		this.metadataState.dirty()
-		return true
+		if (activeLane.addMarker(position)) {
+			this.metadataState.dirty()
+			return true
+		} else {
+			return false
+		}
 	}
 
 	addBoundaryMarker(position: Vector3): boolean {
@@ -483,13 +485,15 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
-		activeBoundary.addMarker(position)
-
-		this.metadataState.dirty()
-		return true
+		if (activeBoundary.addMarker(position)) {
+			this.metadataState.dirty()
+			return true
+		} else {
+			return false
+		}
 	}
 
-	addTrafficSignMarker(position: THREE.Vector3, isLastMarker: boolean): boolean {
+	addTrafficSignMarker(position: THREE.Vector3): boolean {
 		if (this.isLiveMode) return false
 
 		const activeSign = this.getActiveTrafficSignAnnotation()
@@ -498,10 +502,28 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
-		activeSign.addMarker(position, isLastMarker)
+		if (activeSign.addMarker(position)) {
+			this.metadataState.dirty()
+			return true
+		} else {
+			return false
+		}
+	}
 
-		this.metadataState.dirty()
-		return true
+	completeActiveAnnotation(): boolean {
+		if (this.isLiveMode) return false
+
+		if (!this.activeAnnotation) {
+			log.info("No active annotation. Can't complete")
+			return false
+		}
+
+		if (this.activeAnnotation.complete()) {
+			this.metadataState.dirty()
+			return true
+		} else {
+			return false
+		}
 	}
 
 	/**

@@ -68,6 +68,8 @@ export interface BoundaryJsonOutputInterface extends AnnotationJsonOutputInterfa
 export class Boundary extends Annotation {
 	type: BoundaryType
 	minimumMarkerCount: number
+	markersFormRing: boolean
+	snapToGround: boolean
 	color: BoundaryColor
 	boundaryContour: THREE.Line
 	mesh: THREE.Mesh
@@ -83,6 +85,8 @@ export class Boundary extends Annotation {
 		}
 
 		this.minimumMarkerCount = 2
+		this.markersFormRing = false
+		this.snapToGround = true
 		this.boundaryContour = new THREE.Line(new THREE.Geometry(), BoundaryRenderingProperties.activeMaterial)
 		this.mesh = new THREE.Mesh()
 		this.renderingObject.add(this.boundaryContour)
@@ -121,6 +125,10 @@ export class Boundary extends Annotation {
 		this.renderingObject.remove(this.markers.pop()!)
 		this.updateVisualization()
 
+		return true
+	}
+
+	complete(): boolean {
 		return true
 	}
 

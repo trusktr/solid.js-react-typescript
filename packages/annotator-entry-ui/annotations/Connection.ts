@@ -60,6 +60,8 @@ export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInter
 export class Connection extends Annotation {
 	type: ConnectionType
 	minimumMarkerCount: number
+	markersFormRing: boolean
+	snapToGround: boolean
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
 	directionMarkers: Array<THREE.Mesh>
@@ -79,6 +81,8 @@ export class Connection extends Annotation {
 		}
 
 		this.minimumMarkerCount = 4
+		this.markersFormRing = false
+		this.snapToGround = true
 		this.directionMarkers = []
 		this.waypoints = []
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), ConnectionRenderingProperties.activeMaterial)
@@ -115,6 +119,10 @@ export class Connection extends Annotation {
 	}
 
 	deleteLastMarker(): boolean  { return false}
+
+	complete(): boolean {
+		return true
+	}
 
 	makeActive(): void {
 		this.mesh.material = ConnectionRenderingProperties.activeMaterial

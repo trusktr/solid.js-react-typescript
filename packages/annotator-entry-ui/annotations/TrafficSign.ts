@@ -40,6 +40,8 @@ export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInte
 export class TrafficSign extends Annotation {
 	type: TrafficSignType
 	minimumMarkerCount: number
+	markersFormRing: boolean
+	snapToGround: boolean
 	trafficSignContour: THREE.Line
 	mesh: THREE.Mesh
 	isComplete: boolean
@@ -53,6 +55,8 @@ export class TrafficSign extends Annotation {
 		}
 
 		this.minimumMarkerCount = 3
+		this.markersFormRing = true
+		this.snapToGround = false
 		this.isComplete = false
 		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficSignRenderingProperties.contourMaterial)
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficSignRenderingProperties.meshMaterial)
@@ -62,7 +66,7 @@ export class TrafficSign extends Annotation {
 
 		if (obj) {
 			if (obj.markers.length >= this.minimumMarkerCount) {
-				obj.markers.forEach(marker => this.addMarker(marker, false))
+				obj.markers.forEach(marker => this.addMarker(marker))
 				this.isComplete = true
 				if (!this.isValid())
 					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
@@ -76,7 +80,7 @@ export class TrafficSign extends Annotation {
 		return this.markers.length >= this.minimumMarkerCount
 	}
 
-	addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean {
+	addMarker(position: THREE.Vector3): boolean {
 		// Don't allow addition of markers if the isComplete flag is active
 		if (this.isComplete) {
 			log.warn("Last marker was already added. Can't add more markers. Delete a marker to allow more marker additions.")
@@ -88,9 +92,6 @@ export class TrafficSign extends Annotation {
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
 
-		if (isLastMarker) {
-			this.isComplete = true
-		}
 		this.updateVisualization()
 
 		return true
@@ -109,6 +110,18 @@ export class TrafficSign extends Annotation {
 		if (this.isComplete) {
 			this.isComplete = false
 		}
+		this.updateVisualization()
+
+		return true
+	}
+
+	complete(): boolean {
+		if (this.isComplete) {
+			log.warn("Annotation is already complete. Delete a marker to re-open it.")
+			return false
+		}
+
+		this.isComplete = true
 		this.updateVisualization()
 
 		return true
