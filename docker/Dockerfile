@@ -10,7 +10,7 @@ COPY etc $VISUALIZER_DEST/etc
 COPY packages $VISUALIZER_DEST/packages
 COPY .*rc $VISUALIZER_DEST/
 COPY *.json $VISUALIZER_DEST/
-COPY docker/install.sh $VISUALIZER_DEST/
+COPY build-scripts/* $VISUALIZER_DEST/
 COPY docker/copy-to-volume.sh $DEST/
 RUN chmod +x $DEST/copy-to-volume.sh
 
