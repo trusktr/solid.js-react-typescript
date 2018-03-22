@@ -59,6 +59,10 @@ export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInter
 
 export class Connection extends Annotation {
 	type: ConnectionType
+	minimumMarkerCount: number
+	markersFormRing: boolean
+	allowNewMarkers: boolean
+	snapToGround: boolean
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
 	directionMarkers: Array<THREE.Mesh>
@@ -76,17 +80,24 @@ export class Connection extends Annotation {
 			this.startLaneUuid = ""
 			this.endLaneUuid = ""
 		}
+
+		this.minimumMarkerCount = 4
+		this.markersFormRing = false
+		this.allowNewMarkers = false
+		this.snapToGround = true
 		this.directionMarkers = []
 		this.waypoints = []
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), ConnectionRenderingProperties.activeMaterial)
 		this.renderingObject.add(this.mesh)
 
-		if (obj && obj.markers.length > 0) {
-			obj.markers.forEach( (marker) => {
-				this.addMarker(marker)
-			})
-			this.updateVisualization()
-			this.makeInactive()
+		if (obj) {
+			if (obj.markers.length >= this.minimumMarkerCount) {
+				obj.markers.forEach(marker => this.addMarker(marker, false))
+				if (!this.isValid())
+					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
+				this.updateVisualization()
+				this.makeInactive()
+			}
 		}
 	}
 
@@ -96,20 +107,25 @@ export class Connection extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length > 3
+		return this.markers.length >= this.minimumMarkerCount
 	}
 
-	addMarker(position: THREE.Vector3): boolean {
+	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry,
 			                          ConnectionRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
 
+		if (updateVisualization) this.updateVisualization()
 		return true
 	}
 
 	deleteLastMarker(): boolean  { return false}
+
+	complete(): boolean {
+		return true
+	}
 
 	makeActive(): void {
 		this.mesh.material = ConnectionRenderingProperties.activeMaterial

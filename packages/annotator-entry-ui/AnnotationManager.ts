@@ -25,7 +25,6 @@ import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
 import * as mkdirp from 'mkdirp'
-import Vector3 = THREE.Vector3
 import {UtmInterface} from "./UtmInterface"
 import * as CRS from "./CoordinateReferenceSystem"
 
@@ -60,7 +59,7 @@ export enum OutputFormat {
 /**
  * Get point in between at a specific distance
  */
-function getMarkerInBetween(marker1: Vector3, marker2: Vector3, atDistance: number): Vector3 {
+function getMarkerInBetween(marker1: THREE.Vector3, marker2: THREE.Vector3, atDistance: number): THREE.Vector3 {
 	return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
 }
 
@@ -456,54 +455,41 @@ export class AnnotationManager extends UtmInterface {
 
 	/**
 	 * Add marker to the active annotation at the given position and add it
-	 * to the scene. After the first two markers of a new annotation this function
-	 * will add two markers subsequently. The second of those markers is computed
-	 * as a linear combination of the first marker (given position) and the
-	 * previous two markers.
+	 * to the scene.
 	 */
-	addLaneMarker(position: Vector3): boolean {
+	addMarkerToActiveAnnotation(position: THREE.Vector3): boolean {
 		if (this.isLiveMode) return false
 
-		const activeLane = this.getActiveLaneAnnotation()
-		if (!activeLane) {
-			log.info("No active lane annotation. Can't add marker")
+		if (!this.activeAnnotation) {
+			log.info("No active annotation. Can't add marker")
 			return false
 		}
 
-		activeLane.addMarker(position)
-
-		this.metadataState.dirty()
-		return true
+		if (this.activeAnnotation.addMarker(position, true)) {
+			this.metadataState.dirty()
+			return true
+		} else {
+			return false
+		}
 	}
 
-	addBoundaryMarker(position: Vector3): boolean {
+	/**
+	 * Close the loop of markers or do any other clean-up to designate an annotation "complete".
+	 */
+	completeActiveAnnotation(): boolean {
 		if (this.isLiveMode) return false
 
-		const activeBoundary = this.getActiveBoundaryAnnotation()
-		if (!activeBoundary) {
-			log.info("No active boundary annotation. Can't add marker")
+		if (!this.activeAnnotation) {
+			log.info("No active annotation. Can't complete")
 			return false
 		}
 
-		activeBoundary.addMarker(position)
-
-		this.metadataState.dirty()
-		return true
-	}
-
-	addTrafficSignMarker(position: THREE.Vector3, isLastMarker: boolean): boolean {
-		if (this.isLiveMode) return false
-
-		const activeSign = this.getActiveTrafficSignAnnotation()
-		if (!activeSign) {
-			log.info("No active traffic sign annotation. Can't add marker")
+		if (this.activeAnnotation.complete()) {
+			this.metadataState.dirty()
+			return true
+		} else {
 			return false
 		}
-
-		activeSign.addMarker(position, isLastMarker)
-
-		this.metadataState.dirty()
-		return true
 	}
 
 	/**
@@ -748,9 +734,9 @@ export class AnnotationManager extends UtmInterface {
 	 * @param minDistLaneChange  Minimum distance to interpolate lane change
 	 * @returns {Array<Vector3>} Points along the trajectory
 	 */
-	generatePointsFromSortedCarPath(sortedCarPath: Array<Link>, minDistLaneChange: number): Array<Vector3> {
+	generatePointsFromSortedCarPath(sortedCarPath: Array<Link>, minDistLaneChange: number): Array<THREE.Vector3> {
 
-		let points: Array<Vector3> = []
+		let points: Array<THREE.Vector3> = []
 		let hasValidIndexes = true
 		sortedCarPath.forEach((laneLink) => {
 			if (hasValidIndexes) {
@@ -798,7 +784,7 @@ export class AnnotationManager extends UtmInterface {
 	 * @param minDistanceLaneChange Minimum distance between points when changing lane
 	 * @returns Car trajectory from car path
 	 */
-	getFullInterpolatedTrajectory(step: number, minDistanceLaneChange: number): Array<Vector3> {
+	getFullInterpolatedTrajectory(step: number, minDistanceLaneChange: number): Array<THREE.Vector3> {
 
 		// Check for car path size (at least one lane)
 		if (this.carPath.length === 0) {
@@ -818,7 +804,7 @@ export class AnnotationManager extends UtmInterface {
 		sortedCarPath.pop()
 
 		// Create spline
-		const points: Array<Vector3> = this.generatePointsFromSortedCarPath(sortedCarPath, minDistanceLaneChange)
+		const points: Array<THREE.Vector3> = this.generatePointsFromSortedCarPath(sortedCarPath, minDistanceLaneChange)
 		if (points.length === 0) {
 			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
 				"There are no waypoints in the selected car path lanes.")
@@ -834,7 +820,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Saves car path to CSV file
 	 */
-	convertAnnotationToCSV(data: Array<Vector3>, columnDelimiter: string = ',', lineDelimiter: string = '\n'): string {
+	convertAnnotationToCSV(data: Array<THREE.Vector3>, columnDelimiter: string = ',', lineDelimiter: string = '\n'): string {
 		if (data.length === 0) {
 			log.warn("Empty annotation.")
 			return ''
@@ -1382,12 +1368,12 @@ export class AnnotationManager extends UtmInterface {
 
 		// Compute path
 		const lastIndex = laneFrom.markers.length - 1
-		const pointsRight: Array<Vector3> = []
+		const pointsRight: Array<THREE.Vector3> = []
 		pointsRight.push(laneFrom.markers[lastIndex - 3].position)
 		pointsRight.push(laneFrom.markers[lastIndex - 1].position)
 		pointsRight.push(laneTo.markers[0].position)
 		pointsRight.push(laneTo.markers[2].position)
-		const pointsLeft: Array<Vector3> = []
+		const pointsLeft: Array<THREE.Vector3> = []
 		pointsLeft.push(laneFrom.markers[lastIndex - 2].position)
 		pointsLeft.push(laneFrom.markers[lastIndex].position)
 		pointsLeft.push(laneTo.markers[1].position)
@@ -1397,14 +1383,14 @@ export class AnnotationManager extends UtmInterface {
 		const splineRight = new THREE.CatmullRomCurve3(pointsRight)
 
 		// Add path to the connection
-		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.4))
-		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.6))
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.4))
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.6))
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.4))
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6))
-		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4))
-		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6))
+		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.4), false)
+		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.6), false)
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.4), false)
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.6), false)
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.4), false)
+		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6), false)
+		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4), false)
+		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6), false)
 
 		// Add annotation to the scene
 		this.scene.add(connection.renderingObject)
@@ -1465,11 +1451,11 @@ export class AnnotationManager extends UtmInterface {
 		const rightPoints = curveRight.getPoints(numPoints)
 
 		for (let i = 0; i < numPoints; i++) {
-			connection.addMarker(getMarkerInBetween(rightPoints[i], leftPoints[i], 0.4))
-			connection.addMarker(getMarkerInBetween(rightPoints[i], leftPoints[i], 0.6))
+			connection.addMarker(getMarkerInBetween(rightPoints[i], leftPoints[i], 0.4), false)
+			connection.addMarker(getMarkerInBetween(rightPoints[i], leftPoints[i], 0.6), false)
 		}
-		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.4))
-		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.6))
+		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.4), false)
+		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.6), false)
 
 		// Add annotation to the scene
 		this.scene.add(connection.renderingObject)
