@@ -2757,9 +2757,13 @@ export class Annotator {
 	}
 
 	private updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
-		const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
-		const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
-		this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+		// This is a hack to allow data with no coordinate reference system to pass through the UTM classes.
+		// Data in local coordinate systems tend to have small values for X (and Y and Z) which are invalid in UTM.
+		if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO fix this.
+			const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
+			const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
+			this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+		}
 		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
 		this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
 	}
