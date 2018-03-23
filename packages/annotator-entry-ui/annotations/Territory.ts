@@ -14,56 +14,52 @@ import {isNullOrUndefined} from "util"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-export enum TrafficSignType {
+export enum TerritoryType {
 	UNKNOWN = 0,
-	TRAFFIC_LIGHT,
-	STOP,
-	YIELD,
-	OTHER
 }
 
 // Some variables used for rendering
-namespace TrafficSignRenderingProperties {
-	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-	export const meshMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
+namespace TerritoryRenderingProperties {
+	export const markerMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide})
+	export const meshMaterial = new THREE.MeshBasicMaterial({color: 0x338800, side: THREE.FrontSide, transparent: true, opacity: 0.5})
 	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
 }
 
-export interface TrafficSignJsonInputInterface extends AnnotationJsonInputInterface {
-	trafficSignType: string
+export interface TerritoryJsonInputInterface extends AnnotationJsonInputInterface {
+	territoryType: string
 }
 
-export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInterface {
-	trafficSignType: string
+export interface TerritoryJsonOutputInterface extends AnnotationJsonOutputInterface {
+	territoryType: string
 }
 
-export class TrafficSign extends Annotation {
-	type: TrafficSignType
+export class Territory extends Annotation {
+	type: TerritoryType
 	minimumMarkerCount: number
 	markersFormRing: boolean
 	allowNewMarkers: boolean
 	snapToGround: boolean
-	trafficSignContour: THREE.Line
+	territoryContour: THREE.Line
 	mesh: THREE.Mesh
 	isComplete: boolean
 
-	constructor(obj?: TrafficSignJsonInputInterface) {
+	constructor(obj?: TerritoryJsonInputInterface) {
 		super(obj)
 		if (obj) {
-			this.type = isNullOrUndefined(TrafficSignType[obj.trafficSignType]) ? TrafficSignType.UNKNOWN : TrafficSignType[obj.trafficSignType]
+			this.type = isNullOrUndefined(TerritoryType[obj.territoryType]) ? TerritoryType.UNKNOWN : TerritoryType[obj.territoryType]
 		} else {
-			this.type = TrafficSignType.UNKNOWN
+			this.type = TerritoryType.UNKNOWN
 		}
 
 		this.minimumMarkerCount = 3
 		this.markersFormRing = true
 		this.allowNewMarkers = true
-		this.snapToGround = false
+		this.snapToGround = true
 		this.isComplete = false
-		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficSignRenderingProperties.contourMaterial)
-		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficSignRenderingProperties.meshMaterial)
+		this.territoryContour = new THREE.Line(new THREE.Geometry(), TerritoryRenderingProperties.contourMaterial)
+		this.mesh = new THREE.Mesh(new THREE.Geometry(), TerritoryRenderingProperties.meshMaterial)
 		this.renderingObject.add(this.mesh)
-		this.renderingObject.add(this.trafficSignContour)
+		this.renderingObject.add(this.territoryContour)
 		this.mesh.visible = false
 
 		if (obj) {
@@ -71,7 +67,7 @@ export class TrafficSign extends Annotation {
 				obj.markers.forEach(marker => this.addMarker(marker, false))
 				this.isComplete = true
 				if (!this.isValid())
-					throw Error(`can't load invalid traffic sign with id ${obj.uuid}`)
+					throw Error(`can't load invalid territory with id ${obj.uuid}`)
 				this.updateVisualization()
 				this.makeInactive()
 			}
@@ -89,7 +85,7 @@ export class TrafficSign extends Annotation {
 			return false
 		}
 
-		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficSignRenderingProperties.markerMaterial)
+		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TerritoryRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
@@ -168,16 +164,16 @@ export class TrafficSign extends Annotation {
 
 		if (this.isComplete === false) {
 			newContourGeometry.computeLineDistances()
-			this.trafficSignContour.geometry = newContourGeometry
-			this.trafficSignContour.geometry.verticesNeedUpdate = true
+			this.territoryContour.geometry = newContourGeometry
+			this.territoryContour.geometry.verticesNeedUpdate = true
 			return
 		}
 
 		// Push the first vertex again to close the loop
 		newContourGeometry.vertices.push(this.markers[0].position)
 		newContourGeometry.computeLineDistances()
-		this.trafficSignContour.geometry = newContourGeometry
-		this.trafficSignContour.geometry.verticesNeedUpdate = true
+		this.territoryContour.geometry = newContourGeometry
+		this.territoryContour.geometry.verticesNeedUpdate = true
 
 		const newMeshGeometry = new THREE.Geometry()
 
@@ -200,13 +196,13 @@ export class TrafficSign extends Annotation {
 		this.mesh.geometry.verticesNeedUpdate = true
 	}
 
-	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficSignJsonOutputInterface {
+	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TerritoryJsonOutputInterface {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		const data: TrafficSignJsonOutputInterface = {
-			annotationType: AnnotationType[AnnotationType.TRAFFIC_SIGN],
+		const data: TerritoryJsonOutputInterface = {
+			annotationType: AnnotationType[AnnotationType.TERRITORY],
 			uuid: this.uuid,
-			trafficSignType: TrafficSignType[this.type],
+			territoryType: TerritoryType[this.type],
 			markers: [],
 		}
 

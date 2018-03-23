@@ -31,6 +31,7 @@ import {Annotation, AnnotationId} from 'annotator-entry-ui/annotations/Annotatio
 import {NeighborLocation, NeighborDirection, Lane} from 'annotator-entry-ui/annotations/Lane'
 import {Connection} from "./annotations/Connection"
 import {TrafficSign} from "./annotations/TrafficSign"
+import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -1125,7 +1126,7 @@ export class Annotator {
 	 * Create a new lane annotation.
 	 */
 	private addLaneAnnotation(): boolean {
-		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
+		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost)
 		if (this.annotationManager.activeAnnotation &&
 			!this.annotationManager.activeAnnotation.isValid()) {
@@ -1138,7 +1139,7 @@ export class Annotator {
 	}
 
 	private addBoundaryAnnotation(): boolean {
-		// Can't create a new boundary if the current active annotation doesn't have any markers (because if we did
+		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost)
 		if (this.annotationManager.activeAnnotation &&
 			!this.annotationManager.activeAnnotation.isValid()) {
@@ -1151,7 +1152,7 @@ export class Annotator {
 	}
 
 	private addTrafficSignAnnotation(): boolean {
-		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
+		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost)
 		if (this.annotationManager.activeAnnotation &&
 			!this.annotationManager.activeAnnotation.isValid()) {
@@ -1159,6 +1160,18 @@ export class Annotator {
 		}
 		return this.annotationManager.changeActiveAnnotation(
 			this.annotationManager.addTrafficSignAnnotation()
+		)
+	}
+
+	private addTerritoryAnnotation(): boolean {
+		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
+		// that annotation wouldn't be selectable and it would be lost)
+		if (this.annotationManager.activeAnnotation &&
+			!this.annotationManager.activeAnnotation.isValid()) {
+			return false
+		}
+		return this.annotationManager.changeActiveAnnotation(
+			this.annotationManager.addTerritoryAnnotation()
 		)
 	}
 
@@ -1281,6 +1294,8 @@ export class Annotator {
 					this.resetBoundaryProp()
 				else if (inactive instanceof TrafficSign)
 					this.resetTrafficSignProp()
+				else if (inactive instanceof Territory)
+					noop()
 				else if (inactive instanceof Connection)
 					noop() // Connection doesn't have any menus to maintain; this keeps the compiler from complaining.
 				else
@@ -1612,6 +1627,10 @@ export class Annotator {
 					this.resetTiltAndCompass()
 					break
 				}
+				case 'T': {
+					this.addTerritory()
+					break
+				}
 				case 't': {
 					this.addTrafficSign()
 					break
@@ -1751,6 +1770,14 @@ export class Annotator {
 			Annotator.deactivateLaneProp()
 			Annotator.deactivateBoundaryProp()
 			this.resetTrafficSignProp()
+			this.hideTransform()
+		}
+	}
+
+	private addTerritory(): void {
+		if (this.addTerritoryAnnotation()) {
+			Annotator.deactivateLaneProp()
+			Annotator.deactivateBoundaryProp()
 			this.hideTransform()
 		}
 	}

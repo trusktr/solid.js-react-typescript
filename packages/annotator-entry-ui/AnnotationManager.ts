@@ -18,6 +18,7 @@ import {
 	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds, LaneJsonInputInterfaceV3
 } from 'annotator-entry-ui/annotations/Lane'
 import {TrafficSign, TrafficSignJsonInputInterface} from 'annotator-entry-ui/annotations/TrafficSign'
+import {Territory, TerritoryJsonInputInterface} from "./annotations/Territory"
 import {Connection, ConnectionJsonInputInterface} from 'annotator-entry-ui/annotations/Connection'
 import {Boundary, BoundaryJsonInputInterface} from 'annotator-entry-ui/annotations/Boundary'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
@@ -81,6 +82,7 @@ export class AnnotationManager extends UtmInterface {
 	laneAnnotations: Array<Lane>
 	boundaryAnnotations: Array<Boundary>
 	trafficSignAnnotations: Array<TrafficSign>
+	territoryAnnotations: Array<Territory>
 	connectionAnnotations: Array<Connection>
 	annotationObjects: Array<THREE.Object3D>
 	activeAnnotation: Annotation | null
@@ -95,6 +97,7 @@ export class AnnotationManager extends UtmInterface {
 		this.laneAnnotations = []
 		this.boundaryAnnotations = []
 		this.trafficSignAnnotations = []
+		this.territoryAnnotations = []
 		this.connectionAnnotations = []
 		this.annotationObjects = []
 		this.activeAnnotation = null
@@ -227,6 +230,29 @@ export class AnnotationManager extends UtmInterface {
 			newAnnotation = new TrafficSign()
 		}
 		this.trafficSignAnnotations.push(newAnnotation)
+		this.annotationObjects.push(newAnnotation.renderingObject)
+		this.scene.add(newAnnotation.renderingObject)
+
+		return newAnnotation
+	}
+
+	/**
+	 * Add a new traffic sign annotation and add its associated rendering object to the scene for display.
+	 */
+	addTerritoryAnnotation(obj?: TerritoryJsonInputInterface): Territory | null {
+		if (this.isLiveMode) return null
+
+		let newAnnotation: Territory
+		if (obj) {
+			newAnnotation = new Territory(obj)
+			if (!newAnnotation.markers.length)
+				return null
+			if (this.territoryAnnotations.some(a => a.uuid === newAnnotation.uuid))
+				return null
+		} else {
+			newAnnotation = new Territory()
+		}
+		this.territoryAnnotations.push(newAnnotation)
 		this.annotationObjects.push(newAnnotation.renderingObject)
 		this.scene.add(newAnnotation.renderingObject)
 
@@ -432,6 +458,8 @@ export class AnnotationManager extends UtmInterface {
 			success = this.deleteBoundary(this.activeAnnotation)
 		else if (this.activeAnnotation instanceof TrafficSign)
 			success = this.deleteTrafficSign(this.activeAnnotation)
+		else if (this.activeAnnotation instanceof Territory)
+			success = this.deleteTerritory(this.activeAnnotation)
 		else {
 			log.warn('Unrecognized annotation type')
 			return false
@@ -952,6 +980,7 @@ export class AnnotationManager extends UtmInterface {
 		// slice() makes a local copy of each array, since the delete() methods mutate the arrays.
 		this.connectionAnnotations.slice().forEach(a => this.deleteConnection(a))
 		this.trafficSignAnnotations.slice().forEach(a => this.deleteTrafficSign(a))
+		this.territoryAnnotations.slice().forEach(a => this.deleteTerritory(a))
 		this.laneAnnotations.slice().forEach(a => this.deleteLane(a))
 		this.boundaryAnnotations.slice().forEach(a => this.deleteBoundary(a))
 	}
@@ -1073,6 +1102,9 @@ export class AnnotationManager extends UtmInterface {
 				case AnnotationType.TRAFFIC_SIGN:
 					newAnnotation = this.addTrafficSignAnnotation(element as TrafficSignJsonInputInterface)
 					break
+				case AnnotationType.TERRITORY:
+					newAnnotation = this.addTerritoryAnnotation(element as TerritoryJsonInputInterface)
+					break
 				case AnnotationType.CONNECTION:
 					newAnnotation = this.addConnectionAnnotation(element as ConnectionJsonInputInterface)
 					break
@@ -1107,6 +1139,7 @@ export class AnnotationManager extends UtmInterface {
 			.concat(this.laneAnnotations)
 			.concat(this.connectionAnnotations)
 			.concat(this.trafficSignAnnotations)
+			.concat(this.territoryAnnotations)
 			.concat(this.boundaryAnnotations)
 	}
 
@@ -1491,6 +1524,13 @@ export class AnnotationManager extends UtmInterface {
 		return true
 	}
 
+	private deleteTerritory(annotation: Territory): boolean {
+		// Remove annotation from internal array of annotations.
+		const eraseIndex = this.getAnnotationIndexFromUuid(this.territoryAnnotations, annotation.uuid)
+		this.territoryAnnotations.splice(eraseIndex, 1)
+		return true
+	}
+
 	private deleteConnection(annotation: Connection): boolean {
 		// Make sure we remove references to this annotation from it's neighbors (if any).
 		this.removeUuidFromLaneNeighbors(annotation.startLaneUuid, annotation.uuid)
@@ -1670,13 +1710,14 @@ export class AnnotationState {
 	}
 
 	private doPeriodicSave(): boolean {
-		return this.autoSaveEnabled && this.isDirty &&
-			   (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
+		return this.autoSaveEnabled
+			&& this.isDirty
+			&& (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
 	}
 
 	private doImmediateSave(): boolean {
-		return this.isDirty &&
-			   (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
+		return this.isDirty
+			&& (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
 	}
 
 	private saveAnnotations(): Promise<void> {
