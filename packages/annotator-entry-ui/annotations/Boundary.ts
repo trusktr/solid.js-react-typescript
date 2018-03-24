@@ -6,7 +6,7 @@
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
-import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase";
+import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
 
@@ -174,7 +174,7 @@ export class Boundary extends Annotation {
 			return
 		}
 
-		const newContourGeometry = new THREE.Geometry();
+		const newContourGeometry = new THREE.Geometry()
 
 		this.markers.forEach((marker) => {
 			newContourGeometry.vertices.push(marker.position)

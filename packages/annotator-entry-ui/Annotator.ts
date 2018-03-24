@@ -5,7 +5,7 @@
 
 const config = require('../config')
 import * as $ from 'jquery'
-import * as AsyncFile from "async-file";
+import * as AsyncFile from "async-file"
 const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
@@ -41,7 +41,7 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
-import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient";
+import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient"
 const  watch = require('watch')
 
 declare global {
