@@ -138,6 +138,7 @@ interface UiState {
 	modelVisibility: ModelVisibility
 	lockBoundaries: boolean
 	lockLanes: boolean
+	lockTerritories: boolean
 	isSuperTilesVisible: boolean
 	isPointCloudVisible: boolean
 	isAnnotationsVisible: boolean
@@ -244,6 +245,7 @@ export class Annotator {
 			modelVisibility: ModelVisibility.ALL_VISIBLE,
 			lockBoundaries: false,
 			lockLanes: false,
+			lockTerritories: true,
 			isSuperTilesVisible: true,
 			isPointCloudVisible: true,
 			isAnnotationsVisible: true,
@@ -368,6 +370,7 @@ export class Annotator {
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
 		const planeMaterial = new THREE.ShadowMaterial()
+		planeMaterial.visible = false
 		planeMaterial.side = THREE.DoubleSide // enable raycaster intersections from both sides
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
 		this.scene.add(this.plane)
@@ -440,6 +443,10 @@ export class Annotator {
 			})
 			this.gui.add(this.uiState, 'lockLanes').onChange((value: boolean) => {
 				if (value && this.annotationManager.activeAnnotation instanceof Lane)
+					this.annotationManager.unsetActiveAnnotation()
+			})
+			this.gui.add(this.uiState, 'lockTerritories').onChange((value: boolean) => {
+				if (value && this.annotationManager.activeAnnotation instanceof Territory)
 					this.annotationManager.unsetActiveAnnotation()
 			})
 			this.gui.domElement.className = 'threeJs_gui'
@@ -1259,7 +1266,9 @@ export class Annotator {
 	private isAnnotationLocked(annotation: Annotation): boolean {
 		if (annotation instanceof Lane && this.uiState.lockLanes)
 			return true
-		if (annotation instanceof Boundary && this.uiState.lockBoundaries)
+		else if (annotation instanceof Boundary && this.uiState.lockBoundaries)
+			return true
+		else if (annotation instanceof Territory && this.uiState.lockTerritories)
 			return true
 		return false
 	}
