@@ -168,119 +168,99 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
-	 * Add a new lane annotation and add its associated rendering object to the scene for display.
+	 * Create a new annotation. Add its associated rendering object to the scene for display.
+	 * @param obj             Construct the annotation from a JSON object
+	 * @param annotationType  Construct a new annotation with the given type
+	 * @param activate        Activate the new annotation after creation
+	 * One of obj and annotationType is required.
 	 */
-	addLaneAnnotation(obj?: LaneJsonInputInterfaceV3): Lane | null {
+	addAnnotation(
+		obj: AnnotationJsonInputInterface | null,
+		annotationType: AnnotationType | null = null,
+		activate: boolean = false
+	): Annotation | null {
 		if (this.isLiveMode) return null
 
-		let newAnnotation: Lane
+		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
+		// that annotation wouldn't be selectable and it would be lost).
+		if (this.activeAnnotation && !this.activeAnnotation.isValid()) return null
+
+		// Figure out which type we are working with.
+		let myAnnotationType: AnnotationType
 		if (obj) {
-			newAnnotation = new Lane(obj)
-			if (!newAnnotation.markers.length)
+			myAnnotationType = AnnotationType[obj.annotationType]
+		} else if (annotationType) {
+			myAnnotationType = annotationType
+		} else {
+			log.warn('addAnnotation() requires either an AnnotationJsonInputInterface or an AnnotationType input')
+			return null
+		}
+
+		// Get methods and data structures appropriate to the type.
+		const constructAnnotation = this.annotationTypeToAnnotationConstructor(myAnnotationType)
+		const similarAnnotations = this.annotationTypeToSimilarAnnotationsList(myAnnotationType)
+		if (constructAnnotation === null || similarAnnotations === null) {
+			if (obj)
+				log.warn(`discarding annotation with invalid type ${obj.annotationType}`)
+			else
+				log.warn(`discarding annotation with invalid type ${annotationType}`)
+			return null
+		}
+
+		// Instantiate it.
+		let newAnnotation: Annotation
+		if (obj) {
+			// Discard duplicate annotations.
+			if (similarAnnotations.some(a => a.uuid === obj.uuid))
 				return null
-			if (this.laneAnnotations.some(a => a.uuid === newAnnotation.uuid))
+
+			// Instantiate and validate.
+			newAnnotation = constructAnnotation(obj)
+			if (!newAnnotation.isValid())
 				return null
 		} else {
-			newAnnotation = new Lane()
+			newAnnotation = constructAnnotation()
 		}
-		this.laneAnnotations.push(newAnnotation)
+
+		// Set state.
+		similarAnnotations.push(newAnnotation)
 		this.annotationObjects.push(newAnnotation.renderingObject)
 		this.scene.add(newAnnotation.renderingObject)
+		if (activate)
+			this.changeActiveAnnotation(newAnnotation)
 
 		return newAnnotation
 	}
 
-	/**
-	 * Add a new boundary annotation and add its associated rendering object to the scene for display.
-	 */
-	addBoundaryAnnotation(obj?: BoundaryJsonInputInterface): Boundary | null {
-		if (this.isLiveMode) return null
-
-		let newAnnotation: Boundary
-		if (obj) {
-			newAnnotation = new Boundary(obj)
-			if (!newAnnotation.markers.length)
-				return null
-			if (this.boundaryAnnotations.some(a => a.uuid === newAnnotation.uuid))
-				return null
-		} else {
-			newAnnotation = new Boundary()
+	// Get a reference to the list containing matching AnnotationType.
+	private annotationTypeToSimilarAnnotationsList(annotationType: AnnotationType): Annotation[] | null {
+		switch (annotationType) {
+			case AnnotationType.BOUNDARY: return this.boundaryAnnotations
+			case AnnotationType.CONNECTION: return this.connectionAnnotations
+			case AnnotationType.LANE: return this.laneAnnotations
+			case AnnotationType.TERRITORY: return this.territoryAnnotations
+			case AnnotationType.TRAFFIC_SIGN: return this.trafficSignAnnotations
+			default: return null
 		}
-		this.boundaryAnnotations.push(newAnnotation)
-		this.annotationObjects.push(newAnnotation.renderingObject)
-		this.scene.add(newAnnotation.renderingObject)
-
-		return newAnnotation
 	}
 
-	/**
-	 * Add a new traffic sign annotation and add its associated rendering object to the scene for display.
-	 */
-	addTrafficSignAnnotation(obj?: TrafficSignJsonInputInterface): TrafficSign | null {
-		if (this.isLiveMode) return null
-
-		let newAnnotation: TrafficSign
-		if (obj) {
-			newAnnotation = new TrafficSign(obj)
-			if (!newAnnotation.markers.length)
-				return null
-			if (this.trafficSignAnnotations.some(a => a.uuid === newAnnotation.uuid))
-				return null
-		} else {
-			newAnnotation = new TrafficSign()
+	// Get a constructor for AnnotationType.
+	private annotationTypeToAnnotationConstructor(annotationType: AnnotationType): ((obj2?: AnnotationJsonInputInterface) => Annotation) | null {
+		switch (annotationType) {
+			case AnnotationType.BOUNDARY: return this.constructBoundary
+			case AnnotationType.CONNECTION: return this.constructConnection
+			case AnnotationType.LANE: return this.constructLane
+			case AnnotationType.TERRITORY: return this.constructTerritory
+			case AnnotationType.TRAFFIC_SIGN: return this.constructTrafficSign
+			default: return null
 		}
-		this.trafficSignAnnotations.push(newAnnotation)
-		this.annotationObjects.push(newAnnotation.renderingObject)
-		this.scene.add(newAnnotation.renderingObject)
-
-		return newAnnotation
 	}
 
-	/**
-	 * Add a new traffic sign annotation and add its associated rendering object to the scene for display.
-	 */
-	addTerritoryAnnotation(obj?: TerritoryJsonInputInterface): Territory | null {
-		if (this.isLiveMode) return null
-
-		let newAnnotation: Territory
-		if (obj) {
-			newAnnotation = new Territory(obj)
-			if (!newAnnotation.markers.length)
-				return null
-			if (this.territoryAnnotations.some(a => a.uuid === newAnnotation.uuid))
-				return null
-		} else {
-			newAnnotation = new Territory()
-		}
-		this.territoryAnnotations.push(newAnnotation)
-		this.annotationObjects.push(newAnnotation.renderingObject)
-		this.scene.add(newAnnotation.renderingObject)
-
-		return newAnnotation
-	}
-
-	/**
-	 * Add a new connection annotation and add its associated rendering object to the scene for display.
-	 */
-	addConnectionAnnotation(obj?: ConnectionJsonInputInterface): Connection | null {
-		if (this.isLiveMode) return null
-
-		let newAnnotation: Connection
-		if (obj) {
-			newAnnotation = new Connection(obj)
-			if (!newAnnotation.markers.length)
-				return null
-			if (this.connectionAnnotations.some(a => a.uuid === newAnnotation.uuid))
-				return null
-		} else {
-			newAnnotation = new Connection()
-		}
-		this.connectionAnnotations.push(newAnnotation)
-		this.annotationObjects.push(newAnnotation.renderingObject)
-		this.scene.add(newAnnotation.renderingObject)
-
-		return newAnnotation
-	}
+	private constructBoundary = (obj?: AnnotationJsonInputInterface): Annotation => new Boundary(obj as BoundaryJsonInputInterface)
+	private constructConnection = (obj?: AnnotationJsonInputInterface): Annotation => new Connection(obj as ConnectionJsonInputInterface)
+	private constructLane = (obj?: AnnotationJsonInputInterface): Annotation => new Lane(obj as LaneJsonInputInterfaceV3)
+	private constructTerritory = (obj?: AnnotationJsonInputInterface): Annotation => new Territory(obj as TerritoryJsonInputInterface)
+	private constructTrafficSign = (obj?: AnnotationJsonInputInterface): Annotation => new TrafficSign(obj as TrafficSignJsonInputInterface)
 
 	/**
 	 * Add a new relation between two existing lanes
@@ -1092,28 +1072,8 @@ export class AnnotationManager extends UtmInterface {
 		// Convert data to annotations
 		let boundingBox = new THREE.Box3()
 		let invalid = 0
-		data['annotations'].forEach((element: AnnotationJsonInputInterface) => {
-			const annotationType = AnnotationType[element.annotationType]
-			let newAnnotation: Annotation | null = null
-			switch (annotationType) {
-				case AnnotationType.LANE:
-					newAnnotation = this.addLaneAnnotation(element as LaneJsonInputInterfaceV3)
-					break
-				case AnnotationType.TRAFFIC_SIGN:
-					newAnnotation = this.addTrafficSignAnnotation(element as TrafficSignJsonInputInterface)
-					break
-				case AnnotationType.TERRITORY:
-					newAnnotation = this.addTerritoryAnnotation(element as TerritoryJsonInputInterface)
-					break
-				case AnnotationType.CONNECTION:
-					newAnnotation = this.addConnectionAnnotation(element as ConnectionJsonInputInterface)
-					break
-				case AnnotationType.BOUNDARY:
-					newAnnotation = this.addBoundaryAnnotation(element as BoundaryJsonInputInterface)
-					break
-				default:
-					log.warn(`discarding annotation with invalid type ${element.annotationType}`)
-			}
+		data['annotations'].forEach((obj: AnnotationJsonInputInterface) => {
+			const newAnnotation = this.addAnnotation(obj)
 			if (newAnnotation)
 				boundingBox = boundingBox.union(newAnnotation.boundingBox())
 			else
@@ -1150,7 +1110,7 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	private addFrontConnection(source: Lane): boolean {
 
-		const newAnnotation = this.addLaneAnnotation()
+		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
 		if (!newAnnotation) return false
 
 		const lastMarkerIndex = source.markers.length - 1
@@ -1196,7 +1156,7 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
-		const newAnnotation = this.addLaneAnnotation()
+		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
 		if (!newAnnotation) return false
 
 		switch (neighborDirection) {
@@ -1258,7 +1218,7 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
-		const newAnnotation = this.addLaneAnnotation()
+		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
 		if (!newAnnotation) return false
 
 		switch (neighborDirection) {

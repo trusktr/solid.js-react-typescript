@@ -11,29 +11,30 @@ import * as lodash from 'lodash'
 import {Map} from 'immutable'
 import LocalStorage from "./state/LocalStorage"
 import {GUI as DatGui} from 'dat.gui'
-import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
-import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
+import {TransformControls} from './controls/TransformControls'
+import {OrbitControls} from './controls/OrbitControls'
 import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame
 } from "./geometry/CoordinateFrame"
 import {isTupleOfNumbers} from "./util/Validation"
 import {StatusWindowController} from "./status/StatusWindowController"
-import {TileManager} from 'annotator-entry-ui/tile/TileManager'
+import {TileManager} from './tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
 import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
 import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
-import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
-import {Annotation, AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {NeighborLocation, NeighborDirection, Lane} from 'annotator-entry-ui/annotations/Lane'
+import {AnnotationType} from './annotations/AnnotationType'
+import {AnnotationManager, OutputFormat} from './AnnotationManager'
+import {Annotation, AnnotationId} from './annotations/AnnotationBase'
+import {NeighborLocation, NeighborDirection, Lane} from './annotations/Lane'
 import {Connection} from "./annotations/Connection"
 import {TrafficSign} from "./annotations/TrafficSign"
 import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
-import * as EM from 'annotator-entry-ui/ErrorMessages'
+import * as EM from './ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isNull, isUndefined} from "util"
@@ -209,7 +210,7 @@ export class Annotator {
 	private flyThroughSettings: FlyThroughSettings
 	private liveModeSettings: LiveModeSettings
 	private locationServerStatusClient: LocationServerStatusClient
-	private gui: any
+	private gui: DatGui | null
 
 	constructor() {
 		this.storage = new LocalStorage()
@@ -450,6 +451,8 @@ export class Annotator {
 					this.annotationManager.unsetActiveAnnotation()
 			})
 			this.gui.domElement.className = 'threeJs_gui'
+		} else {
+			this.gui = null
 		}
 
 		// Set up for auto-save
@@ -1130,59 +1133,6 @@ export class Annotator {
 	}
 
 	/**
-	 * Create a new lane annotation.
-	 */
-	private addLaneAnnotation(): boolean {
-		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
-		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotation &&
-			!this.annotationManager.activeAnnotation.isValid()) {
-			return false
-		}
-		// This creates a new lane and add it to the scene for display
-		return this.annotationManager.changeActiveAnnotation(
-			this.annotationManager.addLaneAnnotation()
-		)
-	}
-
-	private addBoundaryAnnotation(): boolean {
-		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
-		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotation &&
-			!this.annotationManager.activeAnnotation.isValid()) {
-			return false
-		}
-		// This creates a new lane and add it to the scene for display
-		return this.annotationManager.changeActiveAnnotation(
-			this.annotationManager.addBoundaryAnnotation()
-		)
-	}
-
-	private addTrafficSignAnnotation(): boolean {
-		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
-		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotation &&
-			!this.annotationManager.activeAnnotation.isValid()) {
-			return false
-		}
-		return this.annotationManager.changeActiveAnnotation(
-			this.annotationManager.addTrafficSignAnnotation()
-		)
-	}
-
-	private addTerritoryAnnotation(): boolean {
-		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
-		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotation &&
-			!this.annotationManager.activeAnnotation.isValid()) {
-			return false
-		}
-		return this.annotationManager.changeActiveAnnotation(
-			this.annotationManager.addTerritoryAnnotation()
-		)
-	}
-
-	/**
 	 * If the mouse was clicked while pressing the "a" key, drop an annotation marker.
 	 */
 	private addAnnotationMarker = (event: MouseEvent): void => {
@@ -1751,8 +1701,7 @@ export class Annotator {
 	}
 
 	private addLane(): void {
-		// Add lane to scene
-		if (this.addLaneAnnotation()) {
+		if (this.annotationManager.addAnnotation(null, AnnotationType.LANE, true)) {
 			log.info("Added new lane annotation")
 			Annotator.deactivateBoundaryProp()
 			Annotator.deactivateTrafficSignProp()
@@ -1762,8 +1711,7 @@ export class Annotator {
 	}
 
 	private addBoundary(): void {
-		// Add lane to scene
-		if (this.addBoundaryAnnotation()) {
+		if (this.annotationManager.addAnnotation(null, AnnotationType.BOUNDARY, true)) {
 			log.info("Added new boundary annotation")
 			Annotator.deactivateLaneProp()
 			Annotator.deactivateTrafficSignProp()
@@ -1773,8 +1721,7 @@ export class Annotator {
 	}
 
 	private addTrafficSign(): void {
-		// Add lane to scene
-		if (this.addTrafficSignAnnotation()) {
+		if (this.annotationManager.addAnnotation(null, AnnotationType.TRAFFIC_SIGN, true)) {
 			log.info("Added new traffic sign annotation")
 			Annotator.deactivateLaneProp()
 			Annotator.deactivateBoundaryProp()
@@ -1784,7 +1731,8 @@ export class Annotator {
 	}
 
 	private addTerritory(): void {
-		if (this.addTerritoryAnnotation()) {
+		if (this.annotationManager.addAnnotation(null, AnnotationType.TERRITORY, true)) {
+			log.info("Added new territory annotation")
 			Annotator.deactivateLaneProp()
 			Annotator.deactivateBoundaryProp()
 			this.hideTransform()
