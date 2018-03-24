@@ -6,9 +6,10 @@
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase";
+import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
+import {ceilingPowerOf2} from "../util/Math"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -19,10 +20,59 @@ export enum TerritoryType {
 }
 
 // Some variables used for rendering
-namespace TerritoryRenderingProperties {
-	export const markerMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide})
-	export const meshMaterial = new THREE.MeshBasicMaterial({color: 0x338800, side: THREE.FrontSide, transparent: true, opacity: 0.5})
-	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
+const renderingProperties = {
+	markerMaterial: new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide}),
+	meshMaterialParameters: {color: 0x338800, side: THREE.DoubleSide, transparent: true, opacity: 0.5} as THREE.MeshBasicMaterialParameters,
+	contourMaterial: new THREE.LineBasicMaterial({color: 0x0000ff}),
+}
+// Map a rectangular, repeating texture onto triangular faces of a mesh geometry.
+// This configuration will include the lower right half of the rectangle.
+const meshGeometryUvs = [
+	new THREE.Vector2(0, 0),
+	new THREE.Vector2(1, 1),
+	new THREE.Vector2(1, 0),
+]
+
+// Render a text string as a 2D texture which can be wrapped onto a mesh.
+function generateTextureWithLabel(label: string): THREE.CanvasTexture | null {
+	const color = 'yellow'
+	const backGroundColor = 'blue'
+	const textHeight = 10
+	const textPadding = 5
+	const textMargin = 50
+	// Display the text string a few times on each face of the mesh geometry.
+	const repeat = new THREE.Vector2(3, 3)
+
+	const canvas = document.createElement('canvas')
+	const context = canvas.getContext('2d')
+	if (context) {
+		context.font = textHeight + 'px sans-serif'
+		const textWidth = context.measureText(label).width
+		// THREE.WebGLRenderer will round off the canvas dimensions without asking. Do it now to prevent a warning.
+		canvas.width = ceilingPowerOf2(textWidth + textPadding * 2 + textMargin * 2)
+		canvas.height = ceilingPowerOf2(textHeight + textPadding * 2 + textMargin * 2)
+
+		context.fillStyle = backGroundColor
+		context.fillRect(textMargin, textMargin, canvas.width - 2 * textMargin, canvas.height - 2 * textMargin)
+
+		context.textAlign = 'center'
+		context.textBaseline = 'middle'
+		context.fillStyle = color
+		context.fillText(label, canvas.width / 2, canvas.height / 2)
+
+		const texture = new THREE.CanvasTexture(
+			canvas,
+			THREE.UVMapping,
+			THREE.RepeatWrapping,
+			THREE.RepeatWrapping,
+		)
+		texture.repeat = repeat
+
+		return texture
+	} else {
+		log.warn("can't get 2D context from a document canvas")
+		return null
+	}
 }
 
 export interface TerritoryJsonInputInterface extends AnnotationJsonInputInterface {
@@ -56,11 +106,19 @@ export class Territory extends Annotation {
 		this.allowNewMarkers = true
 		this.snapToGround = true
 		this.isComplete = false
-		this.territoryContour = new THREE.Line(new THREE.Geometry(), TerritoryRenderingProperties.contourMaterial)
-		this.mesh = new THREE.Mesh(new THREE.Geometry(), TerritoryRenderingProperties.meshMaterial)
+		this.territoryContour = new THREE.Line(new THREE.Geometry(), renderingProperties.contourMaterial)
+
+		const texture = generateTextureWithLabel(TerritoryType[this.type])
+		if (texture) {
+			// Replace the default color with a texture.
+			delete(renderingProperties.meshMaterialParameters.color)
+			renderingProperties.meshMaterialParameters.map = texture
+		}
+
+		this.mesh = new THREE.Mesh(new THREE.Geometry(), new THREE.MeshBasicMaterial(renderingProperties.meshMaterialParameters))
+		this.mesh.visible = true // mesh is always visible since it is translucent
 		this.renderingObject.add(this.mesh)
 		this.renderingObject.add(this.territoryContour)
-		this.mesh.visible = false
 
 		if (obj) {
 			if (obj.markers.length >= this.minimumMarkerCount) {
@@ -85,7 +143,7 @@ export class Territory extends Annotation {
 			return false
 		}
 
-		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TerritoryRenderingProperties.markerMaterial)
+		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, renderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
@@ -125,11 +183,11 @@ export class Territory extends Annotation {
 	}
 
 	makeActive(): void {
-		this.mesh.visible = false
+		(this.mesh.material as THREE.Material).transparent = false
 	}
 
 	makeInactive(): void {
-		this.mesh.visible = true
+		(this.mesh.material as THREE.Material).transparent = true
 		this.unhighlightMarkers()
 	}
 
@@ -152,7 +210,7 @@ export class Territory extends Annotation {
 			return
 		}
 
-		const newContourGeometry = new THREE.Geometry();
+		const newContourGeometry = new THREE.Geometry()
 		const contourMean = new THREE.Vector3(0, 0, 0)
 
 		this.markers.forEach((marker) => {
@@ -189,11 +247,13 @@ export class Territory extends Annotation {
 
 			for (let i = 0; i < newMeshGeometry.vertices.length - 2; ++i) {
 				newMeshGeometry.faces.push(new THREE.Face3(centerIndex, i, i + 1))
+				newMeshGeometry.faceVertexUvs[0].push(meshGeometryUvs)
 			}
 		}
 		newMeshGeometry.computeFaceNormals()
 		this.mesh.geometry = newMeshGeometry
 		this.mesh.geometry.verticesNeedUpdate = true
+		this.mesh.geometry.uvsNeedUpdate = true
 	}
 
 	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TerritoryJsonOutputInterface {
