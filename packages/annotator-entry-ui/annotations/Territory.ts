@@ -32,6 +32,12 @@ const meshGeometryUvs = [
 	new THREE.Vector2(1, 1),
 	new THREE.Vector2(1, 0),
 ]
+const markerSettings = {
+	// Territories are assumed to be much larger than other annotations.
+	// Scale up the markers so they can be seen and manipulated from a distance.
+	activeScale: 10,
+	inactiveScale: 1,
+}
 
 // Render a text string as a 2D texture which can be wrapped onto a mesh.
 function generateTextureWithLabel(label: string): THREE.CanvasTexture | null {
@@ -147,6 +153,7 @@ export class Territory extends Annotation {
 
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, renderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
+		marker.scale.setScalar(markerSettings.activeScale)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
 
@@ -186,11 +193,13 @@ export class Territory extends Annotation {
 
 	makeActive(): void {
 		(this.mesh.material as THREE.Material).transparent = false
+		this.markers.forEach(m => m.scale.setScalar(markerSettings.activeScale))
 	}
 
 	makeInactive(): void {
 		(this.mesh.material as THREE.Material).transparent = true
 		this.unhighlightMarkers()
+		this.markers.forEach(m => m.scale.setScalar(markerSettings.inactiveScale))
 	}
 
 	setLiveMode(): void {
