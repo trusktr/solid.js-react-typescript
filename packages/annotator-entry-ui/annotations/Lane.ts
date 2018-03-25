@@ -600,6 +600,7 @@ export class Lane extends Annotation {
 		return sum / (markers.length / 2)
 	}
 
+	// todo Annotator should ask for getLaneWidth() and update #lp_width_value for itself
 	updateLaneWidth(): void {
 		const laneWidth = $('#lp_width_value')
 		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")

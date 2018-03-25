@@ -30,8 +30,6 @@ import {AnnotationType} from './annotations/AnnotationType'
 import {AnnotationManager, OutputFormat} from './AnnotationManager'
 import {Annotation, AnnotationId} from './annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane} from './annotations/Lane'
-import {Connection} from "./annotations/Connection"
-import {TrafficSign} from "./annotations/TrafficSign"
 import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
 import * as EM from './ErrorMessages'
@@ -482,9 +480,7 @@ export class Annotator {
 		// Bind events
 		if (!this.uiState.isKioskMode)
 			this.bind()
-		Annotator.deactivateLaneProp()
-		Annotator.deactivateBoundaryProp()
-		Annotator.deactivateTrafficSignProp()
+		Annotator.deactivateAllAnnotationPropertiesMenus()
 
 		this.displayMenu(
 			config.get('startup.show_menu') && !this.uiState.isKioskMode
@@ -1246,19 +1242,9 @@ export class Annotator {
 					return
 
 				this.cleanTransformControls()
+				Annotator.deactivateAllAnnotationPropertiesMenus()
 				this.annotationManager.changeActiveAnnotation(inactive)
-				if (inactive instanceof Lane)
-					this.resetLaneProp()
-				else if (inactive instanceof  Boundary)
-					this.resetBoundaryProp()
-				else if (inactive instanceof TrafficSign)
-					this.resetTrafficSignProp()
-				else if (inactive instanceof Territory)
-					noop()
-				else if (inactive instanceof Connection)
-					noop() // Connection doesn't have any menus to maintain; this keeps the compiler from complaining.
-				else
-					log.warn(`unknown annotation type ${inactive}`)
+				this.resetAllAnnotationPropertiesMenuElements()
 			}
 		}
 	}
@@ -1314,10 +1300,12 @@ export class Annotator {
 	//  - an active control point
 	//  - a selected annotation
 	private escapeSelection(): void {
-		if (this.transformControls.isAttached())
+		if (this.transformControls.isAttached()) {
 			this.cleanTransformControls()
-		else if (this.annotationManager.activeAnnotation)
+		} else if (this.annotationManager.activeAnnotation) {
 			this.annotationManager.unsetActiveAnnotation()
+			Annotator.deactivateAllAnnotationPropertiesMenus()
+		}
 	}
 
 	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
@@ -1513,7 +1501,7 @@ export class Annotator {
 					break
 				}
 				case 'b': {
-					this.addBoundary()
+					this.addAnnotation(AnnotationType.BOUNDARY)
 					break
 				}
 				case 'C': {
@@ -1563,7 +1551,7 @@ export class Annotator {
 					break
 				}
 				case 'n': {
-					this.addLane()
+					this.addAnnotation(AnnotationType.LANE)
 					break
 				}
 				case 'o': {
@@ -1587,11 +1575,11 @@ export class Annotator {
 					break
 				}
 				case 'T': {
-					this.addTerritory()
+					this.addAnnotation(AnnotationType.TERRITORY)
 					break
 				}
 				case 't': {
-					this.addTrafficSign()
+					this.addAnnotation(AnnotationType.TRAFFIC_SIGN)
 					break
 				}
 				case 'U': {
@@ -1700,41 +1688,12 @@ export class Annotator {
 		}
 	}
 
-	private addLane(): void {
-		if (this.annotationManager.addAnnotation(null, AnnotationType.LANE, true)) {
-			log.info("Added new lane annotation")
-			Annotator.deactivateBoundaryProp()
-			Annotator.deactivateTrafficSignProp()
-			this.resetLaneProp()
-			this.hideTransform()
-		}
-	}
-
-	private addBoundary(): void {
-		if (this.annotationManager.addAnnotation(null, AnnotationType.BOUNDARY, true)) {
-			log.info("Added new boundary annotation")
-			Annotator.deactivateLaneProp()
-			Annotator.deactivateTrafficSignProp()
-			this.resetBoundaryProp()
-			this.hideTransform()
-		}
-	}
-
-	private addTrafficSign(): void {
-		if (this.annotationManager.addAnnotation(null, AnnotationType.TRAFFIC_SIGN, true)) {
-			log.info("Added new traffic sign annotation")
-			Annotator.deactivateLaneProp()
-			Annotator.deactivateBoundaryProp()
-			this.resetTrafficSignProp()
-			this.hideTransform()
-		}
-	}
-
-	private addTerritory(): void {
-		if (this.annotationManager.addAnnotation(null, AnnotationType.TERRITORY, true)) {
-			log.info("Added new territory annotation")
-			Annotator.deactivateLaneProp()
-			Annotator.deactivateBoundaryProp()
+	// Create an annotation, add it to the scene, and activate (highlight) it.
+	private addAnnotation(annotationType: AnnotationType): void {
+		if (this.annotationManager.addAnnotation(null, annotationType, true)) {
+			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
+			Annotator.deactivateAllAnnotationPropertiesMenus()
+			this.resetAllAnnotationPropertiesMenuElements()
 			this.hideTransform()
 		}
 	}
@@ -2087,7 +2046,7 @@ export class Annotator {
 		const toolsAddLane = document.getElementById('tools_add_lane')
 		if (toolsAddLane)
 			toolsAddLane.addEventListener('click', () => {
-				this.addLane()
+				this.addAnnotation(AnnotationType.LANE)
 			})
 		else
 			log.warn('missing element tools_add_lane')
@@ -2095,7 +2054,7 @@ export class Annotator {
 		const toolsAddTrafficSign = document.getElementById('tools_add_traffic_sign')
 		if (toolsAddTrafficSign)
 			toolsAddTrafficSign.addEventListener('click', () => {
-				this.addTrafficSign()
+				this.addAnnotation(AnnotationType.TRAFFIC_SIGN)
 			})
 		else
 			log.warn('missing element tools_add_traffic_sign')
@@ -2174,6 +2133,12 @@ export class Annotator {
 			log.info("Save car path to file.")
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
+	}
+
+	private resetAllAnnotationPropertiesMenuElements(): void {
+		this.resetBoundaryProp()
+		this.resetLaneProp()
+		this.resetTrafficSignProp()
 	}
 
 	/**
@@ -2308,6 +2273,12 @@ export class Annotator {
 		bpSelectColor.val(activeAnnotation.color.toString())
 	}
 
+	private static deactivateAllAnnotationPropertiesMenus(): void {
+		Annotator.deactivateBoundaryProp()
+		Annotator.deactivateLaneProp()
+		Annotator.deactivateTrafficSignProp()
+	}
+
 	/**
 	 * Deactivate lane properties menu panel
 	 */
@@ -2380,6 +2351,16 @@ export class Annotator {
 			bpColor.setAttribute('disabled', 'disabled')
 		else
 			log.warn('missing element bp_select_color')
+
+		const boundaryProp = document.getElementById('boundary_prop')
+		if (boundaryProp) {
+			const selects = boundaryProp.getElementsByTagName('select')
+			for (let i = 0; i < selects.length; ++i) {
+				selects.item(i).selectedIndex = 0
+				selects.item(i).setAttribute('disabled', 'disabled')
+			}
+		} else
+			log.warn('missing element boundary_prop')
 	}
 
 	/**

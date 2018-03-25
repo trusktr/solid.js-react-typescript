@@ -1069,6 +1069,9 @@ export class AnnotationManager extends UtmInterface {
 		}
 		this.convertCoordinates(data)
 
+		// Unset active, to pass a validation check in addAnnotation().
+		this.unsetActiveAnnotation()
+
 		// Convert data to annotations
 		let boundingBox = new THREE.Box3()
 		let invalid = 0
