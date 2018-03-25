@@ -65,6 +65,7 @@ export interface BoundaryJsonOutputInterface extends AnnotationJsonOutputInterfa
 }
 
 export class Boundary extends Annotation {
+	annotationType: AnnotationType
 	type: BoundaryType
 	minimumMarkerCount: number
 	markersFormRing: boolean
@@ -76,6 +77,7 @@ export class Boundary extends Annotation {
 
 	constructor(obj?: BoundaryJsonInputInterface) {
 		super(obj)
+		this.annotationType = AnnotationType.BOUNDARY
 		if (obj) {
 			this.type = isNullOrUndefined(BoundaryType[obj.boundaryType]) ? BoundaryType.UNKNOWN : BoundaryType[obj.boundaryType]
 			this.color = isNullOrUndefined(BoundaryColor[obj.boundaryColor]) ? BoundaryColor.UNKNOWN : BoundaryColor[obj.boundaryColor]

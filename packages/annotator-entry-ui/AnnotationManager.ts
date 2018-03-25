@@ -429,30 +429,11 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
-		let success
-		if (this.activeAnnotation instanceof Lane)
-			success = this.deleteLane(this.activeAnnotation)
-		else if (this.activeAnnotation instanceof Connection)
-			success = this.deleteConnection(this.activeAnnotation)
-		else if (this.activeAnnotation instanceof Boundary)
-			success = this.deleteBoundary(this.activeAnnotation)
-		else if (this.activeAnnotation instanceof TrafficSign)
-			success = this.deleteTrafficSign(this.activeAnnotation)
-		else if (this.activeAnnotation instanceof Territory)
-			success = this.deleteTerritory(this.activeAnnotation)
-		else {
-			log.warn('Unrecognized annotation type')
+		if (!this.deleteAnnotation(this.activeAnnotation)) {
+			log.warn(`deleteAnnotation() failed for ${this.activeAnnotation.annotationType}, ${this.activeAnnotation.uuid}`)
 			return false
 		}
 
-		if (!success) {
-			return false
-		}
-
-		// Remove lane from scene.
-		this.scene.remove(this.activeAnnotation.renderingObject)
-		// Remove rendering object from internal array of objects.
-		this.removeRenderingObjectFromArray(this.annotationObjects, this.activeAnnotation.renderingObject)
 		this.activeAnnotation = null
 		this.metadataState.dirty()
 
@@ -601,6 +582,7 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	setLiveMode(): void {
 		if (!this.isLiveMode) {
+			this.unsetActiveAnnotation()
 			this.allAnnotations().forEach(a => a.setLiveMode())
 			this.isLiveMode = true
 		}
@@ -613,7 +595,6 @@ export class AnnotationManager extends UtmInterface {
 		if (this.isLiveMode) {
 			this.allAnnotations().forEach(a => a.unsetLiveMode())
 			this.isLiveMode = false
-			this.activeAnnotation = null
 		}
 	}
 
@@ -957,12 +938,9 @@ export class AnnotationManager extends UtmInterface {
 
 	unloadAllAnnotations(): void {
 		log.info('deleting all annotations')
-		// slice() makes a local copy of each array, since the delete() methods mutate the arrays.
-		this.connectionAnnotations.slice().forEach(a => this.deleteConnection(a))
-		this.trafficSignAnnotations.slice().forEach(a => this.deleteTrafficSign(a))
-		this.territoryAnnotations.slice().forEach(a => this.deleteTerritory(a))
-		this.laneAnnotations.slice().forEach(a => this.deleteLane(a))
-		this.boundaryAnnotations.slice().forEach(a => this.deleteBoundary(a))
+		this.unsetActiveAnnotation()
+		this.allAnnotations().forEach(a => this.deleteAnnotation(a))
+		this.metadataState.clean()
 	}
 
 	enableAutoSave(): void {
@@ -1099,11 +1077,11 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	private allAnnotations(): Annotation[] {
 		return ([] as Annotation[])
-			.concat(this.laneAnnotations)
-			.concat(this.connectionAnnotations)
-			.concat(this.trafficSignAnnotations)
-			.concat(this.territoryAnnotations)
 			.concat(this.boundaryAnnotations)
+			.concat(this.connectionAnnotations)
+			.concat(this.laneAnnotations)
+			.concat(this.territoryAnnotations)
+			.concat(this.trafficSignAnnotations)
 	}
 
 	/**
@@ -1303,13 +1281,8 @@ export class AnnotationManager extends UtmInterface {
 					modifications++
 			} else if (frontNeighbor instanceof Connection) {
 				// If the front neighbor is a connection delete it
-				if (this.deleteConnection(frontNeighbor)) {
-					// Remove connection from scene.
-					this.scene.remove(frontNeighbor.renderingObject)
-					// Remove rendering object from internal array of objects.
-					this.removeRenderingObjectFromArray(this.annotationObjects, frontNeighbor.renderingObject)
+				if (this.deleteAnnotation(frontNeighbor))
 					modifications++
-				}
 			} else {
 				log.error('Not valid front neighbor')
 			}
@@ -1323,13 +1296,8 @@ export class AnnotationManager extends UtmInterface {
 					modifications++
 			} else if (backNeighbor instanceof Connection) {
 				// If the back neighbor is a connection delete it
-				if (this.deleteConnection(backNeighbor)) {
-					// Remove connection from scene.
-					this.scene.remove(backNeighbor.renderingObject)
-					// Remove rendering object from internal array of objects.
-					this.removeRenderingObjectFromArray(this.annotationObjects, backNeighbor.renderingObject)
+				if (this.deleteAnnotation(backNeighbor))
 					modifications++
-				}
 			} else {
 				log.error('Not valid back neighbor')
 			}
@@ -1462,45 +1430,28 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
-	 * Delete annotations
+	 * Delete an annotation and tear down references to it.
 	 */
-	private deleteLane(annotation: Lane): boolean {
-		// Make sure we remove references to this annotation from it's neighbors (if any).
-		this.deleteConnectionToNeighbors(annotation)
-		// Remove annotation from internal array of annotations.
-		const eraseIndex = this.getAnnotationIndexFromUuid(this.laneAnnotations, annotation.uuid)
-		this.laneAnnotations.splice(eraseIndex, 1)
-		return true
-	}
+	private deleteAnnotation(annotation: Annotation): boolean {
+		// Get data structures appropriate to the type.
+		const similarAnnotations = this.annotationTypeToSimilarAnnotationsList(annotation.annotationType)
+		if (!similarAnnotations)
+			return false
 
-	private deleteBoundary(annotation: Boundary): boolean {
-		// Remove annotation from internal array of annotations.
-		const eraseIndex = this.getAnnotationIndexFromUuid(this.boundaryAnnotations, annotation.uuid)
-		this.boundaryAnnotations.splice(eraseIndex, 1)
-		return true
-	}
+		// Side effect: remove references to this annotation from its neighbors
+		if (annotation instanceof Lane) {
+			this.deleteConnectionToNeighbors(annotation)
+		} else if (annotation instanceof Connection) {
+			this.removeUuidFromLaneNeighbors(annotation.startLaneUuid, annotation.uuid)
+			this.removeUuidFromLaneNeighbors(annotation.endLaneUuid, annotation.uuid)
+		}
 
-	private deleteTrafficSign(annotation: TrafficSign): boolean {
-		// Remove annotation from internal array of annotations.
-		const eraseIndex = this.getAnnotationIndexFromUuid(this.trafficSignAnnotations, annotation.uuid)
-		this.trafficSignAnnotations.splice(eraseIndex, 1)
-		return true
-	}
+		// Set state.
+		const eraseIndex = this.getAnnotationIndexFromUuid(similarAnnotations, annotation.uuid)
+		similarAnnotations.splice(eraseIndex, 1)
+		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
+		this.scene.remove(annotation.renderingObject)
 
-	private deleteTerritory(annotation: Territory): boolean {
-		// Remove annotation from internal array of annotations.
-		const eraseIndex = this.getAnnotationIndexFromUuid(this.territoryAnnotations, annotation.uuid)
-		this.territoryAnnotations.splice(eraseIndex, 1)
-		return true
-	}
-
-	private deleteConnection(annotation: Connection): boolean {
-		// Make sure we remove references to this annotation from it's neighbors (if any).
-		this.removeUuidFromLaneNeighbors(annotation.startLaneUuid, annotation.uuid)
-		this.removeUuidFromLaneNeighbors(annotation.endLaneUuid, annotation.uuid)
-		// Remove annotation from internal array of annotations.
-		const eraseIndex = this.getAnnotationIndexFromUuid(this.connectionAnnotations, annotation.uuid)
-		this.connectionAnnotations.splice(eraseIndex, 1)
 		return true
 	}
 
@@ -1566,8 +1517,8 @@ export class AnnotationManager extends UtmInterface {
 		})
 	}
 
-	private removeRenderingObjectFromArray(objectArrray: Array<THREE.Object3D>, queryObject: THREE.Object3D): boolean {
-		const index = objectArrray.findIndex((obj) => {
+	private removeRenderingObjectFromArray(allObjects: Array<THREE.Object3D>, queryObject: THREE.Object3D): boolean {
+		const index = allObjects.findIndex((obj) => {
 			return obj === queryObject
 		})
 		if (index < 0) {

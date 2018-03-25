@@ -1,6 +1,7 @@
 
 import * as THREE from 'three'
 import * as UUID from 'uuid'
+import {AnnotationType} from "./AnnotationType"
 
 export type AnnotationId = number
 export type AnnotationUuid = string
@@ -43,6 +44,7 @@ export namespace AnnotationRenderingProperties {
 }
 
 export abstract class Annotation {
+	abstract annotationType: AnnotationType // Its type, expressed as an enumeration for convenience
 	id: AnnotationId	 				// A small integer, for use in the UI during one session
 	uuid: AnnotationUuid 				// A UUID, for use across distributed applications
 	markers: Array<THREE.Mesh> 			// Control point used to edit the annotation

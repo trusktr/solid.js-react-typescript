@@ -58,6 +58,7 @@ export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInter
 }
 
 export class Connection extends Annotation {
+	annotationType: AnnotationType
 	type: ConnectionType
 	minimumMarkerCount: number
 	markersFormRing: boolean
@@ -71,6 +72,7 @@ export class Connection extends Annotation {
 
 	constructor(obj?: ConnectionJsonInputInterface) {
 		super(obj)
+		this.annotationType = AnnotationType.CONNECTION
 		if (obj) {
 			this.type = isNullOrUndefined(ConnectionType[obj.connectionType]) ? ConnectionType.UNKNOWN : ConnectionType[obj.connectionType]
 			this.startLaneUuid = obj.startLaneUuid

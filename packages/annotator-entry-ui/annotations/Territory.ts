@@ -84,6 +84,7 @@ export interface TerritoryJsonOutputInterface extends AnnotationJsonOutputInterf
 }
 
 export class Territory extends Annotation {
+	annotationType: AnnotationType
 	type: TerritoryType
 	minimumMarkerCount: number
 	markersFormRing: boolean
@@ -95,6 +96,7 @@ export class Territory extends Annotation {
 
 	constructor(obj?: TerritoryJsonInputInterface) {
 		super(obj)
+		this.annotationType = AnnotationType.TERRITORY
 		if (obj) {
 			this.type = isNullOrUndefined(TerritoryType[obj.territoryType]) ? TerritoryType.UNKNOWN : TerritoryType[obj.territoryType]
 		} else {

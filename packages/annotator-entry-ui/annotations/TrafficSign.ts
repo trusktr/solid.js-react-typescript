@@ -38,6 +38,7 @@ export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInte
 }
 
 export class TrafficSign extends Annotation {
+	annotationType: AnnotationType
 	type: TrafficSignType
 	minimumMarkerCount: number
 	markersFormRing: boolean
@@ -49,6 +50,7 @@ export class TrafficSign extends Annotation {
 
 	constructor(obj?: TrafficSignJsonInputInterface) {
 		super(obj)
+		this.annotationType = AnnotationType.TRAFFIC_SIGN
 		if (obj) {
 			this.type = isNullOrUndefined(TrafficSignType[obj.trafficSignType]) ? TrafficSignType.UNKNOWN : TrafficSignType[obj.trafficSignType]
 		} else {

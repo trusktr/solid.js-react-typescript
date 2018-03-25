@@ -150,6 +150,7 @@ export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface
  */
 export class Lane extends Annotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
+	annotationType: AnnotationType
 	type: LaneType
 	minimumMarkerCount: number
 	markersFormRing: boolean
@@ -173,8 +174,8 @@ export class Lane extends Annotation {
 	inTrajectory: boolean
 
 	constructor(obj?: LaneJsonInputInterfaceV3) {
-		// Call the base constructor
 		super(obj)
+		this.annotationType = AnnotationType.LANE
 		if (obj) {
 			this.type = isNullOrUndefined(LaneType[obj.laneType]) ? LaneType.UNKNOWN : LaneType[obj.laneType]
 			this.neighborsIds = obj.neighborsIds
