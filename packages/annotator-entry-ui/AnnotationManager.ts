@@ -151,20 +151,11 @@ export class AnnotationManager extends UtmInterface {
 		return this.allAnnotations().map(a => a.id)
 	}
 
-	/**
-	 * Get all markers that share a lane edge with the origin, up to a given distance in either direction.
-	 * Distance is a count of markers, not a physical distance.
-	 * Origin is not included in the result.
-	 * Sort order is not specified.
-	 */
-	neighboringLaneMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {
-		const active = this.getActiveLaneAnnotation()
-
-		if (active === null) {
+	neighboringMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {
+		if (this.activeAnnotation)
+			return this.activeAnnotation.neighboringMarkers(origin, distance)
+		else
 			return []
-		}
-
-		return active.neighboringLaneMarkers(origin, distance)
 	}
 
 	/**

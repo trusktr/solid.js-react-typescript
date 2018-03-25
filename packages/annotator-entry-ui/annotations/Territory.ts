@@ -5,8 +5,8 @@
 
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
-import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
+import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
+import {AnnotationGeometryType, AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
 import {ceilingPowerOf2} from "../util/Math"
@@ -85,9 +85,9 @@ export interface TerritoryJsonOutputInterface extends AnnotationJsonOutputInterf
 
 export class Territory extends Annotation {
 	annotationType: AnnotationType
+	geometryType: AnnotationGeometryType
 	type: TerritoryType
 	minimumMarkerCount: number
-	markersFormRing: boolean
 	allowNewMarkers: boolean
 	snapToGround: boolean
 	territoryContour: THREE.Line
@@ -97,6 +97,7 @@ export class Territory extends Annotation {
 	constructor(obj?: TerritoryJsonInputInterface) {
 		super(obj)
 		this.annotationType = AnnotationType.TERRITORY
+		this.geometryType = AnnotationGeometryType.RING
 		if (obj) {
 			this.type = isNullOrUndefined(TerritoryType[obj.territoryType]) ? TerritoryType.UNKNOWN : TerritoryType[obj.territoryType]
 		} else {
@@ -104,7 +105,6 @@ export class Territory extends Annotation {
 		}
 
 		this.minimumMarkerCount = 3
-		this.markersFormRing = true
 		this.allowNewMarkers = true
 		this.snapToGround = true
 		this.isComplete = false

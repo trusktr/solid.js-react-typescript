@@ -7,11 +7,10 @@ import * as THREE from 'three'
 import {
 	Annotation, AnnotationUuid, AnnotationRenderingProperties,
 	AnnotationJsonOutputInterface, AnnotationJsonInputInterface,
-} from 'annotator-entry-ui/annotations/AnnotationBase'
+} from './AnnotationBase'
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
-
-// Some variables used for rendering
+import {AnnotationGeometryType} from "./AnnotationBase"
 
 // Some types
 export enum ConnectionType {
@@ -59,9 +58,9 @@ export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInter
 
 export class Connection extends Annotation {
 	annotationType: AnnotationType
+	geometryType: AnnotationGeometryType
 	type: ConnectionType
 	minimumMarkerCount: number
-	markersFormRing: boolean
 	allowNewMarkers: boolean
 	snapToGround: boolean
 	startLaneUuid: AnnotationUuid
@@ -73,6 +72,7 @@ export class Connection extends Annotation {
 	constructor(obj?: ConnectionJsonInputInterface) {
 		super(obj)
 		this.annotationType = AnnotationType.CONNECTION
+		this.geometryType = AnnotationGeometryType.PAIRED_LINEAR
 		if (obj) {
 			this.type = isNullOrUndefined(ConnectionType[obj.connectionType]) ? ConnectionType.UNKNOWN : ConnectionType[obj.connectionType]
 			this.startLaneUuid = obj.startLaneUuid
@@ -84,7 +84,6 @@ export class Connection extends Annotation {
 		}
 
 		this.minimumMarkerCount = 4
-		this.markersFormRing = false
 		this.allowNewMarkers = false
 		this.snapToGround = true
 		this.directionMarkers = []

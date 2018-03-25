@@ -1139,7 +1139,7 @@ export class Annotator {
 		const mouse = this.getMouseCoordinates(event)
 
 		// If the click intersects the first marker of a ring-shaped annotation, close the annotation and return.
-		if (this.annotationManager.activeAnnotation.markersFormRing) {
+		if (this.annotationManager.activeAnnotation.markersFormRing()) {
 			this.raycasterMarker.setFromCamera(mouse, this.camera)
 			const markers = this.annotationManager.activeMarkers()
 			if (markers.length && this.raycasterMarker.intersectObject(markers[0]).length) {
@@ -1261,9 +1261,12 @@ export class Annotator {
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
 
+		const markers = this.annotationManager.activeMarkers()
+		if (!markers) return
+
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers())
+		const intersects = this.raycasterMarker.intersectObjects(markers)
 
 		if (intersects.length > 0) {
 			const marker = intersects[0].object as THREE.Mesh
@@ -1274,7 +1277,9 @@ export class Annotator {
 				if (this.uiState.numberKeyPressed === null) {
 					moveableMarkers = [marker]
 				} else {
-					const neighbors = this.annotationManager.neighboringLaneMarkers(marker, this.uiState.numberKeyPressed)
+					// special case: 0 searches for all neighbors, so set distance to infinity
+					const distance = this.uiState.numberKeyPressed || Number.POSITIVE_INFINITY
+					const neighbors = this.annotationManager.neighboringMarkers(marker, distance)
 					this.annotationManager.highlightMarkers(neighbors)
 					neighbors.unshift(marker)
 					moveableMarkers = neighbors
@@ -1471,7 +1476,7 @@ export class Annotator {
 	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
 		if (event.repeat) {
 			noop()
-		} else if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
+		} else if (event.keyCode >= 48 && event.keyCode <= 57) { // digits 0 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else {
 			switch (event.key) {

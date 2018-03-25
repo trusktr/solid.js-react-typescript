@@ -5,8 +5,8 @@
 
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
-import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
+import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
+import {AnnotationGeometryType, AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
 
@@ -39,9 +39,9 @@ export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInte
 
 export class TrafficSign extends Annotation {
 	annotationType: AnnotationType
+	geometryType: AnnotationGeometryType
 	type: TrafficSignType
 	minimumMarkerCount: number
-	markersFormRing: boolean
 	allowNewMarkers: boolean
 	snapToGround: boolean
 	trafficSignContour: THREE.Line
@@ -51,6 +51,7 @@ export class TrafficSign extends Annotation {
 	constructor(obj?: TrafficSignJsonInputInterface) {
 		super(obj)
 		this.annotationType = AnnotationType.TRAFFIC_SIGN
+		this.geometryType = AnnotationGeometryType.RING
 		if (obj) {
 			this.type = isNullOrUndefined(TrafficSignType[obj.trafficSignType]) ? TrafficSignType.UNKNOWN : TrafficSignType[obj.trafficSignType]
 		} else {
@@ -58,7 +59,6 @@ export class TrafficSign extends Annotation {
 		}
 
 		this.minimumMarkerCount = 3
-		this.markersFormRing = true
 		this.allowNewMarkers = true
 		this.snapToGround = false
 		this.isComplete = false
