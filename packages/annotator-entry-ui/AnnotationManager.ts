@@ -15,12 +15,13 @@ import {
 	AnnotationJsonOutputInterface, AnnotationUuid, LlaJson, UtmJson
 } from 'annotator-entry-ui/annotations/AnnotationBase'
 import {
-	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds, LaneJsonInputInterfaceV3
+	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds
 } from 'annotator-entry-ui/annotations/Lane'
-import {TrafficSign, TrafficSignJsonInputInterface} from 'annotator-entry-ui/annotations/TrafficSign'
-import {Territory, TerritoryJsonInputInterface} from "./annotations/Territory"
-import {Connection, ConnectionJsonInputInterface} from 'annotator-entry-ui/annotations/Connection'
-import {Boundary, BoundaryJsonInputInterface} from 'annotator-entry-ui/annotations/Boundary'
+import * as AnnotationFactory from "./annotations/AnnotationFactory"
+import {TrafficSign} from 'annotator-entry-ui/annotations/TrafficSign'
+import {Territory} from "./annotations/Territory"
+import {Connection} from 'annotator-entry-ui/annotations/Connection'
+import {Boundary} from 'annotator-entry-ui/annotations/Boundary'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -197,9 +198,8 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		// Get methods and data structures appropriate to the type.
-		const constructAnnotation = this.annotationTypeToAnnotationConstructor(myAnnotationType)
 		const similarAnnotations = this.annotationTypeToSimilarAnnotationsList(myAnnotationType)
-		if (constructAnnotation === null || similarAnnotations === null) {
+		if (similarAnnotations === null) {
 			if (obj)
 				log.warn(`discarding annotation with invalid type ${obj.annotationType}`)
 			else
@@ -208,19 +208,21 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		// Instantiate it.
-		let newAnnotation: Annotation
+		let newAnnotation: Annotation | null
 		if (obj) {
 			// Discard duplicate annotations.
 			if (similarAnnotations.some(a => a.uuid === obj.uuid))
 				return null
 
 			// Instantiate and validate.
-			newAnnotation = constructAnnotation(obj)
-			if (!newAnnotation.isValid())
+			newAnnotation = AnnotationFactory.construct(myAnnotationType, obj)
+			if (!(newAnnotation && newAnnotation.isValid()))
 				return null
 		} else {
-			newAnnotation = constructAnnotation()
+			newAnnotation = AnnotationFactory.construct(myAnnotationType)
 		}
+		if (!newAnnotation)
+			return null
 
 		// Set state.
 		similarAnnotations.push(newAnnotation)
@@ -243,24 +245,6 @@ export class AnnotationManager extends UtmInterface {
 			default: return null
 		}
 	}
-
-	// Get a constructor for AnnotationType.
-	private annotationTypeToAnnotationConstructor(annotationType: AnnotationType): ((obj2?: AnnotationJsonInputInterface) => Annotation) | null {
-		switch (annotationType) {
-			case AnnotationType.BOUNDARY: return this.constructBoundary
-			case AnnotationType.CONNECTION: return this.constructConnection
-			case AnnotationType.LANE: return this.constructLane
-			case AnnotationType.TERRITORY: return this.constructTerritory
-			case AnnotationType.TRAFFIC_SIGN: return this.constructTrafficSign
-			default: return null
-		}
-	}
-
-	private constructBoundary = (obj?: AnnotationJsonInputInterface): Annotation => new Boundary(obj as BoundaryJsonInputInterface)
-	private constructConnection = (obj?: AnnotationJsonInputInterface): Annotation => new Connection(obj as ConnectionJsonInputInterface)
-	private constructLane = (obj?: AnnotationJsonInputInterface): Annotation => new Lane(obj as LaneJsonInputInterfaceV3)
-	private constructTerritory = (obj?: AnnotationJsonInputInterface): Annotation => new Territory(obj as TerritoryJsonInputInterface)
-	private constructTrafficSign = (obj?: AnnotationJsonInputInterface): Annotation => new TrafficSign(obj as TrafficSignJsonInputInterface)
 
 	/**
 	 * Add a new relation between two existing lanes
