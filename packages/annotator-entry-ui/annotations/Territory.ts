@@ -15,14 +15,12 @@ import {ceilingPowerOf2} from "../util/Math"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-export enum TerritoryType {
-	UNKNOWN = 0,
-}
+const defaultLabel = 'NEW_TERRITORY'
 
 // Some variables used for rendering
 const renderingProperties = {
 	markerMaterial: new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide}),
-	meshMaterialParameters: {color: 0x338800, side: THREE.DoubleSide, transparent: true, opacity: 0.5} as THREE.MeshBasicMaterialParameters,
+	meshMaterialParameters: {side: THREE.DoubleSide, transparent: true, opacity: 0.5} as THREE.MeshBasicMaterialParameters,
 	contourMaterial: new THREE.LineBasicMaterial({color: 0x0000ff}),
 }
 // Map a rectangular, repeating texture onto triangular faces of a mesh geometry.
@@ -82,17 +80,17 @@ function generateTextureWithLabel(label: string): THREE.CanvasTexture | null {
 }
 
 export interface TerritoryJsonInputInterface extends AnnotationJsonInputInterface {
-	territoryType: string
+	label: string
 }
 
 export interface TerritoryJsonOutputInterface extends AnnotationJsonOutputInterface {
-	territoryType: string
+	label: string
 }
 
 export class Territory extends Annotation {
 	annotationType: AnnotationType
 	geometryType: AnnotationGeometryType
-	type: TerritoryType
+	private label: string
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
@@ -104,11 +102,8 @@ export class Territory extends Annotation {
 		super(obj)
 		this.annotationType = AnnotationType.TERRITORY
 		this.geometryType = AnnotationGeometryType.RING
-		if (obj) {
-			this.type = isNullOrUndefined(TerritoryType[obj.territoryType]) ? TerritoryType.UNKNOWN : TerritoryType[obj.territoryType]
-		} else {
-			this.type = TerritoryType.UNKNOWN
-		}
+		if (!(obj && this.setLabel(obj.label)))
+			this.setLabel(defaultLabel)
 
 		this.minimumMarkerCount = 3
 		this.allowNewMarkers = true
@@ -116,15 +111,9 @@ export class Territory extends Annotation {
 		this.isComplete = false
 		this.territoryContour = new THREE.Line(new THREE.Geometry(), renderingProperties.contourMaterial)
 
-		const texture = generateTextureWithLabel(TerritoryType[this.type])
-		if (texture) {
-			// Replace the default color with a texture.
-			delete(renderingProperties.meshMaterialParameters.color)
-			renderingProperties.meshMaterialParameters.map = texture
-		}
-
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), new THREE.MeshBasicMaterial(renderingProperties.meshMaterialParameters))
 		this.mesh.visible = true // mesh is always visible since it is translucent
+		this.updateMeshMaterial()
 		this.renderingObject.add(this.mesh)
 		this.renderingObject.add(this.territoryContour)
 
@@ -142,6 +131,28 @@ export class Territory extends Annotation {
 
 	isValid(): boolean {
 		return this.markers.length >= this.minimumMarkerCount
+	}
+
+	private updateMeshMaterial(): void {
+		if (!this.mesh) return
+
+		const texture = generateTextureWithLabel(this.label)
+		if (texture)
+			(this.mesh.material as THREE.MeshBasicMaterial).map = texture
+	}
+
+	getLabel(): string {
+		return this.label
+	}
+
+	setLabel(label: string): boolean {
+		if (isNullOrUndefined(label) || label === '') {
+			return false
+		} else {
+			this.label = label
+			this.updateMeshMaterial()
+			return true
+		}
 	}
 
 	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
@@ -273,7 +284,7 @@ export class Territory extends Annotation {
 		const data: TerritoryJsonOutputInterface = {
 			annotationType: AnnotationType[AnnotationType.TERRITORY],
 			uuid: this.uuid,
-			territoryType: TerritoryType[this.type],
+			label: this.label,
 			markers: [],
 		}
 

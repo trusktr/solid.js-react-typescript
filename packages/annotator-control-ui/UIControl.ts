@@ -250,6 +250,7 @@ const menuIds = [
 	'#menu_help',
 	'#menu_lane',
 	'#menu_neighbors',
+	'#menu_territory',
 	'#menu_traffic_sign',
 	'#menu_trajectory',
 ]

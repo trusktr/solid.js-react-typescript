@@ -1444,10 +1444,23 @@ export class Annotator {
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
 
-		if (this.uiState.isLiveMode)
+		if (document.activeElement.tagName === 'INPUT')
+			this.onKeyDownInputElement(event)
+		else if (this.uiState.isLiveMode)
 			this.onKeyDownLiveMode(event)
 		else
 			this.onKeyDownInteractiveMode(event)
+	}
+
+	private onKeyDownInputElement = (event: KeyboardEvent): void => {
+		switch (event.key) {
+			case 'Escape': {
+				(event.target as HTMLInputElement).blur()
+				break
+			}
+			default:
+			// nothing to do here
+		}
 	}
 
 	private onKeyDownLiveMode = (event: KeyboardEvent): void => {
@@ -1967,6 +1980,29 @@ export class Annotator {
 			log.warn('missing element lc_add')
 	}
 
+	private bindTerritoryPropertiesPanel(): void {
+		const territoryLabel = document.getElementById('input_label_territory')
+		if (territoryLabel) {
+			// Select all text when the input element gains focus.
+			territoryLabel.addEventListener('focus', event => {
+				(event.target as HTMLInputElement).select()
+			})
+
+			// Update territory label text on any change to input.
+			territoryLabel.addEventListener('input', (event: Event) => {
+				const activeAnnotation = this.annotationManager.getActiveTerritoryAnnotation()
+				if (activeAnnotation)
+					activeAnnotation.setLabel((event.target as HTMLInputElement).value)
+			})
+
+			// User is done editing: lose focus.
+			territoryLabel.addEventListener('change', (event: Event) => {
+				(event.target as HTMLInputElement).blur()
+			})
+		} else
+			log.warn('missing element input_label_territory')
+	}
+
 	private bindTrafficSignPropertiesPanel(): void {
 		const tpType = $('#tp_select_type')
 		tpType.on('change', () => {
@@ -2002,6 +2038,7 @@ export class Annotator {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
 		this.bindRelationsPanel()
+		this.bindTerritoryPropertiesPanel()
 		this.bindTrafficSignPropertiesPanel()
 		this.bindBoundaryPropertiesPanel()
 
@@ -2147,6 +2184,7 @@ export class Annotator {
 	private resetAllAnnotationPropertiesMenuElements(): void {
 		this.resetBoundaryProp()
 		this.resetLaneProp()
+		this.resetTerritoryProp()
 		this.resetTrafficSignProp()
 	}
 
@@ -2239,6 +2277,22 @@ export class Annotator {
 	}
 
 	/**
+	 * Reset territory properties elements based on the current active territory
+	 */
+	private resetTerritoryProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveTerritoryAnnotation()
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_territory')
+
+		const territoryLabel = document.getElementById('input_label_territory')
+		if (territoryLabel) {
+			(territoryLabel as HTMLInputElement).value = activeAnnotation.getLabel()
+		} else
+			log.warn('missing element input_label_territory')
+	}
+
+	/**
 	 * Reset traffic sign properties elements based on the current active traffic sign
 	 */
 	private resetTrafficSignProp(): void {
@@ -2285,6 +2339,7 @@ export class Annotator {
 	private static deactivateAllAnnotationPropertiesMenus(): void {
 		Annotator.deactivateBoundaryProp()
 		Annotator.deactivateLaneProp()
+		Annotator.deactivateTerritoryProp()
 		Annotator.deactivateTrafficSignProp()
 	}
 
@@ -2370,6 +2425,17 @@ export class Annotator {
 			}
 		} else
 			log.warn('missing element boundary_prop')
+	}
+
+	/**
+	 * Deactivate territory properties menu panel
+	 */
+	private static deactivateTerritoryProp(): void {
+		const territoryLabel = document.getElementById('input_label_territory')
+		if (territoryLabel)
+			(territoryLabel as HTMLInputElement).value = ''
+		else
+			log.warn('missing element input_label_territory')
 	}
 
 	/**

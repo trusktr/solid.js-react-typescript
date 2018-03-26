@@ -140,6 +140,13 @@ export class AnnotationManager extends UtmInterface {
 			return null
 	}
 
+	getActiveTerritoryAnnotation(): Territory | null {
+		if (this.activeAnnotation && this.activeAnnotation instanceof Territory)
+			return this.activeAnnotation as Territory
+		else
+			return null
+	}
+
 	getActiveTrafficSignAnnotation(): TrafficSign | null {
 		if (this.activeAnnotation && this.activeAnnotation instanceof TrafficSign)
 			return this.activeAnnotation as TrafficSign
