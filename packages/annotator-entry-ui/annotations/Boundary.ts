@@ -5,8 +5,8 @@
 
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
-import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
-import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase";
+import {Annotation, AnnotationGeometryType, AnnotationRenderingProperties} from './AnnotationBase'
+import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
 
@@ -52,7 +52,6 @@ namespace BoundaryRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 	export const activeMaterial = new THREE.LineBasicMaterial({color: 0xf0d06e})
 	export const inactiveMaterial = new THREE.LineBasicMaterial({color: 0x00ffff})
-
 }
 
 export interface BoundaryJsonInputInterface extends AnnotationJsonInputInterface {
@@ -66,9 +65,10 @@ export interface BoundaryJsonOutputInterface extends AnnotationJsonOutputInterfa
 }
 
 export class Boundary extends Annotation {
+	annotationType: AnnotationType
+	geometryType: AnnotationGeometryType
 	type: BoundaryType
 	minimumMarkerCount: number
-	markersFormRing: boolean
 	allowNewMarkers: boolean
 	snapToGround: boolean
 	color: BoundaryColor
@@ -77,6 +77,8 @@ export class Boundary extends Annotation {
 
 	constructor(obj?: BoundaryJsonInputInterface) {
 		super(obj)
+		this.annotationType = AnnotationType.BOUNDARY
+		this.geometryType = AnnotationGeometryType.LINEAR
 		if (obj) {
 			this.type = isNullOrUndefined(BoundaryType[obj.boundaryType]) ? BoundaryType.UNKNOWN : BoundaryType[obj.boundaryType]
 			this.color = isNullOrUndefined(BoundaryColor[obj.boundaryColor]) ? BoundaryColor.UNKNOWN : BoundaryColor[obj.boundaryColor]
@@ -86,7 +88,6 @@ export class Boundary extends Annotation {
 		}
 
 		this.minimumMarkerCount = 2
-		this.markersFormRing = false
 		this.allowNewMarkers = true
 		this.snapToGround = true
 		this.boundaryContour = new THREE.Line(new THREE.Geometry(), BoundaryRenderingProperties.activeMaterial)
@@ -174,7 +175,7 @@ export class Boundary extends Annotation {
 			return
 		}
 
-		const newContourGeometry = new THREE.Geometry();
+		const newContourGeometry = new THREE.Geometry()
 
 		this.markers.forEach((marker) => {
 			newContourGeometry.vertices.push(marker.position)
@@ -208,5 +209,4 @@ export class Boundary extends Annotation {
 
 		return data
 	}
-
 }

@@ -9,9 +9,10 @@ import * as $ from 'jquery'
 import {
 	AnnotationUuid, Annotation, AnnotationRenderingProperties,
 	AnnotationJsonOutputInterface, AnnotationJsonInputInterface
-} from 'annotator-entry-ui/annotations/AnnotationBase'
+} from './AnnotationBase'
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
+import {AnnotationGeometryType} from "./AnnotationBase"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -99,7 +100,7 @@ class LaneRenderingProperties {
 
 	constructor(color: number) {
 		this.color = color
-		this.markerMaterial = new THREE.MeshLambertMaterial({color: this.color, side: THREE.DoubleSide})
+		this.markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 		this.activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
 		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side: THREE.DoubleSide})
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side: THREE.DoubleSide})
@@ -150,9 +151,10 @@ export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface
  */
 export class Lane extends Annotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
+	annotationType: AnnotationType
+	geometryType: AnnotationGeometryType
 	type: LaneType
 	minimumMarkerCount: number
-	markersFormRing: boolean
 	allowNewMarkers: boolean
 	snapToGround: boolean
 	private renderingProperties: LaneRenderingProperties
@@ -173,8 +175,9 @@ export class Lane extends Annotation {
 	inTrajectory: boolean
 
 	constructor(obj?: LaneJsonInputInterfaceV3) {
-		// Call the base constructor
 		super(obj)
+		this.annotationType = AnnotationType.LANE
+		this.geometryType = AnnotationGeometryType.PAIRED_LINEAR
 		if (obj) {
 			this.type = isNullOrUndefined(LaneType[obj.laneType]) ? LaneType.UNKNOWN : LaneType[obj.laneType]
 			this.neighborsIds = obj.neighborsIds
@@ -196,7 +199,6 @@ export class Lane extends Annotation {
 		}
 
 		this.minimumMarkerCount = 4
-		this.markersFormRing = false
 		this.allowNewMarkers = true
 		this.snapToGround = true
 		const color = Math.random() * 0xffffff
@@ -538,32 +540,6 @@ export class Lane extends Annotation {
 		return data
 	}
 
-	/**
-	 * Find neighboring points on the same edge as the origin. Given how addMarker() works with pairs,
-	 * assume that all odd-indexed points are on one edge and all even-indexed points are on the other.
-	 */
-	neighboringLaneMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {
-		if (distance < 1) return []
-
-		const neighbors: Array<THREE.Mesh> = []
-		let originIndex = -1
-		// Find the origin.
-		for (let i = 0; i < this.markers.length; i++) {
-			if (this.markers[i].id === origin.id) {
-				originIndex = i
-				break
-			}
-		}
-		// Find the neighbors.
-		if (originIndex > -1)
-			for (let i = originIndex % 2; i < this.markers.length; i += 2) {
-				if (i !== originIndex && Math.abs(i - originIndex) <= distance * 2)
-					neighbors.push(this.markers[i])
-			}
-
-		return neighbors
-	}
-
 	tryTrajectory(trajectory: Array<THREE.Vector3>): void {
 		// Remove points from lineDirection object
 		this.laneDirectionMarkers.forEach((marker) => {
@@ -600,6 +576,7 @@ export class Lane extends Annotation {
 		return sum / (markers.length / 2)
 	}
 
+	// todo Annotator should ask for getLaneWidth() and update #lp_width_value for itself
 	updateLaneWidth(): void {
 		const laneWidth = $('#lp_width_value')
 		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")
