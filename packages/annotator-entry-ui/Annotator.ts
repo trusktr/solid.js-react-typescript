@@ -1298,12 +1298,16 @@ export class Annotator {
 			return
 		}
 
-		// delete
-		//this.annotationManager.deleteAnnotation(annotation2)
-
 		// update UI panel
-		//if (activeLane.id === fromUID)
-		//	Annotator.deactivateFrontSideNeighbours()
+		this.annotationManager.changeActiveAnnotation(annotation1)
+		if (annotation1 instanceof Lane) {
+			this.resetLaneProp()
+		} else if (annotation1 instanceof Boundary) {
+			this.resetBoundaryProp()
+		}
+
+		// delete
+		this.annotationManager.deleteAnnotation(annotation2)
 	}
 
 	private isAnnotationLocked(annotation: Annotation): boolean {

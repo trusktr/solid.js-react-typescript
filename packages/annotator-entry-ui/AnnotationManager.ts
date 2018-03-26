@@ -1439,6 +1439,44 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Delete annotations
 	 */
+	deleteAnnotation(annotation: Annotation): boolean {
+		if (this.isLiveMode) return false
+
+		let success
+		if (annotation instanceof Lane)
+			success = this.deleteLane(annotation)
+		else if (annotation instanceof  Boundary)
+			success = this.deleteBoundary(annotation)
+		else if (annotation instanceof TrafficSign)
+			success = this.deleteTrafficSign(annotation)
+		else if (annotation instanceof Connection)
+			success = this.deleteConnection(annotation)
+		else {
+			log.warn(`unknown annotation type ${annotation}`)
+			return false
+		}
+
+		if (!success) {
+			return false
+		}
+
+		// Remove lane from path
+		const index = this.laneIndexInPath(annotation.uuid)
+		if (index !== -1) {
+			this.laneAnnotations[index].setTrajectory(false)
+			this.carPath.splice(index, 1)
+			log.info("Lane removed from the car path.")
+		}
+
+		// Remove annotation from scene.
+		this.scene.remove(annotation.renderingObject)
+		// Remove rendering object from internal array of objects.
+		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
+		this.metadataState.dirty()
+
+		return true
+	}
+
 	private deleteLane(annotation: Lane): boolean {
 		// Make sure we remove references to this annotation from it's neighbors (if any).
 		this.deleteConnectionToNeighbors(annotation)
