@@ -244,9 +244,13 @@ if (trafficSignProp)
 		}
 	}
 
-$('#menu_1').accordion({collapsible: true, heightStyle: "content"})
-$('#menu_2').accordion({collapsible: true, heightStyle: "content"})
-$('#menu_3').accordion({collapsible: true, heightStyle: "content"})
-$('#menu_4').accordion({collapsible: true, heightStyle: "content"})
-$('#menu_5').accordion({collapsible: true, heightStyle: "content"})
-$('#menu_6').accordion({collapsible: true, heightStyle: "content"})
+const accordionOptions = {collapsible: true, active: false, heightStyle: "content"}
+const menuIds = [
+	'#menu_boundary',
+	'#menu_help',
+	'#menu_lane',
+	'#menu_neighbors',
+	'#menu_traffic_sign',
+	'#menu_trajectory',
+]
+menuIds.forEach(domId => $(domId).accordion(accordionOptions))

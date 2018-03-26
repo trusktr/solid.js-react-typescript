@@ -50,7 +50,7 @@ declare global {
 }
 
 const statsModule = require("stats.js")
-const {dialog} = require('electron').remote
+const {dialog}: { dialog: Electron.Dialog } = require('electron').remote
 const zmq = require('zmq')
 const OBJLoader = require('three-obj-loader')
 OBJLoader(THREE)
@@ -2140,6 +2140,10 @@ export class Annotator {
 		})
 	}
 
+	private static expandAccordion(domId: string): void {
+		$(domId).accordion('option', {active: 0})
+	}
+
 	private resetAllAnnotationPropertiesMenuElements(): void {
 		this.resetBoundaryProp()
 		this.resetLaneProp()
@@ -2151,9 +2155,9 @@ export class Annotator {
 	 */
 	private resetLaneProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-		if (activeAnnotation === null) {
-			return
-		}
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_lane')
 
 		if (activeAnnotation.neighborsIds.left != null) {
 			Annotator.deactivateLeftSideNeighbours()
@@ -2239,9 +2243,9 @@ export class Annotator {
 	 */
 	private resetTrafficSignProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
-		if (activeAnnotation === null) {
-			return
-		}
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_traffic_sign')
 
 		const tpId = document.getElementById('tp_id_value')
 		if (tpId)
@@ -2259,9 +2263,9 @@ export class Annotator {
 	 */
 	private resetBoundaryProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
-		if (activeAnnotation === null) {
-			return
-		}
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_boundary')
 
 		const bpId = document.getElementById('bp_id_value')
 		if (bpId)
