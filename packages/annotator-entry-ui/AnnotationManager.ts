@@ -402,30 +402,11 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
-		let success
-		if (this.activeAnnotation instanceof Lane)
-			success = this.deleteLane(this.activeAnnotation)
-		else if (this.activeAnnotation instanceof Connection)
-			success = this.deleteConnection(this.activeAnnotation)
-		else if (this.activeAnnotation instanceof Boundary)
-			success = this.deleteBoundary(this.activeAnnotation)
-		else if (this.activeAnnotation instanceof TrafficSign)
-			success = this.deleteTrafficSign(this.activeAnnotation)
-		else {
-			log.warn('Unrecognized annotation type')
+		if (!this.deleteAnnotation(this.activeAnnotation)) {
 			return false
 		}
 
-		if (!success) {
-			return false
-		}
-
-		// Remove lane from scene.
-		this.scene.remove(this.activeAnnotation.renderingObject)
-		// Remove rendering object from internal array of objects.
-		this.removeRenderingObjectFromArray(this.annotationObjects, this.activeAnnotation.renderingObject)
 		this.activeAnnotation = null
-		this.metadataState.dirty()
 
 		return true
 	}
@@ -510,23 +491,6 @@ export class AnnotationManager extends UtmInterface {
 			log.info("Lane added to the car path.")
 		} else {
 			activeLane.setTrajectory(false)
-			this.carPath.splice(index, 1)
-			log.info("Lane removed from the car path.")
-		}
-
-		this.metadataState.dirty()
-		return true
-	}
-
-	deleteActiveLaneFromPath(): boolean {
-		const activeLane = this.getActiveLaneAnnotation()
-		if (!activeLane) {
-			return false
-		}
-
-		const index = this.laneIndexInPath(activeLane.uuid)
-		if (index !== -1) {
-			this.laneAnnotations[index].setTrajectory(false)
 			this.carPath.splice(index, 1)
 			log.info("Lane removed from the car path.")
 		}
