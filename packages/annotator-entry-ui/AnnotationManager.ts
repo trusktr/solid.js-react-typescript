@@ -84,6 +84,7 @@ export class AnnotationManager extends UtmInterface {
 	connectionAnnotations: Array<Connection>
 	annotationObjects: Array<THREE.Object3D>
 	activeAnnotation: Annotation | null
+	bezierScaleFactor: number  // Used when creating connections
 	private carPath: Array<AnnotationUuid>
 	private carPathActivation: boolean
 	private metadataState: AnnotationState
@@ -102,6 +103,7 @@ export class AnnotationManager extends UtmInterface {
 		this.carPathActivation = false
 		this.metadataState = new AnnotationState(this)
 		this.isLiveMode = false
+		this.bezierScaleFactor = 6
 	}
 
 	toString(): string {
@@ -1432,15 +1434,14 @@ export class AnnotationManager extends UtmInterface {
 		const rp2 = laneTo.markers[1].position.clone()
 		const rp3 = laneTo.markers[3].position.clone()
 
-		const scaleFactor = 6
 		let lcp1 = new THREE.Vector3()
 		let lcp2 = new THREE.Vector3()
-		lcp1.subVectors(lp1, lp0).normalize().multiplyScalar(scaleFactor).add(lp1)
-		lcp2.subVectors(lp2, lp3).normalize().multiplyScalar(scaleFactor).add(lp2)
+		lcp1.subVectors(lp1, lp0).normalize().multiplyScalar(this.bezierScaleFactor).add(lp1)
+		lcp2.subVectors(lp2, lp3).normalize().multiplyScalar(this.bezierScaleFactor).add(lp2)
 		let rcp1 = new THREE.Vector3()
 		let rcp2 = new THREE.Vector3()
-		rcp1.subVectors(rp1, rp0).normalize().multiplyScalar(scaleFactor).add(rp1)
-		rcp2.subVectors(rp2, rp3).normalize().multiplyScalar(scaleFactor).add(rp2)
+		rcp1.subVectors(rp1, rp0).normalize().multiplyScalar(this.bezierScaleFactor).add(rp1)
+		rcp2.subVectors(rp2, rp3).normalize().multiplyScalar(this.bezierScaleFactor).add(rp2)
 
 		const curveLeft = new THREE.CubicBezierCurve3(lp1, lcp1, lcp2, lp2)
 		const curveRight = new THREE.CubicBezierCurve3(rp1, rcp1, rcp2, rp2)

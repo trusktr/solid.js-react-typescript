@@ -433,14 +433,21 @@ export class Annotator {
 			this.gui.addColor(this.settings, 'background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
-			this.gui.add(this.uiState, 'lockBoundaries').onChange((value: boolean) => {
+
+			const folderLock = this.gui.addFolder('Lock')
+			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
 				if (value && this.annotationManager.activeAnnotation instanceof Boundary)
 					this.annotationManager.unsetActiveAnnotation()
 			})
-			this.gui.add(this.uiState, 'lockLanes').onChange((value: boolean) => {
+			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
 				if (value && this.annotationManager.activeAnnotation instanceof Lane)
 					this.annotationManager.unsetActiveAnnotation()
 			})
+			folderLock.open()
+
+			const folderConnection = this.gui.addFolder('Connection params')
+			folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
+			folderConnection.open()
 			this.gui.domElement.className = 'threeJs_gui'
 		}
 
