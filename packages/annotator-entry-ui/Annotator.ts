@@ -436,18 +436,25 @@ export class Annotator {
 			this.gui.addColor(this.settings, 'background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
-			this.gui.add(this.uiState, 'lockBoundaries').onChange((value: boolean) => {
+
+			const folderLock = this.gui.addFolder('Lock')
+			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
 				if (value && this.annotationManager.activeAnnotation instanceof Boundary)
 					this.annotationManager.unsetActiveAnnotation()
 			})
-			this.gui.add(this.uiState, 'lockLanes').onChange((value: boolean) => {
+			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
 				if (value && this.annotationManager.activeAnnotation instanceof Lane)
 					this.annotationManager.unsetActiveAnnotation()
 			})
-			this.gui.add(this.uiState, 'lockTerritories').onChange((value: boolean) => {
+			folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
 				if (value && this.annotationManager.activeAnnotation instanceof Territory)
 					this.annotationManager.unsetActiveAnnotation()
 			})
+			folderLock.open()
+
+			const folderConnection = this.gui.addFolder('Connection params')
+			folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
+			folderConnection.open()
 			this.gui.domElement.className = 'threeJs_gui'
 		} else {
 			this.gui = null
@@ -2797,9 +2804,13 @@ export class Annotator {
 	}
 
 	private updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
-		const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
-		const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
-		this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+		// This is a hack to allow data with no coordinate reference system to pass through the UTM classes.
+		// Data in local coordinate systems tend to have small values for X (and Y and Z) which are invalid in UTM.
+		if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO fix this.
+			const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
+			const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
+			this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+		}
 		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
 		this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
 	}
