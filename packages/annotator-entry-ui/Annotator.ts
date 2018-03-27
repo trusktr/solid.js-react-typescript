@@ -1259,33 +1259,12 @@ export class Annotator {
 			annotation2 = activeAnnotation
 		}
 
-		// Check if the 2 annotation are of the same type
-		if (annotation1.constructor !== annotation2.constructor) {
-			log.warn(`Clicked objects are not of the same type.`)
+		// join annotations
+		if (!this.annotationManager.joinAnnotations(annotation1, annotation2))
 			return
-		}
-
-		// merge
-		if (!annotation1.join(annotation2)) {
-			log.warn(`Unable to join the two annotations.`)
-			return
-		}
-
-		// create new neighbours connections
-		if (annotation1 instanceof Lane) {
-			this.annotationManager.refreshLaneNeighbours(annotation1)
-		}
 
 		// update UI panel
-		this.annotationManager.changeActiveAnnotation(annotation1)
-		if (annotation1 instanceof Lane) {
-			this.resetLaneProp()
-		} else if (annotation1 instanceof Boundary) {
-			this.resetBoundaryProp()
-		}
-
-		// delete
-		this.annotationManager.deleteAnnotation(annotation2)
+		this.resetAllAnnotationPropertiesMenuElements()
 	}
 
 	private isAnnotationLocked(annotation: Annotation): boolean {

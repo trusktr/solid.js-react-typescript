@@ -359,6 +359,36 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
+	 * Join two annotations, if they are of the same type
+	 */
+	joinAnnotations (annotation1: Annotation, annotation2: Annotation): boolean {
+
+		// Check if the 2 annotation are of the same type
+		if (annotation1.constructor !== annotation2.constructor) {
+			log.warn(`Clicked objects are not of the same type.`)
+			return false
+		}
+
+		// merge
+		if (!annotation1.join(annotation2)) {
+			log.warn(`Unable to join the two annotations.`)
+			return false
+		}
+
+		// create new neighbours connections
+		if (annotation1 instanceof Lane) {
+			this.refreshLaneNeighbours(annotation1)
+		}
+
+		// delete
+		this.changeActiveAnnotation(annotation1)
+		this.deleteAnnotation(annotation2)
+
+		this.metadataState.dirty()
+		return true
+	}
+
+	/**
 	 * Refresh neighbours links for the given lane.
 	 * The results of this function is that all neighbours of the current lane
 	 * have the link back to this lane.
@@ -1460,8 +1490,6 @@ export class AnnotationManager extends UtmInterface {
 		similarAnnotations.splice(eraseIndex, 1)
 		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
 		this.scene.remove(annotation.renderingObject)
-
-		this.metadataState.dirty()
 
 		return true
 	}
