@@ -493,6 +493,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		this.activeAnnotation = null
+		this.metadataState.dirty()
 
 		return true
 	}
