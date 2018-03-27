@@ -368,6 +368,66 @@ export class AnnotationManager extends UtmInterface {
 		}
 	}
 
+	refreshLaneNeighbours(annotation: Lane): void {
+
+		if (!annotation.isValid())
+			return
+
+		// Front neighbours
+		annotation.neighborsIds.front.forEach(NeighbourUuid => {
+			let neighbour =  this.findAnnotationByUuid(NeighbourUuid)
+			if (neighbour && neighbour instanceof Lane) {
+				neighbour.addNeighbor(annotation.uuid, NeighborLocation.BACK)
+			} else {
+				log.error("Couldn't find front neighbor. This should never happen.")
+			}
+		})
+		// Back neighbours
+		annotation.neighborsIds.back.forEach(NeighbourUuid => {
+			let neighbour =  this.findAnnotationByUuid(NeighbourUuid)
+			if (neighbour && neighbour instanceof Lane) {
+				neighbour.addNeighbor(annotation.uuid, NeighborLocation.FRONT)
+			} else {
+				log.error("Couldn't find back neighbor. This should never happen.")
+			}
+		})
+		// Left neighbours
+		let p1: THREE.Vector3 = annotation.waypoints[1].sub(annotation.waypoints[0])
+		annotation.neighborsIds.left.forEach(NeighbourUuid => {
+			let neighbour =  this.findAnnotationByUuid(NeighbourUuid)
+			if (neighbour && neighbour instanceof Lane && neighbour.isValid()) {
+				let p2: THREE.Vector3 = neighbour.waypoints[1].sub(neighbour.waypoints[0])
+				let angle = p1.angleTo(p2)
+				if (angle < (Math.PI / 3)) {
+					// same direction
+					neighbour.addNeighbor(annotation.uuid, NeighborLocation.RIGHT)
+				} else {
+					// opposite direction
+					neighbour.addNeighbor(annotation.uuid, NeighborLocation.LEFT)
+				}
+			} else {
+				log.error("Couldn't find left neighbor. This should never happen.")
+			}
+		})
+		// Right neighbours
+		annotation.neighborsIds.right.forEach(NeighbourUuid => {
+			let neighbour =  this.findAnnotationByUuid(NeighbourUuid)
+			if (neighbour && neighbour instanceof Lane && neighbour.isValid()) {
+				let p2: THREE.Vector3 = neighbour.waypoints[1].sub(neighbour.waypoints[0])
+				let angle = p1.angleTo(p2)
+				if (angle < (Math.PI / 3)) {
+					// same direction
+					neighbour.addNeighbor(annotation.uuid, NeighborLocation.LEFT)
+				} else {
+					// opposite direction
+					neighbour.addNeighbor(annotation.uuid, NeighborLocation.RIGHT)
+				}
+			} else {
+				log.error("Couldn't find right neighbor. This should never happen.")
+			}
+		})
+	}
+
 	/**
 	 * If current annotation is a lane, try to reverse its direction. The presence
 	 * of neighbours to the left and right is returned to the caller (mainly for UI updates)

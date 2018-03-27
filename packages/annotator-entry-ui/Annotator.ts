@@ -1298,6 +1298,11 @@ export class Annotator {
 			return
 		}
 
+		// create new neighbours connections
+		if (annotation1 instanceof Lane) {
+			this.annotationManager.refreshLaneNeighbours(annotation1)
+		}
+
 		// update UI panel
 		this.annotationManager.changeActiveAnnotation(annotation1)
 		if (annotation1 instanceof Lane) {

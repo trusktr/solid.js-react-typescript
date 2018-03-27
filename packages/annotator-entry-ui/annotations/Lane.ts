@@ -12,6 +12,7 @@ import {
 } from 'annotator-entry-ui/annotations/AnnotationBase'
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
+import {removeDuplicates} from "annotator-entry-ui/util/ArrayOperations"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -330,16 +331,20 @@ export class Lane extends Annotation {
 		}
 
 		// add markers
-		lane.markers.forEach(marker =>	this.markers.push(marker))
+		this.markers = this.markers.concat(lane.markers)
 		lane.markers.forEach(marker => this.renderingObject.add(marker))
 
-		// add neighbors
-		this.neighborsIds.front.concat(lane.neighborsIds.front)
-		this.neighborsIds.back.concat(lane.neighborsIds.back)
-		this.neighborsIds.left.concat(lane.neighborsIds.left)
-		this.neighborsIds.right.concat(lane.neighborsIds.right)
+		// add neighbors:
+		// - merge left-right neighbours
+		// - replace front neighbours
+		// - no modifications to back neighbours
+		this.neighborsIds.front = lane.neighborsIds.front
+		this.neighborsIds.left = removeDuplicates(this.neighborsIds.left.concat(lane.neighborsIds.left))
+		this.neighborsIds.right = removeDuplicates(this.neighborsIds.right.concat(lane.neighborsIds.right))
 
 		// solve properties conflicts
+		// - replace exit type
+		// - replace left/right line properties if not already set
 		this.exitType = lane.exitType
 		if (!this.leftLineType) this.leftLineType = lane.leftLineType
 		if (!this.leftLineColor) this.leftLineColor = lane.leftLineColor
@@ -459,15 +464,19 @@ export class Lane extends Annotation {
 		switch (neighborLocation) {
 			case NeighborLocation.FRONT:
 				this.neighborsIds.front.push(neighborId)
+				this.neighborsIds.front = removeDuplicates(this.neighborsIds.front)
 				break
 			case NeighborLocation.BACK:
 				this.neighborsIds.back.push(neighborId)
+				this.neighborsIds.back = removeDuplicates(this.neighborsIds.back)
 				break
 			case NeighborLocation.LEFT:
 				this.neighborsIds.left.push(neighborId)
+				this.neighborsIds.left = removeDuplicates(this.neighborsIds.left)
 				break
 			case NeighborLocation.RIGHT:
 				this.neighborsIds.right.push(neighborId)
+				this.neighborsIds.right = removeDuplicates(this.neighborsIds.right)
 				break
 			default:
 				log.warn('Neighbor location not recognized')
