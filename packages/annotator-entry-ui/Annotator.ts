@@ -5,34 +5,34 @@
 
 const config = require('../config')
 import * as $ from 'jquery'
-import * as AsyncFile from "async-file";
+import * as AsyncFile from "async-file"
 const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
 import LocalStorage from "./state/LocalStorage"
 import {GUI as DatGui} from 'dat.gui'
-import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
-import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
+import {TransformControls} from './controls/TransformControls'
+import {OrbitControls} from './controls/OrbitControls'
 import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame
 } from "./geometry/CoordinateFrame"
 import {isTupleOfNumbers} from "./util/Validation"
 import {StatusWindowController} from "./status/StatusWindowController"
-import {TileManager} from 'annotator-entry-ui/tile/TileManager'
+import {TileManager} from './tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
 import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
 import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
-import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
-import {Annotation, AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {NeighborLocation, NeighborDirection, Lane} from 'annotator-entry-ui/annotations/Lane'
-import {Connection} from "./annotations/Connection"
-import {TrafficSign} from "./annotations/TrafficSign"
+import {AnnotationType} from './annotations/AnnotationType'
+import {AnnotationManager, OutputFormat} from './AnnotationManager'
+import {Annotation, AnnotationId} from './annotations/AnnotationBase'
+import {NeighborLocation, NeighborDirection, Lane} from './annotations/Lane'
+import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
-import * as EM from 'annotator-entry-ui/ErrorMessages'
+import * as EM from './ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isNull, isUndefined} from "util"
@@ -40,7 +40,7 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
-import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient";
+import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient"
 const  watch = require('watch')
 
 declare global {
@@ -50,7 +50,7 @@ declare global {
 }
 
 const statsModule = require("stats.js")
-const {dialog} = require('electron').remote
+const {dialog}: { dialog: Electron.Dialog } = require('electron').remote
 const zmq = require('zmq')
 const OBJLoader = require('three-obj-loader')
 OBJLoader(THREE)
@@ -137,6 +137,7 @@ interface UiState {
 	modelVisibility: ModelVisibility
 	lockBoundaries: boolean
 	lockLanes: boolean
+	lockTerritories: boolean
 	isSuperTilesVisible: boolean
 	isPointCloudVisible: boolean
 	isAnnotationsVisible: boolean
@@ -208,7 +209,7 @@ export class Annotator {
 	private flyThroughSettings: FlyThroughSettings
 	private liveModeSettings: LiveModeSettings
 	private locationServerStatusClient: LocationServerStatusClient
-	private gui: any
+	private gui: DatGui | null
 
 	constructor() {
 		this.storage = new LocalStorage()
@@ -244,6 +245,7 @@ export class Annotator {
 			modelVisibility: ModelVisibility.ALL_VISIBLE,
 			lockBoundaries: false,
 			lockLanes: false,
+			lockTerritories: true,
 			isSuperTilesVisible: true,
 			isPointCloudVisible: true,
 			isAnnotationsVisible: true,
@@ -369,6 +371,7 @@ export class Annotator {
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
 		const planeMaterial = new THREE.ShadowMaterial()
+		planeMaterial.visible = false
 		planeMaterial.side = THREE.DoubleSide // enable raycaster intersections from both sides
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
 		this.scene.add(this.plane)
@@ -435,15 +438,28 @@ export class Annotator {
 			this.gui.addColor(this.settings, 'background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
-			this.gui.add(this.uiState, 'lockBoundaries').onChange((value: boolean) => {
+
+			const folderLock = this.gui.addFolder('Lock')
+			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
 				if (value && this.annotationManager.activeAnnotation instanceof Boundary)
 					this.annotationManager.unsetActiveAnnotation()
 			})
-			this.gui.add(this.uiState, 'lockLanes').onChange((value: boolean) => {
+			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
 				if (value && this.annotationManager.activeAnnotation instanceof Lane)
 					this.annotationManager.unsetActiveAnnotation()
 			})
+			folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
+				if (value && this.annotationManager.activeAnnotation instanceof Territory)
+					this.annotationManager.unsetActiveAnnotation()
+			})
+			folderLock.open()
+
+			const folderConnection = this.gui.addFolder('Connection params')
+			folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
+			folderConnection.open()
 			this.gui.domElement.className = 'threeJs_gui'
+		} else {
+			this.gui = null
 		}
 
 		// Set up for auto-save
@@ -474,9 +490,7 @@ export class Annotator {
 		// Bind events
 		if (!this.uiState.isKioskMode)
 			this.bind()
-		Annotator.deactivateLaneProp()
-		Annotator.deactivateBoundaryProp()
-		Annotator.deactivateTrafficSignProp()
+		Annotator.deactivateAllAnnotationPropertiesMenus()
 
 		this.displayMenu(
 			config.get('startup.show_menu') && !this.uiState.isKioskMode
@@ -1125,47 +1139,6 @@ export class Annotator {
 	}
 
 	/**
-	 * Create a new lane annotation.
-	 */
-	private addLaneAnnotation(): boolean {
-		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
-		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotation &&
-			!this.annotationManager.activeAnnotation.isValid()) {
-			return false
-		}
-		// This creates a new lane and add it to the scene for display
-		return this.annotationManager.changeActiveAnnotation(
-			this.annotationManager.addLaneAnnotation()
-		)
-	}
-
-	private addBoundaryAnnotation(): boolean {
-		// Can't create a new boundary if the current active annotation doesn't have any markers (because if we did
-		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotation &&
-			!this.annotationManager.activeAnnotation.isValid()) {
-			return false
-		}
-		// This creates a new lane and add it to the scene for display
-		return this.annotationManager.changeActiveAnnotation(
-			this.annotationManager.addBoundaryAnnotation()
-		)
-	}
-
-	private addTrafficSignAnnotation(): boolean {
-		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
-		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotation &&
-			!this.annotationManager.activeAnnotation.isValid()) {
-			return false
-		}
-		return this.annotationManager.changeActiveAnnotation(
-			this.annotationManager.addTrafficSignAnnotation()
-		)
-	}
-
-	/**
 	 * If the mouse was clicked while pressing the "a" key, drop an annotation marker.
 	 */
 	private addAnnotationMarker = (event: MouseEvent): void => {
@@ -1176,7 +1149,7 @@ export class Annotator {
 		const mouse = this.getMouseCoordinates(event)
 
 		// If the click intersects the first marker of a ring-shaped annotation, close the annotation and return.
-		if (this.annotationManager.activeAnnotation.markersFormRing) {
+		if (this.annotationManager.activeAnnotation.markersFormRing()) {
 			this.raycasterMarker.setFromCamera(mouse, this.camera)
 			const markers = this.annotationManager.activeMarkers()
 			if (markers.length && this.raycasterMarker.intersectObject(markers[0]).length) {
@@ -1318,7 +1291,9 @@ export class Annotator {
 	private isAnnotationLocked(annotation: Annotation): boolean {
 		if (annotation instanceof Lane && this.uiState.lockLanes)
 			return true
-		if (annotation instanceof Boundary && this.uiState.lockBoundaries)
+		else if (annotation instanceof Boundary && this.uiState.lockBoundaries)
+			return true
+		else if (annotation instanceof Territory && this.uiState.lockTerritories)
 			return true
 		return false
 	}
@@ -1347,17 +1322,9 @@ export class Annotator {
 					return
 
 				this.cleanTransformControls()
+				Annotator.deactivateAllAnnotationPropertiesMenus()
 				this.annotationManager.changeActiveAnnotation(inactive)
-				if (inactive instanceof Lane)
-					this.resetLaneProp()
-				else if (inactive instanceof  Boundary)
-					this.resetBoundaryProp()
-				else if (inactive instanceof TrafficSign)
-					this.resetTrafficSignProp()
-				else if (inactive instanceof Connection)
-					noop() // Connection doesn't have any menus to maintain; this keeps the compiler from complaining.
-				else
-					log.warn(`unknown annotation type ${inactive}`)
+				this.resetAllAnnotationPropertiesMenuElements()
 			}
 		}
 	}
@@ -1375,9 +1342,12 @@ export class Annotator {
 		if (this.uiState.isAddConnectionKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
+		const markers = this.annotationManager.activeMarkers()
+		if (!markers) return
+
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers())
+		const intersects = this.raycasterMarker.intersectObjects(markers)
 
 		if (intersects.length > 0) {
 			const marker = intersects[0].object as THREE.Mesh
@@ -1388,7 +1358,9 @@ export class Annotator {
 				if (this.uiState.numberKeyPressed === null) {
 					moveableMarkers = [marker]
 				} else {
-					const neighbors = this.annotationManager.neighboringLaneMarkers(marker, this.uiState.numberKeyPressed)
+					// special case: 0 searches for all neighbors, so set distance to infinity
+					const distance = this.uiState.numberKeyPressed || Number.POSITIVE_INFINITY
+					const neighbors = this.annotationManager.neighboringMarkers(marker, distance)
 					this.annotationManager.highlightMarkers(neighbors)
 					neighbors.unshift(marker)
 					moveableMarkers = neighbors
@@ -1414,10 +1386,12 @@ export class Annotator {
 	//  - an active control point
 	//  - a selected annotation
 	private escapeSelection(): void {
-		if (this.transformControls.isAttached())
+		if (this.transformControls.isAttached()) {
 			this.cleanTransformControls()
-		else if (this.annotationManager.activeAnnotation)
+		} else if (this.annotationManager.activeAnnotation) {
 			this.annotationManager.unsetActiveAnnotation()
+			Annotator.deactivateAllAnnotationPropertiesMenus()
+		}
 	}
 
 	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
@@ -1552,10 +1526,23 @@ export class Annotator {
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
 
-		if (this.uiState.isLiveMode)
+		if (document.activeElement.tagName === 'INPUT')
+			this.onKeyDownInputElement(event)
+		else if (this.uiState.isLiveMode)
 			this.onKeyDownLiveMode(event)
 		else
 			this.onKeyDownInteractiveMode(event)
+	}
+
+	private onKeyDownInputElement = (event: KeyboardEvent): void => {
+		switch (event.key) {
+			case 'Escape': {
+				(event.target as HTMLInputElement).blur()
+				break
+			}
+			default:
+			// nothing to do here
+		}
 	}
 
 	private onKeyDownLiveMode = (event: KeyboardEvent): void => {
@@ -1584,7 +1571,7 @@ export class Annotator {
 	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
 		if (event.repeat) {
 			noop()
-		} else if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
+		} else if (event.keyCode >= 48 && event.keyCode <= 57) { // digits 0 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else {
 			switch (event.key) {
@@ -1614,7 +1601,7 @@ export class Annotator {
 					break
 				}
 				case 'b': {
-					this.addBoundary()
+					this.addAnnotation(AnnotationType.BOUNDARY)
 					break
 				}
 				case 'C': {
@@ -1668,7 +1655,7 @@ export class Annotator {
 					break
 				}
 				case 'n': {
-					this.addLane()
+					this.addAnnotation(AnnotationType.LANE)
 					break
 				}
 				case 'o': {
@@ -1691,8 +1678,12 @@ export class Annotator {
 					this.resetTiltAndCompass()
 					break
 				}
+				case 'T': {
+					this.addAnnotation(AnnotationType.TERRITORY)
+					break
+				}
 				case 't': {
-					this.addTrafficSign()
+					this.addAnnotation(AnnotationType.TRAFFIC_SIGN)
 					break
 				}
 				case 'U': {
@@ -1801,35 +1792,12 @@ export class Annotator {
 		}
 	}
 
-	private addLane(): void {
-		// Add lane to scene
-		if (this.addLaneAnnotation()) {
-			log.info("Added new lane annotation")
-			Annotator.deactivateBoundaryProp()
-			Annotator.deactivateTrafficSignProp()
-			this.resetLaneProp()
-			this.hideTransform()
-		}
-	}
-
-	private addBoundary(): void {
-		// Add lane to scene
-		if (this.addBoundaryAnnotation()) {
-			log.info("Added new boundary annotation")
-			Annotator.deactivateLaneProp()
-			Annotator.deactivateTrafficSignProp()
-			this.resetBoundaryProp()
-			this.hideTransform()
-		}
-	}
-
-	private addTrafficSign(): void {
-		// Add lane to scene
-		if (this.addTrafficSignAnnotation()) {
-			log.info("Added new traffic sign annotation")
-			Annotator.deactivateLaneProp()
-			Annotator.deactivateBoundaryProp()
-			this.resetTrafficSignProp()
+	// Create an annotation, add it to the scene, and activate (highlight) it.
+	private addAnnotation(annotationType: AnnotationType): void {
+		if (this.annotationManager.addAnnotation(null, annotationType, true)) {
+			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
+			Annotator.deactivateAllAnnotationPropertiesMenus()
+			this.resetAllAnnotationPropertiesMenuElements()
 			this.hideTransform()
 		}
 	}
@@ -2098,6 +2066,29 @@ export class Annotator {
 			log.warn('missing element lc_add')
 	}
 
+	private bindTerritoryPropertiesPanel(): void {
+		const territoryLabel = document.getElementById('input_label_territory')
+		if (territoryLabel) {
+			// Select all text when the input element gains focus.
+			territoryLabel.addEventListener('focus', event => {
+				(event.target as HTMLInputElement).select()
+			})
+
+			// Update territory label text on any change to input.
+			territoryLabel.addEventListener('input', (event: Event) => {
+				const activeAnnotation = this.annotationManager.getActiveTerritoryAnnotation()
+				if (activeAnnotation)
+					activeAnnotation.setLabel((event.target as HTMLInputElement).value)
+			})
+
+			// User is done editing: lose focus.
+			territoryLabel.addEventListener('change', (event: Event) => {
+				(event.target as HTMLInputElement).blur()
+			})
+		} else
+			log.warn('missing element input_label_territory')
+	}
+
 	private bindTrafficSignPropertiesPanel(): void {
 		const tpType = $('#tp_select_type')
 		tpType.on('change', () => {
@@ -2133,6 +2124,7 @@ export class Annotator {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
 		this.bindRelationsPanel()
+		this.bindTerritoryPropertiesPanel()
 		this.bindTrafficSignPropertiesPanel()
 		this.bindBoundaryPropertiesPanel()
 
@@ -2182,7 +2174,7 @@ export class Annotator {
 		const toolsAddLane = document.getElementById('tools_add_lane')
 		if (toolsAddLane)
 			toolsAddLane.addEventListener('click', () => {
-				this.addLane()
+				this.addAnnotation(AnnotationType.LANE)
 			})
 		else
 			log.warn('missing element tools_add_lane')
@@ -2190,7 +2182,7 @@ export class Annotator {
 		const toolsAddTrafficSign = document.getElementById('tools_add_traffic_sign')
 		if (toolsAddTrafficSign)
 			toolsAddTrafficSign.addEventListener('click', () => {
-				this.addTrafficSign()
+				this.addAnnotation(AnnotationType.TRAFFIC_SIGN)
 			})
 		else
 			log.warn('missing element tools_add_traffic_sign')
@@ -2271,14 +2263,25 @@ export class Annotator {
 		})
 	}
 
+	private static expandAccordion(domId: string): void {
+		$(domId).accordion('option', {active: 0})
+	}
+
+	private resetAllAnnotationPropertiesMenuElements(): void {
+		this.resetBoundaryProp()
+		this.resetLaneProp()
+		this.resetTerritoryProp()
+		this.resetTrafficSignProp()
+	}
+
 	/**
 	 * Reset lane properties elements based on the current active lane
 	 */
 	private resetLaneProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-		if (activeAnnotation === null) {
-			return
-		}
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_lane')
 
 		if (activeAnnotation.neighborsIds.left.length > 0) {
 			Annotator.deactivateLeftSideNeighbours()
@@ -2360,13 +2363,29 @@ export class Annotator {
 	}
 
 	/**
+	 * Reset territory properties elements based on the current active territory
+	 */
+	private resetTerritoryProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveTerritoryAnnotation()
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_territory')
+
+		const territoryLabel = document.getElementById('input_label_territory')
+		if (territoryLabel) {
+			(territoryLabel as HTMLInputElement).value = activeAnnotation.getLabel()
+		} else
+			log.warn('missing element input_label_territory')
+	}
+
+	/**
 	 * Reset traffic sign properties elements based on the current active traffic sign
 	 */
 	private resetTrafficSignProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
-		if (activeAnnotation === null) {
-			return
-		}
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_traffic_sign')
 
 		const tpId = document.getElementById('tp_id_value')
 		if (tpId)
@@ -2384,9 +2403,9 @@ export class Annotator {
 	 */
 	private resetBoundaryProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
-		if (activeAnnotation === null) {
-			return
-		}
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_boundary')
 
 		const bpId = document.getElementById('bp_id_value')
 		if (bpId)
@@ -2401,6 +2420,13 @@ export class Annotator {
 		const bpSelectColor = $('#bp_select_color')
 		bpSelectColor.removeAttr('disabled')
 		bpSelectColor.val(activeAnnotation.color.toString())
+	}
+
+	private static deactivateAllAnnotationPropertiesMenus(): void {
+		Annotator.deactivateBoundaryProp()
+		Annotator.deactivateLaneProp()
+		Annotator.deactivateTerritoryProp()
+		Annotator.deactivateTrafficSignProp()
 	}
 
 	/**
@@ -2475,6 +2501,27 @@ export class Annotator {
 			bpColor.setAttribute('disabled', 'disabled')
 		else
 			log.warn('missing element bp_select_color')
+
+		const boundaryProp = document.getElementById('boundary_prop')
+		if (boundaryProp) {
+			const selects = boundaryProp.getElementsByTagName('select')
+			for (let i = 0; i < selects.length; ++i) {
+				selects.item(i).selectedIndex = 0
+				selects.item(i).setAttribute('disabled', 'disabled')
+			}
+		} else
+			log.warn('missing element boundary_prop')
+	}
+
+	/**
+	 * Deactivate territory properties menu panel
+	 */
+	private static deactivateTerritoryProp(): void {
+		const territoryLabel = document.getElementById('input_label_territory')
+		if (territoryLabel)
+			(territoryLabel as HTMLInputElement).value = ''
+		else
+			log.warn('missing element input_label_territory')
 	}
 
 	/**
@@ -2836,9 +2883,13 @@ export class Annotator {
 	}
 
 	private updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
-		const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
-		const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
-		this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+		// This is a hack to allow data with no coordinate reference system to pass through the UTM classes.
+		// Data in local coordinate systems tend to have small values for X (and Y and Z) which are invalid in UTM.
+		if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO fix this.
+			const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
+			const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
+			this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+		}
 		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
 		this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
 	}

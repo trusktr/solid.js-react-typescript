@@ -7,7 +7,7 @@ const config = require('../../config')
 import * as TypeLogger from 'typelogger'
 import {Socket} from 'zmq'
 const zmq = require('zmq')
-import * as MapperProtos from "@mapperai/mapper-models";
+import * as MapperProtos from "@mapperai/mapper-models"
 import Models = MapperProtos.mapper.models
 
 // tslint:disable-next-line:no-any

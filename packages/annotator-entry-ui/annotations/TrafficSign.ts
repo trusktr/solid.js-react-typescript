@@ -5,8 +5,8 @@
 
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
-import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase";
+import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
+import {AnnotationGeometryType, AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
 
@@ -38,9 +38,10 @@ export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInte
 }
 
 export class TrafficSign extends Annotation {
+	annotationType: AnnotationType
+	geometryType: AnnotationGeometryType
 	type: TrafficSignType
 	minimumMarkerCount: number
-	markersFormRing: boolean
 	allowNewMarkers: boolean
 	snapToGround: boolean
 	trafficSignContour: THREE.Line
@@ -49,6 +50,8 @@ export class TrafficSign extends Annotation {
 
 	constructor(obj?: TrafficSignJsonInputInterface) {
 		super(obj)
+		this.annotationType = AnnotationType.TRAFFIC_SIGN
+		this.geometryType = AnnotationGeometryType.RING
 		if (obj) {
 			this.type = isNullOrUndefined(TrafficSignType[obj.trafficSignType]) ? TrafficSignType.UNKNOWN : TrafficSignType[obj.trafficSignType]
 		} else {
@@ -56,7 +59,6 @@ export class TrafficSign extends Annotation {
 		}
 
 		this.minimumMarkerCount = 3
-		this.markersFormRing = true
 		this.allowNewMarkers = true
 		this.snapToGround = false
 		this.isComplete = false
@@ -71,7 +73,7 @@ export class TrafficSign extends Annotation {
 				obj.markers.forEach(marker => this.addMarker(marker, false))
 				this.isComplete = true
 				if (!this.isValid())
-					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
+					throw Error(`can't load invalid traffic sign with id ${obj.uuid}`)
 				this.updateVisualization()
 				this.makeInactive()
 			}
@@ -156,7 +158,7 @@ export class TrafficSign extends Annotation {
 			return
 		}
 
-		const newContourGeometry = new THREE.Geometry();
+		const newContourGeometry = new THREE.Geometry()
 		const contourMean = new THREE.Vector3(0, 0, 0)
 
 		this.markers.forEach((marker) => {

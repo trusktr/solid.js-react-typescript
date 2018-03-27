@@ -15,11 +15,13 @@ import {
 	AnnotationJsonOutputInterface, AnnotationUuid, LlaJson, UtmJson
 } from 'annotator-entry-ui/annotations/AnnotationBase'
 import {
-	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds, LaneJsonInputInterfaceV3
+	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds
 } from 'annotator-entry-ui/annotations/Lane'
-import {TrafficSign, TrafficSignJsonInputInterface} from 'annotator-entry-ui/annotations/TrafficSign'
-import {Connection, ConnectionJsonInputInterface} from 'annotator-entry-ui/annotations/Connection'
-import {Boundary, BoundaryJsonInputInterface} from 'annotator-entry-ui/annotations/Boundary'
+import * as AnnotationFactory from "./annotations/AnnotationFactory"
+import {TrafficSign} from 'annotator-entry-ui/annotations/TrafficSign'
+import {Territory} from "./annotations/Territory"
+import {Connection} from 'annotator-entry-ui/annotations/Connection'
+import {Boundary} from 'annotator-entry-ui/annotations/Boundary'
 import {SimpleKML} from 'annotator-entry-ui/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
@@ -81,9 +83,11 @@ export class AnnotationManager extends UtmInterface {
 	laneAnnotations: Array<Lane>
 	boundaryAnnotations: Array<Boundary>
 	trafficSignAnnotations: Array<TrafficSign>
+	territoryAnnotations: Array<Territory>
 	connectionAnnotations: Array<Connection>
 	annotationObjects: Array<THREE.Object3D>
 	activeAnnotation: Annotation | null
+	bezierScaleFactor: number  // Used when creating connections
 	private carPath: Array<AnnotationUuid>
 	private carPathActivation: boolean
 	private metadataState: AnnotationState
@@ -95,6 +99,7 @@ export class AnnotationManager extends UtmInterface {
 		this.laneAnnotations = []
 		this.boundaryAnnotations = []
 		this.trafficSignAnnotations = []
+		this.territoryAnnotations = []
 		this.connectionAnnotations = []
 		this.annotationObjects = []
 		this.activeAnnotation = null
@@ -102,6 +107,7 @@ export class AnnotationManager extends UtmInterface {
 		this.carPathActivation = false
 		this.metadataState = new AnnotationState(this)
 		this.isLiveMode = false
+		this.bezierScaleFactor = 6
 	}
 
 	toString(): string {
@@ -137,6 +143,13 @@ export class AnnotationManager extends UtmInterface {
 			return null
 	}
 
+	getActiveTerritoryAnnotation(): Territory | null {
+		if (this.activeAnnotation && this.activeAnnotation instanceof Territory)
+			return this.activeAnnotation as Territory
+		else
+			return null
+	}
+
 	getActiveTrafficSignAnnotation(): TrafficSign | null {
 		if (this.activeAnnotation && this.activeAnnotation instanceof TrafficSign)
 			return this.activeAnnotation as TrafficSign
@@ -148,112 +161,89 @@ export class AnnotationManager extends UtmInterface {
 		return this.allAnnotations().map(a => a.id)
 	}
 
-	/**
-	 * Get all markers that share a lane edge with the origin, up to a given distance in either direction.
-	 * Distance is a count of markers, not a physical distance.
-	 * Origin is not included in the result.
-	 * Sort order is not specified.
-	 */
-	neighboringLaneMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {
-		const active = this.getActiveLaneAnnotation()
-
-		if (active === null) {
+	neighboringMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {
+		if (this.activeAnnotation)
+			return this.activeAnnotation.neighboringMarkers(origin, distance)
+		else
 			return []
-		}
-
-		return active.neighboringLaneMarkers(origin, distance)
 	}
 
 	/**
-	 * Add a new lane annotation and add its associated rendering object to the scene for display.
+	 * Create a new annotation. Add its associated rendering object to the scene for display.
+	 * @param obj             Construct the annotation from a JSON object
+	 * @param annotationType  Construct a new annotation with the given type
+	 * @param activate        Activate the new annotation after creation
+	 * One of obj and annotationType is required.
 	 */
-	addLaneAnnotation(obj?: LaneJsonInputInterfaceV3): Lane | null {
+	addAnnotation(
+		obj: AnnotationJsonInputInterface | null,
+		annotationType: AnnotationType | null = null,
+		activate: boolean = false
+	): Annotation | null {
 		if (this.isLiveMode) return null
 
-		let newAnnotation: Lane
+		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
+		// that annotation wouldn't be selectable and it would be lost).
+		if (this.activeAnnotation && !this.activeAnnotation.isValid()) return null
+
+		// Figure out which type we are working with.
+		let myAnnotationType: AnnotationType
 		if (obj) {
-			newAnnotation = new Lane(obj)
-			if (!newAnnotation.markers.length)
+			myAnnotationType = AnnotationType[obj.annotationType]
+		} else if (annotationType) {
+			myAnnotationType = annotationType
+		} else {
+			log.warn('addAnnotation() requires either an AnnotationJsonInputInterface or an AnnotationType input')
+			return null
+		}
+
+		// Get methods and data structures appropriate to the type.
+		const similarAnnotations = this.annotationTypeToSimilarAnnotationsList(myAnnotationType)
+		if (similarAnnotations === null) {
+			if (obj)
+				log.warn(`discarding annotation with invalid type ${obj.annotationType}`)
+			else
+				log.warn(`discarding annotation with invalid type ${annotationType}`)
+			return null
+		}
+
+		// Instantiate it.
+		let newAnnotation: Annotation | null
+		if (obj) {
+			// Discard duplicate annotations.
+			if (similarAnnotations.some(a => a.uuid === obj.uuid))
 				return null
-			if (this.laneAnnotations.some(a => a.uuid === newAnnotation.uuid))
+
+			// Instantiate and validate.
+			newAnnotation = AnnotationFactory.construct(myAnnotationType, obj)
+			if (!(newAnnotation && newAnnotation.isValid()))
 				return null
 		} else {
-			newAnnotation = new Lane()
+			newAnnotation = AnnotationFactory.construct(myAnnotationType)
 		}
-		this.laneAnnotations.push(newAnnotation)
+		if (!newAnnotation)
+			return null
+
+		// Set state.
+		similarAnnotations.push(newAnnotation)
 		this.annotationObjects.push(newAnnotation.renderingObject)
 		this.scene.add(newAnnotation.renderingObject)
+		if (activate)
+			this.changeActiveAnnotation(newAnnotation)
 
 		return newAnnotation
 	}
 
-	/**
-	 * Add a new boundary annotation and add its associated rendering object to the scene for display.
-	 */
-	addBoundaryAnnotation(obj?: BoundaryJsonInputInterface): Boundary | null {
-		if (this.isLiveMode) return null
-
-		let newAnnotation: Boundary
-		if (obj) {
-			newAnnotation = new Boundary(obj)
-			if (!newAnnotation.markers.length)
-				return null
-			if (this.boundaryAnnotations.some(a => a.uuid === newAnnotation.uuid))
-				return null
-		} else {
-			newAnnotation = new Boundary()
+	// Get a reference to the list containing matching AnnotationType.
+	private annotationTypeToSimilarAnnotationsList(annotationType: AnnotationType): Annotation[] | null {
+		switch (annotationType) {
+			case AnnotationType.BOUNDARY: return this.boundaryAnnotations
+			case AnnotationType.CONNECTION: return this.connectionAnnotations
+			case AnnotationType.LANE: return this.laneAnnotations
+			case AnnotationType.TERRITORY: return this.territoryAnnotations
+			case AnnotationType.TRAFFIC_SIGN: return this.trafficSignAnnotations
+			default: return null
 		}
-		this.boundaryAnnotations.push(newAnnotation)
-		this.annotationObjects.push(newAnnotation.renderingObject)
-		this.scene.add(newAnnotation.renderingObject)
-
-		return newAnnotation
-	}
-
-	/**
-	 * Add a new traffic sign annotation and add its associated rendering object to the scene for display.
-	 */
-	addTrafficSignAnnotation(obj?: TrafficSignJsonInputInterface): TrafficSign | null {
-		if (this.isLiveMode) return null
-
-		let newAnnotation: TrafficSign
-		if (obj) {
-			newAnnotation = new TrafficSign(obj)
-			if (!newAnnotation.markers.length)
-				return null
-			if (this.trafficSignAnnotations.some(a => a.uuid === newAnnotation.uuid))
-				return null
-		} else {
-			newAnnotation = new TrafficSign()
-		}
-		this.trafficSignAnnotations.push(newAnnotation)
-		this.annotationObjects.push(newAnnotation.renderingObject)
-		this.scene.add(newAnnotation.renderingObject)
-
-		return newAnnotation
-	}
-
-	/**
-	 * Add a new connection annotation and add its associated rendering object to the scene for display.
-	 */
-	addConnectionAnnotation(obj?: ConnectionJsonInputInterface): Connection | null {
-		if (this.isLiveMode) return null
-
-		let newAnnotation: Connection
-		if (obj) {
-			newAnnotation = new Connection(obj)
-			if (!newAnnotation.markers.length)
-				return null
-			if (this.connectionAnnotations.some(a => a.uuid === newAnnotation.uuid))
-				return null
-		} else {
-			newAnnotation = new Connection()
-		}
-		this.connectionAnnotations.push(newAnnotation)
-		this.annotationObjects.push(newAnnotation.renderingObject)
-		this.scene.add(newAnnotation.renderingObject)
-
-		return newAnnotation
 	}
 
 	/**
@@ -368,6 +358,11 @@ export class AnnotationManager extends UtmInterface {
 		}
 	}
 
+	/**
+	 * Refresh neighbours links for the given lane.
+	 * The results of this function is that all neighbours of the current lane
+	 * have the link back to this lane.
+	 */
 	refreshLaneNeighbours(annotation: Lane): void {
 
 		if (!annotation.isValid())
@@ -463,6 +458,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		if (!this.deleteAnnotation(this.activeAnnotation)) {
+			log.warn(`deleteAnnotation() failed for ${this.activeAnnotation.annotationType}, ${this.activeAnnotation.uuid}`)
 			return false
 		}
 
@@ -596,6 +592,7 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	setLiveMode(): void {
 		if (!this.isLiveMode) {
+			this.unsetActiveAnnotation()
 			this.allAnnotations().forEach(a => a.setLiveMode())
 			this.isLiveMode = true
 		}
@@ -608,7 +605,6 @@ export class AnnotationManager extends UtmInterface {
 		if (this.isLiveMode) {
 			this.allAnnotations().forEach(a => a.unsetLiveMode())
 			this.isLiveMode = false
-			this.activeAnnotation = null
 		}
 	}
 
@@ -954,11 +950,9 @@ export class AnnotationManager extends UtmInterface {
 
 	unloadAllAnnotations(): void {
 		log.info('deleting all annotations')
-		// slice() makes a local copy of each array, since the delete() methods mutate the arrays.
-		this.connectionAnnotations.slice().forEach(a => this.deleteConnection(a))
-		this.trafficSignAnnotations.slice().forEach(a => this.deleteTrafficSign(a))
-		this.laneAnnotations.slice().forEach(a => this.deleteLane(a))
-		this.boundaryAnnotations.slice().forEach(a => this.deleteBoundary(a))
+		this.unsetActiveAnnotation()
+		this.allAnnotations().forEach(a => this.deleteAnnotation(a))
+		this.metadataState.clean()
 	}
 
 	enableAutoSave(): void {
@@ -1065,28 +1059,14 @@ export class AnnotationManager extends UtmInterface {
 		}
 		this.convertCoordinates(data)
 
+		// Unset active, to pass a validation check in addAnnotation().
+		this.unsetActiveAnnotation()
+
 		// Convert data to annotations
 		let boundingBox = new THREE.Box3()
 		let invalid = 0
-		data['annotations'].forEach((element: AnnotationJsonInputInterface) => {
-			const annotationType = AnnotationType[element.annotationType]
-			let newAnnotation: Annotation | null = null
-			switch (annotationType) {
-				case AnnotationType.LANE:
-					newAnnotation = this.addLaneAnnotation(element as LaneJsonInputInterfaceV3)
-					break
-				case AnnotationType.TRAFFIC_SIGN:
-					newAnnotation = this.addTrafficSignAnnotation(element as TrafficSignJsonInputInterface)
-					break
-				case AnnotationType.CONNECTION:
-					newAnnotation = this.addConnectionAnnotation(element as ConnectionJsonInputInterface)
-					break
-				case AnnotationType.BOUNDARY:
-					newAnnotation = this.addBoundaryAnnotation(element as BoundaryJsonInputInterface)
-					break
-				default:
-					log.warn(`discarding annotation with invalid type ${element.annotationType}`)
-			}
+		data['annotations'].forEach((obj: AnnotationJsonInputInterface) => {
+			const newAnnotation = this.addAnnotation(obj)
 			if (newAnnotation)
 				boundingBox = boundingBox.union(newAnnotation.boundingBox())
 			else
@@ -1109,10 +1089,11 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	private allAnnotations(): Annotation[] {
 		return ([] as Annotation[])
-			.concat(this.laneAnnotations)
-			.concat(this.connectionAnnotations)
-			.concat(this.trafficSignAnnotations)
 			.concat(this.boundaryAnnotations)
+			.concat(this.connectionAnnotations)
+			.concat(this.laneAnnotations)
+			.concat(this.territoryAnnotations)
+			.concat(this.trafficSignAnnotations)
 	}
 
 	/**
@@ -1122,7 +1103,7 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	private addFrontConnection(source: Lane): boolean {
 
-		const newAnnotation = this.addLaneAnnotation()
+		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
 		if (!newAnnotation) return false
 
 		const lastMarkerIndex = source.markers.length - 1
@@ -1163,7 +1144,7 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	private addLeftConnection(source: Lane, neighborDirection: NeighborDirection): boolean {
 
-		const newAnnotation = this.addLaneAnnotation()
+		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
 		if (!newAnnotation) return false
 
 		switch (neighborDirection) {
@@ -1220,7 +1201,8 @@ export class AnnotationManager extends UtmInterface {
 	 * given direction of the neighbor.
 	 */
 	private addRightConnection(source: Lane, neighborDirection: NeighborDirection): boolean {
-		const newAnnotation = this.addLaneAnnotation()
+
+		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
 		if (!newAnnotation) return false
 
 		switch (neighborDirection) {
@@ -1302,13 +1284,8 @@ export class AnnotationManager extends UtmInterface {
 					modifications++
 			} else if (frontNeighbor instanceof Connection) {
 				// If the front neighbor is a connection delete it
-				if (this.deleteConnection(frontNeighbor)) {
-					// Remove connection from scene.
-					this.scene.remove(frontNeighbor.renderingObject)
-					// Remove rendering object from internal array of objects.
-					this.removeRenderingObjectFromArray(this.annotationObjects, frontNeighbor.renderingObject)
+				if (this.deleteAnnotation(frontNeighbor))
 					modifications++
-				}
 			} else {
 				log.error('Not valid front neighbor')
 			}
@@ -1322,13 +1299,8 @@ export class AnnotationManager extends UtmInterface {
 					modifications++
 			} else if (backNeighbor instanceof Connection) {
 				// If the back neighbor is a connection delete it
-				if (this.deleteConnection(backNeighbor)) {
-					// Remove connection from scene.
-					this.scene.remove(backNeighbor.renderingObject)
-					// Remove rendering object from internal array of objects.
-					this.removeRenderingObjectFromArray(this.annotationObjects, backNeighbor.renderingObject)
+				if (this.deleteAnnotation(backNeighbor))
 					modifications++
-				}
 			} else {
 				log.error('Not valid back neighbor')
 			}
@@ -1427,15 +1399,14 @@ export class AnnotationManager extends UtmInterface {
 		const rp2 = laneTo.markers[1].position.clone()
 		const rp3 = laneTo.markers[3].position.clone()
 
-		const scaleFactor = 6
 		let lcp1 = new THREE.Vector3()
 		let lcp2 = new THREE.Vector3()
-		lcp1.subVectors(lp1, lp0).normalize().multiplyScalar(scaleFactor).add(lp1)
-		lcp2.subVectors(lp2, lp3).normalize().multiplyScalar(scaleFactor).add(lp2)
+		lcp1.subVectors(lp1, lp0).normalize().multiplyScalar(this.bezierScaleFactor).add(lp1)
+		lcp2.subVectors(lp2, lp3).normalize().multiplyScalar(this.bezierScaleFactor).add(lp2)
 		let rcp1 = new THREE.Vector3()
 		let rcp2 = new THREE.Vector3()
-		rcp1.subVectors(rp1, rp0).normalize().multiplyScalar(scaleFactor).add(rp1)
-		rcp2.subVectors(rp2, rp3).normalize().multiplyScalar(scaleFactor).add(rp2)
+		rcp1.subVectors(rp1, rp0).normalize().multiplyScalar(this.bezierScaleFactor).add(rp1)
+		rcp2.subVectors(rp2, rp3).normalize().multiplyScalar(this.bezierScaleFactor).add(rp2)
 
 		const curveLeft = new THREE.CubicBezierCurve3(lp1, lcp1, lcp2, lp2)
 		const curveRight = new THREE.CubicBezierCurve3(rp1, rcp1, rcp2, rp2)
@@ -1461,76 +1432,37 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
-	 * Delete annotations
+	 * Delete an annotation and tear down references to it.
 	 */
-	deleteAnnotation(annotation: Annotation): boolean {
-		if (this.isLiveMode) return false
-
-		let success
-		if (annotation instanceof Lane)
-			success = this.deleteLane(annotation)
-		else if (annotation instanceof  Boundary)
-			success = this.deleteBoundary(annotation)
-		else if (annotation instanceof TrafficSign)
-			success = this.deleteTrafficSign(annotation)
-		else if (annotation instanceof Connection)
-			success = this.deleteConnection(annotation)
-		else {
-			log.warn(`unknown annotation type ${annotation}`)
+	private deleteAnnotation(annotation: Annotation): boolean {
+		// Get data structures appropriate to the type.
+		const similarAnnotations = this.annotationTypeToSimilarAnnotationsList(annotation.annotationType)
+		if (!similarAnnotations)
 			return false
+
+		// Side effect: remove references to this annotation from its neighbors
+		if (annotation instanceof Lane) {
+			this.deleteConnectionToNeighbors(annotation)
+			// Remove lane from path
+			const index = this.laneIndexInPath(annotation.uuid)
+			if (index !== -1) {
+				this.laneAnnotations[index].setTrajectory(false)
+				this.carPath.splice(index, 1)
+				log.info("Lane removed from the car path.")
+			}
+		} else if (annotation instanceof Connection) {
+			this.removeUuidFromLaneNeighbors(annotation.startLaneUuid, annotation.uuid)
+			this.removeUuidFromLaneNeighbors(annotation.endLaneUuid, annotation.uuid)
 		}
 
-		if (!success) {
-			return false
-		}
-
-		// Remove lane from path
-		const index = this.laneIndexInPath(annotation.uuid)
-		if (index !== -1) {
-			this.laneAnnotations[index].setTrajectory(false)
-			this.carPath.splice(index, 1)
-			log.info("Lane removed from the car path.")
-		}
-
-		// Remove annotation from scene.
-		this.scene.remove(annotation.renderingObject)
-		// Remove rendering object from internal array of objects.
+		// Set state.
+		const eraseIndex = this.getAnnotationIndexFromUuid(similarAnnotations, annotation.uuid)
+		similarAnnotations.splice(eraseIndex, 1)
 		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
+		this.scene.remove(annotation.renderingObject)
+
 		this.metadataState.dirty()
 
-		return true
-	}
-
-	private deleteLane(annotation: Lane): boolean {
-		// Make sure we remove references to this annotation from it's neighbors (if any).
-		this.deleteConnectionToNeighbors(annotation)
-		// Remove annotation from internal array of annotations.
-		const eraseIndex = this.getAnnotationIndexFromUuid(this.laneAnnotations, annotation.uuid)
-		this.laneAnnotations.splice(eraseIndex, 1)
-		return true
-	}
-
-	private deleteBoundary(annotation: Boundary): boolean {
-		// Remove annotation from internal array of annotations.
-		const eraseIndex = this.getAnnotationIndexFromUuid(this.boundaryAnnotations, annotation.uuid)
-		this.boundaryAnnotations.splice(eraseIndex, 1)
-		return true
-	}
-
-	private deleteTrafficSign(annotation: TrafficSign): boolean {
-		// Remove annotation from internal array of annotations.
-		const eraseIndex = this.getAnnotationIndexFromUuid(this.trafficSignAnnotations, annotation.uuid)
-		this.trafficSignAnnotations.splice(eraseIndex, 1)
-		return true
-	}
-
-	private deleteConnection(annotation: Connection): boolean {
-		// Make sure we remove references to this annotation from it's neighbors (if any).
-		this.removeUuidFromLaneNeighbors(annotation.startLaneUuid, annotation.uuid)
-		this.removeUuidFromLaneNeighbors(annotation.endLaneUuid, annotation.uuid)
-		// Remove annotation from internal array of annotations.
-		const eraseIndex = this.getAnnotationIndexFromUuid(this.connectionAnnotations, annotation.uuid)
-		this.connectionAnnotations.splice(eraseIndex, 1)
 		return true
 	}
 
@@ -1596,8 +1528,8 @@ export class AnnotationManager extends UtmInterface {
 		})
 	}
 
-	private removeRenderingObjectFromArray(objectArrray: Array<THREE.Object3D>, queryObject: THREE.Object3D): boolean {
-		const index = objectArrray.findIndex((obj) => {
+	private removeRenderingObjectFromArray(allObjects: Array<THREE.Object3D>, queryObject: THREE.Object3D): boolean {
+		const index = allObjects.findIndex((obj) => {
 			return obj === queryObject
 		})
 		if (index < 0) {
@@ -1705,13 +1637,14 @@ export class AnnotationState {
 	}
 
 	private doPeriodicSave(): boolean {
-		return this.autoSaveEnabled && this.isDirty &&
-			   (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
+		return this.autoSaveEnabled
+			&& this.isDirty
+			&& (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
 	}
 
 	private doImmediateSave(): boolean {
-		return this.isDirty &&
-			   (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
+		return this.isDirty
+			&& (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
 	}
 
 	private saveAnnotations(): Promise<void> {
