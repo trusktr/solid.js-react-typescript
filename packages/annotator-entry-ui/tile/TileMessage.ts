@@ -7,6 +7,7 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {isNullOrUndefined} from "util"
+import {spatialTileScaleEnumToScaleVector} from "./ScaleUtil"
 
 export enum TileMessageFormat {
 	PointCloudTileMessage = 1,
@@ -107,15 +108,6 @@ export function baseGeometryTileMessageToTileMessage(msg: Models.BaseGeometryTil
 		colors: msg.colors.map(c => c * 0.003921568627450980),
 		intensities: msg.intensities.map(i => i * 0.003921568627450980),
 	} as TileMessage
-}
-
-function spatialTileScaleEnumToScaleVector(scale: Models.SpatialTileScale): THREE.Vector3 | null {
-	switch (scale) {
-		case Models.SpatialTileScale._010_010_010:
-			return new THREE.Vector3(10, 10, 10)
-		default:
-			return null
-	}
 }
 
 const firstUtmZone = 6

@@ -148,7 +148,7 @@ export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface
 export class Lane extends Annotation {
 	// Lane markers are stored in an array as [right, left, right, left, ...]
 	type: LaneType
-	renderingProperties: LaneRenderingProperties
+	private renderingProperties: LaneRenderingProperties
 	waypoints: Array<THREE.Vector3>
 	denseWaypoints: Array<THREE.Vector3>
 	laneCenterLine: THREE.Line

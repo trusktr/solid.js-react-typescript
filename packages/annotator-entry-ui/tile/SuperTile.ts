@@ -8,6 +8,7 @@ import {TileIndex} from "../model/TileIndex"
 import {UtmTile} from "./UtmTile"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
 import {UtmInterface} from "../UtmInterface"
+import {emptyPositions, threeDStepSize} from "./Constant"
 
 /*
  * A collection of zero or more tiles within a unique, contiguous 3D volume.
@@ -15,14 +16,14 @@ import {UtmInterface} from "../UtmInterface"
  * Bounding box contents are inclusive at the low edges and exclusive at the high edges.
  */
 export class SuperTile extends UtmInterface {
-	hasPointCloud: boolean
+	pointCloud: THREE.Points | null
 	pointCount: number
+	private pointCloudBoundingBox: THREE.Box3 | null
 	index: TileIndex
 	coordinateFrame: CoordinateFrameType
 	threeJsBoundingBox: THREE.Box3
 	private tiles: UtmTile[]
-	private rawPositions: Array<number>
-	private rawColors: Array<number>
+	private rawPositions: Float32Array
 
 	constructor(
 		index: TileIndex,
@@ -30,8 +31,11 @@ export class SuperTile extends UtmInterface {
 		utmParent: UtmInterface,
 	) {
 		super()
-		this.hasPointCloud = false
+		this.pointCloud = null
 		this.pointCount = 0
+		this.pointCloudBoundingBox = null
+		this.tiles = []
+		this.rawPositions = emptyPositions
 		this.index = index
 		this.coordinateFrame = coordinateFrame
 		this.setOriginWithInterface(utmParent)
@@ -44,14 +48,27 @@ export class SuperTile extends UtmInterface {
 			this.utmToThreeJs(max.x, max.y, max.z),
 		)
 
-		this.tiles = []
-		this.rawPositions = []
-		this.rawColors = []
+	}
+
+	key(): string {
+		return this.index.toString()
+	}
+
+	getPointCloudBoundingBox(): THREE.Box3 | null {
+		if (this.pointCloudBoundingBox) {
+			return this.pointCloudBoundingBox
+		} else if (!this.pointCloud) {
+			return null
+		} else {
+			this.pointCloud.geometry.computeBoundingBox()
+			this.pointCloudBoundingBox = this.pointCloud.geometry.boundingBox
+			return this.pointCloudBoundingBox
+		}
 	}
 
 	// SuperTile doesn't have to be filled densely with tiles. Add tiles only if they are not empty.
 	addTile(tile: UtmTile): boolean {
-		if (this.hasPointCloud)
+		if (this.pointCloud)
 			return false
 
 		// Ignore duplicates.
@@ -69,19 +86,42 @@ export class SuperTile extends UtmInterface {
 	}
 
 	// The point cloud loads once. Call addTile() first.
-	loadPointCloud(): Promise<boolean> {
-		if (this.hasPointCloud)
+	loadPointCloud(pointsMaterial: THREE.PointsMaterial): Promise<boolean> {
+		if (this.pointCloud)
 			return Promise.resolve(true)
 
 		const promises = this.tiles.map(t => t.loadPointCloud())
 		return Promise.all(promises)
 			.then(results => {
+				let arraySize = 0
 				results.forEach(result => {
-					this.rawPositions = this.rawPositions.concat(result[0])
-					this.rawColors = this.rawColors.concat(result[1])
-					this.pointCount += result[2]
+					arraySize += result[0].length
 				})
-				this.hasPointCloud = true
+
+				const rawPositions = new Float32Array(arraySize)
+				const rawColors = new Float32Array(arraySize)
+				let m = 0
+				results.forEach(result => {
+					const superTilePositions = result[0]
+					for (let i = 0; i < superTilePositions.length; i++, m++) {
+						rawPositions[m] = superTilePositions[i]
+					}
+				})
+				let n = 0
+				results.forEach(result => {
+					const superTileColors = result[1]
+					for (let i = 0; i < superTileColors.length; i++, n++) {
+						rawColors[n] = superTileColors[i]
+					}
+				})
+
+				const geometry = new THREE.BufferGeometry()
+				geometry.addAttribute('position', new THREE.BufferAttribute(rawPositions, threeDStepSize))
+				geometry.addAttribute('color', new THREE.BufferAttribute(rawColors, threeDStepSize))
+				this.pointCloud = new THREE.Points(geometry, pointsMaterial)
+				this.pointCount = arraySize / threeDStepSize
+				this.rawPositions = rawPositions
+
 				return true
 			})
 	}
@@ -89,17 +129,16 @@ export class SuperTile extends UtmInterface {
 	// Reset the object to its initial state.
 	unloadPointCloud(): void {
 		this.tiles.forEach(tile => tile.unloadPointCloud())
-		this.hasPointCloud = false
+		if (this.pointCloud) {
+			this.pointCloud.geometry.dispose()
+			this.pointCloud = null
+		}
+		this.pointCloudBoundingBox = null
 		this.pointCount = 0
-		this.rawPositions = []
-		this.rawColors = []
+		this.rawPositions = emptyPositions
 	}
 
-	getRawPositions(): Array<number> {
+	getRawPositions(): Float32Array {
 		return this.rawPositions
-	}
-
-	getRawColors(): Array<number> {
-		return this.rawColors
 	}
 }

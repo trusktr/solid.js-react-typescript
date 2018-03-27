@@ -1,6 +1,6 @@
 {
   "name": "@mapperai/mapper-annotator",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Mapper.ai Point Cloud Annotator",
   "scripts": {
     "lint": "./node_modules/.bin/tslint \"packages/**/*.ts\" --force",
@@ -71,7 +71,6 @@
     "html-webpack-plugin": "2.17.0",
     "jest": "19.0.2",
     "loader-utils": "1.1.0",
-    "node": "9.2.0",
     "node-sass": "4.5.0",
     "pug": "2.0.0-beta6",
     "pug-loader": "2.3.0",
@@ -86,10 +85,12 @@
     "webpack-node-externals": "1.2.0"
   },
   "dependencies": {
-    "@mapperai/mapper-models": "1.9.5",
+    "@mapperai/mapper-models": "1.9.8",
     "async-file": "2.0.2",
     "bluebird": "3.4.0",
     "dat.gui": "0.6.1",
+    "google-protobuf": "3.5.0",
+    "grpc": "1.7.3",
     "immutable": "3.8.2",
     "jquery": "3.2.1",
     "jquery-ui-dist": "1.12.1",
@@ -110,6 +111,7 @@
     "typelogger": "1.0.29",
     "utm": "1.1.1",
     "uuid": "3.1.0",
+    "watch": "1.0.2",
     "zmq": "2.15.3"
   }
 }
