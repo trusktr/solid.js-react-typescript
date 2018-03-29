@@ -185,7 +185,7 @@ export class Annotator {
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private tileManager: TileManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
-	private grid: THREE.GridHelper // visible grid attached to the reference plane
+	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
 	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
 	private compassRose: THREE.Object3D | null // indicates the direction of North
 	private light: THREE.SpotLight
@@ -375,18 +375,21 @@ export class Annotator {
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
 		this.scene.add(this.plane)
 
-		// Add grid on top of the plane
-		this.grid = new THREE.GridHelper(200, 100)
-		this.grid.material.opacity = 0.25
-		this.grid.material.transparent = true
-		this.scene.add(this.grid)
-
+		// Add grid on top of the plane to visualize where the plane is.
+		// Add an axes helper to visualize the origin and orientation of the primary directions.
 		const axesHelperLength = parseFloat(config.get('annotator.axes_helper_length')) || 0
 		if (axesHelperLength > 0) {
+			this.grid = new THREE.GridHelper(200, 100)
+			this.grid.material.opacity = 0.25
+			this.grid.material.transparent = true
+			this.scene.add(this.grid)
+
 			this.axis = AxesHelper(axesHelperLength)
 			this.scene.add(this.axis)
-		} else
+		} else {
+			this.grid = null
 			this.axis = null
+		}
 
 		const compassRoseLength = parseFloat(config.get('annotator.compass_rose_length')) || 0
 		if (compassRoseLength > 0) {
@@ -636,8 +639,10 @@ export class Annotator {
 	private setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
 		this.plane.geometry.center()
 		this.plane.geometry.translate(x, y, z)
-		this.grid.geometry.center()
-		this.grid.geometry.translate(x, y, z)
+		if (this.grid) {
+			this.grid.geometry.center()
+			this.grid.geometry.translate(x, y, z)
+		}
 		if (resetCamera) {
 			this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
@@ -2761,7 +2766,8 @@ export class Annotator {
 			this.scene.remove(this.axis)
 		if (this.compassRose)
 			this.scene.remove(this.compassRose)
-		this.grid.visible = false
+		if (this.grid)
+			this.grid.visible = false
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
 		this.hideSuperTiles()
@@ -2790,7 +2796,8 @@ export class Annotator {
 			this.scene.add(this.axis)
 		if (this.compassRose)
 			this.scene.add(this.compassRose)
-		this.grid.visible = true
+		if (this.grid)
+			this.grid.visible = true
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
