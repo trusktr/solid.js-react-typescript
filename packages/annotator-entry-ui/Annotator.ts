@@ -93,7 +93,6 @@ enum MenuVisibility {
 
 enum ModelVisibility {
 	ALL_VISIBLE = 0,
-	HIDE_SUPER_TILES,
 	HIDE_SUPER_TILES_AND_POINT_CLOUD,
 	HIDE_SUPER_TILES_AND_ANNOTATIONS,
 }
@@ -2566,7 +2565,6 @@ export class Annotator {
 
 	// In normal edit mode, toggles through the states defined in ModelVisibility:
 	// - all visible
-	// - super tile wire frames hidden
 	// - super tile wire frames hidden; point cloud hidden
 	// - super tile wire frames hidden; annotations hidden
 	private toggleModelVisibility(): void {
@@ -2581,12 +2579,6 @@ export class Annotator {
 
 		this.uiState.modelVisibility = newState
 		switch (this.uiState.modelVisibility) {
-			case ModelVisibility.HIDE_SUPER_TILES:
-				log.info('hiding super tiles')
-				this.hideSuperTiles()
-				this.showPointCloud()
-				this.showAnnotations()
-				break
 			case ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD:
 				log.info('hiding point cloud')
 				this.hideSuperTiles()
