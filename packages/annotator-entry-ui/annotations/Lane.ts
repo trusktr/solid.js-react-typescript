@@ -6,13 +6,14 @@
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 import * as $ from 'jquery'
+import * as lodash from 'lodash'
 import {
 	AnnotationUuid, Annotation, AnnotationRenderingProperties,
-	AnnotationJsonOutputInterface, AnnotationJsonInputInterface
+	AnnotationJsonOutputInterface, AnnotationJsonInputInterface,
+	AnnotationGeometryType
 } from './AnnotationBase'
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
-import {AnnotationGeometryType} from "./AnnotationBase"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -76,14 +77,14 @@ export enum LaneEntryExitType {
 }
 
 export class LaneNeighborsIds {
-	right: AnnotationUuid | null
-	left: AnnotationUuid | null
+	right: Array<AnnotationUuid>
+	left: Array<AnnotationUuid>
 	front: Array<AnnotationUuid>
 	back: Array<AnnotationUuid>
 
 	constructor() {
-		this.right = null
-		this.left = null
+		this.right = []
+		this.left = []
 		this.front = []
 		this.back = []
 	}
@@ -322,6 +323,48 @@ export class Lane extends Annotation {
 	}
 
 	/**
+	 * Join this lane with given lane by copying it's content
+	 */
+	join(lane: Lane): boolean {
+
+		if (!lane) {
+			log.error('Can not join an empty lane.')
+			return false
+		}
+
+		if (lane.uuid === this.uuid) {
+			log.error('Lane can not join with itself.')
+			return false
+		}
+
+		// add markers
+		this.markers = this.markers.concat(lane.markers)
+		lane.markers.forEach(marker => this.renderingObject.add(marker))
+
+		// add neighbors:
+		// - merge left-right neighbours
+		// - replace front neighbours
+		// - no modifications to back neighbours
+		this.neighborsIds.front = lane.neighborsIds.front
+		this.neighborsIds.left = lodash.uniq(this.neighborsIds.left.concat(lane.neighborsIds.left))
+		this.neighborsIds.right = lodash.uniq(this.neighborsIds.right.concat(lane.neighborsIds.right))
+
+		// solve properties conflicts
+		// - replace exit type
+		// - replace left/right line properties if not already set
+		this.exitType = lane.exitType
+		if (!this.leftLineType) this.leftLineType = lane.leftLineType
+		if (!this.leftLineColor) this.leftLineColor = lane.leftLineColor
+		if (!this.rightLineType) this.rightLineType = lane.rightLineType
+		if (!this.rightLineColor) this.rightLineColor = lane.rightLineColor
+
+		// update rendering
+		this.updateVisualization()
+
+		return true
+	}
+
+	/**
 	 * Make this annotation active. This changes the displayed material.
 	 */
 	makeActive(): void {
@@ -428,15 +471,19 @@ export class Lane extends Annotation {
 		switch (neighborLocation) {
 			case NeighborLocation.FRONT:
 				this.neighborsIds.front.push(neighborId)
+				this.neighborsIds.front = lodash.uniq(this.neighborsIds.front)
 				break
 			case NeighborLocation.BACK:
 				this.neighborsIds.back.push(neighborId)
+				this.neighborsIds.back = lodash.uniq(this.neighborsIds.back)
 				break
 			case NeighborLocation.LEFT:
-				this.neighborsIds.left = neighborId
+				this.neighborsIds.left.push(neighborId)
+				this.neighborsIds.left = lodash.uniq(this.neighborsIds.left)
 				break
 			case NeighborLocation.RIGHT:
-				this.neighborsIds.right = neighborId
+				this.neighborsIds.right.push(neighborId)
+				this.neighborsIds.right = lodash.uniq(this.neighborsIds.right)
 				break
 			default:
 				log.warn('Neighbor location not recognized')
@@ -447,16 +494,21 @@ export class Lane extends Annotation {
 	 * Delete the neighbor if it exists on either side.
 	 */
 	deleteLeftOrRightNeighbor(neighborId: AnnotationUuid): boolean {
-		if (this.neighborsIds.right === neighborId) {
-			this.neighborsIds.right = null
+
+		let index = this.neighborsIds.right.indexOf(neighborId, 0)
+		if (index > -1) {
+			this.neighborsIds.right.splice(index, 1)
 			return true
-		} else if (this.neighborsIds.left === neighborId) {
-			this.neighborsIds.left = null
-			return true
-		} else {
-			log.error("Non-reciprocal neighbor relation detected. This should never happen.")
-			return false
 		}
+
+		index = this.neighborsIds.left.indexOf(neighborId, 0)
+		if (index > -1) {
+			this.neighborsIds.left.splice(index, 1)
+			return true
+		}
+
+		log.error("Non-reciprocal neighbor relation detected. This should never happen.")
+		return false
 	}
 
 	deleteFrontNeighbor(neighborId: AnnotationUuid): boolean {

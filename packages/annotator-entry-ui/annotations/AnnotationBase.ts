@@ -218,4 +218,8 @@ export abstract class Annotation {
 	makeInvisible(): void {
 		this.renderingObject.visible = false
 	}
+
+	join(annotation: Annotation): boolean {
+		return false
+	}
 }

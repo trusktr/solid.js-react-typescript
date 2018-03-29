@@ -145,6 +145,7 @@ interface UiState {
 	isShiftKeyPressed: boolean
 	isAddMarkerKeyPressed: boolean
 	isAddConnectionKeyPressed: boolean
+	isJoinAnnotationKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	numberKeyPressed: number | null
 	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
@@ -252,6 +253,7 @@ export class Annotator {
 			isShiftKeyPressed: false,
 			isAddMarkerKeyPressed: false,
 			isAddConnectionKeyPressed: false,
+			isJoinAnnotationKeyPressed: false,
 			isMouseButtonPressed: false,
 			numberKeyPressed: null,
 			isLiveMode: false,
@@ -480,6 +482,7 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
+		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
 		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
@@ -1216,6 +1219,54 @@ export class Annotator {
 			Annotator.deactivateFrontSideNeighbours()
 	}
 
+	/**
+	 * If the mouse was clicked while pressing the "j" key, then join active
+	 * annotation with the clicked one, if they are of the same type
+	 */
+	private joinAnnotations = (event: MouseEvent): void => {
+		if (!this.uiState.isJoinAnnotationKeyPressed) return
+
+		// get active annotation
+		let activeAnnotation = this.annotationManager.activeAnnotation
+		if (!activeAnnotation) {
+			log.info("No annotation is active.")
+			return
+		}
+
+		// get clicked object
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+		if (intersects.length === 0) {
+			return
+		}
+		const object = intersects[0].object.parent
+		let inactiveAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+		if (!inactiveAnnotation) {
+			log.info("No clicked annotation.")
+			return
+		}
+
+		// determine order based on distances between end points: active --> inactive lane or inactive --> active lane
+		const inactiveToActive = inactiveAnnotation.markers[inactiveAnnotation.markers.length - 1].position
+			.distanceTo(activeAnnotation.markers[0].position)
+		const activeToInactive = activeAnnotation.markers[activeAnnotation.markers.length - 1].position
+			.distanceTo(inactiveAnnotation.markers[0].position)
+		let annotation1 = activeAnnotation
+		let annotation2 = inactiveAnnotation
+		if (activeToInactive > inactiveToActive) {
+			annotation1 = inactiveAnnotation
+			annotation2 = activeAnnotation
+		}
+
+		// join annotations
+		if (!this.annotationManager.joinAnnotations(annotation1, annotation2))
+			return
+
+		// update UI panel
+		this.resetAllAnnotationPropertiesMenuElements()
+	}
+
 	private isAnnotationLocked(annotation: Annotation): boolean {
 		if (annotation instanceof Lane && this.uiState.lockLanes)
 			return true
@@ -1234,6 +1285,7 @@ export class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
@@ -1267,6 +1319,7 @@ export class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const markers = this.annotationManager.activeMarkers()
 		if (!markers) return
@@ -1342,6 +1395,7 @@ export class Annotator {
 		if (this.uiState.isMouseButtonPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
 		if (!this.uiState.isSuperTilesVisible) return
 
 		const mouse = this.getMouseCoordinates(event)
@@ -1559,6 +1613,10 @@ export class Annotator {
 					this.toggleModelVisibility()
 					break
 				}
+				case 'j': {
+					this.uiState.isJoinAnnotationKeyPressed = true
+					break
+				}
 				case 'k': {
 					this.addLeftReverse()
 					break
@@ -1630,6 +1688,7 @@ export class Annotator {
 		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
 		this.uiState.isAddConnectionKeyPressed = false
+		this.uiState.isJoinAnnotationKeyPressed = false
 		this.uiState.numberKeyPressed = null
 	}
 
@@ -1705,7 +1764,6 @@ export class Annotator {
 	 */
 	private deleteActiveAnnotation(): void {
 		// Delete annotation from scene
-		this.annotationManager.deleteActiveLaneFromPath()
 		if (this.annotationManager.deleteActiveAnnotation()) {
 			log.info("Deleted selected annotation")
 			Annotator.deactivateLaneProp()
@@ -2204,19 +2262,19 @@ export class Annotator {
 
 		Annotator.expandAccordion('#menu_lane')
 
-		if (activeAnnotation.neighborsIds.left != null) {
+		if (activeAnnotation.neighborsIds.left.length > 0) {
 			Annotator.deactivateLeftSideNeighbours()
 		} else {
 			Annotator.activateLeftSideNeighbours()
 		}
 
-		if (activeAnnotation.neighborsIds.right != null) {
+		if (activeAnnotation.neighborsIds.right.length > 0) {
 			Annotator.deactivateRightSideNeighbours()
 		} else {
 			Annotator.activateRightSideNeighbours()
 		}
 
-		if (activeAnnotation.neighborsIds.front.length !== 0) {
+		if (activeAnnotation.neighborsIds.front.length > 0) {
 			Annotator.deactivateFrontSideNeighbours()
 		} else {
 			Annotator.activateFrontSideNeighbours()
