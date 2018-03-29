@@ -145,6 +145,11 @@ export class Boundary extends Annotation {
 			return false
 		}
 
+		if (boundary.uuid === this.uuid) {
+			log.error('Boundary can not join with itself.')
+			return false
+		}
+
 		// add markers
 		this.markers = this.markers.concat(boundary.markers)
 		boundary.markers.forEach(marker => this.renderingObject.add(marker))

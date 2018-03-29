@@ -6,6 +6,7 @@
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
 import * as $ from 'jquery'
+import * as lodash from 'lodash'
 import {
 	AnnotationUuid, Annotation, AnnotationRenderingProperties,
 	AnnotationJsonOutputInterface, AnnotationJsonInputInterface,
@@ -13,7 +14,6 @@ import {
 } from './AnnotationBase'
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
-import {removeDuplicates} from "annotator-entry-ui/util/ArrayOperations"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -332,6 +332,11 @@ export class Lane extends Annotation {
 			return false
 		}
 
+		if (lane.uuid === this.uuid) {
+			log.error('Lane can not join with itself.')
+			return false
+		}
+
 		// add markers
 		this.markers = this.markers.concat(lane.markers)
 		lane.markers.forEach(marker => this.renderingObject.add(marker))
@@ -341,8 +346,8 @@ export class Lane extends Annotation {
 		// - replace front neighbours
 		// - no modifications to back neighbours
 		this.neighborsIds.front = lane.neighborsIds.front
-		this.neighborsIds.left = removeDuplicates(this.neighborsIds.left.concat(lane.neighborsIds.left))
-		this.neighborsIds.right = removeDuplicates(this.neighborsIds.right.concat(lane.neighborsIds.right))
+		this.neighborsIds.left = lodash.uniq(this.neighborsIds.left.concat(lane.neighborsIds.left))
+		this.neighborsIds.right = lodash.uniq(this.neighborsIds.right.concat(lane.neighborsIds.right))
 
 		// solve properties conflicts
 		// - replace exit type
@@ -466,19 +471,19 @@ export class Lane extends Annotation {
 		switch (neighborLocation) {
 			case NeighborLocation.FRONT:
 				this.neighborsIds.front.push(neighborId)
-				this.neighborsIds.front = removeDuplicates(this.neighborsIds.front)
+				this.neighborsIds.front = lodash.uniq(this.neighborsIds.front)
 				break
 			case NeighborLocation.BACK:
 				this.neighborsIds.back.push(neighborId)
-				this.neighborsIds.back = removeDuplicates(this.neighborsIds.back)
+				this.neighborsIds.back = lodash.uniq(this.neighborsIds.back)
 				break
 			case NeighborLocation.LEFT:
 				this.neighborsIds.left.push(neighborId)
-				this.neighborsIds.left = removeDuplicates(this.neighborsIds.left)
+				this.neighborsIds.left = lodash.uniq(this.neighborsIds.left)
 				break
 			case NeighborLocation.RIGHT:
 				this.neighborsIds.right.push(neighborId)
-				this.neighborsIds.right = removeDuplicates(this.neighborsIds.right)
+				this.neighborsIds.right = lodash.uniq(this.neighborsIds.right)
 				break
 			default:
 				log.warn('Neighbor location not recognized')
