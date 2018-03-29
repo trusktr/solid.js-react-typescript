@@ -1777,7 +1777,7 @@ export class Annotator {
 
 	// Create an annotation, add it to the scene, and activate (highlight) it.
 	private addAnnotation(annotationType: AnnotationType): void {
-		if (this.annotationManager.addAnnotation(null, annotationType, true)) {
+		if (this.annotationManager.addAnnotation(null, annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
 			Annotator.deactivateAllAnnotationPropertiesMenus()
 			this.resetAllAnnotationPropertiesMenuElements()
