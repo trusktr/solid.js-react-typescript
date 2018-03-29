@@ -1884,6 +1884,7 @@ export class Annotator {
 	private bindLanePropertiesPanel(): void {
 		const lcType = $('#lp_select_type')
 		lcType.on('change', () => {
+			lcType.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1893,6 +1894,7 @@ export class Annotator {
 
 		const lcLeftType = $('#lp_select_left_type')
 		lcLeftType.on('change', () => {
+			lcLeftType.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1903,6 +1905,7 @@ export class Annotator {
 
 		const lcLeftColor = $('#lp_select_left_color')
 		lcLeftColor.on('change', () => {
+			lcLeftColor.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1913,6 +1916,7 @@ export class Annotator {
 
 		const lcRightType = $('#lp_select_right_type')
 		lcRightType.on('change', () => {
+			lcRightType.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1923,6 +1927,7 @@ export class Annotator {
 
 		const lcRightColor = $('#lp_select_right_color')
 		lcRightColor.on('change', () => {
+			lcRightColor.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1933,6 +1938,7 @@ export class Annotator {
 
 		const lcEntry = $('#lp_select_entry')
 		lcEntry.on('change', () => {
+			lcEntry.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1942,6 +1948,7 @@ export class Annotator {
 
 		const lcExit = $('#lp_select_exit')
 		lcExit.on('change', () => {
+			lcExit.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -2081,6 +2088,7 @@ export class Annotator {
 	private bindTrafficSignPropertiesPanel(): void {
 		const tpType = $('#tp_select_type')
 		tpType.on('change', () => {
+			tpType.blur()
 			const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -2092,6 +2100,7 @@ export class Annotator {
 	private bindBoundaryPropertiesPanel(): void {
 		const bpType = $('#bp_select_type')
 		bpType.on('change', () => {
+			bpType.blur()
 			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
 			if (activeAnnotation === null)
 				return

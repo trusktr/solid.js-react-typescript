@@ -284,6 +284,10 @@ export class TileManager extends UtmInterface {
 			.map(st => st.pointCloud!)
 	}
 
+	getIsLoadingPointCloud(): boolean {
+		return this.isLoadingPointCloud
+	}
+
 	// Update state of which super tiles are loaded; and save that state for use when the application is reloaded.
 	private setLoadedSuperTileKeys(newKeys: OrderedSet<string>): void {
 		this.loadedSuperTileKeys = newKeys
