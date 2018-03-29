@@ -135,6 +135,43 @@ export class Boundary extends Annotation {
 		return true
 	}
 
+	/**
+	 * Join this boundary with given boundary by copying it's content
+	 */
+	join(boundary: Boundary): boolean {
+
+		if (!boundary) {
+			log.error('Can not join an empty boundary.')
+			return false
+		}
+
+		if (boundary.uuid === this.uuid) {
+			log.error('Boundary can not join with itself.')
+			return false
+		}
+
+		// add markers
+		this.markers = this.markers.concat(boundary.markers)
+		boundary.markers.forEach(marker => this.renderingObject.add(marker))
+
+		// merge type
+		if (this.type === BoundaryType.UNKNOWN)
+			this.type = boundary.type
+		else if (this.type !== boundary.type)
+			log.warn('Discarding second boundary type ' + BoundaryType[boundary.type])
+
+		// merge color
+		if (this.color === BoundaryColor.UNKNOWN)
+			this.color = boundary.color
+		else if (this.color !== boundary.color)
+			log.warn('Discarding second boundary color ' + BoundaryColor[boundary.color])
+
+		// update rendering
+		this.updateVisualization()
+
+		return true
+	}
+
 	makeActive(): void {
 		this.boundaryContour.material = BoundaryRenderingProperties.activeMaterial
 	}

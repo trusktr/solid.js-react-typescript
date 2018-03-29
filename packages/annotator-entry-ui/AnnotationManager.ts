@@ -275,37 +275,16 @@ export class AnnotationManager extends UtmInterface {
 
 		switch (relation) {
 			case 'left':
-				if (laneFrom.neighborsIds.left === null &&
-					laneTo.neighborsIds.right === null) {
-
-					laneFrom.neighborsIds.left = laneTo.uuid
-					laneTo.neighborsIds.right = laneFrom.uuid
-				} else {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, `${relation} relation already exists`)
-					return false
-				}
+				laneFrom.neighborsIds.left.push(laneTo.uuid)
+				laneTo.neighborsIds.right.push(laneFrom.uuid)
 				break
 			case 'left reverse':
-				if (laneFrom.neighborsIds.left === null &&
-					laneTo.neighborsIds.left === null) {
-
-					laneFrom.neighborsIds.left = laneTo.uuid
-					laneTo.neighborsIds.left = laneFrom.uuid
-				} else {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, `${relation} relation already exists`)
-					return false
-				}
+				laneFrom.neighborsIds.left.push(laneTo.uuid)
+				laneTo.neighborsIds.left.push(laneFrom.uuid)
 				break
 			case 'right':
-				if (laneFrom.neighborsIds.right === null &&
-					laneTo.neighborsIds.left === null) {
-
-					laneFrom.neighborsIds.right = laneTo.uuid
-					laneTo.neighborsIds.left = laneFrom.uuid
-				} else {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, `${relation} relation already exists`)
-					return false
-				}
+				laneFrom.neighborsIds.right.push(laneTo.uuid)
+				laneTo.neighborsIds.left.push(laneFrom.uuid)
 				break
 			case 'back':
 			case 'front':
@@ -380,6 +359,101 @@ export class AnnotationManager extends UtmInterface {
 	}
 
 	/**
+	 * Join two annotations, if they are of the same type
+	 */
+	joinAnnotations (annotation1: Annotation, annotation2: Annotation): boolean {
+
+		// Check if the 2 annotation are of the same type
+		if (annotation1.constructor !== annotation2.constructor) {
+			log.warn(`Clicked objects are not of the same type.`)
+			return false
+		}
+
+		// merge
+		if (!annotation1.join(annotation2)) {
+			log.warn(`Unable to join the two annotations.`)
+			return false
+		}
+
+		// create new neighbours connections
+		if (annotation1 instanceof Lane) {
+			this.refreshLaneNeighbours(annotation1)
+		}
+
+		// delete
+		this.changeActiveAnnotation(annotation1)
+		this.deleteAnnotation(annotation2)
+
+		this.metadataState.dirty()
+		return true
+	}
+
+	/**
+	 * Refresh neighbours links for the given lane.
+	 * The results of this function is that all neighbours of the current lane
+	 * have the link back to this lane.
+	 */
+	refreshLaneNeighbours(annotation: Lane): void {
+
+		if (!annotation.isValid())
+			return
+
+		// Front neighbours
+		annotation.neighborsIds.front.forEach(NeighbourUuid => {
+			let neighbour =  this.findAnnotationByUuid(NeighbourUuid)
+			if (neighbour && neighbour instanceof Lane) {
+				neighbour.addNeighbor(annotation.uuid, NeighborLocation.BACK)
+			} else {
+				log.error("Couldn't find front neighbor. This should never happen.")
+			}
+		})
+		// Back neighbours
+		annotation.neighborsIds.back.forEach(NeighbourUuid => {
+			let neighbour =  this.findAnnotationByUuid(NeighbourUuid)
+			if (neighbour && neighbour instanceof Lane) {
+				neighbour.addNeighbor(annotation.uuid, NeighborLocation.FRONT)
+			} else {
+				log.error("Couldn't find back neighbor. This should never happen.")
+			}
+		})
+		// Left neighbours
+		let p1: THREE.Vector3 = annotation.waypoints[1].sub(annotation.waypoints[0])
+		annotation.neighborsIds.left.forEach(NeighbourUuid => {
+			let neighbour =  this.findAnnotationByUuid(NeighbourUuid)
+			if (neighbour && neighbour instanceof Lane && neighbour.isValid()) {
+				let p2: THREE.Vector3 = neighbour.waypoints[1].sub(neighbour.waypoints[0])
+				let angle = p1.angleTo(p2)
+				if (angle < (Math.PI / 3)) {
+					// same direction
+					neighbour.addNeighbor(annotation.uuid, NeighborLocation.RIGHT)
+				} else {
+					// opposite direction
+					neighbour.addNeighbor(annotation.uuid, NeighborLocation.LEFT)
+				}
+			} else {
+				log.error("Couldn't find left neighbor. This should never happen.")
+			}
+		})
+		// Right neighbours
+		annotation.neighborsIds.right.forEach(NeighbourUuid => {
+			let neighbour =  this.findAnnotationByUuid(NeighbourUuid)
+			if (neighbour && neighbour instanceof Lane && neighbour.isValid()) {
+				let p2: THREE.Vector3 = neighbour.waypoints[1].sub(neighbour.waypoints[0])
+				let angle = p1.angleTo(p2)
+				if (angle < (Math.PI / 3)) {
+					// same direction
+					neighbour.addNeighbor(annotation.uuid, NeighborLocation.LEFT)
+				} else {
+					// opposite direction
+					neighbour.addNeighbor(annotation.uuid, NeighborLocation.RIGHT)
+				}
+			} else {
+				log.error("Couldn't find right neighbor. This should never happen.")
+			}
+		})
+	}
+
+	/**
 	 * If current annotation is a lane, try to reverse its direction. The presence
 	 * of neighbours to the left and right is returned to the caller (mainly for UI updates)
 	 * @returns [result, existLeftNeighbour, existRightNeighbour]
@@ -397,8 +471,8 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		return {result: true,
-				existLeftNeighbour: activeLane.neighborsIds.left !== null,
-				existRightNeighbour: activeLane.neighborsIds.right !== null}
+				existLeftNeighbour: activeLane.neighborsIds.left.length > 0,
+				existRightNeighbour: activeLane.neighborsIds.right.length > 0}
 	}
 
 	/**
@@ -504,23 +578,6 @@ export class AnnotationManager extends UtmInterface {
 			log.info("Lane added to the car path.")
 		} else {
 			activeLane.setTrajectory(false)
-			this.carPath.splice(index, 1)
-			log.info("Lane removed from the car path.")
-		}
-
-		this.metadataState.dirty()
-		return true
-	}
-
-	deleteActiveLaneFromPath(): boolean {
-		const activeLane = this.getActiveLaneAnnotation()
-		if (!activeLane) {
-			return false
-		}
-
-		const index = this.laneIndexInPath(activeLane.uuid)
-		if (index !== -1) {
-			this.laneAnnotations[index].setTrajectory(false)
 			this.carPath.splice(index, 1)
 			log.info("Lane removed from the car path.")
 		}
@@ -638,15 +695,17 @@ export class AnnotationManager extends UtmInterface {
 				if (frontLaneIndex === -1)
 					return frontLaneIndex
 				const frontLane = this.laneAnnotations[frontLaneIndex]
-				const frontLaneNeighbors = frontLane.neighborsIds
-				if (frontLaneNeighbors.right !== null &&
-					this.isUuidInList(this.carPath, frontLaneNeighbors.right)) {
-					return this.getAnnotationIndexFromUuid(this.laneAnnotations, frontLaneNeighbors.right)
+
+				for (const neighborRight of frontLane.neighborsIds.right) {
+					if (this.isUuidInList(this.carPath, neighborRight)) {
+						return this.getAnnotationIndexFromUuid(this.laneAnnotations, neighborRight)
+					}
 				}
 
-				if (frontLaneNeighbors.left !== null &&
-					this.isUuidInList(this.carPath, frontLaneNeighbors.left)) {
-					return this.getAnnotationIndexFromUuid(this.laneAnnotations, frontLaneNeighbors.left)
+				for (const neighborLeft of frontLane.neighborsIds.left) {
+					if (this.isUuidInList(this.carPath, neighborLeft)) {
+						return this.getAnnotationIndexFromUuid(this.laneAnnotations, neighborLeft)
+					}
 				}
 			}
 		}
@@ -1116,11 +1175,6 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	private addLeftConnection(source: Lane, neighborDirection: NeighborDirection): boolean {
 
-		if (source.neighborsIds.left != null) {
-			log.warn('This lane already has a neighbor to the LEFT. Aborting new connection.')
-			return false
-		}
-
 		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
 		if (!newAnnotation) return false
 
@@ -1178,10 +1232,6 @@ export class AnnotationManager extends UtmInterface {
 	 * given direction of the neighbor.
 	 */
 	private addRightConnection(source: Lane, neighborDirection: NeighborDirection): boolean {
-		if (source.neighborsIds.right != null) {
-			log.warn('This lane already has a neighbor to the RIGHT. Aborting new connection.')
-			return false
-		}
 
 		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
 		if (!newAnnotation) return false
@@ -1237,8 +1287,8 @@ export class AnnotationManager extends UtmInterface {
 	private deleteConnectionToNeighbors(annotation: Lane): void {
 		let modifications = 0
 
-		if (annotation.neighborsIds.right) {
-			const rightNeighbor = this.findAnnotationByUuid(annotation.neighborsIds.right)
+		for (const neighborRightID of annotation.neighborsIds.right) {
+			const rightNeighbor = this.findAnnotationByUuid(neighborRightID)
 			if (rightNeighbor && rightNeighbor instanceof Lane) {
 				if (rightNeighbor.deleteLeftOrRightNeighbor(annotation.uuid))
 					modifications++
@@ -1247,8 +1297,8 @@ export class AnnotationManager extends UtmInterface {
 			}
 		}
 
-		if (annotation.neighborsIds.left) {
-			const leftNeighbor = this.findAnnotationByUuid(annotation.neighborsIds.left)
+		for (const neighborLeftID of annotation.neighborsIds.left) {
+			const leftNeighbor = this.findAnnotationByUuid(neighborLeftID)
 			if (leftNeighbor && leftNeighbor instanceof Lane) {
 				if (leftNeighbor.deleteLeftOrRightNeighbor(annotation.uuid))
 					modifications++
@@ -1424,6 +1474,13 @@ export class AnnotationManager extends UtmInterface {
 		// Side effect: remove references to this annotation from its neighbors
 		if (annotation instanceof Lane) {
 			this.deleteConnectionToNeighbors(annotation)
+			// Remove lane from path
+			const index = this.laneIndexInPath(annotation.uuid)
+			if (index !== -1) {
+				this.laneAnnotations[index].setTrajectory(false)
+				this.carPath.splice(index, 1)
+				log.info("Lane removed from the car path.")
+			}
 		} else if (annotation instanceof Connection) {
 			this.removeUuidFromLaneNeighbors(annotation.startLaneUuid, annotation.uuid)
 			this.removeUuidFromLaneNeighbors(annotation.endLaneUuid, annotation.uuid)
@@ -1543,13 +1600,15 @@ export class AnnotationManager extends UtmInterface {
 			return true
 		}
 
-		if (lane.neighborsIds.left === uuidToRemove) {
-			lane.neighborsIds.left = null
+		let index = lane.neighborsIds.left.indexOf(uuidToRemove, 0)
+		if (index > -1) {
+			lane.neighborsIds.left.splice(index, 1)
 			return true
 		}
 
-		if (lane.neighborsIds.right === uuidToRemove) {
-			lane.neighborsIds.right = null
+		index = lane.neighborsIds.right.indexOf(uuidToRemove, 0)
+		if (index > -1) {
+			lane.neighborsIds.right.splice(index, 1)
 			return true
 		}
 
