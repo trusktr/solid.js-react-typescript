@@ -572,8 +572,7 @@ export class Annotator {
 			requestAnimationFrame(this.animate)
 		}, 1000 / this.settings.fpsRendering)
 
-		if (this.aoiState.enabled)
-			this.updatePointCloudAoi()
+		this.updatePointCloudAoi()
 		this.render()
 		if (this.stats) this.stats.update()
 		this.orbitControls.update()
@@ -1027,10 +1026,14 @@ export class Annotator {
 
 	// Set the area of interest for loading point clouds.
 	private updatePointCloudAoi(): void {
+		if (!this.aoiState.enabled) return
 		// The only use of Control at the moment is to enable model rotation in OrbitControls. Updating AOI is useful
 		// mainly while panning across the model. Disable it during rotation for better rendering performance.
 		if (this.uiState.isControlKeyPressed) return
+		// Don't update AOI and load tiles if the point cloud is not visible.
 		if (this.uiState.modelVisibility === ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD) return
+		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
+		if (this.tileManager.getIsLoadingPointCloud()) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
