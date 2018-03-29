@@ -10,7 +10,7 @@ const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
 import LocalStorage from "./state/LocalStorage"
-import {GUI as DatGui} from 'dat.gui'
+import {GUI as DatGui, GUIParams} from 'dat.gui'
 import {TransformControls} from './controls/TransformControls'
 import {OrbitControls} from './controls/OrbitControls'
 import {
@@ -436,22 +436,25 @@ export class Annotator {
 
 		// Add panel to change the settings
 		if (config.get('startup.show_color_picker')) {
-			this.gui = new DatGui()
+			this.gui = new DatGui({
+				hideable: false,
+				closeOnTop: true,
+			} as GUIParams)
 			this.gui.addColor(this.settings, 'background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
 
 			const folderLock = this.gui.addFolder('Lock')
 			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
-				if (value && this.annotationManager.activeAnnotation instanceof Boundary)
+				if (value && this.annotationManager.getActiveBoundaryAnnotation())
 					this.annotationManager.unsetActiveAnnotation()
 			})
 			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
-				if (value && this.annotationManager.activeAnnotation instanceof Lane)
+				if (value && this.annotationManager.getActiveLaneAnnotation())
 					this.annotationManager.unsetActiveAnnotation()
 			})
 			folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
-				if (value && this.annotationManager.activeAnnotation instanceof Territory)
+				if (value && this.annotationManager.getActiveTerritoryAnnotation())
 					this.annotationManager.unsetActiveAnnotation()
 			})
 			folderLock.open()
@@ -2762,6 +2765,8 @@ export class Annotator {
 		this.annotationManager.setLiveMode()
 		this.uiState.isLiveMode = true
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		if (this.gui)
+			this.gui.close()
 		if (this.axis)
 			this.scene.remove(this.axis)
 		if (this.compassRose)
@@ -2792,6 +2797,8 @@ export class Annotator {
 		this.annotationManager.unsetLiveMode()
 		this.uiState.isLiveMode = false
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		if (this.gui)
+			this.gui.open()
 		if (this.axis)
 			this.scene.add(this.axis)
 		if (this.compassRose)
