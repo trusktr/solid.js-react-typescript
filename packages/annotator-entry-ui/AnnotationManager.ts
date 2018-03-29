@@ -1059,7 +1059,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Concatenate all annotation types into a single array.
 	 */
-	private allAnnotations(): Annotation[] {
+	allAnnotations(): Annotation[] {
 		return ([] as Annotation[])
 			.concat(this.boundaryAnnotations)
 			.concat(this.connectionAnnotations)
@@ -1609,12 +1609,12 @@ export class AnnotationState {
 	private doPeriodicSave(): boolean {
 		return this.autoSaveEnabled
 			&& this.isDirty
-			&& (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
+			&& !!this.annotationManager.allAnnotations()
 	}
 
 	private doImmediateSave(): boolean {
 		return this.isDirty
-			&& (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
+			&& !!this.annotationManager.allAnnotations()
 	}
 
 	private saveAnnotations(): Promise<void> {
