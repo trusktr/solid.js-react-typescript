@@ -15,13 +15,10 @@ import {AnnotationGeometryType} from "./AnnotationBase"
 // Some types
 export enum ConnectionType {
 	UNKNOWN = 0,
-	STRAIGHT,
-	LEFT_TURN,
-	RIGHT_TURN,
-	LEFT_MERGE,
-	RIGHT_MERGE,
-	LEFT_SPLIT,
-	RIGHT_SPLIT,
+	YIELD,
+	ALTERNATE,
+	TRAFFIC_LIGTH_RYG,
+	TRAFFIC_LIGTH_RYG_LEFT_ARROW,
 	OTHER
 }
 
@@ -45,12 +42,14 @@ export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterfa
 	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
+	conflictingConnections: Array<AnnotationUuid>
 }
 
 export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInterface {
 	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
+	conflictingConnections: Array<AnnotationUuid>
 	// Waypoints are generated from markers. They are included in output for downstream
 	// convenience, but we don't read them back in.
 	waypoints: Array<Object>
@@ -65,6 +64,7 @@ export class Connection extends Annotation {
 	snapToGround: boolean
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
+	conflictingConnections: Array<AnnotationUuid>
 	directionMarkers: Array<THREE.Mesh>
 	waypoints: Array<THREE.Vector3>
 	mesh: THREE.Mesh
@@ -77,10 +77,12 @@ export class Connection extends Annotation {
 			this.type = isNullOrUndefined(ConnectionType[obj.connectionType]) ? ConnectionType.UNKNOWN : ConnectionType[obj.connectionType]
 			this.startLaneUuid = obj.startLaneUuid
 			this.endLaneUuid = obj.endLaneUuid
+			this.conflictingConnections = isNullOrUndefined(obj.conflictingConnections) ? [] : obj.conflictingConnections
 		} else {
 			this.type = ConnectionType.UNKNOWN
 			this.startLaneUuid = ""
 			this.endLaneUuid = ""
+			this.conflictingConnections = []
 		}
 
 		this.minimumMarkerCount = 4
@@ -120,6 +122,21 @@ export class Connection extends Annotation {
 
 		if (updateVisualization) this.updateVisualization()
 		return true
+	}
+
+	addConflictingConnection(connectionId: AnnotationUuid): void {
+		// Only add the connection if is not in the conflicting list already
+		const index = this.conflictingConnections.indexOf(connectionId, 0)
+		if (index < 0) {
+			this.conflictingConnections.push(connectionId)
+		}
+	}
+
+	deleteConflictingConnections(connectionId: AnnotationUuid): void {
+		const index = this.conflictingConnections.indexOf(connectionId, 0)
+		if (index > -1) {
+			this.conflictingConnections.splice(index, 1)
+		}
 	}
 
 	deleteLastMarker(): boolean  { return false}
@@ -195,6 +212,7 @@ export class Connection extends Annotation {
 			connectionType: ConnectionType[this.type],
 			startLaneUuid: this.startLaneUuid,
 			endLaneUuid: this.endLaneUuid,
+			conflictingConnections: this.conflictingConnections,
 			markers: [],
 			waypoints: [],
 		}
