@@ -132,8 +132,8 @@ for (const i in lpSelectsId) {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
-const cpLabelsText = ['Connection ID', 'From Lane:', 'To Lane:', 'Type:', "Traffic Device:"]
-const cpLabelsId = ['cp_id', 'cp_from', 'cp_to', 'cp_type', 'cp_device']
+const cpLabelsText = ['Connection ID', 'Type:', "Traffic Device:"]
+const cpLabelsId = ['cp_id', 'cp_type', 'cp_device']
 const cpLabels: Array<HTMLElement> = []
 
 for (const i in cpLabelsText) {
@@ -146,7 +146,7 @@ for (const i in cpLabelsText) {
 	}
 }
 
-const cpSelectsId = ['cp_type', 'cp_device']
+const cpSelectsId = ['cp_select_type', 'cp_select_device']
 const cpSelectsText = [
 	['UNKNOWN', 'YIELD', 'ALTERNATE', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER'],
 	['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LIGHT_LEFT_ARROW', 'OTHER']]
@@ -164,21 +164,10 @@ eConnectionId.id = 'cp_id_value'
 eConnectionId.className = 'select_style'
 cpSelects.push(eConnectionId)
 
-const eFromLane: document.createElement('text')
-const eToLane: document.createElement('text')
-eFromLane.textContent = 'UNKNOWN'
-eToLane.textContent = 'UNKNOWN'
-eFromLane.id = 'cp_from_value'
-eToLane.id = 'cp_to_value'
-eFromLane.className = 'select_style'
-eToLane.className = 'select_style'
-cpSelects.push(eFromLane)
-cpSelects.push(eToLane)
-
 for (const i in cpSelectsId) {
 	if (cpSelectsId.hasOwnProperty(i)) {
 		const element = document.createElement('select')
-		element.id = bpSelectsId[i]
+		element.id = cpSelectsId[i]
 		element.className = 'select_style'
 		for (let j = 0; j < cpSelectsText[i].length; ++j) {
 			const option = document.createElement("option")

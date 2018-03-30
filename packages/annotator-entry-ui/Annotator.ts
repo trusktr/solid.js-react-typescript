@@ -1999,6 +1999,30 @@ export class Annotator {
 			log.warn('missing element lp_add_forward')
 	}
 
+	private bindConnectionPropertiesPanel(): void {
+		const cpType = $('#cp_select_type')
+		cpType.on('change', () => {
+			cpType.blur()
+			const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding connection type: " + cpType.children("options").filter(":selected").text())
+			activeAnnotation.type = +cpType.val()
+		})
+
+		/*
+		const cpDevice = $('#cp_select_device')
+		cpDevice.on('change', () => {
+			const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding boundary color: " + cpDevice.children("options").filter(":selected").text())
+			activeAnnotation.device = +cpDevice.val()
+		})
+		*/
+	}
+
+	/*
 	private bindRelationsPanel(): void {
 		const lcSelectFrom = document.getElementById('lc_select_from')
 		if (lcSelectFrom)
@@ -2061,6 +2085,7 @@ export class Annotator {
 		else
 			log.warn('missing element lc_add')
 	}
+    */
 
 	private bindTerritoryPropertiesPanel(): void {
 		const territoryLabel = document.getElementById('input_label_territory')
@@ -2121,7 +2146,8 @@ export class Annotator {
 	private bind(): void {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
-		this.bindRelationsPanel()
+		//this.bindRelationsPanel()
+		this.bindConnectionPropertiesPanel()
 		this.bindTerritoryPropertiesPanel()
 		this.bindTrafficSignPropertiesPanel()
 		this.bindBoundaryPropertiesPanel()
@@ -2268,6 +2294,7 @@ export class Annotator {
 	private resetAllAnnotationPropertiesMenuElements(): void {
 		this.resetBoundaryProp()
 		this.resetLaneProp()
+		this.resetConnectionProp()
 		this.resetTerritoryProp()
 		this.resetTrafficSignProp()
 	}
@@ -2306,6 +2333,7 @@ export class Annotator {
 			log.warn('missing element lp_id_value')
 		activeAnnotation.updateLaneWidth()
 
+		/*
 		const lcSelectTo = $('#lc_select_to')
 		lcSelectTo.empty()
 		lcSelectTo.removeAttr('disabled')
@@ -2319,6 +2347,7 @@ export class Annotator {
 
 		const lpAddRelation = $('#lc_add')
 		lpAddRelation.removeAttr('disabled')
+		*/
 
 		const lpSelectType = $('#lp_select_type')
 		lpSelectType.removeAttr('disabled')
@@ -2420,9 +2449,36 @@ export class Annotator {
 		bpSelectColor.val(activeAnnotation.color.toString())
 	}
 
+	/**
+	 * Reset connection properties elements based on the current active connection
+	 */
+	private resetConnectionProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_connection')
+
+		const cpId = document.getElementById('cp_id_value')
+		if (cpId)
+			cpId.textContent = activeAnnotation.id.toString()
+		else
+			log.warn('missing element bp_id_value')
+
+		const cpSelectType = $('#cp_select_type')
+		cpSelectType.removeAttr('disabled')
+		cpSelectType.val(activeAnnotation.type.toString())
+
+		/*
+		const cpSelectDevice = $('#cp_select_device')
+		cpSelectDevice.removeAttr('disabled')
+		cpSelectDevice.val(activeAnnotation.device.toString())
+		*/
+	}
+
 	private static deactivateAllAnnotationPropertiesMenus(): void {
 		Annotator.deactivateBoundaryProp()
 		Annotator.deactivateLaneProp()
+		Annotator.deactivateConnectionProp()
 		Annotator.deactivateTerritoryProp()
 		Annotator.deactivateTrafficSignProp()
 	}
@@ -2456,6 +2512,7 @@ export class Annotator {
 		} else
 			log.warn('missing element lane_prop_1')
 
+		/*
 		const laneConn = document.getElementById('lane_conn')
 		if (laneConn) {
 			const selects = laneConn.getElementsByTagName('select')
@@ -2470,6 +2527,7 @@ export class Annotator {
 			lcAdd.setAttribute('disabled', 'disabled')
 		else
 			log.warn('missing element lc_add')
+		*/
 
 		const trAdd = document.getElementById('tr_add')
 		if (trAdd)
@@ -2503,6 +2561,39 @@ export class Annotator {
 		const boundaryProp = document.getElementById('boundary_prop')
 		if (boundaryProp) {
 			const selects = boundaryProp.getElementsByTagName('select')
+			for (let i = 0; i < selects.length; ++i) {
+				selects.item(i).selectedIndex = 0
+				selects.item(i).setAttribute('disabled', 'disabled')
+			}
+		} else
+			log.warn('missing element boundary_prop')
+	}
+
+	/**
+	 * Deactivate connection properties menu panel
+	 */
+	private static deactivateConnectionProp(): void {
+		const cpId = document.getElementById('cp_id_value')
+		if (cpId)
+			cpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element cp_id_value')
+
+		const cpType = document.getElementById('cp_select_type')
+		if (cpType)
+			cpType.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element cp_select_type')
+
+		const cpDevice = document.getElementById('cp_select_device')
+		if (cpDevice)
+			cpDevice.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element cp_select_device')
+
+		const connectionProp = document.getElementById('connection_prop')
+		if (connectionProp) {
+			const selects = connectionProp.getElementsByTagName('select')
 			for (let i = 0; i < selects.length; ++i) {
 				selects.item(i).selectedIndex = 0
 				selects.item(i).setAttribute('disabled', 'disabled')

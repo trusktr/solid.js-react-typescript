@@ -137,6 +137,13 @@ export class AnnotationManager extends UtmInterface {
 			return null
 	}
 
+	getActiveConnectionAnnotation(): Connection | null {
+		if (this.activeAnnotation && this.activeAnnotation instanceof Connection)
+			return this.activeAnnotation as Connection
+		else
+			return null
+	}
+
 	getActiveBoundaryAnnotation(): Boundary | null {
 		if (this.activeAnnotation && this.activeAnnotation instanceof Boundary)
 			return this.activeAnnotation as Boundary
