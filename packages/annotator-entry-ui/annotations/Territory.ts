@@ -214,16 +214,13 @@ export class Territory extends Annotation {
 	}
 
 	setLiveMode(): void {
-		this.markers.forEach((marker) => {
-			marker.visible = false
-		})
+		this.mesh.visible = false
+		this.territoryContour.visible = false
 	}
 
 	unsetLiveMode(): void {
-		this.markers.forEach((marker) => {
-			marker.visible = true
-		})
-		this.makeInactive()
+		this.mesh.visible = true
+		this.territoryContour.visible = true
 	}
 
 	updateVisualization(): void {

@@ -9,14 +9,15 @@ import * as lodash from 'lodash'
 import {isNullOrUndefined} from "util"
 import * as THREE from 'three'
 import {AnnotationType} from "./annotations/AnnotationType"
+import {AnnotationConstructResult} from "./annotations/AnnotationConstructResult"
 import {currentAnnotationFileVersion, toCurrentAnnotationVersion} from "./annotations/SerializedVersion"
 import {
 	Annotation, AnnotationId, AnnotationJsonInputInterface,
 	AnnotationJsonOutputInterface, AnnotationUuid, LlaJson, UtmJson
-} from 'annotator-entry-ui/annotations/AnnotationBase'
+} from './annotations/AnnotationBase'
 import {
 	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds
-} from 'annotator-entry-ui/annotations/Lane'
+} from './annotations/Lane'
 import * as AnnotationFactory from "./annotations/AnnotationFactory"
 import {TrafficSign} from 'annotator-entry-ui/annotations/TrafficSign'
 import {Territory} from "./annotations/Territory"
@@ -174,17 +175,19 @@ export class AnnotationManager extends UtmInterface {
 	 * @param annotationType  Construct a new annotation with the given type
 	 * @param activate        Activate the new annotation after creation
 	 * One of obj and annotationType is required.
+	 * @return either an Annotation with success result code
+	 *           or null with a failure result code
 	 */
 	addAnnotation(
 		obj: AnnotationJsonInputInterface | null,
 		annotationType: AnnotationType | null = null,
 		activate: boolean = false
-	): Annotation | null {
-		if (this.isLiveMode) return null
+	): [Annotation | null, AnnotationConstructResult] {
+		if (this.isLiveMode) return [null, AnnotationConstructResult.INVALID_STATE]
 
 		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost).
-		if (this.activeAnnotation && !this.activeAnnotation.isValid()) return null
+		if (this.activeAnnotation && !this.activeAnnotation.isValid()) return [null, AnnotationConstructResult.INVALID_STATE]
 
 		// Figure out which type we are working with.
 		let myAnnotationType: AnnotationType
@@ -194,7 +197,7 @@ export class AnnotationManager extends UtmInterface {
 			myAnnotationType = annotationType
 		} else {
 			log.warn('addAnnotation() requires either an AnnotationJsonInputInterface or an AnnotationType input')
-			return null
+			return [null, AnnotationConstructResult.INVALID_INPUT]
 		}
 
 		// Get methods and data structures appropriate to the type.
@@ -204,7 +207,7 @@ export class AnnotationManager extends UtmInterface {
 				log.warn(`discarding annotation with invalid type ${obj.annotationType}`)
 			else
 				log.warn(`discarding annotation with invalid type ${annotationType}`)
-			return null
+			return [null, AnnotationConstructResult.INVALID_INPUT]
 		}
 
 		// Instantiate it.
@@ -212,17 +215,17 @@ export class AnnotationManager extends UtmInterface {
 		if (obj) {
 			// Discard duplicate annotations.
 			if (similarAnnotations.some(a => a.uuid === obj.uuid))
-				return null
+				return [null, AnnotationConstructResult.DUPLICATE]
 
 			// Instantiate and validate.
 			newAnnotation = AnnotationFactory.construct(myAnnotationType, obj)
 			if (!(newAnnotation && newAnnotation.isValid()))
-				return null
+				return [null, AnnotationConstructResult.INVALID_INPUT]
 		} else {
 			newAnnotation = AnnotationFactory.construct(myAnnotationType)
 		}
 		if (!newAnnotation)
-			return null
+			return [null, AnnotationConstructResult.CONSTRUCTOR_ERROR]
 
 		// Set state.
 		similarAnnotations.push(newAnnotation)
@@ -231,7 +234,7 @@ export class AnnotationManager extends UtmInterface {
 		if (activate)
 			this.changeActiveAnnotation(newAnnotation)
 
-		return newAnnotation
+		return [newAnnotation, AnnotationConstructResult.SUCCESS]
 	}
 
 	// Get a reference to the list containing matching AnnotationType.
@@ -1095,18 +1098,25 @@ export class AnnotationManager extends UtmInterface {
 
 		// Convert data to annotations
 		let boundingBox = new THREE.Box3()
-		let invalid = 0
+		const errors: Map<string, number> = new Map()
 		data['annotations'].forEach((obj: AnnotationJsonInputInterface) => {
-			const newAnnotation = this.addAnnotation(obj)
-			if (newAnnotation)
+			const [newAnnotation, result]: [Annotation | null, AnnotationConstructResult] = this.addAnnotation(obj)
+			if (newAnnotation) {
 				boundingBox = boundingBox.union(newAnnotation.boundingBox())
-			else
-				invalid++
+			} else {
+				const errorString = AnnotationConstructResult[result]
+				const count = errors.get(errorString)
+				if (count)
+					errors.set(errorString, count + 1)
+				else
+					errors.set(errorString, 1)
+			}
 		})
 
 		// Clean up and go home
-		if (invalid)
-			log.warn(`discarding ${invalid} invalid annotations`)
+		errors.forEach((v: number, k: string) =>
+			log.warn(`discarding ${v} annotations with error ${k}`)
+		)
 		this.metadataState.clean()
 
 		if (boundingBox.isEmpty())
@@ -1118,7 +1128,7 @@ export class AnnotationManager extends UtmInterface {
 	/**
 	 * Concatenate all annotation types into a single array.
 	 */
-	private allAnnotations(): Annotation[] {
+	allAnnotations(): Annotation[] {
 		return ([] as Annotation[])
 			.concat(this.boundaryAnnotations)
 			.concat(this.connectionAnnotations)
@@ -1134,7 +1144,7 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	private addFrontConnection(source: Lane): boolean {
 
-		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
+		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE)[0] as Lane
 		if (!newAnnotation) return false
 
 		const lastMarkerIndex = source.markers.length - 1
@@ -1175,7 +1185,7 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	private addLeftConnection(source: Lane, neighborDirection: NeighborDirection): boolean {
 
-		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
+		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE)[0] as Lane
 		if (!newAnnotation) return false
 
 		switch (neighborDirection) {
@@ -1233,7 +1243,7 @@ export class AnnotationManager extends UtmInterface {
 	 */
 	private addRightConnection(source: Lane, neighborDirection: NeighborDirection): boolean {
 
-		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE) as Lane
+		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE)[0] as Lane
 		if (!newAnnotation) return false
 
 		switch (neighborDirection) {
@@ -1668,12 +1678,12 @@ export class AnnotationState {
 	private doPeriodicSave(): boolean {
 		return this.autoSaveEnabled
 			&& this.isDirty
-			&& (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
+			&& !!this.annotationManager.allAnnotations()
 	}
 
 	private doImmediateSave(): boolean {
 		return this.isDirty
-			&& (this.annotationManager.laneAnnotations.length > 0 || this.annotationManager.boundaryAnnotations.length > 0)
+			&& !!this.annotationManager.allAnnotations()
 	}
 
 	private saveAnnotations(): Promise<void> {

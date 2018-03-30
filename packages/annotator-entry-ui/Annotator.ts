@@ -10,7 +10,7 @@ const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
 import LocalStorage from "./state/LocalStorage"
-import {GUI as DatGui} from 'dat.gui'
+import {GUI as DatGui, GUIParams} from 'dat.gui'
 import {TransformControls} from './controls/TransformControls'
 import {OrbitControls} from './controls/OrbitControls'
 import {
@@ -93,7 +93,6 @@ enum MenuVisibility {
 
 enum ModelVisibility {
 	ALL_VISIBLE = 0,
-	HIDE_SUPER_TILES,
 	HIDE_SUPER_TILES_AND_POINT_CLOUD,
 	HIDE_SUPER_TILES_AND_ANNOTATIONS,
 }
@@ -186,7 +185,7 @@ export class Annotator {
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private tileManager: TileManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
-	private grid: THREE.GridHelper // visible grid attached to the reference plane
+	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
 	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
 	private compassRose: THREE.Object3D | null // indicates the direction of North
 	private light: THREE.SpotLight
@@ -376,18 +375,21 @@ export class Annotator {
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
 		this.scene.add(this.plane)
 
-		// Add grid on top of the plane
-		this.grid = new THREE.GridHelper(200, 100)
-		this.grid.material.opacity = 0.25
-		this.grid.material.transparent = true
-		this.scene.add(this.grid)
-
+		// Add grid on top of the plane to visualize where the plane is.
+		// Add an axes helper to visualize the origin and orientation of the primary directions.
 		const axesHelperLength = parseFloat(config.get('annotator.axes_helper_length')) || 0
 		if (axesHelperLength > 0) {
+			this.grid = new THREE.GridHelper(200, 100)
+			this.grid.material.opacity = 0.25
+			this.grid.material.transparent = true
+			this.scene.add(this.grid)
+
 			this.axis = AxesHelper(axesHelperLength)
 			this.scene.add(this.axis)
-		} else
+		} else {
+			this.grid = null
 			this.axis = null
+		}
 
 		const compassRoseLength = parseFloat(config.get('annotator.compass_rose_length')) || 0
 		if (compassRoseLength > 0) {
@@ -434,22 +436,25 @@ export class Annotator {
 
 		// Add panel to change the settings
 		if (config.get('startup.show_color_picker')) {
-			this.gui = new DatGui()
+			this.gui = new DatGui({
+				hideable: false,
+				closeOnTop: true,
+			} as GUIParams)
 			this.gui.addColor(this.settings, 'background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 			})
 
 			const folderLock = this.gui.addFolder('Lock')
 			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
-				if (value && this.annotationManager.activeAnnotation instanceof Boundary)
+				if (value && this.annotationManager.getActiveBoundaryAnnotation())
 					this.annotationManager.unsetActiveAnnotation()
 			})
 			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
-				if (value && this.annotationManager.activeAnnotation instanceof Lane)
+				if (value && this.annotationManager.getActiveLaneAnnotation())
 					this.annotationManager.unsetActiveAnnotation()
 			})
 			folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
-				if (value && this.annotationManager.activeAnnotation instanceof Territory)
+				if (value && this.annotationManager.getActiveTerritoryAnnotation())
 					this.annotationManager.unsetActiveAnnotation()
 			})
 			folderLock.open()
@@ -567,8 +572,7 @@ export class Annotator {
 			requestAnimationFrame(this.animate)
 		}, 1000 / this.settings.fpsRendering)
 
-		if (this.aoiState.enabled)
-			this.updatePointCloudAoi()
+		this.updatePointCloudAoi()
 		this.render()
 		if (this.stats) this.stats.update()
 		this.orbitControls.update()
@@ -637,8 +641,10 @@ export class Annotator {
 	private setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
 		this.plane.geometry.center()
 		this.plane.geometry.translate(x, y, z)
-		this.grid.geometry.center()
-		this.grid.geometry.translate(x, y, z)
+		if (this.grid) {
+			this.grid.geometry.center()
+			this.grid.geometry.translate(x, y, z)
+		}
 		if (resetCamera) {
 			this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
@@ -1020,10 +1026,14 @@ export class Annotator {
 
 	// Set the area of interest for loading point clouds.
 	private updatePointCloudAoi(): void {
+		if (!this.aoiState.enabled) return
 		// The only use of Control at the moment is to enable model rotation in OrbitControls. Updating AOI is useful
 		// mainly while panning across the model. Disable it during rotation for better rendering performance.
 		if (this.uiState.isControlKeyPressed) return
+		// Don't update AOI and load tiles if the point cloud is not visible.
 		if (this.uiState.modelVisibility === ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD) return
+		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
+		if (this.tileManager.getIsLoadingPointCloud()) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
@@ -1773,7 +1783,7 @@ export class Annotator {
 
 	// Create an annotation, add it to the scene, and activate (highlight) it.
 	private addAnnotation(annotationType: AnnotationType): void {
-		if (this.annotationManager.addAnnotation(null, annotationType, true)) {
+		if (this.annotationManager.addAnnotation(null, annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
 			Annotator.deactivateAllAnnotationPropertiesMenus()
 			this.resetAllAnnotationPropertiesMenuElements()
@@ -1874,6 +1884,7 @@ export class Annotator {
 	private bindLanePropertiesPanel(): void {
 		const lcType = $('#lp_select_type')
 		lcType.on('change', () => {
+			lcType.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1883,6 +1894,7 @@ export class Annotator {
 
 		const lcLeftType = $('#lp_select_left_type')
 		lcLeftType.on('change', () => {
+			lcLeftType.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1893,6 +1905,7 @@ export class Annotator {
 
 		const lcLeftColor = $('#lp_select_left_color')
 		lcLeftColor.on('change', () => {
+			lcLeftColor.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1903,6 +1916,7 @@ export class Annotator {
 
 		const lcRightType = $('#lp_select_right_type')
 		lcRightType.on('change', () => {
+			lcRightType.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1913,6 +1927,7 @@ export class Annotator {
 
 		const lcRightColor = $('#lp_select_right_color')
 		lcRightColor.on('change', () => {
+			lcRightColor.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1923,6 +1938,7 @@ export class Annotator {
 
 		const lcEntry = $('#lp_select_entry')
 		lcEntry.on('change', () => {
+			lcEntry.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1932,6 +1948,7 @@ export class Annotator {
 
 		const lcExit = $('#lp_select_exit')
 		lcExit.on('change', () => {
+			lcExit.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -2071,6 +2088,7 @@ export class Annotator {
 	private bindTrafficSignPropertiesPanel(): void {
 		const tpType = $('#tp_select_type')
 		tpType.on('change', () => {
+			tpType.blur()
 			const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -2082,6 +2100,7 @@ export class Annotator {
 	private bindBoundaryPropertiesPanel(): void {
 		const bpType = $('#bp_select_type')
 		bpType.on('change', () => {
+			bpType.blur()
 			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -2624,7 +2643,6 @@ export class Annotator {
 
 	// In normal edit mode, toggles through the states defined in ModelVisibility:
 	// - all visible
-	// - super tile wire frames hidden
 	// - super tile wire frames hidden; point cloud hidden
 	// - super tile wire frames hidden; annotations hidden
 	private toggleModelVisibility(): void {
@@ -2639,12 +2657,6 @@ export class Annotator {
 
 		this.uiState.modelVisibility = newState
 		switch (this.uiState.modelVisibility) {
-			case ModelVisibility.HIDE_SUPER_TILES:
-				log.info('hiding super tiles')
-				this.hideSuperTiles()
-				this.showPointCloud()
-				this.showAnnotations()
-				break
 			case ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD:
 				log.info('hiding point cloud')
 				this.hideSuperTiles()
@@ -2765,11 +2777,14 @@ export class Annotator {
 		this.annotationManager.setLiveMode()
 		this.uiState.isLiveMode = true
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		if (this.gui)
+			this.gui.close()
 		if (this.axis)
 			this.scene.remove(this.axis)
 		if (this.compassRose)
 			this.scene.remove(this.compassRose)
-		this.grid.visible = false
+		if (this.grid)
+			this.grid.visible = false
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
 		this.hideSuperTiles()
@@ -2794,11 +2809,14 @@ export class Annotator {
 		this.annotationManager.unsetLiveMode()
 		this.uiState.isLiveMode = false
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		if (this.gui)
+			this.gui.open()
 		if (this.axis)
 			this.scene.add(this.axis)
 		if (this.compassRose)
 			this.scene.add(this.compassRose)
-		this.grid.visible = true
+		if (this.grid)
+			this.grid.visible = true
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
