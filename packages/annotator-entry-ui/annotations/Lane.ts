@@ -669,6 +669,12 @@ export class Lane extends Annotation {
 
 		const distanceBetweenMarkers = 3.0 // in meters
 		const spline = new THREE.CatmullRomCurve3(points)
+
+		if (spline.getLength() < 1e-5) {
+			log.warn("This lane has no length. Can't compute waypoints")
+			return
+		}
+
 		const numPoints = spline.getLength() / distanceBetweenMarkers
 		this.waypoints = spline.getSpacedPoints(numPoints)
 
