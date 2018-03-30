@@ -217,7 +217,7 @@ export class Lane extends Annotation {
 			if (obj.markers.length >= this.minimumMarkerCount) {
 				obj.markers.forEach(position => this.addRawMarker(new THREE.Vector3(position.x, position.y, position.z)))
 				if (!this.isValid())
-					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
+					throw Error(`can't load invalid lane with id ${obj.uuid}`)
 				this.updateVisualization()
 				this.makeInactive()
 			}
