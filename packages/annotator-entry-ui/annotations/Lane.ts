@@ -231,7 +231,12 @@ export class Lane extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length >= this.minimumMarkerCount
+		if  (this.markers.length < this.minimumMarkerCount)
+			return false
+
+		// Check the lane has any length/area
+		const distance = this.markers[0].position.distanceTo(this.markers[2].position)
+		return distance > 0.10
 	}
 
 	/**
