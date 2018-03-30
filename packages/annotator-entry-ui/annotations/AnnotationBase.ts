@@ -219,7 +219,7 @@ export abstract class Annotation {
 		this.renderingObject.visible = false
 	}
 
-	join(annotation: Annotation): boolean {
+	join(_annotation: Annotation): boolean {
 		return false
 	}
 }
