@@ -34,6 +34,7 @@ namespace ConnectionRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 	export const activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
 	export const inactiveMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
+	export const conflictMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 	export const trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side: THREE.DoubleSide})
 	export const liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 }
@@ -124,19 +125,20 @@ export class Connection extends Annotation {
 		return true
 	}
 
-	addConflictingConnection(connectionId: AnnotationUuid): void {
+	/**
+	 * This functions checks if the given connection is in the conflicting connection set. If so, it deletes it, if not
+	 * it adds it. It returns true if the connection was added.
+	 */
+	toggleConflictingConnection(connectionId: AnnotationUuid): boolean {
 		// Only add the connection if is not in the conflicting list already
 		const index = this.conflictingConnections.indexOf(connectionId, 0)
 		if (index < 0) {
 			this.conflictingConnections.push(connectionId)
+			return true
 		}
-	}
-
-	deleteConflictingConnections(connectionId: AnnotationUuid): void {
-		const index = this.conflictingConnections.indexOf(connectionId, 0)
-		if (index > -1) {
-			this.conflictingConnections.splice(index, 1)
-		}
+		// We do have this connection, remove it
+		this.conflictingConnections.splice(index, 1)
+		return false
 	}
 
 	deleteLastMarker(): boolean  { return false}
@@ -166,6 +168,10 @@ export class Connection extends Annotation {
 			marker.visible = true
 		})
 		this.makeInactive()
+	}
+
+	setConflictMode(): void {
+		this.mesh.material = ConnectionRenderingProperties.conflictMaterial
 	}
 
 	updateVisualization(): void {

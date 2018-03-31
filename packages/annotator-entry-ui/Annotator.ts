@@ -2,6 +2,7 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
+import {Connection} from "./annotations/Connection";
 
 const config = require('../config')
 import * as $ from 'jquery'
@@ -145,6 +146,7 @@ interface UiState {
 	isAddMarkerKeyPressed: boolean
 	isAddConnectionKeyPressed: boolean
 	isJoinAnnotationKeyPressed: boolean
+	isAddConflictKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	numberKeyPressed: number | null
 	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
@@ -252,6 +254,7 @@ export class Annotator {
 			isShiftKeyPressed: false,
 			isAddMarkerKeyPressed: false,
 			isAddConnectionKeyPressed: false,
+			isAddConflictKeyPressed: false,
 			isJoinAnnotationKeyPressed: false,
 			isMouseButtonPressed: false,
 			numberKeyPressed: null,
@@ -485,6 +488,7 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
+		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
 		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
@@ -1295,6 +1299,7 @@ export class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isAddConflictKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
@@ -1329,6 +1334,7 @@ export class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isAddConflictKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const markers = this.annotationManager.activeMarkers()
@@ -1371,9 +1377,47 @@ export class Annotator {
 		}
 	}
 
-	// Unselect whatever is selected in the UI:
-	//  - an active control point
-	//  - a selected annotation
+	/**
+	 * Check if we clicked a connection while pressing the add conflict key
+	 */
+	private checkForConflictSelection = (event: MouseEvent): void => {
+		log.info("checking for conflict selection")
+		if (this.uiState.isLiveMode) return
+		if (!this.uiState.isAddConflictKeyPressed) return
+
+		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+
+		if (!srcAnnotation) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+
+		if (intersects.length > 0) {
+			const object = intersects[0].object.parent
+			const dstAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+
+			// We clicked an inactive connection, add it to the set of conflicting connections
+			if (dstAnnotation && dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
+				log.info("toggling conflict")
+				const wasAdded = srcAnnotation.toggleConflictingConnection(dstAnnotation.uuid)
+				if (wasAdded) {
+					log.info("added conflict")
+					dstAnnotation.setConflictMode()
+				} else  {
+					log.info("removed conflict")
+					dstAnnotation.makeInactive()
+				}
+			}
+		}
+	}
+
+	/**
+	 * Unselect whatever is selected in the UI:
+	 *  - an active control point
+	 *  - a selected annotation
+ 	 */
+
 	private escapeSelection(): void {
 		if (this.transformControls.isAttached()) {
 			this.cleanTransformControls()
@@ -1651,6 +1695,10 @@ export class Annotator {
 					this.toggleListen()
 					break
 				}
+				case 'p': {
+					this.uiState.isAddConflictKeyPressed = true
+					break
+				}
 				case 'r': {
 					this.addRightSame()
 					break
@@ -1698,6 +1746,7 @@ export class Annotator {
 		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
 		this.uiState.isAddConnectionKeyPressed = false
+		this.uiState.isAddConflictKeyPressed = false
 		this.uiState.isJoinAnnotationKeyPressed = false
 		this.uiState.numberKeyPressed = null
 	}
