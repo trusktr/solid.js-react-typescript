@@ -792,8 +792,8 @@ export class Annotator {
 			let y: number = voxel.y * voxelSize
 			let z: number = voxel.z * voxelSize
 			let minDistance: number = Number.MAX_VALUE
-			let minDistanceHeight: number = y   // in case there is no annotation close enough
-                                                // these voxels will be all colored the same
+			// in case there is no annotation close enough these voxels will be all colored the same
+			let minDistanceHeight: number = y
 			for (let annotation of this.annotationManager.laneAnnotations) {
 				for (let wayPoint of annotation.denseWaypoints) {
 					let dx: number = wayPoint.x - x
