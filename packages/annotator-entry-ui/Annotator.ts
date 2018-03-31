@@ -103,8 +103,8 @@ interface AnnotatorSettings {
 	cameraOffset: THREE.Vector3
 	lightOffset: THREE.Vector3
 	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
-	defaultFpsRendering: number
-	fpsRendering: number
+	defaultFrameIntervalMs: number
+	frameIntervalMs: number // how long we have to render a frame before the next one fires
 	estimateGroundPlane: boolean
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	generateVoxelsOnPointLoad: boolean
@@ -130,7 +130,7 @@ interface LiveModeSettings {
 	carModelMaterial: THREE.Material
 	cameraOffset: THREE.Vector3
 	cameraOffsetDelta: number
-	fps: number
+	frameIntervalMs: number
 }
 
 interface UiState {
@@ -155,6 +155,8 @@ interface UiState {
 	isKioskMode: boolean // hides window chrome and turns on live mode permanently, with even less user input
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
 	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
+	bulkUpdatesInProgress: number // increment during batch changes to the scene, to temporarily alter the render cycle
+	renderRequestsOutstanding: boolean // record rendering requests made during bulkUpdatesInProgress, for later execution
 }
 
 // Area of Interest: where to load point clouds
@@ -219,8 +221,8 @@ export class Annotator {
 			cameraOffset: new THREE.Vector3(0, 400, 200),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
 			orthoCameraHeight: 100, // enough to view ~1 city block of data
-			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
-			fpsRendering: 0,
+			defaultFrameIntervalMs: 1000 / parseInt(config.get('startup.render.fps'), 10) || 60,
+			frameIntervalMs: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 			tileGroundPlaneScale: 1.05,
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
@@ -241,7 +243,7 @@ export class Annotator {
 		} else if (aoiSize) {
 			log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)
 		}
-		this.settings.fpsRendering = this.settings.defaultFpsRendering
+		this.settings.frameIntervalMs = this.settings.defaultFrameIntervalMs
 		this.uiState = {
 			modelVisibility: ModelVisibility.ALL_VISIBLE,
 			lockBoundaries: false,
@@ -262,6 +264,8 @@ export class Annotator {
 			isKioskMode: !!config.get('startup.kiosk_mode'),
 			lastPointCloudLoadedErrorModalMs: 0,
 			lastCameraCenterPoint: null,
+			bulkUpdatesInProgress: 0,
+			renderRequestsOutstanding: false,
 		}
 		this.aoiState = {
 			enabled: !!config.get('annotator.area_of_interest.enable'),
@@ -304,7 +308,7 @@ export class Annotator {
 			}),
 			cameraOffset: new THREE.Vector3(30, 10, 0),
 			cameraOffsetDelta: 1,
-			fps: parseFloat(config.get('fly_through.render.fps')) || 10
+			frameIntervalMs: 1000 / parseFloat(config.get('fly_through.render.fps')) || 10
 		}
 
 		const watchForRebuilds: boolean = config.get('startup.watch_for_rebuilds.enable') || false
@@ -574,10 +578,12 @@ export class Annotator {
 	animate = (): void => {
 		setTimeout(() => {
 			requestAnimationFrame(this.animate)
-		}, 1000 / this.settings.fpsRendering)
+		}, this.settings.frameIntervalMs)
 
 		this.updatePointCloudAoi()
-		this.render()
+		if (this.uiState.renderRequestsOutstanding)
+			// Render on the clock tick if a previous render() has asked for it.
+			this.renderUnconditionally()
 		if (this.stats) this.stats.update()
 		this.orbitControls.update()
 		this.transformControls.update()
@@ -620,7 +626,7 @@ export class Annotator {
 
 		setTimeout(() => {
 			this.runFlythrough()
-		}, 1000 / this.liveModeSettings.fps)
+		}, this.liveModeSettings.frameIntervalMs)
 
 		if (this.flyThroughSettings.currentPoseIndex >= this.flyThroughSettings.endPoseIndex)
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
@@ -634,9 +640,35 @@ export class Annotator {
 
 	/**
 	 * Render the THREE.js scene from the camera's position.
+	 * This one is for general use by methods that alter the scene.
 	 */
 	private render = (): void => {
+		if (this.uiState.bulkUpdatesInProgress)
+			// Defer the request until the next clock tick.
+			this.uiState.renderRequestsOutstanding = true
+		else
+			this.renderUnconditionally()
+	}
+
+	// Render now if the right conditions are met.
+	// Use render() instead of this.
+	private renderUnconditionally = (): void => {
 		this.renderer.render(this.scene, this.camera)
+		this.uiState.renderRequestsOutstanding = false
+	}
+
+	// Run before starting batches of changes to the scene which would trigger multiple calls to render().
+	private incrementBulkUpdates(): void {
+		this.uiState.bulkUpdatesInProgress ++
+	}
+
+	// This must be called after a batch of changes, to balance each call to incrementBulkUpdates(),
+	// or rendering will run inefficiently on a clock, forever.
+	private decrementBulkUpdates(): void {
+		this.uiState.bulkUpdatesInProgress --
+
+		// Lazily flush out any changes since the last clock tick.
+		this.render()
 	}
 
 	/**
@@ -715,9 +747,11 @@ export class Annotator {
 	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
 		log.info('loadPointCloudDataFromDirectory')
+		this.incrementBulkUpdates()
 		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
 			.catch(err => this.pointCloudLoadedError(err))
+			.then(() => this.decrementBulkUpdates())
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
@@ -734,9 +768,11 @@ export class Annotator {
 
 	// Load tiles within a bounding box and add them to the scene.
 	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
+		this.incrementBulkUpdates()
 		return this.tileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
 			.catch(err => this.pointCloudLoadedError(err))
+			.then(() => this.decrementBulkUpdates())
 	}
 
 	// Do some house keeping after loading a point cloud, such as drawing decorations
@@ -757,6 +793,7 @@ export class Annotator {
 		this.updatePointCloudBoundingBox()
 		this.setCompassRoseByPointCloud()
 		this.setStageByPointCloud(resetCamera)
+		this.render()
 	}
 
 	private pointCloudLoadedError(err: Error): void {
@@ -851,7 +888,7 @@ export class Annotator {
 	}
 
 	private unloadPointCloudData(): void {
-		log.info("unloadPointCloudData")
+		this.incrementBulkUpdates()
 		if (this.tileManager.unloadAllPoints()) {
 			this.unHighlightSuperTileBox()
 			this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
@@ -860,6 +897,7 @@ export class Annotator {
 		} else {
 			log.warn('unloadPointCloudData failed')
 		}
+		this.decrementBulkUpdates()
 	}
 
 	/**
@@ -882,6 +920,8 @@ export class Annotator {
 				this.scene.add(superTile.pointCloud)
 			else
 				log.error('onSuperTileLoad() got a super tile with no point cloud')
+
+			this.render()
 		}
 
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
@@ -908,6 +948,8 @@ export class Annotator {
 				default:
 					log.error('unknown SuperTileUnloadAction: ' + action)
 			}
+
+			this.render()
 		}
 
 	// Construct a set of 2D planes, each of which approximates the ground plane within a tile.
@@ -1182,8 +1224,10 @@ export class Annotator {
 		else
 			intersections = this.intersectWithPointCloud(this.raycasterPlane)
 
-		if (intersections.length)
+		if (intersections.length) {
 			this.annotationManager.addMarkerToActiveAnnotation(intersections[0].point)
+			this.render()
+		}
 	}
 
 	/**
@@ -1231,6 +1275,8 @@ export class Annotator {
 		// update UI panel
 		if (activeLane.id === fromUID)
 			Annotator.deactivateFrontSideNeighbours()
+
+		this.render()
 	}
 
 	/**
@@ -1279,6 +1325,8 @@ export class Annotator {
 
 		// update UI panel
 		this.resetAllAnnotationPropertiesMenuElements()
+
+		this.render()
 	}
 
 	private isAnnotationLocked(annotation: Annotation): boolean {
@@ -1319,6 +1367,7 @@ export class Annotator {
 				Annotator.deactivateAllAnnotationPropertiesMenus()
 				this.annotationManager.changeActiveAnnotation(inactive)
 				this.resetAllAnnotationPropertiesMenuElements()
+				this.render()
 			}
 		}
 	}
@@ -1366,6 +1415,7 @@ export class Annotator {
 				// HOVER ON
 				this.transformControls.attach(moveableMarkers)
 				this.cancelHideTransform()
+				this.render()
 			}
 		} else {
 			if (this.hovered !== null) {
@@ -1373,6 +1423,7 @@ export class Annotator {
 				this.renderer.domElement.style.cursor = 'auto'
 				this.hovered = null
 				this.delayHideTransform()
+				this.render()
 			}
 		}
 	}
@@ -1408,6 +1459,7 @@ export class Annotator {
 					log.info("removed conflict")
 					dstAnnotation.makeInactive()
 				}
+				this.render()
 			}
 		}
 	}
@@ -1424,6 +1476,7 @@ export class Annotator {
 		} else if (this.annotationManager.activeAnnotation) {
 			this.annotationManager.unsetActiveAnnotation()
 			Annotator.deactivateAllAnnotationPropertiesMenus()
+			this.render()
 		}
 	}
 
@@ -1484,6 +1537,7 @@ export class Annotator {
 			this.scene.remove(this.highlightedSuperTileBox)
 			this.unHighlightSuperTileBox()
 			this.loadSuperTileData(superTile).then()
+			this.render()
 		}
 	}
 
@@ -1497,6 +1551,7 @@ export class Annotator {
 		material.transparent = true
 		material.opacity = 0.5
 		this.highlightedSuperTileBox = superTileBox
+		this.render()
 	}
 
 	// Draw the box as a simple wireframe like all the other boxes.
@@ -1508,6 +1563,7 @@ export class Annotator {
 		material.transparent = false
 		material.opacity = 1.0
 		this.highlightedSuperTileBox = null
+		this.render()
 	}
 
 	/*
@@ -1539,6 +1595,7 @@ export class Annotator {
 		this.setOrthographicCameraDimensions(width, height)
 
 		this.renderer.setSize(width, height)
+		this.render()
 	}
 
 	// Scale the ortho camera frustum along with window dimensions to preserve a 1:1
@@ -1625,8 +1682,7 @@ export class Annotator {
 					break
 				}
 				case 'A': {
-					this.annotationManager.immediateAutoSave()
-						.then(() => this.annotationManager.unloadAllAnnotations())
+					this.deleteAllAnnotations()
 					break
 				}
 				case 'a': {
@@ -1770,6 +1826,7 @@ export class Annotator {
 		this.cancelHideTransform()
 		this.transformControls.detach()
 		this.annotationManager.unhighlightMarkers()
+		this.render()
 	}
 
 	/**
@@ -1827,7 +1884,17 @@ export class Annotator {
 			log.info("Deleted selected annotation")
 			Annotator.deactivateLaneProp()
 			this.hideTransform()
+			this.render()
 		}
+	}
+
+	private deleteAllAnnotations(): void {
+		this.incrementBulkUpdates()
+		this.annotationManager.immediateAutoSave()
+			.then(() => {
+				this.annotationManager.unloadAllAnnotations()
+				this.decrementBulkUpdates()
+			})
 	}
 
 	// Create an annotation, add it to the scene, and activate (highlight) it.
@@ -1880,6 +1947,7 @@ export class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
 			Annotator.deactivateFrontSideNeighbours()
 		}
+		this.render()
 	}
 
 	private addLeftSame(): void {
@@ -1887,6 +1955,7 @@ export class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
+		this.render()
 	}
 
 	private addLeftReverse(): void {
@@ -1894,6 +1963,7 @@ export class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
+		this.render()
 	}
 
 	private addRightSame(): void {
@@ -1901,6 +1971,7 @@ export class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
+		this.render()
 	}
 
 	private addRightReverse(): void {
@@ -1908,6 +1979,7 @@ export class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
+		this.render()
 	}
 
 	private reverseLaneDirection(): void {
@@ -1924,6 +1996,7 @@ export class Annotator {
 			} else {
 				Annotator.activateRightSideNeighbours()
 			}
+			this.render()
 		}
 	}
 
@@ -2779,6 +2852,7 @@ export class Annotator {
 		}
 		this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
 		this.storage.setItem(preferenceKey.cameraPreference, newType)
+		this.render()
 	}
 
 	// In normal edit mode, toggles through the states defined in ModelVisibility:
@@ -2816,6 +2890,8 @@ export class Annotator {
 				this.showAnnotations()
 				break
 		}
+
+		this.render()
 	}
 
 	private hidePointCloud(): void {
@@ -2931,7 +3007,7 @@ export class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
-		this.settings.fpsRendering = this.liveModeSettings.fps
+		this.settings.frameIntervalMs = this.liveModeSettings.frameIntervalMs
 		if (this.flyThroughSettings.enabled) {
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
 			this.runFlythrough()
@@ -2939,6 +3015,7 @@ export class Annotator {
 			this.locationServerStatusClient.connect()
 		}
 
+		this.render()
 		return this.uiState.isLiveMode
 	}
 
@@ -2963,10 +3040,11 @@ export class Annotator {
 		this.showSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = true
-		this.settings.fpsRendering = this.settings.defaultFpsRendering
+		this.settings.frameIntervalMs = this.settings.defaultFrameIntervalMs
 		this.statusWindow.setMessage(statusKey.flyThrough, '')
 		this.updateAoiHeading(null)
 
+		this.render()
 		return this.uiState.isLiveMode
 	}
 
@@ -3057,14 +3135,16 @@ export class Annotator {
 	private toggleVoxelsAndPointClouds(): void {
 		if (this.uiState.isPointCloudVisible) {
 			this.hidePointCloud()
-			this.tileManager.voxelsMeshGroup.forEach(mesh => {
-				this.scene.add(mesh)
-			})
+			if (this.tileManager.voxelsMeshGroup) {
+				this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
+				this.render()
+			}
 		} else {
 			this.showPointCloud()
-			this.tileManager.voxelsMeshGroup.forEach(mesh => {
-				this.scene.remove(mesh)
-			})
+			if (this.tileManager.voxelsMeshGroup) {
+				this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
+				this.render()
+			}
 		}
 	}
 
