@@ -8,6 +8,7 @@ const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file"
 import * as Electron from 'electron'
+require('electron-unhandled')()
 const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
