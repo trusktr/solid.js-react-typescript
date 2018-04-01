@@ -7,6 +7,7 @@ import {Connection} from "./annotations/Connection";
 const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file"
+import * as Electron from 'electron'
 const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
@@ -50,7 +51,7 @@ declare global {
 }
 
 const statsModule = require("stats.js")
-const {dialog}: { dialog: Electron.Dialog } = require('electron').remote
+const dialog = Electron.remote.dialog
 const zmq = require('zmq')
 const OBJLoader = require('three-obj-loader')
 OBJLoader(THREE)
@@ -338,9 +339,7 @@ export class Annotator {
 	}
 
 	exitApp(): void {
-		const remote = require('electron').remote
-		let w = remote.getCurrentWindow()
-		w.close()
+		Electron.remote.getCurrentWindow().close()
 	}
 
 	/**

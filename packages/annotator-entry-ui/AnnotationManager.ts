@@ -5,6 +5,7 @@
 
 const config = require('../config')
 const vsprintf = require("sprintf-js").vsprintf
+import * as Electron from 'electron'
 import * as lodash from 'lodash'
 import {isNullOrUndefined} from "util"
 import * as THREE from 'three'
@@ -34,7 +35,7 @@ import * as CRS from "./CoordinateReferenceSystem"
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-const {dialog}: { dialog: Electron.Dialog } = require('electron').remote
+const dialog = Electron.remote.dialog
 
 // tslint:disable:no-string-literal
 
