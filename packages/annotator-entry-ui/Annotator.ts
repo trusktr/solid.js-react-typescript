@@ -449,20 +449,27 @@ export class Annotator {
 			} as GUIParams)
 			this.gui.addColor(this.settings, 'background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
+				this.render()
 			})
 
 			const folderLock = this.gui.addFolder('Lock')
 			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveBoundaryAnnotation())
+				if (value && this.annotationManager.getActiveBoundaryAnnotation()) {
 					this.annotationManager.unsetActiveAnnotation()
+					this.render()
+				}
 			})
 			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveLaneAnnotation())
+				if (value && this.annotationManager.getActiveLaneAnnotation()) {
 					this.annotationManager.unsetActiveAnnotation()
+					this.render()
+				}
 			})
 			folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveTerritoryAnnotation())
+				if (value && this.annotationManager.getActiveTerritoryAnnotation()) {
 					this.annotationManager.unsetActiveAnnotation()
+					this.render()
+				}
 			})
 			folderLock.open()
 
