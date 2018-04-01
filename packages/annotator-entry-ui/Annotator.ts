@@ -29,11 +29,10 @@ import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
 import {AnnotationType} from './annotations/AnnotationType'
 import {AnnotationManager, OutputFormat} from './AnnotationManager'
-import {Annotation, AnnotationId} from './annotations/AnnotationBase'
+import {Annotation} from './annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane} from './annotations/Lane'
 import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
-import * as EM from './ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isNull, isUndefined} from "util"
@@ -1432,9 +1431,9 @@ export class Annotator {
 	 * Check if we clicked a connection while pressing the add conflict key
 	 */
 	private checkForConflictSelection = (event: MouseEvent): void => {
-		log.info("checking for conflict selection")
 		if (this.uiState.isLiveMode) return
 		if (!this.uiState.isAddConflictKeyPressed) return
+		log.info("checking for conflict selection")
 
 		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
 
@@ -1504,6 +1503,8 @@ export class Annotator {
 		if (this.uiState.isAddConnectionKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 		if (!this.uiState.isSuperTilesVisible) return
+
+		if (!this.pendingSuperTileBoxes.length) return this.unHighlightSuperTileBox()
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
@@ -1583,10 +1584,6 @@ export class Annotator {
 	}
 
 	private onWindowResize = (): void => {
-		if (!this.camera) {
-			return
-		}
-
 		const [width, height]: Array<number> = this.getContainerSize()
 
 		this.perspectiveCamera.aspect = width / height
@@ -1984,7 +1981,8 @@ export class Annotator {
 
 	private reverseLaneDirection(): void {
 		log.info("Reverse lane direction.")
-		let {result, existLeftNeighbour, existRightNeighbour} = this.annotationManager.reverseLaneDirection()
+		const {result, existLeftNeighbour, existRightNeighbour}: { result: boolean, existLeftNeighbour: boolean, existRightNeighbour: boolean }
+			= this.annotationManager.reverseLaneDirection()
 		if (result) {
 			if (existLeftNeighbour) {
 				Annotator.deactivateLeftSideNeighbours()
@@ -2257,6 +2255,7 @@ export class Annotator {
 
 		const bpColor = $('#bp_select_color')
 		bpColor.on('change', () => {
+			bpColor.blur()
 			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -2868,6 +2867,7 @@ export class Annotator {
 
 	private setModelVisibility(newState: ModelVisibility): void {
 		if (this.uiState.isLiveMode) return
+		if (this.uiState.modelVisibility === newState) return
 
 		this.uiState.modelVisibility = newState
 		switch (this.uiState.modelVisibility) {

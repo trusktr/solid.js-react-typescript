@@ -182,10 +182,10 @@ export class Lane extends Annotation {
 		if (obj) {
 			this.type = isNullOrUndefined(LaneType[obj.laneType]) ? LaneType.UNKNOWN : LaneType[obj.laneType]
 			this.neighborsIds = obj.neighborsIds
-			if (this.neighborsIds.right === null) this.neighborsIds.right = []
-			if (this.neighborsIds.left === null) this.neighborsIds.left = []
-			if (this.neighborsIds.front === null) this.neighborsIds.front = []
-			if (this.neighborsIds.back === null) this.neighborsIds.back = []
+			if (isNullOrUndefined(this.neighborsIds.right)) this.neighborsIds.right = []
+			if (isNullOrUndefined(this.neighborsIds.left)) this.neighborsIds.left = []
+			if (isNullOrUndefined(this.neighborsIds.front)) this.neighborsIds.front = []
+			if (isNullOrUndefined(this.neighborsIds.back)) this.neighborsIds.back = []
 			this.leftLineType = isNullOrUndefined(LaneLineType[obj.leftLineType]) ? LaneLineType.UNKNOWN : LaneLineType[obj.leftLineType]
 			this.rightLineType = isNullOrUndefined(LaneLineType[obj.rightLineType]) ? LaneLineType.UNKNOWN : LaneLineType[obj.rightLineType]
 			this.leftLineColor = isNullOrUndefined(LaneLineColor[obj.leftLineColor]) ? LaneLineColor.UNKNOWN : LaneLineColor[obj.leftLineColor]
