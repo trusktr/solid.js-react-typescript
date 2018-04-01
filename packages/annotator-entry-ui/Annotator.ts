@@ -749,7 +749,7 @@ export class Annotator {
 
 	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
-		log.info('loadPointCloudDataFromDirectory')
+		log.info('Loading point cloud from ' + pathToTiles)
 		this.incrementBulkUpdates()
 		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
@@ -1174,7 +1174,7 @@ export class Annotator {
 	 * Center the stage and the camera on the annotations model.
 	 */
 	private loadAnnotations(fileName: string): Promise<void> {
-		log.info('Loading annotations')
+		log.info('Loading annotations from ' + fileName)
 		if (!this.uiState.isAnnotationsVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		return this.annotationManager.loadAnnotationsFromFile(fileName)
@@ -1936,17 +1936,24 @@ export class Annotator {
 	}
 
 	private loadFromFile(): Promise<void> {
-		const pathElectron = dialog.showOpenDialog({
-			properties: ['openDirectory']
-		})
-
-		if (!(pathElectron && pathElectron[0]))
-			return Promise.resolve()
-
 		if (this.tileManager.getPointClouds().length)
 			log.warn('you should probably unload the existing point cloud before loading another')
-		log.info('Loading point cloud from ' + pathElectron[0])
-		return this.loadPointCloudDataFromDirectory(pathElectron[0])
+
+		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
+			const options: Electron.OpenDialogOptions = {
+				message: 'Load Point Cloud Directory',
+				properties: ['openDirectory'],
+			}
+			const handler = (paths: string[]): void => {
+				if (paths && paths.length)
+					this.loadPointCloudDataFromDirectory(paths[0])
+						.then(() => resolve())
+						.catch(err => reject(err))
+				else
+					reject(Error('no path selected'))
+			}
+			dialog.showOpenDialog(options, handler)
+		})
 	}
 
 	private addFront(): void {
@@ -2354,16 +2361,17 @@ export class Annotator {
 		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 		if (toolsLoadAnnotation)
 			toolsLoadAnnotation.addEventListener('click', () => {
-				const pathElectron = dialog.showOpenDialog({
-					filters: [{name: 'json', extensions: ['json']}]
-				})
-
-				if (isUndefined(pathElectron))
-					return
-
-				log.info('Loading annotations from ' + pathElectron[0])
-				this.loadAnnotations(pathElectron[0])
-					.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+				const options: Electron.OpenDialogOptions = {
+					message: 'Load Annotations File',
+					properties: ['openFile'],
+					filters: [{name: 'json', extensions: ['json']}],
+				}
+				const handler = (paths: string[]): void => {
+					if (paths && paths.length)
+						this.loadAnnotations(paths[0])
+							.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+				}
+				dialog.showOpenDialog(options, handler)
 			})
 		else
 			log.warn('missing element tools_load_annotation')
