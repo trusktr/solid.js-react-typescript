@@ -42,6 +42,7 @@
     "@types/dat.gui": "0.6.0",
     "@types/jest": "19.2.2",
     "@types/jquery": "2.0.33",
+    "@types/lodash": "4.14.106",
     "@types/mkdirp": "0.5.2",
     "@types/node": "8.0.54",
     "@types/react": "16.0.27",
