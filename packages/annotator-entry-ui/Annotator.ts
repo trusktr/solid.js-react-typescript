@@ -503,9 +503,10 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed})
 
 		// Bind events
-		if (!this.uiState.isKioskMode)
+		if (!this.uiState.isKioskMode) {
 			this.bind()
-		Annotator.deactivateAllAnnotationPropertiesMenus()
+			Annotator.deactivateAllAnnotationPropertiesMenus()
+		}
 
 		this.displayMenu(
 			config.get('startup.show_menu') && !this.uiState.isKioskMode

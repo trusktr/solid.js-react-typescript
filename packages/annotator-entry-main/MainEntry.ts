@@ -20,6 +20,15 @@ app.commandLine.appendSwitch('js-flags', '--max-old-space-size=8096')
 // be closed automatically when the JavaScript object is garbage collected.
 let win: BrowserWindow | null
 
+const isSecondInstance = app.makeSingleInstance(() => {
+	if (win) {
+		if (win.isMinimized()) win.restore()
+		win.focus()
+	}
+})
+if (isSecondInstance)
+	app.quit()
+
 function createWindow(): void {
 	// Create the browser window.
 	const options = {} as BrowserWindowConstructorOptions
