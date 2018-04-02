@@ -37,12 +37,14 @@ import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
-import {isNull, isUndefined} from "util"
+import {isNull} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
 import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient"
+import {ImageManager} from "./image/ImageManager"
+import {ImageScreen} from "./image/ImageScreen"
 const  watch = require('watch')
 
 declare global {
@@ -155,6 +157,7 @@ interface UiState {
 	// file (if this.flyThroughSettings.enabled is true) or messages on a live socket.
 	isLiveMode: boolean
 	isKioskMode: boolean // hides window chrome and turns on live mode permanently, with even less user input
+	imageScreenOpacity: number
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
 	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
 	bulkUpdatesInProgress: number // increment during batch changes to the scene, to temporarily alter the render cycle
@@ -190,6 +193,7 @@ export class Annotator {
 	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private tileManager: TileManager
+	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
 	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
@@ -265,6 +269,7 @@ export class Annotator {
 			numberKeyPressed: null,
 			isLiveMode: false,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
+			imageScreenOpacity: parseFloat(config.get('image_manager.image.opacity')) || 0.5,
 			lastPointCloudLoadedErrorModalMs: 0,
 			lastCameraCenterPoint: null,
 			bulkUpdatesInProgress: 0,
@@ -295,6 +300,7 @@ export class Annotator {
 		this.superTileGroundPlanes = Map()
 		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
+		this.imageManager = new ImageManager(this.uiState.imageScreenOpacity, this.onImageScreenLoad)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
 		this.flyThroughSettings = {
@@ -448,8 +454,12 @@ export class Annotator {
 				hideable: false,
 				closeOnTop: true,
 			} as GUIParams)
-			this.gui.addColor(this.settings, 'background').onChange((value: string) => {
+			this.gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
+			})
+			this.gui.add(this.uiState, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
+				if (this.imageManager.setOpacity(value))
+					this.render()
 			})
 
 			const folderLock = this.gui.addFolder('Lock')
@@ -528,7 +538,6 @@ export class Annotator {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
 		if (annotationsPath) {
-			log.info('loading pre-configured annotations ' + annotationsPath)
 			annotationsResult = this.loadAnnotations(annotationsPath)
 		} else {
 			annotationsResult = Promise.resolve()
@@ -1577,6 +1586,13 @@ export class Annotator {
 		this.render()
 	}
 
+	// When ImageManager loads an image, add it to the scene.
+	private onImageScreenLoad: (imageScreen: ImageScreen) => void =
+		(imageScreen: ImageScreen) => {
+			this.scene.add(imageScreen)
+			this.render()
+		}
+
 	/*
 	 * Make a best effort to save annotations before exiting. There is no guarantee the
 	 * promise will complete, but it seems to work in practice.
@@ -2357,6 +2373,15 @@ export class Annotator {
 			})
 		else
 			log.warn('missing element tools_load')
+
+		const toolsLoadImages = document.getElementById('tools_load_images')
+		if (toolsLoadImages)
+			toolsLoadImages.addEventListener('click', () => {
+				this.imageManager.loadImagesFromOpenDialog()
+					.catch(err => log.warn('loadImagesFromOpenDialog failed: ' + err.message))
+			})
+		else
+			log.warn('missing element tools_load_images')
 
 		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 		if (toolsLoadAnnotation)

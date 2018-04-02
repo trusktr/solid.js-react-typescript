@@ -54,6 +54,9 @@ fly_through.render.fps: 10
 # persist trajectories
 output.trajectory.csv.path: ./data/trajectory.csv
 
+# for photos displayed within the 3D scene
+image_manager.image.opacity: 0.5
+
 # Location server info
 location_server.status.health_check.interval.seconds: 5
 location_server.host: localhost
