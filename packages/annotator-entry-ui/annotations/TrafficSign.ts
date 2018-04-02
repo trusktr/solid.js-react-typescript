@@ -19,7 +19,7 @@ export enum TrafficSignType {
 	STOP,
 	YIELD,
 	RYG_LIGHT,
-	RYG_LEFT_ARROW_LIGTH,
+	RYG_LEFT_ARROW_LIGHT,
 	OTHER
 }
 

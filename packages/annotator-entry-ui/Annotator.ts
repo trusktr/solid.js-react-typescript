@@ -106,8 +106,8 @@ interface AnnotatorSettings {
 	cameraOffset: THREE.Vector3
 	lightOffset: THREE.Vector3
 	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
-	defaultFrameIntervalMs: number
-	frameIntervalMs: number // how long we have to render a frame before the next one fires
+	defaultAnimationFrameIntervalMs: number
+	animationFrameIntervalMs: number // how long we have to update the animation before the next frame fires
 	estimateGroundPlane: boolean
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	generateVoxelsOnPointLoad: boolean
@@ -133,7 +133,7 @@ interface LiveModeSettings {
 	carModelMaterial: THREE.Material
 	cameraOffset: THREE.Vector3
 	cameraOffsetDelta: number
-	frameIntervalMs: number
+	animationFrameIntervalMs: number
 }
 
 interface UiState {
@@ -160,8 +160,6 @@ interface UiState {
 	imageScreenOpacity: number
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
 	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
-	bulkUpdatesInProgress: number // increment during batch changes to the scene, to temporarily alter the render cycle
-	renderRequestsOutstanding: boolean // record rendering requests made during bulkUpdatesInProgress, for later execution
 }
 
 // Area of Interest: where to load point clouds
@@ -229,8 +227,8 @@ export class Annotator {
 			cameraOffset: new THREE.Vector3(0, 400, 200),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
 			orthoCameraHeight: 100, // enough to view ~1 city block of data
-			defaultFrameIntervalMs: 1000 / parseInt(config.get('startup.render.fps'), 10) || 60,
-			frameIntervalMs: 0,
+			defaultAnimationFrameIntervalMs: (1000 / parseInt(config.get('startup.animation.fps'), 10)) || 10,
+			animationFrameIntervalMs: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 			tileGroundPlaneScale: 1.05,
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
@@ -251,7 +249,7 @@ export class Annotator {
 		} else if (aoiSize) {
 			log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)
 		}
-		this.settings.frameIntervalMs = this.settings.defaultFrameIntervalMs
+		this.settings.animationFrameIntervalMs = this.settings.defaultAnimationFrameIntervalMs
 		this.uiState = {
 			modelVisibility: ModelVisibility.ALL_VISIBLE,
 			lockBoundaries: false,
@@ -274,8 +272,6 @@ export class Annotator {
 			imageScreenOpacity: parseFloat(config.get('image_manager.image.opacity')) || 0.5,
 			lastPointCloudLoadedErrorModalMs: 0,
 			lastCameraCenterPoint: null,
-			bulkUpdatesInProgress: 0,
-			renderRequestsOutstanding: false,
 		}
 		this.aoiState = {
 			enabled: !!config.get('annotator.area_of_interest.enable'),
@@ -313,6 +309,8 @@ export class Annotator {
 			endPoseIndex: 0,
 			currentPoseIndex: 0,
 		}
+		if (config.get('fly_through.render.fps'))
+			log.warn('config option fly_through.render.fps has been renamed to fly_through.animation.fps')
 		this.liveModeSettings = {
 			carModelMaterial: new THREE.MeshPhongMaterial({
 				color: 0x002233,
@@ -321,7 +319,7 @@ export class Annotator {
 			}),
 			cameraOffset: new THREE.Vector3(30, 10, 0),
 			cameraOffsetDelta: 1,
-			frameIntervalMs: 1000 / parseFloat(config.get('fly_through.render.fps')) || 10
+			animationFrameIntervalMs: (1000 / parseFloat(config.get('fly_through.animation.fps'))) || 10
 		}
 
 		const watchForRebuilds: boolean = config.get('startup.watch_for_rebuilds.enable') || false
@@ -460,6 +458,7 @@ export class Annotator {
 			} as GUIParams)
 			this.gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
+				this.render()
 			})
 			this.gui.add(this.uiState, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
 				if (this.imageManager.setOpacity(value))
@@ -468,16 +467,22 @@ export class Annotator {
 
 			const folderLock = this.gui.addFolder('Lock')
 			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveBoundaryAnnotation())
+				if (value && this.annotationManager.getActiveBoundaryAnnotation()) {
 					this.annotationManager.unsetActiveAnnotation()
+					this.render()
+				}
 			})
 			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveLaneAnnotation())
+				if (value && this.annotationManager.getActiveLaneAnnotation()) {
 					this.annotationManager.unsetActiveAnnotation()
+					this.render()
+				}
 			})
 			folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveTerritoryAnnotation())
+				if (value && this.annotationManager.getActiveTerritoryAnnotation()) {
 					this.annotationManager.unsetActiveAnnotation()
+					this.render()
+				}
 			})
 			folderLock.open()
 
@@ -539,7 +544,9 @@ export class Annotator {
 			})
 	}
 
-	// Load up any data which configuration has asked for on start-up.
+	/**
+	 * 	Load up any data which configuration has asked for on start-up.
+	 */
 	private loadUserData(): Promise<void> {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
@@ -596,12 +603,9 @@ export class Annotator {
 	animate = (): void => {
 		setTimeout(() => {
 			requestAnimationFrame(this.animate)
-		}, this.settings.frameIntervalMs)
+		}, this.settings.animationFrameIntervalMs)
 
 		this.updatePointCloudAoi()
-		if (this.uiState.renderRequestsOutstanding)
-			// Render on the clock tick if a previous render() has asked for it.
-			this.renderUnconditionally()
 		if (this.stats) this.stats.update()
 		this.orbitControls.update()
 		this.transformControls.update()
@@ -636,15 +640,17 @@ export class Annotator {
 			})
 	}
 
-	// Move the camera and the car model through poses loaded from a file on disk.
-	// See also initClient().
+	/**
+	 * 	Move the camera and the car model through poses loaded from a file on disk.
+	 *  See also initClient().
+	 */
 	private runFlythrough(): void {
 		if (!this.uiState.isLiveMode) return
 		if (!this.flyThroughSettings.enabled) return
 
 		setTimeout(() => {
 			this.runFlythrough()
-		}, this.liveModeSettings.frameIntervalMs)
+		}, this.liveModeSettings.animationFrameIntervalMs)
 
 		if (this.flyThroughSettings.currentPoseIndex >= this.flyThroughSettings.endPoseIndex)
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
@@ -658,36 +664,12 @@ export class Annotator {
 
 	/**
 	 * Render the THREE.js scene from the camera's position.
-	 * This one is for general use by methods that alter the scene.
 	 */
-	private render = (): void => {
-		if (this.uiState.bulkUpdatesInProgress)
-			// Defer the request until the next clock tick.
-			this.uiState.renderRequestsOutstanding = true
-		else
-			this.renderUnconditionally()
-	}
-
-	// Render now if the right conditions are met.
-	// Use render() instead of this.
-	private renderUnconditionally = (): void => {
-		this.renderer.render(this.scene, this.camera)
-		this.uiState.renderRequestsOutstanding = false
-	}
-
-	// Run before starting batches of changes to the scene which would trigger multiple calls to render().
-	private incrementBulkUpdates(): void {
-		this.uiState.bulkUpdatesInProgress ++
-	}
-
-	// This must be called after a batch of changes, to balance each call to incrementBulkUpdates(),
-	// or rendering will run inefficiently on a clock, forever.
-	private decrementBulkUpdates(): void {
-		this.uiState.bulkUpdatesInProgress --
-
-		// Lazily flush out any changes since the last clock tick.
-		this.render()
-	}
+	private render: () => void =
+		lodash.throttle(
+			() => this.renderer.render(this.scene, this.camera),
+			(1000 / parseInt(config.get('startup.render.fps'), 10)) || 10
+		)
 
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
@@ -765,11 +747,9 @@ export class Annotator {
 	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
 		log.info('Loading point cloud from ' + pathToTiles)
-		this.incrementBulkUpdates()
 		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
 			.catch(err => this.pointCloudLoadedError(err))
-			.then(() => this.decrementBulkUpdates())
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
@@ -786,11 +766,9 @@ export class Annotator {
 
 	// Load tiles within a bounding box and add them to the scene.
 	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
-		this.incrementBulkUpdates()
 		return this.tileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
 			.catch(err => this.pointCloudLoadedError(err))
-			.then(() => this.decrementBulkUpdates())
 	}
 
 	// Do some house keeping after loading a point cloud, such as drawing decorations
@@ -906,7 +884,6 @@ export class Annotator {
 	}
 
 	private unloadPointCloudData(): void {
-		this.incrementBulkUpdates()
 		if (this.tileManager.unloadAllPoints()) {
 			this.unHighlightSuperTileBox()
 			this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
@@ -915,7 +892,6 @@ export class Annotator {
 		} else {
 			log.warn('unloadPointCloudData failed')
 		}
-		this.decrementBulkUpdates()
 	}
 
 	/**
@@ -1852,7 +1828,7 @@ export class Annotator {
 					this.toggleListen()
 					break
 				}
-				case 'p': {
+				case 'q': {
 					this.uiState.isAddConflictKeyPressed = true
 					break
 				}
@@ -1990,11 +1966,9 @@ export class Annotator {
 	}
 
 	private deleteAllAnnotations(): void {
-		this.incrementBulkUpdates()
 		this.annotationManager.immediateAutoSave()
 			.then(() => {
 				this.annotationManager.unloadAllAnnotations()
-				this.decrementBulkUpdates()
 			})
 	}
 
@@ -2252,71 +2226,6 @@ export class Annotator {
 		})
 		*/
 	}
-
-	/*
-	private bindRelationsPanel(): void {
-		const lcSelectFrom = document.getElementById('lc_select_from')
-		if (lcSelectFrom)
-			lcSelectFrom.addEventListener('mousedown', () => {
-				// Get ids
-				const ids = this.annotationManager.getValidIds()
-				// Add ids
-				const selectbox = $('#lc_select_from')
-				selectbox.empty()
-				let list = ''
-				for (let j = 0; j < ids.length; j++) {
-					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-				}
-				selectbox.html(list)
-			})
-		else
-			log.warn('missing element lc_select_from')
-
-		const lcSelectTo = document.getElementById('lc_select_to')
-		if (lcSelectTo)
-			lcSelectTo.addEventListener('mousedown', () => {
-				// Get ids
-				const ids = this.annotationManager.getValidIds()
-				// Add ids
-				const selectbox = $('#lc_select_to')
-				selectbox.empty()
-				let list = ''
-				for (let j = 0; j < ids.length; j++) {
-					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-				}
-				selectbox.html(list)
-			})
-		else
-			log.warn('missing element lc_select_to')
-
-		const lcAdd = document.getElementById('lc_add')
-		if (lcAdd)
-			lcAdd.addEventListener('click', () => {
-				const lcTo: AnnotationId = Number($('#lc_select_to').val())
-				const lcFrom: AnnotationId = Number($('#lc_select_from').val())
-				const lcRelation = $('#lc_select_relation').val()
-
-				if (lcTo === null || lcFrom === null) {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-						"You have to select both lanes to be connected.")
-					return
-				}
-
-				if (lcTo === lcFrom) {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-						"You can't connect a lane to itself. The 2 ids should be unique.")
-					return
-				}
-
-				log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
-				if (this.annotationManager.addRelation(lcFrom, lcTo, lcRelation)) {
-					this.resetLaneProp()
-				}
-			})
-		else
-			log.warn('missing element lc_add')
-	}
-    */
 
 	private bindTerritoryPropertiesPanel(): void {
 		const territoryLabel = document.getElementById('input_label_territory')
@@ -3128,7 +3037,7 @@ export class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
-		this.settings.frameIntervalMs = this.liveModeSettings.frameIntervalMs
+		this.settings.animationFrameIntervalMs = this.liveModeSettings.animationFrameIntervalMs
 		if (this.flyThroughSettings.enabled) {
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
 			this.runFlythrough()
@@ -3161,7 +3070,7 @@ export class Annotator {
 		this.showSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = true
-		this.settings.frameIntervalMs = this.settings.defaultFrameIntervalMs
+		this.settings.animationFrameIntervalMs = this.settings.defaultAnimationFrameIntervalMs
 		this.statusWindow.setMessage(statusKey.flyThrough, '')
 		this.updateAoiHeading(null)
 
