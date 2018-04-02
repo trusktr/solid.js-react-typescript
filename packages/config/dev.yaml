@@ -1,7 +1,9 @@
+# user local preferences
+preferences.directory: mapper-annotator
+
 # application initialization
-# Set window dimensions to 0 to maximize.
-startup.electron.window.default.width: 0
-startup.electron.window.default.height: 0
+startup.electron.window.default.width: 800
+startup.electron.window.default.height: 600
 startup.render.fps: 10
 startup.kiosk_mode: false
 startup.background_color: '#444444'
