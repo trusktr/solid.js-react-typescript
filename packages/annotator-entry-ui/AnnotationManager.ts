@@ -20,7 +20,7 @@ import {
 	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds
 } from './annotations/Lane'
 import * as AnnotationFactory from "./annotations/AnnotationFactory"
-import {TrafficDevice} from 'annotator-entry-ui/annotations/TrafficSign'
+import {TrafficDevice} from 'annotator-entry-ui/annotations/TrafficDevice'
 import {Territory} from "./annotations/Territory"
 import {Connection} from 'annotator-entry-ui/annotations/Connection'
 import {Boundary} from 'annotator-entry-ui/annotations/Boundary'

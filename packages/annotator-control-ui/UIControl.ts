@@ -4,7 +4,7 @@
  */
 
 import {LaneType, LaneLineType, LaneLineColor, LaneEntryExitType} from 'annotator-entry-ui/annotations/Lane'
-import {TrafficDeviceType} from 'annotator-entry-ui/annotations/TrafficSign'
+import {TrafficDeviceType} from 'annotator-entry-ui/annotations/TrafficDevice'
 import {BoundaryType, BoundaryColor} from 'annotator-entry-ui/annotations/Boundary'
 import {ConnectionType} from "annotator-entry-ui/annotations/Connection";
 

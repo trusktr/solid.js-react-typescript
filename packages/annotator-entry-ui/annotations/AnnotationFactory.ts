@@ -9,7 +9,7 @@ import {Boundary, BoundaryJsonInputInterface} from "./Boundary"
 import {Connection, ConnectionJsonInputInterface} from "./Connection"
 import {Lane, LaneJsonInputInterfaceV3} from "./Lane"
 import {Territory, TerritoryJsonInputInterface} from "./Territory"
-import {TrafficDevice, TrafficDeviceJsonInputInterface} from "./TrafficSign"
+import {TrafficDevice, TrafficDeviceJsonInputInterface} from "./TrafficDevice"
 
 export function construct(annotationType: AnnotationType, obj?: AnnotationJsonInputInterface): Annotation | null {
 	try {
