@@ -516,7 +516,9 @@ export class Annotator {
 			})
 	}
 
-	// Load up any data which configuration has asked for on start-up.
+	/**
+	 * 	Load up any data which configuration has asked for on start-up.
+	 */
 	private loadUserData(): Promise<void> {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
@@ -612,8 +614,10 @@ export class Annotator {
 			})
 	}
 
-	// Move the camera and the car model through poses loaded from a file on disk.
-	// See also initClient().
+	/**
+	 * 	Move the camera and the car model through poses loaded from a file on disk.
+	 *  See also initClient().
+	 */
 	private runFlythrough(): void {
 		if (!this.uiState.isLiveMode) return
 		if (!this.flyThroughSettings.enabled) return
@@ -2070,71 +2074,6 @@ export class Annotator {
 		})
 		*/
 	}
-
-	/*
-	private bindRelationsPanel(): void {
-		const lcSelectFrom = document.getElementById('lc_select_from')
-		if (lcSelectFrom)
-			lcSelectFrom.addEventListener('mousedown', () => {
-				// Get ids
-				const ids = this.annotationManager.getValidIds()
-				// Add ids
-				const selectbox = $('#lc_select_from')
-				selectbox.empty()
-				let list = ''
-				for (let j = 0; j < ids.length; j++) {
-					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-				}
-				selectbox.html(list)
-			})
-		else
-			log.warn('missing element lc_select_from')
-
-		const lcSelectTo = document.getElementById('lc_select_to')
-		if (lcSelectTo)
-			lcSelectTo.addEventListener('mousedown', () => {
-				// Get ids
-				const ids = this.annotationManager.getValidIds()
-				// Add ids
-				const selectbox = $('#lc_select_to')
-				selectbox.empty()
-				let list = ''
-				for (let j = 0; j < ids.length; j++) {
-					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-				}
-				selectbox.html(list)
-			})
-		else
-			log.warn('missing element lc_select_to')
-
-		const lcAdd = document.getElementById('lc_add')
-		if (lcAdd)
-			lcAdd.addEventListener('click', () => {
-				const lcTo: AnnotationId = Number($('#lc_select_to').val())
-				const lcFrom: AnnotationId = Number($('#lc_select_from').val())
-				const lcRelation = $('#lc_select_relation').val()
-
-				if (lcTo === null || lcFrom === null) {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-						"You have to select both lanes to be connected.")
-					return
-				}
-
-				if (lcTo === lcFrom) {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-						"You can't connect a lane to itself. The 2 ids should be unique.")
-					return
-				}
-
-				log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
-				if (this.annotationManager.addRelation(lcFrom, lcTo, lcRelation)) {
-					this.resetLaneProp()
-				}
-			})
-		else
-			log.warn('missing element lc_add')
-	}
-    */
 
 	private bindTerritoryPropertiesPanel(): void {
 		const territoryLabel = document.getElementById('input_label_territory')
