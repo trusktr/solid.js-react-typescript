@@ -221,7 +221,7 @@ export class Lane extends Annotation {
 			if (obj.markers.length >= this.minimumMarkerCount) {
 				obj.markers.forEach(position => this.addRawMarker(new THREE.Vector3(position.x, position.y, position.z)))
 				if (!this.isValid())
-					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
+					throw Error(`can't load invalid lane with id ${obj.uuid}`)
 				this.updateVisualization()
 				this.makeInactive()
 			}
@@ -235,7 +235,12 @@ export class Lane extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length >= this.minimumMarkerCount
+		if  (this.markers.length < this.minimumMarkerCount)
+			return false
+
+		// Check the lane has any length/area
+		const distance = this.markers[0].position.distanceTo(this.markers[2].position)
+		return distance > 0.10
 	}
 
 	/**
@@ -673,6 +678,12 @@ export class Lane extends Annotation {
 
 		const distanceBetweenMarkers = 3.0 // in meters
 		const spline = new THREE.CatmullRomCurve3(points)
+
+		if (spline.getLength() < 1e-5) {
+			log.warn("This lane has no length. Can't compute waypoints")
+			return
+		}
+
 		const numPoints = spline.getLength() / distanceBetweenMarkers
 		this.waypoints = spline.getSpacedPoints(numPoints)
 

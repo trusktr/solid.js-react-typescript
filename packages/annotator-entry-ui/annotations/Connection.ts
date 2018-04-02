@@ -15,13 +15,10 @@ import {AnnotationGeometryType} from "./AnnotationBase"
 // Some types
 export enum ConnectionType {
 	UNKNOWN = 0,
-	STRAIGHT,
-	LEFT_TURN,
-	RIGHT_TURN,
-	LEFT_MERGE,
-	RIGHT_MERGE,
-	LEFT_SPLIT,
-	RIGHT_SPLIT,
+	YIELD,
+	ALTERNATE,
+	RYG_LIGHT,
+	RYG_LEFT_ARROW_LIGHT,
 	OTHER
 }
 
@@ -37,6 +34,7 @@ namespace ConnectionRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 	export const activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
 	export const inactiveMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
+	export const conflictMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 	export const trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side: THREE.DoubleSide})
 	export const liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 }
@@ -45,12 +43,14 @@ export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterfa
 	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
+	conflictingConnections: Array<AnnotationUuid>
 }
 
 export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInterface {
 	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
+	conflictingConnections: Array<AnnotationUuid>
 	// Waypoints are generated from markers. They are included in output for downstream
 	// convenience, but we don't read them back in.
 	waypoints: Array<Object>
@@ -65,6 +65,7 @@ export class Connection extends Annotation {
 	snapToGround: boolean
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
+	conflictingConnections: Array<AnnotationUuid>
 	directionMarkers: Array<THREE.Mesh>
 	waypoints: Array<THREE.Vector3>
 	mesh: THREE.Mesh
@@ -77,10 +78,12 @@ export class Connection extends Annotation {
 			this.type = isNullOrUndefined(ConnectionType[obj.connectionType]) ? ConnectionType.UNKNOWN : ConnectionType[obj.connectionType]
 			this.startLaneUuid = obj.startLaneUuid
 			this.endLaneUuid = obj.endLaneUuid
+			this.conflictingConnections = isNullOrUndefined(obj.conflictingConnections) ? [] : obj.conflictingConnections
 		} else {
 			this.type = ConnectionType.UNKNOWN
 			this.startLaneUuid = ""
 			this.endLaneUuid = ""
+			this.conflictingConnections = []
 		}
 
 		this.minimumMarkerCount = 4
@@ -122,6 +125,22 @@ export class Connection extends Annotation {
 		return true
 	}
 
+	/**
+	 * This functions checks if the given connection is in the conflicting connection set. If so, it deletes it, if not
+	 * it adds it. It returns true if the connection was added.
+	 */
+	toggleConflictingConnection(connectionId: AnnotationUuid): boolean {
+		// Only add the connection if is not in the conflicting list already
+		const index = this.conflictingConnections.indexOf(connectionId, 0)
+		if (index < 0) {
+			this.conflictingConnections.push(connectionId)
+			return true
+		}
+		// We do have this connection, remove it
+		this.conflictingConnections.splice(index, 1)
+		return false
+	}
+
 	deleteLastMarker(): boolean  { return false}
 
 	complete(): boolean {
@@ -149,6 +168,10 @@ export class Connection extends Annotation {
 			marker.visible = true
 		})
 		this.makeInactive()
+	}
+
+	setConflictMode(): void {
+		this.mesh.material = ConnectionRenderingProperties.conflictMaterial
 	}
 
 	updateVisualization(): void {
@@ -195,6 +218,7 @@ export class Connection extends Annotation {
 			connectionType: ConnectionType[this.type],
 			startLaneUuid: this.startLaneUuid,
 			endLaneUuid: this.endLaneUuid,
+			conflictingConnections: this.conflictingConnections,
 			markers: [],
 			waypoints: [],
 		}

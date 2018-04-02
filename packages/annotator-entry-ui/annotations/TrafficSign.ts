@@ -16,9 +16,10 @@ const log = TypeLogger.getLogger(__filename)
 
 export enum TrafficSignType {
 	UNKNOWN = 0,
-	TRAFFIC_LIGHT,
 	STOP,
 	YIELD,
+	RYG_LIGHT,
+	RYG_LEFT_ARROW_LIGHT,
 	OTHER
 }
 

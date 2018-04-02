@@ -2,6 +2,7 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
+import {Connection} from "./annotations/Connection";
 
 const config = require('../config')
 import * as $ from 'jquery'
@@ -145,6 +146,7 @@ interface UiState {
 	isAddMarkerKeyPressed: boolean
 	isAddConnectionKeyPressed: boolean
 	isJoinAnnotationKeyPressed: boolean
+	isAddConflictKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	numberKeyPressed: number | null
 	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
@@ -252,6 +254,7 @@ export class Annotator {
 			isShiftKeyPressed: false,
 			isAddMarkerKeyPressed: false,
 			isAddConnectionKeyPressed: false,
+			isAddConflictKeyPressed: false,
 			isJoinAnnotationKeyPressed: false,
 			isMouseButtonPressed: false,
 			numberKeyPressed: null,
@@ -485,6 +488,7 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
+		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
 		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
@@ -512,7 +516,9 @@ export class Annotator {
 			})
 	}
 
-	// Load up any data which configuration has asked for on start-up.
+	/**
+	 * 	Load up any data which configuration has asked for on start-up.
+	 */
 	private loadUserData(): Promise<void> {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
@@ -608,8 +614,10 @@ export class Annotator {
 			})
 	}
 
-	// Move the camera and the car model through poses loaded from a file on disk.
-	// See also initClient().
+	/**
+	 * 	Move the camera and the car model through poses loaded from a file on disk.
+	 *  See also initClient().
+	 */
 	private runFlythrough(): void {
 		if (!this.uiState.isLiveMode) return
 		if (!this.flyThroughSettings.enabled) return
@@ -788,8 +796,8 @@ export class Annotator {
 			let y: number = voxel.y * voxelSize
 			let z: number = voxel.z * voxelSize
 			let minDistance: number = Number.MAX_VALUE
-			let minDistanceHeight: number = y   // in case there is no annotation close enough
-                                                // these voxels will be all colored the same
+			// in case there is no annotation close enough these voxels will be all colored the same
+			let minDistanceHeight: number = y
 			for (let annotation of this.annotationManager.laneAnnotations) {
 				for (let wayPoint of annotation.denseWaypoints) {
 					let dx: number = wayPoint.x - x
@@ -1295,6 +1303,7 @@ export class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isAddConflictKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
@@ -1329,6 +1338,7 @@ export class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isAddConflictKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const markers = this.annotationManager.activeMarkers()
@@ -1371,9 +1381,47 @@ export class Annotator {
 		}
 	}
 
-	// Unselect whatever is selected in the UI:
-	//  - an active control point
-	//  - a selected annotation
+	/**
+	 * Check if we clicked a connection while pressing the add conflict key
+	 */
+	private checkForConflictSelection = (event: MouseEvent): void => {
+		log.info("checking for conflict selection")
+		if (this.uiState.isLiveMode) return
+		if (!this.uiState.isAddConflictKeyPressed) return
+
+		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+
+		if (!srcAnnotation) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+
+		if (intersects.length > 0) {
+			const object = intersects[0].object.parent
+			const dstAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+
+			// We clicked an inactive connection, add it to the set of conflicting connections
+			if (dstAnnotation && dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
+				log.info("toggling conflict")
+				const wasAdded = srcAnnotation.toggleConflictingConnection(dstAnnotation.uuid)
+				if (wasAdded) {
+					log.info("added conflict")
+					dstAnnotation.setConflictMode()
+				} else  {
+					log.info("removed conflict")
+					dstAnnotation.makeInactive()
+				}
+			}
+		}
+	}
+
+	/**
+	 * Unselect whatever is selected in the UI:
+	 *  - an active control point
+	 *  - a selected annotation
+ 	 */
+
 	private escapeSelection(): void {
 		if (this.transformControls.isAttached()) {
 			this.cleanTransformControls()
@@ -1651,6 +1699,10 @@ export class Annotator {
 					this.toggleListen()
 					break
 				}
+				case 'q': {
+					this.uiState.isAddConflictKeyPressed = true
+					break
+				}
 				case 'r': {
 					this.addRightSame()
 					break
@@ -1698,6 +1750,7 @@ export class Annotator {
 		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
 		this.uiState.isAddConnectionKeyPressed = false
+		this.uiState.isAddConflictKeyPressed = false
 		this.uiState.isJoinAnnotationKeyPressed = false
 		this.uiState.numberKeyPressed = null
 	}
@@ -1999,67 +2052,27 @@ export class Annotator {
 			log.warn('missing element lp_add_forward')
 	}
 
-	private bindRelationsPanel(): void {
-		const lcSelectFrom = document.getElementById('lc_select_from')
-		if (lcSelectFrom)
-			lcSelectFrom.addEventListener('mousedown', () => {
-				// Get ids
-				const ids = this.annotationManager.getValidIds()
-				// Add ids
-				const selectbox = $('#lc_select_from')
-				selectbox.empty()
-				let list = ''
-				for (let j = 0; j < ids.length; j++) {
-					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-				}
-				selectbox.html(list)
-			})
-		else
-			log.warn('missing element lc_select_from')
+	private bindConnectionPropertiesPanel(): void {
+		const cpType = $('#cp_select_type')
+		cpType.on('change', () => {
+			cpType.blur()
+			const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding connection type: " + cpType.children("options").filter(":selected").text())
+			activeAnnotation.type = +cpType.val()
+		})
 
-		const lcSelectTo = document.getElementById('lc_select_to')
-		if (lcSelectTo)
-			lcSelectTo.addEventListener('mousedown', () => {
-				// Get ids
-				const ids = this.annotationManager.getValidIds()
-				// Add ids
-				const selectbox = $('#lc_select_to')
-				selectbox.empty()
-				let list = ''
-				for (let j = 0; j < ids.length; j++) {
-					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-				}
-				selectbox.html(list)
-			})
-		else
-			log.warn('missing element lc_select_to')
-
-		const lcAdd = document.getElementById('lc_add')
-		if (lcAdd)
-			lcAdd.addEventListener('click', () => {
-				const lcTo: AnnotationId = Number($('#lc_select_to').val())
-				const lcFrom: AnnotationId = Number($('#lc_select_from').val())
-				const lcRelation = $('#lc_select_relation').val()
-
-				if (lcTo === null || lcFrom === null) {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-						"You have to select both lanes to be connected.")
-					return
-				}
-
-				if (lcTo === lcFrom) {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-						"You can't connect a lane to itself. The 2 ids should be unique.")
-					return
-				}
-
-				log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
-				if (this.annotationManager.addRelation(lcFrom, lcTo, lcRelation)) {
-					this.resetLaneProp()
-				}
-			})
-		else
-			log.warn('missing element lc_add')
+		/*
+		const cpDevice = $('#cp_select_device')
+		cpDevice.on('change', () => {
+			const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding boundary color: " + cpDevice.children("options").filter(":selected").text())
+			activeAnnotation.device = +cpDevice.val()
+		})
+		*/
 	}
 
 	private bindTerritoryPropertiesPanel(): void {
@@ -2121,7 +2134,8 @@ export class Annotator {
 	private bind(): void {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
-		this.bindRelationsPanel()
+		//this.bindRelationsPanel()
+		this.bindConnectionPropertiesPanel()
 		this.bindTerritoryPropertiesPanel()
 		this.bindTrafficSignPropertiesPanel()
 		this.bindBoundaryPropertiesPanel()
@@ -2268,6 +2282,7 @@ export class Annotator {
 	private resetAllAnnotationPropertiesMenuElements(): void {
 		this.resetBoundaryProp()
 		this.resetLaneProp()
+		this.resetConnectionProp()
 		this.resetTerritoryProp()
 		this.resetTrafficSignProp()
 	}
@@ -2306,6 +2321,7 @@ export class Annotator {
 			log.warn('missing element lp_id_value')
 		activeAnnotation.updateLaneWidth()
 
+		/*
 		const lcSelectTo = $('#lc_select_to')
 		lcSelectTo.empty()
 		lcSelectTo.removeAttr('disabled')
@@ -2319,6 +2335,7 @@ export class Annotator {
 
 		const lpAddRelation = $('#lc_add')
 		lpAddRelation.removeAttr('disabled')
+		*/
 
 		const lpSelectType = $('#lp_select_type')
 		lpSelectType.removeAttr('disabled')
@@ -2420,9 +2437,36 @@ export class Annotator {
 		bpSelectColor.val(activeAnnotation.color.toString())
 	}
 
+	/**
+	 * Reset connection properties elements based on the current active connection
+	 */
+	private resetConnectionProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_connection')
+
+		const cpId = document.getElementById('cp_id_value')
+		if (cpId)
+			cpId.textContent = activeAnnotation.id.toString()
+		else
+			log.warn('missing element bp_id_value')
+
+		const cpSelectType = $('#cp_select_type')
+		cpSelectType.removeAttr('disabled')
+		cpSelectType.val(activeAnnotation.type.toString())
+
+		/*
+		const cpSelectDevice = $('#cp_select_device')
+		cpSelectDevice.removeAttr('disabled')
+		cpSelectDevice.val(activeAnnotation.device.toString())
+		*/
+	}
+
 	private static deactivateAllAnnotationPropertiesMenus(): void {
 		Annotator.deactivateBoundaryProp()
 		Annotator.deactivateLaneProp()
+		Annotator.deactivateConnectionProp()
 		Annotator.deactivateTerritoryProp()
 		Annotator.deactivateTrafficSignProp()
 	}
@@ -2456,6 +2500,7 @@ export class Annotator {
 		} else
 			log.warn('missing element lane_prop_1')
 
+		/*
 		const laneConn = document.getElementById('lane_conn')
 		if (laneConn) {
 			const selects = laneConn.getElementsByTagName('select')
@@ -2470,6 +2515,7 @@ export class Annotator {
 			lcAdd.setAttribute('disabled', 'disabled')
 		else
 			log.warn('missing element lc_add')
+		*/
 
 		const trAdd = document.getElementById('tr_add')
 		if (trAdd)
@@ -2503,6 +2549,39 @@ export class Annotator {
 		const boundaryProp = document.getElementById('boundary_prop')
 		if (boundaryProp) {
 			const selects = boundaryProp.getElementsByTagName('select')
+			for (let i = 0; i < selects.length; ++i) {
+				selects.item(i).selectedIndex = 0
+				selects.item(i).setAttribute('disabled', 'disabled')
+			}
+		} else
+			log.warn('missing element boundary_prop')
+	}
+
+	/**
+	 * Deactivate connection properties menu panel
+	 */
+	private static deactivateConnectionProp(): void {
+		const cpId = document.getElementById('cp_id_value')
+		if (cpId)
+			cpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element cp_id_value')
+
+		const cpType = document.getElementById('cp_select_type')
+		if (cpType)
+			cpType.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element cp_select_type')
+
+		const cpDevice = document.getElementById('cp_select_device')
+		if (cpDevice)
+			cpDevice.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element cp_select_device')
+
+		const connectionProp = document.getElementById('connection_prop')
+		if (connectionProp) {
+			const selects = connectionProp.getElementsByTagName('select')
 			for (let i = 0; i < selects.length; ++i) {
 				selects.item(i).selectedIndex = 0
 				selects.item(i).setAttribute('disabled', 'disabled')

@@ -137,6 +137,13 @@ export class AnnotationManager extends UtmInterface {
 			return null
 	}
 
+	getActiveConnectionAnnotation(): Connection | null {
+		if (this.activeAnnotation && this.activeAnnotation instanceof Connection)
+			return this.activeAnnotation as Connection
+		else
+			return null
+	}
+
 	getActiveBoundaryAnnotation(): Boundary | null {
 		if (this.activeAnnotation && this.activeAnnotation instanceof Boundary)
 			return this.activeAnnotation as Boundary
@@ -917,12 +924,40 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		// Deactivate current active annotation
-		if (this.activeAnnotation)
+		if (this.activeAnnotation) {
 			this.activeAnnotation.makeInactive()
+			// If the active annotation was a connection make sure its conflicting connections appearance is set back
+			// to inactive mode. In the future this behavior should happen inside the makeInactive function
+			// but at this moment we don't have access to other annotations inside an annotation.
+			if (this.activeAnnotation instanceof Connection) {
+				this.activeAnnotation.conflictingConnections.forEach( (id: AnnotationUuid) => {
+					const index = this.connectionAnnotations.findIndex( (annotation: Connection) => {
+						return annotation.uuid === id
+					})
+					if (index < 0) {
+						log.warn("Connection in conflicting set doesn't exist")
+					}
+					this.connectionAnnotations[index].makeInactive()
+				})
+			}
+		}
 
 		// Set new active annotation
 		this.activeAnnotation = changeTo
 		this.activeAnnotation.makeActive()
+
+		// If the new active annotation is a connection, change the rendering of it's conflicting connections
+		if (this.activeAnnotation instanceof  Connection) {
+			this.activeAnnotation.conflictingConnections.forEach( (id: AnnotationUuid) => {
+				const index = this.connectionAnnotations.findIndex( (annotation: Connection) => {
+					return annotation.uuid === id
+				})
+				if (index < 0) {
+					log.warn("Connection in conflicting set doesn't exist")
+				}
+				this.connectionAnnotations[index].setConflictMode()
+			})
+		}
 
 		return true
 	}
