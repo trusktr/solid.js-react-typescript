@@ -191,6 +191,7 @@ export class Annotator {
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
 	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
 	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
+	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private tileManager: TileManager
 	private imageManager: ImageManager
@@ -211,6 +212,7 @@ export class Annotator {
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
 	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
+	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the UI
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
@@ -288,6 +290,7 @@ export class Annotator {
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterSuperTiles = new THREE.Raycaster()
 		this.raycasterAnnotation = new THREE.Raycaster()
+		this.raycasterImageScreen = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager(
 			this.settings.generateVoxelsOnPointLoad,
@@ -300,6 +303,7 @@ export class Annotator {
 		this.superTileGroundPlanes = Map()
 		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
+		this.highlightedImageScreenBox = null
 		this.imageManager = new ImageManager(this.uiState.imageScreenOpacity, this.onImageScreenLoad)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
@@ -502,12 +506,14 @@ export class Annotator {
 
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
+		this.renderer.domElement.addEventListener('mousemove', this.checkForImageScreenSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
 		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
 		this.renderer.domElement.addEventListener('mouseup', this.clickSuperTileBox)
+		this.renderer.domElement.addEventListener('mouseup', this.clickImageScreenBox)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
 		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed})
@@ -1551,7 +1557,7 @@ export class Annotator {
 		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
 		const intersects = this.raycasterSuperTiles.intersectObject(this.highlightedSuperTileBox)
 
-		if (intersects.length > 0) {
+		if (intersects.length) {
 			const superTile = this.highlightedSuperTileBox.userData as SuperTile
 			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
 			this.scene.remove(this.highlightedSuperTileBox)
@@ -1564,6 +1570,7 @@ export class Annotator {
 	// Draw the box in a more solid form to indicate that it is active.
 	private highlightSuperTileBox(superTileBox: THREE.Mesh): void {
 		if (this.uiState.isLiveMode) return
+		if (this.highlightedImageScreenBox) return
 		if (!this.uiState.isShiftKeyPressed) return
 
 		const material = superTileBox.material as THREE.MeshBasicMaterial
@@ -1592,6 +1599,77 @@ export class Annotator {
 			this.scene.add(imageScreen)
 			this.render()
 		}
+
+	private checkForImageScreenSelection = (event: MouseEvent): void => {
+		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseButtonPressed) return
+		if (this.uiState.isAddMarkerKeyPressed) return
+		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
+		if (!this.uiState.isPointCloudVisible) return
+
+		if (!this.imageManager.imageScreenMeshes.length) return this.unHighlightImageScreenBox()
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterImageScreen.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterImageScreen.intersectObjects(this.imageManager.imageScreenMeshes)
+
+		if (!intersects.length) {
+			this.unHighlightImageScreenBox()
+		} else {
+			const first = intersects[0].object as THREE.Mesh
+
+			if (this.highlightedImageScreenBox && this.highlightedImageScreenBox.id !== first.id)
+				this.unHighlightImageScreenBox()
+
+			if (!this.highlightedImageScreenBox)
+				this.highlightImageScreenBox(first)
+		}
+	}
+
+	private clickImageScreenBox = (event: MouseEvent): void => {
+		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseDragging) return
+		if (!this.highlightedImageScreenBox) return
+		if (!this.uiState.isPointCloudVisible) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterImageScreen.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterImageScreen.intersectObject(this.highlightedImageScreenBox)
+
+		if (intersects.length) {
+			const imageScreen = this.highlightedImageScreenBox.userData as ImageScreen
+			this.unHighlightImageScreenBox()
+			this.loadImageScreenIntoWindow(imageScreen).then()
+			this.render()
+		}
+	}
+
+	// Draw the box with max opacity to indicate that it is active.
+	private highlightImageScreenBox(imageScreenBox: THREE.Mesh): void {
+		if (this.uiState.isLiveMode) return
+		if (this.highlightedSuperTileBox) return
+		if (!this.uiState.isShiftKeyPressed) return
+
+		const material = imageScreenBox.material as THREE.MeshBasicMaterial
+		material.opacity = 1.0
+		this.highlightedImageScreenBox = imageScreenBox
+		this.render()
+	}
+
+	// Draw the box with default opacity like all the other boxes.
+	private unHighlightImageScreenBox(): void {
+		if (!this.highlightedImageScreenBox) return
+
+		const material = this.highlightedImageScreenBox.material as THREE.MeshBasicMaterial
+		material.opacity = this.uiState.imageScreenOpacity
+		this.highlightedImageScreenBox = null
+		this.render()
+	}
+
+	private loadImageScreenIntoWindow(imageScreen: ImageScreen): Promise<void> {
+		return Promise.resolve()
+	}
 
 	/*
 	 * Make a best effort to save annotations before exiting. There is no guarantee the

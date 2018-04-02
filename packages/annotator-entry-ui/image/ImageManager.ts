@@ -22,6 +22,8 @@ const imageMaterialParameters = {
 export class ImageManager {
 	private textureLoader: THREE.TextureLoader
 	private images: CalibratedImage[]
+	private imageScreens: ImageScreen[]
+	imageScreenMeshes: THREE.Mesh[]
 	private opacity: number
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void
 
@@ -31,6 +33,8 @@ export class ImageManager {
 	) {
 		this.textureLoader = new THREE.TextureLoader()
 		this.images = []
+		this.imageScreens = []
+		this.imageScreenMeshes = []
 		this.opacity = opacity
 		this.onImageScreenLoad = onImageScreenLoad
 	}
@@ -40,9 +44,9 @@ export class ImageManager {
 		if (this.opacity === opacity)
 			return false
 		this.opacity = opacity
-		if (!this.images.length)
+		if (!this.imageScreens.length)
 			return false
-		this.images.forEach(i => i.imageScreen.setOpacity(opacity))
+		this.imageScreens.forEach(i => i.setOpacity(opacity))
 		return true
 	}
 
@@ -109,6 +113,9 @@ export class ImageManager {
 		screen.scaleDistance(position.distanceTo(origin))
 		screen.lookAt(origin)
 		screen.setOpacity(this.opacity)
+		screen.imageMesh.userData = screen
+		this.imageScreens.push(screen)
+		this.imageScreenMeshes.push(screen.imageMesh)
 		this.onImageScreenLoad(screen)
 	}
 }

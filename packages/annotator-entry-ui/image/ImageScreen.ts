@@ -47,7 +47,7 @@ function pyramid(base: THREE.Vector3[]): THREE.Line {
 // The hypothetical camera lies at the apex of a right pyramid, looking down
 // at the image which forms the base.
 export class ImageScreen extends THREE.Object3D {
-	private imageMesh: THREE.Mesh
+	imageMesh: THREE.Mesh
 
 	constructor(imageMesh: THREE.Mesh) {
 		super()
