@@ -4,7 +4,7 @@
  */
 
 import {LaneType, LaneLineType, LaneLineColor, LaneEntryExitType} from 'annotator-entry-ui/annotations/Lane'
-import {TrafficSignType} from 'annotator-entry-ui/annotations/TrafficSign'
+import {TrafficDeviceType} from 'annotator-entry-ui/annotations/TrafficSign'
 import {BoundaryType, BoundaryColor} from 'annotator-entry-ui/annotations/Boundary'
 import {ConnectionType} from "annotator-entry-ui/annotations/Connection";
 
@@ -12,7 +12,7 @@ import {ConnectionType} from "annotator-entry-ui/annotations/Connection";
 ///////////////////////////////////////////////////////////////////////////////
 const boundaryProp = document.getElementById('boundary_prop')
 const laneProp = document.getElementById('lane_prop_1')
-const trafficSignProp = document.getElementById('traffic_sign_prop_1')
+const trafficDeviceProp = document.getElementById('traffic_device_prop_1')
 const connectionProp = document.getElementById('connection_prop')
 
 // Define new elements
@@ -153,9 +153,9 @@ const cpSelectsText = [
 const cpSelectsValue = [
 	[ConnectionType.UNKNOWN.toString(), ConnectionType.YIELD.toString(), ConnectionType.ALTERNATE.toString(),
 		ConnectionType.RYG_LIGHT.toString(), ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(), ConnectionType.OTHER.toString()],
-	[TrafficSignType.UNKNOWN.toString(), TrafficSignType.STOP.toString(), TrafficSignType.YIELD.toString(),
-		TrafficSignType.RYG_LIGHT.toString(), TrafficSignType.RYG_LEFT_ARROW_LIGHT.toString(),
-		TrafficSignType.OTHER.toString()]]
+	[TrafficDeviceType.UNKNOWN.toString(), TrafficDeviceType.STOP.toString(), TrafficDeviceType.YIELD.toString(),
+		TrafficDeviceType.RYG_LIGHT.toString(), TrafficDeviceType.RYG_LEFT_ARROW_LIGHT.toString(),
+		TrafficDeviceType.OTHER.toString()]]
 
 const cpSelects: Array<HTMLElement> = []
 const eConnectionId = document.createElement('text')
@@ -180,7 +180,7 @@ for (const i in cpSelectsId) {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
-const tpLabelsText = ["Traffic sign ID:", "Type:"]
+const tpLabelsText = ["Traffic device ID:", "Type:"]
 const tpLabelsId = ["tp_id", "tp_type"]
 const tpLabels: Array<HTMLElement> = []
 for (const i in tpLabelsText) {
@@ -196,17 +196,17 @@ for (const i in tpLabelsText) {
 const tpSelectsId = ['tp_select_type']
 const tpSelectsText = [ ['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER']]
 const tpSelectsValue = [
-	[TrafficSignType.UNKNOWN.toString(), TrafficSignType.STOP.toString(), TrafficSignType.YIELD.toString(),
-		TrafficSignType.RYG_LIGHT.toString(), TrafficSignType.RYG_LEFT_ARROW_LIGHT.toString(),
-		TrafficSignType.OTHER.toString()]]
+	[TrafficDeviceType.UNKNOWN.toString(), TrafficDeviceType.STOP.toString(), TrafficDeviceType.YIELD.toString(),
+		TrafficDeviceType.RYG_LIGHT.toString(), TrafficDeviceType.RYG_LEFT_ARROW_LIGHT.toString(),
+		TrafficDeviceType.OTHER.toString()]]
 
 const tpSelects: Array<HTMLElement> = []
 
-const elementTrafficSignId = document.createElement('text')
-elementTrafficSignId.textContent = 'UNKNOWN'
-elementTrafficSignId.id = 'tp_id_value'
-elementTrafficSignId.className = 'select_style'
-tpSelects.push(elementTrafficSignId)
+const elementTrafficDeviceId = document.createElement('text')
+elementTrafficDeviceId.textContent = 'UNKNOWN'
+elementTrafficDeviceId.id = 'tp_id_value'
+elementTrafficDeviceId.className = 'select_style'
+tpSelects.push(elementTrafficDeviceId)
 
 for (const i in tpSelectsId) {
 	if (tpSelectsId.hasOwnProperty(i)) {
@@ -249,11 +249,11 @@ if (connectionProp)
 		}
 	}
 
-if (trafficSignProp)
+if (trafficDeviceProp)
 	for (const i in tpSelects) {
 		if (tpSelects.hasOwnProperty(i)) {
-			trafficSignProp.appendChild(tpLabels[i])
-			trafficSignProp.appendChild(tpSelects[i])
+			trafficDeviceProp.appendChild(tpLabels[i])
+			trafficDeviceProp.appendChild(tpSelects[i])
 		}
 	}
 
@@ -264,7 +264,7 @@ const menuIds = [
 	'#menu_lane',
 	'#menu_connection',
 	'#menu_territory',
-	'#menu_traffic_sign',
+	'#menu_traffic_device',
 	'#menu_trajectory',
 ]
 menuIds.forEach(domId => $(domId).accordion(accordionOptions))
