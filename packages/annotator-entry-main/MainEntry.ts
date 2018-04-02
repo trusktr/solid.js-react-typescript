@@ -1,6 +1,10 @@
-import Electron = require("electron")
-import BrowserWindow = Electron.BrowserWindow
-import {BrowserWindowConstructorOptions} from 'electron'
+/**
+ *  Copyright 2018 Mapper Inc. Part of the mapper-annotator project.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
+import * as Electron from 'electron'
+import {BrowserWindow, BrowserWindowConstructorOptions} from 'electron'
 const config = require('../config')
 
 const app = Electron.app

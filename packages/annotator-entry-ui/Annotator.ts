@@ -7,6 +7,8 @@ import {Connection} from "./annotations/Connection";
 const config = require('../config')
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file"
+import * as Electron from 'electron'
+require('electron-unhandled')()
 const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
@@ -29,11 +31,10 @@ import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
 import {AnnotationType} from './annotations/AnnotationType'
 import {AnnotationManager, OutputFormat} from './AnnotationManager'
-import {Annotation, AnnotationId} from './annotations/AnnotationBase'
+import {Annotation} from './annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane} from './annotations/Lane'
 import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
-import * as EM from './ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
 import {isNull, isUndefined} from "util"
@@ -51,7 +52,7 @@ declare global {
 }
 
 const statsModule = require("stats.js")
-const {dialog}: { dialog: Electron.Dialog } = require('electron').remote
+const dialog = Electron.remote.dialog
 const zmq = require('zmq')
 const OBJLoader = require('three-obj-loader')
 OBJLoader(THREE)
@@ -148,6 +149,7 @@ interface UiState {
 	isJoinAnnotationKeyPressed: boolean
 	isAddConflictKeyPressed: boolean
 	isMouseButtonPressed: boolean
+	isMouseDragging: boolean
 	numberKeyPressed: number | null
 	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
 	// file (if this.flyThroughSettings.enabled is true) or messages on a live socket.
@@ -257,6 +259,7 @@ export class Annotator {
 			isAddConflictKeyPressed: false,
 			isJoinAnnotationKeyPressed: false,
 			isMouseButtonPressed: false,
+			isMouseDragging: false,
 			numberKeyPressed: null,
 			isLiveMode: false,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
@@ -335,9 +338,7 @@ export class Annotator {
 	}
 
 	exitApp(): void {
-		const remote = require('electron').remote
-		let w = remote.getCurrentWindow()
-		w.close()
+		Electron.remote.getCurrentWindow().close()
 	}
 
 	/**
@@ -501,9 +502,10 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
 		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
+		this.renderer.domElement.addEventListener('mouseup', this.clickSuperTileBox)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
-		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
+		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed})
 
 		// Bind events
 		if (!this.uiState.isKioskMode)
@@ -1174,6 +1176,7 @@ export class Annotator {
 	 * If the mouse was clicked while pressing the "a" key, drop an annotation marker.
 	 */
 	private addAnnotationMarker = (event: MouseEvent): void => {
+		if (this.uiState.isMouseDragging) return
 		if (!this.uiState.isAddMarkerKeyPressed) return
 		if (!this.annotationManager.activeAnnotation) return
 		if (!this.annotationManager.activeAnnotation.allowNewMarkers) return
@@ -1212,6 +1215,7 @@ export class Annotator {
 	 */
 	private addLaneConnection = (event: MouseEvent): void => {
 		if (!this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isMouseDragging) return
 		// reject connection if active annotation is not a lane
 		const activeLane = this.annotationManager.getActiveLaneAnnotation()
 		if (!activeLane) {
@@ -1260,6 +1264,7 @@ export class Annotator {
 	 * annotation with the clicked one, if they are of the same type
 	 */
 	private joinAnnotations = (event: MouseEvent): void => {
+		if (this.uiState.isMouseDragging) return
 		if (!this.uiState.isJoinAnnotationKeyPressed) return
 
 		// get active annotation
@@ -1320,6 +1325,7 @@ export class Annotator {
 	 */
 	private checkForAnnotationSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseDragging) return
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
@@ -1408,9 +1414,10 @@ export class Annotator {
 	 * Check if we clicked a connection while pressing the add conflict key
 	 */
 	private checkForConflictSelection = (event: MouseEvent): void => {
-		log.info("checking for conflict selection")
 		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseDragging) return
 		if (!this.uiState.isAddConflictKeyPressed) return
+		log.info("checking for conflict selection")
 
 		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
 
@@ -1481,6 +1488,8 @@ export class Annotator {
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 		if (!this.uiState.isSuperTilesVisible) return
 
+		if (!this.pendingSuperTileBoxes.length) return this.unHighlightSuperTileBox()
+
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
 		const intersects = this.raycasterSuperTiles.intersectObjects(this.pendingSuperTileBoxes)
@@ -1500,6 +1509,7 @@ export class Annotator {
 
 	private clickSuperTileBox = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseDragging) return
 		if (!this.highlightedSuperTileBox) return
 		if (!this.uiState.isSuperTilesVisible) return
 
@@ -1559,10 +1569,6 @@ export class Annotator {
 	}
 
 	private onWindowResize = (): void => {
-		if (!this.camera) {
-			return
-		}
-
 		const [width, height]: Array<number> = this.getContainerSize()
 
 		this.perspectiveCamera.aspect = width / height
@@ -1958,7 +1964,8 @@ export class Annotator {
 
 	private reverseLaneDirection(): void {
 		log.info("Reverse lane direction.")
-		let {result, existLeftNeighbour, existRightNeighbour} = this.annotationManager.reverseLaneDirection()
+		const {result, existLeftNeighbour, existRightNeighbour}: { result: boolean, existLeftNeighbour: boolean, existRightNeighbour: boolean }
+			= this.annotationManager.reverseLaneDirection()
 		if (result) {
 			if (existLeftNeighbour) {
 				Annotator.deactivateLeftSideNeighbours()
@@ -2166,6 +2173,7 @@ export class Annotator {
 
 		const bpColor = $('#bp_select_color')
 		bpColor.on('change', () => {
+			bpColor.blur()
 			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -2777,6 +2785,7 @@ export class Annotator {
 
 	private setModelVisibility(newState: ModelVisibility): void {
 		if (this.uiState.isLiveMode) return
+		if (this.uiState.modelVisibility === newState) return
 
 		this.uiState.modelVisibility = newState
 		switch (this.uiState.modelVisibility) {

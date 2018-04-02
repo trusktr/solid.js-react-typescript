@@ -5,6 +5,7 @@
 
 const config = require('../config')
 const vsprintf = require("sprintf-js").vsprintf
+import * as Electron from 'electron'
 import * as lodash from 'lodash'
 import {isNullOrUndefined} from "util"
 import * as THREE from 'three'
@@ -34,7 +35,7 @@ import * as CRS from "./CoordinateReferenceSystem"
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
-const {dialog} = require('electron').remote
+const dialog = Electron.remote.dialog
 
 // tslint:disable:no-string-literal
 
@@ -1390,6 +1391,7 @@ export class AnnotationManager extends UtmInterface {
 	 * Create a new lane connection between given lanes using a cubic spline.
 	 * This is the old implementation of former "addConnection" function.
 	 */
+	/* replaced by addConnectionWithBezier:
 	private addConnectionWithSpline(laneFrom: Lane, laneTo: Lane): void {
 
 		if (laneFrom.markers.length < 4 || laneTo.markers.length < 4) {
@@ -1441,6 +1443,7 @@ export class AnnotationManager extends UtmInterface {
 		connection.updateVisualization()
 		this.metadataState.dirty()
 	}
+	*/
 
 	/**
 	 * Create a new lane connection between given lanes using a cubic Bezier curve
