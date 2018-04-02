@@ -152,9 +152,9 @@ const cpSelectsText = [
 	['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LIGHT_LEFT_ARROW', 'OTHER']]
 const cpSelectsValue = [
 	[ConnectionType.UNKNOWN.toString(), ConnectionType.YIELD.toString(), ConnectionType.ALTERNATE.toString(),
-		ConnectionType.RYG_LIGHT.toString(), ConnectionType.RYG_LEFT_ARROW_LIGTH.toString(), ConnectionType.OTHER.toString()],
+		ConnectionType.RYG_LIGHT.toString(), ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(), ConnectionType.OTHER.toString()],
 	[TrafficSignType.UNKNOWN.toString(), TrafficSignType.STOP.toString(), TrafficSignType.YIELD.toString(),
-		TrafficSignType.RYG_LIGHT.toString(), TrafficSignType.RYG_LEFT_ARROW_LIGTH.toString(),
+		TrafficSignType.RYG_LIGHT.toString(), TrafficSignType.RYG_LEFT_ARROW_LIGHT.toString(),
 		TrafficSignType.OTHER.toString()]]
 
 const cpSelects: Array<HTMLElement> = []
@@ -197,8 +197,8 @@ const tpSelectsId = ['tp_select_type']
 const tpSelectsText = [ ['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER']]
 const tpSelectsValue = [
 	[TrafficSignType.UNKNOWN.toString(), TrafficSignType.STOP.toString(), TrafficSignType.YIELD.toString(),
-	 TrafficSignType.RYG_LIGHT.toString(), TrafficSignType.RYG_LEFT_ARROW_LIGTH.toString(),
-	 TrafficSignType.OTHER.toString()]]
+		TrafficSignType.RYG_LIGHT.toString(), TrafficSignType.RYG_LEFT_ARROW_LIGHT.toString(),
+		TrafficSignType.OTHER.toString()]]
 
 const tpSelects: Array<HTMLElement> = []
 
