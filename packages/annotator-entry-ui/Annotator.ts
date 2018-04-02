@@ -1695,7 +1695,7 @@ export class Annotator {
 					this.toggleListen()
 					break
 				}
-				case 'p': {
+				case 'q': {
 					this.uiState.isAddConflictKeyPressed = true
 					break
 				}

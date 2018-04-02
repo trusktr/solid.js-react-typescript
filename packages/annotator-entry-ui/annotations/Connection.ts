@@ -18,7 +18,7 @@ export enum ConnectionType {
 	YIELD,
 	ALTERNATE,
 	RYG_LIGHT,
-	RYG_LEFT_ARROW_LIGTH,
+	RYG_LEFT_ARROW_LIGHT,
 	OTHER
 }
 
