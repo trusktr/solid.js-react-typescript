@@ -2634,7 +2634,17 @@ export class Annotator {
 	 * Deactivate traffic device properties menu panel
 	 */
 	private static deactivateTrafficDeviceProp(): void {
-		// TODO
+		const tpId = document.getElementById('tp_id_value')
+		if (tpId)
+			tpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element tp_id_value')
+
+		const tpType = document.getElementById('tp_select_type')
+		if (tpType)
+			tpType.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element tp_select_type')
 	}
 
 	/**
