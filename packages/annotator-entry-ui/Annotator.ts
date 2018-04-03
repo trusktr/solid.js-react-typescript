@@ -2,7 +2,6 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
-import {Connection} from "./annotations/Connection";
 
 const config = require('../config')
 import * as $ from 'jquery'
@@ -29,6 +28,7 @@ import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
 import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
+import {getDecorations} from "./Decorations"
 import {AnnotationType} from './annotations/AnnotationType'
 import {AnnotationManager, OutputFormat} from './AnnotationManager'
 import {Annotation} from './annotations/AnnotationBase'
@@ -46,6 +46,8 @@ import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/Lo
 import {ImageManager} from "./image/ImageManager"
 import {ImageScreen} from "./image/ImageScreen"
 import {CalibratedImage} from "./image/CalibratedImage"
+import {Connection} from "./annotations/Connection"
+import {TrafficDevice} from "./annotations/TrafficDevice"
 const  watch = require('watch')
 
 declare global {
@@ -121,6 +123,7 @@ interface AnnotatorSettings {
 	aoiHalfSize: THREE.Vector3 // half the dimensions of an AOI box
 	timeBetweenErrorDialogsMs: number
 	timeToDisplayHealthyStatusMs: number
+	maxDistanceToDecorations: number // meters
 }
 
 interface FlyThroughSettings {
@@ -150,7 +153,7 @@ interface UiState {
 	isAddMarkerKeyPressed: boolean
 	isAddConnectionKeyPressed: boolean
 	isJoinAnnotationKeyPressed: boolean
-	isAddConflictKeyPressed: boolean
+	isAddConflictOrDeviceKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	isMouseDragging: boolean
 	numberKeyPressed: number | null
@@ -192,6 +195,7 @@ class Annotator {
 	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
+	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
 	private tileManager: TileManager
 	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
@@ -242,6 +246,7 @@ class Annotator {
 			aoiHalfSize: new THREE.Vector3(15, 15, 15),
 			timeBetweenErrorDialogsMs: 30000,
 			timeToDisplayHealthyStatusMs: 10000,
+			maxDistanceToDecorations: 50000,
 		}
 		const aoiSize: [number, number, number] = config.get('annotator.area_of_interest.size')
 		if (isTupleOfNumbers(aoiSize, 3)) {
@@ -263,7 +268,7 @@ class Annotator {
 			isShiftKeyPressed: false,
 			isAddMarkerKeyPressed: false,
 			isAddConnectionKeyPressed: false,
-			isAddConflictKeyPressed: false,
+			isAddConflictOrDeviceKeyPressed: false,
 			isJoinAnnotationKeyPressed: false,
 			isMouseButtonPressed: false,
 			isMouseDragging: false,
@@ -286,11 +291,13 @@ class Annotator {
 		this.raycasterPlane.params.Points!.threshold = 0.1
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterSuperTiles = new THREE.Raycaster()
+		this.decorations = []
 		this.raycasterAnnotation = new THREE.Raycaster()
 		this.raycasterImageScreen = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager(
 			this.settings.generateVoxelsOnPointLoad,
+			this.onSetOrigin,
 			this.onSuperTileLoad,
 			this.onSuperTileUnload,
 			this.onTileServiceStatusUpdate
@@ -514,7 +521,7 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForImageScreenSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictSelection)
+		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictOrDeviceSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
 		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
@@ -1346,7 +1353,7 @@ class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
-		if (this.uiState.isAddConflictKeyPressed) return
+		if (this.uiState.isAddConflictOrDeviceKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
@@ -1382,7 +1389,7 @@ class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
-		if (this.uiState.isAddConflictKeyPressed) return
+		if (this.uiState.isAddConflictOrDeviceKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const markers = this.annotationManager.activeMarkers()
@@ -1428,12 +1435,12 @@ class Annotator {
 	}
 
 	/**
-	 * Check if we clicked a connection while pressing the add conflict key
+	 * Check if we clicked a connection or device while pressing the add conflict/device key
 	 */
-	private checkForConflictSelection = (event: MouseEvent): void => {
+	private checkForConflictOrDeviceSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseDragging) return
-		if (!this.uiState.isAddConflictKeyPressed) return
+		if (!this.uiState.isAddConflictOrDeviceKeyPressed) return
 		log.info("checking for conflict selection")
 
 		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
@@ -1448,13 +1455,30 @@ class Annotator {
 			const object = intersects[0].object.parent
 			const dstAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
 
-			// We clicked an inactive connection, add it to the set of conflicting connections
-			if (dstAnnotation && dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
+			if (!dstAnnotation) return
+
+			// If we clicked a connection, add it to the set of conflicting connections
+			if (dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
 				log.info("toggling conflict")
 				const wasAdded = srcAnnotation.toggleConflictingConnection(dstAnnotation.uuid)
 				if (wasAdded) {
 					log.info("added conflict")
 					dstAnnotation.setConflictMode()
+				} else  {
+					log.info("removed conflict")
+					dstAnnotation.makeInactive()
+				}
+				this.render()
+				return
+			}
+
+			// If we clicked a traffic device, add it or remove it from the connection's set of associated devices.
+			if (dstAnnotation instanceof TrafficDevice) {
+				log.info("toggling conflict")
+				const wasAdded = srcAnnotation.toggleAssociatedDevice(dstAnnotation.uuid)
+				if (wasAdded) {
+					log.info("added conflict")
+					dstAnnotation.setAssociatedMode(srcAnnotation.waypoints[0])
 				} else  {
 					log.info("removed conflict")
 					dstAnnotation.makeInactive()
@@ -1830,7 +1854,7 @@ class Annotator {
 					break
 				}
 				case 'q': {
-					this.uiState.isAddConflictKeyPressed = true
+					this.uiState.isAddConflictOrDeviceKeyPressed = true
 					break
 				}
 				case 'r': {
@@ -1880,7 +1904,7 @@ class Annotator {
 		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
 		this.uiState.isAddConnectionKeyPressed = false
-		this.uiState.isAddConflictKeyPressed = false
+		this.uiState.isAddConflictOrDeviceKeyPressed = false
 		this.uiState.isJoinAnnotationKeyPressed = false
 		this.uiState.numberKeyPressed = null
 	}
@@ -2484,22 +2508,6 @@ class Annotator {
 			log.warn('missing element lp_id_value')
 		activeAnnotation.updateLaneWidth()
 
-		/*
-		const lcSelectTo = $('#lc_select_to')
-		lcSelectTo.empty()
-		lcSelectTo.removeAttr('disabled')
-
-		const lcSelectFrom = $('#lc_select_from')
-		lcSelectFrom.empty()
-		lcSelectFrom.removeAttr('disabled')
-
-		const lcSelectRelation = $('#lc_select_relation')
-		lcSelectRelation.removeAttr('disabled')
-
-		const lpAddRelation = $('#lc_add')
-		lpAddRelation.removeAttr('disabled')
-		*/
-
 		const lpSelectType = $('#lp_select_type')
 		lpSelectType.removeAttr('disabled')
 		lpSelectType.val(activeAnnotation.type.toString())
@@ -2618,12 +2626,6 @@ class Annotator {
 		const cpSelectType = $('#cp_select_type')
 		cpSelectType.removeAttr('disabled')
 		cpSelectType.val(activeAnnotation.type.toString())
-
-		/*
-		const cpSelectDevice = $('#cp_select_device')
-		cpSelectDevice.removeAttr('disabled')
-		cpSelectDevice.val(activeAnnotation.device.toString())
-		*/
 	}
 
 	private static deactivateAllAnnotationPropertiesMenus(): void {
@@ -2662,23 +2664,6 @@ class Annotator {
 			}
 		} else
 			log.warn('missing element lane_prop_1')
-
-		/*
-		const laneConn = document.getElementById('lane_conn')
-		if (laneConn) {
-			const selects = laneConn.getElementsByTagName('select')
-			for (let i = 0; i < selects.length; ++i) {
-				selects.item(i).setAttribute('disabled', 'disabled')
-			}
-		} else
-			log.warn('missing element lane_conn')
-
-		const lcAdd = document.getElementById('lc_add')
-		if (lcAdd)
-			lcAdd.setAttribute('disabled', 'disabled')
-		else
-			log.warn('missing element lc_add')
-		*/
 
 		const trAdd = document.getElementById('tr_add')
 		if (trAdd)
@@ -2768,7 +2753,17 @@ class Annotator {
 	 * Deactivate traffic device properties menu panel
 	 */
 	private static deactivateTrafficDeviceProp(): void {
-		// TODO
+		const tpId = document.getElementById('tp_id_value')
+		if (tpId)
+			tpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element tp_id_value')
+
+		const tpType = document.getElementById('tp_select_type')
+		if (tpType)
+			tpType.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element tp_select_type')
 	}
 
 	/**
@@ -2925,6 +2920,7 @@ class Annotator {
 	}
 
 	private hidePointCloud(): void {
+		this.decorations.forEach(d => d.visible = false)
 		this.tileManager.getPointClouds().forEach(pc => this.scene.remove(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.remove(this.pointCloudBoundingBox)
@@ -2932,6 +2928,7 @@ class Annotator {
 	}
 
 	private showPointCloud(): void {
+		this.decorations.forEach(d => d.visible = true)
 		this.tileManager.getPointClouds().forEach(pc => this.scene.add(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.add(this.pointCloudBoundingBox)
@@ -2961,7 +2958,7 @@ class Annotator {
 					const carLength = 4.5 // approx in meters
 					const scaleFactor = carLength / modelLength
 					this.carModel = object
-					this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
+					this.carModel.scale.setScalar(scaleFactor)
 					this.carModel.visible = false
 					this.carModel.traverse(child => {
 						if (child instanceof THREE.Mesh)
@@ -3185,6 +3182,27 @@ class Annotator {
 
 		const message = `Loaded ${this.tileManager.superTiles.size} super tiles; ${this.tileManager.pointCount()} points`
 		this.statusWindow.setMessage(statusKey.tileManagerStats, message)
+	}
+
+	private onSetOrigin = (): void => {
+		this.loadDecorations().then()
+	}
+
+	// Add some easter eggs to the scene if they are close enough.
+	private loadDecorations(): Promise<void> {
+		return getDecorations()
+			.then(decorations => {
+				decorations.forEach(decoration => {
+					const position = this.tileManager.lngLatAltToThreeJs(decoration.userData)
+					const distanceFromOrigin = position.length()
+					if (distanceFromOrigin < this.settings.maxDistanceToDecorations) {
+						// Don't worry about rotation. The object is just floating in space.
+						decoration.position.set(position.x, position.y, position.z)
+						this.decorations.push(decoration)
+						this.scene.add(decoration)
+					}
+				})
+			})
 	}
 
 	// Display a UI element to tell the user what is happening with tile server. Error messages persist,

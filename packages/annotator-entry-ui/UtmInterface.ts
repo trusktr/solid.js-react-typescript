@@ -4,6 +4,7 @@
  */
 
 import * as THREE from 'three'
+import {isNull} from "util"
 
 const utmConverter = require('utm')
 
@@ -21,13 +22,21 @@ export interface UtmLocalOrigin {
 export class UtmInterface implements UtmLocalOrigin {
 	private readonly defaultUtmZoneNumber: number = 18 // Washington, DC
 	private readonly defaultUtmZoneNorthernHemisphere: boolean = true // Washington, DC
-	private zoneAsString: string = ''
-
+	private zoneAsString: string
 	utmZoneNumber: number
 	utmZoneNorthernHemisphere: boolean
 	// this is an offset from UTM origin for display purposes:
 	// three.js rendering breaks down on coordinates with high absolute value
-	offset: THREE.Vector3 = new THREE.Vector3(0, 0, 0)
+	offset: THREE.Vector3
+	private onSetOrigin: (() => void) | null
+
+	constructor(onSetOrigin: (() => void) | null = null) {
+		this.zoneAsString = ''
+		this.utmZoneNumber = 0
+		this.utmZoneNorthernHemisphere = false
+		this.offset = new THREE.Vector3(0, 0, 0)
+		this.onSetOrigin = onSetOrigin
+	}
 
 	static isValidUtmZone(num: number, northernHemisphere: boolean): boolean {
 		return num >= 1 && num <= 60 && northernHemisphere !== null
@@ -76,6 +85,8 @@ export class UtmInterface implements UtmLocalOrigin {
 				this.utmZoneNumber = this.defaultUtmZoneNumber
 				this.utmZoneNorthernHemisphere = this.defaultUtmZoneNorthernHemisphere
 			}
+			if (!isNull(this.onSetOrigin))
+				this.onSetOrigin()
 			return true
 		}
 	}
@@ -103,6 +114,11 @@ export class UtmInterface implements UtmLocalOrigin {
 		const utm = this.threeJsToUtm(p)
 		const lngLat = utmConverter.toLatLon(utm.x, utm.y, this.utmZoneNumber, undefined, this.utmZoneNorthernHemisphere, true)
 		return new THREE.Vector3(lngLat.longitude, lngLat.latitude, utm.z)
+	}
+
+	lngLatAltToThreeJs(lngLatAlt: THREE.Vector3): THREE.Vector3 {
+		const utm = utmConverter.fromLatLon(lngLatAlt.y, lngLatAlt.x, this.utmZoneNumber)
+		return this.utmToThreeJs(utm.easting, utm.northing, lngLatAlt.z)
 	}
 
 	utmVectorToLngLatAlt(utm: THREE.Vector3): THREE.Vector3 {
