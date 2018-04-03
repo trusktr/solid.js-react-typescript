@@ -29,6 +29,7 @@ import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
 import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
+import {getDecorations} from "./Decorations"
 import {AnnotationType} from './annotations/AnnotationType'
 import {AnnotationManager, OutputFormat} from './AnnotationManager'
 import {Annotation} from './annotations/AnnotationBase'
@@ -118,6 +119,7 @@ interface AnnotatorSettings {
 	aoiHalfSize: THREE.Vector3 // half the dimensions of an AOI box
 	timeBetweenErrorDialogsMs: number
 	timeToDisplayHealthyStatusMs: number
+	maxDistanceToDecorations: number // meters
 }
 
 interface FlyThroughSettings {
@@ -187,6 +189,7 @@ export class Annotator {
 	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
 	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
+	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
 	private tileManager: TileManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
@@ -235,6 +238,7 @@ export class Annotator {
 			aoiHalfSize: new THREE.Vector3(15, 15, 15),
 			timeBetweenErrorDialogsMs: 30000,
 			timeToDisplayHealthyStatusMs: 10000,
+			maxDistanceToDecorations: 50000,
 		}
 		const aoiSize: [number, number, number] = config.get('annotator.area_of_interest.size')
 		if (isTupleOfNumbers(aoiSize, 3)) {
@@ -278,10 +282,12 @@ export class Annotator {
 		this.raycasterPlane.params.Points!.threshold = 0.1
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterSuperTiles = new THREE.Raycaster()
+		this.decorations = []
 		this.raycasterAnnotation = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager(
 			this.settings.generateVoxelsOnPointLoad,
+			this.onSetOrigin,
 			this.onSuperTileLoad,
 			this.onSuperTileUnload,
 			this.onTileServiceStatusUpdate
@@ -2812,6 +2818,7 @@ export class Annotator {
 	}
 
 	private hidePointCloud(): void {
+		this.decorations.forEach(d => d.visible = false)
 		this.tileManager.getPointClouds().forEach(pc => this.scene.remove(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.remove(this.pointCloudBoundingBox)
@@ -2819,6 +2826,7 @@ export class Annotator {
 	}
 
 	private showPointCloud(): void {
+		this.decorations.forEach(d => d.visible = true)
 		this.tileManager.getPointClouds().forEach(pc => this.scene.add(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.add(this.pointCloudBoundingBox)
@@ -2848,7 +2856,7 @@ export class Annotator {
 					const carLength = 4.5 // approx in meters
 					const scaleFactor = carLength / modelLength
 					this.carModel = object
-					this.carModel.scale.set(scaleFactor, scaleFactor, scaleFactor)
+					this.carModel.scale.setScalar(scaleFactor)
 					this.carModel.visible = false
 					this.carModel.traverse(child => {
 						if (child instanceof THREE.Mesh)
@@ -3072,6 +3080,27 @@ export class Annotator {
 
 		const message = `Loaded ${this.tileManager.superTiles.size} super tiles; ${this.tileManager.pointCount()} points`
 		this.statusWindow.setMessage(statusKey.tileManagerStats, message)
+	}
+
+	private onSetOrigin = (): void => {
+		this.loadDecorations().then()
+	}
+
+	// Add some easter eggs to the scene if they are close enough.
+	private loadDecorations(): Promise<void> {
+		return getDecorations()
+			.then(decorations => {
+				decorations.forEach(decoration => {
+					const position = this.tileManager.lngLatAltToThreeJs(decoration.userData)
+					const distanceFromOrigin = position.length()
+					if (distanceFromOrigin < this.settings.maxDistanceToDecorations) {
+						// Don't worry about rotation. The object is just floating in space.
+						decoration.position.set(position.x, position.y, position.z)
+						this.decorations.push(decoration)
+						this.scene.add(decoration)
+					}
+				})
+			})
 	}
 
 	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
