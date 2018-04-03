@@ -140,6 +140,10 @@ export class TrafficDevice extends Annotation {
 		this.unhighlightMarkers()
 	}
 
+	setAssociatedMode(position: THREE.Vector3): void {
+
+	}
+
 	setLiveMode(): void {
 		this.markers.forEach((marker) => {
 			marker.visible = false

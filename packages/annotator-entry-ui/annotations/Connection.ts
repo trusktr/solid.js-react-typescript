@@ -146,6 +146,22 @@ export class Connection extends Annotation {
 		return false
 	}
 
+	/**
+	 * This functions checks if the given device is in the associated devices set. If so, it deletes it, if not
+	 * it adds it. It returns true if the connection was added.
+	 */
+	toggleAssociatedDevice(deviceId: AnnotationUuid): boolean {
+		// Only add the device if is not in the associated set already
+		const index = this.associatedTrafficDevices.indexOf(deviceId, 0)
+		if (index < 0) {
+			this.associatedTrafficDevices.push(deviceId)
+			return true
+		}
+		// We do have this connection, remove it
+		this.associatedTrafficDevices.splice(index, 1)
+		return false
+	}
+
 	deleteLastMarker(): boolean  { return false}
 
 	complete(): boolean {
