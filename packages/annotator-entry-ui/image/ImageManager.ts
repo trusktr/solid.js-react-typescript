@@ -8,10 +8,14 @@ import * as THREE from 'three'
 import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
 import {CalibratedImage} from './CalibratedImage'
-import {ImaginaryCameraParameters} from './CameraParameters'
 import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWindowManager"
 import {LightboxImageDescription, LightboxState} from "../../annotator-image-lightbox/LightboxState"
+import {readImageMetadataFile} from "./Aurora"
+import * as TypeLogger from "typelogger"
 
+// tslint:disable-next-line:no-any
+TypeLogger.setLoggerOutput(console as any)
+const log = TypeLogger.getLogger(__filename)
 const dialog = Electron.remote.dialog
 
 interface ImageManagerSettings {
@@ -87,17 +91,21 @@ export class ImageManager {
 	}
 
 	private loadImageFromPath(path: string): Promise<void> {
-		return this.loadImageAsPlaneGeometry(path)
-			.then(mesh =>
-				this.setUpScreen({
-					path: path,
-					imageScreen: new ImageScreen(mesh),
-					parameters: {
-						screenPosition: new THREE.Vector3(0, -50, 0),
-						cameraOrigin: new THREE.Vector3(500, 200, 500),
-					} as ImaginaryCameraParameters,
-				} as CalibratedImage)
+		return readImageMetadataFile(path)
+			.then(cameraParameters =>
+				this.loadImageAsPlaneGeometry(path)
+					.then(mesh =>
+						this.setUpScreen({
+							path: path,
+							imageScreen: new ImageScreen(mesh),
+							parameters: cameraParameters
+						} as CalibratedImage)
+					)
 			)
+			.catch(err => {
+				log.warn(`loadImageFromPath() failed on ${path}`)
+				throw err
+			})
 	}
 
 	private loadImageAsPlaneGeometry(path: string): Promise<THREE.Mesh> {

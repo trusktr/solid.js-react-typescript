@@ -4,6 +4,7 @@
  */
 
 // Messages for communication with LightboxWindowManager
+
 export interface LightboxImageDescription {
 	uuid: string,
 	path: string,
