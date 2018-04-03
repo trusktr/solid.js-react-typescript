@@ -8,31 +8,38 @@ import * as Path from 'path'
 import * as Electron from 'electron'
 import {BrowserWindowConstructorOptions} from 'electron'
 import {windowStateKeeperOptions} from '../util/WindowStateKeeperOptions'
+import {channel} from "./IPC"
+import {LightboxState} from "./LightboxState"
 
 const config = require('../config')
 const windowStateKeeper = require('electron-window-state')
 
 interface LightboxWindowManagerSettings {
-	windowBackgroundColor: string
+	backgroundColor: string
 	openDevTools: boolean
 }
 
 export class LightboxWindowManager {
 	private settings: LightboxWindowManagerSettings
-	private imageDetailsWindow: Electron.BrowserWindow | null // pop full-size 2D images into their own window
+	private window: Electron.BrowserWindow | null // pop full-size 2D images into their own window
+	private loadingWindow: boolean
 	private onClose: () => void
 
 	constructor(onClose: () => void) {
 		this.onClose = onClose
 		this.settings = {
-			windowBackgroundColor: config.get('startup.background_color') || '#000',
+			backgroundColor: config.get('startup.background_color') || '#000',
 			openDevTools: !!config.get('startup.show_dev_tools'),
 		}
-		this.imageDetailsWindow = null
+		this.loadingWindow = false
+		this.window = null
 	}
 
-	private createWindow(): Electron.BrowserWindow {
-		if (this.imageDetailsWindow) return this.imageDetailsWindow
+	private createWindow(): Promise<void> {
+		if (this.window) return Promise.resolve()
+		if (this.loadingWindow) return Promise.resolve()
+
+		this.loadingWindow = true
 
 		const windowName = 'image-lightbox'
 
@@ -40,13 +47,20 @@ export class LightboxWindowManager {
 		const options = {
 			...savedState,
 			show: false,
-			backgroundColor: this.settings.windowBackgroundColor,
+			backgroundColor: this.settings.backgroundColor,
 			scrollBounce: true,
 		} as BrowserWindowConstructorOptions
 		const win = new Electron.remote.BrowserWindow(options)
 		savedState.manage(win)
 
-		win.once('ready-to-show', () => win.show())
+		const result = new Promise<void>((resolve: () => void): void => {
+			win.once('ready-to-show', () => {
+				win.show()
+				this.window = win
+				this.loadingWindow = false
+				resolve()
+			})
+		})
 
 		if (this.settings.openDevTools)
 			win.webContents.openDevTools()
@@ -58,10 +72,23 @@ export class LightboxWindowManager {
 		}))
 
 		win.on('closed', () => {
-			this.imageDetailsWindow = null
+			this.window = null
+			this.loadingWindow = false
 			this.onClose()
 		})
 
-		return win
+		return result
+	}
+
+	setState(state: LightboxState): Promise<void> {
+		if (!state.images.length) return Promise.resolve()
+
+		return this.createWindow()
+			.then(() => {
+				if (this.window)
+					this.window.webContents.send(channel.lightboxState, state)
+				else
+					console.warn('missing window')
+			})
 	}
 }

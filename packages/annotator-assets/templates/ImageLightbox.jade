@@ -4,10 +4,15 @@ html(lang="en")
 	head
 		meta(charset='utf-8')
 		title="Image Detail"
+		style.
+			#image_list {
+				background-color: rgba(255, 255, 255, 0.5);
+				padding: 5px;
+				width: 200px;
+			}
 
 	body
 		#root
 			script.
 				require(process.cwd() + '/dist/app/annotator-image-lightbox')
-		p.
-			oh hi
+		#image_list

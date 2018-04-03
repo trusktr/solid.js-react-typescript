@@ -13,9 +13,9 @@ require('!!css-loader!jquery-ui-dist/jquery-ui.css')
 
 import {lightbox} from 'annotator-image-lightbox/LightboxWindowUI'
 
-export function onLoad(): void {
+function onLoad(): void {
 	console.info('loading annotator-image-lightbox')
-	lightbox.go()
+	lightbox.bind()
 }
 
 $(onLoad)

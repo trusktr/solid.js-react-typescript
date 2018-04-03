@@ -45,6 +45,7 @@ import {Socket} from 'zmq'
 import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient"
 import {ImageManager} from "./image/ImageManager"
 import {ImageScreen} from "./image/ImageScreen"
+import {CalibratedImage} from "./image/CalibratedImage"
 const  watch = require('watch')
 
 declare global {
@@ -175,7 +176,7 @@ interface AoiState {
  * and the annotations. It also handles the mouse and keyboard events needed to select
  * and modify the annotations.
  */
-export class Annotator {
+class Annotator {
 	private storage: LocalStorage // persistent state for UI settings
 	private uiState: UiState
 	private aoiState: AoiState
@@ -1614,10 +1615,10 @@ export class Annotator {
 		const intersects = this.raycasterImageScreen.intersectObject(this.highlightedImageScreenBox)
 
 		if (intersects.length) {
-			const imageScreen = this.highlightedImageScreenBox.userData as ImageScreen
+			const image = this.highlightedImageScreenBox.userData as CalibratedImage
 			this.unHighlightImageScreenBox()
-			this.loadImageScreenIntoWindow(imageScreen).then()
 			this.render()
+			this.imageManager.loadImageIntoWindow(image)
 		}
 	}
 
@@ -1626,6 +1627,10 @@ export class Annotator {
 		if (this.uiState.isLiveMode) return
 		if (this.highlightedSuperTileBox) return
 		if (!this.uiState.isShiftKeyPressed) return
+
+		const image = imageScreenBox.userData as CalibratedImage
+		// Don't allow it to be loaded a second time.
+		if (this.imageManager.loadedImageDetails.has(image)) return
 
 		const material = imageScreenBox.material as THREE.MeshBasicMaterial
 		material.opacity = 1.0
@@ -1641,10 +1646,6 @@ export class Annotator {
 		material.opacity = this.uiState.imageScreenOpacity
 		this.highlightedImageScreenBox = null
 		this.render()
-	}
-
-	private loadImageScreenIntoWindow(imageScreen: ImageScreen): Promise<void> {
-		return Promise.resolve()
 	}
 
 	/*

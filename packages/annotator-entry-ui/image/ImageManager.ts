@@ -10,6 +10,7 @@ import {ImageScreen} from './ImageScreen'
 import {CalibratedImage} from './CalibratedImage'
 import {ImaginaryCameraParameters} from './CameraParameters'
 import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWindowManager"
+import {LightboxImageDescription, LightboxState} from "../../annotator-image-lightbox/LightboxState"
 
 const dialog = Electron.remote.dialog
 
@@ -23,6 +24,8 @@ const imageMaterialParameters = {
 	opacity: 1.0
 }
 
+// This tracks a set of images which can be displayed within the 3D scene as well as
+// a subset of images which are loaded in their own window for closer inspection.
 export class ImageManager {
 	private settings: ImageManagerSettings
 	private textureLoader: THREE.TextureLoader
@@ -87,6 +90,7 @@ export class ImageManager {
 		return this.loadImageAsPlaneGeometry(path)
 			.then(mesh =>
 				this.setUpScreen({
+					path: path,
 					imageScreen: new ImageScreen(mesh),
 					parameters: {
 						screenPosition: new THREE.Vector3(0, -50, 0),
@@ -125,9 +129,37 @@ export class ImageManager {
 		screen.scaleDistance(position.distanceTo(origin))
 		screen.lookAt(origin)
 		screen.setOpacity(this.opacity)
-		screen.imageMesh.userData = screen
+		screen.imageMesh.userData = calibratedImage // makes it easier to pass the object through the Annotator UI and back
 		this.imageScreens.push(screen)
 		this.imageScreenMeshes.push(screen.imageMesh)
 		this.onImageScreenLoad(screen)
+	}
+
+	loadImageIntoWindow(image: CalibratedImage): void {
+		if (this.loadedImageDetails.has(image)) return
+
+		if (!this.lightboxWindow)
+			this.lightboxWindow = new LightboxWindowManager(this.onLightboxWindowClose)
+
+		this.loadedImageDetails = this.loadedImageDetails.add(image)
+
+		this.lightboxWindow.setState(this.toLightboxStateMessage())
+			.catch(err => console.warn('loadImageIntoWindow() failed:', err))
+	}
+
+	private onLightboxWindowClose = (): void => {
+		this.loadedImageDetails = OrderedSet()
+	}
+
+	private toLightboxStateMessage(): LightboxState {
+		return {
+			images:
+				this.loadedImageDetails.toArray().map(i => {
+					return {
+						uuid: i.imageScreen.uuid,
+						path: i.path,
+					} as LightboxImageDescription
+				})
+		}
 	}
 }
