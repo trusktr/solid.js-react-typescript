@@ -11,8 +11,11 @@ Object.assign(global, {
 require('jquery-ui-dist/jquery-ui')
 require('!!css-loader!jquery-ui-dist/jquery-ui.css')
 
+import {lightbox} from 'annotator-image-lightbox/LightboxWindowUI'
+
 export function onLoad(): void {
 	console.info('loading annotator-image-lightbox')
+	lightbox.go()
 }
 
 $(onLoad)

@@ -9,7 +9,7 @@ import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
 import {CalibratedImage} from './CalibratedImage'
 import {ImaginaryCameraParameters} from './CameraParameters'
-import {LightboxWindow} from "../../annotator-image-lightbox/LightboxWindow"
+import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWindowManager"
 
 const dialog = Electron.remote.dialog
 
@@ -31,7 +31,7 @@ export class ImageManager {
 	imageScreenMeshes: THREE.Mesh[]
 	private opacity: number
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void
-	private lightboxWindow: LightboxWindow | null // pop full-size 2D images into their own window
+	private lightboxWindow: LightboxWindowManager | null // pop full-size 2D images into their own window
 	loadedImageDetails: OrderedSet<CalibratedImage>
 
 	constructor(

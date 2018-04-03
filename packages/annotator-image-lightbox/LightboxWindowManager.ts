@@ -12,13 +12,13 @@ import {windowStateKeeperOptions} from '../util/WindowStateKeeperOptions'
 const config = require('../config')
 const windowStateKeeper = require('electron-window-state')
 
-interface LightboxWindowSettings {
+interface LightboxWindowManagerSettings {
 	windowBackgroundColor: string
 	openDevTools: boolean
 }
 
-export class LightboxWindow {
-	private settings: LightboxWindowSettings
+export class LightboxWindowManager {
+	private settings: LightboxWindowManagerSettings
 	private imageDetailsWindow: Electron.BrowserWindow | null // pop full-size 2D images into their own window
 	private onClose: () => void
 
