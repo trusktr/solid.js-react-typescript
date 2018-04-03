@@ -20,7 +20,7 @@ import {
 	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds
 } from './annotations/Lane'
 import * as AnnotationFactory from "./annotations/AnnotationFactory"
-import {TrafficSign} from 'annotator-entry-ui/annotations/TrafficSign'
+import {TrafficDevice} from 'annotator-entry-ui/annotations/TrafficDevice'
 import {Territory} from "./annotations/Territory"
 import {Connection} from 'annotator-entry-ui/annotations/Connection'
 import {Boundary} from 'annotator-entry-ui/annotations/Boundary'
@@ -84,7 +84,7 @@ export class AnnotationManager extends UtmInterface {
 	private scene: THREE.Scene // where objects are placed on behalf of Annotator
 	laneAnnotations: Array<Lane>
 	boundaryAnnotations: Array<Boundary>
-	trafficSignAnnotations: Array<TrafficSign>
+	trafficDeviceAnnotations: Array<TrafficDevice>
 	territoryAnnotations: Array<Territory>
 	connectionAnnotations: Array<Connection>
 	annotationObjects: Array<THREE.Object3D>
@@ -100,7 +100,7 @@ export class AnnotationManager extends UtmInterface {
 		this.scene = scene
 		this.laneAnnotations = []
 		this.boundaryAnnotations = []
-		this.trafficSignAnnotations = []
+		this.trafficDeviceAnnotations = []
 		this.territoryAnnotations = []
 		this.connectionAnnotations = []
 		this.annotationObjects = []
@@ -159,9 +159,9 @@ export class AnnotationManager extends UtmInterface {
 			return null
 	}
 
-	getActiveTrafficSignAnnotation(): TrafficSign | null {
-		if (this.activeAnnotation && this.activeAnnotation instanceof TrafficSign)
-			return this.activeAnnotation as TrafficSign
+	getActiveTrafficDeviceAnnotation(): TrafficDevice | null {
+		if (this.activeAnnotation && this.activeAnnotation instanceof TrafficDevice)
+			return this.activeAnnotation as TrafficDevice
 		else
 			return null
 	}
@@ -252,7 +252,7 @@ export class AnnotationManager extends UtmInterface {
 			case AnnotationType.CONNECTION: return this.connectionAnnotations
 			case AnnotationType.LANE: return this.laneAnnotations
 			case AnnotationType.TERRITORY: return this.territoryAnnotations
-			case AnnotationType.TRAFFIC_SIGN: return this.trafficSignAnnotations
+			case AnnotationType.TRAFFIC_DEVICE: return this.trafficDeviceAnnotations
 			default: return null
 		}
 	}
@@ -1170,7 +1170,7 @@ export class AnnotationManager extends UtmInterface {
 			.concat(this.connectionAnnotations)
 			.concat(this.laneAnnotations)
 			.concat(this.territoryAnnotations)
-			.concat(this.trafficSignAnnotations)
+			.concat(this.trafficDeviceAnnotations)
 	}
 
 	/**

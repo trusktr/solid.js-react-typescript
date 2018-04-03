@@ -9,7 +9,7 @@ import {Boundary, BoundaryJsonInputInterface} from "./Boundary"
 import {Connection, ConnectionJsonInputInterface} from "./Connection"
 import {Lane, LaneJsonInputInterfaceV3} from "./Lane"
 import {Territory, TerritoryJsonInputInterface} from "./Territory"
-import {TrafficSign, TrafficSignJsonInputInterface} from "./TrafficSign"
+import {TrafficDevice, TrafficDeviceJsonInputInterface} from "./TrafficDevice"
 
 export function construct(annotationType: AnnotationType, obj?: AnnotationJsonInputInterface): Annotation | null {
 	try {
@@ -22,8 +22,8 @@ export function construct(annotationType: AnnotationType, obj?: AnnotationJsonIn
 				return new Lane(obj as LaneJsonInputInterfaceV3)
 			case AnnotationType.TERRITORY:
 				return new Territory(obj as TerritoryJsonInputInterface)
-			case AnnotationType.TRAFFIC_SIGN:
-				return new TrafficSign(obj as TrafficSignJsonInputInterface)
+			case AnnotationType.TRAFFIC_DEVICE:
+				return new TrafficDevice(obj as TrafficDeviceJsonInputInterface)
 			default:
 				return null
 		}
