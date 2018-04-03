@@ -132,8 +132,8 @@ for (const i in lpSelectsId) {
 }
 
 // ------------------------------------------------------------------------------------------------------------------
-const cpLabelsText = ['Connection ID', 'Type:', "Traffic Device:"]
-const cpLabelsId = ['cp_id', 'cp_type', 'cp_device']
+const cpLabelsText = ['Connection ID', 'Type:']
+const cpLabelsId = ['cp_id', 'cp_type']
 const cpLabels: Array<HTMLElement> = []
 
 for (const i in cpLabelsText) {
@@ -146,16 +146,12 @@ for (const i in cpLabelsText) {
 	}
 }
 
-const cpSelectsId = ['cp_select_type', 'cp_select_device']
+const cpSelectsId = ['cp_select_type']
 const cpSelectsText = [
-	['UNKNOWN', 'YIELD', 'ALTERNATE', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER'],
-	['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LIGHT_LEFT_ARROW', 'OTHER']]
+	['UNKNOWN', 'YIELD', 'ALTERNATE', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER']]
 const cpSelectsValue = [
 	[ConnectionType.UNKNOWN.toString(), ConnectionType.YIELD.toString(), ConnectionType.ALTERNATE.toString(),
-		ConnectionType.RYG_LIGHT.toString(), ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(), ConnectionType.OTHER.toString()],
-	[TrafficDeviceType.UNKNOWN.toString(), TrafficDeviceType.STOP.toString(), TrafficDeviceType.YIELD.toString(),
-		TrafficDeviceType.RYG_LIGHT.toString(), TrafficDeviceType.RYG_LEFT_ARROW_LIGHT.toString(),
-		TrafficDeviceType.OTHER.toString()]]
+		ConnectionType.RYG_LIGHT.toString(), ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(), ConnectionType.OTHER.toString()]]
 
 const cpSelects: Array<HTMLElement> = []
 const eConnectionId = document.createElement('text')
