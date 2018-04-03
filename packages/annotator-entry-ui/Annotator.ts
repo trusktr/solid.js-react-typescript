@@ -1758,7 +1758,7 @@ export class Annotator {
 					break
 				}
 				case 't': {
-					this.addAnnotation(AnnotationType.TRAFFIC_SIGN)
+					this.addAnnotation(AnnotationType.TRAFFIC_DEVICE)
 					break
 				}
 				case 'U': {
@@ -2148,14 +2148,14 @@ export class Annotator {
 			log.warn('missing element input_label_territory')
 	}
 
-	private bindTrafficSignPropertiesPanel(): void {
+	private bindTrafficDevicePropertiesPanel(): void {
 		const tpType = $('#tp_select_type')
 		tpType.on('change', () => {
 			tpType.blur()
-			const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
+			const activeAnnotation = this.annotationManager.getActiveTrafficDeviceAnnotation()
 			if (activeAnnotation === null)
 				return
-			log.info("Adding traffic sign type: " + tpType.children("option").filter(":selected").text())
+			log.info("Adding traffic device type: " + tpType.children("option").filter(":selected").text())
 			activeAnnotation.type = +tpType.val()
 		})
 	}
@@ -2185,10 +2185,9 @@ export class Annotator {
 	private bind(): void {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
-		//this.bindRelationsPanel()
 		this.bindConnectionPropertiesPanel()
 		this.bindTerritoryPropertiesPanel()
-		this.bindTrafficSignPropertiesPanel()
+		this.bindTrafficDevicePropertiesPanel()
 		this.bindBoundaryPropertiesPanel()
 
 		const menuControlElement = document.getElementById('menu_control')
@@ -2242,13 +2241,13 @@ export class Annotator {
 		else
 			log.warn('missing element tools_add_lane')
 
-		const toolsAddTrafficSign = document.getElementById('tools_add_traffic_sign')
-		if (toolsAddTrafficSign)
-			toolsAddTrafficSign.addEventListener('click', () => {
-				this.addAnnotation(AnnotationType.TRAFFIC_SIGN)
+		const toolsAddTrafficDevice = document.getElementById('tools_add_traffic_device')
+		if (toolsAddTrafficDevice)
+			toolsAddTrafficDevice.addEventListener('click', () => {
+				this.addAnnotation(AnnotationType.TRAFFIC_DEVICE)
 			})
 		else
-			log.warn('missing element tools_add_traffic_sign')
+			log.warn('missing element tools_add_traffic_device')
 
 		const toolsLoad = document.getElementById('tools_load')
 		if (toolsLoad)
@@ -2335,7 +2334,7 @@ export class Annotator {
 		this.resetLaneProp()
 		this.resetConnectionProp()
 		this.resetTerritoryProp()
-		this.resetTrafficSignProp()
+		this.resetTrafficDeviceProp()
 	}
 
 	/**
@@ -2445,13 +2444,13 @@ export class Annotator {
 	}
 
 	/**
-	 * Reset traffic sign properties elements based on the current active traffic sign
+	 * Reset traffic device properties elements based on the current active traffic device
 	 */
-	private resetTrafficSignProp(): void {
-		const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
+	private resetTrafficDeviceProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveTrafficDeviceAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_traffic_sign')
+		Annotator.expandAccordion('#menu_traffic_device')
 
 		const tpId = document.getElementById('tp_id_value')
 		if (tpId)
@@ -2519,7 +2518,7 @@ export class Annotator {
 		Annotator.deactivateLaneProp()
 		Annotator.deactivateConnectionProp()
 		Annotator.deactivateTerritoryProp()
-		Annotator.deactivateTrafficSignProp()
+		Annotator.deactivateTrafficDeviceProp()
 	}
 
 	/**
@@ -2653,9 +2652,9 @@ export class Annotator {
 	}
 
 	/**
-	 * Deactivate traffic sign properties menu panel
+	 * Deactivate traffic device properties menu panel
 	 */
-	private static deactivateTrafficSignProp(): void {
+	private static deactivateTrafficDeviceProp(): void {
 		// TODO
 	}
 

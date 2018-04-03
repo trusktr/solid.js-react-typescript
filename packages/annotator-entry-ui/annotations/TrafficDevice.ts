@@ -14,7 +14,7 @@ import {isNullOrUndefined} from "util"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-export enum TrafficSignType {
+export enum TrafficDeviceType {
 	UNKNOWN = 0,
 	STOP,
 	YIELD,
@@ -24,24 +24,24 @@ export enum TrafficSignType {
 }
 
 // Some variables used for rendering
-namespace TrafficSignRenderingProperties {
+namespace TrafficDeviceRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 	export const meshMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
 	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
 }
 
-export interface TrafficSignJsonInputInterface extends AnnotationJsonInputInterface {
-	trafficSignType: string
+export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInterface {
+	trafficDeviceType: string
 }
 
-export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInterface {
-	trafficSignType: string
+export interface TrafficDeviceJsonOutputInterface extends AnnotationJsonOutputInterface {
+	trafficDeviceType: string
 }
 
-export class TrafficSign extends Annotation {
+export class TrafficDevice extends Annotation {
 	annotationType: AnnotationType
 	geometryType: AnnotationGeometryType
-	type: TrafficSignType
+	type: TrafficDeviceType
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
@@ -49,22 +49,22 @@ export class TrafficSign extends Annotation {
 	mesh: THREE.Mesh
 	isComplete: boolean
 
-	constructor(obj?: TrafficSignJsonInputInterface) {
+	constructor(obj?: TrafficDeviceJsonInputInterface) {
 		super(obj)
-		this.annotationType = AnnotationType.TRAFFIC_SIGN
+		this.annotationType = AnnotationType.TRAFFIC_DEVICE
 		this.geometryType = AnnotationGeometryType.RING
 		if (obj) {
-			this.type = isNullOrUndefined(TrafficSignType[obj.trafficSignType]) ? TrafficSignType.UNKNOWN : TrafficSignType[obj.trafficSignType]
+			this.type = isNullOrUndefined(TrafficDeviceType[obj.trafficDeviceType]) ? TrafficDeviceType.UNKNOWN : TrafficDeviceType[obj.trafficDeviceType]
 		} else {
-			this.type = TrafficSignType.UNKNOWN
+			this.type = TrafficDeviceType.UNKNOWN
 		}
 
 		this.minimumMarkerCount = 3
 		this.allowNewMarkers = true
 		this.snapToGround = false
 		this.isComplete = false
-		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficSignRenderingProperties.contourMaterial)
-		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficSignRenderingProperties.meshMaterial)
+		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.contourMaterial)
+		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficDeviceRenderingProperties.meshMaterial)
 		this.renderingObject.add(this.mesh)
 		this.renderingObject.add(this.trafficSignContour)
 		this.mesh.visible = false
@@ -92,7 +92,7 @@ export class TrafficSign extends Annotation {
 			return false
 		}
 
-		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficSignRenderingProperties.markerMaterial)
+		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficDeviceRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
@@ -203,13 +203,13 @@ export class TrafficSign extends Annotation {
 		this.mesh.geometry.verticesNeedUpdate = true
 	}
 
-	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficSignJsonOutputInterface {
+	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficDeviceJsonOutputInterface {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		const data: TrafficSignJsonOutputInterface = {
-			annotationType: AnnotationType[AnnotationType.TRAFFIC_SIGN],
+		const data: TrafficDeviceJsonOutputInterface = {
+			annotationType: AnnotationType[AnnotationType.TRAFFIC_DEVICE],
 			uuid: this.uuid,
-			trafficSignType: TrafficSignType[this.type],
+			trafficDeviceType: TrafficDeviceType[this.type],
 			markers: [],
 		}
 
