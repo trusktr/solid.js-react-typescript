@@ -19,7 +19,7 @@ import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame
 } from "./geometry/CoordinateFrame"
-import {isTupleOfNumbers} from "./util/Validation"
+import {isTupleOfNumbers} from "../util/Validation"
 import {StatusWindowController} from "./status/StatusWindowController"
 import {TileManager} from './tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
