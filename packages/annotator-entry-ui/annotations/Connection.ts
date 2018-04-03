@@ -44,6 +44,7 @@ export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterfa
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
 	conflictingConnections: Array<AnnotationUuid>
+	associatedTrafficDevices: Array<AnnotationUuid>
 }
 
 export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInterface {
@@ -51,6 +52,7 @@ export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInter
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
 	conflictingConnections: Array<AnnotationUuid>
+	associatedTrafficDevices: Array<AnnotationUuid>
 	// Waypoints are generated from markers. They are included in output for downstream
 	// convenience, but we don't read them back in.
 	waypoints: Array<Object>
@@ -66,6 +68,7 @@ export class Connection extends Annotation {
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
 	conflictingConnections: Array<AnnotationUuid>
+	associatedTrafficDevices: Array<AnnotationUuid>
 	directionMarkers: Array<THREE.Mesh>
 	waypoints: Array<THREE.Vector3>
 	mesh: THREE.Mesh
@@ -79,11 +82,13 @@ export class Connection extends Annotation {
 			this.startLaneUuid = obj.startLaneUuid
 			this.endLaneUuid = obj.endLaneUuid
 			this.conflictingConnections = isNullOrUndefined(obj.conflictingConnections) ? [] : obj.conflictingConnections
+			this.associatedTrafficDevices = isNullOrUndefined(obj.associatedTrafficDevices) ? [] : obj.associatedTrafficDevices
 		} else {
 			this.type = ConnectionType.UNKNOWN
 			this.startLaneUuid = ""
 			this.endLaneUuid = ""
 			this.conflictingConnections = []
+			this.associatedTrafficDevices = []
 		}
 
 		this.minimumMarkerCount = 4
@@ -138,6 +143,22 @@ export class Connection extends Annotation {
 		}
 		// We do have this connection, remove it
 		this.conflictingConnections.splice(index, 1)
+		return false
+	}
+
+	/**
+	 * This functions checks if the given device is in the associated devices set. If so, it deletes it, if not
+	 * it adds it. It returns true if the connection was added.
+	 */
+	toggleAssociatedDevice(deviceId: AnnotationUuid): boolean {
+		// Only add the device if is not in the associated set already
+		const index = this.associatedTrafficDevices.indexOf(deviceId, 0)
+		if (index < 0) {
+			this.associatedTrafficDevices.push(deviceId)
+			return true
+		}
+		// We do have this connection, remove it
+		this.associatedTrafficDevices.splice(index, 1)
 		return false
 	}
 
@@ -219,6 +240,7 @@ export class Connection extends Annotation {
 			startLaneUuid: this.startLaneUuid,
 			endLaneUuid: this.endLaneUuid,
 			conflictingConnections: this.conflictingConnections,
+			associatedTrafficDevices: this.associatedTrafficDevices,
 			markers: [],
 			waypoints: [],
 		}

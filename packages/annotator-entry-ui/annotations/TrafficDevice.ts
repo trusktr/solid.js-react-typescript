@@ -26,8 +26,10 @@ export enum TrafficDeviceType {
 // Some variables used for rendering
 namespace TrafficDeviceRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-	export const meshMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
-	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
+	export const meshMaterial = new THREE.MeshLambertMaterial({color: 0x008800, side: THREE.DoubleSide})
+	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x00ff00})
+	export const associatedMaterial = new THREE.MeshLambertMaterial({color: 0x888800, side: THREE.DoubleSide})
+	export const associatedContour = new THREE.LineBasicMaterial({color: 0xffff00})
 }
 
 export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInterface {
@@ -45,7 +47,8 @@ export class TrafficDevice extends Annotation {
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
-	trafficSignContour: THREE.Line
+	trafficDeviceContour: THREE.Line
+	linkLine: THREE.Line
 	mesh: THREE.Mesh
 	isComplete: boolean
 
@@ -63,10 +66,12 @@ export class TrafficDevice extends Annotation {
 		this.allowNewMarkers = true
 		this.snapToGround = false
 		this.isComplete = false
-		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.contourMaterial)
+		this.trafficDeviceContour = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.contourMaterial)
+		this.linkLine = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.associatedContour)
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficDeviceRenderingProperties.meshMaterial)
 		this.renderingObject.add(this.mesh)
-		this.renderingObject.add(this.trafficSignContour)
+		this.renderingObject.add(this.trafficDeviceContour)
+		this.renderingObject.add(this.linkLine)
 		this.mesh.visible = false
 
 		if (obj) {
@@ -133,11 +138,29 @@ export class TrafficDevice extends Annotation {
 
 	makeActive(): void {
 		this.mesh.visible = false
+		this.linkLine.visible = false
 	}
 
 	makeInactive(): void {
+		this.mesh.material = TrafficDeviceRenderingProperties.meshMaterial
+		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.contourMaterial
 		this.mesh.visible = true
+		this.linkLine.visible = false
 		this.unhighlightMarkers()
+	}
+
+	setAssociatedMode(position: THREE.Vector3): void {
+		this.mesh.material = TrafficDeviceRenderingProperties.associatedMaterial
+		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.associatedContour
+		this.mesh.visible = true
+
+		const newLinkGeometry = new THREE.Geometry()
+		newLinkGeometry.vertices.push(position)
+		newLinkGeometry.vertices.push(this.getCenterPoint())
+		newLinkGeometry.computeLineDistances()
+		this.linkLine.geometry = newLinkGeometry
+		this.linkLine.geometry.verticesNeedUpdate = true
+		this.linkLine.visible = true
 	}
 
 	setLiveMode(): void {
@@ -171,16 +194,16 @@ export class TrafficDevice extends Annotation {
 
 		if (this.isComplete === false) {
 			newContourGeometry.computeLineDistances()
-			this.trafficSignContour.geometry = newContourGeometry
-			this.trafficSignContour.geometry.verticesNeedUpdate = true
+			this.trafficDeviceContour.geometry = newContourGeometry
+			this.trafficDeviceContour.geometry.verticesNeedUpdate = true
 			return
 		}
 
 		// Push the first vertex again to close the loop
 		newContourGeometry.vertices.push(this.markers[0].position)
 		newContourGeometry.computeLineDistances()
-		this.trafficSignContour.geometry = newContourGeometry
-		this.trafficSignContour.geometry.verticesNeedUpdate = true
+		this.trafficDeviceContour.geometry = newContourGeometry
+		this.trafficDeviceContour.geometry.verticesNeedUpdate = true
 
 		const newMeshGeometry = new THREE.Geometry()
 
@@ -201,6 +224,14 @@ export class TrafficDevice extends Annotation {
 		newMeshGeometry.computeFaceNormals()
 		this.mesh.geometry = newMeshGeometry
 		this.mesh.geometry.verticesNeedUpdate = true
+	}
+
+	getCenterPoint(): THREE.Vector3 {
+		const geometry = this.mesh.geometry;
+		geometry.computeBoundingBox();
+		const center = geometry.boundingBox.getCenter();
+		this.mesh.localToWorld( center );
+		return center;
 	}
 
 	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficDeviceJsonOutputInterface {

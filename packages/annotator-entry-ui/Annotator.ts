@@ -44,6 +44,7 @@ import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
 import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient"
+import {TrafficDevice} from "./annotations/TrafficDevice";
 const  watch = require('watch')
 
 declare global {
@@ -149,7 +150,7 @@ interface UiState {
 	isAddMarkerKeyPressed: boolean
 	isAddConnectionKeyPressed: boolean
 	isJoinAnnotationKeyPressed: boolean
-	isAddConflictKeyPressed: boolean
+	isAddConflictOrDeviceKeyPressed: boolean
 	isMouseButtonPressed: boolean
 	isMouseDragging: boolean
 	numberKeyPressed: number | null
@@ -260,7 +261,7 @@ export class Annotator {
 			isShiftKeyPressed: false,
 			isAddMarkerKeyPressed: false,
 			isAddConnectionKeyPressed: false,
-			isAddConflictKeyPressed: false,
+			isAddConflictOrDeviceKeyPressed: false,
 			isJoinAnnotationKeyPressed: false,
 			isMouseButtonPressed: false,
 			isMouseDragging: false,
@@ -504,7 +505,7 @@ export class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictSelection)
+		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictOrDeviceSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
 		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
@@ -1335,7 +1336,7 @@ export class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
-		if (this.uiState.isAddConflictKeyPressed) return
+		if (this.uiState.isAddConflictOrDeviceKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
@@ -1371,7 +1372,7 @@ export class Annotator {
 		if (this.uiState.isControlKeyPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
-		if (this.uiState.isAddConflictKeyPressed) return
+		if (this.uiState.isAddConflictOrDeviceKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const markers = this.annotationManager.activeMarkers()
@@ -1417,12 +1418,12 @@ export class Annotator {
 	}
 
 	/**
-	 * Check if we clicked a connection while pressing the add conflict key
+	 * Check if we clicked a connection or device while pressing the add conflict/device key
 	 */
-	private checkForConflictSelection = (event: MouseEvent): void => {
+	private checkForConflictOrDeviceSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseDragging) return
-		if (!this.uiState.isAddConflictKeyPressed) return
+		if (!this.uiState.isAddConflictOrDeviceKeyPressed) return
 		log.info("checking for conflict selection")
 
 		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
@@ -1437,13 +1438,30 @@ export class Annotator {
 			const object = intersects[0].object.parent
 			const dstAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
 
-			// We clicked an inactive connection, add it to the set of conflicting connections
-			if (dstAnnotation && dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
+			if (!dstAnnotation) return
+
+			// If we clicked a connection, add it to the set of conflicting connections
+			if (dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
 				log.info("toggling conflict")
 				const wasAdded = srcAnnotation.toggleConflictingConnection(dstAnnotation.uuid)
 				if (wasAdded) {
 					log.info("added conflict")
 					dstAnnotation.setConflictMode()
+				} else  {
+					log.info("removed conflict")
+					dstAnnotation.makeInactive()
+				}
+				this.render()
+				return
+			}
+
+			// If we clicked a traffic device, add it or remove it from the connection's set of associated devices.
+			if (dstAnnotation instanceof TrafficDevice) {
+				log.info("toggling conflict")
+				const wasAdded = srcAnnotation.toggleAssociatedDevice(dstAnnotation.uuid)
+				if (wasAdded) {
+					log.info("added conflict")
+					dstAnnotation.setAssociatedMode(srcAnnotation.waypoints[0])
 				} else  {
 					log.info("removed conflict")
 					dstAnnotation.makeInactive()
@@ -1740,7 +1758,7 @@ export class Annotator {
 					break
 				}
 				case 'q': {
-					this.uiState.isAddConflictKeyPressed = true
+					this.uiState.isAddConflictOrDeviceKeyPressed = true
 					break
 				}
 				case 'r': {
@@ -1790,7 +1808,7 @@ export class Annotator {
 		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
 		this.uiState.isAddConnectionKeyPressed = false
-		this.uiState.isAddConflictKeyPressed = false
+		this.uiState.isAddConflictOrDeviceKeyPressed = false
 		this.uiState.isJoinAnnotationKeyPressed = false
 		this.uiState.numberKeyPressed = null
 	}
@@ -2377,22 +2395,6 @@ export class Annotator {
 			log.warn('missing element lp_id_value')
 		activeAnnotation.updateLaneWidth()
 
-		/*
-		const lcSelectTo = $('#lc_select_to')
-		lcSelectTo.empty()
-		lcSelectTo.removeAttr('disabled')
-
-		const lcSelectFrom = $('#lc_select_from')
-		lcSelectFrom.empty()
-		lcSelectFrom.removeAttr('disabled')
-
-		const lcSelectRelation = $('#lc_select_relation')
-		lcSelectRelation.removeAttr('disabled')
-
-		const lpAddRelation = $('#lc_add')
-		lpAddRelation.removeAttr('disabled')
-		*/
-
 		const lpSelectType = $('#lp_select_type')
 		lpSelectType.removeAttr('disabled')
 		lpSelectType.val(activeAnnotation.type.toString())
@@ -2511,12 +2513,6 @@ export class Annotator {
 		const cpSelectType = $('#cp_select_type')
 		cpSelectType.removeAttr('disabled')
 		cpSelectType.val(activeAnnotation.type.toString())
-
-		/*
-		const cpSelectDevice = $('#cp_select_device')
-		cpSelectDevice.removeAttr('disabled')
-		cpSelectDevice.val(activeAnnotation.device.toString())
-		*/
 	}
 
 	private static deactivateAllAnnotationPropertiesMenus(): void {
@@ -2555,23 +2551,6 @@ export class Annotator {
 			}
 		} else
 			log.warn('missing element lane_prop_1')
-
-		/*
-		const laneConn = document.getElementById('lane_conn')
-		if (laneConn) {
-			const selects = laneConn.getElementsByTagName('select')
-			for (let i = 0; i < selects.length; ++i) {
-				selects.item(i).setAttribute('disabled', 'disabled')
-			}
-		} else
-			log.warn('missing element lane_conn')
-
-		const lcAdd = document.getElementById('lc_add')
-		if (lcAdd)
-			lcAdd.setAttribute('disabled', 'disabled')
-		else
-			log.warn('missing element lc_add')
-		*/
 
 		const trAdd = document.getElementById('tr_add')
 		if (trAdd)
@@ -2661,7 +2640,17 @@ export class Annotator {
 	 * Deactivate traffic device properties menu panel
 	 */
 	private static deactivateTrafficDeviceProp(): void {
-		// TODO
+		const tpId = document.getElementById('tp_id_value')
+		if (tpId)
+			tpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element tp_id_value')
+
+		const tpType = document.getElementById('tp_select_type')
+		if (tpType)
+			tpType.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element tp_select_type')
 	}
 
 	/**
