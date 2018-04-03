@@ -932,13 +932,20 @@ export class AnnotationManager extends UtmInterface {
 			// but at this moment we don't have access to other annotations inside an annotation.
 			if (this.activeAnnotation instanceof Connection) {
 				this.activeAnnotation.conflictingConnections.forEach( (id: AnnotationUuid) => {
-					const index = this.connectionAnnotations.findIndex( (annotation: Connection) => {
-						return annotation.uuid === id
-					})
-					if (index < 0) {
-						log.warn("Connection in conflicting set doesn't exist")
+					const connection = this.connectionAnnotations.find( a => a.uuid === id)
+					if (!isNullOrUndefined(connection)) {
+						connection.makeInactive()
+					} else {
+						log.warn("Conflicting connection doesn't exist")
 					}
-					this.connectionAnnotations[index].makeInactive()
+				})
+				this.activeAnnotation.associatedTrafficDevices.forEach( (id: AnnotationUuid) => {
+					const device = this.trafficDeviceAnnotations.find( a => a.uuid === id)
+					if (!isNullOrUndefined(device)) {
+						device.makeInactive()
+					} else {
+						log.warn("Associated traffic device doesn't exist")
+					}
 				})
 			}
 		}
@@ -948,15 +955,23 @@ export class AnnotationManager extends UtmInterface {
 		this.activeAnnotation.makeActive()
 
 		// If the new active annotation is a connection, change the rendering of it's conflicting connections
-		if (this.activeAnnotation instanceof  Connection) {
-			this.activeAnnotation.conflictingConnections.forEach( (id: AnnotationUuid) => {
-				const index = this.connectionAnnotations.findIndex( (annotation: Connection) => {
-					return annotation.uuid === id
-				})
-				if (index < 0) {
-					log.warn("Connection in conflicting set doesn't exist")
+		if (this.activeAnnotation instanceof Connection) {
+			const activeConnection = this.activeAnnotation as Connection
+			activeConnection.conflictingConnections.forEach( (id: AnnotationUuid) => {
+				const connection = this.connectionAnnotations.find( a => a.uuid === id)
+				if (!isNullOrUndefined(connection)) {
+					connection.setConflictMode()
+				} else {
+					log.warn("Conflicting connection doesn't exist")
 				}
-				this.connectionAnnotations[index].setConflictMode()
+			})
+			activeConnection.associatedTrafficDevices.forEach( (id: AnnotationUuid) => {
+				const device = this.trafficDeviceAnnotations.find( a => a.uuid === id)
+				if (!isNullOrUndefined(device)) {
+					device.setAssociatedMode(activeConnection.waypoints[0])
+				} else {
+					log.warn("Associated traffic device doesn't exist")
+				}
 			})
 		}
 
