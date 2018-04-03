@@ -24,7 +24,7 @@ import {TrafficDevice} from 'annotator-entry-ui/annotations/TrafficDevice'
 import {Territory} from "./annotations/Territory"
 import {Connection} from 'annotator-entry-ui/annotations/Connection'
 import {Boundary} from 'annotator-entry-ui/annotations/Boundary'
-import {SimpleKML} from 'util/KmlUtils'
+import {SimpleKML} from '../util/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
