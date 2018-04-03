@@ -1,19 +1,28 @@
-import "../scripts/init-scripts"
-import {makeConfig, makeHotEntry} from "./make-webpack-config"
+import '../scripts/init-scripts'
+import {makeConfig, makeHotEntry} from './make-webpack-config'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 
 module.exports = makeConfig('annotator-app', [], {
-    "annotator-entry-main": makeHotEntry([
-        "./annotator-entry-main/MainEntry"
+    'annotator-entry-main': makeHotEntry([
+        './annotator-entry-main/MainEntry'
     ]),
-    "annotator-entry-ui": makeHotEntry([
-        "./annotator-entry-ui/index"
+    'annotator-entry-ui': makeHotEntry([
+        './annotator-entry-ui/index'
+    ]),
+    'annotator-image-lightbox': makeHotEntry([
+        './annotator-image-lightbox/index'
     ]),
 }, config => {
     config.plugins.unshift(
         new HtmlWebpackPlugin({
-            filename: "browser-entry.html",
+            filename: 'browser-entry.html',
             template: `${process.cwd()}/packages/annotator-assets/templates/BrowserEntry.jade`,
+            inject: false,
+            isDev
+        }),
+        new HtmlWebpackPlugin({
+            filename: 'image-lightbox.html',
+            template: `${process.cwd()}/packages/annotator-assets/templates/ImageLightbox.jade`,
             inject: false,
             isDev
         })

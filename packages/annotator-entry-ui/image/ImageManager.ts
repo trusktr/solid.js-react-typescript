@@ -3,15 +3,19 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as Electron from "electron"
+import * as Electron from 'electron'
 import * as THREE from 'three'
-import {ImageScreen} from "./ImageScreen"
-import {CalibratedImage} from "./CalibratedImage"
-import {ImaginaryCameraParameters} from "./CameraParameters"
+import {OrderedSet} from 'immutable'
+import {ImageScreen} from './ImageScreen'
+import {CalibratedImage} from './CalibratedImage'
+import {ImaginaryCameraParameters} from './CameraParameters'
+import {LightboxWindow} from "../../annotator-image-lightbox/LightboxWindow"
 
 const dialog = Electron.remote.dialog
 
-const arbitraryImageScale = 0.3 // fudge factor until I figure out how to scale it from CameraParameters
+interface ImageManagerSettings {
+	arbitraryImageScale: number // fudge factor until I figure out how to scale it from CameraParameters
+}
 
 const imageMaterialParameters = {
 	side: THREE.FrontSide,
@@ -20,23 +24,31 @@ const imageMaterialParameters = {
 }
 
 export class ImageManager {
+	private settings: ImageManagerSettings
 	private textureLoader: THREE.TextureLoader
 	private images: CalibratedImage[]
 	private imageScreens: ImageScreen[]
 	imageScreenMeshes: THREE.Mesh[]
 	private opacity: number
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void
+	private lightboxWindow: LightboxWindow | null // pop full-size 2D images into their own window
+	loadedImageDetails: OrderedSet<CalibratedImage>
 
 	constructor(
 		opacity: number,
 		onImageScreenLoad: (imageScreen: ImageScreen) => void
 	) {
+		this.settings = {
+			arbitraryImageScale: 0.01,
+		}
 		this.textureLoader = new THREE.TextureLoader()
 		this.images = []
 		this.imageScreens = []
 		this.imageScreenMeshes = []
 		this.opacity = opacity
 		this.onImageScreenLoad = onImageScreenLoad
+		this.lightboxWindow = null
+		this.loadedImageDetails = OrderedSet()
 	}
 
 	// Set opacity of all images.
@@ -109,7 +121,7 @@ export class ImageManager {
 		const position = calibratedImage.parameters.screenPosition
 		const origin = calibratedImage.parameters.cameraOrigin
 		screen.position.set(position.x, position.y, position.z)
-		screen.scaleImage(arbitraryImageScale)
+		screen.scaleImage(this.settings.arbitraryImageScale)
 		screen.scaleDistance(position.distanceTo(origin))
 		screen.lookAt(origin)
 		screen.setOpacity(this.opacity)
