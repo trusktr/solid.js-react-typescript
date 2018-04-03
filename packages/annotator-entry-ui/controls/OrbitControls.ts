@@ -9,6 +9,13 @@
 import {Camera, Matrix4} from "three"
 
 const THREE = require('three')
+
+enum UpdateTypeEnum {
+	pan,
+	dolly,
+	rotate,
+}
+
 // This set of controls performs orbiting, dollying (zooming), and panning.
 // Unlike TrackballControls, it maintains the "up" direction object.up (+Y by default).
 //
@@ -87,6 +94,12 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 	// public methods
 	//
 
+	this.setCamera = function (newCamera: Camera): void {
+
+		scope.object = newCamera
+
+	}
+
 	this.getPolarAngle = function (): number {
 
 		return spherical.phi
@@ -115,7 +128,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 	}
 
 	// this method is exposed, but perhaps it would be better if we can make it private...
-	this.update = function (): () => boolean {
+	this.update = function (): (updateType: UpdateTypeEnum | null) => boolean {
 
 		const offset = new THREE.Vector3()
 
@@ -126,7 +139,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 		const lastPosition = new THREE.Vector3()
 		const lastQuaternion = new THREE.Quaternion()
 
-		return function update(): boolean {
+		return function update(updateType: UpdateTypeEnum | null): boolean {
 
 			const position = scope.object.position
 
@@ -195,6 +208,8 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 				8 * ( 1 - lastQuaternion.dot(scope.object.quaternion) ) > EPS) {
 
 				scope.dispatchEvent(changeEvent)
+				if (updateType === UpdateTypeEnum.pan)
+					scope.dispatchEvent(panEvent)
 
 				lastPosition.copy(scope.object.position)
 				lastQuaternion.copy(scope.object.quaternion)
@@ -234,6 +249,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 	const scope = this
 
 	const changeEvent = {type: 'change'}
+	const panEvent = {type: 'pan'}
 	const startEvent = {type: 'start'}
 	const endEvent = {type: 'end'}
 
@@ -437,7 +453,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		rotateStart.copy(rotateEnd)
 
-		scope.update()
+		scope.update(UpdateTypeEnum.rotate)
 
 	}
 
@@ -459,7 +475,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		dollyStart.copy(dollyEnd)
 
-		scope.update()
+		scope.update(UpdateTypeEnum.dolly)
 
 	}
 
@@ -473,7 +489,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		panStart.copy(panEnd)
 
-		scope.update()
+		scope.update(UpdateTypeEnum.pan)
 
 	}
 
@@ -493,7 +509,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		}
 
-		scope.update()
+		scope.update(UpdateTypeEnum.dolly)
 
 	}
 
@@ -503,33 +519,33 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 			case scope.keys.UP:
 				pan(0, scope.keyPanSpeed)
-				scope.update()
+				scope.update(UpdateTypeEnum.pan)
 				break
 
 			case scope.keys.BOTTOM:
 				pan(0, -scope.keyPanSpeed)
-				scope.update()
+				scope.update(UpdateTypeEnum.pan)
 				break
 
 			case scope.keys.LEFT:
 				pan(scope.keyPanSpeed, 0)
-				scope.update()
+				scope.update(UpdateTypeEnum.pan)
 				break
 
 			case scope.keys.RIGHT:
 				pan(-scope.keyPanSpeed, 0)
-				scope.update()
+				scope.update(UpdateTypeEnum.pan)
 				break
 
 			case scope.keys.IN:
 				// yes, this is backwards from the way you or I would do it
 				dollyOut(getZoomScale())
-				scope.update()
+				scope.update(UpdateTypeEnum.dolly)
 				break
 
 			case scope.keys.OUT:
 				dollyIn(getZoomScale())
-				scope.update()
+				scope.update(UpdateTypeEnum.dolly)
 				break
 
 			default:
@@ -575,7 +591,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		rotateStart.copy(rotateEnd)
 
-		scope.update()
+		scope.update(UpdateTypeEnum.rotate)
 
 	}
 
@@ -602,7 +618,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		dollyStart.copy(dollyEnd)
 
-		scope.update()
+		scope.update(UpdateTypeEnum.dolly)
 
 	}
 
@@ -616,7 +632,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		panStart.copy(panEnd)
 
-		scope.update()
+		scope.update(UpdateTypeEnum.pan)
 
 	}
 

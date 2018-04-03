@@ -7,22 +7,18 @@ import * as THREE from 'three'
 import {
 	Annotation, AnnotationUuid, AnnotationRenderingProperties,
 	AnnotationJsonOutputInterface, AnnotationJsonInputInterface,
-} from 'annotator-entry-ui/annotations/AnnotationBase'
+} from './AnnotationBase'
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
-
-// Some variables used for rendering
+import {AnnotationGeometryType} from "./AnnotationBase"
 
 // Some types
 export enum ConnectionType {
 	UNKNOWN = 0,
-	STRAIGHT,
-	LEFT_TURN,
-	RIGHT_TURN,
-	LEFT_MERGE,
-	RIGHT_MERGE,
-	LEFT_SPLIT,
-	RIGHT_SPLIT,
+	YIELD,
+	ALTERNATE,
+	RYG_LIGHT,
+	RYG_LEFT_ARROW_LIGHT,
 	OTHER
 }
 
@@ -38,6 +34,7 @@ namespace ConnectionRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 	export const activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
 	export const inactiveMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
+	export const conflictMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 	export const trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side: THREE.DoubleSide})
 	export const liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 }
@@ -46,44 +43,65 @@ export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterfa
 	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
+	conflictingConnections: Array<AnnotationUuid>
 }
 
 export interface ConnectionJsonOutputInterface extends AnnotationJsonOutputInterface {
 	connectionType: string
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
+	conflictingConnections: Array<AnnotationUuid>
+	// Waypoints are generated from markers. They are included in output for downstream
+	// convenience, but we don't read them back in.
+	waypoints: Array<Object>
 }
 
 export class Connection extends Annotation {
+	annotationType: AnnotationType
+	geometryType: AnnotationGeometryType
 	type: ConnectionType
+	minimumMarkerCount: number
+	allowNewMarkers: boolean
+	snapToGround: boolean
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
+	conflictingConnections: Array<AnnotationUuid>
 	directionMarkers: Array<THREE.Mesh>
 	waypoints: Array<THREE.Vector3>
 	mesh: THREE.Mesh
 
 	constructor(obj?: ConnectionJsonInputInterface) {
 		super(obj)
+		this.annotationType = AnnotationType.CONNECTION
+		this.geometryType = AnnotationGeometryType.PAIRED_LINEAR
 		if (obj) {
 			this.type = isNullOrUndefined(ConnectionType[obj.connectionType]) ? ConnectionType.UNKNOWN : ConnectionType[obj.connectionType]
 			this.startLaneUuid = obj.startLaneUuid
 			this.endLaneUuid = obj.endLaneUuid
+			this.conflictingConnections = isNullOrUndefined(obj.conflictingConnections) ? [] : obj.conflictingConnections
 		} else {
 			this.type = ConnectionType.UNKNOWN
 			this.startLaneUuid = ""
 			this.endLaneUuid = ""
+			this.conflictingConnections = []
 		}
+
+		this.minimumMarkerCount = 4
+		this.allowNewMarkers = false
+		this.snapToGround = true
 		this.directionMarkers = []
 		this.waypoints = []
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), ConnectionRenderingProperties.activeMaterial)
 		this.renderingObject.add(this.mesh)
 
-		if (obj && obj.markers.length > 0) {
-			obj.markers.forEach( (marker) => {
-				this.addMarker(marker)
-			})
-			this.updateVisualization()
-			this.makeInactive()
+		if (obj) {
+			if (obj.markers.length >= this.minimumMarkerCount) {
+				obj.markers.forEach(marker => this.addMarker(marker, false))
+				if (!this.isValid())
+					throw Error(`can't load invalid boundary with id ${obj.uuid}`)
+				this.updateVisualization()
+				this.makeInactive()
+			}
 		}
 	}
 
@@ -93,20 +111,41 @@ export class Connection extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length > 3
+		return this.markers.length >= this.minimumMarkerCount
 	}
 
-	addMarker(position: THREE.Vector3): boolean {
+	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry,
 			                          ConnectionRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
 
+		if (updateVisualization) this.updateVisualization()
 		return true
 	}
 
+	/**
+	 * This functions checks if the given connection is in the conflicting connection set. If so, it deletes it, if not
+	 * it adds it. It returns true if the connection was added.
+	 */
+	toggleConflictingConnection(connectionId: AnnotationUuid): boolean {
+		// Only add the connection if is not in the conflicting list already
+		const index = this.conflictingConnections.indexOf(connectionId, 0)
+		if (index < 0) {
+			this.conflictingConnections.push(connectionId)
+			return true
+		}
+		// We do have this connection, remove it
+		this.conflictingConnections.splice(index, 1)
+		return false
+	}
+
 	deleteLastMarker(): boolean  { return false}
+
+	complete(): boolean {
+		return true
+	}
 
 	makeActive(): void {
 		this.mesh.material = ConnectionRenderingProperties.activeMaterial
@@ -129,6 +168,10 @@ export class Connection extends Annotation {
 			marker.visible = true
 		})
 		this.makeInactive()
+	}
+
+	setConflictMode(): void {
+		this.mesh.material = ConnectionRenderingProperties.conflictMaterial
 	}
 
 	updateVisualization(): void {
@@ -175,18 +218,26 @@ export class Connection extends Annotation {
 			connectionType: ConnectionType[this.type],
 			startLaneUuid: this.startLaneUuid,
 			endLaneUuid: this.endLaneUuid,
+			conflictingConnections: this.conflictingConnections,
 			markers: [],
+			waypoints: [],
 		}
 
-		if (this.markers) {
-			this.markers.forEach((marker) => {
-				if (pointConverter) {
-					data.markers.push(pointConverter(marker.position))
-				} else {
-					data.markers.push(marker.position)
-				}
-			})
-		}
+		this.markers.forEach((marker) => {
+			if (pointConverter) {
+				data.markers.push(pointConverter(marker.position))
+			} else {
+				data.markers.push(marker.position)
+			}
+		})
+
+		this.waypoints.forEach((waypoint) => {
+			if (pointConverter) {
+				data.waypoints.push(pointConverter(waypoint))
+			} else {
+				data.waypoints.push(waypoint)
+			}
+		})
 
 		return data
 	}
@@ -204,7 +255,7 @@ export class Connection extends Annotation {
 			points.push(waypoint)
 		}
 
-		const distanceBetweenMarkers = 5.0 // in meters
+		const distanceBetweenMarkers = 3.0 // in meters
 		const spline = new THREE.CatmullRomCurve3(points)
 		const numPoints = spline.getLength() / distanceBetweenMarkers
 		this.waypoints = spline.getSpacedPoints(numPoints)

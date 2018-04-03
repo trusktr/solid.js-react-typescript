@@ -2,20 +2,27 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
+import {Connection} from "./annotations/Connection";
 
 const config = require('../config')
 import * as $ from 'jquery'
-import * as AsyncFile from "async-file";
+import * as AsyncFile from "async-file"
+import * as Electron from 'electron'
+require('electron-unhandled')()
 const sprintf = require("sprintf-js").sprintf
-import {TransformControls} from 'annotator-entry-ui/controls/TransformControls'
-import {OrbitControls} from 'annotator-entry-ui/controls/OrbitControls'
+import * as lodash from 'lodash'
+import {Map} from 'immutable'
+import LocalStorage from "./state/LocalStorage"
+import {GUI as DatGui, GUIParams} from 'dat.gui'
+import {TransformControls} from './controls/TransformControls'
+import {OrbitControls} from './controls/OrbitControls'
 import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame
 } from "./geometry/CoordinateFrame"
 import {isTupleOfNumbers} from "./util/Validation"
 import {StatusWindowController} from "./status/StatusWindowController"
-import {TileManager} from 'annotator-entry-ui/tile/TileManager'
+import {TileManager} from './tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
 import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
@@ -23,20 +30,20 @@ import {getCenter, getSize} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
 import {getDecorations} from "./Decorations"
-import {AnnotationManager, OutputFormat} from 'annotator-entry-ui/AnnotationManager'
-import {AnnotationId} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {NeighborLocation, NeighborDirection, Lane} from 'annotator-entry-ui/annotations/Lane'
-import {Connection} from "./annotations/Connection"
-import {TrafficSign} from "./annotations/TrafficSign"
-import * as EM from 'annotator-entry-ui/ErrorMessages'
+import {AnnotationType} from './annotations/AnnotationType'
+import {AnnotationManager, OutputFormat} from './AnnotationManager'
+import {Annotation} from './annotations/AnnotationBase'
+import {NeighborLocation, NeighborDirection, Lane} from './annotations/Lane'
+import {Territory} from "./annotations/Territory"
+import {Boundary} from "./annotations/Boundary"
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
-import {isNullOrUndefined, isUndefined} from "util"
+import {isNull, isUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
-import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient";
+import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient"
 const  watch = require('watch')
 
 declare global {
@@ -46,8 +53,7 @@ declare global {
 }
 
 const statsModule = require("stats.js")
-const datModule = require("dat.gui/build/dat.gui")
-const {dialog} = require('electron').remote
+const dialog = Electron.remote.dialog
 const zmq = require('zmq')
 const OBJLoader = require('three-obj-loader')
 OBJLoader(THREE)
@@ -64,10 +70,22 @@ function noop(): void {
 const cameraCenter = new THREE.Vector2(0, 0)
 
 const statusKey = {
-	carPosition: 'carPosition',
+	currentLocationLla: 'currentLocationLla',
+	currentLocationUtm: 'currentLocationUtm',
 	flyThrough: 'flyThrough',
 	tileServer: 'tileServer',
-	locationServer: 'locationServer'
+	locationServer: 'locationServer',
+	cameraType: 'cameraType',
+	tileManagerStats: 'tileManagerStats',
+}
+
+const preferenceKey = {
+	cameraPreference: 'cameraPreference',
+}
+
+const cameraTypeString = {
+	orthographic: 'orthographic',
+	perspective: 'perspective',
 }
 
 enum MenuVisibility {
@@ -78,7 +96,6 @@ enum MenuVisibility {
 
 enum ModelVisibility {
 	ALL_VISIBLE = 0,
-	HIDE_SUPER_TILES,
 	HIDE_SUPER_TILES_AND_POINT_CLOUD,
 	HIDE_SUPER_TILES_AND_ANNOTATIONS,
 }
@@ -87,11 +104,14 @@ interface AnnotatorSettings {
 	background: string
 	cameraOffset: THREE.Vector3
 	lightOffset: THREE.Vector3
-	defaultFpsRendering: number
-	fpsRendering: number
+	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
+	defaultAnimationFrameIntervalMs: number
+	animationFrameIntervalMs: number // how long we have to update the animation before the next frame fires
 	estimateGroundPlane: boolean
+	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	generateVoxelsOnPointLoad: boolean
 	drawBoundingBox: boolean
+	enableTileManagerStats: boolean
 	superTileBboxMaterial: THREE.Material // for visualizing available, but unpopulated, super tiles
 	superTileBboxColor: THREE.Color
 	aoiBboxColor: THREE.Color
@@ -113,26 +133,32 @@ interface LiveModeSettings {
 	carModelMaterial: THREE.Material
 	cameraOffset: THREE.Vector3
 	cameraOffsetDelta: number
-	fps: number
+	animationFrameIntervalMs: number
 }
 
 interface UiState {
 	modelVisibility: ModelVisibility
+	lockBoundaries: boolean
+	lockLanes: boolean
+	lockTerritories: boolean
 	isSuperTilesVisible: boolean
 	isPointCloudVisible: boolean
 	isAnnotationsVisible: boolean
 	isControlKeyPressed: boolean
 	isShiftKeyPressed: boolean
 	isAddMarkerKeyPressed: boolean
-	isAddTrafficSignMarkerKeyPressed: boolean
-	isLastTrafficSignMarkerKeyPressed: boolean
+	isAddConnectionKeyPressed: boolean
+	isJoinAnnotationKeyPressed: boolean
+	isAddConflictKeyPressed: boolean
 	isMouseButtonPressed: boolean
+	isMouseDragging: boolean
 	numberKeyPressed: number | null
 	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
 	// file (if this.flyThroughSettings.enabled is true) or messages on a live socket.
 	isLiveMode: boolean
 	isKioskMode: boolean // hides window chrome and turns on live mode permanently, with even less user input
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
+	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
 }
 
 // Area of Interest: where to load point clouds
@@ -149,20 +175,24 @@ interface AoiState {
  * and modify the annotations.
  */
 export class Annotator {
+	private storage: LocalStorage // persistent state for UI settings
 	private uiState: UiState
 	private aoiState: AoiState
 	private statusWindow: StatusWindowController // a place to print status messages
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
-	private camera: THREE.PerspectiveCamera
+	private perspectiveCamera: THREE.PerspectiveCamera
+	private orthographicCamera: THREE.OrthographicCamera
+	private camera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
 	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
+	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
 	private tileManager: TileManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
-	private grid: THREE.GridHelper // visible grid attached to the reference plane
+	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
 	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
 	private compassRose: THREE.Object3D | null // indicates the direction of North
 	private light: THREE.SpotLight
@@ -175,6 +205,8 @@ export class Annotator {
 	private annotationManager: AnnotationManager
 	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
 	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
+	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
+	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
@@ -183,18 +215,22 @@ export class Annotator {
 	private flyThroughSettings: FlyThroughSettings
 	private liveModeSettings: LiveModeSettings
 	private locationServerStatusClient: LocationServerStatusClient
-	private gui: any
+	private gui: DatGui | null
 
 	constructor() {
+		this.storage = new LocalStorage()
 		this.settings = {
 			background: config.get('startup.background_color') || '#082839',
 			cameraOffset: new THREE.Vector3(0, 400, 200),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
-			defaultFpsRendering: parseInt(config.get('startup.render.fps'), 10) || 60,
-			fpsRendering: 0,
+			orthoCameraHeight: 100, // enough to view ~1 city block of data
+			defaultAnimationFrameIntervalMs: (1000 / parseInt(config.get('startup.animation.fps'), 10)) || 10,
+			animationFrameIntervalMs: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
+			tileGroundPlaneScale: 1.05,
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
+			enableTileManagerStats: !!config.get('tile_manager.stats_display.enable'),
 			superTileBboxMaterial: new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true}),
 			superTileBboxColor: new THREE.Color(0xff0000),
 			aoiBboxColor: new THREE.Color(0x00ff00),
@@ -211,22 +247,28 @@ export class Annotator {
 		} else if (aoiSize) {
 			log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)
 		}
-		this.settings.fpsRendering = this.settings.defaultFpsRendering
+		this.settings.animationFrameIntervalMs = this.settings.defaultAnimationFrameIntervalMs
 		this.uiState = {
 			modelVisibility: ModelVisibility.ALL_VISIBLE,
+			lockBoundaries: false,
+			lockLanes: false,
+			lockTerritories: true,
 			isSuperTilesVisible: true,
 			isPointCloudVisible: true,
 			isAnnotationsVisible: true,
 			isControlKeyPressed: false,
 			isShiftKeyPressed: false,
 			isAddMarkerKeyPressed: false,
-			isAddTrafficSignMarkerKeyPressed: false,
-			isLastTrafficSignMarkerKeyPressed: false,
+			isAddConnectionKeyPressed: false,
+			isAddConflictKeyPressed: false,
+			isJoinAnnotationKeyPressed: false,
 			isMouseButtonPressed: false,
+			isMouseDragging: false,
 			numberKeyPressed: null,
 			isLiveMode: false,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
 			lastPointCloudLoadedErrorModalMs: 0,
+			lastCameraCenterPoint: null,
 		}
 		this.aoiState = {
 			enabled: !!config.get('annotator.area_of_interest.enable'),
@@ -241,6 +283,8 @@ export class Annotator {
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterSuperTiles = new THREE.Raycaster()
 		this.decorations = []
+		this.raycasterAnnotation = new THREE.Raycaster()
+		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager(
 			this.settings.generateVoxelsOnPointLoad,
 			this.onSetOrigin,
@@ -250,6 +294,8 @@ export class Annotator {
 		)
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
+		this.superTileGroundPlanes = Map()
+		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
@@ -259,6 +305,8 @@ export class Annotator {
 			endPoseIndex: 0,
 			currentPoseIndex: 0,
 		}
+		if (config.get('fly_through.render.fps'))
+			log.warn('config option fly_through.render.fps has been renamed to fly_through.animation.fps')
 		this.liveModeSettings = {
 			carModelMaterial: new THREE.MeshPhongMaterial({
 				color: 0x002233,
@@ -267,7 +315,7 @@ export class Annotator {
 			}),
 			cameraOffset: new THREE.Vector3(30, 10, 0),
 			cameraOffsetDelta: 1,
-			fps: parseFloat(config.get('fly_through.render.fps')) || 10
+			animationFrameIntervalMs: (1000 / parseFloat(config.get('fly_through.animation.fps'))) || 10
 		}
 
 		const watchForRebuilds: boolean = config.get('startup.watch_for_rebuilds.enable') || false
@@ -296,9 +344,7 @@ export class Annotator {
 	}
 
 	exitApp(): void {
-		const remote = require('electron').remote
-		let w = remote.getCurrentWindow()
-		w.close()
+		Electron.remote.getCurrentWindow().close()
 	}
 
 	/**
@@ -311,10 +357,16 @@ export class Annotator {
 
 		const [width, height]: Array<number> = this.getContainerSize()
 
+		this.perspectiveCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
+		this.orthographicCamera = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 1000)
+		this.setOrthographicCameraDimensions(width, height)
+
 		// Create scene and camera
 		this.scene = new THREE.Scene()
-		this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		this.scene.add(this.camera)
+		if (this.storage.getItem(preferenceKey.cameraPreference, cameraTypeString.perspective) === cameraTypeString.orthographic)
+			this.camera = this.orthographicCamera
+		else
+			this.camera = this.perspectiveCamera
 
 		// Add some lights
 		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
@@ -330,23 +382,26 @@ export class Annotator {
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
 		const planeMaterial = new THREE.ShadowMaterial()
-		planeMaterial.opacity = 0.2
+		planeMaterial.visible = false
+		planeMaterial.side = THREE.DoubleSide // enable raycaster intersections from both sides
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
-		this.plane.receiveShadow = true
 		this.scene.add(this.plane)
 
-		// Add grid on top of the plane
-		this.grid = new THREE.GridHelper(200, 100)
-		this.grid.material.opacity = 0.25
-		this.grid.material.transparent = true
-		this.scene.add(this.grid)
-
+		// Add grid on top of the plane to visualize where the plane is.
+		// Add an axes helper to visualize the origin and orientation of the primary directions.
 		const axesHelperLength = parseFloat(config.get('annotator.axes_helper_length')) || 0
 		if (axesHelperLength > 0) {
+			this.grid = new THREE.GridHelper(200, 100)
+			this.grid.material.opacity = 0.25
+			this.grid.material.transparent = true
+			this.scene.add(this.grid)
+
 			this.axis = AxesHelper(axesHelperLength)
 			this.scene.add(this.axis)
-		} else
+		} else {
+			this.grid = null
 			this.axis = null
+		}
 
 		const compassRoseLength = parseFloat(config.get('annotator.compass_rose_length')) || 0
 		if (compassRoseLength > 0) {
@@ -393,11 +448,42 @@ export class Annotator {
 
 		// Add panel to change the settings
 		if (config.get('startup.show_color_picker')) {
-			this.gui = new datModule.GUI()
-			this.gui.addColor(this.settings, 'background').onChange((value: any) => {
+			this.gui = new DatGui({
+				hideable: false,
+				closeOnTop: true,
+			} as GUIParams)
+			this.gui.addColor(this.settings, 'background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
+				this.render()
 			})
+
+			const folderLock = this.gui.addFolder('Lock')
+			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
+				if (value && this.annotationManager.getActiveBoundaryAnnotation()) {
+					this.annotationManager.unsetActiveAnnotation()
+					this.render()
+				}
+			})
+			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
+				if (value && this.annotationManager.getActiveLaneAnnotation()) {
+					this.annotationManager.unsetActiveAnnotation()
+					this.render()
+				}
+			})
+			folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
+				if (value && this.annotationManager.getActiveTerritoryAnnotation()) {
+					this.annotationManager.unsetActiveAnnotation()
+					this.render()
+				}
+			})
+			folderLock.open()
+
+			const folderConnection = this.gui.addFolder('Connection params')
+			folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
+			folderConnection.open()
 			this.gui.domElement.className = 'threeJs_gui'
+		} else {
+			this.gui = null
 		}
 
 		// Set up for auto-save
@@ -416,18 +502,21 @@ export class Annotator {
 		window.addEventListener('keyup', this.onKeyUp)
 
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
-		this.renderer.domElement.addEventListener('mouseup', this.addLaneAnnotationMarker)
-		this.renderer.domElement.addEventListener('mouseup', this.addTrafficSignAnnotationMarker)
-		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
-		this.renderer.domElement.addEventListener('click', this.clickSuperTileBox)
+		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
+		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictSelection)
+		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
+		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
+		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
+		this.renderer.domElement.addEventListener('mouseup', this.clickSuperTileBox)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
+		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed})
 
 		// Bind events
 		if (!this.uiState.isKioskMode)
 			this.bind()
-		Annotator.deactivateLaneProp()
+		Annotator.deactivateAllAnnotationPropertiesMenus()
 
 		this.displayMenu(
 			config.get('startup.show_menu') && !this.uiState.isKioskMode
@@ -444,8 +533,10 @@ export class Annotator {
 			})
 	}
 
-	// Load up any data which configuration has asked for on start-up.
-	loadUserData(): Promise<void> {
+	/**
+	 * 	Load up any data which configuration has asked for on start-up.
+	 */
+	private loadUserData(): Promise<void> {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
 		if (annotationsPath) {
@@ -502,11 +593,9 @@ export class Annotator {
 	animate = (): void => {
 		setTimeout(() => {
 			requestAnimationFrame(this.animate)
-		}, 1000 / this.settings.fpsRendering)
+		}, this.settings.animationFrameIntervalMs)
 
-		if (this.aoiState.enabled)
-			this.updatePointCloudAoi()
-		this.render()
+		this.updatePointCloudAoi()
 		if (this.stats) this.stats.update()
 		this.orbitControls.update()
 		this.transformControls.update()
@@ -541,15 +630,17 @@ export class Annotator {
 			})
 	}
 
-	// Move the camera and the car model through poses loaded from a file on disk.
-	// See also initClient().
+	/**
+	 * 	Move the camera and the car model through poses loaded from a file on disk.
+	 *  See also initClient().
+	 */
 	private runFlythrough(): void {
 		if (!this.uiState.isLiveMode) return
 		if (!this.flyThroughSettings.enabled) return
 
 		setTimeout(() => {
 			this.runFlythrough()
-		}, 1000 / this.liveModeSettings.fps)
+		}, this.liveModeSettings.animationFrameIntervalMs)
 
 		if (this.flyThroughSettings.currentPoseIndex >= this.flyThroughSettings.endPoseIndex)
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
@@ -564,21 +655,21 @@ export class Annotator {
 	/**
 	 * Render the THREE.js scene from the camera's position.
 	 */
-	private render = (): void => {
-		this.renderer.render(this.scene, this.camera)
-	}
+	private render: () => void =
+		lodash.throttle(
+			() => this.renderer.render(this.scene, this.camera),
+			(1000 / parseInt(config.get('startup.render.fps'), 10)) || 10
+		)
 
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
-	private setStage(x: number, y: number, z: number, resetCamera: boolean = true, gridYValue: number | null = null): void {
+	private setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
 		this.plane.geometry.center()
 		this.plane.geometry.translate(x, y, z)
-		this.grid.geometry.center()
-		this.grid.geometry.translate(x, y, z)
-		if (!isNullOrUndefined(gridYValue)) {
-			this.plane.position.y = gridYValue
-			this.grid.position.y = gridYValue
+		if (this.grid) {
+			this.grid.geometry.center()
+			this.grid.geometry.translate(x, y, z)
 		}
 		if (resetCamera) {
 			this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
@@ -590,27 +681,22 @@ export class Annotator {
 	/**
 	 * Set some point as the center of the visible world.
 	 */
-	private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true, gridYValue: number | null = null): void {
-		this.setStage(point.x, point.y, point.z, resetCamera, gridYValue)
+	private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true): void {
+		this.setStage(point.x, point.y, point.z, resetCamera)
 	}
 
-	/*
+	/**
 	 * Set the stage at the bottom center of TileManager's point cloud.
 	 */
 	private setStageByPointCloud(resetCamera: boolean): void {
 		const focalPoint = this.tileManager.centerPoint()
-		if (focalPoint) {
-			const groundPlaneYIndex = this.settings.estimateGroundPlane
-				? this.tileManager.estimateGroundPlaneYIndex()
-				: null
-			const gridYValue = isNullOrUndefined(groundPlaneYIndex)
-				? null
-				: groundPlaneYIndex - focalPoint.y
-			this.setStageByVector(focalPoint, resetCamera, gridYValue)
-		}
+		if (focalPoint)
+			this.setStageByVector(focalPoint, resetCamera)
 	}
 
-	// Display the compass rose just outside the bounding box of the point cloud.
+	/**
+	 * 	Display the compass rose just outside the bounding box of the point cloud.
+	 */
 	private setCompassRoseByPointCloud(): void {
 		if (!this.compassRose) return
 		const boundingBox = this.tileManager.getPointCloudBoundingBox()
@@ -630,15 +716,19 @@ export class Annotator {
 	 */
 	private focusOnPointCloud(): void {
 		const center = this.tileManager.centerPoint()
-		if (center)
+		if (center) {
 			this.orbitControls.target.set(center.x, center.y, center.z)
-		else
+			this.displayCameraInfo()
+		} else {
 			log.warn('point cloud has not been initialized')
+		}
 	}
 
-	// Set the camera directly above the current target, looking down.
+	/**
+	 * 	Set the camera directly above the current target, looking down.
+	 */
 	private resetTiltAndCompass(): void {
-		const distanceCameraToTarget = this.camera.position.clone().sub(this.orbitControls.target).length()
+		const distanceCameraToTarget = this.camera.position.distanceTo(this.orbitControls.target)
 		this.camera.position.x = this.orbitControls.target.x
 		this.camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
 		this.camera.position.z = this.orbitControls.target.z
@@ -648,7 +738,7 @@ export class Annotator {
 	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
 		log.info('loadPointCloudDataFromDirectory')
 		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
-			.then(() => this.pointCloudLoadedSideEffects())
+			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
 			.catch(err => this.pointCloudLoadedError(err))
 	}
 
@@ -667,7 +757,7 @@ export class Annotator {
 	// Load tiles within a bounding box and add them to the scene.
 	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
 		return this.tileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
-			.then(() => this.pointCloudLoadedSideEffects(resetCamera))
+			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
 			.catch(err => this.pointCloudLoadedError(err))
 	}
 
@@ -689,6 +779,7 @@ export class Annotator {
 		this.updatePointCloudBoundingBox()
 		this.setCompassRoseByPointCloud()
 		this.setStageByPointCloud(resetCamera)
+		this.render()
 	}
 
 	private pointCloudLoadedError(err: Error): void {
@@ -708,7 +799,9 @@ export class Annotator {
 		}
 	}
 
-	// Compute corresponding height for each voxel based on near by annotations
+	/**
+	 * 	Compute corresponding height for each voxel based on near by annotations
+	 */
 	private computeVoxelsHeights(): void {
 		if (this.annotationManager.laneAnnotations.length === 0)
 			log.error(`Unable to compute voxels height, there are no annotations.`)
@@ -722,8 +815,8 @@ export class Annotator {
 			let y: number = voxel.y * voxelSize
 			let z: number = voxel.z * voxelSize
 			let minDistance: number = Number.MAX_VALUE
-			let minDistanceHeight: number = y   // in case there is no annotation close enough
-                                                // these voxels will be all colored the same
+			// in case there is no annotation close enough these voxels will be all colored the same
+			let minDistanceHeight: number = y
 			for (let annotation of this.annotationManager.laneAnnotations) {
 				for (let wayPoint of annotation.denseWaypoints) {
 					let dx: number = wayPoint.x - x
@@ -751,7 +844,9 @@ export class Annotator {
 		}
 	}
 
-	// Incrementally load the point cloud for a single super tile.
+	/**
+	 * 	Incrementally load the point cloud for a single super tile.
+	 */
 	private loadSuperTileData(superTile: SuperTile): Promise<void> {
 		if (!this.uiState.isPointCloudVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
@@ -779,7 +874,6 @@ export class Annotator {
 	}
 
 	private unloadPointCloudData(): void {
-		log.info("unloadPointCloudData")
 		if (this.tileManager.unloadAllPoints()) {
 			this.unHighlightSuperTileBox()
 			this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
@@ -790,7 +884,9 @@ export class Annotator {
 		}
 	}
 
-	// Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
+	/**
+	 * 	Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
+	 */
 	private renderEmptySuperTiles(): void {
 		this.tileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
 
@@ -801,15 +897,23 @@ export class Annotator {
 	// When TileManager loads a super tile, update Annotator's parallel data structure.
 	private onSuperTileLoad: (superTile: SuperTile) => void =
 		(superTile: SuperTile) => {
+			this.loadTileGroundPlanes(superTile)
+			this.updateTileManagerStats()
+
 			if (superTile.pointCloud)
 				this.scene.add(superTile.pointCloud)
 			else
 				log.error('onSuperTileLoad() got a super tile with no point cloud')
+
+			this.render()
 		}
 
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
 	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void =
 		(superTile: SuperTile, action: SuperTileUnloadAction) => {
+			this.unloadTileGroundPlanes(superTile)
+			this.updateTileManagerStats()
+
 			if (superTile.pointCloud)
 				this.scene.remove(superTile.pointCloud)
 			else
@@ -828,7 +932,58 @@ export class Annotator {
 				default:
 					log.error('unknown SuperTileUnloadAction: ' + action)
 			}
+
+			this.render()
 		}
+
+	// Construct a set of 2D planes, each of which approximates the ground plane within a tile.
+	// This assumes that each ground plane is locally flat and normal to gravity.
+	// This assumes that the ground planes in neighboring tiles are close enough that the discrete
+	// jumps between them won't matter much.
+	private loadTileGroundPlanes(superTile: SuperTile): void {
+		if (!this.settings.estimateGroundPlane) return
+		if (!superTile.pointCloud) return
+		if (this.superTileGroundPlanes.has(superTile.key())) return
+
+		const groundPlanes: THREE.Mesh[] = []
+
+		superTile.tiles.forEach(tile => {
+			const y = tile.groundAverageYIndex()
+			if (!isNull(y)) {
+				const xSize = tile.index.scale.xSize
+				const zSize = tile.index.scale.zSize
+
+				const geometry = new THREE.PlaneGeometry(
+					xSize * this.settings.tileGroundPlaneScale,
+					zSize * this.settings.tileGroundPlaneScale
+				)
+				geometry.rotateX(-Math.PI / 2)
+
+				const material = new THREE.ShadowMaterial()
+				const plane = new THREE.Mesh(geometry, material)
+				const origin = this.tileManager.utmVectorToThreeJs(tile.index.origin)
+				plane.position.x = origin.x + xSize / 2
+				plane.position.y = y
+				plane.position.z = origin.z - zSize / 2
+
+				groundPlanes.push(plane)
+			}
+		})
+
+		this.superTileGroundPlanes = this.superTileGroundPlanes.set(superTile.key(), groundPlanes)
+		this.allGroundPlanes = this.allGroundPlanes.concat(groundPlanes)
+		groundPlanes.forEach(plane => this.scene.add(plane))
+	}
+
+	private unloadTileGroundPlanes(superTile: SuperTile): void {
+		if (!this.superTileGroundPlanes.has(superTile.key())) return
+
+		const groundPlanes = this.superTileGroundPlanes.get(superTile.key())!
+
+		this.superTileGroundPlanes = this.superTileGroundPlanes.remove(superTile.key())
+		this.allGroundPlanes = lodash.flatten(this.superTileGroundPlanes.valueSeq().toArray())
+		groundPlanes.forEach(plane => this.scene.remove(plane))
+	}
 
 	private superTileToBoundingBox(superTile: SuperTile): void {
 		if (!superTile.pointCloud) {
@@ -855,7 +1010,9 @@ export class Annotator {
 		this.uiState.isSuperTilesVisible = true
 	}
 
-	// Draw a box around the data. Useful for debugging.
+	/**
+	 * 	Draw a box around the data. Useful for debugging.
+	 */
 	private updatePointCloudBoundingBox(): void {
 		if (this.settings.drawBoundingBox) {
 			if (this.pointCloudBoundingBox) {
@@ -876,15 +1033,21 @@ export class Annotator {
 	}
 
 	// Find the point in the scene that is most interesting to a human user.
-	private currentAoi(): THREE.Vector3 | null {
+	private currentPointOfInterest(): THREE.Vector3 | null {
 		if (this.uiState.isLiveMode) {
 			// In live mode track the car, regardless of what the camera does.
 			return this.carModel.position
 		} else {
 			// In interactive mode intersect the camera with the ground plane.
 			this.raycasterPlane.setFromCamera(cameraCenter, this.camera)
-			const intersections = this.raycasterPlane.intersectObject(this.plane)
-			if (intersections.length > 0)
+
+			let intersections: THREE.Intersection[] = []
+			if (this.settings.estimateGroundPlane)
+				intersections = this.raycasterPlane.intersectObjects(this.allGroundPlanes)
+			if (!intersections.length)
+				intersections = this.raycasterPlane.intersectObject(this.plane)
+
+			if (intersections.length)
 				return intersections[0].point
 			else
 				return null
@@ -893,19 +1056,28 @@ export class Annotator {
 
 	// Set the area of interest for loading point clouds.
 	private updatePointCloudAoi(): void {
-		const currentAoi = this.currentAoi()
-		if (currentAoi) {
+		if (!this.aoiState.enabled) return
+		// The only use of Control at the moment is to enable model rotation in OrbitControls. Updating AOI is useful
+		// mainly while panning across the model. Disable it during rotation for better rendering performance.
+		if (this.uiState.isControlKeyPressed) return
+		// Don't update AOI and load tiles if the point cloud is not visible.
+		if (this.uiState.modelVisibility === ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD) return
+		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
+		if (this.tileManager.getIsLoadingPointCloud()) return
+
+		const currentPoint = this.currentPointOfInterest()
+		if (currentPoint) {
 			const oldPoint = this.aoiState.focalPoint
-			const newPoint = currentAoi.clone().round()
+			const newPoint = currentPoint.clone().round()
 			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
 			if (!samePoint) {
 				this.aoiState.focalPoint = newPoint
-				this.updatePointCloudAoiBoundingBox()
+				this.updatePointCloudAoiBoundingBox(this.aoiState.focalPoint)
 			}
 		} else {
 			if (this.aoiState.focalPoint !== null) {
 				this.aoiState.focalPoint = null
-				this.updatePointCloudAoiBoundingBox()
+				this.updatePointCloudAoiBoundingBox(this.aoiState.focalPoint)
 			}
 		}
 	}
@@ -913,21 +1085,21 @@ export class Annotator {
 	// Create a bounding box around the current AOI and optionally display it.
 	// Then load the points in and around the AOI. If we have a current heading,
 	// extend the AOI with another bounding box in the direction of motion.
-	private updatePointCloudAoiBoundingBox(): void {
+	private updatePointCloudAoiBoundingBox(focalPoint: THREE.Vector3 | null): void {
 		if (this.settings.drawBoundingBox) {
 			this.aoiState.boundingBoxes.forEach(bbox => this.scene.remove(bbox))
 			this.aoiState.boundingBoxes = []
 		}
 
-		if (this.aoiState.focalPoint) {
+		if (focalPoint) {
 			const threeJsSearches: RangeSearch[] = [{
-				minPoint: this.aoiState.focalPoint.clone().sub(this.settings.aoiHalfSize),
-				maxPoint: this.aoiState.focalPoint.clone().add(this.settings.aoiHalfSize),
+				minPoint: focalPoint.clone().sub(this.settings.aoiHalfSize),
+				maxPoint: focalPoint.clone().add(this.settings.aoiHalfSize),
 			}]
 
 			// What could be better than one AOI, but two? Add another one so we see more of what's in front.
 			if (this.aoiState.currentHeading) {
-				const extendedFocalPoint = this.aoiState.focalPoint.clone()
+				const extendedFocalPoint = focalPoint.clone()
 					.add(this.settings.aoiFullSize.clone().multiply(this.aoiState.currentHeading))
 				threeJsSearches.push({
 					minPoint: extendedFocalPoint.clone().sub(this.settings.aoiHalfSize),
@@ -956,6 +1128,24 @@ export class Annotator {
 				false
 			)
 				.catch(err => {log.warn(err.message)})
+		}
+	}
+
+	// Display some info in the UI about where the camera is pointed.
+	private displayCameraInfo = (): void => {
+		if (this.uiState.isLiveMode) return
+		if (!this.statusWindow.isEnabled()) return
+
+		const currentPoint = this.currentPointOfInterest()
+		if (currentPoint) {
+			const oldPoint = this.uiState.lastCameraCenterPoint
+			const newPoint = currentPoint.clone().round()
+			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
+			if (!samePoint) {
+				this.uiState.lastCameraCenterPoint = newPoint
+				const utm = this.tileManager.threeJsToUtm(newPoint)
+				this.updateCurrentLocationStatusMessage(utm)
+			}
 		}
 	}
 
@@ -989,68 +1179,151 @@ export class Annotator {
 	}
 
 	/**
-	 * Create a new lane annotation.
+	 * If the mouse was clicked while pressing the "a" key, drop an annotation marker.
 	 */
-	private addLaneAnnotation(): boolean {
-		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
-		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotation &&
-			!this.annotationManager.activeAnnotation.isValid()) {
-			return false
-		}
-		// This creates a new lane and add it to the scene for display
-		return this.annotationManager.changeActiveAnnotation(
-			this.annotationManager.addLaneAnnotation()
-		)
-	}
+	private addAnnotationMarker = (event: MouseEvent): void => {
+		if (this.uiState.isMouseDragging) return
+		if (!this.uiState.isAddMarkerKeyPressed) return
+		if (!this.annotationManager.activeAnnotation) return
+		if (!this.annotationManager.activeAnnotation.allowNewMarkers) return
 
-	private addTrafficSignAnnotation(): boolean {
-		// Can't create a new lane if the current active annotation doesn't have any markers (because if we did
-		// that annotation wouldn't be selectable and it would be lost)
-		if (this.annotationManager.activeAnnotation &&
-			!this.annotationManager.activeAnnotation.isValid()) {
-			return false
+		const mouse = this.getMouseCoordinates(event)
+
+		// If the click intersects the first marker of a ring-shaped annotation, close the annotation and return.
+		if (this.annotationManager.activeAnnotation.markersFormRing()) {
+			this.raycasterMarker.setFromCamera(mouse, this.camera)
+			const markers = this.annotationManager.activeMarkers()
+			if (markers.length && this.raycasterMarker.intersectObject(markers[0]).length) {
+				if (this.annotationManager.completeActiveAnnotation())
+					this.annotationManager.unsetActiveAnnotation()
+				return
+			}
 		}
-		return this.annotationManager.changeActiveAnnotation(
-			this.annotationManager.addTrafficSignAnnotation()
-		)
+
+		this.raycasterPlane.setFromCamera(mouse, this.camera)
+		let intersections: THREE.Intersection[]
+
+		// Find a 3D point where to place the new marker.
+		if (this.annotationManager.activeAnnotation.snapToGround)
+			intersections = this.intersectWithGround(this.raycasterPlane)
+		else
+			intersections = this.intersectWithPointCloud(this.raycasterPlane)
+
+		if (intersections.length) {
+			this.annotationManager.addMarkerToActiveAnnotation(intersections[0].point)
+			this.render()
+		}
 	}
 
 	/**
-	 * If the mouse was clicked while pressing the "a" key, drop a lane marker.
+	 * If the mouse was clicked while pressing the "c" key, add new lane connection
+	 * between current active lane and the "clicked" lane
 	 */
-	private addLaneAnnotationMarker = (event: MouseEvent): void => {
-		if (this.uiState.isAddMarkerKeyPressed === false) {
+	private addLaneConnection = (event: MouseEvent): void => {
+		if (!this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isMouseDragging) return
+		// reject connection if active annotation is not a lane
+		const activeLane = this.annotationManager.getActiveLaneAnnotation()
+		if (!activeLane) {
+			log.info("No lane annotation is active.")
 			return
 		}
 
+		// get clicked object
 		const mouse = this.getMouseCoordinates(event)
-		this.raycasterPlane.setFromCamera(mouse, this.camera)
-		let intersections
-		if (this.settings.estimateGroundPlane || !this.tileManager.getPointClouds().length) {
-			intersections = this.raycasterPlane.intersectObject(this.plane)
-		} else {
-			intersections = this.raycasterPlane.intersectObjects(this.tileManager.getPointClouds())
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+		if (intersects.length === 0) {
+			return
+		}
+		const object = intersects[0].object.parent
+
+		// check if clicked object is an inactive lane
+		const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+		if (!(inactive && inactive instanceof Lane)) {
+			log.warn(`Clicked object is not an inactive lane.`)
+			return
 		}
 
-		if (intersections.length > 0) {
-			// Remember x-z is the horizontal plane, y is the up-down axis
-			this.annotationManager.addLaneMarker(intersections[0].point)
+		// fine lane order based on distances between end points: active --> inactive lane or inactive --> active lane
+		const inactiveToActive = inactive.markers[inactive.markers.length - 1].position.distanceTo(activeLane.markers[0].position)
+		const activeToInactive = activeLane.markers[activeLane.markers.length - 1].position.distanceTo(inactive.markers[0].position)
+
+		const fromUID = activeToInactive < inactiveToActive ? activeLane.id : inactive.id
+		const toUID = activeToInactive < inactiveToActive ? inactive.id : activeLane.id
+
+		// add connection
+		if (!this.annotationManager.addRelation(fromUID, toUID, 'front')) {
+			log.warn(`Lane connection failed.`)
+			return
 		}
+
+		// update UI panel
+		if (activeLane.id === fromUID)
+			Annotator.deactivateFrontSideNeighbours()
+
+		this.render()
 	}
 
-	private addTrafficSignAnnotationMarker = (event: MouseEvent): void => {
-		if (this.uiState.isAddTrafficSignMarkerKeyPressed === false && this.uiState.isLastTrafficSignMarkerKeyPressed === false) {
+	/**
+	 * If the mouse was clicked while pressing the "j" key, then join active
+	 * annotation with the clicked one, if they are of the same type
+	 */
+	private joinAnnotations = (event: MouseEvent): void => {
+		if (this.uiState.isMouseDragging) return
+		if (!this.uiState.isJoinAnnotationKeyPressed) return
+
+		// get active annotation
+		let activeAnnotation = this.annotationManager.activeAnnotation
+		if (!activeAnnotation) {
+			log.info("No annotation is active.")
 			return
 		}
 
+		// get clicked object
 		const mouse = this.getMouseCoordinates(event)
-		this.raycasterPlane.setFromCamera(mouse, this.camera)
-		let intersections = this.raycasterPlane.intersectObjects(this.tileManager.getPointClouds())
-
-		if (intersections.length > 0) {
-			this.annotationManager.addTrafficSignMarker(intersections[0].point, this.uiState.isLastTrafficSignMarkerKeyPressed)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+		if (intersects.length === 0) {
+			return
 		}
+		const object = intersects[0].object.parent
+		let inactiveAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+		if (!inactiveAnnotation) {
+			log.info("No clicked annotation.")
+			return
+		}
+
+		// determine order based on distances between end points: active --> inactive lane or inactive --> active lane
+		const inactiveToActive = inactiveAnnotation.markers[inactiveAnnotation.markers.length - 1].position
+			.distanceTo(activeAnnotation.markers[0].position)
+		const activeToInactive = activeAnnotation.markers[activeAnnotation.markers.length - 1].position
+			.distanceTo(inactiveAnnotation.markers[0].position)
+		let annotation1 = activeAnnotation
+		let annotation2 = inactiveAnnotation
+		if (activeToInactive > inactiveToActive) {
+			annotation1 = inactiveAnnotation
+			annotation2 = activeAnnotation
+		}
+
+		// join annotations
+		if (!this.annotationManager.joinAnnotations(annotation1, annotation2))
+			return
+
+		// update UI panel
+		this.resetAllAnnotationPropertiesMenuElements()
+
+		this.render()
+	}
+
+	private isAnnotationLocked(annotation: Annotation): boolean {
+		if (annotation instanceof Lane && this.uiState.lockLanes)
+			return true
+		else if (annotation instanceof Boundary && this.uiState.lockBoundaries)
+			return true
+		else if (annotation instanceof Territory && this.uiState.lockTerritories)
+			return true
+		return false
 	}
 
 	/**
@@ -1058,28 +1331,31 @@ export class Annotator {
 	 */
 	private checkForAnnotationSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseDragging) return
 		if (this.uiState.isControlKeyPressed) return
+		if (this.uiState.isAddMarkerKeyPressed) return
+		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isAddConflictKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
 
 		const mouse = this.getMouseCoordinates(event)
-		this.raycasterMarker.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.annotationMeshes)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
 
 		if (intersects.length > 0) {
-			const object = intersects[0].object
-			const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Mesh)
+			const object = intersects[0].object.parent
+			const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
 
 			// We clicked an inactive annotation, make it active
 			if (inactive) {
+				if (this.isAnnotationLocked(inactive))
+					return
+
 				this.cleanTransformControls()
+				Annotator.deactivateAllAnnotationPropertiesMenus()
 				this.annotationManager.changeActiveAnnotation(inactive)
-				if (inactive instanceof Lane)
-					this.resetLaneProp()
-				else if (inactive instanceof TrafficSign)
-					this.resetTrafficSignProp()
-				else if (inactive instanceof Connection)
-					noop() // Connection doesn't have any menus to maintain; this keeps the compiler from complaining.
-				else
-					log.warn(`unknown annotation type ${inactive}`)
+				this.resetAllAnnotationPropertiesMenuElements()
+				this.render()
 			}
 		}
 	}
@@ -1091,14 +1367,19 @@ export class Annotator {
 	private checkForActiveMarker = (event: MouseEvent): void => {
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
-		if (this.uiState.isMouseButtonPressed) {
-			return
-		}
+		if (this.uiState.isMouseButtonPressed) return
 		if (this.uiState.isControlKeyPressed) return
+		if (this.uiState.isAddMarkerKeyPressed) return
+		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isAddConflictKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
+
+		const markers = this.annotationManager.activeMarkers()
+		if (!markers) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterMarker.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterMarker.intersectObjects(this.annotationManager.activeMarkers())
+		const intersects = this.raycasterMarker.intersectObjects(markers)
 
 		if (intersects.length > 0) {
 			const marker = intersects[0].object as THREE.Mesh
@@ -1109,7 +1390,9 @@ export class Annotator {
 				if (this.uiState.numberKeyPressed === null) {
 					moveableMarkers = [marker]
 				} else {
-					const neighbors = this.annotationManager.neighboringLaneMarkers(marker, this.uiState.numberKeyPressed)
+					// special case: 0 searches for all neighbors, so set distance to infinity
+					const distance = this.uiState.numberKeyPressed || Number.POSITIVE_INFINITY
+					const neighbors = this.annotationManager.neighboringMarkers(marker, distance)
 					this.annotationManager.highlightMarkers(neighbors)
 					neighbors.unshift(marker)
 					moveableMarkers = neighbors
@@ -1120,6 +1403,7 @@ export class Annotator {
 				// HOVER ON
 				this.transformControls.attach(moveableMarkers)
 				this.cancelHideTransform()
+				this.render()
 			}
 		} else {
 			if (this.hovered !== null) {
@@ -1127,15 +1411,90 @@ export class Annotator {
 				this.renderer.domElement.style.cursor = 'auto'
 				this.hovered = null
 				this.delayHideTransform()
+				this.render()
 			}
 		}
+	}
+
+	/**
+	 * Check if we clicked a connection while pressing the add conflict key
+	 */
+	private checkForConflictSelection = (event: MouseEvent): void => {
+		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseDragging) return
+		if (!this.uiState.isAddConflictKeyPressed) return
+		log.info("checking for conflict selection")
+
+		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+
+		if (!srcAnnotation) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+
+		if (intersects.length > 0) {
+			const object = intersects[0].object.parent
+			const dstAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+
+			// We clicked an inactive connection, add it to the set of conflicting connections
+			if (dstAnnotation && dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
+				log.info("toggling conflict")
+				const wasAdded = srcAnnotation.toggleConflictingConnection(dstAnnotation.uuid)
+				if (wasAdded) {
+					log.info("added conflict")
+					dstAnnotation.setConflictMode()
+				} else  {
+					log.info("removed conflict")
+					dstAnnotation.makeInactive()
+				}
+				this.render()
+			}
+		}
+	}
+
+	/**
+	 * Unselect whatever is selected in the UI:
+	 *  - an active control point
+	 *  - a selected annotation
+ 	 */
+
+	private escapeSelection(): void {
+		if (this.transformControls.isAttached()) {
+			this.cleanTransformControls()
+		} else if (this.annotationManager.activeAnnotation) {
+			this.annotationManager.unsetActiveAnnotation()
+			Annotator.deactivateAllAnnotationPropertiesMenus()
+			this.render()
+		}
+	}
+
+	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
+		let intersections: THREE.Intersection[]
+		if (this.settings.estimateGroundPlane || !this.tileManager.pointCount()) {
+			if (this.allGroundPlanes.length)
+				intersections = raycaster.intersectObjects(this.allGroundPlanes)
+			else
+				intersections = raycaster.intersectObject(this.plane)
+		} else {
+			intersections = raycaster.intersectObjects(this.tileManager.getPointClouds())
+		}
+		return intersections
+	}
+
+	private intersectWithPointCloud(raycaster: THREE.Raycaster): THREE.Intersection[] {
+		return raycaster.intersectObjects(this.tileManager.getPointClouds())
 	}
 
 	private checkForSuperTileSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseButtonPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
+		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
 		if (!this.uiState.isSuperTilesVisible) return
+
+		if (!this.pendingSuperTileBoxes.length) return this.unHighlightSuperTileBox()
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
@@ -1156,6 +1515,7 @@ export class Annotator {
 
 	private clickSuperTileBox = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseDragging) return
 		if (!this.highlightedSuperTileBox) return
 		if (!this.uiState.isSuperTilesVisible) return
 
@@ -1169,6 +1529,7 @@ export class Annotator {
 			this.scene.remove(this.highlightedSuperTileBox)
 			this.unHighlightSuperTileBox()
 			this.loadSuperTileData(superTile).then()
+			this.render()
 		}
 	}
 
@@ -1182,6 +1543,7 @@ export class Annotator {
 		material.transparent = true
 		material.opacity = 0.5
 		this.highlightedSuperTileBox = superTileBox
+		this.render()
 	}
 
 	// Draw the box as a simple wireframe like all the other boxes.
@@ -1193,6 +1555,7 @@ export class Annotator {
 		material.transparent = false
 		material.opacity = 1.0
 		this.highlightedSuperTileBox = null
+		this.render()
 	}
 
 	/*
@@ -1212,25 +1575,52 @@ export class Annotator {
 	}
 
 	private onWindowResize = (): void => {
-		if (!this.camera) {
-			return
-		}
-
 		const [width, height]: Array<number> = this.getContainerSize()
 
-		this.camera.aspect = width / height
-		this.camera.updateProjectionMatrix()
+		this.perspectiveCamera.aspect = width / height
+		this.perspectiveCamera.updateProjectionMatrix()
+
+		this.setOrthographicCameraDimensions(width, height)
+
 		this.renderer.setSize(width, height)
+		this.render()
+	}
+
+	// Scale the ortho camera frustum along with window dimensions to preserve a 1:1
+	// proportion for model width:height.
+	private setOrthographicCameraDimensions(width: number, height: number): void {
+		const orthoWidth = this.settings.orthoCameraHeight * (width / height)
+		const orthoHeight = this.settings.orthoCameraHeight
+		this.orthographicCamera.left = orthoWidth / -2
+		this.orthographicCamera.right = orthoWidth / 2
+		this.orthographicCamera.top = orthoHeight / 2
+		this.orthographicCamera.bottom = orthoHeight / -2
+		this.orthographicCamera.updateProjectionMatrix()
 	}
 
 	/**
 	 * Handle keyboard events
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
-		if (this.uiState.isLiveMode)
+		if (event.defaultPrevented) return
+
+		if (document.activeElement.tagName === 'INPUT')
+			this.onKeyDownInputElement(event)
+		else if (this.uiState.isLiveMode)
 			this.onKeyDownLiveMode(event)
 		else
 			this.onKeyDownInteractiveMode(event)
+	}
+
+	private onKeyDownInputElement = (event: KeyboardEvent): void => {
+		switch (event.key) {
+			case 'Escape': {
+				(event.target as HTMLInputElement).blur()
+				break
+			}
+			default:
+			// nothing to do here
+		}
 	}
 
 	private onKeyDownLiveMode = (event: KeyboardEvent): void => {
@@ -1257,12 +1647,22 @@ export class Annotator {
 	}
 
 	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
-		if (event.keyCode >= 49 && event.keyCode <= 57) { // digits 1 to 9
+		if (event.repeat) {
+			noop()
+		} else if (event.keyCode >= 48 && event.keyCode <= 57) { // digits 0 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else {
 			switch (event.key) {
+				case 'Backspace': {
+					this.deleteActiveAnnotation()
+					break
+				}
 				case 'Control': {
 					this.uiState.isControlKeyPressed = true
+					break
+				}
+				case 'Escape': {
+					this.escapeSelection()
 					break
 				}
 				case 'Shift': {
@@ -1270,16 +1670,23 @@ export class Annotator {
 					break
 				}
 				case 'A': {
-					this.annotationManager.immediateAutoSave()
-						.then(() => this.annotationManager.unloadAllAnnotations())
+					this.deleteAllAnnotations()
 					break
 				}
 				case 'a': {
 					this.uiState.isAddMarkerKeyPressed = true
 					break
 				}
-				case 'c': {
+				case 'b': {
+					this.addAnnotation(AnnotationType.BOUNDARY)
+					break
+				}
+				case 'C': {
 					this.focusOnPointCloud()
+					break
+				}
+				case 'c': {
+					this.uiState.isAddConnectionKeyPressed = true
 					break
 				}
 				case 'd': {
@@ -1292,12 +1699,20 @@ export class Annotator {
 					this.addRightReverse()
 					break
 				}
+				case 'F': {
+					this.reverseLaneDirection()
+					break
+				}
 				case 'f': {
 					this.addFront()
 					break
 				}
 				case 'h': {
 					this.toggleModelVisibility()
+					break
+				}
+				case 'j': {
+					this.uiState.isJoinAnnotationKeyPressed = true
 					break
 				}
 				case 'k': {
@@ -1317,7 +1732,7 @@ export class Annotator {
 					break
 				}
 				case 'n': {
-					this.addLane()
+					this.addAnnotation(AnnotationType.LANE)
 					break
 				}
 				case 'o': {
@@ -1325,7 +1740,7 @@ export class Annotator {
 					break
 				}
 				case 'q': {
-					this.uiState.isAddTrafficSignMarkerKeyPressed = true
+					this.uiState.isAddConflictKeyPressed = true
 					break
 				}
 				case 'r': {
@@ -1344,24 +1759,24 @@ export class Annotator {
 					this.resetTiltAndCompass()
 					break
 				}
+				case 'T': {
+					this.addAnnotation(AnnotationType.TERRITORY)
+					break
+				}
 				case 't': {
-					this.addTrafficSign()
+					this.addAnnotation(AnnotationType.TRAFFIC_DEVICE)
 					break
 				}
 				case 'U': {
 					this.unloadPointCloudData()
 					break
 				}
+				case 'V': {
+					this.toggleCameraType()
+					break
+				}
 				case 'v': {
 					this.toggleVoxelsAndPointClouds()
-					break
-				}
-				case 'w': {
-					this.uiState.isLastTrafficSignMarkerKeyPressed = true
-					break
-				}
-				case 'z': {
-					this.deleteActiveAnnotation()
 					break
 				}
 				default:
@@ -1374,8 +1789,9 @@ export class Annotator {
 		this.uiState.isControlKeyPressed = false
 		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
-		this.uiState.isAddTrafficSignMarkerKeyPressed = false
-		this.uiState.isLastTrafficSignMarkerKeyPressed = false
+		this.uiState.isAddConnectionKeyPressed = false
+		this.uiState.isAddConflictKeyPressed = false
+		this.uiState.isJoinAnnotationKeyPressed = false
 		this.uiState.numberKeyPressed = null
 	}
 
@@ -1398,6 +1814,7 @@ export class Annotator {
 		this.cancelHideTransform()
 		this.transformControls.detach()
 		this.annotationManager.unhighlightMarkers()
+		this.render()
 	}
 
 	/**
@@ -1413,15 +1830,14 @@ export class Annotator {
 		// Render the scene again if we translated, rotated or zoomed.
 		this.orbitControls.addEventListener('change', this.render)
 
+		// Update some UI if the camera panned -- that is it moved in relation to the model.
+		this.orbitControls.addEventListener('pan', this.displayCameraInfo)
+
 		// If we are controlling the scene don't hide any transform object.
-		this.orbitControls.addEventListener('start', () => {
-			this.cancelHideTransform()
-		})
+		this.orbitControls.addEventListener('start', this.cancelHideTransform)
 
 		// After the scene transformation is over start the timer to hide the transform object.
-		this.orbitControls.addEventListener('end', () => {
-			this.delayHideTransform()
-		})
+		this.orbitControls.addEventListener('end', this.delayHideTransform)
 	}
 
 	/**
@@ -1435,24 +1851,16 @@ export class Annotator {
 		// Add listeners.
 
 		// If we are interacting with the transform object don't hide it.
-		this.transformControls.addEventListener('change', () => {
-			this.cancelHideTransform()
-		})
+		this.transformControls.addEventListener('change', this.cancelHideTransform)
 
 		// If we just clicked on a transform object don't hide it.
-		this.transformControls.addEventListener('mouseDown', () => {
-			this.cancelHideTransform()
-		})
+		this.transformControls.addEventListener('mouseDown', this.cancelHideTransform)
 
 		// If we are done interacting with a transform object start hiding process.
-		this.transformControls.addEventListener('mouseUp', () => {
-			this.delayHideTransform()
-		})
+		this.transformControls.addEventListener('mouseUp', this.delayHideTransform)
 
 		// If the object attached to the transform object has changed, do something.
-		this.transformControls.addEventListener('objectChange', () => {
-			this.annotationManager.updateActiveAnnotationMesh()
-		})
+		this.transformControls.addEventListener('objectChange', this.annotationManager.updateActiveAnnotationMesh)
 	}
 
 	/**
@@ -1460,28 +1868,27 @@ export class Annotator {
 	 */
 	private deleteActiveAnnotation(): void {
 		// Delete annotation from scene
-		this.annotationManager.deleteActiveLaneFromPath()
 		if (this.annotationManager.deleteActiveAnnotation()) {
 			log.info("Deleted selected annotation")
 			Annotator.deactivateLaneProp()
 			this.hideTransform()
+			this.render()
 		}
 	}
 
-	private addLane(): void {
-		// Add lane to scene
-		if (this.addLaneAnnotation()) {
-			log.info("Added new lane annotation")
-			this.resetLaneProp()
-			this.hideTransform()
-		}
+	private deleteAllAnnotations(): void {
+		this.annotationManager.immediateAutoSave()
+			.then(() => {
+				this.annotationManager.unloadAllAnnotations()
+			})
 	}
 
-	private addTrafficSign(): void {
-		// Add lane to scene
-		if (this.addTrafficSignAnnotation()) {
-			log.info("Added new traffic sign annotation")
-			this.resetTrafficSignProp()
+	// Create an annotation, add it to the scene, and activate (highlight) it.
+	private addAnnotation(annotationType: AnnotationType): void {
+		if (this.annotationManager.addAnnotation(null, annotationType, true)[0]) {
+			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
+			Annotator.deactivateAllAnnotationPropertiesMenus()
+			this.resetAllAnnotationPropertiesMenuElements()
 			this.hideTransform()
 		}
 	}
@@ -1526,6 +1933,7 @@ export class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
 			Annotator.deactivateFrontSideNeighbours()
 		}
+		this.render()
 	}
 
 	private addLeftSame(): void {
@@ -1533,6 +1941,7 @@ export class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
+		this.render()
 	}
 
 	private addLeftReverse(): void {
@@ -1540,6 +1949,7 @@ export class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
+		this.render()
 	}
 
 	private addRightSame(): void {
@@ -1547,12 +1957,33 @@ export class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
+		this.render()
 	}
 
 	private addRightReverse(): void {
 		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateRightSideNeighbours()
+		}
+		this.render()
+	}
+
+	private reverseLaneDirection(): void {
+		log.info("Reverse lane direction.")
+		const {result, existLeftNeighbour, existRightNeighbour}: { result: boolean, existLeftNeighbour: boolean, existRightNeighbour: boolean }
+			= this.annotationManager.reverseLaneDirection()
+		if (result) {
+			if (existLeftNeighbour) {
+				Annotator.deactivateLeftSideNeighbours()
+			} else {
+				Annotator.activateLeftSideNeighbours()
+			}
+			if (existRightNeighbour) {
+				Annotator.deactivateRightSideNeighbours()
+			} else {
+				Annotator.activateRightSideNeighbours()
+			}
+			this.render()
 		}
 	}
 
@@ -1562,6 +1993,7 @@ export class Annotator {
 	private bindLanePropertiesPanel(): void {
 		const lcType = $('#lp_select_type')
 		lcType.on('change', () => {
+			lcType.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1571,6 +2003,7 @@ export class Annotator {
 
 		const lcLeftType = $('#lp_select_left_type')
 		lcLeftType.on('change', () => {
+			lcLeftType.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1581,6 +2014,7 @@ export class Annotator {
 
 		const lcLeftColor = $('#lp_select_left_color')
 		lcLeftColor.on('change', () => {
+			lcLeftColor.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1591,6 +2025,7 @@ export class Annotator {
 
 		const lcRightType = $('#lp_select_right_type')
 		lcRightType.on('change', () => {
+			lcRightType.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1601,6 +2036,7 @@ export class Annotator {
 
 		const lcRightColor = $('#lp_select_right_color')
 		lcRightColor.on('change', () => {
+			lcRightColor.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1611,6 +2047,7 @@ export class Annotator {
 
 		const lcEntry = $('#lp_select_entry')
 		lcEntry.on('change', () => {
+			lcEntry.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1620,6 +2057,7 @@ export class Annotator {
 
 		const lcExit = $('#lp_select_exit')
 		lcExit.on('change', () => {
+			lcExit.blur()
 			const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 			if (activeAnnotation === null)
 				return
@@ -1670,85 +2108,93 @@ export class Annotator {
 			log.warn('missing element lp_add_forward')
 	}
 
-	private bindRelationsPanel(): void {
-		const lcSelectFrom = document.getElementById('lc_select_from')
-		if (lcSelectFrom)
-			lcSelectFrom.addEventListener('mousedown', () => {
-				// Get ids
-				const ids = this.annotationManager.getValidIds()
-				// Add ids
-				const selectbox = $('#lc_select_from')
-				selectbox.empty()
-				let list = ''
-				for (let j = 0; j < ids.length; j++) {
-					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-				}
-				selectbox.html(list)
-			})
-		else
-			log.warn('missing element lc_select_from')
-
-		const lcSelectTo = document.getElementById('lc_select_to')
-		if (lcSelectTo)
-			lcSelectTo.addEventListener('mousedown', () => {
-				// Get ids
-				const ids = this.annotationManager.getValidIds()
-				// Add ids
-				const selectbox = $('#lc_select_to')
-				selectbox.empty()
-				let list = ''
-				for (let j = 0; j < ids.length; j++) {
-					list += "<option value=" + ids[j] + ">" + ids[j] + "</option>"
-				}
-				selectbox.html(list)
-			})
-		else
-			log.warn('missing element lc_select_to')
-
-		const lcAdd = document.getElementById('lc_add')
-		if (lcAdd)
-			lcAdd.addEventListener('click', () => {
-				const lcTo: AnnotationId = Number($('#lc_select_to').val())
-				const lcFrom: AnnotationId = Number($('#lc_select_from').val())
-				const lcRelation = $('#lc_select_relation').val()
-
-				if (lcTo === null || lcFrom === null) {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-						"You have to select both lanes to be connected.")
-					return
-				}
-
-				if (lcTo === lcFrom) {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL,
-						"You can't connect a lane to itself. The 2 ids should be unique.")
-					return
-				}
-
-				log.info("Trying to add " + lcRelation + " relation from " + lcFrom + " to " + lcTo)
-				if (this.annotationManager.addRelation(lcFrom, lcTo, lcRelation)) {
-					this.resetLaneProp()
-				}
-			})
-		else
-			log.warn('missing element lc_add')
-	}
-
-	private bindTrafficSignPropertiesPanel(): void {
-		const tpType = $('#tp_select_type')
-		tpType.on('change', () => {
-			const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
+	private bindConnectionPropertiesPanel(): void {
+		const cpType = $('#cp_select_type')
+		cpType.on('change', () => {
+			cpType.blur()
+			const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
 			if (activeAnnotation === null)
 				return
-			log.info("Adding traffic sign type: " + tpType.children("option").filter(":selected").text())
+			log.info("Adding connection type: " + cpType.children("options").filter(":selected").text())
+			activeAnnotation.type = +cpType.val()
+		})
+
+		/*
+		const cpDevice = $('#cp_select_device')
+		cpDevice.on('change', () => {
+			const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding boundary color: " + cpDevice.children("options").filter(":selected").text())
+			activeAnnotation.device = +cpDevice.val()
+		})
+		*/
+	}
+
+	private bindTerritoryPropertiesPanel(): void {
+		const territoryLabel = document.getElementById('input_label_territory')
+		if (territoryLabel) {
+			// Select all text when the input element gains focus.
+			territoryLabel.addEventListener('focus', event => {
+				(event.target as HTMLInputElement).select()
+			})
+
+			// Update territory label text on any change to input.
+			territoryLabel.addEventListener('input', (event: Event) => {
+				const activeAnnotation = this.annotationManager.getActiveTerritoryAnnotation()
+				if (activeAnnotation)
+					activeAnnotation.setLabel((event.target as HTMLInputElement).value)
+			})
+
+			// User is done editing: lose focus.
+			territoryLabel.addEventListener('change', (event: Event) => {
+				(event.target as HTMLInputElement).blur()
+			})
+		} else
+			log.warn('missing element input_label_territory')
+	}
+
+	private bindTrafficDevicePropertiesPanel(): void {
+		const tpType = $('#tp_select_type')
+		tpType.on('change', () => {
+			tpType.blur()
+			const activeAnnotation = this.annotationManager.getActiveTrafficDeviceAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding traffic device type: " + tpType.children("option").filter(":selected").text())
 			activeAnnotation.type = +tpType.val()
+		})
+	}
+
+	private bindBoundaryPropertiesPanel(): void {
+		const bpType = $('#bp_select_type')
+		bpType.on('change', () => {
+			bpType.blur()
+			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding boundary type: " + bpType.children("options").filter(":selected").text())
+			activeAnnotation.type = +bpType.val()
+		})
+
+		const bpColor = $('#bp_select_color')
+		bpColor.on('change', () => {
+			bpColor.blur()
+			const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
+			if (activeAnnotation === null)
+				return
+			log.info("Adding boundary color: " + bpColor.children("options").filter(":selected").text())
+			activeAnnotation.color = +bpColor.val()
 		})
 	}
 
 	private bind(): void {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
-		this.bindRelationsPanel()
-		this.bindTrafficSignPropertiesPanel()
+		this.bindConnectionPropertiesPanel()
+		this.bindTerritoryPropertiesPanel()
+		this.bindTrafficDevicePropertiesPanel()
+		this.bindBoundaryPropertiesPanel()
 
 		const menuControlElement = document.getElementById('menu_control')
 		if (menuControlElement)
@@ -1796,18 +2242,18 @@ export class Annotator {
 		const toolsAddLane = document.getElementById('tools_add_lane')
 		if (toolsAddLane)
 			toolsAddLane.addEventListener('click', () => {
-				this.addLane()
+				this.addAnnotation(AnnotationType.LANE)
 			})
 		else
 			log.warn('missing element tools_add_lane')
 
-		const toolsAddTrafficSign = document.getElementById('tools_add_traffic_sign')
-		if (toolsAddTrafficSign)
-			toolsAddTrafficSign.addEventListener('click', () => {
-				this.addTrafficSign()
+		const toolsAddTrafficDevice = document.getElementById('tools_add_traffic_device')
+		if (toolsAddTrafficDevice)
+			toolsAddTrafficDevice.addEventListener('click', () => {
+				this.addAnnotation(AnnotationType.TRAFFIC_DEVICE)
 			})
 		else
-			log.warn('missing element tools_add_traffic_sign')
+			log.warn('missing element tools_add_traffic_device')
 
 		const toolsLoad = document.getElementById('tools_load')
 		if (toolsLoad)
@@ -1885,28 +2331,40 @@ export class Annotator {
 		})
 	}
 
+	private static expandAccordion(domId: string): void {
+		$(domId).accordion('option', {active: 0})
+	}
+
+	private resetAllAnnotationPropertiesMenuElements(): void {
+		this.resetBoundaryProp()
+		this.resetLaneProp()
+		this.resetConnectionProp()
+		this.resetTerritoryProp()
+		this.resetTrafficDeviceProp()
+	}
+
 	/**
 	 * Reset lane properties elements based on the current active lane
 	 */
 	private resetLaneProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
-		if (activeAnnotation === null) {
-			return
-		}
+		if (!activeAnnotation) return
 
-		if (activeAnnotation.neighborsIds.left != null) {
+		Annotator.expandAccordion('#menu_lane')
+
+		if (activeAnnotation.neighborsIds.left.length > 0) {
 			Annotator.deactivateLeftSideNeighbours()
 		} else {
 			Annotator.activateLeftSideNeighbours()
 		}
 
-		if (activeAnnotation.neighborsIds.right != null) {
+		if (activeAnnotation.neighborsIds.right.length > 0) {
 			Annotator.deactivateRightSideNeighbours()
 		} else {
 			Annotator.activateRightSideNeighbours()
 		}
 
-		if (activeAnnotation.neighborsIds.front.length !== 0) {
+		if (activeAnnotation.neighborsIds.front.length > 0) {
 			Annotator.deactivateFrontSideNeighbours()
 		} else {
 			Annotator.activateFrontSideNeighbours()
@@ -1919,6 +2377,7 @@ export class Annotator {
 			log.warn('missing element lp_id_value')
 		activeAnnotation.updateLaneWidth()
 
+		/*
 		const lcSelectTo = $('#lc_select_to')
 		lcSelectTo.empty()
 		lcSelectTo.removeAttr('disabled')
@@ -1932,6 +2391,7 @@ export class Annotator {
 
 		const lpAddRelation = $('#lc_add')
 		lpAddRelation.removeAttr('disabled')
+		*/
 
 		const lpSelectType = $('#lp_select_type')
 		lpSelectType.removeAttr('disabled')
@@ -1974,13 +2434,29 @@ export class Annotator {
 	}
 
 	/**
-	 * Reset traffic sign properties elements based on the current active traffic sign
+	 * Reset territory properties elements based on the current active territory
 	 */
-	private resetTrafficSignProp(): void {
-		const activeAnnotation = this.annotationManager.getActiveTrafficSignAnnotation()
-		if (activeAnnotation === null) {
-			return
-		}
+	private resetTerritoryProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveTerritoryAnnotation()
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_territory')
+
+		const territoryLabel = document.getElementById('input_label_territory')
+		if (territoryLabel) {
+			(territoryLabel as HTMLInputElement).value = activeAnnotation.getLabel()
+		} else
+			log.warn('missing element input_label_territory')
+	}
+
+	/**
+	 * Reset traffic device properties elements based on the current active traffic device
+	 */
+	private resetTrafficDeviceProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveTrafficDeviceAnnotation()
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_traffic_device')
 
 		const tpId = document.getElementById('tp_id_value')
 		if (tpId)
@@ -1991,6 +2467,64 @@ export class Annotator {
 		const tpSelectType = $('#tp_select_type')
 		tpSelectType.removeAttr('disabled')
 		tpSelectType.val(activeAnnotation.type.toString())
+	}
+
+	/**
+	 * Reset boundary properties elements based on the current active boundary
+	 */
+	private resetBoundaryProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_boundary')
+
+		const bpId = document.getElementById('bp_id_value')
+		if (bpId)
+			bpId.textContent = activeAnnotation.id.toString()
+		else
+			log.warn('missing element bp_id_value')
+
+		const bpSelectType = $('#bp_select_type')
+		bpSelectType.removeAttr('disabled')
+		bpSelectType.val(activeAnnotation.type.toString())
+
+		const bpSelectColor = $('#bp_select_color')
+		bpSelectColor.removeAttr('disabled')
+		bpSelectColor.val(activeAnnotation.color.toString())
+	}
+
+	/**
+	 * Reset connection properties elements based on the current active connection
+	 */
+	private resetConnectionProp(): void {
+		const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+		if (!activeAnnotation) return
+
+		Annotator.expandAccordion('#menu_connection')
+
+		const cpId = document.getElementById('cp_id_value')
+		if (cpId)
+			cpId.textContent = activeAnnotation.id.toString()
+		else
+			log.warn('missing element bp_id_value')
+
+		const cpSelectType = $('#cp_select_type')
+		cpSelectType.removeAttr('disabled')
+		cpSelectType.val(activeAnnotation.type.toString())
+
+		/*
+		const cpSelectDevice = $('#cp_select_device')
+		cpSelectDevice.removeAttr('disabled')
+		cpSelectDevice.val(activeAnnotation.device.toString())
+		*/
+	}
+
+	private static deactivateAllAnnotationPropertiesMenus(): void {
+		Annotator.deactivateBoundaryProp()
+		Annotator.deactivateLaneProp()
+		Annotator.deactivateConnectionProp()
+		Annotator.deactivateTerritoryProp()
+		Annotator.deactivateTrafficDeviceProp()
 	}
 
 	/**
@@ -2022,6 +2556,7 @@ export class Annotator {
 		} else
 			log.warn('missing element lane_prop_1')
 
+		/*
 		const laneConn = document.getElementById('lane_conn')
 		if (laneConn) {
 			const selects = laneConn.getElementsByTagName('select')
@@ -2036,12 +2571,97 @@ export class Annotator {
 			lcAdd.setAttribute('disabled', 'disabled')
 		else
 			log.warn('missing element lc_add')
+		*/
 
 		const trAdd = document.getElementById('tr_add')
 		if (trAdd)
 			trAdd.setAttribute('disabled', 'disabled')
 		else
 			log.warn('missing element tr_add')
+	}
+
+	/**
+	 * Deactivate boundary properties menu panel
+	 */
+	private static deactivateBoundaryProp(): void {
+		const bpId = document.getElementById('bp_id_value')
+		if (bpId)
+			bpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element bp_id_value')
+
+		const bpType = document.getElementById('bp_select_type')
+		if (bpType)
+			bpType.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element bp_select_type')
+
+		const bpColor = document.getElementById('bp_select_color')
+		if (bpColor)
+			bpColor.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element bp_select_color')
+
+		const boundaryProp = document.getElementById('boundary_prop')
+		if (boundaryProp) {
+			const selects = boundaryProp.getElementsByTagName('select')
+			for (let i = 0; i < selects.length; ++i) {
+				selects.item(i).selectedIndex = 0
+				selects.item(i).setAttribute('disabled', 'disabled')
+			}
+		} else
+			log.warn('missing element boundary_prop')
+	}
+
+	/**
+	 * Deactivate connection properties menu panel
+	 */
+	private static deactivateConnectionProp(): void {
+		const cpId = document.getElementById('cp_id_value')
+		if (cpId)
+			cpId.textContent = 'UNKNOWN'
+		else
+			log.warn('missing element cp_id_value')
+
+		const cpType = document.getElementById('cp_select_type')
+		if (cpType)
+			cpType.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element cp_select_type')
+
+		const cpDevice = document.getElementById('cp_select_device')
+		if (cpDevice)
+			cpDevice.setAttribute('disabled', 'disabled')
+		else
+			log.warn('missing element cp_select_device')
+
+		const connectionProp = document.getElementById('connection_prop')
+		if (connectionProp) {
+			const selects = connectionProp.getElementsByTagName('select')
+			for (let i = 0; i < selects.length; ++i) {
+				selects.item(i).selectedIndex = 0
+				selects.item(i).setAttribute('disabled', 'disabled')
+			}
+		} else
+			log.warn('missing element boundary_prop')
+	}
+
+	/**
+	 * Deactivate territory properties menu panel
+	 */
+	private static deactivateTerritoryProp(): void {
+		const territoryLabel = document.getElementById('input_label_territory')
+		if (territoryLabel)
+			(territoryLabel as HTMLInputElement).value = ''
+		else
+			log.warn('missing element input_label_territory')
+	}
+
+	/**
+	 * Deactivate traffic device properties menu panel
+	 */
+	private static deactivateTrafficDeviceProp(): void {
+		// TODO
 	}
 
 	/**
@@ -2125,9 +2745,40 @@ export class Annotator {
 			log.warn('missing element lp_add_forward')
 	}
 
+	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
+	private toggleCameraType(): void {
+		let oldCamera: THREE.Camera
+		let newCamera: THREE.Camera
+		let newType: string
+		if (this.camera === this.perspectiveCamera) {
+			oldCamera = this.perspectiveCamera
+			newCamera = this.orthographicCamera
+			newType = cameraTypeString.orthographic
+		} else {
+			oldCamera = this.orthographicCamera
+			newCamera = this.perspectiveCamera
+			newType = cameraTypeString.perspective
+		}
+
+		// Copy over the camera position. When the next animate() runs, the new camera will point at the
+		// same target as the old camera, since the target is maintained by OrbitControls. That takes
+		// care of position and orientation, but not zoom. PerspectiveCamera and OrthographicCamera
+		// calculate zoom differently. It would be nice to convert one to the other here.
+		newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
+		this.camera = newCamera
+
+		this.transformControls.setCamera(this.camera)
+		{
+			// tslint:disable-next-line:no-any
+			(this.orbitControls as any).setCamera(this.camera)
+		}
+		this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
+		this.storage.setItem(preferenceKey.cameraPreference, newType)
+		this.render()
+	}
+
 	// In normal edit mode, toggles through the states defined in ModelVisibility:
 	// - all visible
-	// - super tile wire frames hidden
 	// - super tile wire frames hidden; point cloud hidden
 	// - super tile wire frames hidden; annotations hidden
 	private toggleModelVisibility(): void {
@@ -2139,15 +2790,10 @@ export class Annotator {
 
 	private setModelVisibility(newState: ModelVisibility): void {
 		if (this.uiState.isLiveMode) return
+		if (this.uiState.modelVisibility === newState) return
 
 		this.uiState.modelVisibility = newState
 		switch (this.uiState.modelVisibility) {
-			case ModelVisibility.HIDE_SUPER_TILES:
-				log.info('hiding super tiles')
-				this.hideSuperTiles()
-				this.showPointCloud()
-				this.showAnnotations()
-				break
 			case ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD:
 				log.info('hiding point cloud')
 				this.hideSuperTiles()
@@ -2161,11 +2807,14 @@ export class Annotator {
 				this.hideAnnotations()
 				break
 			default:
+				log.info('showing all objects')
 				this.showSuperTiles()
 				this.showPointCloud()
 				this.showAnnotations()
 				break
 		}
+
+		this.render()
 	}
 
 	private hidePointCloud(): void {
@@ -2185,12 +2834,12 @@ export class Annotator {
 	}
 
 	private hideAnnotations(): void {
-		// this.annotationManager.hideAnnotations() // todo
+		this.annotationManager.hideAnnotations()
 		this.uiState.isAnnotationsVisible = false
 	}
 
 	private showAnnotations(): void {
-		// this.annotationManager.showAnnotations() // todo
+		this.annotationManager.showAnnotations()
 		this.uiState.isAnnotationsVisible = true
 	}
 
@@ -2269,18 +2918,21 @@ export class Annotator {
 		this.annotationManager.setLiveMode()
 		this.uiState.isLiveMode = true
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		if (this.gui)
+			this.gui.close()
 		if (this.axis)
 			this.scene.remove(this.axis)
 		if (this.compassRose)
 			this.scene.remove(this.compassRose)
-		this.grid.visible = false
+		if (this.grid)
+			this.grid.visible = false
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
 		this.hideSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
-		this.settings.fpsRendering = this.liveModeSettings.fps
+		this.settings.animationFrameIntervalMs = this.liveModeSettings.animationFrameIntervalMs
 		if (this.flyThroughSettings.enabled) {
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
 			this.runFlythrough()
@@ -2288,6 +2940,7 @@ export class Annotator {
 			this.locationServerStatusClient.connect()
 		}
 
+		this.render()
 		return this.uiState.isLiveMode
 	}
 
@@ -2298,22 +2951,25 @@ export class Annotator {
 		this.annotationManager.unsetLiveMode()
 		this.uiState.isLiveMode = false
 		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		if (this.gui)
+			this.gui.open()
 		if (this.axis)
 			this.scene.add(this.axis)
 		if (this.compassRose)
 			this.scene.add(this.compassRose)
-		this.grid.visible = true
+		if (this.grid)
+			this.grid.visible = true
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
 		this.showSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = true
-		this.settings.fpsRendering = this.settings.defaultFpsRendering
-		this.statusWindow.setMessage(statusKey.carPosition, '')
+		this.settings.animationFrameIntervalMs = this.settings.defaultAnimationFrameIntervalMs
 		this.statusWindow.setMessage(statusKey.flyThrough, '')
 		this.updateAoiHeading(null)
 
+		this.render()
 		return this.uiState.isLiveMode
 	}
 
@@ -2360,15 +3016,22 @@ export class Annotator {
 		rotationThreeJs.normalize()
 
 		this.updateAoiHeading(rotationThreeJs)
-		this.updateCarStatus(standardPosition)
+		this.updateCurrentLocationStatusMessage(standardPosition)
 		this.updateCarPose(positionThreeJs, rotationThreeJs)
 		this.updateCameraPose()
 
 	}
 
-	private updateCarStatus(positionUtm: THREE.Vector3): void {
-		const message = sprintf('UTM %s: %.1fE %.1fN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
-		this.statusWindow.setMessage(statusKey.carPosition, message)
+	private updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
+		// This is a hack to allow data with no coordinate reference system to pass through the UTM classes.
+		// Data in local coordinate systems tend to have small values for X (and Y and Z) which are invalid in UTM.
+		if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO fix this.
+			const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
+			const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
+			this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+		}
+		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
+		this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
 	}
 
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
@@ -2397,15 +3060,26 @@ export class Annotator {
 	private toggleVoxelsAndPointClouds(): void {
 		if (this.uiState.isPointCloudVisible) {
 			this.hidePointCloud()
-			this.tileManager.voxelsMeshGroup.forEach(mesh => {
-				this.scene.add(mesh)
-			})
+			if (this.tileManager.voxelsMeshGroup) {
+				this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
+				this.render()
+			}
 		} else {
 			this.showPointCloud()
-			this.tileManager.voxelsMeshGroup.forEach(mesh => {
-				this.scene.remove(mesh)
-			})
+			if (this.tileManager.voxelsMeshGroup) {
+				this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
+				this.render()
+			}
 		}
+	}
+
+	// Print a message about how big our tiles are.
+	private updateTileManagerStats(): void {
+		if (!this.settings.enableTileManagerStats) return
+		if (!this.statusWindow.isEnabled()) return
+
+		const message = `Loaded ${this.tileManager.superTiles.size} super tiles; ${this.tileManager.pointCount()} points`
+		this.statusWindow.setMessage(statusKey.tileManagerStats, message)
 	}
 
 	private onSetOrigin = (): void => {
@@ -2502,7 +3176,6 @@ export class Annotator {
 			this.statusWindow.setMessage(statusKey.locationServer, '')
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
-
 
 }
 

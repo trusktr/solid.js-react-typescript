@@ -2,7 +2,7 @@
  * @author arodic / https://github.com/arodic
  */
 
-import {BufferGeometry, Euler, Object3D, Vector3} from "three"
+import {BufferGeometry, Camera, Euler, Object3D, Vector3} from "three"
 
 // tslint:disable:no-string-literal
 
@@ -622,7 +622,7 @@ THREE.TransformGizmoScale = function () {
 THREE.TransformGizmoScale.prototype = Object.create(THREE.TransformGizmo.prototype)
 THREE.TransformGizmoScale.prototype.constructor = THREE.TransformGizmoScale
 
-THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxisTranslation: boolean) {
+THREE.TransformControls = function (camera: Camera, domElement: any, enableThreeAxisTranslation: boolean) {
 
 	THREE.Object3D.call(this)
 
@@ -637,6 +637,7 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 	this.axis = null
 
 	const scope = this
+	scope.camera = camera
 
 	let _mode = "translate"
 	let _dragging = false
@@ -700,6 +701,8 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 	const camPosition = new THREE.Vector3()
 	const camRotation = new THREE.Euler()
 
+	window.addEventListener("keydown", onKeyDown, false)
+
 	domElement.addEventListener("mousedown", onPointerDown, false)
 	domElement.addEventListener("touchstart", onPointerDown, false)
 
@@ -716,6 +719,8 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 	domElement.addEventListener("touchleave", onPointerUp, false)
 
 	this.dispose = function () {
+
+		window.removeEventListener("keydown", onKeyDown)
 
 		domElement.removeEventListener("mousedown", onPointerDown)
 		domElement.removeEventListener("touchstart", onPointerDown)
@@ -747,6 +752,16 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 		this.objects = []
 		this.visible = false
 		this.axis = null
+
+	}
+
+	this.isAttached = function (): boolean {
+		return !!this.objects.length
+	}
+
+	this.setCamera = function (newCamera: Camera): void {
+
+		scope.camera = newCamera
 
 	}
 
@@ -810,19 +825,19 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 		worldPosition.setFromMatrixPosition(scope.objects[0].matrixWorld)
 		worldRotation.setFromRotationMatrix(tempMatrix.extractRotation(scope.objects[0].matrixWorld))
 
-		camera.updateMatrixWorld()
-		camPosition.setFromMatrixPosition(camera.matrixWorld)
-		camRotation.setFromRotationMatrix(tempMatrix.extractRotation(camera.matrixWorld))
+		scope.camera.updateMatrixWorld(false)
+		camPosition.setFromMatrixPosition(scope.camera.matrixWorld)
+		camRotation.setFromRotationMatrix(tempMatrix.extractRotation(scope.camera.matrixWorld))
 
 		scale = worldPosition.distanceTo(camPosition) / 6 * scope.size
 		this.position.copy(worldPosition)
-		this.scale.set(scale, scale, scale)
+		this.scale.setScalar(scale)
 
-		if (camera instanceof THREE.PerspectiveCamera) {
+		if (scope.camera instanceof THREE.PerspectiveCamera) {
 
 			eye.copy(camPosition).sub(worldPosition).normalize()
 
-		} else if (camera instanceof THREE.OrthographicCamera) {
+		} else if (scope.camera instanceof THREE.OrthographicCamera) {
 
 			eye.copy(camPosition).normalize()
 
@@ -842,9 +857,35 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 
 	}
 
+	function onKeyDown(event: any): void {
+		switch (event.key) {
+			case 'Escape': {
+				if (_dragging) {
+					// Interrupt the drag action. Revert attached objects to where they started the drag.
+					event.preventDefault()
+					event.stopPropagation()
+
+					for (let i = 0; i < scope.objects.length; i++) {
+						scope.objects[i].position.copy(oldPositions[i])
+					}
+
+					scope.axis = null
+					scope.update()
+					scope.dispatchEvent(changeEvent)
+					scope.dispatchEvent(objectChangeEvent)
+
+					_dragging = false
+				}
+				break
+			}
+			default:
+			// nothing to see here
+		}
+	}
+
 	function onPointerHover(event: any): void {
 
-		if (!scope.objects.length || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
+		if (!scope.objects.length || _dragging || ( event.button !== undefined && event.button !== 0 )) return
 
 		const pointer = event.changedTouches ? event.changedTouches[0] : event
 
@@ -872,7 +913,7 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 
 	function onPointerDown(event: any): void {
 
-		if (!scope.objects.length || _dragging === true || ( event.button !== undefined && event.button !== 0 )) return
+		if (!scope.objects.length || _dragging || ( event.button !== undefined && event.button !== 0 )) return
 
 		const pointer = event.changedTouches ? event.changedTouches[0] : event
 
@@ -926,13 +967,13 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 
 	function onPointerMove(event: any): void {
 
-		if (!scope.objects.length || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 )) return
+		if (!scope.objects.length || scope.axis === null || !_dragging || ( event.button !== undefined && event.button !== 0 )) return
 
 		const pointer = event.changedTouches ? event.changedTouches[0] : event
 
 		const planeIntersect = intersectObjects(pointer, [_gizmo[_mode].activePlane])
 
-		if (planeIntersect === false) return
+		if (!planeIntersect) return
 
 		event.preventDefault()
 		event.stopPropagation()
@@ -1191,7 +1232,7 @@ THREE.TransformControls = function (camera: any, domElement: any, enableThreeAxi
 		const y = ( pointer.clientY - rect.top ) / rect.height
 
 		pointerVector.set(( x * 2 ) - 1, -( y * 2 ) + 1)
-		ray.setFromCamera(pointerVector, camera)
+		ray.setFromCamera(pointerVector, scope.camera)
 
 		const intersections = ray.intersectObjects(objects, true)
 		return intersections[0] ? intersections[0] : false

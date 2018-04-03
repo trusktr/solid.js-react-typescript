@@ -239,6 +239,7 @@ html(lang="en")
 				background-color: antiquewhite;
 				color: black;
 				display: none;
+				overflow: auto;
 			}
 
 		meta(name="viewport",content="width=device-width, initial-scale=1")
@@ -260,16 +261,19 @@ html(lang="en")
 		#menu
 			#tools.div_buttons_group
 				button#tools_add_lane.ui-btn.ui-icon-plus.ui-btn-icon-left New Lane
-				button#tools_add_traffic_sign.ui-btn.ui-icon-plus.ui-btn-icon-left New Traffic Sign
+				button#tools_add_traffic_device.ui-btn.ui-icon-plus.ui-btn-icon-left New Traffic Device
 				button#tools_delete.ui-btn.ui-icon-minus.ui-btn-icon-left Delete Annotation
 				button#tools_load.ui-btn.ui-icon-grid.ui-btn-icon-left Load Tiles
 				button#tools_load_annotation.ui-btn.ui-icon-edit.ui-btn-icon-left Load Annotation
 				button#tools_save.ui-btn.ui-icon-check.ui-btn-icon-left Save Annotation
 				button#tools_export_kml.ui-btn.ui-icon-location.ui-btn-icon-left Export KML
-
-			#menu_1.accordion
-				h3#exp_head_1.dropdown_head Lane Annotation
+			#menu_boundary.accordion
+				h3#exp_head_1.dropdown_head Boundary Properties
 				#exp_body_1.dropdown_body
+					#boundary_prop.fieldset_content_style
+			#menu_lane.accordion
+				h3#exp_head_2.dropdown_head Lane Properties
+				#exp_body_2.dropdown_body
 					#lane_prop.fieldset_content_style
 						#lane_prop_1.div_properties
 						#lane_prop_2.div_glue Add Neighbor:
@@ -281,21 +285,25 @@ html(lang="en")
 							button#lp_current(disabled) C
 							button#lp_add_right_same &uarr;
 							button#lp_add_right_opposite &darr;
-			#menu_2.accordion
-				h3#exp_head_2.dropdown_head Neighbours
-				#exp_body_2.dropdown_body
-					#lane_conn.fieldset_content_style
-					#lane_conn_btn.fieldset_content_style
-						button#lc_add.button_inline Add
-			#menu_3.accordion
-				h3#exp_head_3.dropdown_head Traffic Sign Annotation
+			#menu_connection.accordion
+				h3#exp_head_3.dropdown_head Connection Properties
 				#exp_body_3.dropdown_body
-					#traffic_sign_prop_1.fieldset_content_style
-					#traffic_sign_prop_2.fieldset_content_style
-						button#test.button_inline Show
-			#menu_4.accordion
-				h3#exp_head_4.dropdown_head Trajectory
+					#connection_prop.fieldset_content_style
+			#menu_traffic_device.accordion
+				h3#exp_head_4.dropdown_head Traffic Device Properties
 				#exp_body_4.dropdown_body
+					#traffic_device_prop_1.fieldset_content_style
+					#traffic_device_prop_2.fieldset_content_style
+						button#test.button_inline Show
+			#menu_territory.accordion
+				h3#menu_head_territory.dropdown_head Territory Properties
+				#menu_body_territory.dropdown_body
+					#property_1_territory.fieldset_content_style
+						text.label_style Label
+						input#input_label_territory
+			#menu_trajectory.accordion
+				h3#exp_head_5.dropdown_head Trajectory
+				#exp_body_5.dropdown_body
 					#trajectory_1.fieldset_content_style
 						text#tr_add_text.label_style Add to trajectory
 						button#tr_add.button_inline Add
@@ -304,13 +312,14 @@ html(lang="en")
 						button#tr_show.button_inline Show
 					#trajectory_3.fieldset_content_style
 						button#save_path.button_inline Save To File
-			#menu_5.accordion
-				h3#exp_head_5.dropdown_head Help
-				#exp_body_5.dropdown_body
+			#menu_help.accordion
+				h3#exp_head_6.dropdown_head Help
+				#exp_body_6.dropdown_body
 					p.div_help.
 						<strong>Point cloud</strong><br>
-						c - Center the camera on the tiles<br>
+						C - Center the camera on the tiles<br>
 						R - Reset tilt and compass<br>
+						V - Toggle perspective/orthographic view<br>
 						h - Hide super tiles/point cloud/annotations<br>
 						Shift-click - load points in a super tile<br>
 						U - Unload the point cloud<br>
@@ -321,19 +330,23 @@ html(lang="en")
 						S - Save annotations JSON file as Lat/Lon<br>
 						m - Save road network waypoints to KML file<br>
 						A - Delete all annotations<br>
-						z - Delete active annotation<br>
+						Delete/Backspace - Delete active annotation<br>
 						f - Add connected lane to front<br>
 						l - Add connected lane to left; same direction<br>
 						k - Add connected lane to left; reverse direction<br>
 						r - Add connected lane to right; same direction<br>
 						e - Add connected lane to right; reverse direction<br>
+						c - Hold to add lane connection; click on the lane to connect<br>
+						j - Hold to joint 2 annotations; click on the annotation to join<br>
+						F - Flip/Reverse current lane direction<br>
+						q - Hold to add a conflict to a connection; click on the other connection<br>
 
 						<strong>Annotation Markers</strong><br>
 						n - Create new lane<br>
-						a - Hold to add lane markers<br>
-						t - Create new traffic sign<br>
-						q - Hold to add traffic sign markers<br>
-						w - Hold to add the final traffic sign marker<br>
+						b - Create new boundary<br>
+						t - Create new traffic device<br>
+						T - Create new annotator territory<br>
+						a - Hold to add annotation markers<br>
 						d - Delete last marker<br>
 						1-9 - Hold when highlighting a marker to move its neighbors too<br>
 

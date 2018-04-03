@@ -1,12 +1,12 @@
 /**
- *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
+ *  Copyright 2018 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
 import * as THREE from 'three'
 import * as TypeLogger from 'typelogger'
-import {Annotation, AnnotationRenderingProperties} from 'annotator-entry-ui/annotations/AnnotationBase'
-import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase";
+import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
+import {AnnotationGeometryType, AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
 
@@ -14,80 +14,90 @@ import {isNullOrUndefined} from "util"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-export enum TrafficSignType {
+export enum TrafficDeviceType {
 	UNKNOWN = 0,
-	TRAFFIC_LIGHT,
 	STOP,
 	YIELD,
+	RYG_LIGHT,
+	RYG_LEFT_ARROW_LIGHT,
 	OTHER
 }
 
 // Some variables used for rendering
-namespace TrafficSignRenderingProperties {
+namespace TrafficDeviceRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 	export const meshMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00, side: THREE.DoubleSide})
 	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x0000ff})
 }
 
-export interface TrafficSignJsonInputInterface extends AnnotationJsonInputInterface {
-	trafficSignType: string
+export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInterface {
+	trafficDeviceType: string
 }
 
-export interface TrafficSignJsonOutputInterface extends AnnotationJsonOutputInterface {
-	trafficSignType: string
+export interface TrafficDeviceJsonOutputInterface extends AnnotationJsonOutputInterface {
+	trafficDeviceType: string
 }
 
-export class TrafficSign extends Annotation {
-	type: TrafficSignType
+export class TrafficDevice extends Annotation {
+	annotationType: AnnotationType
+	geometryType: AnnotationGeometryType
+	type: TrafficDeviceType
+	minimumMarkerCount: number
+	allowNewMarkers: boolean
+	snapToGround: boolean
 	trafficSignContour: THREE.Line
 	mesh: THREE.Mesh
 	isComplete: boolean
 
-	constructor(obj?: TrafficSignJsonInputInterface) {
+	constructor(obj?: TrafficDeviceJsonInputInterface) {
 		super(obj)
+		this.annotationType = AnnotationType.TRAFFIC_DEVICE
+		this.geometryType = AnnotationGeometryType.RING
 		if (obj) {
-			this.type = isNullOrUndefined(TrafficSignType[obj.trafficSignType]) ? TrafficSignType.UNKNOWN : TrafficSignType[obj.trafficSignType]
+			this.type = isNullOrUndefined(TrafficDeviceType[obj.trafficDeviceType]) ? TrafficDeviceType.UNKNOWN : TrafficDeviceType[obj.trafficDeviceType]
 		} else {
-			this.type = TrafficSignType.UNKNOWN
+			this.type = TrafficDeviceType.UNKNOWN
 		}
+
+		this.minimumMarkerCount = 3
+		this.allowNewMarkers = true
+		this.snapToGround = false
 		this.isComplete = false
-		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficSignRenderingProperties.contourMaterial)
-		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficSignRenderingProperties.meshMaterial)
+		this.trafficSignContour = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.contourMaterial)
+		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficDeviceRenderingProperties.meshMaterial)
 		this.renderingObject.add(this.mesh)
 		this.renderingObject.add(this.trafficSignContour)
 		this.mesh.visible = false
 
-		if (obj && obj.markers.length > 0) {
-			obj.markers.forEach( (marker) => {
-				this.addMarker(marker, false)
-			})
-			this.isComplete = true
-			this.updateVisualization()
-			this.makeInactive()
+		if (obj) {
+			if (obj.markers.length >= this.minimumMarkerCount) {
+				obj.markers.forEach(marker => this.addMarker(marker, false))
+				this.isComplete = true
+				if (!this.isValid())
+					throw Error(`can't load invalid traffic sign with id ${obj.uuid}`)
+				this.updateVisualization()
+				this.makeInactive()
+			}
 		}
 	}
 
 	isValid(): boolean {
-		return this.markers.length > 2
+		return this.markers.length >= this.minimumMarkerCount
 	}
 
-	addMarker(position: THREE.Vector3, isLastMarker: boolean): boolean {
+	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 		// Don't allow addition of markers if the isComplete flag is active
 		if (this.isComplete) {
 			log.warn("Last marker was already added. Can't add more markers. Delete a marker to allow more marker additions.")
 			return false
 		}
 
-		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficSignRenderingProperties.markerMaterial)
+		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficDeviceRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
 
-		if (isLastMarker) {
-			this.isComplete = true
-		}
-		this.updateVisualization()
-
+		if (updateVisualization) this.updateVisualization()
 		return true
 	}
 
@@ -104,6 +114,18 @@ export class TrafficSign extends Annotation {
 		if (this.isComplete) {
 			this.isComplete = false
 		}
+		this.updateVisualization()
+
+		return true
+	}
+
+	complete(): boolean {
+		if (this.isComplete) {
+			log.warn("Annotation is already complete. Delete a marker to re-open it.")
+			return false
+		}
+
+		this.isComplete = true
 		this.updateVisualization()
 
 		return true
@@ -137,7 +159,7 @@ export class TrafficSign extends Annotation {
 			return
 		}
 
-		const newContourGeometry = new THREE.Geometry();
+		const newContourGeometry = new THREE.Geometry()
 		const contourMean = new THREE.Vector3(0, 0, 0)
 
 		this.markers.forEach((marker) => {
@@ -181,13 +203,13 @@ export class TrafficSign extends Annotation {
 		this.mesh.geometry.verticesNeedUpdate = true
 	}
 
-	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficSignJsonOutputInterface {
+	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficDeviceJsonOutputInterface {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
-		const data: TrafficSignJsonOutputInterface = {
-			annotationType: AnnotationType[AnnotationType.TRAFFIC_SIGN],
+		const data: TrafficDeviceJsonOutputInterface = {
+			annotationType: AnnotationType[AnnotationType.TRAFFIC_DEVICE],
 			uuid: this.uuid,
-			trafficSignType: TrafficSignType[this.type],
+			trafficDeviceType: TrafficDeviceType[this.type],
 			markers: [],
 		}
 

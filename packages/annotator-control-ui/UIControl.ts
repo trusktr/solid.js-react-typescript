@@ -4,20 +4,72 @@
  */
 
 import {LaneType, LaneLineType, LaneLineColor, LaneEntryExitType} from 'annotator-entry-ui/annotations/Lane'
-import {TrafficSignType} from 'annotator-entry-ui/annotations/TrafficSign'
+import {TrafficDeviceType} from 'annotator-entry-ui/annotations/TrafficDevice'
+import {BoundaryType, BoundaryColor} from 'annotator-entry-ui/annotations/Boundary'
+import {ConnectionType} from "annotator-entry-ui/annotations/Connection";
 
 // Get html elements
 ///////////////////////////////////////////////////////////////////////////////
+const boundaryProp = document.getElementById('boundary_prop')
 const laneProp = document.getElementById('lane_prop_1')
-const trafficSignProp = document.getElementById('traffic_sign_prop_1')
-const laneConn = document.getElementById('lane_conn')
+const trafficDeviceProp = document.getElementById('traffic_device_prop_1')
+const connectionProp = document.getElementById('connection_prop')
 
 // Define new elements
 ///////////////////////////////////////////////////////////////////////////////
+const bpLabelsText = ['Boundary ID:', 'Boundary Type:', 'Boundary Color']
+const bpLabelsId = ['bp_id', 'bp_type', 'bp_color']
+const bpLabels: Array<HTMLElement> = []
+for (const i in bpLabelsText) {
+	if (bpLabelsText.hasOwnProperty(i)) {
+		const e = document.createElement('text')
+		e.textContent = bpLabelsText[i]
+		e.id = bpLabelsId[i]
+		e.className = 'label_style'
+		bpLabels.push(e)
+	}
+}
+
+const bpSelectsId = ['bp_select_type', 'bp_select_color']
+const bpSelectsText = [
+	['UNKNOWN', 'CURB', 'SOLID', 'DASHED', 'DOUBLE_SOLID', 'DOUBLE_DASHED', 'SOLID_DASHED', 'DASHED_SOLID', 'OTHER'],
+	['UNKNOWN', 'NONE', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'GREEN', 'OTHER']]
+const bpSelectsValue = [
+	[BoundaryType.UNKNOWN.toString(), BoundaryType.CURB.toString(), BoundaryType.SOLID.toString(),
+		BoundaryType.DASHED.toString(), BoundaryType.DOUBLE_SOLID.toString(), BoundaryType.DOUBLE_DASHED.toString(),
+		BoundaryType.SOLID_DASHED.toString(), BoundaryType.DASHED_SOLID.toString(), BoundaryType.OTHER.toString()],
+	[BoundaryColor.UNKNOWN.toString(), BoundaryColor.NONE.toString(), BoundaryColor.WHITE.toString(),
+		BoundaryColor.YELLOW.toString(), BoundaryColor.RED.toString(), BoundaryColor.BLUE.toString(),
+		BoundaryColor.GREEN.toString(), BoundaryColor.OTHER.toString()]]
+
+const bpSelects: Array<HTMLElement> = []
+const eBoundaryId = document.createElement('text')
+eBoundaryId.textContent = 'UNKNOWN'
+eBoundaryId.id = 'bp_id_value'
+eBoundaryId.className = 'select_style'
+bpSelects.push(eBoundaryId)
+
+for (const i in bpSelectsId) {
+	if (bpSelectsId.hasOwnProperty(i)) {
+		const element = document.createElement('select')
+		element.id = bpSelectsId[i]
+		element.className = 'select_style'
+		for (let j = 0; j < bpSelectsText[i].length; ++j) {
+			const option = document.createElement("option")
+			option.value = bpSelectsValue[i][j]
+			option.text = bpSelectsText[i][j]
+			element.appendChild(option)
+		}
+		bpSelects.push(element)
+	}
+}
+
+// ------------------------------------------------------------------------------------------------------------------
 const lpLabelsText = ['Lane ID:', 'Lane Width:', 'Type:', 'Left Line Type:', 'Left Line Color:',
-					  'Right Line Type:', 'Right Line Color', 'Entry Type:', 'Exit Type:']
+	'Right Line Type:', 'Right Line Color', 'Entry Type:', 'Exit Type:']
 const lpLabelsId = ['lp_id', 'lp_width', 'lp_lane_type', 'lp_left_line', 'lp_left_color',
-					'lp_right_line', 'lp_right_color', 'lp_entry', 'lp_exit']
+	'lp_right_line', 'lp_right_color', 'lp_entry', 'lp_exit']
+
 const lpLabels: Array<HTMLElement> = []
 for (const i in lpLabelsText) {
 	if (lpLabelsText.hasOwnProperty(i)) {
@@ -30,7 +82,7 @@ for (const i in lpLabelsText) {
 }
 
 const lpSelectsId = ['lp_select_type', 'lp_select_left_type', 'lp_select_left_color',
-					 'lp_select_right_type', 'lp_select_right_color', 'lp_select_entry', 'lp_select_exit']
+	'lp_select_right_type', 'lp_select_right_color', 'lp_select_entry', 'lp_select_exit']
 const lpSelectsText = [
 	['UNKNOWN', 'ALL_VEHICLES', 'MOTOR_VEHICLES', 'CAR_ONLY', 'TRUCK_ONLY', 'BUS_ONLY', 'BIKE_ONLY', 'PEDESTRIAN_ONLY', 'PARKING', 'CROSSWALK', 'OTHER'],
 	['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –'],
@@ -53,16 +105,16 @@ const lpSelectValue = [
 	[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()]]
 
 const lpSelects: Array<HTMLElement> = []
-const elm = document.createElement('text')
-elm.textContent = 'UNKNOWN'
-elm.id = 'lp_id_value'
-elm.className = 'select_style'
-lpSelects.push(elm)
-const elementWidth = document.createElement('text')
-elementWidth.textContent = 'UNKNOWN'
-elementWidth.id = 'lp_width_value'
-elementWidth.className = 'select_style'
-lpSelects.push(elementWidth)
+const eLaneId = document.createElement('text')
+eLaneId.textContent = 'UNKNOWN'
+eLaneId.id = 'lp_id_value'
+eLaneId.className = 'select_style'
+lpSelects.push(eLaneId)
+const eLaneWidth = document.createElement('text')
+eLaneWidth.textContent = 'UNKNOWN'
+eLaneWidth.id = 'lp_width_value'
+eLaneWidth.className = 'select_style'
+lpSelects.push(eLaneWidth)
 
 for (const i in lpSelectsId) {
 	if (lpSelectsId.hasOwnProperty(i)) {
@@ -79,43 +131,56 @@ for (const i in lpSelectsId) {
 	}
 }
 
-const lcLabelsText = ['From Lane:', 'To Lane:', 'Relation:']
-const lcLabelsId = ['lc_from', 'lc_to', 'lc_relation']
-const lcLabels: Array<HTMLElement> = []
-for (const i in lcLabelsText) {
-	if (lcLabelsText.hasOwnProperty(i)) {
+// ------------------------------------------------------------------------------------------------------------------
+const cpLabelsText = ['Connection ID', 'Type:', "Traffic Device:"]
+const cpLabelsId = ['cp_id', 'cp_type', 'cp_device']
+const cpLabels: Array<HTMLElement> = []
+
+for (const i in cpLabelsText) {
+	if (cpLabelsText.hasOwnProperty(i)) {
 		const element = document.createElement('text')
-		element.textContent = lcLabelsText[i]
-		element.id = lcLabelsId[i]
+		element.textContent = cpLabelsText[i]
+		element.id = cpLabelsId[i]
 		element.className = 'label_style'
-		lcLabels.push(element)
+		cpLabels.push(element)
 	}
 }
 
-const lcSelectsId = ['lc_select_from', 'lc_select_to', 'lc_select_relation']
-const lcSelectsItems = [
-	[],
-	[],
-	['left', 'left reverse', 'right', 'front', 'back']]
-const lcSelects: Array<HTMLSelectElement> = []
-for (const i in lcSelectsId) {
-	if (lcSelectsId.hasOwnProperty(i)) {
+const cpSelectsId = ['cp_select_type', 'cp_select_device']
+const cpSelectsText = [
+	['UNKNOWN', 'YIELD', 'ALTERNATE', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER'],
+	['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LIGHT_LEFT_ARROW', 'OTHER']]
+const cpSelectsValue = [
+	[ConnectionType.UNKNOWN.toString(), ConnectionType.YIELD.toString(), ConnectionType.ALTERNATE.toString(),
+		ConnectionType.RYG_LIGHT.toString(), ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(), ConnectionType.OTHER.toString()],
+	[TrafficDeviceType.UNKNOWN.toString(), TrafficDeviceType.STOP.toString(), TrafficDeviceType.YIELD.toString(),
+		TrafficDeviceType.RYG_LIGHT.toString(), TrafficDeviceType.RYG_LEFT_ARROW_LIGHT.toString(),
+		TrafficDeviceType.OTHER.toString()]]
+
+const cpSelects: Array<HTMLElement> = []
+const eConnectionId = document.createElement('text')
+eConnectionId.textContent = 'UNKNOWN'
+eConnectionId.id = 'cp_id_value'
+eConnectionId.className = 'select_style'
+cpSelects.push(eConnectionId)
+
+for (const i in cpSelectsId) {
+	if (cpSelectsId.hasOwnProperty(i)) {
 		const element = document.createElement('select')
-		element.id = lcSelectsId[i]
+		element.id = cpSelectsId[i]
 		element.className = 'select_style'
-		for (const j in lcSelectsItems[i]) {
-			if (lcSelectsItems[i].hasOwnProperty(j)) {
-				const option = document.createElement("option")
-				option.value = lcSelectsItems[i][j]
-				option.text = lcSelectsItems[i][j]
-				element.appendChild(option)
-			}
+		for (let j = 0; j < cpSelectsText[i].length; ++j) {
+			const option = document.createElement("option")
+			option.value = cpSelectsValue[i][j]
+			option.text = cpSelectsText[i][j]
+			element.appendChild(option)
 		}
-		lcSelects.push(element)
+		cpSelects.push(element)
 	}
 }
 
-const tpLabelsText = ["Traffic sign ID:", "Type:"]
+// ------------------------------------------------------------------------------------------------------------------
+const tpLabelsText = ["Traffic device ID:", "Type:"]
 const tpLabelsId = ["tp_id", "tp_type"]
 const tpLabels: Array<HTMLElement> = []
 for (const i in tpLabelsText) {
@@ -129,17 +194,19 @@ for (const i in tpLabelsText) {
 }
 
 const tpSelectsId = ['tp_select_type']
-const tpSelectsText = [ ['UNKNOWN', 'TRAFFIC_LIGHT', 'STOP', 'YIELD', 'OTHER']]
-const tpSelectsValue = [ [TrafficSignType.UNKNOWN.toString(), TrafficSignType.TRAFFIC_LIGHT.toString(),
-						 TrafficSignType.STOP.toString(), TrafficSignType.YIELD.toString(), TrafficSignType.OTHER.toString()]]
+const tpSelectsText = [ ['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER']]
+const tpSelectsValue = [
+	[TrafficDeviceType.UNKNOWN.toString(), TrafficDeviceType.STOP.toString(), TrafficDeviceType.YIELD.toString(),
+		TrafficDeviceType.RYG_LIGHT.toString(), TrafficDeviceType.RYG_LEFT_ARROW_LIGHT.toString(),
+		TrafficDeviceType.OTHER.toString()]]
 
 const tpSelects: Array<HTMLElement> = []
 
-const elementTrafficSignId = document.createElement('text')
-elementTrafficSignId.textContent = 'UNKNOWN'
-elementTrafficSignId.id = 'tp_id_value'
-elementTrafficSignId.className = 'select_style'
-tpSelects.push(elementTrafficSignId)
+const elementTrafficDeviceId = document.createElement('text')
+elementTrafficDeviceId.textContent = 'UNKNOWN'
+elementTrafficDeviceId.id = 'tp_id_value'
+elementTrafficDeviceId.className = 'select_style'
+tpSelects.push(elementTrafficDeviceId)
 
 for (const i in tpSelectsId) {
 	if (tpSelectsId.hasOwnProperty(i)) {
@@ -158,6 +225,14 @@ for (const i in tpSelectsId) {
 
 // Add elements to the menu panel
 ///////////////////////////////////////////////////////////////////////////////
+if (boundaryProp)
+	for (const i in bpSelects) {
+		if (bpSelects.hasOwnProperty(i)) {
+			boundaryProp.appendChild(bpLabels[i])
+			boundaryProp.appendChild(bpSelects[i])
+		}
+	}
+
 if (laneProp)
 	for (const i in lpSelects) {
 		if (lpSelects.hasOwnProperty(i)) {
@@ -166,24 +241,30 @@ if (laneProp)
 		}
 	}
 
-if (laneConn)
-	for (const i in lcSelects) {
-		if (lcSelects.hasOwnProperty(i)) {
-			laneConn.appendChild(lcLabels[i])
-			laneConn.appendChild(lcSelects[i])
+if (connectionProp)
+	for (const i in cpSelects) {
+		if (cpSelects.hasOwnProperty(i)) {
+			connectionProp.appendChild(cpLabels[i])
+			connectionProp.appendChild(cpSelects[i])
 		}
 	}
 
-if (trafficSignProp)
+if (trafficDeviceProp)
 	for (const i in tpSelects) {
 		if (tpSelects.hasOwnProperty(i)) {
-			trafficSignProp.appendChild(tpLabels[i])
-			trafficSignProp.appendChild(tpSelects[i])
+			trafficDeviceProp.appendChild(tpLabels[i])
+			trafficDeviceProp.appendChild(tpSelects[i])
 		}
 	}
 
-$('#menu_1').accordion({collapsible: true, heightStyle: "content"})
-$('#menu_2').accordion({collapsible: true, heightStyle: "content"})
-$('#menu_3').accordion({collapsible: true, heightStyle: "content"})
-$('#menu_4').accordion({collapsible: true, heightStyle: "content"})
-$('#menu_5').accordion({collapsible: true, heightStyle: "content"})
+const accordionOptions = {collapsible: true, active: false, heightStyle: "content"}
+const menuIds = [
+	'#menu_boundary',
+	'#menu_help',
+	'#menu_lane',
+	'#menu_connection',
+	'#menu_territory',
+	'#menu_traffic_device',
+	'#menu_trajectory',
+]
+menuIds.forEach(domId => $(domId).accordion(accordionOptions))
