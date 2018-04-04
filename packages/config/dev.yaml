@@ -59,6 +59,7 @@ output.trajectory.csv.path: ./data/trajectory.csv
 
 # for photos displayed within the 3D scene
 image_manager.image.opacity: 0.5
+image_manager.image.wireframe.visible: false
 
 # Location server info
 location_server.status.health_check.interval.seconds: 5

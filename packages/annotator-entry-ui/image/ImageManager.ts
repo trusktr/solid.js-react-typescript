@@ -18,9 +18,11 @@ import {UtmInterface} from "../UtmInterface";
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const dialog = Electron.remote.dialog
+const config = require('../../config')
 
 interface ImageManagerSettings {
 	arbitraryImageScale: number // fudge factor until I figure out how to scale it from CameraParameters
+	visibleWireframe: boolean // whether to display a wireframe around the image
 }
 
 const imageMaterialParameters = {
@@ -50,7 +52,8 @@ export class ImageManager {
 	) {
 		this.utmInterface = utmInterface
 		this.settings = {
-			arbitraryImageScale: 0.003
+			arbitraryImageScale: 0.003,
+			visibleWireframe: config.get('image_manager.image.wireframe.visible'),
 		}
 		this.textureLoader = new THREE.TextureLoader()
 		this.images = []
@@ -101,7 +104,7 @@ export class ImageManager {
 					.then(mesh =>
 						this.setUpScreen({
 							path: path,
-							imageScreen: new ImageScreen(mesh),
+							imageScreen: new ImageScreen(mesh, this.settings.visibleWireframe),
 							parameters: cameraParameters
 						} as CalibratedImage)
 					)

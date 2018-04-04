@@ -10,10 +10,11 @@ import {threeDStepSize} from "../tile/Constant"
 // out of the XY plane.
 const tip = new THREE.Vector3(0, 0, 1)
 const lineMaterial = new THREE.LineBasicMaterial({color: 0x66aa00})
+const invisibleLineMaterial = new THREE.LineBasicMaterial({visible: false})
 
 // Extend a line around the base and to a central point, forming a pyramid.
 // Assume four corners in the base.
-function pyramid(base: THREE.Vector3[]): THREE.Line {
+function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
 	const vertices = [
 		tip,
 		base[0],
@@ -39,7 +40,7 @@ function pyramid(base: THREE.Vector3[]): THREE.Line {
 	const geometry = new THREE.BufferGeometry()
 	geometry.addAttribute('position', new THREE.BufferAttribute(positions, threeDStepSize))
 
-	return new THREE.Line(geometry, lineMaterial)
+	return new THREE.Line(geometry, visible ? lineMaterial : invisibleLineMaterial)
 }
 
 // An object containing a 2D image, located in 3D space, plus a wireframe
@@ -49,7 +50,7 @@ function pyramid(base: THREE.Vector3[]): THREE.Line {
 export class ImageScreen extends THREE.Object3D {
 	imageMesh: THREE.Mesh
 
-	constructor(imageMesh: THREE.Mesh) {
+	constructor(imageMesh: THREE.Mesh, visibleWireframe: boolean) {
 		super()
 		this.imageMesh = imageMesh
 
@@ -58,7 +59,7 @@ export class ImageScreen extends THREE.Object3D {
 			throw Error('invalid geometry ' + imageMesh.geometry)
 
 		this.add(imageMesh)
-		this.add(pyramid(geometry.vertices))
+		this.add(pyramid(geometry.vertices, visibleWireframe))
 	}
 
 	// Scale the image from pixel dimensions to three.js coordinates.
