@@ -87,7 +87,7 @@ export class TrafficDevice extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length >= this.minimumMarkerCount
+		return this.markers.length >= this.minimumMarkerCount && this.type !== TrafficDeviceType.UNKNOWN
 	}
 
 	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {

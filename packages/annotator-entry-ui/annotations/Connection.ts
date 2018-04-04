@@ -116,7 +116,8 @@ export class Connection extends Annotation {
 	}
 
 	isValid(): boolean {
-		return this.markers.length >= this.minimumMarkerCount
+		const isMissingType = this.conflictingConnections.length > 0 && this.type === ConnectionType.UNKNOWN
+		return (this.markers.length >= this.minimumMarkerCount && !isMissingType)
 	}
 
 	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
