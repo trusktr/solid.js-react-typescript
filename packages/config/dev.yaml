@@ -1,7 +1,9 @@
+# user local preferences
+preferences.directory: mapper-annotator
+
 # application initialization
-# Set window dimensions to 0 to maximize.
-startup.electron.window.default.width: 0
-startup.electron.window.default.height: 0
+startup.electron.window.default.width: 800
+startup.electron.window.default.height: 600
 startup.animation.fps: 10
 startup.render.fps: 20
 startup.kiosk_mode: false
@@ -54,6 +56,10 @@ fly_through.animation.fps: 10
 
 # persist trajectories
 output.trajectory.csv.path: ./data/trajectory.csv
+
+# for photos displayed within the 3D scene
+image_manager.image.opacity: 0.5
+image_manager.image.wireframe.visible: false
 
 # Location server info
 location_server.status.health_check.interval.seconds: 5

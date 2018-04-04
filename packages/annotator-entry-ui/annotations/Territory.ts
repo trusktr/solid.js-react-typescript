@@ -9,7 +9,6 @@ import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
 import {AnnotationGeometryType, AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
-import {ceilingPowerOf2} from "../util/Math"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -53,8 +52,8 @@ function generateTextureWithLabel(label: string): THREE.CanvasTexture | null {
 		context.font = textHeight + 'px sans-serif'
 		const textWidth = context.measureText(label).width
 		// THREE.WebGLRenderer will round off the canvas dimensions without asking. Do it now to prevent a warning.
-		canvas.width = ceilingPowerOf2(textWidth + textPadding * 2 + textMargin * 2)
-		canvas.height = ceilingPowerOf2(textHeight + textPadding * 2 + textMargin * 2)
+		canvas.width = THREE.Math.nextPowerOfTwo(textWidth + textPadding * 2 + textMargin * 2)
+		canvas.height = THREE.Math.nextPowerOfTwo(textHeight + textPadding * 2 + textMargin * 2)
 
 		context.fillStyle = backGroundColor
 		context.fillRect(textMargin, textMargin, canvas.width - 2 * textMargin, canvas.height - 2 * textMargin)
