@@ -2136,17 +2136,6 @@ export class Annotator {
 			log.info("Adding connection type: " + cpType.children("options").filter(":selected").text())
 			activeAnnotation.type = +cpType.val()
 		})
-
-		/*
-		const cpDevice = $('#cp_select_device')
-		cpDevice.on('change', () => {
-			const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
-			if (activeAnnotation === null)
-				return
-			log.info("Adding boundary color: " + cpDevice.children("options").filter(":selected").text())
-			activeAnnotation.device = +cpDevice.val()
-		})
-		*/
 	}
 
 	private bindTerritoryPropertiesPanel(): void {
@@ -2607,12 +2596,6 @@ export class Annotator {
 			cpType.setAttribute('disabled', 'disabled')
 		else
 			log.warn('missing element cp_select_type')
-
-		const cpDevice = document.getElementById('cp_select_device')
-		if (cpDevice)
-			cpDevice.setAttribute('disabled', 'disabled')
-		else
-			log.warn('missing element cp_select_device')
 
 		const connectionProp = document.getElementById('connection_prop')
 		if (connectionProp) {
