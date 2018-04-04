@@ -308,7 +308,7 @@ class Annotator {
 		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
 		this.highlightedImageScreenBox = null
-		this.imageManager = new ImageManager(this.uiState.imageScreenOpacity, this.onImageScreenLoad)
+		this.imageManager = new ImageManager(this.tileManager, this.uiState.imageScreenOpacity, this.onImageScreenLoad)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
 		this.flyThroughSettings = {

@@ -12,6 +12,7 @@ import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWind
 import {LightboxImageDescription, LightboxState} from "../../annotator-image-lightbox/LightboxState"
 import {readImageMetadataFile} from "./Aurora"
 import * as TypeLogger from "typelogger"
+import {UtmInterface} from "../UtmInterface";
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -31,6 +32,7 @@ const imageMaterialParameters = {
 // This tracks a set of images which can be displayed within the 3D scene as well as
 // a subset of images which are loaded in their own window for closer inspection.
 export class ImageManager {
+	private utmInterface: UtmInterface
 	private settings: ImageManagerSettings
 	private textureLoader: THREE.TextureLoader
 	private images: CalibratedImage[]
@@ -42,11 +44,13 @@ export class ImageManager {
 	loadedImageDetails: OrderedSet<CalibratedImage>
 
 	constructor(
+		utmInterface: UtmInterface,
 		opacity: number,
 		onImageScreenLoad: (imageScreen: ImageScreen) => void
 	) {
+		this.utmInterface = utmInterface
 		this.settings = {
-			arbitraryImageScale: 0.01,
+			arbitraryImageScale: 0.003
 		}
 		this.textureLoader = new THREE.TextureLoader()
 		this.images = []
@@ -91,7 +95,7 @@ export class ImageManager {
 	}
 
 	private loadImageFromPath(path: string): Promise<void> {
-		return readImageMetadataFile(path)
+		return readImageMetadataFile(path, this.utmInterface)
 			.then(cameraParameters =>
 				this.loadImageAsPlaneGeometry(path)
 					.then(mesh =>
