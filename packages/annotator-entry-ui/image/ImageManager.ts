@@ -76,6 +76,14 @@ export class ImageManager {
 		return true
 	}
 
+	showImageScreens(): void {
+		this.imageScreens.forEach(i => i.makeVisible())
+	}
+
+	hideImageScreens(): void {
+		this.imageScreens.forEach(i => i.makeInvisible())
+	}
+
 	loadImagesFromOpenDialog(): Promise<void> {
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
 			const options: Electron.OpenDialogOptions = {
