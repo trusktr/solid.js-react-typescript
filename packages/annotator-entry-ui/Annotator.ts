@@ -481,7 +481,7 @@ class Annotator {
 				}
 			})
 			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveLaneAnnotation()) {
+				if (value && (this.annotationManager.getActiveLaneAnnotation() || this.annotationManager.getActiveConnectionAnnotation())) {
 					this.annotationManager.unsetActiveAnnotation()
 					this.render()
 				}
@@ -1335,11 +1335,11 @@ class Annotator {
 	}
 
 	private isAnnotationLocked(annotation: Annotation): boolean {
-		if (annotation instanceof Lane && this.uiState.lockLanes)
+		if (this.uiState.lockLanes && (annotation instanceof Lane || annotation instanceof Connection))
 			return true
-		else if (annotation instanceof Boundary && this.uiState.lockBoundaries)
+		else if (this.uiState.lockBoundaries && annotation instanceof Boundary)
 			return true
-		else if (annotation instanceof Territory && this.uiState.lockTerritories)
+		else if (this.uiState.lockTerritories && annotation instanceof Territory)
 			return true
 		return false
 	}
