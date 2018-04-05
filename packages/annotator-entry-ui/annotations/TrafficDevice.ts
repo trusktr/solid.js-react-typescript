@@ -97,12 +97,12 @@ export class TrafficDevice extends Annotation {
 	/**
 	 * This function works differently from other annotations types. Since the rendering of a traffic device is
 	 * pre-defined depending on it's type, we only use this function to specify the location of the device not
-	 * it's shape. Multiple calls to this function will only update the position of the annotation.
+	 * it's shape.
 	 */
 	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 		if (this.markers.length > 0) {
-			const oldMarker = this.markers.pop()
-			this.renderingObject.remove(oldMarker as THREE.Object3D)
+			log.info("This annotation type doesn't allow more than one marker")
+			return false
 		}
 
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficDeviceRenderingProperties.markerMaterial)
@@ -128,15 +128,10 @@ export class TrafficDevice extends Annotation {
 		return true
 	}
 
+	/**
+	 * This function is not used for this annotation class=
+	 */
 	complete(): boolean {
-		if (this.isComplete) {
-			log.warn("Annotation is already complete. Delete a marker to re-open it.")
-			return false
-		}
-
-		this.isComplete = true
-		this.updateVisualization()
-
 		return true
 	}
 
