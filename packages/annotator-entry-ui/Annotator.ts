@@ -2273,6 +2273,8 @@ class Annotator {
 				return
 			log.info("Adding traffic device type: " + tpType.children("option").filter(":selected").text())
 			activeAnnotation.type = +tpType.val()
+			activeAnnotation.updateVisualization()
+			this.render()
 		})
 	}
 
