@@ -29,7 +29,7 @@ import LocalStorage from "../state/LocalStorage"
 import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "../model/RangeSearch"
 import {LocalTileInstance, RemoteTileInstance, TileInstance} from "../model/TileInstance"
-import {isTupleOfNumbers} from "../util/Validation"
+import {isTupleOfNumbers} from "../../util/Validation"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)

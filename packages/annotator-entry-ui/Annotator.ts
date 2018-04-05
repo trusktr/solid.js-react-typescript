@@ -2,7 +2,6 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
-import {Connection} from "./annotations/Connection";
 
 const config = require('../config')
 import * as $ from 'jquery'
@@ -20,7 +19,7 @@ import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame
 } from "./geometry/CoordinateFrame"
-import {isTupleOfNumbers} from "./util/Validation"
+import {isTupleOfNumbers} from "../util/Validation"
 import {StatusWindowController} from "./status/StatusWindowController"
 import {TileManager} from './tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
@@ -38,13 +37,17 @@ import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
 import * as TypeLogger from 'typelogger'
 import {getValue} from "typeguard"
-import {isNull, isUndefined} from "util"
+import {isNull} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {Socket} from 'zmq'
 import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient"
-import {TrafficDevice} from "./annotations/TrafficDevice";
+import {ImageManager} from "./image/ImageManager"
+import {ImageScreen} from "./image/ImageScreen"
+import {CalibratedImage} from "./image/CalibratedImage"
+import {Connection} from "./annotations/Connection"
+import {TrafficDevice} from "./annotations/TrafficDevice"
 const  watch = require('watch')
 
 declare global {
@@ -158,6 +161,7 @@ interface UiState {
 	// file (if this.flyThroughSettings.enabled is true) or messages on a live socket.
 	isLiveMode: boolean
 	isKioskMode: boolean // hides window chrome and turns on live mode permanently, with even less user input
+	imageScreenOpacity: number
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
 	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
 }
@@ -175,7 +179,7 @@ interface AoiState {
  * and the annotations. It also handles the mouse and keyboard events needed to select
  * and modify the annotations.
  */
-export class Annotator {
+class Annotator {
 	private storage: LocalStorage // persistent state for UI settings
 	private uiState: UiState
 	private aoiState: AoiState
@@ -189,9 +193,11 @@ export class Annotator {
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
 	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
 	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
+	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
 	private tileManager: TileManager
+	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
 	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
@@ -209,6 +215,7 @@ export class Annotator {
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
 	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
+	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the UI
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
@@ -268,6 +275,7 @@ export class Annotator {
 			numberKeyPressed: null,
 			isLiveMode: false,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
+			imageScreenOpacity: parseFloat(config.get('image_manager.image.opacity')) || 0.5,
 			lastPointCloudLoadedErrorModalMs: 0,
 			lastCameraCenterPoint: null,
 		}
@@ -285,6 +293,7 @@ export class Annotator {
 		this.raycasterSuperTiles = new THREE.Raycaster()
 		this.decorations = []
 		this.raycasterAnnotation = new THREE.Raycaster()
+		this.raycasterImageScreen = new THREE.Raycaster()
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager(
 			this.settings.generateVoxelsOnPointLoad,
@@ -298,6 +307,8 @@ export class Annotator {
 		this.superTileGroundPlanes = Map()
 		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
+		this.highlightedImageScreenBox = null
+		this.imageManager = new ImageManager(this.tileManager, this.uiState.imageScreenOpacity, this.onImageScreenLoad)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
 		this.flyThroughSettings = {
@@ -453,9 +464,13 @@ export class Annotator {
 				hideable: false,
 				closeOnTop: true,
 			} as GUIParams)
-			this.gui.addColor(this.settings, 'background').onChange((value: string) => {
+			this.gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
 				this.renderer.setClearColor(new THREE.Color(value))
 				this.render()
+			})
+			this.gui.add(this.uiState, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
+				if (this.imageManager.setOpacity(value))
+					this.render()
 			})
 
 			const folderLock = this.gui.addFolder('Lock')
@@ -504,20 +519,23 @@ export class Annotator {
 
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
+		this.renderer.domElement.addEventListener('mousemove', this.checkForImageScreenSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictOrDeviceSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
 		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
 		this.renderer.domElement.addEventListener('mouseup', this.clickSuperTileBox)
+		this.renderer.domElement.addEventListener('mouseup', this.clickImageScreenBox)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
 		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed})
 
 		// Bind events
-		if (!this.uiState.isKioskMode)
+		if (!this.uiState.isKioskMode) {
 			this.bind()
-		Annotator.deactivateAllAnnotationPropertiesMenus()
+			Annotator.deactivateAllAnnotationPropertiesMenus()
+		}
 
 		this.displayMenu(
 			config.get('startup.show_menu') && !this.uiState.isKioskMode
@@ -541,7 +559,6 @@ export class Annotator {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
 		if (annotationsPath) {
-			log.info('loading pre-configured annotations ' + annotationsPath)
 			annotationsResult = this.loadAnnotations(annotationsPath)
 		} else {
 			annotationsResult = Promise.resolve()
@@ -737,7 +754,7 @@ export class Annotator {
 
 	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
-		log.info('loadPointCloudDataFromDirectory')
+		log.info('Loading point cloud from ' + pathToTiles)
 		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
 			.catch(err => this.pointCloudLoadedError(err))
@@ -1156,7 +1173,7 @@ export class Annotator {
 	 * Center the stage and the camera on the annotations model.
 	 */
 	private loadAnnotations(fileName: string): Promise<void> {
-		log.info('Loading annotations')
+		log.info('Loading annotations from ' + fileName)
 		if (!this.uiState.isAnnotationsVisible)
 			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 		return this.annotationManager.loadAnnotationsFromFile(fileName)
@@ -1541,7 +1558,7 @@ export class Annotator {
 		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
 		const intersects = this.raycasterSuperTiles.intersectObject(this.highlightedSuperTileBox)
 
-		if (intersects.length > 0) {
+		if (intersects.length) {
 			const superTile = this.highlightedSuperTileBox.userData as SuperTile
 			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
 			this.scene.remove(this.highlightedSuperTileBox)
@@ -1554,6 +1571,7 @@ export class Annotator {
 	// Draw the box in a more solid form to indicate that it is active.
 	private highlightSuperTileBox(superTileBox: THREE.Mesh): void {
 		if (this.uiState.isLiveMode) return
+		if (this.highlightedImageScreenBox) return
 		if (!this.uiState.isShiftKeyPressed) return
 
 		const material = superTileBox.material as THREE.MeshBasicMaterial
@@ -1573,6 +1591,84 @@ export class Annotator {
 		material.transparent = false
 		material.opacity = 1.0
 		this.highlightedSuperTileBox = null
+		this.render()
+	}
+
+	// When ImageManager loads an image, add it to the scene.
+	private onImageScreenLoad: (imageScreen: ImageScreen) => void =
+		(imageScreen: ImageScreen) => {
+			this.scene.add(imageScreen)
+			this.render()
+		}
+
+	private checkForImageScreenSelection = (event: MouseEvent): void => {
+		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseButtonPressed) return
+		if (this.uiState.isAddMarkerKeyPressed) return
+		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
+		if (!this.uiState.isPointCloudVisible) return
+
+		if (!this.imageManager.imageScreenMeshes.length) return this.unHighlightImageScreenBox()
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterImageScreen.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterImageScreen.intersectObjects(this.imageManager.imageScreenMeshes)
+
+		if (!intersects.length) {
+			this.unHighlightImageScreenBox()
+		} else {
+			const first = intersects[0].object as THREE.Mesh
+
+			if (this.highlightedImageScreenBox && this.highlightedImageScreenBox.id !== first.id)
+				this.unHighlightImageScreenBox()
+
+			if (!this.highlightedImageScreenBox)
+				this.highlightImageScreenBox(first)
+		}
+	}
+
+	private clickImageScreenBox = (event: MouseEvent): void => {
+		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseDragging) return
+		if (!this.highlightedImageScreenBox) return
+		if (!this.uiState.isPointCloudVisible) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterImageScreen.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterImageScreen.intersectObject(this.highlightedImageScreenBox)
+
+		if (intersects.length) {
+			const image = this.highlightedImageScreenBox.userData as CalibratedImage
+			this.unHighlightImageScreenBox()
+			this.render()
+			this.imageManager.loadImageIntoWindow(image)
+		}
+	}
+
+	// Draw the box with max opacity to indicate that it is active.
+	private highlightImageScreenBox(imageScreenBox: THREE.Mesh): void {
+		if (this.uiState.isLiveMode) return
+		if (this.highlightedSuperTileBox) return
+		if (!this.uiState.isShiftKeyPressed) return
+
+		const image = imageScreenBox.userData as CalibratedImage
+		// Don't allow it to be loaded a second time.
+		if (this.imageManager.loadedImageDetails.has(image)) return
+
+		const material = imageScreenBox.material as THREE.MeshBasicMaterial
+		material.opacity = 1.0
+		this.highlightedImageScreenBox = imageScreenBox
+		this.render()
+	}
+
+	// Draw the box with default opacity like all the other boxes.
+	private unHighlightImageScreenBox(): void {
+		if (!this.highlightedImageScreenBox) return
+
+		const material = this.highlightedImageScreenBox.material as THREE.MeshBasicMaterial
+		material.opacity = this.uiState.imageScreenOpacity
+		this.highlightedImageScreenBox = null
 		this.render()
 	}
 
@@ -1933,17 +2029,24 @@ export class Annotator {
 	}
 
 	private loadFromFile(): Promise<void> {
-		const pathElectron = dialog.showOpenDialog({
-			properties: ['openDirectory']
-		})
-
-		if (!(pathElectron && pathElectron[0]))
-			return Promise.resolve()
-
 		if (this.tileManager.getPointClouds().length)
 			log.warn('you should probably unload the existing point cloud before loading another')
-		log.info('Loading point cloud from ' + pathElectron[0])
-		return this.loadPointCloudDataFromDirectory(pathElectron[0])
+
+		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
+			const options: Electron.OpenDialogOptions = {
+				message: 'Load Point Cloud Directory',
+				properties: ['openDirectory'],
+			}
+			const handler = (paths: string[]): void => {
+				if (paths && paths.length)
+					this.loadPointCloudDataFromDirectory(paths[0])
+						.then(() => resolve())
+						.catch(err => reject(err))
+				else
+					reject(Error('no path selected'))
+			}
+			dialog.showOpenDialog(options, handler)
+		})
 	}
 
 	private addFront(): void {
@@ -2271,19 +2374,29 @@ export class Annotator {
 		else
 			log.warn('missing element tools_load')
 
+		const toolsLoadImages = document.getElementById('tools_load_images')
+		if (toolsLoadImages)
+			toolsLoadImages.addEventListener('click', () => {
+				this.imageManager.loadImagesFromOpenDialog()
+					.catch(err => log.warn('loadImagesFromOpenDialog failed: ' + err.message))
+			})
+		else
+			log.warn('missing element tools_load_images')
+
 		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 		if (toolsLoadAnnotation)
 			toolsLoadAnnotation.addEventListener('click', () => {
-				const pathElectron = dialog.showOpenDialog({
-					filters: [{name: 'json', extensions: ['json']}]
-				})
-
-				if (isUndefined(pathElectron))
-					return
-
-				log.info('Loading annotations from ' + pathElectron[0])
-				this.loadAnnotations(pathElectron[0])
-					.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+				const options: Electron.OpenDialogOptions = {
+					message: 'Load Annotations File',
+					properties: ['openFile'],
+					filters: [{name: 'json', extensions: ['json']}],
+				}
+				const handler = (paths: string[]): void => {
+					if (paths && paths.length)
+						this.loadAnnotations(paths[0])
+							.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+				}
+				dialog.showOpenDialog(options, handler)
 			})
 		else
 			log.warn('missing element tools_load_annotation')

@@ -243,7 +243,7 @@ html(lang="en")
 			}
 
 		meta(name="viewport",content="width=device-width, initial-scale=1")
-		title!="Mapper Visualizer"
+		title="Mapper Visualizer"
 
 	body
 		#root
@@ -264,6 +264,7 @@ html(lang="en")
 				button#tools_add_traffic_device.ui-btn.ui-icon-plus.ui-btn-icon-left New Traffic Device
 				button#tools_delete.ui-btn.ui-icon-minus.ui-btn-icon-left Delete Annotation
 				button#tools_load.ui-btn.ui-icon-grid.ui-btn-icon-left Load Tiles
+				button#tools_load_images.ui-btn.ui-icon-camera.ui-btn-icon-left Load Images
 				button#tools_load_annotation.ui-btn.ui-icon-edit.ui-btn-icon-left Load Annotation
 				button#tools_save.ui-btn.ui-icon-check.ui-btn-icon-left Save Annotation
 				button#tools_export_kml.ui-btn.ui-icon-location.ui-btn-icon-left Export KML
@@ -348,6 +349,9 @@ html(lang="en")
 						a - Hold to add annotation markers<br>
 						d - Delete last marker<br>
 						1-9 - Hold when highlighting a marker to move its neighbors too<br>
+
+						<strong>Images</strong><br>
+						Shift-click - load an image into a new window<br>
 
 						<strong>Live Mode</strong><br>
 						o - Listen/stop listening for live location data<br>

@@ -3,15 +3,16 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+import * as Url from 'url'
+import * as Path from 'path'
 import * as Electron from 'electron'
 import {BrowserWindow, BrowserWindowConstructorOptions} from 'electron'
+import {isNullOrUndefined} from "util"
+import {windowStateKeeperOptions} from "../util/WindowStateKeeperOptions"
+const windowStateKeeper = require('electron-window-state')
 const config = require('../config')
 
 const app = Electron.app
-
-const
-	url = require('url'),
-	Path = require('path')
 
 // Ask for ~6GB memory
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=8096')
@@ -20,35 +21,66 @@ app.commandLine.appendSwitch('js-flags', '--max-old-space-size=8096')
 // be closed automatically when the JavaScript object is garbage collected.
 let win: BrowserWindow | null
 
+const isSecondInstance = app.makeSingleInstance(() => {
+	if (win) {
+		if (win.isMinimized()) win.restore()
+		win.focus()
+	}
+})
+if (isSecondInstance)
+	app.quit()
+
 function createWindow(): void {
+	const windowName = 'browser-entry'
+
+	// Load user's saved state.
+	const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
+
+	// Deal with window dimensions. Kiosk mode overrides all other settings.
+	const setFullScreen = !!config.get('startup.kiosk_mode')
+	let dimensionsOptions = {} as BrowserWindowConstructorOptions
+	if (!setFullScreen) {
+		// Merge with saved state.
+		dimensionsOptions = {
+			dimensionsOptions,
+			...savedState,
+		}
+
+		// User's saved settings override config file settings.
+		const userHasSavedState = !(isNullOrUndefined(savedState.x) || isNullOrUndefined(savedState.y))
+		if (!userHasSavedState) {
+			const width = parseInt(config.get('startup.electron.window.default.width'), 10)
+			const height = parseInt(config.get('startup.electron.window.default.height'), 10)
+			if (width && height) {
+				dimensionsOptions.width = width
+				dimensionsOptions.height = height
+			}
+		}
+	}
+
+	// Set some more browser window options.
+	const options = {
+		...dimensionsOptions,
+		show: false,
+		backgroundColor: config.get('startup.background_color') || '#000',
+	} as BrowserWindowConstructorOptions
+
 	// Create the browser window.
-	const options = {} as BrowserWindowConstructorOptions
-	const width = parseInt(config.get('startup.electron.window.default.width'), 10)
-	const height = parseInt(config.get('startup.electron.window.default.height'), 10)
-	let maximize = false
-	let goFullscreen = false
-	if (width && height) {
-		options.width = width
-		options.height = height
-	} else if (config.get('startup.kiosk_mode')) {
-		goFullscreen = true
-	} else {
-		maximize = true
-	}
 	win = new BrowserWindow(options)
-	if (goFullscreen) {
+	if (setFullScreen)
 		win.setFullScreen(true)
-	} else if (maximize) {
-		win.maximize()
-	}
+	else
+		savedState.manage(win)
+
+	win.once('ready-to-show', () => win!.show())
 
 	// Open the DevTools.
 	if (!!config.get('startup.show_dev_tools'))
 		win.webContents.openDevTools()
 
 	// and load the index.html of the app.
-	win.loadURL(url.format({
-		pathname: Path.join(process.cwd(), 'dist/app/browser-entry.html'),
+	win.loadURL(Url.format({
+		pathname: Path.join(process.cwd(), `dist/app/${windowName}.html`),
 		protocol: 'file:',
 		slashes: true
 	}))
@@ -83,6 +115,3 @@ app.on('activate', () => {
 		createWindow()
 	}
 })
-
-export {
-}
