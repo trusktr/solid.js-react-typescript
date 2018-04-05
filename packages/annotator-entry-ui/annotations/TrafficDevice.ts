@@ -32,6 +32,8 @@ namespace TrafficDeviceRenderingProperties {
 	export const defaultMaterial = new THREE.MeshLambertMaterial({color: 0x008800, side: THREE.DoubleSide})
 	export const defaultContourMaterial = new THREE.LineBasicMaterial({color: 0x00ff00})
 	export const activeContourMaterial = new THREE.LineBasicMaterial({color: 0xffff00, linewidth: 2})
+	export const stopTexture = new THREE.TextureLoader().load(stopURL)
+	export const yieldTexture = new THREE.TextureLoader().load(yieldURL)
 }
 
 export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInterface {
@@ -99,17 +101,22 @@ export class TrafficDevice extends Annotation {
 	 */
 	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 		if (this.markers.length > 0) {
-			this.markers.pop()
+			const oldMarker = this.markers.pop()
+			this.renderingObject.remove(oldMarker as THREE.Object3D)
 		}
 
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficDeviceRenderingProperties.markerMaterial)
+		marker.geometry.scale(0.5, 0.5, 0.5)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
+		this.renderingObject.add(marker)
 		this.planeCenter = position
 		// TODO: Get a better initialization of the orientation
 		this.planeNormal = new THREE.Vector3(1.0, 0.0, 0.0)
 
-		this.updateVisualization()
+		if (updateVisualization)
+			this.updateVisualization()
+
 		return true
 	}
 
@@ -136,11 +143,15 @@ export class TrafficDevice extends Annotation {
 	makeActive(): void {
 		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.activeContourMaterial
 		this.linkLine.visible = false
+		if (this.markers.length > 0)
+			this.markers[0].visible = true
 	}
 
 	makeInactive(): void {
 		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.defaultContourMaterial
 		this.linkLine.visible = false
+		if (this.markers.length > 0)
+			this.markers[0].visible = false
 		this.unhighlightMarkers()
 	}
 
@@ -153,6 +164,8 @@ export class TrafficDevice extends Annotation {
 		this.linkLine.geometry = newLinkGeometry
 		this.linkLine.geometry.verticesNeedUpdate = true
 		this.linkLine.visible = true
+		if (this.markers.length > 0)
+			this.markers[0].visible = false
 	}
 
 	setLiveMode(): void {
@@ -172,6 +185,8 @@ export class TrafficDevice extends Annotation {
 		if (this.markers.length < 1) {
 			return
 		}
+		this.planeCenter = this.markers[0].position
+
 		// TODO: If normal or center have changed recompute plane
 		const newMeshGeometry = new THREE.PlaneGeometry(0.8, 0.8)
 		newMeshGeometry.translate(this.planeCenter.x, this.planeCenter.y, this.planeCenter.z)
@@ -180,14 +195,12 @@ export class TrafficDevice extends Annotation {
 
 		switch (this.type) {
 			case TrafficDeviceType.STOP:
-				const stopTexture = new THREE.TextureLoader().load(stopURL)
-				const stopMaterial = new THREE.MeshBasicMaterial({map: stopTexture, side: THREE.DoubleSide})
+				const stopMaterial = new THREE.MeshBasicMaterial({map: TrafficDeviceRenderingProperties.stopTexture, side: THREE.DoubleSide})
 				this.mesh.material = stopMaterial
 				this.mesh.material.transparent = true
 				break
 			case TrafficDeviceType.YIELD:
-				const yieldTexture = new THREE.TextureLoader().load(yieldURL)
-				const yieldMaterial = new THREE.MeshBasicMaterial({map: yieldTexture, side: THREE.DoubleSide})
+				const yieldMaterial = new THREE.MeshBasicMaterial({map: TrafficDeviceRenderingProperties.yieldTexture, side: THREE.DoubleSide})
 				this.mesh.material = yieldMaterial
 				this.mesh.material.transparent = true
 				break
