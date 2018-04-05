@@ -181,13 +181,13 @@ export class TrafficDevice extends Annotation {
 		switch (this.type) {
 			case TrafficDeviceType.STOP:
 				const stopTexture = new THREE.TextureLoader().load(stopURL)
-				const stopMaterial = new THREE.MeshBasicMaterial({map: stopTexture})
+				const stopMaterial = new THREE.MeshBasicMaterial({map: stopTexture, side: THREE.DoubleSide})
 				this.mesh.material = stopMaterial
 				this.mesh.material.transparent = true
 				break
 			case TrafficDeviceType.YIELD:
 				const yieldTexture = new THREE.TextureLoader().load(yieldURL)
-				const yieldMaterial = new THREE.MeshBasicMaterial({map: yieldTexture})
+				const yieldMaterial = new THREE.MeshBasicMaterial({map: yieldTexture, side: THREE.DoubleSide})
 				this.mesh.material = yieldMaterial
 				this.mesh.material.transparent = true
 				break
@@ -199,7 +199,11 @@ export class TrafficDevice extends Annotation {
 		this.mesh.geometry.uvsNeedUpdate = true;
 
 		const newContourGeometry = new THREE.Geometry()
-		newContourGeometry.vertices = this.mesh.geometry.vertices
+		newContourGeometry.vertices.push(this.mesh.geometry.vertices[0])
+		newContourGeometry.vertices.push(this.mesh.geometry.vertices[1])
+		newContourGeometry.vertices.push(this.mesh.geometry.vertices[3])
+		newContourGeometry.vertices.push(this.mesh.geometry.vertices[2])
+		newContourGeometry.vertices.push(this.mesh.geometry.vertices[0])
 		this.trafficDeviceContour.geometry = newContourGeometry
 		this.trafficDeviceContour.geometry.verticesNeedUpdate = true
 	}
