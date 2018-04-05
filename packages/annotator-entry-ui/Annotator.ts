@@ -1370,7 +1370,7 @@ class Annotator {
 					return
 
 				this.cleanTransformControls()
-				Annotator.deactivateAllAnnotationPropertiesMenus()
+				Annotator.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
 				this.annotationManager.changeActiveAnnotation(inactive)
 				this.resetAllAnnotationPropertiesMenuElements()
 				this.render()
@@ -2001,7 +2001,7 @@ class Annotator {
 	private addAnnotation(annotationType: AnnotationType): void {
 		if (this.annotationManager.addAnnotation(null, annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
-			Annotator.deactivateAllAnnotationPropertiesMenus()
+			Annotator.deactivateAllAnnotationPropertiesMenus(annotationType)
 			this.resetAllAnnotationPropertiesMenuElements()
 			this.hideTransform()
 		}
@@ -2455,6 +2455,10 @@ class Annotator {
 		$(domId).accordion('option', {active: 0})
 	}
 
+	private static collapseAccordion(domId: string): void {
+		$(domId).accordion('option', {active: false})
+	}
+
 	private resetAllAnnotationPropertiesMenuElements(): void {
 		this.resetBoundaryProp()
 		this.resetLaneProp()
@@ -2617,18 +2621,20 @@ class Annotator {
 		cpSelectType.val(activeAnnotation.type.toString())
 	}
 
-	private static deactivateAllAnnotationPropertiesMenus(): void {
-		Annotator.deactivateBoundaryProp()
-		Annotator.deactivateLaneProp()
-		Annotator.deactivateConnectionProp()
-		Annotator.deactivateTerritoryProp()
-		Annotator.deactivateTrafficDeviceProp()
+	private static deactivateAllAnnotationPropertiesMenus(exceptFor: AnnotationType = AnnotationType.UNKNOWN): void {
+		if (exceptFor !== AnnotationType.BOUNDARY) Annotator.deactivateBoundaryProp()
+		if (exceptFor !== AnnotationType.LANE) Annotator.deactivateLaneProp()
+		if (exceptFor !== AnnotationType.CONNECTION) Annotator.deactivateConnectionProp()
+		if (exceptFor !== AnnotationType.TERRITORY) Annotator.deactivateTerritoryProp()
+		if (exceptFor !== AnnotationType.TRAFFIC_DEVICE) Annotator.deactivateTrafficDeviceProp()
 	}
 
 	/**
 	 * Deactivate lane properties menu panel
 	 */
 	private static deactivateLaneProp(): void {
+		Annotator.collapseAccordion('#menu_lane')
+
 		Annotator.deactivateLeftSideNeighbours()
 		Annotator.deactivateRightSideNeighbours()
 		Annotator.deactivateFrontSideNeighbours()
@@ -2665,6 +2671,8 @@ class Annotator {
 	 * Deactivate boundary properties menu panel
 	 */
 	private static deactivateBoundaryProp(): void {
+		Annotator.collapseAccordion('#menu_boundary')
+
 		const bpId = document.getElementById('bp_id_value')
 		if (bpId)
 			bpId.textContent = 'UNKNOWN'
@@ -2698,6 +2706,8 @@ class Annotator {
 	 * Deactivate connection properties menu panel
 	 */
 	private static deactivateConnectionProp(): void {
+		Annotator.collapseAccordion('#menu_connection')
+
 		const cpId = document.getElementById('cp_id_value')
 		if (cpId)
 			cpId.textContent = 'UNKNOWN'
@@ -2725,6 +2735,8 @@ class Annotator {
 	 * Deactivate territory properties menu panel
 	 */
 	private static deactivateTerritoryProp(): void {
+		Annotator.collapseAccordion('#menu_territory')
+
 		const territoryLabel = document.getElementById('input_label_territory')
 		if (territoryLabel)
 			(territoryLabel as HTMLInputElement).value = ''
@@ -2736,6 +2748,8 @@ class Annotator {
 	 * Deactivate traffic device properties menu panel
 	 */
 	private static deactivateTrafficDeviceProp(): void {
+		Annotator.collapseAccordion('#menu_traffic_device')
+
 		const tpId = document.getElementById('tp_id_value')
 		if (tpId)
 			tpId.textContent = 'UNKNOWN'
