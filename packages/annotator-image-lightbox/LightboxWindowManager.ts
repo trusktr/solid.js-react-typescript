@@ -8,8 +8,8 @@ import * as Path from 'path'
 import * as Electron from 'electron'
 import {BrowserWindowConstructorOptions} from 'electron'
 import {windowStateKeeperOptions} from '../util/WindowStateKeeperOptions'
-import {channel} from "./IPC"
-import {LightboxState} from "./LightboxState"
+import {channel} from "../electron-ipc/Channel"
+import {ImageEditState, LightboxState} from "../electron-ipc/Messages"
 
 const config = require('../config')
 const windowStateKeeper = require('electron-window-state')
@@ -19,13 +19,20 @@ interface LightboxWindowManagerSettings {
 	openDevTools: boolean
 }
 
+// This handles communication between the main Annotator window in `annotator-entry-ui`
+// and the LightboxWindowUI window.
 export class LightboxWindowManager {
 	private settings: LightboxWindowManagerSettings
 	private window: Electron.BrowserWindow | null // pop full-size 2D images into their own window
 	private loadingWindow: boolean
+	private onImageEditState: (state: ImageEditState) => void
 	private onClose: () => void
 
-	constructor(onClose: () => void) {
+	constructor(
+		onImageEditState: (state: ImageEditState) => void,
+		onClose: () => void
+	) {
+		this.onImageEditState = onImageEditState
 		this.onClose = onClose
 		this.settings = {
 			backgroundColor: config.get('startup.background_color') || '#000',
@@ -33,6 +40,8 @@ export class LightboxWindowManager {
 		}
 		this.loadingWindow = false
 		this.window = null
+
+		Electron.ipcRenderer.on(channel.imageEditState, this.unpackOnImageEditState)
 	}
 
 	private createWindow(): Promise<void> {
@@ -90,5 +99,9 @@ export class LightboxWindowManager {
 				else
 					console.warn('missing window')
 			})
+	}
+
+	private unpackOnImageEditState = (_: Electron.EventEmitter, state: ImageEditState): void => {
+		this.onImageEditState(state)
 	}
 }

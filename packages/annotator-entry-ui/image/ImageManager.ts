@@ -9,7 +9,7 @@ import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
 import {CalibratedImage} from './CalibratedImage'
 import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWindowManager"
-import {LightboxImageDescription, LightboxState} from "../../annotator-image-lightbox/LightboxState"
+import {ImageEditState, LightboxImageDescription, LightboxState} from "../../electron-ipc/Messages"
 import {readImageMetadataFile} from "./Aurora"
 import * as TypeLogger from "typelogger"
 import {UtmInterface} from "../UtmInterface";
@@ -41,6 +41,7 @@ export class ImageManager {
 	private imageScreens: ImageScreen[]
 	imageScreenMeshes: THREE.Mesh[]
 	private opacity: number
+	private renderAnnotator: () => void
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void
 	private lightboxWindow: LightboxWindowManager | null // pop full-size 2D images into their own window
 	loadedImageDetails: OrderedSet<CalibratedImage>
@@ -48,6 +49,7 @@ export class ImageManager {
 	constructor(
 		utmInterface: UtmInterface,
 		opacity: number,
+		renderAnnotator: () => void,
 		onImageScreenLoad: (imageScreen: ImageScreen) => void
 	) {
 		this.utmInterface = utmInterface
@@ -60,6 +62,7 @@ export class ImageManager {
 		this.imageScreens = []
 		this.imageScreenMeshes = []
 		this.opacity = opacity
+		this.renderAnnotator = renderAnnotator
 		this.onImageScreenLoad = onImageScreenLoad
 		this.lightboxWindow = null
 		this.loadedImageDetails = OrderedSet()
@@ -76,6 +79,7 @@ export class ImageManager {
 		return true
 	}
 
+	// Get a list of interesting images from the user.
 	loadImagesFromOpenDialog(): Promise<void> {
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
 			const options: Electron.OpenDialogOptions = {
@@ -97,6 +101,7 @@ export class ImageManager {
 		})
 	}
 
+	// Load an image and its metadata.
 	private loadImageFromPath(path: string): Promise<void> {
 		return readImageMetadataFile(path, this.utmInterface)
 			.then(cameraParameters =>
@@ -115,6 +120,7 @@ export class ImageManager {
 			})
 	}
 
+	// Map an image file onto a three.js object.
 	private loadImageAsPlaneGeometry(path: string): Promise<THREE.Mesh> {
 		return new Promise((resolve: (mesh: THREE.Mesh) => void, reject: (reason?: Error) => void): void => {
 			const onLoad = (texture: THREE.Texture): void => {
@@ -134,6 +140,7 @@ export class ImageManager {
 		})
 	}
 
+	// Manipulate an image object, using its metadata, so that it is located and oriented in a reasonable way in three.js space.
 	private setUpScreen(calibratedImage: CalibratedImage): void {
 		this.images.push(calibratedImage)
 		const screen = calibratedImage.imageScreen
@@ -150,11 +157,12 @@ export class ImageManager {
 		this.onImageScreenLoad(screen)
 	}
 
+	// When an image object is selected for closer inspection, push it over to the Lightbox for full-size, 2D display.
 	loadImageIntoWindow(image: CalibratedImage): void {
 		if (this.loadedImageDetails.has(image)) return
 
 		if (!this.lightboxWindow)
-			this.lightboxWindow = new LightboxWindowManager(this.onLightboxWindowClose)
+			this.lightboxWindow = new LightboxWindowManager(this.onImageEditState, this.onLightboxWindowClose)
 
 		this.loadedImageDetails = this.loadedImageDetails.add(image)
 
@@ -176,5 +184,14 @@ export class ImageManager {
 					} as LightboxImageDescription
 				})
 		}
+	}
+
+	private onImageEditState = (state: ImageEditState): void => {
+		let updated = 0
+		this.loadedImageDetails
+			.filter(i => i!.imageScreen.uuid === state.uuid)
+			.forEach(i => i!.imageScreen.setHighlight(state.active) && updated++)
+		if (updated)
+			this.renderAnnotator()
 	}
 }

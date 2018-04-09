@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-// Messages for communication with LightboxWindowManager
+// Assorted messages for communication between Electron renderer processes
 
 export interface LightboxImageDescription {
 	uuid: string,
@@ -12,4 +12,9 @@ export interface LightboxImageDescription {
 
 export interface LightboxState {
 	images: LightboxImageDescription[]
+}
+
+export interface ImageEditState {
+	uuid: string,
+	active: boolean,
 }

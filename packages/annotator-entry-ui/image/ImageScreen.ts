@@ -9,26 +9,40 @@ import {threeDStepSize} from "../tile/Constant"
 // The tip of the pyramid will work with a default PlaneGeometry which hasn't been rotated
 // out of the XY plane.
 const tip = new THREE.Vector3(0, 0, 1)
-const lineMaterial = new THREE.LineBasicMaterial({color: 0x66aa00})
-const invisibleLineMaterial = new THREE.LineBasicMaterial({visible: false})
+const pyramidMaterial = new THREE.LineBasicMaterial({color: 0x66aa00})
+const invisiblePyramidMaterial = new THREE.LineBasicMaterial({visible: false})
+const borderUnhighlightedMaterial = new THREE.LineBasicMaterial({color: 0x999999})
+const borderHighlightedMaterial = new THREE.LineBasicMaterial({color: 0xffffff})
 
-// Extend a line around the base and to a central point, forming a pyramid.
+// Extend lines from the corners of the base to a central point, forming the top of a pyramid.
 // Assume four corners in the base.
 function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
 	const vertices = [
 		tip,
 		base[0],
+		tip,
 		base[1],
 		tip,
 		base[2],
-		base[3],
 		tip,
-		base[0],
-		base[2],
 		base[3],
-		base[1],
 	]
+	return lineGeometry(vertices, visible ? pyramidMaterial : invisiblePyramidMaterial)
+}
 
+// Extend a line the four corners of the base.
+function border(base: THREE.Vector3[], highlight: boolean): THREE.Line {
+	const vertices = [
+		base[0],
+		base[1],
+		base[3],
+		base[2],
+		base[0],
+	]
+	return lineGeometry(vertices, highlight ? borderHighlightedMaterial : borderUnhighlightedMaterial)
+}
+
+function lineGeometry(vertices: THREE.Vector3[], material: THREE.LineBasicMaterial): THREE.Line {
 	const positions = new Float32Array(vertices.length * threeDStepSize)
 	for (let i = 0; i < vertices.length; i++) {
 		const j = i * threeDStepSize
@@ -40,7 +54,7 @@ function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
 	const geometry = new THREE.BufferGeometry()
 	geometry.addAttribute('position', new THREE.BufferAttribute(positions, threeDStepSize))
 
-	return new THREE.Line(geometry, visible ? lineMaterial : invisibleLineMaterial)
+	return new THREE.Line(geometry, material)
 }
 
 // An object containing a 2D image, located in 3D space, plus a wireframe
@@ -49,6 +63,7 @@ function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
 // at the image which forms the base.
 export class ImageScreen extends THREE.Object3D {
 	imageMesh: THREE.Mesh
+	private border: THREE.Line
 
 	constructor(imageMesh: THREE.Mesh, visibleWireframe: boolean) {
 		super()
@@ -60,6 +75,8 @@ export class ImageScreen extends THREE.Object3D {
 
 		this.add(imageMesh)
 		this.add(pyramid(geometry.vertices, visibleWireframe))
+		this.border = border(geometry.vertices, false)
+		this.add(this.border)
 	}
 
 	// Scale the image from pixel dimensions to three.js coordinates.
@@ -76,5 +93,11 @@ export class ImageScreen extends THREE.Object3D {
 	// Set opacity of the image.
 	setOpacity(opacity: number): void {
 		(this.imageMesh.material as THREE.Material).opacity = opacity
+	}
+
+	// Draw a border around the image, or don't.
+	setHighlight(highlight: boolean): boolean {
+		this.border.material = highlight ? borderHighlightedMaterial : borderUnhighlightedMaterial
+		return true
 	}
 }
