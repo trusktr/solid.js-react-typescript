@@ -49,10 +49,12 @@ function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
 // at the image which forms the base.
 export class ImageScreen extends THREE.Object3D {
 	imageMesh: THREE.Mesh
+	visibleWireframe: boolean
 
 	constructor(imageMesh: THREE.Mesh, visibleWireframe: boolean) {
 		super()
 		this.imageMesh = imageMesh
+		this.visibleWireframe = visibleWireframe
 
 		const geometry = imageMesh.geometry as THREE.Geometry
 		if (geometry.type !== 'PlaneGeometry')
@@ -76,5 +78,20 @@ export class ImageScreen extends THREE.Object3D {
 	// Set opacity of the image.
 	setOpacity(opacity: number): void {
 		(this.imageMesh.material as THREE.Material).opacity = opacity
+	}
+
+	private visibleChildren(): THREE.Object3D[] {
+		if (this.visibleWireframe)
+			return this.children
+		else
+			return this.children.filter(obj => obj.type !== 'Line')
+	}
+
+	makeVisible(): void {
+		this.visibleChildren().forEach(obj => obj.visible = true)
+	}
+
+	makeInvisible(): void {
+		this.visibleChildren().forEach(obj => obj.visible = false)
 	}
 }
