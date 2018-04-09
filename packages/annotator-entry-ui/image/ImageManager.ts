@@ -79,6 +79,14 @@ export class ImageManager {
 		return true
 	}
 
+	showImageScreens(): void {
+		this.imageScreens.forEach(i => i.makeVisible())
+	}
+
+	hideImageScreens(): void {
+		this.imageScreens.forEach(i => i.makeInvisible())
+	}
+
 	// Get a list of interesting images from the user.
 	loadImagesFromOpenDialog(): Promise<void> {
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {

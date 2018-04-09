@@ -63,11 +63,13 @@ function lineGeometry(vertices: THREE.Vector3[], material: THREE.LineBasicMateri
 // at the image which forms the base.
 export class ImageScreen extends THREE.Object3D {
 	imageMesh: THREE.Mesh
+	visibleWireframe: boolean
 	private border: THREE.Line
 
 	constructor(imageMesh: THREE.Mesh, visibleWireframe: boolean) {
 		super()
 		this.imageMesh = imageMesh
+		this.visibleWireframe = visibleWireframe
 
 		const geometry = imageMesh.geometry as THREE.Geometry
 		if (geometry.type !== 'PlaneGeometry')
@@ -99,5 +101,20 @@ export class ImageScreen extends THREE.Object3D {
 	setHighlight(highlight: boolean): boolean {
 		this.border.material = highlight ? borderHighlightedMaterial : borderUnhighlightedMaterial
 		return true
+	}
+
+	private visibleChildren(): THREE.Object3D[] {
+		if (this.visibleWireframe)
+			return this.children
+		else
+			return this.children.filter(obj => obj.type !== 'Line')
+	}
+
+	makeVisible(): void {
+		this.visibleChildren().forEach(obj => obj.visible = true)
+	}
+
+	makeInvisible(): void {
+		this.visibleChildren().forEach(obj => obj.visible = false)
 	}
 }

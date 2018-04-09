@@ -100,7 +100,7 @@ enum MenuVisibility {
 
 enum ModelVisibility {
 	ALL_VISIBLE = 0,
-	HIDE_SUPER_TILES_AND_POINT_CLOUD,
+	HIDE_SUPER_TILES_AND_POINT_CLOUD_AND_IMAGES,
 	HIDE_SUPER_TILES_AND_ANNOTATIONS,
 }
 
@@ -147,6 +147,7 @@ interface UiState {
 	lockTerritories: boolean
 	isSuperTilesVisible: boolean
 	isPointCloudVisible: boolean
+	isImageScreensVisible: boolean
 	isAnnotationsVisible: boolean
 	isControlKeyPressed: boolean
 	isShiftKeyPressed: boolean
@@ -263,6 +264,7 @@ class Annotator {
 			lockTerritories: true,
 			isSuperTilesVisible: true,
 			isPointCloudVisible: true,
+			isImageScreensVisible: true,
 			isAnnotationsVisible: true,
 			isControlKeyPressed: false,
 			isShiftKeyPressed: false,
@@ -1084,7 +1086,7 @@ class Annotator {
 		// mainly while panning across the model. Disable it during rotation for better rendering performance.
 		if (this.uiState.isControlKeyPressed) return
 		// Don't update AOI and load tiles if the point cloud is not visible.
-		if (this.uiState.modelVisibility === ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD) return
+		if (this.uiState.modelVisibility === ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD_AND_IMAGES) return
 		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
 		if (this.tileManager.getIsLoadingPointCloud()) return
 
@@ -1602,6 +1604,8 @@ class Annotator {
 	// When ImageManager loads an image, add it to the scene.
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void =
 		(imageScreen: ImageScreen) => {
+			if (!this.uiState.isImageScreensVisible)
+				this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 			this.scene.add(imageScreen)
 			this.render()
 		}
@@ -1612,7 +1616,7 @@ class Annotator {
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
-		if (!this.uiState.isPointCloudVisible) return
+		if (!this.uiState.isImageScreensVisible) return
 
 		if (!this.imageManager.imageScreenMeshes.length) return this.unHighlightImageScreenBox()
 
@@ -1637,7 +1641,7 @@ class Annotator {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseDragging) return
 		if (!this.highlightedImageScreenBox) return
-		if (!this.uiState.isPointCloudVisible) return
+		if (!this.uiState.isImageScreensVisible) return
 
 		const mouse = this.getMouseCoordinates(event)
 		this.raycasterImageScreen.setFromCamera(mouse, this.camera)
@@ -2278,6 +2282,8 @@ class Annotator {
 				return
 			log.info("Adding traffic device type: " + tpType.children("option").filter(":selected").text())
 			activeAnnotation.type = +tpType.val()
+			activeAnnotation.updateVisualization()
+			this.render()
 		})
 	}
 
@@ -2883,7 +2889,7 @@ class Annotator {
 
 	// In normal edit mode, toggles through the states defined in ModelVisibility:
 	// - all visible
-	// - super tile wire frames hidden; point cloud hidden
+	// - super tile wire frames hidden; point cloud hidden; 2D images hidden
 	// - super tile wire frames hidden; annotations hidden
 	private toggleModelVisibility(): void {
 		let newState = this.uiState.modelVisibility + 1
@@ -2898,16 +2904,18 @@ class Annotator {
 
 		this.uiState.modelVisibility = newState
 		switch (this.uiState.modelVisibility) {
-			case ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD:
+			case ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD_AND_IMAGES:
 				log.info('hiding point cloud')
 				this.hideSuperTiles()
 				this.hidePointCloud()
+				this.hideImageScreens()
 				this.showAnnotations()
 				break
 			case ModelVisibility.HIDE_SUPER_TILES_AND_ANNOTATIONS:
 				log.info('hiding annotations')
 				this.hideSuperTiles()
 				this.showPointCloud()
+				this.showImageScreens()
 				this.hideAnnotations()
 				break
 			default:
@@ -2935,6 +2943,16 @@ class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.scene.add(this.pointCloudBoundingBox)
 		this.uiState.isPointCloudVisible = true
+	}
+
+	private hideImageScreens(): void {
+		this.imageManager.hideImageScreens()
+		this.uiState.isImageScreensVisible = false
+	}
+
+	private showImageScreens(): void {
+		this.imageManager.showImageScreens()
+		this.uiState.isImageScreensVisible = true
 	}
 
 	private hideAnnotations(): void {

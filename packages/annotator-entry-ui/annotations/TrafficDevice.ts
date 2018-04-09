@@ -14,6 +14,9 @@ import {isNullOrUndefined} from "util"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
+const stopURL = require('../../annotator-assets/images/stop.png')
+const yieldURL = require('../../annotator-assets/images/yield.png')
+
 export enum TrafficDeviceType {
 	UNKNOWN = 0,
 	STOP,
@@ -26,10 +29,11 @@ export enum TrafficDeviceType {
 // Some variables used for rendering
 namespace TrafficDeviceRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-	export const meshMaterial = new THREE.MeshLambertMaterial({color: 0x008800, side: THREE.DoubleSide})
-	export const contourMaterial = new THREE.LineBasicMaterial({color: 0x00ff00})
-	export const associatedMaterial = new THREE.MeshLambertMaterial({color: 0x888800, side: THREE.DoubleSide})
-	export const associatedContour = new THREE.LineBasicMaterial({color: 0xffff00})
+	export const defaultMaterial = new THREE.MeshLambertMaterial({color: 0x008800, side: THREE.DoubleSide})
+	export const defaultContourMaterial = new THREE.LineBasicMaterial({color: 0x00ff00})
+	export const activeContourMaterial = new THREE.LineBasicMaterial({color: 0xffff00, linewidth: 2})
+	export const stopTexture = new THREE.TextureLoader().load(stopURL)
+	export const yieldTexture = new THREE.TextureLoader().load(yieldURL)
 }
 
 export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInterface {
@@ -47,6 +51,8 @@ export class TrafficDevice extends Annotation {
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
+	planeNormal: THREE.Vector3
+	planeCenter: THREE.Vector3
 	trafficDeviceContour: THREE.Line
 	linkLine: THREE.Line
 	mesh: THREE.Mesh
@@ -62,17 +68,15 @@ export class TrafficDevice extends Annotation {
 			this.type = TrafficDeviceType.UNKNOWN
 		}
 
-		this.minimumMarkerCount = 3
+		this.minimumMarkerCount = 1
 		this.allowNewMarkers = true
 		this.snapToGround = false
-		this.isComplete = false
-		this.trafficDeviceContour = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.contourMaterial)
-		this.linkLine = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.associatedContour)
-		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficDeviceRenderingProperties.meshMaterial)
+		this.trafficDeviceContour = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.defaultContourMaterial)
+		this.linkLine = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.activeContourMaterial)
+		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficDeviceRenderingProperties.defaultMaterial)
 		this.renderingObject.add(this.mesh)
 		this.renderingObject.add(this.trafficDeviceContour)
 		this.renderingObject.add(this.linkLine)
-		this.mesh.visible = false
 
 		if (obj) {
 			if (obj.markers.length >= this.minimumMarkerCount) {
@@ -90,70 +94,64 @@ export class TrafficDevice extends Annotation {
 		return this.markers.length >= this.minimumMarkerCount && this.type !== TrafficDeviceType.UNKNOWN
 	}
 
+	/**
+	 * This function works differently from other annotations types. Since the rendering of a traffic device is
+	 * pre-defined depending on it's type, we only use this function to specify the location of the device not
+	 * it's shape.
+	 */
 	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
-		// Don't allow addition of markers if the isComplete flag is active
-		if (this.isComplete) {
-			log.warn("Last marker was already added. Can't add more markers. Delete a marker to allow more marker additions.")
+		if (this.markers.length > 0) {
+			log.info("This annotation type doesn't allow more than one marker")
 			return false
 		}
 
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficDeviceRenderingProperties.markerMaterial)
+		marker.geometry.scale(0.5, 0.5, 0.5)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
+		this.planeCenter = position
+		// TODO: Get a better initialization of the orientation
+		this.planeNormal = new THREE.Vector3(1.0, 0.0, 0.0)
 
-		if (updateVisualization) this.updateVisualization()
+		if (updateVisualization)
+			this.updateVisualization()
+
 		return true
 	}
 
+	/**
+	 * This function is not used for this annotation class
+	 */
 	deleteLastMarker(): boolean {
-		if (this.markers.length === 0) {
-			log.warn('No markers to delete in this annotation')
-			return false
-		}
-
-		this.renderingObject.remove(this.markers.pop()!)
-
-		// Check if the deleted marker was marked as the last in the annotation. If so, reset the
-		// isComplete flag
-		if (this.isComplete) {
-			this.isComplete = false
-		}
-		this.updateVisualization()
-
+		log.warn('No markers to delete in traffic devices')
 		return true
 	}
 
+	/**
+	 * This function is not used for this annotation class=
+	 */
 	complete(): boolean {
-		if (this.isComplete) {
-			log.warn("Annotation is already complete. Delete a marker to re-open it.")
-			return false
-		}
-
-		this.isComplete = true
-		this.updateVisualization()
-
 		return true
 	}
 
 	makeActive(): void {
-		this.mesh.visible = false
+		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.activeContourMaterial
 		this.linkLine.visible = false
+		if (this.markers.length > 0)
+			this.markers[0].visible = true
 	}
 
 	makeInactive(): void {
-		this.mesh.material = TrafficDeviceRenderingProperties.meshMaterial
-		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.contourMaterial
-		this.mesh.visible = true
+		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.defaultContourMaterial
 		this.linkLine.visible = false
+		if (this.markers.length > 0)
+			this.markers[0].visible = false
 		this.unhighlightMarkers()
 	}
 
 	setAssociatedMode(position: THREE.Vector3): void {
-		this.mesh.material = TrafficDeviceRenderingProperties.associatedMaterial
-		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.associatedContour
-		this.mesh.visible = true
-
+		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.activeContourMaterial
 		const newLinkGeometry = new THREE.Geometry()
 		newLinkGeometry.vertices.push(position)
 		newLinkGeometry.vertices.push(this.getCenterPoint())
@@ -161,6 +159,8 @@ export class TrafficDevice extends Annotation {
 		this.linkLine.geometry = newLinkGeometry
 		this.linkLine.geometry.verticesNeedUpdate = true
 		this.linkLine.visible = true
+		if (this.markers.length > 0)
+			this.markers[0].visible = false
 	}
 
 	setLiveMode(): void {
@@ -177,53 +177,43 @@ export class TrafficDevice extends Annotation {
 	}
 
 	updateVisualization(): void {
-		// Check if there are at least two markers
-		if (this.markers.length < 2) {
+		if (this.markers.length < 1) {
 			return
 		}
+		this.planeCenter = this.markers[0].position
 
-		const newContourGeometry = new THREE.Geometry()
-		const contourMean = new THREE.Vector3(0, 0, 0)
-
-		this.markers.forEach((marker) => {
-			newContourGeometry.vertices.push(marker.position)
-			contourMean.add(marker.position)
-		})
-
-		contourMean.divideScalar(this.markers.length)
-
-		if (this.isComplete === false) {
-			newContourGeometry.computeLineDistances()
-			this.trafficDeviceContour.geometry = newContourGeometry
-			this.trafficDeviceContour.geometry.verticesNeedUpdate = true
-			return
-		}
-
-		// Push the first vertex again to close the loop
-		newContourGeometry.vertices.push(this.markers[0].position)
-		newContourGeometry.computeLineDistances()
-		this.trafficDeviceContour.geometry = newContourGeometry
-		this.trafficDeviceContour.geometry.verticesNeedUpdate = true
-
-		const newMeshGeometry = new THREE.Geometry()
-
-		// We need at least 3 vertices to generate a mesh
-		// NOTE: We assume that the contour of the annotation is convex
-		if (newContourGeometry.vertices.length > 2) {
-			// Add all vertices
-			newContourGeometry.vertices.forEach( (v) => {
-				newMeshGeometry.vertices.push(v.clone())
-			})
-			newMeshGeometry.vertices.push( contourMean )
-			const centerIndex = newMeshGeometry.vertices.length - 1
-
-			for (let i = 0; i < newMeshGeometry.vertices.length - 2; ++i) {
-				newMeshGeometry.faces.push(new THREE.Face3(centerIndex, i, i + 1))
-			}
-		}
+		// TODO: If normal or center have changed recompute plane
+		const newMeshGeometry = new THREE.PlaneGeometry(0.8, 0.8)
+		newMeshGeometry.translate(this.planeCenter.x, this.planeCenter.y, this.planeCenter.z)
 		newMeshGeometry.computeFaceNormals()
 		this.mesh.geometry = newMeshGeometry
+
+		switch (this.type) {
+			case TrafficDeviceType.STOP:
+				const stopMaterial = new THREE.MeshBasicMaterial({map: TrafficDeviceRenderingProperties.stopTexture, side: THREE.DoubleSide})
+				this.mesh.material = stopMaterial
+				this.mesh.material.transparent = true
+				break
+			case TrafficDeviceType.YIELD:
+				const yieldMaterial = new THREE.MeshBasicMaterial({map: TrafficDeviceRenderingProperties.yieldTexture, side: THREE.DoubleSide})
+				this.mesh.material = yieldMaterial
+				this.mesh.material.transparent = true
+				break
+			default:
+				this.mesh.material = TrafficDeviceRenderingProperties.defaultMaterial
+		}
+
 		this.mesh.geometry.verticesNeedUpdate = true
+		this.mesh.geometry.uvsNeedUpdate = true;
+
+		const newContourGeometry = new THREE.Geometry()
+		newContourGeometry.vertices.push(this.mesh.geometry.vertices[0])
+		newContourGeometry.vertices.push(this.mesh.geometry.vertices[1])
+		newContourGeometry.vertices.push(this.mesh.geometry.vertices[3])
+		newContourGeometry.vertices.push(this.mesh.geometry.vertices[2])
+		newContourGeometry.vertices.push(this.mesh.geometry.vertices[0])
+		this.trafficDeviceContour.geometry = newContourGeometry
+		this.trafficDeviceContour.geometry.verticesNeedUpdate = true
 	}
 
 	getCenterPoint(): THREE.Vector3 {
