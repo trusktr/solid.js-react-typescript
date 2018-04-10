@@ -11,8 +11,9 @@ import {threeDStepSize} from "../tile/Constant"
 const tip = new THREE.Vector3(0, 0, 1)
 const pyramidMaterial = new THREE.LineBasicMaterial({color: 0x66aa00})
 const invisiblePyramidMaterial = new THREE.LineBasicMaterial({visible: false})
-const borderUnhighlightedMaterial = new THREE.LineBasicMaterial({color: 0x999999})
-const borderHighlightedMaterial = new THREE.LineBasicMaterial({color: 0xffffff})
+const borderMaterial = new THREE.LineBasicMaterial({color: 0xffffff})
+const unhighlightedBorderMaterial = new THREE.LineBasicMaterial({color: 0x999999})
+const invisibleBorderMaterial = new THREE.LineBasicMaterial({visible: false})
 
 // Extend lines from the corners of the base to a central point, forming the top of a pyramid.
 // Assume four corners in the base.
@@ -31,7 +32,7 @@ function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
 }
 
 // Extend a line the four corners of the base.
-function border(base: THREE.Vector3[], highlight: boolean): THREE.Line {
+function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
 	const vertices = [
 		base[0],
 		base[1],
@@ -39,7 +40,7 @@ function border(base: THREE.Vector3[], highlight: boolean): THREE.Line {
 		base[2],
 		base[0],
 	]
-	return lineGeometry(vertices, highlight ? borderHighlightedMaterial : borderUnhighlightedMaterial)
+	return lineGeometry(vertices, visible ? unhighlightedBorderMaterial : invisibleBorderMaterial)
 }
 
 function lineGeometry(vertices: THREE.Vector3[], material: THREE.LineBasicMaterial): THREE.Line {
@@ -63,7 +64,7 @@ function lineGeometry(vertices: THREE.Vector3[], material: THREE.LineBasicMateri
 // at the image which forms the base.
 export class ImageScreen extends THREE.Object3D {
 	imageMesh: THREE.Mesh
-	visibleWireframe: boolean
+	private visibleWireframe: boolean
 	private border: THREE.Line
 
 	constructor(imageMesh: THREE.Mesh, visibleWireframe: boolean) {
@@ -77,7 +78,7 @@ export class ImageScreen extends THREE.Object3D {
 
 		this.add(imageMesh)
 		this.add(pyramid(geometry.vertices, visibleWireframe))
-		this.border = border(geometry.vertices, false)
+		this.border = border(geometry.vertices, visibleWireframe)
 		this.add(this.border)
 	}
 
@@ -99,7 +100,7 @@ export class ImageScreen extends THREE.Object3D {
 
 	// Draw a border around the image, or don't.
 	setHighlight(highlight: boolean): boolean {
-		this.border.material = highlight ? borderHighlightedMaterial : borderUnhighlightedMaterial
+		this.border.material = highlight ? borderMaterial : this.visibleWireframe ? unhighlightedBorderMaterial : invisibleBorderMaterial
 		return true
 	}
 
