@@ -1062,7 +1062,7 @@ export class AnnotationManager extends UtmInterface {
 		const self = this
 		const dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		return Promise.resolve(mkdirp.sync(dirName))
-			.then(() => AsyncFile.writeTextFile(fileName, JSON.stringify(self.toJSON(format))))
+			.then(() => AsyncFile.writeTextFile(fileName, JSON.stringify(self.toJSON(format), null, 2)))
 			.then(() => self.metadataState.clean())
 	}
 
