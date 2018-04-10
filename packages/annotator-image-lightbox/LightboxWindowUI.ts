@@ -62,6 +62,8 @@ class LightboxWindowUI {
 		img.src = imageDescription.path
 		img.id = imageDescription.uuid
 		img.width = 600
+		img.onmouseenter = this.onImageMouseEnter
+		img.onmouseleave = this.onImageMouseLeave
 		return img
 	}
 }
