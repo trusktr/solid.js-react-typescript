@@ -106,7 +106,6 @@ export class TrafficDevice extends Annotation {
 		}
 
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficDeviceRenderingProperties.markerMaterial)
-		marker.geometry.scale(0.5, 0.5, 0.5)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
