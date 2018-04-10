@@ -156,6 +156,7 @@ interface UiState {
 	isAddNeighborKeyPressed: boolean
 	isAddLeftNeighborKeyPressed: boolean
 	isAddRightNeighborKeyPressed: boolean
+	isAddFrontNeighborKeyPressed: boolean
 	isJoinAnnotationKeyPressed: boolean
 	isAddConflictOrDeviceKeyPressed: boolean
 	isMouseButtonPressed: boolean
@@ -275,6 +276,7 @@ class Annotator {
 			isAddNeighborKeyPressed: false,
 			isAddLeftNeighborKeyPressed: false,
 			isAddRightNeighborKeyPressed: false,
+			isAddFrontNeighborKeyPressed: false,
 			isAddConnectionKeyPressed: false,
 			isAddConflictOrDeviceKeyPressed: false,
 			isJoinAnnotationKeyPressed: false,
@@ -1211,7 +1213,8 @@ class Annotator {
 	private addAnnotationMarker = (event: MouseEvent): void => {
 		if (this.uiState.isMouseDragging) return
 		if (this.uiState.isAddLeftNeighborKeyPressed ||
-			this.uiState.isAddRightNeighborKeyPressed) return
+			this.uiState.isAddRightNeighborKeyPressed ||
+			this.uiState.isAddFrontNeighborKeyPressed) return
 		if (!this.uiState.isAddMarkerKeyPressed) return
 		if (!this.annotationManager.activeAnnotation) return
 		if (!this.annotationManager.activeAnnotation.allowNewMarkers) return
@@ -1301,8 +1304,10 @@ class Annotator {
 	private addNeighbor = (event: MouseEvent): void => {
 		if (!this.uiState.isAddNeighborKeyPressed) return
 		if (!this.uiState.isAddLeftNeighborKeyPressed &&
-			!this.uiState.isAddRightNeighborKeyPressed) return
+			!this.uiState.isAddRightNeighborKeyPressed &&
+			!this.uiState.isAddFrontNeighborKeyPressed) return
 		if (this.uiState.isMouseDragging) return
+
 		// reject neighbor if active annotation is not a lane
 		const activeLane = this.annotationManager.getActiveLaneAnnotation()
 		if (!activeLane) {
@@ -1326,6 +1331,16 @@ class Annotator {
 			return
 		}
 
+		// Check if the neighbor must be added to the front
+		if (this.uiState.isAddFrontNeighborKeyPressed) {
+			activeLane.addNeighbor(inactive.uuid, NeighborLocation.FRONT)
+			inactive.addNeighbor(activeLane.uuid, NeighborLocation.BACK)
+			Annotator.deactivateFrontSideNeighbours()
+			this.render()
+			return
+		}
+
+		// otherwise, compute direction of the two lanes
 		const threshold: number = 4 // meters
 		let {index1: index11, index2: index21}: {index1: number, index2: number} =
 			getClosestPoints(activeLane.waypoints, inactive.waypoints, threshold)
@@ -1333,7 +1348,6 @@ class Annotator {
 			log.warn(`Clicked objects do not have a common segment.`)
 			return
 		}
-
 		// find active lane direction
 		let index12 = index11 + 1
 		if (index12 >= activeLane.waypoints.length) {
@@ -1349,9 +1363,8 @@ class Annotator {
 		}
 		let pt2: THREE.Vector3 = inactive.waypoints[index22].sub(inactive.waypoints[index21])
 
-		// add neighbor
-		const directionAngle: number = Math.abs(pt1.angleTo(pt2))
-		const sameDirection: boolean = directionAngle < (Math.PI / 2)
+		// add neighbor based on lane direction and selected side
+		const sameDirection: boolean = Math.abs(pt1.angleTo(pt2)) < (Math.PI / 2)
 		if (this.uiState.isAddLeftNeighborKeyPressed) {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.LEFT)
 			Annotator.deactivateLeftSideNeighbours()
@@ -1445,7 +1458,8 @@ class Annotator {
 		if (this.uiState.isAddConnectionKeyPressed) return
 		if (this.uiState.isAddNeighborKeyPressed &&
 			(this.uiState.isAddLeftNeighborKeyPressed ||
-			this.uiState.isAddLeftNeighborKeyPressed)) return
+			this.uiState.isAddRightNeighborKeyPressed ||
+			this.uiState.isAddFrontNeighborKeyPressed)) return
 		if (this.uiState.isAddConflictOrDeviceKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
@@ -1484,7 +1498,8 @@ class Annotator {
 		if (this.uiState.isAddConnectionKeyPressed) return
 		if (this.uiState.isAddNeighborKeyPressed &&
 			(this.uiState.isAddLeftNeighborKeyPressed ||
-			this.uiState.isAddLeftNeighborKeyPressed)) return
+			this.uiState.isAddRightNeighborKeyPressed ||
+			this.uiState.isAddFrontNeighborKeyPressed)) return
 		if (this.uiState.isAddConflictOrDeviceKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 
@@ -1624,7 +1639,8 @@ class Annotator {
 		if (this.uiState.isAddConnectionKeyPressed) return
 		if (this.uiState.isAddNeighborKeyPressed &&
 			(this.uiState.isAddLeftNeighborKeyPressed ||
-			this.uiState.isAddLeftNeighborKeyPressed)) return
+			this.uiState.isAddRightNeighborKeyPressed ||
+			this.uiState.isAddFrontNeighborKeyPressed)) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 		if (!this.uiState.isSuperTilesVisible) return
 
@@ -1709,7 +1725,8 @@ class Annotator {
 		if (this.uiState.isAddConnectionKeyPressed) return
 		if (this.uiState.isAddNeighborKeyPressed &&
 			(this.uiState.isAddLeftNeighborKeyPressed ||
-			this.uiState.isAddLeftNeighborKeyPressed)) return
+			this.uiState.isAddRightNeighborKeyPressed ||
+			this.uiState.isAddFrontNeighborKeyPressed)) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
 		if (!this.uiState.isImageScreensVisible) return
 
@@ -1924,6 +1941,7 @@ class Annotator {
 				}
 				case 'f': {
 					this.addFront()
+					this.uiState.isAddFrontNeighborKeyPressed = true
 					break
 				}
 				case 'h': {
@@ -2014,6 +2032,7 @@ class Annotator {
 		this.uiState.isAddNeighborKeyPressed = false
 		this.uiState.isAddLeftNeighborKeyPressed = false
 		this.uiState.isAddRightNeighborKeyPressed = false
+		this.uiState.isAddFrontNeighborKeyPressed = false
 		this.uiState.isAddConflictOrDeviceKeyPressed = false
 		this.uiState.isJoinAnnotationKeyPressed = false
 		this.uiState.numberKeyPressed = null
