@@ -9,7 +9,7 @@ import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
 import {CalibratedImage} from './CalibratedImage'
 import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWindowManager"
-import {ImageEditState, LightboxImageDescription, LightboxState} from "../../electron-ipc/Messages"
+import {ImageClick, ImageEditState, LightboxImageDescription, LightboxState} from "../../electron-ipc/Messages"
 import {readImageMetadataFile} from "./Aurora"
 import * as TypeLogger from "typelogger"
 import {UtmInterface} from "../UtmInterface";
@@ -23,6 +23,7 @@ const config = require('../../config')
 interface ImageManagerSettings {
 	arbitraryImageScale: number // fudge factor until I figure out how to scale it from CameraParameters
 	visibleWireframe: boolean // whether to display a wireframe around the image
+	clickedRayLengthFactor: number // length of a ray cast from a camera through an image screen, expressed as a ratio of the distance between the two // TODO this should relate to AuroraCameraParameters.distanceScaleFactor
 }
 
 const imageMaterialParameters = {
@@ -56,6 +57,7 @@ export class ImageManager {
 		this.settings = {
 			arbitraryImageScale: 0.003,
 			visibleWireframe: config.get('image_manager.image.wireframe.visible'),
+			clickedRayLengthFactor: 4.0,
 		}
 		this.textureLoader = new THREE.TextureLoader()
 		this.images = []
@@ -170,7 +172,11 @@ export class ImageManager {
 		if (this.loadedImageDetails.has(image)) return
 
 		if (!this.lightboxWindow)
-			this.lightboxWindow = new LightboxWindowManager(this.onImageEditState, this.onLightboxWindowClose)
+			this.lightboxWindow = new LightboxWindowManager(
+				this.onImageEditState,
+				this.onImageClick,
+				this.onLightboxWindowClose
+			)
 
 		this.loadedImageDetails = this.loadedImageDetails.add(image)
 
@@ -179,7 +185,14 @@ export class ImageManager {
 	}
 
 	private onLightboxWindowClose = (): void => {
+		let updated = 0
+		this.loadedImageDetails.forEach(i => {
+			i!.imageScreen.setHighlight(false) && updated++
+			i!.imageScreen.unsetRay() && updated++
+		})
 		this.loadedImageDetails = OrderedSet()
+		if (updated)
+			this.renderAnnotator()
 	}
 
 	private toLightboxStateMessage(): LightboxState {
@@ -199,6 +212,17 @@ export class ImageManager {
 		this.loadedImageDetails
 			.filter(i => i!.imageScreen.uuid === state.uuid)
 			.forEach(i => i!.imageScreen.setHighlight(state.active) && updated++)
+		if (updated)
+			this.renderAnnotator()
+	}
+
+	private onImageClick = (click: ImageClick): void => {
+		let updated = 0
+		this.loadedImageDetails.toArray() // This one doesn't iterate correctly without the toArray(). Go figure.
+			.forEach(i => i!.imageScreen.unsetRay() && updated++) // Allow only one at a time.
+		this.loadedImageDetails
+			.filter(i => i!.imageScreen.uuid === click.uuid)
+			.forEach(i => i!.imageScreen.setRay(click.ratioX, click.ratioY, this.settings.clickedRayLengthFactor) && updated++)
 		if (updated)
 			this.renderAnnotator()
 	}

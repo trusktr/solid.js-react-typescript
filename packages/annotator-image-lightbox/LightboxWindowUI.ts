@@ -6,7 +6,7 @@
 import * as Electron from 'electron'
 import {channel} from "../electron-ipc/Channel"
 import * as TypeLogger from 'typelogger'
-import {ImageEditState, LightboxImageDescription, LightboxState} from "../electron-ipc/Messages"
+import {ImageClick, ImageEditState, LightboxImageDescription, LightboxState} from "../electron-ipc/Messages"
 import {sendToAnnotator} from "../electron-ipc/Wrapper"
 
 // tslint:disable-next-line:no-any
@@ -47,14 +47,26 @@ class LightboxWindowUI {
 		sendToAnnotator(channel.imageEditState, {uuid: uuid, active: active} as ImageEditState)
 	}
 
+	// Notify listeners when the pointer hovers over an image.
 	private onImageMouseEnter = (ev: MouseEvent): void => {
 		if ((ev.target as HTMLImageElement).id)
 			LightboxWindowUI.imageSetState((ev.target as HTMLImageElement).id, true)
 	}
 
+	// Notify listeners when the pointer stops hovering over an image.
 	private onImageMouseLeave = (ev: MouseEvent): void => {
 		if ((ev.target as HTMLImageElement).id)
 			LightboxWindowUI.imageSetState((ev.target as HTMLImageElement).id, false)
+	}
+
+	// Notify listeners of the coordinates of a click on an image.
+	private onImageMouseUp = (ev: MouseEvent): void => {
+		const img = ev.target as HTMLImageElement
+		const pixelX = ev.clientX - img.offsetLeft
+		const pixelY = ev.clientY - img.offsetTop
+		const ratioX = pixelX / img.width
+		const ratioY = 1 - pixelY / img.height // convert screen coordinates to image coordinates while we're at it
+		sendToAnnotator(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as ImageClick)
 	}
 
 	private createLightboxImage(imageDescription: LightboxImageDescription): HTMLImageElement {
@@ -64,6 +76,7 @@ class LightboxWindowUI {
 		img.width = 600
 		img.onmouseenter = this.onImageMouseEnter
 		img.onmouseleave = this.onImageMouseLeave
+		img.onmouseup = this.onImageMouseUp
 		return img
 	}
 }

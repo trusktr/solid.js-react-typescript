@@ -9,7 +9,7 @@ import * as Electron from 'electron'
 import {BrowserWindowConstructorOptions} from 'electron'
 import {windowStateKeeperOptions} from '../util/WindowStateKeeperOptions'
 import {channel} from "../electron-ipc/Channel"
-import {ImageEditState, LightboxState} from "../electron-ipc/Messages"
+import {ImageClick, ImageEditState, LightboxState} from "../electron-ipc/Messages"
 
 const config = require('../config')
 const windowStateKeeper = require('electron-window-state')
@@ -26,13 +26,16 @@ export class LightboxWindowManager {
 	private window: Electron.BrowserWindow | null // pop full-size 2D images into their own window
 	private loadingWindow: boolean
 	private onImageEditState: (state: ImageEditState) => void
+	private onImageClick: (click: ImageClick) => void
 	private onClose: () => void
 
 	constructor(
 		onImageEditState: (state: ImageEditState) => void,
+		onImageClick: (click: ImageClick) => void,
 		onClose: () => void
 	) {
 		this.onImageEditState = onImageEditState
+		this.onImageClick = onImageClick
 		this.onClose = onClose
 		this.settings = {
 			backgroundColor: config.get('startup.background_color') || '#000',
@@ -41,7 +44,8 @@ export class LightboxWindowManager {
 		this.loadingWindow = false
 		this.window = null
 
-		Electron.ipcRenderer.on(channel.imageEditState, this.unpackOnImageEditState)
+		Electron.ipcRenderer.on(channel.imageEditState, this.handleOnImageEditState)
+		Electron.ipcRenderer.on(channel.imageClick, this.handleOnImageClick)
 	}
 
 	private createWindow(): Promise<void> {
@@ -101,7 +105,9 @@ export class LightboxWindowManager {
 			})
 	}
 
-	private unpackOnImageEditState = (_: Electron.EventEmitter, state: ImageEditState): void => {
+	private handleOnImageEditState = (_: Electron.EventEmitter, state: ImageEditState): void =>
 		this.onImageEditState(state)
-	}
+
+	private handleOnImageClick = (_: Electron.EventEmitter, click: ImageClick): void =>
+		this.onImageClick(click)
 }
