@@ -1367,6 +1367,7 @@ class Annotator {
 		const sameDirection: boolean = Math.abs(pt1.angleTo(pt2)) < (Math.PI / 2)
 		if (this.uiState.isAddLeftNeighborKeyPressed) {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.LEFT)
+			inactive.setNeighborMode(NeighborLocation.LEFT)
 			Annotator.deactivateLeftSideNeighbours()
 			if (sameDirection) {
 				inactive.addNeighbor(activeLane.uuid, NeighborLocation.RIGHT)
@@ -1375,6 +1376,7 @@ class Annotator {
 			}
 		} else {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.RIGHT)
+			inactive.setNeighborMode(NeighborLocation.RIGHT)
 			Annotator.deactivateRightSideNeighbours()
 			if (sameDirection) {
 				inactive.addNeighbor(activeLane.uuid, NeighborLocation.LEFT)

@@ -503,7 +503,7 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
-		this.activeAnnotation = null
+		this.unsetActiveAnnotation()
 		this.metadataState.dirty()
 
 		return true
@@ -925,30 +925,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		// Deactivate current active annotation
-		if (this.activeAnnotation) {
-			this.activeAnnotation.makeInactive()
-			// If the active annotation was a connection make sure its conflicting connections appearance is set back
-			// to inactive mode. In the future this behavior should happen inside the makeInactive function
-			// but at this moment we don't have access to other annotations inside an annotation.
-			if (this.activeAnnotation instanceof Connection) {
-				this.activeAnnotation.conflictingConnections.forEach( (id: AnnotationUuid) => {
-					const connection = this.connectionAnnotations.find( a => a.uuid === id)
-					if (!isNullOrUndefined(connection)) {
-						connection.makeInactive()
-					} else {
-						log.warn("Conflicting connection doesn't exist")
-					}
-				})
-				this.activeAnnotation.associatedTrafficDevices.forEach( (id: AnnotationUuid) => {
-					const device = this.trafficDeviceAnnotations.find( a => a.uuid === id)
-					if (!isNullOrUndefined(device)) {
-						device.makeInactive()
-					} else {
-						log.warn("Associated traffic device doesn't exist")
-					}
-				})
-			}
-		}
+		this.unsetActiveAnnotation()
 
 		// Set new active annotation
 		this.activeAnnotation = changeTo
@@ -973,6 +950,19 @@ export class AnnotationManager extends UtmInterface {
 					log.warn("Associated traffic device doesn't exist")
 				}
 			})
+		} else if (this.activeAnnotation instanceof Lane) {
+			this.activeAnnotation.neighborsIds.left.forEach((id: AnnotationUuid) => {
+				const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+				if (!isNullOrUndefined(neighbor)) {
+					neighbor.setNeighborMode(NeighborLocation.LEFT)
+				}
+			})
+			this.activeAnnotation.neighborsIds.right.forEach((id: AnnotationUuid) => {
+				const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+				if (!isNullOrUndefined(neighbor)) {
+					neighbor.setNeighborMode(NeighborLocation.RIGHT)
+				}
+			})
 		}
 
 		return true
@@ -983,8 +973,45 @@ export class AnnotationManager extends UtmInterface {
 		if (this.isLiveMode) return false
 
 		if (this.activeAnnotation) {
+			// If the active annotation was a connection make sure its conflicting connections appearance is set back
+			// to inactive mode. In the future this behavior should happen inside the makeInactive function
+			// but at this moment we don't have access to other annotations inside an annotation.
+			if (this.activeAnnotation instanceof Connection) {
+				this.activeAnnotation.conflictingConnections.forEach( (id: AnnotationUuid) => {
+					const connection = this.connectionAnnotations.find( a => a.uuid === id)
+					if (!isNullOrUndefined(connection)) {
+						connection.makeInactive()
+					} else {
+						log.warn("Conflicting connection doesn't exist")
+					}
+				})
+				this.activeAnnotation.associatedTrafficDevices.forEach( (id: AnnotationUuid) => {
+					const device = this.trafficDeviceAnnotations.find( a => a.uuid === id)
+					if (!isNullOrUndefined(device)) {
+						device.makeInactive()
+					} else {
+						log.warn("Associated traffic device doesn't exist")
+					}
+				})
+			} else if (this.activeAnnotation instanceof  Lane) {
+				// If the active annotation was a lane make sure its neighbors appearance is set back to inactive mode.
+				this.activeAnnotation.neighborsIds.left.forEach((id: AnnotationUuid) => {
+					const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+					if (!isNullOrUndefined(neighbor)) {
+						neighbor.makeInactive()
+					}
+				})
+				this.activeAnnotation.neighborsIds.right.forEach((id: AnnotationUuid) => {
+					const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+					if (!isNullOrUndefined(neighbor)) {
+						neighbor.makeInactive()
+					}
+				})
+			}
+
 			this.activeAnnotation.makeInactive()
 			this.activeAnnotation = null
+
 			return true
 		} else {
 			return false
