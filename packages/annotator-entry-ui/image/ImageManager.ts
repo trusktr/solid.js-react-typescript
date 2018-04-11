@@ -45,6 +45,7 @@ export class ImageManager {
 	private renderAnnotator: () => void
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void
 	private lightboxWindow: LightboxWindowManager | null // pop full-size 2D images into their own window
+	lightboxImageRay: THREE.Line | null // a ray that has been formed in 3D by clicking an image in the lightbox
 	loadedImageDetails: OrderedSet<CalibratedImage>
 
 	constructor(
@@ -57,7 +58,7 @@ export class ImageManager {
 		this.settings = {
 			arbitraryImageScale: 0.003,
 			visibleWireframe: config.get('image_manager.image.wireframe.visible'),
-			clickedRayLengthFactor: 4.0,
+			clickedRayLengthFactor: 8.0,
 		}
 		this.textureLoader = new THREE.TextureLoader()
 		this.images = []
@@ -67,6 +68,7 @@ export class ImageManager {
 		this.renderAnnotator = renderAnnotator
 		this.onImageScreenLoad = onImageScreenLoad
 		this.lightboxWindow = null
+		this.lightboxImageRay = null
 		this.loadedImageDetails = OrderedSet()
 	}
 
@@ -185,11 +187,9 @@ export class ImageManager {
 	}
 
 	private onLightboxWindowClose = (): void => {
+		this.unsetLightboxImageRay()
 		let updated = 0
-		this.loadedImageDetails.forEach(i => {
-			i!.imageScreen.setHighlight(false) && updated++
-			i!.imageScreen.unsetRay() && updated++
-		})
+		this.loadedImageDetails.forEach(i => i!.imageScreen.setHighlight(false) && updated++)
 		this.loadedImageDetails = OrderedSet()
 		if (updated)
 			this.renderAnnotator()
@@ -217,12 +217,26 @@ export class ImageManager {
 	}
 
 	private onImageClick = (click: ImageClick): void => {
+		this.unsetLightboxImageRay() // Allow only one at a time.
 		let updated = 0
-		this.loadedImageDetails.toArray() // This one doesn't iterate correctly without the toArray(). Go figure.
-			.forEach(i => i!.imageScreen.unsetRay() && updated++) // Allow only one at a time.
 		this.loadedImageDetails
 			.filter(i => i!.imageScreen.uuid === click.uuid)
-			.forEach(i => i!.imageScreen.setRay(click.ratioX, click.ratioY, this.settings.clickedRayLengthFactor) && updated++)
+			.forEach(i => {
+				const ray = i!.imageScreen.setRay(click.ratioX, click.ratioY, this.settings.clickedRayLengthFactor)
+				if (ray) {
+					this.lightboxImageRay = ray
+					updated++
+				}
+			})
+		if (updated)
+			this.renderAnnotator()
+	}
+
+	unsetLightboxImageRay(): void {
+		let updated = 0
+		this.lightboxImageRay = null
+		this.loadedImageDetails.toArray() // This one doesn't iterate correctly without the toArray(). Go figure.
+			.forEach(i => i!.imageScreen.unsetRay() && updated++)
 		if (updated)
 			this.renderAnnotator()
 	}

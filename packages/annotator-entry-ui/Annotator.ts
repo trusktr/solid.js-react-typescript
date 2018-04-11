@@ -1226,13 +1226,23 @@ class Annotator {
 		}
 
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
-		let intersections: THREE.Intersection[]
+		let intersections: THREE.Intersection[] = []
 
 		// Find a 3D point where to place the new marker.
 		if (this.annotationManager.activeAnnotation.snapToGround)
 			intersections = this.intersectWithGround(this.raycasterPlane)
-		else
-			intersections = this.intersectWithPointCloud(this.raycasterPlane)
+		else {
+			// If this is part of a two-step interaction with the lightbox, handle that.
+			if (this.imageManager.lightboxImageRay) {
+				intersections = this.intersectWithLightboxImageRay(this.raycasterPlane)
+				// On success, clean up the ray from the lightbox.
+				if (intersections.length)
+					this.imageManager.unsetLightboxImageRay()
+			}
+			// Otherwise just find the closest point.
+			if (!intersections.length)
+				intersections = this.intersectWithPointCloud(this.raycasterPlane)
+		}
 
 		if (intersections.length) {
 			this.annotationManager.addMarkerToActiveAnnotation(intersections[0].point)
@@ -1526,6 +1536,13 @@ class Annotator {
 
 	private intersectWithPointCloud(raycaster: THREE.Raycaster): THREE.Intersection[] {
 		return raycaster.intersectObjects(this.tileManager.getPointClouds())
+	}
+
+	private intersectWithLightboxImageRay(raycaster: THREE.Raycaster): THREE.Intersection[] {
+		if (this.imageManager.lightboxImageRay)
+			return raycaster.intersectObject(this.imageManager.lightboxImageRay)
+		else
+			return []
 	}
 
 	private checkForSuperTileSelection = (event: MouseEvent): void => {

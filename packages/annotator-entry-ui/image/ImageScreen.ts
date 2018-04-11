@@ -12,6 +12,7 @@ const tip = new THREE.Vector3(0, 0, 1)
 const tipToOrigin = new THREE.Vector3().sub(tip)
 // If the image plane exists in XY, then its Z value is 0.
 const imageScreenZ = 0
+
 const pyramidMaterial = new THREE.LineBasicMaterial({color: 0x66aa00})
 const invisiblePyramidMaterial = new THREE.LineBasicMaterial({visible: false})
 const borderMaterial = new THREE.LineBasicMaterial({color: 0xffffff})
@@ -155,7 +156,7 @@ export class ImageScreen extends THREE.Object3D {
 	}
 
 	// Draw a ray from the camera origin, through the image.
-	setRay(xRatio: number, yRatio: number, lengthFactor: number): boolean {
+	setRay(xRatio: number, yRatio: number, lengthFactor: number): THREE.Line | null {
 		this.unsetRay()
 		// Convert relative image coordinates to a point on the ImageScreen's base geometry.
 		const imageScreenX = this.imageWidth * xRatio + this.imageOrigin.x
@@ -164,7 +165,7 @@ export class ImageScreen extends THREE.Object3D {
 		const direction = new THREE.Vector3(imageScreenX, imageScreenY, 0).add(tipToOrigin)
 		this.annotationRay = ray(direction, lengthFactor)
 		this.add(this.annotationRay)
-		return true
+		return this.annotationRay
 	}
 
 	unsetRay(): boolean {
