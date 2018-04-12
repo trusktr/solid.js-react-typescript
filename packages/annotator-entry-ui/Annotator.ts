@@ -217,6 +217,7 @@ class Annotator {
 	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the UI
+	private lightboxImageRay: THREE.Line | null // a ray that has been formed in 3D by clicking an image in the lightbox
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
@@ -314,7 +315,8 @@ class Annotator {
 			this.tileManager,
 			this.uiState.imageScreenOpacity,
 			this.render,
-			this.onImageScreenLoad
+			this.onImageScreenLoad,
+			this.onLightboxImageRay,
 		)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
@@ -1233,11 +1235,11 @@ class Annotator {
 			intersections = this.intersectWithGround(this.raycasterPlane)
 		else {
 			// If this is part of a two-step interaction with the lightbox, handle that.
-			if (this.imageManager.lightboxImageRay) {
+			if (this.lightboxImageRay) {
 				intersections = this.intersectWithLightboxImageRay(this.raycasterPlane)
 				// On success, clean up the ray from the lightbox.
 				if (intersections.length)
-					this.imageManager.unsetLightboxImageRay()
+					this.onLightboxImageRay(null)
 			}
 			// Otherwise just find the closest point.
 			if (!intersections.length)
@@ -1539,8 +1541,8 @@ class Annotator {
 	}
 
 	private intersectWithLightboxImageRay(raycaster: THREE.Raycaster): THREE.Intersection[] {
-		if (this.imageManager.lightboxImageRay)
-			return raycaster.intersectObject(this.imageManager.lightboxImageRay)
+		if (this.lightboxImageRay)
+			return raycaster.intersectObject(this.lightboxImageRay)
 		else
 			return []
 	}
@@ -1625,6 +1627,22 @@ class Annotator {
 				this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
 			this.scene.add(imageScreen)
 			this.render()
+		}
+
+	// When a lightbox ray is created, add it to the scene.
+	private onLightboxImageRay: (ray: THREE.Line | null) => void =
+		(ray: THREE.Line | null) => {
+			if (ray) {
+				if (!this.uiState.isImageScreensVisible)
+					this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+				this.lightboxImageRay = ray
+				this.scene.add(this.lightboxImageRay)
+				this.render()
+			} else if (this.lightboxImageRay) {
+				this.scene.remove(this.lightboxImageRay)
+				this.lightboxImageRay = null
+				this.render()
+			}
 		}
 
 	private checkForImageScreenSelection = (event: MouseEvent): void => {

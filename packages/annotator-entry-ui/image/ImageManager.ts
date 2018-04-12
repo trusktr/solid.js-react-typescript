@@ -13,6 +13,7 @@ import {ImageClick, ImageEditState, LightboxImageDescription, LightboxState} fro
 import {readImageMetadataFile} from "./Aurora"
 import * as TypeLogger from "typelogger"
 import {UtmInterface} from "../UtmInterface";
+import {AuroraCameraParameters} from "./CameraParameters"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -44,21 +45,22 @@ export class ImageManager {
 	private opacity: number
 	private renderAnnotator: () => void
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void
+	private onLightboxImageRay: (ray: THREE.Line | null) => void
 	private lightboxWindow: LightboxWindowManager | null // pop full-size 2D images into their own window
-	lightboxImageRay: THREE.Line | null // a ray that has been formed in 3D by clicking an image in the lightbox
 	loadedImageDetails: OrderedSet<CalibratedImage>
 
 	constructor(
 		utmInterface: UtmInterface,
 		opacity: number,
 		renderAnnotator: () => void,
-		onImageScreenLoad: (imageScreen: ImageScreen) => void
+		onImageScreenLoad: (imageScreen: ImageScreen) => void,
+		onLightboxImageRay: (ray: THREE.Line | null) => void,
 	) {
 		this.utmInterface = utmInterface
 		this.settings = {
 			arbitraryImageScale: 0.003,
 			visibleWireframe: config.get('image_manager.image.wireframe.visible'),
-			clickedRayLengthFactor: 8.0,
+			clickedRayLengthFactor: 1.0,
 		}
 		this.textureLoader = new THREE.TextureLoader()
 		this.images = []
@@ -67,8 +69,8 @@ export class ImageManager {
 		this.opacity = opacity
 		this.renderAnnotator = renderAnnotator
 		this.onImageScreenLoad = onImageScreenLoad
+		this.onLightboxImageRay = onLightboxImageRay
 		this.lightboxWindow = null
-		this.lightboxImageRay = null
 		this.loadedImageDetails = OrderedSet()
 	}
 
@@ -187,7 +189,7 @@ export class ImageManager {
 	}
 
 	private onLightboxWindowClose = (): void => {
-		this.unsetLightboxImageRay()
+		this.onLightboxImageRay(null)
 		let updated = 0
 		this.loadedImageDetails.forEach(i => i!.imageScreen.setHighlight(false) && updated++)
 		this.loadedImageDetails = OrderedSet()
@@ -217,27 +219,17 @@ export class ImageManager {
 	}
 
 	private onImageClick = (click: ImageClick): void => {
-		this.unsetLightboxImageRay() // Allow only one at a time.
-		let updated = 0
+		this.onLightboxImageRay(null)
 		this.loadedImageDetails
 			.filter(i => i!.imageScreen.uuid === click.uuid)
 			.forEach(i => {
-				const ray = i!.imageScreen.setRay(click.ratioX, click.ratioY, this.settings.clickedRayLengthFactor)
-				if (ray) {
-					this.lightboxImageRay = ray
-					updated++
+				const parameters = i!.parameters
+				if (parameters instanceof AuroraCameraParameters) {
+					const ray = parameters.imageCoordinatesToRay(click.ratioX, click.ratioY, this.settings.clickedRayLengthFactor)
+					this.onLightboxImageRay(ray)
+				} else {
+					log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)
 				}
 			})
-		if (updated)
-			this.renderAnnotator()
-	}
-
-	unsetLightboxImageRay(): void {
-		let updated = 0
-		this.lightboxImageRay = null
-		this.loadedImageDetails.toArray() // This one doesn't iterate correctly without the toArray(). Go figure.
-			.forEach(i => i!.imageScreen.unsetRay() && updated++)
-		if (updated)
-			this.renderAnnotator()
 	}
 }

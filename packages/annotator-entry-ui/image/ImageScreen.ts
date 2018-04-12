@@ -4,12 +4,11 @@
  */
 
 import * as THREE from 'three'
-import {threeDStepSize} from "../tile/Constant"
+import {lineGeometry} from "../geometry/ThreeHelpers"
 
 // The tip of the pyramid will work with a default PlaneGeometry which hasn't been rotated
 // out of the XY plane.
 const tip = new THREE.Vector3(0, 0, 1)
-const tipToOrigin = new THREE.Vector3().sub(tip)
 // If the image plane exists in XY, then its Z value is 0.
 const imageScreenZ = 0
 
@@ -18,7 +17,6 @@ const invisiblePyramidMaterial = new THREE.LineBasicMaterial({visible: false})
 const borderMaterial = new THREE.LineBasicMaterial({color: 0xffffff})
 const unhighlightedBorderMaterial = new THREE.LineBasicMaterial({color: 0x999999})
 const invisibleBorderMaterial = new THREE.LineBasicMaterial({visible: false})
-const clickRayMaterial = new THREE.LineBasicMaterial({color: 0xff6666})
 
 // Extend lines from the corners of the base to a central point, forming the top of a pyramid.
 // Assume four corners in the base.
@@ -48,31 +46,6 @@ function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
 	return lineGeometry(vertices, visible ? unhighlightedBorderMaterial : invisibleBorderMaterial)
 }
 
-// Draw a ray from the top of the pyramid through some point on the base.
-// lengthFactor is a multiple of the distance between the tip and the image plane.
-function ray(direction: THREE.Vector3, lengthFactor: number): THREE.Line {
-	const vertices = [
-		tip,
-		new THREE.Ray(tip, direction).at(lengthFactor)
-	]
-	return lineGeometry(vertices, clickRayMaterial)
-}
-
-function lineGeometry(vertices: THREE.Vector3[], material: THREE.LineBasicMaterial): THREE.Line {
-	const positions = new Float32Array(vertices.length * threeDStepSize)
-	for (let i = 0; i < vertices.length; i++) {
-		const j = i * threeDStepSize
-		positions[j + 0] = vertices[i].x
-		positions[j + 1] = vertices[i].y
-		positions[j + 2] = vertices[i].z
-	}
-
-	const geometry = new THREE.BufferGeometry()
-	geometry.addAttribute('position', new THREE.BufferAttribute(positions, threeDStepSize))
-
-	return new THREE.Line(geometry, material)
-}
-
 // An object containing a 2D image, located in 3D space, plus a wireframe
 // representing the field of view of the camera which captured the image.
 // The hypothetical camera lies at the apex of a right pyramid, looking down
@@ -86,14 +59,12 @@ export class ImageScreen extends THREE.Object3D {
 	private visibleWireframe: boolean
 	private highlighted: boolean
 	private border: THREE.Line
-	private annotationRay: THREE.Line | null
 
 	constructor(imageMesh: THREE.Mesh, visibleWireframe: boolean) {
 		super()
 		this.imageMesh = imageMesh
 		this.visibleWireframe = visibleWireframe
 		this.highlighted = false
-		this.annotationRay = null
 
 		this.imageGeometry = imageMesh.geometry as THREE.Geometry
 		if (this.imageGeometry.type !== 'PlaneGeometry')
@@ -153,28 +124,5 @@ export class ImageScreen extends THREE.Object3D {
 
 	makeInvisible(): void {
 		this.visibleChildren().forEach(obj => obj.visible = false)
-	}
-
-	// Draw a ray from the camera origin, through the image.
-	setRay(xRatio: number, yRatio: number, lengthFactor: number): THREE.Line | null {
-		this.unsetRay()
-		// Convert relative image coordinates to a point on the ImageScreen's base geometry.
-		const imageScreenX = this.imageWidth * xRatio + this.imageOrigin.x
-		const imageScreenY = this.imageHeight * yRatio + this.imageOrigin.y
-		// Draw a line through the point.
-		const direction = new THREE.Vector3(imageScreenX, imageScreenY, 0).add(tipToOrigin)
-		this.annotationRay = ray(direction, lengthFactor)
-		this.add(this.annotationRay)
-		return this.annotationRay
-	}
-
-	unsetRay(): boolean {
-		if (this.annotationRay) {
-			this.remove(this.annotationRay)
-			this.annotationRay = null
-			return true
-		} else {
-			return false
-		}
 	}
 }
