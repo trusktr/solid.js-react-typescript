@@ -9,6 +9,7 @@ import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
 import {AnnotationGeometryType, AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
+import {Quaternion} from "three";
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -39,10 +40,12 @@ namespace TrafficDeviceRenderingProperties {
 
 export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInterface {
 	trafficDeviceType: string
+	deviceOrientation: THREE.Quaternion
 }
 
 export interface TrafficDeviceJsonOutputInterface extends AnnotationJsonOutputInterface {
 	trafficDeviceType: string
+	deviceOrientation: THREE.Quaternion
 }
 
 export class TrafficDevice extends Annotation {
@@ -52,6 +55,7 @@ export class TrafficDevice extends Annotation {
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
+	deviceOrientation: THREE.Quaternion
 	planeNormal: THREE.Vector3
 	planeCenter: THREE.Vector3
 	trafficDeviceContour: THREE.Line
@@ -66,9 +70,15 @@ export class TrafficDevice extends Annotation {
 		this.geometryType = AnnotationGeometryType.RING
 		if (obj) {
 			this.type = isNullOrUndefined(TrafficDeviceType[obj.trafficDeviceType]) ? TrafficDeviceType.UNKNOWN : TrafficDeviceType[obj.trafficDeviceType]
+			if (isNullOrUndefined(obj.deviceOrientation))
+				this.deviceOrientation = new THREE.Quaternion()
+			else
+				this.deviceOrientation = new THREE.Quaternion(obj.deviceOrientation._x, obj.deviceOrientation._y, obj.deviceOrientation._z, obj.deviceOrientation._w)
 		} else {
 			this.type = TrafficDeviceType.UNKNOWN
+			this.deviceOrientation = new THREE.Quaternion()
 		}
+
 
 		this.minimumMarkerCount = 1
 		this.allowNewMarkers = true
@@ -85,6 +95,8 @@ export class TrafficDevice extends Annotation {
 		if (obj) {
 			if (obj.markers.length >= this.minimumMarkerCount) {
 				obj.markers.forEach(marker => this.addMarker(marker, false))
+				this.markers[0].setRotationFromQuaternion(this.deviceOrientation)
+				this.markers[0].updateMatrix()
 				this.isComplete = true
 				if (!this.isValid())
 					throw Error(`can't load invalid traffic sign with id ${obj.uuid}`)
@@ -186,6 +198,7 @@ export class TrafficDevice extends Annotation {
 		}
 		this.planeCenter = this.markers[0].position
 		const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(this.markers[0].getWorldRotation())
+		this.deviceOrientation.setFromRotationMatrix(rotationMatrix)
 
 		// TODO: If normal or center have changed recompute plane
 		const newMeshGeometry = new THREE.PlaneGeometry(0.8, 0.8)
@@ -250,6 +263,7 @@ export class TrafficDevice extends Annotation {
 			annotationType: AnnotationType[AnnotationType.TRAFFIC_DEVICE],
 			uuid: this.uuid,
 			trafficDeviceType: TrafficDeviceType[this.type],
+			deviceOrientation: this.deviceOrientation,
 			markers: [],
 		}
 
