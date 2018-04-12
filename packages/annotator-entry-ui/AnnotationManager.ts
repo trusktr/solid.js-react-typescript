@@ -963,6 +963,12 @@ export class AnnotationManager extends UtmInterface {
 					neighbor.setNeighborMode(NeighborLocation.RIGHT)
 				}
 			})
+			this.activeAnnotation.neighborsIds.front.forEach((id: AnnotationUuid) => {
+				const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+				if (!isNullOrUndefined(neighbor)) {
+					neighbor.setNeighborMode(NeighborLocation.FRONT)
+				}
+			})
 		}
 
 		return true
@@ -1002,6 +1008,12 @@ export class AnnotationManager extends UtmInterface {
 					}
 				})
 				this.activeAnnotation.neighborsIds.right.forEach((id: AnnotationUuid) => {
+					const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+					if (!isNullOrUndefined(neighbor)) {
+						neighbor.makeInactive()
+					}
+				})
+				this.activeAnnotation.neighborsIds.front.forEach((id: AnnotationUuid) => {
 					const neighbor = this.laneAnnotations.find(a => a.uuid === id)
 					if (!isNullOrUndefined(neighbor)) {
 						neighbor.makeInactive()
