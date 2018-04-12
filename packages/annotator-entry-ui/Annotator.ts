@@ -1298,8 +1298,8 @@ class Annotator {
 	}
 
 	/**
-	 * If the mouse was clicked while pressing the "N" key, add new neighbor
-	 * between current active lane and the "clicked" lane
+	 * If the mouse was clicked while pressing the "l"/"r"/"f" key, then
+	 * add new neighbor between current active lane and the "clicked" lane
 	 */
 	private connectNeighbor = (event: MouseEvent): void => {
 		if (this.uiState.isAddConnectionKeyPressed) return
@@ -1367,14 +1367,16 @@ class Annotator {
 			index12 = index11
 			index11 = index11 - 1
 		}
-		let pt1: THREE.Vector3 = activeLane.waypoints[index12].sub(activeLane.waypoints[index11])
+		let pt1: THREE.Vector3 = activeLane.waypoints[index12].clone()
+		pt1.sub(activeLane.waypoints[index11])
 		// find inactive lane direction
 		let index22 = index21 + 1
 		if (index22 >= inactive.waypoints.length) {
 			index22 = index21
 			index21 = index21 - 1
 		}
-		let pt2: THREE.Vector3 = inactive.waypoints[index22].sub(inactive.waypoints[index21])
+		let pt2: THREE.Vector3 = inactive.waypoints[index22].clone()
+		pt2.sub(inactive.waypoints[index21])
 
 		// add neighbor based on lane direction and selected side
 		const sameDirection: boolean = Math.abs(pt1.angleTo(pt2)) < (Math.PI / 2)
@@ -1382,7 +1384,6 @@ class Annotator {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.LEFT)
 			inactive.setNeighborMode(NeighborLocation.LEFT)
 			Annotator.deactivateLeftSideNeighbours()
-			log.warn('Angle is ' + pt1.angleTo(pt2))
 			if (sameDirection) {
 				inactive.addNeighbor(activeLane.uuid, NeighborLocation.RIGHT)
 			} else {

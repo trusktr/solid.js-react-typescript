@@ -395,6 +395,9 @@ export class Lane extends Annotation {
 		this.unhighlightMarkers()
 	}
 
+	/**
+	 * Change this annotation to "neighbor" rendering mode, using given type of neighbor
+	 */
 	setNeighborMode(location: NeighborLocation): void {
 		if (location === NeighborLocation.LEFT) {
 			this.mesh.material = this.renderingProperties.leftNeighborMaterial

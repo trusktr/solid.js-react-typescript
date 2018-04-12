@@ -16,6 +16,10 @@ export function getCenter(box: THREE.Box3): THREE.Vector3 {
 	return new THREE.Vector3(box.min.x + halfSize.x, box.min.y + halfSize.y, box.min.z + halfSize.z)
 }
 
+/**
+ * Get closest pair of points between two arrays of 3D points
+ * @returns pair of indexes corresponding to closest pair
+ */
 export function getClosestPoints(arr1: Array<THREE.Vector3>, arr2: Array<THREE.Vector3>, threshold: number): {index1: number, index2: number} {
 	let index1: number = -1
 	let index2: number = -1
