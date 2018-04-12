@@ -515,6 +515,12 @@ export class Lane extends Annotation {
 	/*
 	 * Delete the neighbor if it exists on either side.
 	 */
+	deleteNeighbor(neighborId: AnnotationUuid): boolean {
+		return this.deleteLeftOrRightNeighbor(neighborId) ||
+			   this.deleteFrontNeighbor(neighborId) ||
+			   this.deleteBackNeighbor(neighborId)
+	}
+
 	deleteLeftOrRightNeighbor(neighborId: AnnotationUuid): boolean {
 
 		let index = this.neighborsIds.right.indexOf(neighborId, 0)
@@ -528,8 +534,6 @@ export class Lane extends Annotation {
 			this.neighborsIds.left.splice(index, 1)
 			return true
 		}
-
-		log.error("Non-reciprocal neighbor relation detected. This should never happen.")
 		return false
 	}
 
@@ -540,10 +544,8 @@ export class Lane extends Annotation {
 		if (index >= 0) {
 			this.neighborsIds.front.splice(index, 1)
 			return true
-		} else {
-			log.error("Couldn't find connection to front neighbor. This should never happen.")
-			return false
 		}
+		return false
 	}
 
 	deleteBackNeighbor(neighborId: AnnotationUuid): boolean {
@@ -553,10 +555,8 @@ export class Lane extends Annotation {
 		if (index >= 0) {
 			this.neighborsIds.back.splice(index, 1)
 			return true
-		} else {
-			log.error("Couldn't find connection to back neighbor. This should never happen.")
-			return false
 		}
+		return false
 	}
 
 	/**
