@@ -65,7 +65,7 @@ class LightboxWindowUI {
 		const pixelX = ev.clientX - img.offsetLeft
 		const pixelY = ev.clientY - img.offsetTop
 		const ratioX = pixelX / img.width
-		const ratioY = 1 - pixelY / img.height // convert screen coordinates to image coordinates while we're at it
+		const ratioY = pixelY / img.height
 		sendToAnnotator(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as ImageClick)
 	}
 

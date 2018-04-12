@@ -30,12 +30,11 @@ export class ImaginaryCameraParameters implements CameraParameters {
 
 const clickRayMaterial = new THREE.LineBasicMaterial({color: 0xff6666})
 
-// Draw a ray from the top of the pyramid through some point on the base.
-// lengthFactor is a multiple of the distance between the tip and the image plane.
-function ray(origin: THREE.Vector3, direction: THREE.Vector3, lengthFactor: number): THREE.Line {
+// Draw a ray from the camera origin through some point within the image
+function ray(origin: THREE.Vector3, destination: THREE.Vector3): THREE.Line {
 	const vertices = [
 		origin,
-		new THREE.Ray(origin, direction).at(lengthFactor)
+		destination
 	]
 	return lineGeometry(vertices, clickRayMaterial)
 }
@@ -46,6 +45,8 @@ export class AuroraCameraParameters implements CameraParameters {
 	cameraOrigin: THREE.Vector3
 	private utmInterface: UtmInterface
 	private tileId: string
+	private imageWidth: number
+	private imageHeight: number
 	private translation: number[]
 	private rotation: number[]
 	private distanceScaleFactor: number
@@ -53,50 +54,57 @@ export class AuroraCameraParameters implements CameraParameters {
 	constructor(
 		utmInterface: UtmInterface,
 		tileId: string,
+		imageWidth: number,
+		imageHeight: number,
 		translation: number[],
 		rotation: number[]
 	) {
 		this.utmInterface = utmInterface
 		this.tileId = tileId
+		this.imageWidth = imageWidth
+		this.imageHeight = imageHeight
 		this.translation = translation
 		this.rotation = rotation
 		// TODO: make this configurable
 		this.distanceScaleFactor = 15
 
-		const sPosition = new THREE.Vector4(0, 0, this.distanceScaleFactor, 1)
-		const sOrigin = new THREE.Vector4(translation[0], translation[1], translation[2], 1)
-		const sRotation = new THREE.Matrix4()
-		sRotation.set(
+		// https://en.wikipedia.org/wiki/Camera_resectioning
+		// https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
+		const cameraOrigin = new THREE.Vector4(translation[0], translation[1], translation[2], 1)
+		const screenPosition = new THREE.Vector4(0, 0, this.distanceScaleFactor, 1)
+		const screenRotation = new THREE.Matrix4()
+		screenRotation.set(
 			rotation[0], rotation[1], rotation[2], translation[0],
 			rotation[3], rotation[4], rotation[5], translation[1],
 			rotation[6], rotation[7], rotation[8], translation[2],
 			0, 0, 0, 1)
-		sPosition.applyMatrix4(sRotation)
+		screenPosition.applyMatrix4(screenRotation)
 
 		// Note: Use camera origin as height to avoid floating images
-		this.screenPosition = utmInterface.utmToThreeJs(sPosition.x, sPosition.y, sOrigin.z)
-		this.cameraOrigin = utmInterface.utmToThreeJs(sOrigin.x, sOrigin.y, sOrigin.z)
+		this.screenPosition = utmInterface.utmToThreeJs(screenPosition.x, screenPosition.y, cameraOrigin.z)
+		this.cameraOrigin = utmInterface.utmToThreeJs(cameraOrigin.x, cameraOrigin.y, cameraOrigin.z)
 	}
 
 	// Draw a ray from the camera origin, through a point in the image which corresponds to a point in three.js space.
-	imageCoordinatesToRay(xRatio: number, yRatio: number, lengthFactor: number): THREE.Line {
-		// todo get this from camera intrinsics?
-		const arbitraryImageScale = 1.0
-		const imageWidth = 1920 * arbitraryImageScale
-		const imageHeight = 1208 * arbitraryImageScale
-		const imageScreenX = imageWidth * xRatio - imageWidth / 2
-		const imageScreenY = imageHeight * yRatio - imageHeight / 2
+	imageCoordinatesToRay(xRatio: number, yRatio: number, length: number): THREE.Line {
+		const imageX = this.imageWidth * xRatio
+		const imageY = this.imageHeight * yRatio
+		const cx = this.imageWidth * 0.5
+		const cy = this.imageHeight * 0.5
+		// TODO read these from camera intrinsics file
+		const fx = this.imageWidth * 0.508447051
+		const fy = this.imageWidth * 0.513403773
 
-		const sPosition = new THREE.Vector4(imageScreenX, imageScreenY, this.distanceScaleFactor, 1)
-		const sRotation = new THREE.Matrix4()
-		sRotation.set(
+		const endPosition = new THREE.Vector4(length * (imageX - cx) / fx, length * (imageY - cy) / fy, length, 1)
+		const endRotation = new THREE.Matrix4()
+		endRotation.set(
 			this.rotation[0], this.rotation[1], this.rotation[2], this.translation[0],
 			this.rotation[3], this.rotation[4], this.rotation[5], this.translation[1],
 			this.rotation[6], this.rotation[7], this.rotation[8], this.translation[2],
 			0, 0, 0, 1)
-		sPosition.applyMatrix4(sRotation)
+		endPosition.applyMatrix4(endRotation)
 
-		const direction = this.utmInterface.utmToThreeJs(sPosition.x, sPosition.y, sPosition.z)
-		return ray(this.cameraOrigin, direction, lengthFactor)
+		const destination = this.utmInterface.utmToThreeJs(endPosition.x, endPosition.y, endPosition.z)
+		return ray(this.cameraOrigin, destination)
 	}
 }

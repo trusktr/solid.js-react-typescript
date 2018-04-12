@@ -24,7 +24,7 @@ const config = require('../../config')
 interface ImageManagerSettings {
 	arbitraryImageScale: number // fudge factor until I figure out how to scale it from CameraParameters
 	visibleWireframe: boolean // whether to display a wireframe around the image
-	clickedRayLengthFactor: number // length of a ray cast from a camera through an image screen, expressed as a ratio of the distance between the two // TODO this should relate to AuroraCameraParameters.distanceScaleFactor
+	clickedRayLength: number // length in meters of a ray cast from a camera through an image screen
 }
 
 const imageMaterialParameters = {
@@ -60,7 +60,7 @@ export class ImageManager {
 		this.settings = {
 			arbitraryImageScale: 0.003,
 			visibleWireframe: config.get('image_manager.image.wireframe.visible'),
-			clickedRayLengthFactor: 1.0,
+			clickedRayLength: 100,
 		}
 		this.textureLoader = new THREE.TextureLoader()
 		this.images = []
@@ -225,7 +225,7 @@ export class ImageManager {
 			.forEach(i => {
 				const parameters = i!.parameters
 				if (parameters instanceof AuroraCameraParameters) {
-					const ray = parameters.imageCoordinatesToRay(click.ratioX, click.ratioY, this.settings.clickedRayLengthFactor)
+					const ray = parameters.imageCoordinatesToRay(click.ratioX, click.ratioY, this.settings.clickedRayLength)
 					this.onLightboxImageRay(ray)
 				} else {
 					log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)

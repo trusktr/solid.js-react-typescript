@@ -22,6 +22,7 @@ export interface ImageEditState {
 }
 
 // The location of a click on a 2D image, expressed as proportions of the image dimensions.
+// This uses computer screen coordinates, with the XY origin in the upper left of the image.
 export interface ImageClick {
 	uuid: string,
 	ratioX: number,

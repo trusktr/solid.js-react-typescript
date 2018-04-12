@@ -53,9 +53,6 @@ function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
 export class ImageScreen extends THREE.Object3D {
 	imageMesh: THREE.Mesh
 	private imageGeometry: THREE.Geometry
-	private imageWidth: number
-	private imageHeight: number
-	private imageOrigin: THREE.Vector2
 	private visibleWireframe: boolean
 	private highlighted: boolean
 	private border: THREE.Line
@@ -71,12 +68,6 @@ export class ImageScreen extends THREE.Object3D {
 			throw Error('invalid geometry ' + imageMesh.geometry)
 		if (this.imageGeometry.vertices.find(v => v.z !== imageScreenZ))
 			throw Error('invalid geometry ' + imageMesh.geometry)
-
-		const bottomLeft = this.imageGeometry.vertices[2]
-		const topRight = this.imageGeometry.vertices[1]
-		this.imageWidth = topRight.x - bottomLeft.x
-		this.imageHeight = topRight.y - bottomLeft.y
-		this.imageOrigin = new THREE.Vector2(bottomLeft.x, bottomLeft.y)
 
 		this.add(imageMesh)
 		this.add(pyramid(this.imageGeometry.vertices, visibleWireframe))
