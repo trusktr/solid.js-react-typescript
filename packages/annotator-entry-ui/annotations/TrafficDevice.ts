@@ -79,7 +79,6 @@ export class TrafficDevice extends Annotation {
 			this.deviceOrientation = new THREE.Quaternion()
 		}
 
-
 		this.minimumMarkerCount = 1
 		this.allowNewMarkers = true
 		this.snapToGround = false
@@ -126,7 +125,7 @@ export class TrafficDevice extends Annotation {
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
 		this.planeCenter = position
-		this.planeNormal = new THREE.Vector3(0,0,0)
+		this.planeNormal = new THREE.Vector3(0, 0, 0)
 
 		if (updateVisualization)
 			this.updateVisualization()
@@ -200,7 +199,6 @@ export class TrafficDevice extends Annotation {
 		const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(this.markers[0].getWorldRotation())
 		this.deviceOrientation.setFromRotationMatrix(rotationMatrix)
 
-		// TODO: If normal or center have changed recompute plane
 		const newMeshGeometry = new THREE.PlaneGeometry(0.8, 0.8)
 		newMeshGeometry.applyMatrix(rotationMatrix)
 		newMeshGeometry.translate(this.planeCenter.x, this.planeCenter.y, this.planeCenter.z)
@@ -234,8 +232,7 @@ export class TrafficDevice extends Annotation {
 		this.trafficDeviceContour.geometry = newContourGeometry
 		this.trafficDeviceContour.geometry.verticesNeedUpdate = true
 
-
-		this.planeNormal =  new THREE.Vector3().set(0,0,1)
+		this.planeNormal =  new THREE.Vector3().set(0, 0, 1)
 		this.planeNormal.applyMatrix4(rotationMatrix)
 		const newNormalGeometry = new THREE.Geometry()
 		const normalStartPoint = this.markers[0].position
