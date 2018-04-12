@@ -94,8 +94,9 @@ class LaneRenderingProperties {
 	markerMaterial: THREE.MeshLambertMaterial
 	activeMaterial: THREE.MeshBasicMaterial
 	inactiveMaterial: THREE.MeshLambertMaterial
-	leftNeighborMaterial: THREE.MeshLambertMaterial
-	rightNeighborMaterial: THREE.MeshLambertMaterial
+	leftNeighborMaterial: THREE.MeshBasicMaterial
+	rightNeighborMaterial: THREE.MeshBasicMaterial
+	frontNeighborMaterial: THREE.MeshBasicMaterial
 	centerLineMaterial: THREE.LineDashedMaterial
 	trajectoryMaterial: THREE.MeshLambertMaterial
 	liveModeMaterial: THREE.MeshLambertMaterial
@@ -104,8 +105,9 @@ class LaneRenderingProperties {
 		this.markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 		this.activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
 		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: "white", side: THREE.DoubleSide})
-		this.leftNeighborMaterial = new THREE.MeshLambertMaterial({color: "blue", transparent: true, opacity: 0.4, side: THREE.DoubleSide})
-		this.rightNeighborMaterial = new THREE.MeshLambertMaterial({color: "yellow", transparent: true, opacity: 0.4, side: THREE.DoubleSide})
+		this.leftNeighborMaterial = new THREE.MeshBasicMaterial({color: 0xffff66, side: THREE.DoubleSide})
+		this.rightNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x00ffff, side: THREE.DoubleSide})
+		this.frontNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x66ff99, side: THREE.DoubleSide})
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: "black", side: THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial({color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2})
 		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.3, side: THREE.DoubleSide})
@@ -403,6 +405,8 @@ export class Lane extends Annotation {
 			this.mesh.material = this.renderingProperties.leftNeighborMaterial
 		} else if (location === NeighborLocation.RIGHT) {
 			this.mesh.material = this.renderingProperties.rightNeighborMaterial
+		} else if (location === NeighborLocation.FRONT) {
+			this.mesh.material = this.renderingProperties.frontNeighborMaterial
 		} else {
 			log.warn('Neighbor location not supported for coloring.')
 		}
