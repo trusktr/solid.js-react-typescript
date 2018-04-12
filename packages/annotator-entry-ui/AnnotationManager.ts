@@ -1380,6 +1380,8 @@ export class AnnotationManager extends UtmInterface {
 			if (rightNeighbor && rightNeighbor instanceof Lane) {
 				if (rightNeighbor.deleteLeftOrRightNeighbor(annotation.uuid))
 					modifications++
+				else
+					log.error("Non-reciprocal neighbor relation detected. This should never happen.")
 			} else {
 				log.error("Couldn't find right neighbor. This should never happen.")
 			}
@@ -1390,6 +1392,8 @@ export class AnnotationManager extends UtmInterface {
 			if (leftNeighbor && leftNeighbor instanceof Lane) {
 				if (leftNeighbor.deleteLeftOrRightNeighbor(annotation.uuid))
 					modifications++
+				else
+					log.error("Non-reciprocal neighbor relation detected. This should never happen.")
 			} else {
 				log.error("Couldn't find left neighbor. This should never happen.")
 			}
@@ -1401,6 +1405,8 @@ export class AnnotationManager extends UtmInterface {
 				// If the front neighbor is another lane, delete the reference to this lane from its neighbors
 				if (frontNeighbor.deleteBackNeighbor(annotation.uuid))
 					modifications++
+				else
+					log.error("Couldn't find connection to back neighbor. This should never happen.")
 			} else if (frontNeighbor instanceof Connection) {
 				// If the front neighbor is a connection delete it
 				if (this.deleteAnnotation(frontNeighbor))
@@ -1416,6 +1422,8 @@ export class AnnotationManager extends UtmInterface {
 				// If the back neighbor is another lane, delete the reference to this lane from its neighbors
 				if (backNeighbor.deleteFrontNeighbor(annotation.uuid))
 					modifications++
+				else
+					log.error("Couldn't find connection to front neighbor. This should never happen.")
 			} else if (backNeighbor instanceof Connection) {
 				// If the back neighbor is a connection delete it
 				if (this.deleteAnnotation(backNeighbor))

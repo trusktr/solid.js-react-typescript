@@ -1333,6 +1333,16 @@ class Annotator {
 			return
 		}
 
+		// Check if relation already exist.
+		// In the case this already exist, the relation is removed
+		if (activeLane.deleteNeighbor(inactive.uuid)) {
+			if (inactive.deleteNeighbor(activeLane.uuid))
+				inactive.makeInactive()
+			else
+				log.error('Non-reciprocal neighbor relation detected. This should never happen.')
+			return
+		}
+
 		// Check if the neighbor must be added to the front
 		if (this.uiState.isConnectFrontNeighborKeyPressed) {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.FRONT)
@@ -1372,6 +1382,7 @@ class Annotator {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.LEFT)
 			inactive.setNeighborMode(NeighborLocation.LEFT)
 			Annotator.deactivateLeftSideNeighbours()
+			log.warn('Angle is ' + pt1.angleTo(pt2))
 			if (sameDirection) {
 				inactive.addNeighbor(activeLane.uuid, NeighborLocation.RIGHT)
 			} else {
