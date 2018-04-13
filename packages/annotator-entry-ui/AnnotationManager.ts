@@ -503,7 +503,7 @@ export class AnnotationManager extends UtmInterface {
 			return false
 		}
 
-		this.activeAnnotation = null
+		this.unsetActiveAnnotation()
 		this.metadataState.dirty()
 
 		return true
@@ -925,30 +925,7 @@ export class AnnotationManager extends UtmInterface {
 		}
 
 		// Deactivate current active annotation
-		if (this.activeAnnotation) {
-			this.activeAnnotation.makeInactive()
-			// If the active annotation was a connection make sure its conflicting connections appearance is set back
-			// to inactive mode. In the future this behavior should happen inside the makeInactive function
-			// but at this moment we don't have access to other annotations inside an annotation.
-			if (this.activeAnnotation instanceof Connection) {
-				this.activeAnnotation.conflictingConnections.forEach( (id: AnnotationUuid) => {
-					const connection = this.connectionAnnotations.find( a => a.uuid === id)
-					if (!isNullOrUndefined(connection)) {
-						connection.makeInactive()
-					} else {
-						log.warn("Conflicting connection doesn't exist")
-					}
-				})
-				this.activeAnnotation.associatedTrafficDevices.forEach( (id: AnnotationUuid) => {
-					const device = this.trafficDeviceAnnotations.find( a => a.uuid === id)
-					if (!isNullOrUndefined(device)) {
-						device.makeInactive()
-					} else {
-						log.warn("Associated traffic device doesn't exist")
-					}
-				})
-			}
-		}
+		this.unsetActiveAnnotation()
 
 		// Set new active annotation
 		this.activeAnnotation = changeTo
@@ -973,6 +950,25 @@ export class AnnotationManager extends UtmInterface {
 					log.warn("Associated traffic device doesn't exist")
 				}
 			})
+		} else if (this.activeAnnotation instanceof Lane) {
+			this.activeAnnotation.neighborsIds.left.forEach((id: AnnotationUuid) => {
+				const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+				if (!isNullOrUndefined(neighbor)) {
+					neighbor.setNeighborMode(NeighborLocation.LEFT)
+				}
+			})
+			this.activeAnnotation.neighborsIds.right.forEach((id: AnnotationUuid) => {
+				const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+				if (!isNullOrUndefined(neighbor)) {
+					neighbor.setNeighborMode(NeighborLocation.RIGHT)
+				}
+			})
+			this.activeAnnotation.neighborsIds.front.forEach((id: AnnotationUuid) => {
+				const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+				if (!isNullOrUndefined(neighbor)) {
+					neighbor.setNeighborMode(NeighborLocation.FRONT)
+				}
+			})
 		}
 
 		return true
@@ -983,8 +979,51 @@ export class AnnotationManager extends UtmInterface {
 		if (this.isLiveMode) return false
 
 		if (this.activeAnnotation) {
+			// If the active annotation was a connection make sure its conflicting connections appearance is set back
+			// to inactive mode. In the future this behavior should happen inside the makeInactive function
+			// but at this moment we don't have access to other annotations inside an annotation.
+			if (this.activeAnnotation instanceof Connection) {
+				this.activeAnnotation.conflictingConnections.forEach( (id: AnnotationUuid) => {
+					const connection = this.connectionAnnotations.find( a => a.uuid === id)
+					if (!isNullOrUndefined(connection)) {
+						connection.makeInactive()
+					} else {
+						log.warn("Conflicting connection doesn't exist")
+					}
+				})
+				this.activeAnnotation.associatedTrafficDevices.forEach( (id: AnnotationUuid) => {
+					const device = this.trafficDeviceAnnotations.find( a => a.uuid === id)
+					if (!isNullOrUndefined(device)) {
+						device.makeInactive()
+					} else {
+						log.warn("Associated traffic device doesn't exist")
+					}
+				})
+			} else if (this.activeAnnotation instanceof  Lane) {
+				// If the active annotation was a lane make sure its neighbors appearance is set back to inactive mode.
+				this.activeAnnotation.neighborsIds.left.forEach((id: AnnotationUuid) => {
+					const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+					if (!isNullOrUndefined(neighbor)) {
+						neighbor.makeInactive()
+					}
+				})
+				this.activeAnnotation.neighborsIds.right.forEach((id: AnnotationUuid) => {
+					const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+					if (!isNullOrUndefined(neighbor)) {
+						neighbor.makeInactive()
+					}
+				})
+				this.activeAnnotation.neighborsIds.front.forEach((id: AnnotationUuid) => {
+					const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+					if (!isNullOrUndefined(neighbor)) {
+						neighbor.makeInactive()
+					}
+				})
+			}
+
 			this.activeAnnotation.makeInactive()
 			this.activeAnnotation = null
+
 			return true
 		} else {
 			return false
@@ -1353,6 +1392,8 @@ export class AnnotationManager extends UtmInterface {
 			if (rightNeighbor && rightNeighbor instanceof Lane) {
 				if (rightNeighbor.deleteLeftOrRightNeighbor(annotation.uuid))
 					modifications++
+				else
+					log.error("Non-reciprocal neighbor relation detected. This should never happen.")
 			} else {
 				log.error("Couldn't find right neighbor. This should never happen.")
 			}
@@ -1363,6 +1404,8 @@ export class AnnotationManager extends UtmInterface {
 			if (leftNeighbor && leftNeighbor instanceof Lane) {
 				if (leftNeighbor.deleteLeftOrRightNeighbor(annotation.uuid))
 					modifications++
+				else
+					log.error("Non-reciprocal neighbor relation detected. This should never happen.")
 			} else {
 				log.error("Couldn't find left neighbor. This should never happen.")
 			}
@@ -1374,6 +1417,8 @@ export class AnnotationManager extends UtmInterface {
 				// If the front neighbor is another lane, delete the reference to this lane from its neighbors
 				if (frontNeighbor.deleteBackNeighbor(annotation.uuid))
 					modifications++
+				else
+					log.error("Couldn't find connection to back neighbor. This should never happen.")
 			} else if (frontNeighbor instanceof Connection) {
 				// If the front neighbor is a connection delete it
 				if (this.deleteAnnotation(frontNeighbor))
@@ -1389,6 +1434,8 @@ export class AnnotationManager extends UtmInterface {
 				// If the back neighbor is another lane, delete the reference to this lane from its neighbors
 				if (backNeighbor.deleteFrontNeighbor(annotation.uuid))
 					modifications++
+				else
+					log.error("Couldn't find connection to front neighbor. This should never happen.")
 			} else if (backNeighbor instanceof Connection) {
 				// If the back neighbor is a connection delete it
 				if (this.deleteAnnotation(backNeighbor))
