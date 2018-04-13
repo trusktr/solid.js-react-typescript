@@ -28,6 +28,7 @@ interface ImageManagerSettings {
 }
 
 const imageMaterialParameters = {
+	color: 'white',
 	side: THREE.FrontSide,
 	transparent: true,
 	opacity: 1.0
@@ -119,11 +120,11 @@ export class ImageManager {
 	private loadImageFromPath(path: string): Promise<void> {
 		return readImageMetadataFile(path, this.utmInterface)
 			.then(cameraParameters =>
-				this.loadImageAsPlaneGeometry(path)
+				this.loadImageAsPlaneGeometry()
 					.then(mesh =>
 						this.setUpScreen({
 							path: path,
-							imageScreen: new ImageScreen(mesh, this.settings.visibleWireframe),
+							imageScreen: new ImageScreen(path, mesh, this.settings.visibleWireframe),
 							parameters: cameraParameters
 						} as CalibratedImage)
 					)
@@ -135,22 +136,11 @@ export class ImageManager {
 	}
 
 	// Map an image file onto a three.js object.
-	private loadImageAsPlaneGeometry(path: string): Promise<THREE.Mesh> {
-		return new Promise((resolve: (mesh: THREE.Mesh) => void, reject: (reason?: Error) => void): void => {
-			const onLoad = (texture: THREE.Texture): void => {
-				texture.minFilter = THREE.LinearFilter
-
-				const planeGeometry = new THREE.PlaneGeometry(texture.image.width, texture.image.height)
-				const material = new THREE.MeshBasicMaterial(imageMaterialParameters)
-				material.map = texture
-
-				resolve(new THREE.Mesh(planeGeometry, material))
-			}
-
-			const onError = (): void =>
-				reject(Error('texture load failed for ' + path))
-
-			this.textureLoader.load(path, onLoad, undefined, onError)
+	private loadImageAsPlaneGeometry(): Promise<THREE.Mesh> {
+		return new Promise((resolve: (mesh: THREE.Mesh) => void): void => {
+			const planeGeometry = new THREE.PlaneGeometry(1920, 1208)
+			const material = new THREE.MeshBasicMaterial(imageMaterialParameters)
+			resolve(new THREE.Mesh(planeGeometry, material))
 		})
 	}
 
@@ -231,5 +221,14 @@ export class ImageManager {
 					log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)
 				}
 			})
+	}
+
+	getImageScreen(imageScreenMesh: THREE.Mesh): ImageScreen | null {
+		let foundScreen: ImageScreen | null = null
+		this.imageScreens.forEach(screen => {
+			if (screen.imageMesh === imageScreenMesh)
+				foundScreen = screen
+		})
+		return foundScreen
 	}
 }

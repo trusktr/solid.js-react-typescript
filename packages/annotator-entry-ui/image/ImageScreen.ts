@@ -17,6 +17,8 @@ const invisiblePyramidMaterial = new THREE.LineBasicMaterial({visible: false})
 const borderMaterial = new THREE.LineBasicMaterial({color: 0xffffff})
 const unhighlightedBorderMaterial = new THREE.LineBasicMaterial({color: 0x999999})
 const invisibleBorderMaterial = new THREE.LineBasicMaterial({visible: false})
+const inactiveMaterial = new THREE.MeshBasicMaterial({color: 'white', side: THREE.FrontSide, transparent: true, opacity: 0.5})
+const textureLoader = new THREE.TextureLoader()
 
 // Extend lines from the corners of the base to a central point, forming the top of a pyramid.
 // Assume four corners in the base.
@@ -52,13 +54,15 @@ function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
 // at the image which forms the base.
 export class ImageScreen extends THREE.Object3D {
 	imageMesh: THREE.Mesh
+	private path: string
 	private imageGeometry: THREE.Geometry
 	private visibleWireframe: boolean
 	private highlighted: boolean
 	private border: THREE.Line
 
-	constructor(imageMesh: THREE.Mesh, visibleWireframe: boolean) {
+	constructor(path: string, imageMesh: THREE.Mesh, visibleWireframe: boolean) {
 		super()
+		this.path = path
 		this.imageMesh = imageMesh
 		this.visibleWireframe = visibleWireframe
 		this.highlighted = false
@@ -115,5 +119,20 @@ export class ImageScreen extends THREE.Object3D {
 
 	makeInvisible(): void {
 		this.visibleChildren().forEach(obj => obj.visible = false)
+	}
+
+	loadImage(): void {
+		const onLoad = (texture: THREE.Texture): void => {
+			texture.minFilter = THREE.LinearFilter
+			const activeMaterial = new THREE.MeshBasicMaterial({side: THREE.FrontSide, transparent: true, opacity: 1.0})
+			activeMaterial.map = texture
+			this.imageMesh.material = activeMaterial
+		}
+
+		textureLoader.load(this.path, onLoad, undefined, undefined)
+	}
+
+	unloadImage(): void {
+		this.imageMesh.material = inactiveMaterial
 	}
 }

@@ -1788,13 +1788,15 @@ class Annotator {
 		this.raycasterImageScreen.setFromCamera(mouse, this.camera)
 		const intersects = this.raycasterImageScreen.intersectObjects(this.imageManager.imageScreenMeshes)
 
+		// No image intersected
 		if (!intersects.length) {
 			this.unHighlightImageScreenBox()
 		} else {
 			const first = intersects[0].object as THREE.Mesh
 
-			if (this.highlightedImageScreenBox && this.highlightedImageScreenBox.id !== first.id)
+			if (this.highlightedImageScreenBox && this.highlightedImageScreenBox.id !== first.id) {
 				this.unHighlightImageScreenBox()
+			}
 
 			if (!this.highlightedImageScreenBox)
 				this.highlightImageScreenBox(first)
@@ -1825,6 +1827,14 @@ class Annotator {
 		if (this.highlightedSuperTileBox) return
 		if (!this.uiState.isShiftKeyPressed) return
 
+		if (imageScreenBox === this.highlightedImageScreenBox) {
+			this.render()
+			return
+		}
+
+		const screen = this.imageManager.getImageScreen(imageScreenBox)
+		if (screen) screen.loadImage()
+
 		const image = imageScreenBox.userData as CalibratedImage
 		// Don't allow it to be loaded a second time.
 		if (this.imageManager.loadedImageDetails.has(image)) return
@@ -1838,6 +1848,9 @@ class Annotator {
 	// Draw the box with default opacity like all the other boxes.
 	private unHighlightImageScreenBox(): void {
 		if (!this.highlightedImageScreenBox) return
+
+		//const screen = this.imageManager.getImageScreen(this.highlightedImageScreenBox)
+		//if (screen) screen.unloadImage()
 
 		const material = this.highlightedImageScreenBox.material as THREE.MeshBasicMaterial
 		material.opacity = this.uiState.imageScreenOpacity
