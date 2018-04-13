@@ -6,6 +6,13 @@
 import * as THREE from 'three'
 import {threeDStepSize} from "../tile/Constant"
 
+export interface QuaternionJsonInterface {
+	x: number
+	y: number
+	z: number
+	w: number
+}
+
 // THREE.Box3.getSize() fails on boxes with negative values.
 export function getSize(box: THREE.Box3): THREE.Vector3 {
 	return new THREE.Vector3(box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z)
