@@ -62,8 +62,9 @@ class LightboxWindowUI {
 	// Notify listeners of the coordinates of a click on an image.
 	private onImageMouseUp = (ev: MouseEvent): void => {
 		const img = ev.target as HTMLImageElement
-		const pixelX = ev.clientX - img.offsetLeft
-		const pixelY = ev.clientY - img.offsetTop
+		const rect = img.getBoundingClientRect()
+		const pixelX = ev.clientX - rect.left
+		const pixelY = ev.clientY - rect.top
 		const ratioX = pixelX / img.width
 		const ratioY = pixelY / img.height
 		sendToAnnotator(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as ImageClick)
