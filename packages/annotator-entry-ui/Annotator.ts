@@ -158,6 +158,7 @@ interface UiState {
 	isConnectFrontNeighborKeyPressed: boolean
 	isJoinAnnotationKeyPressed: boolean
 	isAddConflictOrDeviceKeyPressed: boolean
+	isRotationModeActive: boolean
 	isMouseButtonPressed: boolean
 	isMouseDragging: boolean
 	numberKeyPressed: number | null
@@ -278,6 +279,7 @@ class Annotator {
 			isAddConnectionKeyPressed: false,
 			isAddConflictOrDeviceKeyPressed: false,
 			isJoinAnnotationKeyPressed: false,
+			isRotationModeActive: false,
 			isMouseButtonPressed: false,
 			isMouseDragging: false,
 			numberKeyPressed: null,
@@ -2014,6 +2016,14 @@ class Annotator {
 				}
 				case 'v': {
 					this.toggleVoxelsAndPointClouds()
+					break
+				}
+				case 'X': {
+					this.uiState.isRotationModeActive = !this.uiState.isRotationModeActive
+					if (this.annotationManager.activeAnnotation instanceof TrafficDevice) {
+						const mode = this.uiState.isRotationModeActive ? 'rotate' : 'translate'
+						this.transformControls.setMode(mode)
+					}
 					break
 				}
 				default:
