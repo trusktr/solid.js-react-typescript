@@ -91,20 +91,24 @@ export class LaneNeighborsIds {
 }
 
 class LaneRenderingProperties {
-	color: number
 	markerMaterial: THREE.MeshLambertMaterial
 	activeMaterial: THREE.MeshBasicMaterial
 	inactiveMaterial: THREE.MeshLambertMaterial
+	leftNeighborMaterial: THREE.MeshBasicMaterial
+	rightNeighborMaterial: THREE.MeshBasicMaterial
+	frontNeighborMaterial: THREE.MeshBasicMaterial
 	centerLineMaterial: THREE.LineDashedMaterial
 	trajectoryMaterial: THREE.MeshLambertMaterial
 	liveModeMaterial: THREE.MeshLambertMaterial
 
-	constructor(color: number) {
-		this.color = color
+	constructor() {
 		this.markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 		this.activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
-		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: this.color, side: THREE.DoubleSide})
-		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: 0x000000, side: THREE.DoubleSide})
+		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: "white", side: THREE.DoubleSide})
+		this.leftNeighborMaterial = new THREE.MeshBasicMaterial({color: 0xffff66, side: THREE.DoubleSide})
+		this.rightNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x00ffff, side: THREE.DoubleSide})
+		this.frontNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x66ff99, side: THREE.DoubleSide})
+		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: "black", side: THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial({color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2})
 		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.3, side: THREE.DoubleSide})
 	}
@@ -206,8 +210,7 @@ export class Lane extends Annotation {
 		this.minimumMarkerCount = 4
 		this.allowNewMarkers = true
 		this.snapToGround = true
-		const color = Math.random() * 0xffffff
-		this.renderingProperties = new LaneRenderingProperties(color)
+		this.renderingProperties = new LaneRenderingProperties()
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
 		this.laneLeftLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
@@ -394,6 +397,23 @@ export class Lane extends Annotation {
 		this.unhighlightMarkers()
 	}
 
+	/**
+	 * Change this annotation to "neighbor" rendering mode, using given type of neighbor
+	 */
+	setNeighborMode(location: NeighborLocation): void {
+		if (location === NeighborLocation.LEFT) {
+			this.mesh.material = this.renderingProperties.leftNeighborMaterial
+		} else if (location === NeighborLocation.RIGHT) {
+			this.mesh.material = this.renderingProperties.rightNeighborMaterial
+		} else if (location === NeighborLocation.FRONT) {
+			this.mesh.material = this.renderingProperties.frontNeighborMaterial
+		} else {
+			log.warn('Neighbor location not supported for coloring.')
+		}
+		this.laneCenterLine.visible = true
+		this.unhighlightMarkers()
+	}
+
 	setLiveMode(): void {
 		switch (this.type) {
 			case LaneType.BIKE_ONLY:
@@ -502,6 +522,12 @@ export class Lane extends Annotation {
 	/*
 	 * Delete the neighbor if it exists on either side.
 	 */
+	deleteNeighbor(neighborId: AnnotationUuid): boolean {
+		return this.deleteLeftOrRightNeighbor(neighborId) ||
+			   this.deleteFrontNeighbor(neighborId) ||
+			   this.deleteBackNeighbor(neighborId)
+	}
+
 	deleteLeftOrRightNeighbor(neighborId: AnnotationUuid): boolean {
 
 		let index = this.neighborsIds.right.indexOf(neighborId, 0)
@@ -515,8 +541,6 @@ export class Lane extends Annotation {
 			this.neighborsIds.left.splice(index, 1)
 			return true
 		}
-
-		log.error("Non-reciprocal neighbor relation detected. This should never happen.")
 		return false
 	}
 
@@ -527,10 +551,8 @@ export class Lane extends Annotation {
 		if (index >= 0) {
 			this.neighborsIds.front.splice(index, 1)
 			return true
-		} else {
-			log.error("Couldn't find connection to front neighbor. This should never happen.")
-			return false
 		}
+		return false
 	}
 
 	deleteBackNeighbor(neighborId: AnnotationUuid): boolean {
@@ -540,10 +562,8 @@ export class Lane extends Annotation {
 		if (index >= 0) {
 			this.neighborsIds.back.splice(index, 1)
 			return true
-		} else {
-			log.error("Couldn't find connection to back neighbor. This should never happen.")
-			return false
 		}
+		return false
 	}
 
 	/**
