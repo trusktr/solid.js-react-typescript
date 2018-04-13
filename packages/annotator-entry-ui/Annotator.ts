@@ -1902,10 +1902,8 @@ class Annotator {
 				case 'X': {
 					this.uiState.isRotationModeActive = !this.uiState.isRotationModeActive
 					if (this.annotationManager.activeAnnotation instanceof TrafficDevice) {
-						if (this.uiState.isRotationModeActive)
-							this.transformControls.setMode('rotate')
-						else
-							this.transformControls.setMode('translate')
+						const mode = this.uiState.isRotationModeActive ? 'rotate' : 'translate'
+						this.transformControls.setMode(mode)
 					}
 					break
 				}
