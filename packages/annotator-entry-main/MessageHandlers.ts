@@ -11,10 +11,8 @@ import {BrowserWindow} from "electron"
 // Listen for messages on Electron.ipcMain.
 export function listen(win: BrowserWindow): void {
 	// Broadcast wrapped messages from a renderer process to the Annotator renderer.
-	const onAnnotatorWrapper = (_: Electron.EventEmitter, wrapper: AnnotatorWrapper): void => {
-		console.info('onAnnotatorWrapper', wrapper)
+	const onAnnotatorWrapper = (_: Electron.EventEmitter, wrapper: AnnotatorWrapper): void =>
 		win.webContents.send(wrapper.channel, wrapper.message)
-	}
 
 	Electron.ipcMain.on(channel.annotatorWrapper, onAnnotatorWrapper)
 }
