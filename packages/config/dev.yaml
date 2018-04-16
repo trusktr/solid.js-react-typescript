@@ -60,6 +60,7 @@ output.trajectory.csv.path: ./data/trajectory.csv
 # for photos displayed within the 3D scene
 image_manager.image.opacity: 0.5
 image_manager.image.wireframe.visible: false
+image_manager.image.distance_from_camera: 0.1 # distance in meters, approximate, must be > 0
 
 # Location server info
 location_server.status.health_check.interval.seconds: 5
