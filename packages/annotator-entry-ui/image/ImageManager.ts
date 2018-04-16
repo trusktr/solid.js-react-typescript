@@ -39,7 +39,6 @@ export class ImageManager {
 	private utmInterface: UtmInterface
 	private settings: ImageManagerSettings
 	private textureLoader: THREE.TextureLoader
-	private images: CalibratedImage[]
 	private imageScreens: ImageScreen[]
 	imageScreenMeshes: THREE.Mesh[]
 	private opacity: number
@@ -67,7 +66,6 @@ export class ImageManager {
 			clickedRayLength: 100,
 		}
 		this.textureLoader = new THREE.TextureLoader()
-		this.images = []
 		this.imageScreens = []
 		this.imageScreenMeshes = []
 		this.opacity = opacity
@@ -162,7 +160,6 @@ export class ImageManager {
 
 	// Manipulate an image object, using its metadata, so that it is located and oriented in a reasonable way in three.js space.
 	private setUpScreen(calibratedImage: CalibratedImage): void {
-		this.images.push(calibratedImage)
 		const screen = calibratedImage.imageScreen
 		const position = calibratedImage.parameters.screenPosition
 		const origin = calibratedImage.parameters.cameraOrigin
@@ -227,7 +224,6 @@ export class ImageManager {
 	}
 
 	private onImageClick = (click: IpcMessages.ImageClick): void => {
-		this.onLightboxImageRay(null)
 		this.loadedImageDetails
 			.filter(i => i!.imageScreen.uuid === click.uuid)
 			.forEach(i => {

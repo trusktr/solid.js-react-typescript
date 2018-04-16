@@ -221,7 +221,7 @@ class Annotator {
 	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the UI
-	private lightboxImageRay: THREE.Line | null // a ray that has been formed in 3D by clicking an image in the lightbox
+	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
@@ -319,6 +319,7 @@ class Annotator {
 		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
 		this.highlightedImageScreenBox = null
+		this.lightboxImageRays = []
 		this.imageManager = new ImageManager(
 			this.tileManager,
 			this.uiState.imageScreenOpacity,
@@ -1249,7 +1250,7 @@ class Annotator {
 			intersections = this.intersectWithGround(this.raycasterPlane)
 		else {
 			// If this is part of a two-step interaction with the lightbox, handle that.
-			if (this.lightboxImageRay) {
+			if (this.lightboxImageRays.length) {
 				intersections = this.intersectWithLightboxImageRay(this.raycasterPlane)
 				// On success, clean up the ray from the lightbox.
 				if (intersections.length)
@@ -1666,8 +1667,8 @@ class Annotator {
 	}
 
 	private intersectWithLightboxImageRay(raycaster: THREE.Raycaster): THREE.Intersection[] {
-		if (this.lightboxImageRay)
-			return raycaster.intersectObject(this.lightboxImageRay)
+		if (this.lightboxImageRays.length)
+			return raycaster.intersectObjects(this.lightboxImageRays)
 		else
 			return []
 	}
@@ -1758,20 +1759,30 @@ class Annotator {
 		}
 
 	// When a lightbox ray is created, add it to the scene.
+	// On null, remove all rays.
 	private onLightboxImageRay: (ray: THREE.Line | null) => void =
 		(ray: THREE.Line | null) => {
 			if (ray) {
+				// Accumulate rays while shift is pressed, otherwise clear old ones.
+				if (!this.uiState.isShiftKeyPressed)
+					this.clearLightboxImageRays()
 				if (!this.uiState.isImageScreensVisible)
 					this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
-				this.lightboxImageRay = ray
-				this.scene.add(this.lightboxImageRay)
+				this.lightboxImageRays.push(ray)
+				this.scene.add(ray)
 				this.render()
-			} else if (this.lightboxImageRay) {
-				this.scene.remove(this.lightboxImageRay)
-				this.lightboxImageRay = null
-				this.render()
+			} else {
+				this.clearLightboxImageRays()
 			}
 		}
+
+	private clearLightboxImageRays(): void {
+		if (!this.lightboxImageRays.length) return
+
+		this.lightboxImageRays.forEach(r => this.scene.remove(r))
+		this.lightboxImageRays = []
+		this.render()
+	}
 
 	private checkForImageScreenSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
