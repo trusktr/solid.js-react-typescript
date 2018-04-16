@@ -8,7 +8,7 @@ startup.animation.fps: 10
 startup.render.fps: 20
 startup.kiosk_mode: false
 startup.background_color: '#444444'
-startup.show_color_picker: true
+startup.show_control_panel: true
 startup.show_stats_module: true
 startup.show_status_panel: true
 startup.show_menu: true

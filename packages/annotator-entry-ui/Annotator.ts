@@ -145,6 +145,7 @@ interface UiState {
 	lockBoundaries: boolean
 	lockLanes: boolean
 	lockTerritories: boolean
+	lockTrafficDevices: boolean
 	isSuperTilesVisible: boolean
 	isPointCloudVisible: boolean
 	isImageScreensVisible: boolean
@@ -266,6 +267,7 @@ class Annotator {
 			lockBoundaries: false,
 			lockLanes: false,
 			lockTerritories: true,
+			lockTrafficDevices: false,
 			isSuperTilesVisible: true,
 			isPointCloudVisible: true,
 			isImageScreensVisible: true,
@@ -469,48 +471,12 @@ class Annotator {
 		this.setStage(0, 0, 0)
 
 		// Add panel to change the settings
-		if (config.get('startup.show_color_picker')) {
-			this.gui = new DatGui({
-				hideable: false,
-				closeOnTop: true,
-			} as GUIParams)
-			this.gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
-				this.renderer.setClearColor(new THREE.Color(value))
-				this.render()
-			})
-			this.gui.add(this.uiState, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
-				if (this.imageManager.setOpacity(value))
-					this.render()
-			})
-
-			const folderLock = this.gui.addFolder('Lock')
-			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveBoundaryAnnotation()) {
-					this.annotationManager.unsetActiveAnnotation()
-					this.render()
-				}
-			})
-			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
-				if (value && (this.annotationManager.getActiveLaneAnnotation() || this.annotationManager.getActiveConnectionAnnotation())) {
-					this.annotationManager.unsetActiveAnnotation()
-					this.render()
-				}
-			})
-			folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveTerritoryAnnotation()) {
-					this.annotationManager.unsetActiveAnnotation()
-					this.render()
-				}
-			})
-			folderLock.open()
-
-			const folderConnection = this.gui.addFolder('Connection params')
-			folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
-			folderConnection.open()
-			this.gui.domElement.className = 'threeJs_gui'
-		} else {
+		if (config.get('startup.show_color_picker'))
+			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
+		if (config.get('startup.show_control_panel'))
+			this.gui = this.createControlsGui()
+		else
 			this.gui = null
-		}
 
 		// Set up for auto-save
 		const body = $(document.body)
@@ -561,6 +527,50 @@ class Annotator {
 				// Initialize socket for use when "live mode" operation is on
 				this.initClient()
 			})
+	}
+
+	// Create a UI widget to adjust application settings on the fly.
+	createControlsGui(): DatGui {
+		const gui = new DatGui({
+			hideable: false,
+			closeOnTop: true,
+		} as GUIParams)
+		gui.domElement.className = 'threeJs_gui'
+
+		gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
+			this.renderer.setClearColor(new THREE.Color(value))
+			this.render()
+		})
+
+		gui.add(this.uiState, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
+			if (this.imageManager.setOpacity(value))
+				this.render()
+		})
+
+		const folderLock = gui.addFolder('Lock')
+		folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
+			if (value && this.annotationManager.getActiveBoundaryAnnotation())
+				this.cleanTransformControlsAndEscapeSelection()
+		})
+		folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
+			if (value && (this.annotationManager.getActiveLaneAnnotation() || this.annotationManager.getActiveConnectionAnnotation()))
+				this.cleanTransformControlsAndEscapeSelection()
+		})
+		folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
+			if (value && this.annotationManager.getActiveTerritoryAnnotation())
+				this.cleanTransformControlsAndEscapeSelection()
+		})
+		folderLock.add(this.uiState, 'lockTrafficDevices').name('Traffic Devices').onChange((value: boolean) => {
+			if (value && (this.annotationManager.getActiveTrafficDeviceAnnotation()))
+				this.cleanTransformControlsAndEscapeSelection()
+		})
+		folderLock.open()
+
+		const folderConnection = gui.addFolder('Connection params')
+		folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
+		folderConnection.open()
+
+		return gui
 	}
 
 	/**
@@ -1460,6 +1470,8 @@ class Annotator {
 			return true
 		else if (this.uiState.lockTerritories && annotation instanceof Territory)
 			return true
+		else if (this.uiState.lockTrafficDevices && annotation instanceof TrafficDevice)
+			return true
 		return false
 	}
 
@@ -1617,8 +1629,7 @@ class Annotator {
 	 * Unselect whatever is selected in the UI:
 	 *  - an active control point
 	 *  - a selected annotation
- 	 */
-
+	 */
 	private escapeSelection(): void {
 		if (this.transformControls.isAttached()) {
 			this.cleanTransformControls()
@@ -1627,6 +1638,11 @@ class Annotator {
 			Annotator.deactivateAllAnnotationPropertiesMenus()
 			this.render()
 		}
+	}
+
+	cleanTransformControlsAndEscapeSelection(): void {
+		this.cleanTransformControls()
+		this.escapeSelection()
 	}
 
 	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
