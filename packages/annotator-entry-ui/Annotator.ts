@@ -104,6 +104,11 @@ enum ModelVisibility {
 	HIDE_SUPER_TILES_AND_ANNOTATIONS,
 }
 
+interface MousePosition {
+	clientX: number
+	clientY: number
+}
+
 interface AnnotatorSettings {
 	background: string
 	cameraOffset: THREE.Vector3
@@ -161,6 +166,7 @@ interface UiState {
 	isRotationModeActive: boolean
 	isMouseButtonPressed: boolean
 	isMouseDragging: boolean
+	lastMousePosition: MousePosition | null
 	numberKeyPressed: number | null
 	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
 	// file (if this.flyThroughSettings.enabled is true) or messages on a live socket.
@@ -283,6 +289,7 @@ class Annotator {
 			isRotationModeActive: false,
 			isMouseButtonPressed: false,
 			isMouseDragging: false,
+			lastMousePosition: null,
 			numberKeyPressed: null,
 			isLiveMode: false,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
@@ -522,21 +529,15 @@ class Annotator {
 			this.gui = null
 		}
 
-		// Set up for auto-save
-		const body = $(document.body)
-		body.focusin((): void => {
-			self.annotationManager.enableAutoSave()
-		})
-		body.focusout((): void => {
-			self.annotationManager.disableAutoSave()
-		})
-
 		// Add listeners
+		window.addEventListener('focus', this.onFocus)
+		window.addEventListener('blur', this.onBlur)
 		window.addEventListener('beforeunload', this.onBeforeUnload)
 		window.addEventListener('resize', this.onWindowResize)
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
 
+		this.renderer.domElement.addEventListener('mousemove', this.setLastMousePosition)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForImageScreenSelection)
@@ -1210,10 +1211,14 @@ class Annotator {
 			})
 	}
 
-	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
+	private setLastMousePosition = (event: MouseEvent | null): void => {
+		this.uiState.lastMousePosition = event
+	}
+
+	private getMouseCoordinates = (mousePosition: MousePosition): THREE.Vector2 => {
 		const mouse = new THREE.Vector2()
-		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
-		mouse.y = -( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		mouse.x = ( mousePosition.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
+		mouse.y = -( mousePosition.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
 		return mouse
 	}
 
@@ -1784,8 +1789,9 @@ class Annotator {
 		this.render()
 	}
 
-	private checkForImageScreenSelection = (event: MouseEvent): void => {
+	private checkForImageScreenSelection = (mousePosition: MousePosition): void => {
 		if (this.uiState.isLiveMode) return
+		if (!this.uiState.isShiftKeyPressed) return
 		if (this.uiState.isMouseButtonPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
@@ -1797,7 +1803,7 @@ class Annotator {
 
 		if (!this.imageManager.imageScreenMeshes.length) return this.unHighlightImageScreenBox()
 
-		const mouse = this.getMouseCoordinates(event)
+		const mouse = this.getMouseCoordinates(mousePosition)
 		this.raycasterImageScreen.setFromCamera(mouse, this.camera)
 		const intersects = this.raycasterImageScreen.intersectObjects(this.imageManager.imageScreenMeshes)
 
@@ -1898,6 +1904,15 @@ class Annotator {
 		this.orthographicCamera.updateProjectionMatrix()
 	}
 
+	private onFocus = (): void => {
+		this.annotationManager.enableAutoSave()
+	}
+
+	private onBlur = (): void => {
+		this.setLastMousePosition(null)
+		this.annotationManager.disableAutoSave()
+	}
+
 	/**
 	 * Handle keyboard events
 	 */
@@ -1966,7 +1981,7 @@ class Annotator {
 					break
 				}
 				case 'Shift': {
-					this.uiState.isShiftKeyPressed = true
+					this.onShiftKeyDown(event)
 					break
 				}
 				case 'A': {
@@ -2089,7 +2104,6 @@ class Annotator {
 		if (event.defaultPrevented) return
 
 		this.uiState.isControlKeyPressed = false
-		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
 		this.uiState.isAddConnectionKeyPressed = false
 		this.uiState.isConnectLeftNeighborKeyPressed = false
@@ -2098,6 +2112,18 @@ class Annotator {
 		this.uiState.isAddConflictOrDeviceKeyPressed = false
 		this.uiState.isJoinAnnotationKeyPressed = false
 		this.uiState.numberKeyPressed = null
+		this.onShiftKeyUp()
+	}
+
+	private onShiftKeyDown = (event: KeyboardEvent): void => {
+		this.uiState.isShiftKeyPressed = true
+		if (this.uiState.lastMousePosition)
+			this.checkForImageScreenSelection(this.uiState.lastMousePosition)
+	}
+
+	private onShiftKeyUp = (): void => {
+		this.uiState.isShiftKeyPressed = false
+		this.unHighlightImageScreenBox()
 	}
 
 	private delayHideTransform = (): void => {
