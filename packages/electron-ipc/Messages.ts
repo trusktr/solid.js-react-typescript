@@ -28,3 +28,11 @@ export interface ImageClick {
 	ratioX: number,
 	ratioY: number,
 }
+
+// Minimal subset of KeyboardEvent which is interesting to Annotator.
+export interface KeyboardEventHighlights {
+	defaultPrevented: boolean,
+	key: string,
+	keyCode: number,
+	repeat: boolean,
+}

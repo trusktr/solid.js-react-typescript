@@ -325,6 +325,8 @@ class Annotator {
 			this.render,
 			this.onImageScreenLoad,
 			this.onLightboxImageRay,
+			this.onKeyDown,
+			this.onKeyUp,
 		)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 

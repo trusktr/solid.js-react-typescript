@@ -8,6 +8,7 @@ import {channel} from "../electron-ipc/Channel"
 import * as TypeLogger from 'typelogger'
 import {ImageClick, ImageEditState, LightboxImageDescription, LightboxState} from "../electron-ipc/Messages"
 import {sendToAnnotator} from "../electron-ipc/Wrapper"
+import {toKeyboardEventHighlights} from "../electron-ipc/Serializaton"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -22,7 +23,22 @@ class LightboxWindowUI {
 		this.lightboxState = {images: []}
 		this.imageChildren = []
 
+		window.addEventListener('keydown', this.onKeyDown)
+		window.addEventListener('keyup', this.onKeyUp)
+
 		Electron.ipcRenderer.on(channel.lightboxState, this.onLightboxState)
+	}
+
+	// Let Annotator handle all keyboard events.
+	private onKeyDown = (event: KeyboardEvent): void => {
+		if (event.defaultPrevented) return
+		if (!event.repeat) // Annotator ignores repeating events, and streaming them through IPC probably wouldn't perform well.
+			sendToAnnotator(channel.keyDownEvent, toKeyboardEventHighlights(event))
+	}
+
+	private onKeyUp = (event: KeyboardEvent): void => {
+		if (event.defaultPrevented) return
+		sendToAnnotator(channel.keyUpEvent, toKeyboardEventHighlights(event))
 	}
 
 	// Throw away the old state. Rebuild the UI based on the new state.

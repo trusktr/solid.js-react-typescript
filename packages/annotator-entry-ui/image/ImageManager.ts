@@ -9,7 +9,7 @@ import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
 import {CalibratedImage} from './CalibratedImage'
 import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWindowManager"
-import {ImageClick, ImageEditState, LightboxImageDescription, LightboxState} from "../../electron-ipc/Messages"
+import * as IpcMessages from "../../electron-ipc/Messages"
 import {readImageMetadataFile} from "./Aurora"
 import * as TypeLogger from "typelogger"
 import {UtmInterface} from "../UtmInterface";
@@ -46,6 +46,8 @@ export class ImageManager {
 	private renderAnnotator: () => void
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void
 	private onLightboxImageRay: (ray: THREE.Line | null) => void
+	private onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void
+	private onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void
 	private lightboxWindow: LightboxWindowManager | null // pop full-size 2D images into their own window
 	loadedImageDetails: OrderedSet<CalibratedImage>
 
@@ -55,6 +57,8 @@ export class ImageManager {
 		renderAnnotator: () => void,
 		onImageScreenLoad: (imageScreen: ImageScreen) => void,
 		onLightboxImageRay: (ray: THREE.Line | null) => void,
+		onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void,
+		onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void,
 	) {
 		this.utmInterface = utmInterface
 		this.settings = {
@@ -70,6 +74,8 @@ export class ImageManager {
 		this.renderAnnotator = renderAnnotator
 		this.onImageScreenLoad = onImageScreenLoad
 		this.onLightboxImageRay = onLightboxImageRay
+		this.onKeyDown = onKeyDown
+		this.onKeyUp = onKeyUp
 		this.lightboxWindow = null
 		this.loadedImageDetails = OrderedSet()
 	}
@@ -179,6 +185,8 @@ export class ImageManager {
 			this.lightboxWindow = new LightboxWindowManager(
 				this.onImageEditState,
 				this.onImageClick,
+				this.onKeyDown,
+				this.onKeyUp,
 				this.onLightboxWindowClose
 			)
 
@@ -197,19 +205,19 @@ export class ImageManager {
 			this.renderAnnotator()
 	}
 
-	private toLightboxStateMessage(): LightboxState {
+	private toLightboxStateMessage(): IpcMessages.LightboxState {
 		return {
 			images:
 				this.loadedImageDetails.reverse().toArray().map(i => {
 					return {
 						uuid: i.imageScreen.uuid,
 						path: i.path,
-					} as LightboxImageDescription
+					} as IpcMessages.LightboxImageDescription
 				})
 		}
 	}
 
-	private onImageEditState = (state: ImageEditState): void => {
+	private onImageEditState = (state: IpcMessages.ImageEditState): void => {
 		let updated = 0
 		this.loadedImageDetails
 			.filter(i => i!.imageScreen.uuid === state.uuid)
@@ -218,7 +226,7 @@ export class ImageManager {
 			this.renderAnnotator()
 	}
 
-	private onImageClick = (click: ImageClick): void => {
+	private onImageClick = (click: IpcMessages.ImageClick): void => {
 		this.onLightboxImageRay(null)
 		this.loadedImageDetails
 			.filter(i => i!.imageScreen.uuid === click.uuid)
