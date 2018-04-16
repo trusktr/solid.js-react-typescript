@@ -23,11 +23,15 @@ class LightboxWindowUI {
 		this.lightboxState = {images: []}
 		this.imageChildren = []
 
+		window.addEventListener('resize', this.onResize)
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
 
 		Electron.ipcRenderer.on(channel.lightboxState, this.onLightboxState)
 	}
+
+	private onResize = (): void =>
+		this.imageChildren.forEach(i => this.scaleLightboxImage(i)())
 
 	// Let Annotator handle all keyboard events.
 	private onKeyDown = (event: KeyboardEvent): void => {
@@ -86,14 +90,31 @@ class LightboxWindowUI {
 		sendToAnnotator(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as ImageClick)
 	}
 
+	// Scale it to fit the width of its parent.
+	private scaleLightboxImage(img: HTMLImageElement): () => void {
+		return (): void => {
+			if (img.parentNode instanceof HTMLElement) {
+				const aspectRatio = img.naturalWidth / img.naturalHeight
+				const w = img.parentNode.offsetWidth
+				const h = img.parentNode.offsetWidth / aspectRatio
+				img.style.width = w + 'px'
+				img.style.height = h + 'px'
+			} else {
+				log.warn("can't scaleLightboxImage() without a parentNode")
+			}
+		}
+	}
+
 	private createLightboxImage(imageDescription: LightboxImageDescription): HTMLImageElement {
 		const img = document.createElement('img')
 		img.src = imageDescription.path
 		img.id = imageDescription.uuid
-		img.width = 600
+		img.width = 0
+		img.height = 0
 		img.onmouseenter = this.onImageMouseEnter
 		img.onmouseleave = this.onImageMouseLeave
 		img.onmouseup = this.onImageMouseUp
+		img.onload = this.scaleLightboxImage(img)
 		return img
 	}
 }
