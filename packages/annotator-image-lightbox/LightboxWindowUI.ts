@@ -6,7 +6,7 @@
 import * as Electron from 'electron'
 import {channel} from "../electron-ipc/Channel"
 import * as TypeLogger from 'typelogger'
-import {ImageClick, ImageEditState, LightboxImageDescription, LightboxState} from "../electron-ipc/Messages"
+import * as IpcMessages from "../electron-ipc/Messages"
 import {sendToAnnotator} from "../electron-ipc/Wrapper"
 import {toKeyboardEventHighlights} from "../electron-ipc/Serializaton"
 
@@ -16,7 +16,7 @@ const log = TypeLogger.getLogger(__filename)
 
 // The main class responsible for rendering a Lightbox window, which contains a variable list of 2D images.
 class LightboxWindowUI {
-	private lightboxState: LightboxState
+	private lightboxState: IpcMessages.LightboxState
 	private imageChildren: HTMLImageElement[]
 
 	constructor() {
@@ -28,6 +28,7 @@ class LightboxWindowUI {
 		window.addEventListener('keyup', this.onKeyUp)
 
 		Electron.ipcRenderer.on(channel.lightboxState, this.onLightboxState)
+		Electron.ipcRenderer.on(channel.imageEditState, this.onImageEditState)
 	}
 
 	private onResize = (): void =>
@@ -46,7 +47,7 @@ class LightboxWindowUI {
 	}
 
 	// Throw away the old state. Rebuild the UI based on the new state.
-	private onLightboxState = (_: Electron.EventEmitter, state: LightboxState): void => {
+	private onLightboxState = (_: Electron.EventEmitter, state: IpcMessages.LightboxState): void => {
 		log.info('onLightboxState', state)
 		const imageListElement = document.getElementById('image_list')
 		if (imageListElement) {
@@ -63,8 +64,15 @@ class LightboxWindowUI {
 			log.warn('missing element image_list')
 	}
 
+	// Update UI for one image.
+	private onImageEditState = (_: Electron.EventEmitter, state: IpcMessages.ImageEditState): void => {
+		this.imageChildren
+			.filter(img => img.id === state.uuid)
+			.forEach(img => img.className = state.active ? 'image_highlighted' : 'image_default')
+	}
+
 	private static imageSetState(uuid: string, active: boolean): void {
-		sendToAnnotator(channel.imageEditState, {uuid: uuid, active: active} as ImageEditState)
+		sendToAnnotator(channel.imageEditState, {uuid: uuid, active: active} as IpcMessages.ImageEditState)
 	}
 
 	// Notify listeners when the pointer hovers over an image.
@@ -87,7 +95,7 @@ class LightboxWindowUI {
 		const pixelY = ev.clientY - rect.top
 		const ratioX = pixelX / img.width
 		const ratioY = pixelY / img.height
-		sendToAnnotator(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as ImageClick)
+		sendToAnnotator(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as IpcMessages.ImageClick)
 	}
 
 	// Scale it to fit the width of its parent.
@@ -105,12 +113,13 @@ class LightboxWindowUI {
 		}
 	}
 
-	private createLightboxImage(imageDescription: LightboxImageDescription): HTMLImageElement {
+	private createLightboxImage(imageDescription: IpcMessages.LightboxImageDescription): HTMLImageElement {
 		const img = document.createElement('img')
 		img.src = imageDescription.path
 		img.id = imageDescription.uuid
 		img.width = 0
 		img.height = 0
+		img.className = 'image_default'
 		img.onmouseenter = this.onImageMouseEnter
 		img.onmouseleave = this.onImageMouseLeave
 		img.onmouseup = this.onImageMouseUp

@@ -189,7 +189,7 @@ export class ImageManager {
 
 		this.loadedImageDetails = this.loadedImageDetails.add(image)
 
-		this.lightboxWindow.setState(this.toLightboxStateMessage())
+		this.lightboxWindow.windowSetState(this.toLightboxStateMessage())
 			.catch(err => console.warn('loadImageIntoWindow() failed:', err))
 	}
 
@@ -235,5 +235,27 @@ export class ImageManager {
 					log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)
 				}
 			})
+	}
+
+	highlightImageInLightbox(image: CalibratedImage): boolean {
+		return this.imageSetState(image, true)
+	}
+
+	unhighlightImageInLightbox(image: CalibratedImage): boolean {
+		return this.imageSetState(image, false)
+	}
+
+	private imageSetState(image: CalibratedImage, active: boolean): boolean {
+		if (!this.loadedImageDetails.has(image)) return false
+		if (this.lightboxWindow) {
+			this.lightboxWindow.imageSetState({
+				uuid: image.imageScreen.uuid,
+				active: active,
+			} as IpcMessages.ImageEditState)
+			return true
+		} else {
+			log.warn('missing lightboxWindow')
+			return false
+		}
 	}
 }

@@ -101,7 +101,7 @@ export class LightboxWindowManager {
 		return result
 	}
 
-	setState(state: IpcMessages.LightboxState): Promise<void> {
+	windowSetState(state: IpcMessages.LightboxState): Promise<void> {
 		if (!state.images.length) return Promise.resolve()
 
 		return this.createWindow()
@@ -111,6 +111,13 @@ export class LightboxWindowManager {
 				else
 					console.warn('missing window')
 			})
+	}
+
+	imageSetState(state: IpcMessages.ImageEditState): void {
+		if (this.window)
+			this.window.webContents.send(channel.imageEditState, state)
+		else
+			console.warn('missing window')
 	}
 
 	private handleOnImageEditState = (_: Electron.EventEmitter, state: IpcMessages.ImageEditState): void =>

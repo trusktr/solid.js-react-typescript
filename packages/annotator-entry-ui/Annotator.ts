@@ -226,7 +226,8 @@ class Annotator {
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
 	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
-	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the UI
+	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
+	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
@@ -326,6 +327,7 @@ class Annotator {
 		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
 		this.highlightedImageScreenBox = null
+		this.highlightedLightboxImage = null
 		this.lightboxImageRays = []
 		this.imageManager = new ImageManager(
 			this.tileManager,
@@ -391,7 +393,6 @@ class Annotator {
 	 * several event listeners.
 	 */
 	initScene(): Promise<void> {
-		const self = this
 		log.info(`Building scene`)
 
 		const [width, height]: Array<number> = this.getContainerSize()
@@ -1811,8 +1812,12 @@ class Annotator {
 			this.unHighlightImageScreenBox()
 		} else {
 			const first = intersects[0].object as THREE.Mesh
+			const image = first.userData as CalibratedImage
 
-			if (this.highlightedImageScreenBox && this.highlightedImageScreenBox.id !== first.id)
+			if (
+				this.highlightedImageScreenBox && this.highlightedImageScreenBox.id !== first.id
+				|| this.highlightedLightboxImage && this.highlightedLightboxImage !== image
+			)
 				this.unHighlightImageScreenBox()
 
 			if (!this.highlightedImageScreenBox)
@@ -1845,8 +1850,13 @@ class Annotator {
 		if (!this.uiState.isShiftKeyPressed) return
 
 		const image = imageScreenBox.userData as CalibratedImage
+		// If it's already loaded in the lightbox, highlight it in the lightbox.
 		// Don't allow it to be loaded a second time.
-		if (this.imageManager.loadedImageDetails.has(image)) return
+		if (this.imageManager.loadedImageDetails.has(image)) {
+			if (this.imageManager.highlightImageInLightbox(image))
+				this.highlightedLightboxImage = image
+			return
+		}
 
 		const material = imageScreenBox.material as THREE.MeshBasicMaterial
 		material.opacity = 1.0
@@ -1856,6 +1866,11 @@ class Annotator {
 
 	// Draw the box with default opacity like all the other boxes.
 	private unHighlightImageScreenBox(): void {
+		if (this.highlightedLightboxImage) {
+			if (this.imageManager.unhighlightImageInLightbox(this.highlightedLightboxImage))
+				this.highlightedLightboxImage = null
+		}
+
 		if (!this.highlightedImageScreenBox) return
 
 		const material = this.highlightedImageScreenBox.material as THREE.MeshBasicMaterial
@@ -1981,7 +1996,7 @@ class Annotator {
 					break
 				}
 				case 'Shift': {
-					this.onShiftKeyDown(event)
+					this.onShiftKeyDown()
 					break
 				}
 				case 'A': {
@@ -2115,7 +2130,7 @@ class Annotator {
 		this.onShiftKeyUp()
 	}
 
-	private onShiftKeyDown = (event: KeyboardEvent): void => {
+	private onShiftKeyDown = (): void => {
 		this.uiState.isShiftKeyPressed = true
 		if (this.uiState.lastMousePosition)
 			this.checkForImageScreenSelection(this.uiState.lastMousePosition)
