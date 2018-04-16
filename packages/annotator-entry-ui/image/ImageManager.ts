@@ -200,7 +200,7 @@ export class ImageManager {
 	private toLightboxStateMessage(): LightboxState {
 		return {
 			images:
-				this.loadedImageDetails.toArray().map(i => {
+				this.loadedImageDetails.reverse().toArray().map(i => {
 					return {
 						uuid: i.imageScreen.uuid,
 						path: i.path,
