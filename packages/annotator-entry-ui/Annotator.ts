@@ -2014,7 +2014,7 @@ class Annotator {
 					this.addAnnotation(AnnotationType.LANE)
 					break
 				}
-				case 'o': {
+				case 'O': {
 					this.toggleListen()
 					break
 				}
