@@ -1866,6 +1866,9 @@ class Annotator {
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
+		if (event.altKey) return
+		if (event.ctrlKey) return
+		if (event.metaKey) return
 
 		if (document.activeElement.tagName === 'INPUT')
 			this.onKeyDownInputElement(event)
