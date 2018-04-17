@@ -8,5 +8,7 @@ export const channel = {
 	annotatorWrapper: 'annotatorWrapper',
 	imageClick: 'imageClick',
 	imageEditState: 'imageEditState',
+	keyDownEvent: 'keyDownEvent',
+	keyUpEvent: 'keyUpEvent',
 	lightboxState: 'lightboxState',
 }
