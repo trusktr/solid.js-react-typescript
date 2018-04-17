@@ -104,6 +104,11 @@ enum ModelVisibility {
 	HIDE_SUPER_TILES_AND_ANNOTATIONS,
 }
 
+interface MousePosition {
+	clientX: number
+	clientY: number
+}
+
 interface AnnotatorSettings {
 	background: string
 	cameraOffset: THREE.Vector3
@@ -162,6 +167,7 @@ interface UiState {
 	isRotationModeActive: boolean
 	isMouseButtonPressed: boolean
 	isMouseDragging: boolean
+	lastMousePosition: MousePosition | null
 	numberKeyPressed: number | null
 	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
 	// file (if this.flyThroughSettings.enabled is true) or messages on a live socket.
@@ -221,7 +227,9 @@ class Annotator {
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
 	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
-	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the UI
+	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
+	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
+	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
@@ -290,6 +298,7 @@ class Annotator {
 			isRotationModeActive: false,
 			isMouseButtonPressed: false,
 			isMouseDragging: false,
+			lastMousePosition: null,
 			numberKeyPressed: null,
 			isLiveMode: false,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
@@ -326,7 +335,17 @@ class Annotator {
 		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
 		this.highlightedImageScreenBox = null
-		this.imageManager = new ImageManager(this.tileManager, this.uiState.imageScreenOpacity, this.onImageScreenLoad)
+		this.highlightedLightboxImage = null
+		this.lightboxImageRays = []
+		this.imageManager = new ImageManager(
+			this.tileManager,
+			this.uiState.imageScreenOpacity,
+			this.render,
+			this.onImageScreenLoad,
+			this.onLightboxImageRay,
+			this.onKeyDown,
+			this.onKeyUp,
+		)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
 		this.flyThroughSettings = {
@@ -382,7 +401,6 @@ class Annotator {
 	 * several event listeners.
 	 */
 	initScene(): Promise<void> {
-		const self = this
 		log.info(`Building scene`)
 
 		const [width, height]: Array<number> = this.getContainerSize()
@@ -483,21 +501,15 @@ class Annotator {
 		else
 			this.gui = null
 
-		// Set up for auto-save
-		const body = $(document.body)
-		body.focusin((): void => {
-			self.annotationManager.enableAutoSave()
-		})
-		body.focusout((): void => {
-			self.annotationManager.disableAutoSave()
-		})
-
 		// Add listeners
+		window.addEventListener('focus', this.onFocus)
+		window.addEventListener('blur', this.onBlur)
 		window.addEventListener('beforeunload', this.onBeforeUnload)
 		window.addEventListener('resize', this.onWindowResize)
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
 
+		this.renderer.domElement.addEventListener('mousemove', this.setLastMousePosition)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForImageScreenSelection)
@@ -1215,10 +1227,14 @@ class Annotator {
 			})
 	}
 
-	private getMouseCoordinates = (event: MouseEvent): THREE.Vector2 => {
+	private setLastMousePosition = (event: MouseEvent | null): void => {
+		this.uiState.lastMousePosition = event
+	}
+
+	private getMouseCoordinates = (mousePosition: MousePosition): THREE.Vector2 => {
 		const mouse = new THREE.Vector2()
-		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
-		mouse.y = -( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
+		mouse.x = ( mousePosition.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
+		mouse.y = -( mousePosition.clientY / this.renderer.domElement.clientHeight ) * 2 + 1
 		return mouse
 	}
 
@@ -1248,13 +1264,23 @@ class Annotator {
 		}
 
 		this.raycasterPlane.setFromCamera(mouse, this.camera)
-		let intersections: THREE.Intersection[]
+		let intersections: THREE.Intersection[] = []
 
 		// Find a 3D point where to place the new marker.
 		if (this.annotationManager.activeAnnotation.snapToGround)
 			intersections = this.intersectWithGround(this.raycasterPlane)
-		else
-			intersections = this.intersectWithPointCloud(this.raycasterPlane)
+		else {
+			// If this is part of a two-step interaction with the lightbox, handle that.
+			if (this.lightboxImageRays.length) {
+				intersections = this.intersectWithLightboxImageRay(this.raycasterPlane)
+				// On success, clean up the ray from the lightbox.
+				if (intersections.length)
+					this.onLightboxImageRay(null)
+			}
+			// Otherwise just find the closest point.
+			if (!intersections.length)
+				intersections = this.intersectWithPointCloud(this.raycasterPlane)
+		}
 
 		if (intersections.length) {
 			this.annotationManager.addMarkerToActiveAnnotation(intersections[0].point)
@@ -1679,6 +1705,13 @@ class Annotator {
 		return raycaster.intersectObjects(this.tileManager.getPointClouds())
 	}
 
+	private intersectWithLightboxImageRay(raycaster: THREE.Raycaster): THREE.Intersection[] {
+		if (this.lightboxImageRays.length)
+			return raycaster.intersectObjects(this.lightboxImageRays)
+		else
+			return []
+	}
+
 	private checkForSuperTileSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseButtonPressed) return
@@ -1764,8 +1797,35 @@ class Annotator {
 			this.render()
 		}
 
-	private checkForImageScreenSelection = (event: MouseEvent): void => {
+	// When a lightbox ray is created, add it to the scene.
+	// On null, remove all rays.
+	private onLightboxImageRay: (ray: THREE.Line | null) => void =
+		(ray: THREE.Line | null) => {
+			if (ray) {
+				// Accumulate rays while shift is pressed, otherwise clear old ones.
+				if (!this.uiState.isShiftKeyPressed)
+					this.clearLightboxImageRays()
+				if (!this.uiState.isImageScreensVisible)
+					this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+				this.lightboxImageRays.push(ray)
+				this.scene.add(ray)
+				this.render()
+			} else {
+				this.clearLightboxImageRays()
+			}
+		}
+
+	private clearLightboxImageRays(): void {
+		if (!this.lightboxImageRays.length) return
+
+		this.lightboxImageRays.forEach(r => this.scene.remove(r))
+		this.lightboxImageRays = []
+		this.render()
+	}
+
+	private checkForImageScreenSelection = (mousePosition: MousePosition): void => {
 		if (this.uiState.isLiveMode) return
+		if (!this.uiState.isShiftKeyPressed) return
 		if (this.uiState.isMouseButtonPressed) return
 		if (this.uiState.isAddMarkerKeyPressed) return
 		if (this.uiState.isAddConnectionKeyPressed) return
@@ -1777,7 +1837,7 @@ class Annotator {
 
 		if (!this.imageManager.imageScreenMeshes.length) return this.unHighlightImageScreenBox()
 
-		const mouse = this.getMouseCoordinates(event)
+		const mouse = this.getMouseCoordinates(mousePosition)
 		this.raycasterImageScreen.setFromCamera(mouse, this.camera)
 		const intersects = this.raycasterImageScreen.intersectObjects(this.imageManager.imageScreenMeshes)
 
@@ -1785,8 +1845,12 @@ class Annotator {
 			this.unHighlightImageScreenBox()
 		} else {
 			const first = intersects[0].object as THREE.Mesh
+			const image = first.userData as CalibratedImage
 
-			if (this.highlightedImageScreenBox && this.highlightedImageScreenBox.id !== first.id)
+			if (
+				this.highlightedImageScreenBox && this.highlightedImageScreenBox.id !== first.id
+				|| this.highlightedLightboxImage && this.highlightedLightboxImage !== image
+			)
 				this.unHighlightImageScreenBox()
 
 			if (!this.highlightedImageScreenBox)
@@ -1819,8 +1883,13 @@ class Annotator {
 		if (!this.uiState.isShiftKeyPressed) return
 
 		const image = imageScreenBox.userData as CalibratedImage
+		// If it's already loaded in the lightbox, highlight it in the lightbox.
 		// Don't allow it to be loaded a second time.
-		if (this.imageManager.loadedImageDetails.has(image)) return
+		if (this.imageManager.loadedImageDetails.has(image)) {
+			if (this.imageManager.highlightImageInLightbox(image))
+				this.highlightedLightboxImage = image
+			return
+		}
 
 		const material = imageScreenBox.material as THREE.MeshBasicMaterial
 		material.opacity = 1.0
@@ -1830,6 +1899,11 @@ class Annotator {
 
 	// Draw the box with default opacity like all the other boxes.
 	private unHighlightImageScreenBox(): void {
+		if (this.highlightedLightboxImage) {
+			if (this.imageManager.unhighlightImageInLightbox(this.highlightedLightboxImage))
+				this.highlightedLightboxImage = null
+		}
+
 		if (!this.highlightedImageScreenBox) return
 
 		const material = this.highlightedImageScreenBox.material as THREE.MeshBasicMaterial
@@ -1876,6 +1950,15 @@ class Annotator {
 		this.orthographicCamera.top = orthoHeight / 2
 		this.orthographicCamera.bottom = orthoHeight / -2
 		this.orthographicCamera.updateProjectionMatrix()
+	}
+
+	private onFocus = (): void => {
+		this.annotationManager.enableAutoSave()
+	}
+
+	private onBlur = (): void => {
+		this.setLastMousePosition(null)
+		this.annotationManager.disableAutoSave()
 	}
 
 	/**
@@ -1949,7 +2032,7 @@ class Annotator {
 					break
 				}
 				case 'Shift': {
-					this.uiState.isShiftKeyPressed = true
+					this.onShiftKeyDown()
 					break
 				}
 				case 'A': {
@@ -2010,7 +2093,7 @@ class Annotator {
 					this.addAnnotation(AnnotationType.LANE)
 					break
 				}
-				case 'o': {
+				case 'O': {
 					this.toggleListen()
 					break
 				}
@@ -2069,7 +2152,6 @@ class Annotator {
 		if (event.defaultPrevented) return
 
 		this.uiState.isControlKeyPressed = false
-		this.uiState.isShiftKeyPressed = false
 		this.uiState.isAddMarkerKeyPressed = false
 		this.uiState.isAddConnectionKeyPressed = false
 		this.uiState.isConnectLeftNeighborKeyPressed = false
@@ -2078,6 +2160,18 @@ class Annotator {
 		this.uiState.isAddConflictOrDeviceKeyPressed = false
 		this.uiState.isJoinAnnotationKeyPressed = false
 		this.uiState.numberKeyPressed = null
+		this.onShiftKeyUp()
+	}
+
+	private onShiftKeyDown = (): void => {
+		this.uiState.isShiftKeyPressed = true
+		if (this.uiState.lastMousePosition)
+			this.checkForImageScreenSelection(this.uiState.lastMousePosition)
+	}
+
+	private onShiftKeyUp = (): void => {
+		this.uiState.isShiftKeyPressed = false
+		this.unHighlightImageScreenBox()
 	}
 
 	private delayHideTransform = (): void => {

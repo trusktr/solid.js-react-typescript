@@ -8,8 +8,8 @@ import * as Path from 'path'
 import * as Electron from 'electron'
 import {BrowserWindowConstructorOptions} from 'electron'
 import {windowStateKeeperOptions} from '../util/WindowStateKeeperOptions'
-import {channel} from "./IPC"
-import {LightboxState} from "./LightboxState"
+import {channel} from "../electron-ipc/Channel"
+import * as IpcMessages from "../electron-ipc/Messages"
 
 const config = require('../config')
 const windowStateKeeper = require('electron-window-state')
@@ -19,13 +19,29 @@ interface LightboxWindowManagerSettings {
 	openDevTools: boolean
 }
 
+// This handles communication between the main Annotator window in `annotator-entry-ui`
+// and the LightboxWindowUI window.
 export class LightboxWindowManager {
 	private settings: LightboxWindowManagerSettings
 	private window: Electron.BrowserWindow | null // pop full-size 2D images into their own window
 	private loadingWindow: boolean
+	private onImageEditState: (state: IpcMessages.ImageEditState) => void
+	private onImageClick: (click: IpcMessages.ImageClick) => void
+	private onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void
+	private onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void
 	private onClose: () => void
 
-	constructor(onClose: () => void) {
+	constructor(
+		onImageEditState: (state: IpcMessages.ImageEditState) => void,
+		onImageClick: (click: IpcMessages.ImageClick) => void,
+		onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void,
+		onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void,
+		onClose: () => void
+	) {
+		this.onImageEditState = onImageEditState
+		this.onImageClick = onImageClick
+		this.onKeyDown = onKeyDown
+		this.onKeyUp = onKeyUp
 		this.onClose = onClose
 		this.settings = {
 			backgroundColor: config.get('startup.background_color') || '#000',
@@ -33,6 +49,11 @@ export class LightboxWindowManager {
 		}
 		this.loadingWindow = false
 		this.window = null
+
+		Electron.ipcRenderer.on(channel.imageEditState, this.handleOnImageEditState)
+		Electron.ipcRenderer.on(channel.imageClick, this.handleOnImageClick)
+		Electron.ipcRenderer.on(channel.keyDownEvent, this.handleOnKeyDown)
+		Electron.ipcRenderer.on(channel.keyUpEvent, this.handleOnKeyUp)
 	}
 
 	private createWindow(): Promise<void> {
@@ -80,7 +101,7 @@ export class LightboxWindowManager {
 		return result
 	}
 
-	setState(state: LightboxState): Promise<void> {
+	windowSetState(state: IpcMessages.LightboxState): Promise<void> {
 		if (!state.images.length) return Promise.resolve()
 
 		return this.createWindow()
@@ -91,4 +112,23 @@ export class LightboxWindowManager {
 					console.warn('missing window')
 			})
 	}
+
+	imageSetState(state: IpcMessages.ImageEditState): void {
+		if (this.window)
+			this.window.webContents.send(channel.imageEditState, state)
+		else
+			console.warn('missing window')
+	}
+
+	private handleOnImageEditState = (_: Electron.EventEmitter, state: IpcMessages.ImageEditState): void =>
+		this.onImageEditState(state)
+
+	private handleOnImageClick = (_: Electron.EventEmitter, click: IpcMessages.ImageClick): void =>
+		this.onImageClick(click)
+
+	private handleOnKeyDown = (_: Electron.EventEmitter, event: IpcMessages.KeyboardEventHighlights): void =>
+		this.onKeyDown(event)
+
+	private handleOnKeyUp = (_: Electron.EventEmitter, event: IpcMessages.KeyboardEventHighlights): void =>
+		this.onKeyUp(event)
 }
