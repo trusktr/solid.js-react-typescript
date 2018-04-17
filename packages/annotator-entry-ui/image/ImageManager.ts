@@ -53,8 +53,8 @@ export class ImageManager {
 	) {
 		this.utmInterface = utmInterface
 		this.settings = {
-			imageScreenWidth: 3,
-			imageScreenHeight: 2,
+			imageScreenWidth: config.get('image_manager.image_screen.width'),
+			imageScreenHeight: config.get('image_manager.image_screen.height'),
 			visibleWireframe: config.get('image_manager.image.wireframe.visible'),
 			clickedRayLength: 100,
 		}
