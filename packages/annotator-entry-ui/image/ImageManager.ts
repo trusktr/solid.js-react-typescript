@@ -22,16 +22,10 @@ const dialog = Electron.remote.dialog
 const config = require('../../config')
 
 interface ImageManagerSettings {
-	arbitraryImageScale: number // fudge factor until I figure out how to scale it from CameraParameters
+	imageScreenWidth: number // image screen width in meters
+	imageScreenHeight: number // image screen height in meters
 	visibleWireframe: boolean // whether to display a wireframe around the image
 	clickedRayLength: number // length in meters of a ray cast from a camera through an image screen
-}
-
-const imageMaterialParameters = {
-	color: 'white',
-	side: THREE.FrontSide,
-	transparent: true,
-	opacity: 1.0
 }
 
 // This tracks a set of images which can be displayed within the 3D scene as well as
@@ -59,7 +53,8 @@ export class ImageManager {
 	) {
 		this.utmInterface = utmInterface
 		this.settings = {
-			arbitraryImageScale: 0.003,
+			imageScreenWidth: 3,
+			imageScreenHeight: 2,
 			visibleWireframe: config.get('image_manager.image.wireframe.visible'),
 			clickedRayLength: 100,
 		}
@@ -119,29 +114,18 @@ export class ImageManager {
 	// Load an image and its metadata.
 	private loadImageFromPath(path: string): Promise<void> {
 		return readImageMetadataFile(path, this.utmInterface)
-			.then(cameraParameters =>
-				this.loadImageAsPlaneGeometry()
-					.then(mesh =>
-						this.setUpScreen({
-							path: path,
-							imageScreen: new ImageScreen(path, mesh, this.settings.visibleWireframe),
-							parameters: cameraParameters
-						} as CalibratedImage)
-					)
-			)
+			.then(cameraParameters => {
+				this.setUpScreen({
+					path: path,
+					imageScreen: new ImageScreen(path, this.settings.imageScreenWidth, this.settings.imageScreenHeight, this.settings.visibleWireframe),
+					parameters: cameraParameters
+				} as CalibratedImage)
+
+			})
 			.catch(err => {
 				log.warn(`loadImageFromPath() failed on ${path}`)
 				throw err
 			})
-	}
-
-	// Map an image file onto a three.js object.
-	private loadImageAsPlaneGeometry(): Promise<THREE.Mesh> {
-		return new Promise((resolve: (mesh: THREE.Mesh) => void): void => {
-			const planeGeometry = new THREE.PlaneGeometry(1920, 1208)
-			const material = new THREE.MeshBasicMaterial(imageMaterialParameters)
-			resolve(new THREE.Mesh(planeGeometry, material))
-		})
 	}
 
 	// Manipulate an image object, using its metadata, so that it is located and oriented in a reasonable way in three.js space.
@@ -151,7 +135,6 @@ export class ImageManager {
 		const position = calibratedImage.parameters.screenPosition
 		const origin = calibratedImage.parameters.cameraOrigin
 		screen.position.set(position.x, position.y, position.z)
-		screen.scaleImage(this.settings.arbitraryImageScale)
 		screen.scaleDistance(position.distanceTo(origin))
 		screen.lookAt(origin)
 		screen.setOpacity(this.opacity)
