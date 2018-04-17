@@ -254,9 +254,15 @@ class Annotator {
 			timeToDisplayHealthyStatusMs: 10000,
 			maxDistanceToDecorations: 50000,
 		}
+		const cameraOffset: [number, number, number] = config.get('startup.camera_offset')
+		if (isTupleOfNumbers(cameraOffset, 3)) {
+			this.settings.cameraOffset = new THREE.Vector3().fromArray(cameraOffset)
+		} else if (cameraOffset) {
+			log.warn(`invalid startup.camera_offset config: ${cameraOffset}`)
+		}
 		const aoiSize: [number, number, number] = config.get('annotator.area_of_interest.size')
 		if (isTupleOfNumbers(aoiSize, 3)) {
-			this.settings.aoiFullSize = new THREE.Vector3(aoiSize[0], aoiSize[1], aoiSize[2])
+			this.settings.aoiFullSize = new THREE.Vector3().fromArray(aoiSize)
 			this.settings.aoiHalfSize = this.settings.aoiFullSize.clone().divideScalar(2)
 		} else if (aoiSize) {
 			log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)

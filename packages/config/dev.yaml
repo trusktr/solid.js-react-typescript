@@ -4,6 +4,7 @@ preferences.directory: mapper-annotator
 # application initialization
 startup.electron.window.default.width: 800
 startup.electron.window.default.height: 600
+startup.camera_offset: [0, 400, 200]
 startup.animation.fps: 10
 startup.render.fps: 20
 startup.kiosk_mode: false
