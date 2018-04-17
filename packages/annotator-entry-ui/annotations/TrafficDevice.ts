@@ -9,6 +9,7 @@ import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
 import {AnnotationGeometryType, AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
+import {QuaternionJsonInterface} from "../geometry/ThreeHelpers"
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -39,12 +40,12 @@ namespace TrafficDeviceRenderingProperties {
 
 export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInterface {
 	trafficDeviceType: string
-	deviceOrientation: THREE.Quaternion
+	deviceOrientation: QuaternionJsonInterface
 }
 
 export interface TrafficDeviceJsonOutputInterface extends AnnotationJsonOutputInterface {
 	trafficDeviceType: string
-	deviceOrientation: THREE.Quaternion
+	deviceOrientation: QuaternionJsonInterface
 }
 
 export class TrafficDevice extends Annotation {
@@ -259,7 +260,12 @@ export class TrafficDevice extends Annotation {
 			annotationType: AnnotationType[AnnotationType.TRAFFIC_DEVICE],
 			uuid: this.uuid,
 			trafficDeviceType: TrafficDeviceType[this.type],
-			deviceOrientation: this.deviceOrientation,
+			deviceOrientation: {
+				x: this.deviceOrientation.x,
+				y: this.deviceOrientation.y,
+				z: this.deviceOrientation.z,
+				w: this.deviceOrientation.w,
+			} as QuaternionJsonInterface,
 			markers: [],
 		}
 
