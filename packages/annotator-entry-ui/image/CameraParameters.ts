@@ -5,6 +5,7 @@
 
 import * as THREE from 'three'
 import {UtmInterface} from "../UtmInterface";
+import {lineGeometry} from "../geometry/ThreeHelpers"
 
 // Mapping between a real-world camera and an image displayed as a 3D object
 
@@ -27,35 +28,83 @@ export class ImaginaryCameraParameters implements CameraParameters {
 	}
 }
 
+const clickRayMaterial = new THREE.LineBasicMaterial({color: 0xff6666})
+
+// Draw a ray from the camera origin through some point within the image
+function ray(origin: THREE.Vector3, destination: THREE.Vector3): THREE.Line {
+	const vertices = [
+		origin,
+		destination
+	]
+	return lineGeometry(vertices, clickRayMaterial)
+}
+
 // Parameters for locating and orienting images provided by Aurora
 export class AuroraCameraParameters implements CameraParameters {
 	screenPosition: THREE.Vector3
 	cameraOrigin: THREE.Vector3
+	private utmInterface: UtmInterface
 	private tileId: string
-	private distanceScaleFactor: number
+	private imageWidth: number
+	private imageHeight: number
+	private translation: number[]
+	private rotation: number[]
 
 	constructor(
 		utmInterface: UtmInterface,
 		tileId: string,
+		screenDistanceFromOrigin: number,
+		imageWidth: number,
+		imageHeight: number,
 		translation: number[],
 		rotation: number[]
 	) {
-		// TODO: make this configurable
-		this.distanceScaleFactor = 15
+		this.utmInterface = utmInterface
 		this.tileId = tileId
+		this.imageWidth = imageWidth
+		this.imageHeight = imageHeight
+		this.translation = translation
+		this.rotation = rotation
+		if (screenDistanceFromOrigin <= 0.0)
+			throw Error('invalid screenDistanceFromOrigin: ' + screenDistanceFromOrigin)
 
-		const sPosition = new THREE.Vector4(0, 0, this.distanceScaleFactor, 1)
-		const sOrigin = new THREE.Vector4(translation[0], translation[1], translation[2], 1)
-		const sRotation = new THREE.Matrix4()
-		sRotation.set(
+		// https://en.wikipedia.org/wiki/Camera_resectioning
+		// https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
+		const cameraOrigin = new THREE.Vector4(translation[0], translation[1], translation[2], 1)
+		const screenPosition = new THREE.Vector4(0, 0, screenDistanceFromOrigin, 1)
+		const screenRotation = new THREE.Matrix4()
+		screenRotation.set(
 			rotation[0], rotation[1], rotation[2], translation[0],
 			rotation[3], rotation[4], rotation[5], translation[1],
 			rotation[6], rotation[7], rotation[8], translation[2],
 			0, 0, 0, 1)
-		sPosition.applyMatrix4(sRotation)
+		screenPosition.applyMatrix4(screenRotation)
 
 		// Note: Use camera origin as height to avoid floating images
-		this.screenPosition = utmInterface.utmToThreeJs(sPosition.x, sPosition.y, sOrigin.z)
-		this.cameraOrigin = utmInterface.utmToThreeJs(sOrigin.x, sOrigin.y, sOrigin.z)
+		this.screenPosition = utmInterface.utmToThreeJs(screenPosition.x, screenPosition.y, cameraOrigin.z)
+		this.cameraOrigin = utmInterface.utmToThreeJs(cameraOrigin.x, cameraOrigin.y, cameraOrigin.z)
+	}
+
+	// Draw a ray from the camera origin, through a point in the image which corresponds to a point in three.js space.
+	imageCoordinatesToRay(xRatio: number, yRatio: number, length: number): THREE.Line {
+		const imageX = this.imageWidth * xRatio
+		const imageY = this.imageHeight * yRatio
+		const cx = this.imageWidth * 0.5
+		const cy = this.imageHeight * 0.5
+		// TODO read these from camera intrinsics file
+		const fx = this.imageWidth * 0.508447051
+		const fy = this.imageWidth * 0.513403773
+
+		const endPosition = new THREE.Vector4(length * (imageX - cx) / fx, length * (imageY - cy) / fy, length, 1)
+		const endRotation = new THREE.Matrix4()
+		endRotation.set(
+			this.rotation[0], this.rotation[1], this.rotation[2], this.translation[0],
+			this.rotation[3], this.rotation[4], this.rotation[5], this.translation[1],
+			this.rotation[6], this.rotation[7], this.rotation[8], this.translation[2],
+			0, 0, 0, 1)
+		endPosition.applyMatrix4(endRotation)
+
+		const destination = this.utmInterface.utmToThreeJs(endPosition.x, endPosition.y, endPosition.z)
+		return ray(this.cameraOrigin, destination)
 	}
 }

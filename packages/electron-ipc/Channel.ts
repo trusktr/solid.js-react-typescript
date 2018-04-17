@@ -5,5 +5,10 @@
 
 // Channel names for communication between Electron renderer processes
 export const channel = {
-	lightboxState: 'lightboxState'
+	annotatorWrapper: 'annotatorWrapper',
+	imageClick: 'imageClick',
+	imageEditState: 'imageEditState',
+	keyDownEvent: 'keyDownEvent',
+	keyUpEvent: 'keyUpEvent',
+	lightboxState: 'lightboxState',
 }

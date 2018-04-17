@@ -4,6 +4,7 @@
  */
 
 import * as THREE from 'three'
+import {threeDStepSize} from "../tile/Constant"
 
 export interface QuaternionJsonInterface {
 	x: number
@@ -21,6 +22,22 @@ export function getSize(box: THREE.Box3): THREE.Vector3 {
 export function getCenter(box: THREE.Box3): THREE.Vector3 {
 	const halfSize = getSize(box).divideScalar(2)
 	return new THREE.Vector3(box.min.x + halfSize.x, box.min.y + halfSize.y, box.min.z + halfSize.z)
+}
+
+// Build a THREE.Line with BufferGeometry.
+export function lineGeometry(vertices: THREE.Vector3[], material: THREE.LineBasicMaterial): THREE.Line {
+	const positions = new Float32Array(vertices.length * threeDStepSize)
+	for (let i = 0; i < vertices.length; i++) {
+		const j = i * threeDStepSize
+		positions[j + 0] = vertices[i].x
+		positions[j + 1] = vertices[i].y
+		positions[j + 2] = vertices[i].z
+	}
+
+	const geometry = new THREE.BufferGeometry()
+	geometry.addAttribute('position', new THREE.BufferAttribute(positions, threeDStepSize))
+
+	return new THREE.Line(geometry, material)
 }
 
 /**
