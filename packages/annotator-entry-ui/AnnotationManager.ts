@@ -82,6 +82,7 @@ export interface AnnotationManagerJsonOutputInterface {
 export class AnnotationManager extends UtmInterface {
 	private datum: string = 'WGS84'
 	private scene: THREE.Scene // where objects are placed on behalf of Annotator
+	private onChangeActiveAnnotation: (active: Annotation) => void
 	laneAnnotations: Array<Lane>
 	boundaryAnnotations: Array<Boundary>
 	trafficDeviceAnnotations: Array<TrafficDevice>
@@ -95,9 +96,10 @@ export class AnnotationManager extends UtmInterface {
 	private metadataState: AnnotationState
 	private isLiveMode: boolean
 
-	constructor(scene: THREE.Scene) {
+	constructor(scene: THREE.Scene, onChangeActiveAnnotation: (active: Annotation) => void) {
 		super()
 		this.scene = scene
+		this.onChangeActiveAnnotation = onChangeActiveAnnotation
 		this.laneAnnotations = []
 		this.boundaryAnnotations = []
 		this.trafficDeviceAnnotations = []
@@ -971,6 +973,7 @@ export class AnnotationManager extends UtmInterface {
 			})
 		}
 
+		this.onChangeActiveAnnotation(this.activeAnnotation)
 		return true
 	}
 

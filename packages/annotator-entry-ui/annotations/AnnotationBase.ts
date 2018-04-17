@@ -73,6 +73,7 @@ export abstract class Annotation {
 	abstract mesh: THREE.Mesh           // Represents the physical extents of the annotation
 	renderingObject: THREE.Object3D		// Object that is added to the scene for display
 	abstract snapToGround: boolean      // Preference for where to place markers
+	abstract isRotatable: boolean       // Can markers be rotated
 
 	constructor(inputInterface?: AnnotationJsonInputInterface) {
 		this.id = AnnotationCounter.nextId()

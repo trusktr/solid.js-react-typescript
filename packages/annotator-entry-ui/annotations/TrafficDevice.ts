@@ -97,6 +97,7 @@ export class TrafficDevice extends Annotation {
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
+	isRotatable: boolean
 	deviceOrientation: THREE.Quaternion
 	planeNormal: THREE.Vector3
 	planeCenter: THREE.Vector3
@@ -125,6 +126,7 @@ export class TrafficDevice extends Annotation {
 		this.minimumMarkerCount = 1
 		this.allowNewMarkers = true
 		this.snapToGround = false
+		this.isRotatable = true
 		this.trafficDeviceContour = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.defaultContourMaterial)
 		this.linkLine = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.activeContourMaterial)
 		this.normalLine = new THREE.Line( new THREE.Geometry(), TrafficDeviceRenderingProperties.normalMaterial)

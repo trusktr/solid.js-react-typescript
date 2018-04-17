@@ -435,9 +435,8 @@ class Annotator {
 		} else
 			this.compassRose = null
 
-		// Init empty annotation. This will have to be changed
-		// to work in response to a menu, panel or keyboard event.
-		this.annotationManager = new AnnotationManager(this.scene)
+		// All the annotations go here.
+		this.annotationManager = new AnnotationManager(this.scene, this.onChangeActiveAnnotation)
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
@@ -1625,6 +1624,18 @@ class Annotator {
 		}
 	}
 
+	// Ensure that the current UiState is compatible with a new active annotation.
+	private onChangeActiveAnnotation = (active: Annotation): void => {
+		if (this.uiState.isRotationModeActive && !active.isRotatable)
+			this.toggleTransformControlsRotationMode()
+	}
+
+	private toggleTransformControlsRotationMode(): void {
+		this.uiState.isRotationModeActive = !this.uiState.isRotationModeActive
+		const mode = this.uiState.isRotationModeActive ? 'rotate' : 'translate'
+		this.transformControls.setMode(mode)
+	}
+
 	/**
 	 * Unselect whatever is selected in the UI:
 	 *  - an active control point
@@ -2038,11 +2049,8 @@ class Annotator {
 					break
 				}
 				case 'X': {
-					this.uiState.isRotationModeActive = !this.uiState.isRotationModeActive
-					if (this.annotationManager.activeAnnotation instanceof TrafficDevice) {
-						const mode = this.uiState.isRotationModeActive ? 'rotate' : 'translate'
-						this.transformControls.setMode(mode)
-					}
+					if (this.annotationManager.activeAnnotation && this.annotationManager.activeAnnotation.isRotatable)
+						this.toggleTransformControlsRotationMode()
 					break
 				}
 				default:

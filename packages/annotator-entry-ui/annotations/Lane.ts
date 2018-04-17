@@ -162,6 +162,7 @@ export class Lane extends Annotation {
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
+	isRotatable: boolean
 	private renderingProperties: LaneRenderingProperties
 	waypoints: Array<THREE.Vector3>
 	denseWaypoints: Array<THREE.Vector3>
@@ -210,6 +211,7 @@ export class Lane extends Annotation {
 		this.minimumMarkerCount = 4
 		this.allowNewMarkers = true
 		this.snapToGround = true
+		this.isRotatable = false
 		this.renderingProperties = new LaneRenderingProperties()
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
