@@ -1856,7 +1856,10 @@ class Annotator {
 		}
 
 		const screen = this.imageManager.getImageScreen(imageScreenBox)
-		if (screen) screen.loadImage()
+		if (screen)
+			screen.loadImage()
+				.then(loaded => {if (loaded) this.render()})
+				.catch(err => log.warn('getImageScreen() failed', err))
 
 		const image = imageScreenBox.userData as CalibratedImage
 		// If it's already loaded in the lightbox, highlight it in the lightbox.

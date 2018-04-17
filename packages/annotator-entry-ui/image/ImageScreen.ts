@@ -54,6 +54,7 @@ function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
 // at the image which forms the base.
 export class ImageScreen extends THREE.Object3D {
 	imageMesh: THREE.Mesh
+	private imageLoaded: boolean
 	private path: string
 	private imageGeometry: THREE.Geometry
 	private visibleWireframe: boolean
@@ -63,6 +64,7 @@ export class ImageScreen extends THREE.Object3D {
 	constructor(path: string, width: number, height: number, visibleWireframe: boolean) {
 		super()
 
+		this.imageLoaded = false
 		this.path = path
 		this.visibleWireframe = visibleWireframe
 		this.highlighted = false
@@ -119,18 +121,30 @@ export class ImageScreen extends THREE.Object3D {
 		this.visibleChildren().forEach(obj => obj.visible = false)
 	}
 
-	loadImage(): void {
-		const onLoad = (texture: THREE.Texture): void => {
-			texture.minFilter = THREE.LinearFilter
-			const activeMaterial = new THREE.MeshBasicMaterial({side: THREE.FrontSide, transparent: true, opacity: 1.0})
-			activeMaterial.map = texture
-			this.imageMesh.material = activeMaterial
-		}
+	loadImage(): Promise<boolean> {
+		if (this.imageLoaded)
+			return Promise.resolve(false)
+		else
+			return new Promise((resolve: (loaded: boolean) => void): void => {
+				const onLoad = (texture: THREE.Texture): void => {
+					texture.minFilter = THREE.LinearFilter
+					const activeMaterial = new THREE.MeshBasicMaterial({
+						side: THREE.FrontSide,
+						transparent: true,
+						opacity: 1.0
+					})
+					activeMaterial.map = texture
+					this.imageMesh.material = activeMaterial
+					this.imageLoaded = true
+					resolve(true)
+				}
 
-		textureLoader.load(this.path, onLoad, undefined, undefined)
+				textureLoader.load(this.path, onLoad, undefined, undefined)
+			})
 	}
 
 	unloadImage(): void {
+		this.imageLoaded = false
 		this.imageMesh.material = inactiveMaterial
 	}
 }
