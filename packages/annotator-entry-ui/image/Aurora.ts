@@ -8,7 +8,11 @@ import * as sizeOf from 'image-size'
 import {AuroraCameraParameters} from "./CameraParameters"
 import {UtmInterface} from "../UtmInterface";
 
+const config = require('../../config')
+
 // Convenience functions for Aurora data
+
+const screenDistanceFromOrigin: number = parseFloat(config.get('image_manager.image.distance_from_camera')) || 1.0
 
 interface AuroraImageMetadata {
 	'tileId': string
@@ -40,6 +44,7 @@ export function readImageMetadataFile(imagePath: string, utmInterface: UtmInterf
 				return new AuroraCameraParameters(
 					utmInterface,
 					metadata.tileId,
+					screenDistanceFromOrigin,
 					imageInfo.width,
 					imageInfo.height,
 					metadata.translation,
