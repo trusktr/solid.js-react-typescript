@@ -21,13 +21,6 @@ const inactiveMaterial = new THREE.MeshBasicMaterial({color: 'white', side: THRE
 // Image loader
 const textureLoader = new THREE.TextureLoader()
 
-// Image material parameters
-const imageMaterialParameters = {
-	side: THREE.FrontSide,
-	transparent: true,
-	opacity: 1.0
-}
-
 // Extend lines from the corners of the base to a central point, forming the top of a pyramid.
 // Assume four corners in the base.
 function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
@@ -69,9 +62,8 @@ export class ImageScreen extends THREE.Object3D {
 		this.visibleWireframe = visibleWireframe
 		this.highlighted = false
 
-		const material = new THREE.MeshBasicMaterial(imageMaterialParameters)
 		this.imageGeometry = new THREE.PlaneGeometry(width, height)
-		this.imageMesh = new THREE.Mesh(this.imageGeometry, material)
+		this.imageMesh = new THREE.Mesh(this.imageGeometry, inactiveMaterial.clone())
 
 		this.add(this.imageMesh)
 		this.add(pyramid(this.imageGeometry.vertices, visibleWireframe))
@@ -145,6 +137,6 @@ export class ImageScreen extends THREE.Object3D {
 
 	unloadImage(): void {
 		this.imageLoaded = false
-		this.imageMesh.material = inactiveMaterial
+		this.imageMesh.material = inactiveMaterial.clone()
 	}
 }
