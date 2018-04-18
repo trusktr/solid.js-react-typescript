@@ -1612,7 +1612,6 @@ class Annotator {
 		log.info("checking for conflict selection")
 
 		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
-
 		if (!srcAnnotation) return
 
 		const mouse = this.getMouseCoordinates(event)
@@ -1627,7 +1626,6 @@ class Annotator {
 
 			// If we clicked a connection, add it to the set of conflicting connections
 			if (dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
-				log.info("toggling conflict")
 				const wasAdded = srcAnnotation.toggleConflictingConnection(dstAnnotation.uuid)
 				if (wasAdded) {
 					log.info("added conflict")
@@ -1642,13 +1640,25 @@ class Annotator {
 
 			// If we clicked a traffic device, add it or remove it from the connection's set of associated devices.
 			if (dstAnnotation instanceof TrafficDevice) {
-				log.info("toggling conflict")
 				const wasAdded = srcAnnotation.toggleAssociatedDevice(dstAnnotation.uuid)
 				if (wasAdded) {
-					log.info("added conflict")
+					log.info("added traffic device")
 					dstAnnotation.setAssociatedMode(srcAnnotation.waypoints[0])
+
+					// Attempt to align the traffic device with the lane that leads to it.
+					if (!dstAnnotation.orientationIsSet()) {
+						const inboundLane = this.annotationManager.laneAnnotations.find(l => l.uuid === srcAnnotation.startLaneUuid)
+						if (inboundLane) {
+							const laneTrajectory = inboundLane.finalTrajectory()
+							if (laneTrajectory) {
+								// Look at a distant point which will leave the traffic device's face roughly perpendicular to the lane.
+								const aPointBackOnTheHorizon = laneTrajectory.at(-1000)
+								dstAnnotation.lookAt(aPointBackOnTheHorizon)
+							}
+						}
+					}
 				} else  {
-					log.info("removed conflict")
+					log.info("removed traffic device")
 					dstAnnotation.makeInactive()
 				}
 				this.render()

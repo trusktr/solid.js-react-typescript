@@ -665,6 +665,19 @@ export class Lane extends Annotation {
 		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")
 	}
 
+	// Estimate the trajectory of the final stretch of the lane.
+	// TODO This should work from the center line when we decide that the center line defines the lane.
+	// TODO For now using the markers along an edge will be close enough.
+	finalTrajectory(): THREE.Ray | null {
+		if (this.markers.length < 4) return null
+		const ultimate = this.markers[this.markers.length - 1].position
+		const penultimate = this.markers[this.markers.length - 3].position // next point on the same edge
+		const trajectory = new THREE.Ray(penultimate.clone())
+		trajectory.lookAt(ultimate)
+		trajectory.set(ultimate, trajectory.direction)
+		return trajectory
+	}
+
 	/**
 	 *  Use the last two points and a new "clicked" one to create a guess of
 	 *  the location of the next marker

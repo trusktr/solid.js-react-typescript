@@ -216,7 +216,7 @@ export class TrafficDevice extends Annotation {
 		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.activeContourMaterial
 		const newLinkGeometry = new THREE.Geometry()
 		newLinkGeometry.vertices.push(position)
-		newLinkGeometry.vertices.push(this.getCenterPoint())
+		newLinkGeometry.vertices.push(this.markers[0].position)
 		newLinkGeometry.computeLineDistances()
 		this.linkLine.geometry = newLinkGeometry
 		this.linkLine.geometry.verticesNeedUpdate = true
@@ -275,15 +275,19 @@ export class TrafficDevice extends Annotation {
 		newNormalGeometry.vertices.push(normalEndPoint)
 		this.normalLine.geometry = newNormalGeometry
 		this.normalLine.geometry.verticesNeedUpdate = true
-
 	}
 
-	getCenterPoint(): THREE.Vector3 {
-		const geometry = this.mesh.geometry;
-		geometry.computeBoundingBox();
-		const center = geometry.boundingBox.getCenter();
-		this.mesh.localToWorld( center );
-		return center;
+	// If the current rotation is all zeroes assume it has never been rotated; otherwise it has been.
+	orientationIsSet(): boolean {
+		if (!this.markers.length) return false
+		const rotation = this.markers[0].getWorldRotation()
+		return !!rotation.x || !!rotation.y || !!rotation.z
+	}
+
+	lookAt(point: THREE.Vector3): void {
+		if (!this.markers.length) return
+		this.markers[0].lookAt(point)
+		this.updateVisualization()
 	}
 
 	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficDeviceJsonOutputInterface {
