@@ -15,8 +15,12 @@ import {QuaternionJsonInterface} from "../geometry/ThreeHelpers"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-const stopURL = require('../../annotator-assets/images/stop.png')
-const yieldURL = require('../../annotator-assets/images/yield.png')
+const rygFrontUrl = require('../../annotator-assets/images/TrafficDevice/ryg_front.png')
+const rygBackUrl = require('../../annotator-assets/images/TrafficDevice/ryg_back.png')
+const stopFrontUrl = require('../../annotator-assets/images/TrafficDevice/stop_front.png')
+const stopBackUrl = require('../../annotator-assets/images/TrafficDevice/stop_back.png')
+const yieldFrontUrl = require('../../annotator-assets/images/TrafficDevice/yield_front.png')
+const yieldBackUrl = require('../../annotator-assets/images/TrafficDevice/yield_back.png')
 
 export enum TrafficDeviceType {
 	UNKNOWN = 0,
@@ -27,6 +31,11 @@ export enum TrafficDeviceType {
 	OTHER
 }
 
+interface MaterialFaces {
+	front: THREE.Material,
+	back: THREE.Material,
+}
+
 // Some variables used for rendering
 namespace TrafficDeviceRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
@@ -34,8 +43,41 @@ namespace TrafficDeviceRenderingProperties {
 	export const defaultContourMaterial = new THREE.LineBasicMaterial({color: 0x00ff00})
 	export const activeContourMaterial = new THREE.LineBasicMaterial({color: 0xffff00, linewidth: 2})
 	export const normalMaterial = new THREE.LineBasicMaterial( {color: 0xff00ff})
-	export const stopTexture = new THREE.TextureLoader().load(stopURL)
-	export const yieldTexture = new THREE.TextureLoader().load(yieldURL)
+
+	// Set a default front and back face for each device type.
+	export const deviceFaceMaterials: MaterialFaces[] = []
+	for (let i in TrafficDeviceType) {
+		if (parseInt(i, 10) >= 0) {
+			deviceFaceMaterials[i] = {
+				front: defaultMaterial,
+				back: defaultMaterial,
+			}
+		}
+	}
+
+	// Load custom faces if we have them.
+	const tl = new THREE.TextureLoader()
+	deviceFaceMaterials[TrafficDeviceType.RYG_LEFT_ARROW_LIGHT] = {
+		front: new THREE.MeshBasicMaterial({map: tl.load(rygFrontUrl), side: THREE.FrontSide}),
+		back: new THREE.MeshBasicMaterial({map: tl.load(rygBackUrl), side: THREE.BackSide}),
+	}
+	deviceFaceMaterials[TrafficDeviceType.RYG_LIGHT] = {
+		front: new THREE.MeshBasicMaterial({map: tl.load(rygFrontUrl), side: THREE.FrontSide}),
+		back: new THREE.MeshBasicMaterial({map: tl.load(rygBackUrl), side: THREE.BackSide}),
+	}
+	deviceFaceMaterials[TrafficDeviceType.STOP] = {
+		front: new THREE.MeshBasicMaterial({map: tl.load(stopFrontUrl), side: THREE.FrontSide}),
+		back: new THREE.MeshBasicMaterial({map: tl.load(stopBackUrl), side: THREE.BackSide}),
+	}
+	deviceFaceMaterials[TrafficDeviceType.YIELD] = {
+		front: new THREE.MeshBasicMaterial({map: tl.load(yieldFrontUrl), side: THREE.FrontSide}),
+		back: new THREE.MeshBasicMaterial({map: tl.load(yieldBackUrl), side: THREE.BackSide}),
+	}
+
+	deviceFaceMaterials.forEach(pair => {
+		pair.front.transparent = true
+		pair.back.transparent = true
+	})
 }
 
 export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInterface {
@@ -55,6 +97,7 @@ export class TrafficDevice extends Annotation {
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
+	isRotatable: boolean
 	deviceOrientation: THREE.Quaternion
 	planeNormal: THREE.Vector3
 	planeCenter: THREE.Vector3
@@ -62,6 +105,7 @@ export class TrafficDevice extends Annotation {
 	linkLine: THREE.Line
 	normalLine: THREE.Line
 	mesh: THREE.Mesh
+	meshBackFace: THREE.Mesh
 	isComplete: boolean
 
 	constructor(obj?: TrafficDeviceJsonInputInterface) {
@@ -82,11 +126,14 @@ export class TrafficDevice extends Annotation {
 		this.minimumMarkerCount = 1
 		this.allowNewMarkers = true
 		this.snapToGround = false
+		this.isRotatable = true
 		this.trafficDeviceContour = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.defaultContourMaterial)
 		this.linkLine = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.activeContourMaterial)
 		this.normalLine = new THREE.Line( new THREE.Geometry(), TrafficDeviceRenderingProperties.normalMaterial)
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficDeviceRenderingProperties.defaultMaterial)
+		this.meshBackFace = new THREE.Mesh(new THREE.Geometry(), TrafficDeviceRenderingProperties.defaultMaterial)
 		this.renderingObject.add(this.mesh)
+		this.renderingObject.add(this.meshBackFace)
 		this.renderingObject.add(this.trafficDeviceContour)
 		this.renderingObject.add(this.linkLine)
 		this.renderingObject.add(this.normalLine)
@@ -169,7 +216,7 @@ export class TrafficDevice extends Annotation {
 		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.activeContourMaterial
 		const newLinkGeometry = new THREE.Geometry()
 		newLinkGeometry.vertices.push(position)
-		newLinkGeometry.vertices.push(this.getCenterPoint())
+		newLinkGeometry.vertices.push(this.markers[0].position)
 		newLinkGeometry.computeLineDistances()
 		this.linkLine.geometry = newLinkGeometry
 		this.linkLine.geometry.verticesNeedUpdate = true
@@ -204,24 +251,10 @@ export class TrafficDevice extends Annotation {
 		newMeshGeometry.translate(this.planeCenter.x, this.planeCenter.y, this.planeCenter.z)
 		newMeshGeometry.computeFaceNormals()
 		this.mesh.geometry = newMeshGeometry
+		this.meshBackFace.geometry = newMeshGeometry.clone()
 
-		switch (this.type) {
-			case TrafficDeviceType.STOP:
-				const stopMaterial = new THREE.MeshBasicMaterial({map: TrafficDeviceRenderingProperties.stopTexture, side: THREE.DoubleSide})
-				this.mesh.material = stopMaterial
-				this.mesh.material.transparent = true
-				break
-			case TrafficDeviceType.YIELD:
-				const yieldMaterial = new THREE.MeshBasicMaterial({map: TrafficDeviceRenderingProperties.yieldTexture, side: THREE.DoubleSide})
-				this.mesh.material = yieldMaterial
-				this.mesh.material.transparent = true
-				break
-			default:
-				this.mesh.material = TrafficDeviceRenderingProperties.defaultMaterial
-		}
-
-		this.mesh.geometry.verticesNeedUpdate = true
-		this.mesh.geometry.uvsNeedUpdate = true;
+		this.mesh.material = TrafficDeviceRenderingProperties.deviceFaceMaterials[this.type].front
+		this.meshBackFace.material = TrafficDeviceRenderingProperties.deviceFaceMaterials[this.type].back
 
 		const newContourGeometry = new THREE.Geometry()
 		newContourGeometry.vertices.push(this.mesh.geometry.vertices[0])
@@ -242,15 +275,19 @@ export class TrafficDevice extends Annotation {
 		newNormalGeometry.vertices.push(normalEndPoint)
 		this.normalLine.geometry = newNormalGeometry
 		this.normalLine.geometry.verticesNeedUpdate = true
-
 	}
 
-	getCenterPoint(): THREE.Vector3 {
-		const geometry = this.mesh.geometry;
-		geometry.computeBoundingBox();
-		const center = geometry.boundingBox.getCenter();
-		this.mesh.localToWorld( center );
-		return center;
+	// If the current rotation is all zeroes assume it has never been rotated; otherwise it has been.
+	orientationIsSet(): boolean {
+		if (!this.markers.length) return false
+		const rotation = this.markers[0].getWorldRotation()
+		return !!rotation.x || !!rotation.y || !!rotation.z
+	}
+
+	lookAt(point: THREE.Vector3): void {
+		if (!this.markers.length) return
+		this.markers[0].lookAt(point)
+		this.updateVisualization()
 	}
 
 	toJSON(pointConverter?: (p: THREE.Vector3) => Object): TrafficDeviceJsonOutputInterface {

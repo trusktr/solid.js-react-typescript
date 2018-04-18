@@ -71,6 +71,7 @@ export class Boundary extends Annotation {
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
+	isRotatable: boolean
 	color: BoundaryColor
 	boundaryContour: THREE.Line
 	mesh: THREE.Mesh
@@ -90,6 +91,7 @@ export class Boundary extends Annotation {
 		this.minimumMarkerCount = 2
 		this.allowNewMarkers = true
 		this.snapToGround = true
+		this.isRotatable = false
 		this.boundaryContour = new THREE.Line(new THREE.Geometry(), BoundaryRenderingProperties.activeMaterial)
 		this.mesh = new THREE.Mesh()
 		this.renderingObject.add(this.boundaryContour)

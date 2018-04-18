@@ -180,6 +180,7 @@ interface UiState {
 	lockBoundaries: boolean
 	lockLanes: boolean
 	lockTerritories: boolean
+	lockTrafficDevices: boolean
 	isSuperTilesVisible: boolean
 	isPointCloudVisible: boolean
 	isImageScreensVisible: boolean
@@ -292,9 +293,15 @@ class Annotator {
 			timeToDisplayHealthyStatusMs: 10000,
 			maxDistanceToDecorations: 50000,
 		}
+		const cameraOffset: [number, number, number] = config.get('startup.camera_offset')
+		if (isTupleOfNumbers(cameraOffset, 3)) {
+			this.settings.cameraOffset = new THREE.Vector3().fromArray(cameraOffset)
+		} else if (cameraOffset) {
+			log.warn(`invalid startup.camera_offset config: ${cameraOffset}`)
+		}
 		const aoiSize: [number, number, number] = config.get('annotator.area_of_interest.size')
 		if (isTupleOfNumbers(aoiSize, 3)) {
-			this.settings.aoiFullSize = new THREE.Vector3(aoiSize[0], aoiSize[1], aoiSize[2])
+			this.settings.aoiFullSize = new THREE.Vector3().fromArray(aoiSize)
 			this.settings.aoiHalfSize = this.settings.aoiFullSize.clone().divideScalar(2)
 		} else if (aoiSize) {
 			log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)
@@ -305,6 +312,7 @@ class Annotator {
 			lockBoundaries: false,
 			lockLanes: false,
 			lockTerritories: true,
+			lockTrafficDevices: false,
 			isSuperTilesVisible: true,
 			isPointCloudVisible: true,
 			isImageScreensVisible: true,
@@ -489,9 +497,8 @@ class Annotator {
 		} else
 			this.compassRose = null
 
-		// Init empty annotation. This will have to be changed
-		// to work in response to a menu, panel or keyboard event.
-		this.annotationManager = new AnnotationManager(this.scene)
+		// All the annotations go here.
+		this.annotationManager = new AnnotationManager(this.scene, this.onChangeActiveAnnotation)
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
@@ -525,48 +532,12 @@ class Annotator {
 		this.setStage(0, 0, 0)
 
 		// Add panel to change the settings
-		if (config.get('startup.show_color_picker')) {
-			this.gui = new DatGui({
-				hideable: false,
-				closeOnTop: true,
-			} as GUIParams)
-			this.gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
-				this.renderer.setClearColor(new THREE.Color(value))
-				this.render()
-			})
-			this.gui.add(this.uiState, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
-				if (this.imageManager.setOpacity(value))
-					this.render()
-			})
-
-			const folderLock = this.gui.addFolder('Lock')
-			folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveBoundaryAnnotation()) {
-					this.annotationManager.unsetActiveAnnotation()
-					this.render()
-				}
-			})
-			folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
-				if (value && (this.annotationManager.getActiveLaneAnnotation() || this.annotationManager.getActiveConnectionAnnotation())) {
-					this.annotationManager.unsetActiveAnnotation()
-					this.render()
-				}
-			})
-			folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
-				if (value && this.annotationManager.getActiveTerritoryAnnotation()) {
-					this.annotationManager.unsetActiveAnnotation()
-					this.render()
-				}
-			})
-			folderLock.open()
-
-			const folderConnection = this.gui.addFolder('Connection params')
-			folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
-			folderConnection.open()
-			this.gui.domElement.className = 'threeJs_gui'
-		} else {
+		if (config.get('startup.show_color_picker'))
+			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
+		if (config.get('startup.show_control_panel'))
+			this.gui = this.createControlsGui()
+		else
 			this.gui = null
-		}
 
 		// Add listeners
 		window.addEventListener('focus', this.onFocus)
@@ -611,6 +582,50 @@ class Annotator {
 				// Initialize socket for use when "live mode" operation is on
 				this.initClient()
 			})
+	}
+
+	// Create a UI widget to adjust application settings on the fly.
+	createControlsGui(): DatGui {
+		const gui = new DatGui({
+			hideable: false,
+			closeOnTop: true,
+		} as GUIParams)
+		gui.domElement.className = 'threeJs_gui'
+
+		gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
+			this.renderer.setClearColor(new THREE.Color(value))
+			this.render()
+		})
+
+		gui.add(this.uiState, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
+			if (this.imageManager.setOpacity(value))
+				this.render()
+		})
+
+		const folderLock = gui.addFolder('Lock')
+		folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
+			if (value && this.annotationManager.getActiveBoundaryAnnotation())
+				this.cleanTransformControlsAndEscapeSelection()
+		})
+		folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
+			if (value && (this.annotationManager.getActiveLaneAnnotation() || this.annotationManager.getActiveConnectionAnnotation()))
+				this.cleanTransformControlsAndEscapeSelection()
+		})
+		folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
+			if (value && this.annotationManager.getActiveTerritoryAnnotation())
+				this.cleanTransformControlsAndEscapeSelection()
+		})
+		folderLock.add(this.uiState, 'lockTrafficDevices').name('Traffic Devices').onChange((value: boolean) => {
+			if (value && (this.annotationManager.getActiveTrafficDeviceAnnotation()))
+				this.cleanTransformControlsAndEscapeSelection()
+		})
+		folderLock.open()
+
+		const folderConnection = gui.addFolder('Connection params')
+		folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
+		folderConnection.open()
+
+		return gui
 	}
 
 	/**
@@ -1510,6 +1525,8 @@ class Annotator {
 			return true
 		else if (this.uiState.lockTerritories && annotation instanceof Territory)
 			return true
+		else if (this.uiState.lockTrafficDevices && annotation instanceof TrafficDevice)
+			return true
 		return false
 	}
 
@@ -1619,7 +1636,6 @@ class Annotator {
 		log.info("checking for conflict selection")
 
 		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
-
 		if (!srcAnnotation) return
 
 		const mouse = this.getMouseCoordinates(event)
@@ -1634,7 +1650,6 @@ class Annotator {
 
 			// If we clicked a connection, add it to the set of conflicting connections
 			if (dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
-				log.info("toggling conflict")
 				const wasAdded = srcAnnotation.toggleConflictingConnection(dstAnnotation.uuid)
 				if (wasAdded) {
 					log.info("added conflict")
@@ -1649,13 +1664,25 @@ class Annotator {
 
 			// If we clicked a traffic device, add it or remove it from the connection's set of associated devices.
 			if (dstAnnotation instanceof TrafficDevice) {
-				log.info("toggling conflict")
 				const wasAdded = srcAnnotation.toggleAssociatedDevice(dstAnnotation.uuid)
 				if (wasAdded) {
-					log.info("added conflict")
+					log.info("added traffic device")
 					dstAnnotation.setAssociatedMode(srcAnnotation.waypoints[0])
+
+					// Attempt to align the traffic device with the lane that leads to it.
+					if (!dstAnnotation.orientationIsSet()) {
+						const inboundLane = this.annotationManager.laneAnnotations.find(l => l.uuid === srcAnnotation.startLaneUuid)
+						if (inboundLane) {
+							const laneTrajectory = inboundLane.finalTrajectory()
+							if (laneTrajectory) {
+								// Look at a distant point which will leave the traffic device's face roughly perpendicular to the lane.
+								const aPointBackOnTheHorizon = laneTrajectory.at(-1000)
+								dstAnnotation.lookAt(aPointBackOnTheHorizon)
+							}
+						}
+					}
 				} else  {
-					log.info("removed conflict")
+					log.info("removed traffic device")
 					dstAnnotation.makeInactive()
 				}
 				this.render()
@@ -1663,12 +1690,23 @@ class Annotator {
 		}
 	}
 
+	// Ensure that the current UiState is compatible with a new active annotation.
+	private onChangeActiveAnnotation = (active: Annotation): void => {
+		if (this.uiState.isRotationModeActive && !active.isRotatable)
+			this.toggleTransformControlsRotationMode()
+	}
+
+	private toggleTransformControlsRotationMode(): void {
+		this.uiState.isRotationModeActive = !this.uiState.isRotationModeActive
+		const mode = this.uiState.isRotationModeActive ? 'rotate' : 'translate'
+		this.transformControls.setMode(mode)
+	}
+
 	/**
 	 * Unselect whatever is selected in the UI:
 	 *  - an active control point
 	 *  - a selected annotation
- 	 */
-
+	 */
 	private escapeSelection(): void {
 		if (this.transformControls.isAttached()) {
 			this.cleanTransformControls()
@@ -1677,6 +1715,11 @@ class Annotator {
 			Annotator.deactivateAllAnnotationPropertiesMenus()
 			this.render()
 		}
+	}
+
+	cleanTransformControlsAndEscapeSelection(): void {
+		this.cleanTransformControls()
+		this.escapeSelection()
 	}
 
 	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
@@ -2002,6 +2045,9 @@ class Annotator {
 	 */
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
+		if (event.altKey) return
+		if (event.ctrlKey) return
+		if (event.metaKey) return
 
 		if (document.activeElement.tagName === 'INPUT')
 			this.onKeyDownInputElement(event)
@@ -2171,11 +2217,8 @@ class Annotator {
 					break
 				}
 				case 'X': {
-					this.uiState.isRotationModeActive = !this.uiState.isRotationModeActive
-					if (this.annotationManager.activeAnnotation instanceof TrafficDevice) {
-						const mode = this.uiState.isRotationModeActive ? 'rotate' : 'translate'
-						this.transformControls.setMode(mode)
-					}
+					if (this.annotationManager.activeAnnotation && this.annotationManager.activeAnnotation.isRotatable)
+						this.toggleTransformControlsRotationMode()
 					break
 				}
 				default:

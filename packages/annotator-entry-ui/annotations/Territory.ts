@@ -93,6 +93,7 @@ export class Territory extends Annotation {
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
+	isRotatable: boolean
 	territoryContour: THREE.Line
 	mesh: THREE.Mesh
 	isComplete: boolean
@@ -107,6 +108,7 @@ export class Territory extends Annotation {
 		this.minimumMarkerCount = 3
 		this.allowNewMarkers = true
 		this.snapToGround = true
+		this.isRotatable = false
 		this.isComplete = false
 		this.territoryContour = new THREE.Line(new THREE.Geometry(), renderingProperties.contourMaterial)
 

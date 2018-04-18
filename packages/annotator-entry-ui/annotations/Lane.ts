@@ -162,6 +162,7 @@ export class Lane extends Annotation {
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
+	isRotatable: boolean
 	private renderingProperties: LaneRenderingProperties
 	waypoints: Array<THREE.Vector3>
 	denseWaypoints: Array<THREE.Vector3>
@@ -210,6 +211,7 @@ export class Lane extends Annotation {
 		this.minimumMarkerCount = 4
 		this.allowNewMarkers = true
 		this.snapToGround = true
+		this.isRotatable = false
 		this.renderingProperties = new LaneRenderingProperties()
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
 		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
@@ -661,6 +663,19 @@ export class Lane extends Annotation {
 	updateLaneWidth(): void {
 		const laneWidth = $('#lp_width_value')
 		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")
+	}
+
+	// Estimate the trajectory of the final stretch of the lane.
+	// TODO This should work from the center line when we decide that the center line defines the lane.
+	// TODO For now using the markers along an edge will be close enough.
+	finalTrajectory(): THREE.Ray | null {
+		if (this.markers.length < 4) return null
+		const ultimate = this.markers[this.markers.length - 1].position
+		const penultimate = this.markers[this.markers.length - 3].position // next point on the same edge
+		const trajectory = new THREE.Ray(penultimate.clone())
+		trajectory.lookAt(ultimate)
+		trajectory.set(ultimate, trajectory.direction)
+		return trajectory
 	}
 
 	/**

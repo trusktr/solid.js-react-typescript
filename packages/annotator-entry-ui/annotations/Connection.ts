@@ -65,6 +65,7 @@ export class Connection extends Annotation {
 	minimumMarkerCount: number
 	allowNewMarkers: boolean
 	snapToGround: boolean
+	isRotatable: boolean
 	startLaneUuid: AnnotationUuid
 	endLaneUuid: AnnotationUuid
 	conflictingConnections: Array<AnnotationUuid>
@@ -94,6 +95,7 @@ export class Connection extends Annotation {
 		this.minimumMarkerCount = 4
 		this.allowNewMarkers = false
 		this.snapToGround = true
+		this.isRotatable = false
 		this.directionMarkers = []
 		this.waypoints = []
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), ConnectionRenderingProperties.activeMaterial)
