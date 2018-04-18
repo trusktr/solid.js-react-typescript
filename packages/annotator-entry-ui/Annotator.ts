@@ -1788,36 +1788,69 @@ class Annotator {
 		this.raycasterImageScreen.setFromCamera(mouse, this.camera)
 		const intersects = this.raycasterImageScreen.intersectObjects(this.imageManager.imageScreenMeshes)
 
-		// No image intersected
+		// No screen intersected
 		if (!intersects.length) {
 			this.unHighlightImageScreenBox()
 		} else {
+			// Get intersected screen
 			const first = intersects[0].object as THREE.Mesh
 
+			// Unhighlight previous screen
 			if (this.highlightedImageScreenBox && this.highlightedImageScreenBox.id !== first.id) {
 				this.unHighlightImageScreenBox()
 			}
 
-			if (!this.highlightedImageScreenBox)
-				this.highlightImageScreenBox(first)
+			// Highlight new screen
+			this.highlightImageScreenBox(first)
 		}
 	}
 
 	private clickImageScreenBox = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseDragging) return
-		if (!this.highlightedImageScreenBox) return
 		if (!this.uiState.isImageScreensVisible) return
 
-		const mouse = this.getMouseCoordinates(event)
-		this.raycasterImageScreen.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterImageScreen.intersectObject(this.highlightedImageScreenBox)
+		switch (event.button) {
+			// Left click released
+			case 0: {
+				if (!this.highlightedImageScreenBox) return
 
-		if (intersects.length) {
-			const image = this.highlightedImageScreenBox.userData as CalibratedImage
-			this.unHighlightImageScreenBox()
-			this.render()
-			this.imageManager.loadImageIntoWindow(image)
+				const mouse = this.getMouseCoordinates(event)
+				this.raycasterImageScreen.setFromCamera(mouse, this.camera)
+				const intersects = this.raycasterImageScreen.intersectObject(this.highlightedImageScreenBox)
+
+				if (intersects.length) {
+					const image = this.highlightedImageScreenBox.userData as CalibratedImage
+					this.unHighlightImageScreenBox()
+					this.render()
+					this.imageManager.loadImageIntoWindow(image)
+				}
+				break
+				// Middle click released
+			} case 1: {
+				// no actions
+				break
+			// Right  click released
+			} case 2: {
+				if (this.uiState.isShiftKeyPressed) return
+
+				const mouse = this.getMouseCoordinates(event)
+				this.raycasterImageScreen.setFromCamera(mouse, this.camera)
+				const intersects = this.raycasterImageScreen.intersectObjects(this.imageManager.imageScreenMeshes)
+				// Get intersected screen
+				if (intersects.length) {
+					const first = intersects[0].object as THREE.Mesh
+					const material = first.material as THREE.MeshBasicMaterial
+					material.opacity = this.uiState.imageScreenOpacity
+
+					const screen = this.imageManager.getImageScreen(first)
+					if (screen) screen.unloadImage()
+
+					this.render()
+				}
+				break
+			} default:
+				log.warn('This should never happen.')
 		}
 	}
 
@@ -1831,6 +1864,7 @@ class Annotator {
 			this.render()
 			return
 		}
+		this.highlightedImageScreenBox = imageScreenBox
 
 		const screen = this.imageManager.getImageScreen(imageScreenBox)
 		if (screen) screen.loadImage()
@@ -1841,16 +1875,12 @@ class Annotator {
 
 		const material = imageScreenBox.material as THREE.MeshBasicMaterial
 		material.opacity = 1.0
-		this.highlightedImageScreenBox = imageScreenBox
 		this.render()
 	}
 
 	// Draw the box with default opacity like all the other boxes.
 	private unHighlightImageScreenBox(): void {
 		if (!this.highlightedImageScreenBox) return
-
-		//const screen = this.imageManager.getImageScreen(this.highlightedImageScreenBox)
-		//if (screen) screen.unloadImage()
 
 		const material = this.highlightedImageScreenBox.material as THREE.MeshBasicMaterial
 		material.opacity = this.uiState.imageScreenOpacity

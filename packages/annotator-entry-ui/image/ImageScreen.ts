@@ -59,6 +59,7 @@ export class ImageScreen extends THREE.Object3D {
 	private visibleWireframe: boolean
 	private highlighted: boolean
 	private border: THREE.Line
+	private hasImage: boolean
 
 	constructor(path: string, width: number, height: number, visibleWireframe: boolean) {
 		super()
@@ -66,6 +67,7 @@ export class ImageScreen extends THREE.Object3D {
 		this.path = path
 		this.visibleWireframe = visibleWireframe
 		this.highlighted = false
+		this.hasImage = false
 
 		const material = new THREE.MeshBasicMaterial(imageMaterialParameters)
 		this.imageGeometry = new THREE.PlaneGeometry(width, height)
@@ -120,17 +122,27 @@ export class ImageScreen extends THREE.Object3D {
 	}
 
 	loadImage(): void {
-		const onLoad = (texture: THREE.Texture): void => {
-			texture.minFilter = THREE.LinearFilter
-			const activeMaterial = new THREE.MeshBasicMaterial({side: THREE.FrontSide, transparent: true, opacity: 1.0})
-			activeMaterial.map = texture
-			this.imageMesh.material = activeMaterial
-		}
+		if (!this.hasImage) {
+			const onLoad = (texture: THREE.Texture): void => {
+				texture.minFilter = THREE.LinearFilter
+				const activeMaterial = new THREE.MeshBasicMaterial({
+					side: THREE.FrontSide,
+					transparent: true,
+					opacity: 1.0
+				})
+				activeMaterial.map = texture
+				this.imageMesh.material = activeMaterial
+			}
 
-		textureLoader.load(this.path, onLoad, undefined, undefined)
+			textureLoader.load(this.path, onLoad, undefined, undefined)
+			this.hasImage = true
+		}
 	}
 
 	unloadImage(): void {
-		this.imageMesh.material = inactiveMaterial
+		if (this.hasImage) {
+			this.hasImage = false
+			this.imageMesh.material = inactiveMaterial.clone()
+		}
 	}
 }
