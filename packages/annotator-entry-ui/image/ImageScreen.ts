@@ -9,27 +9,26 @@ import {lineGeometry} from "../geometry/ThreeHelpers"
 // The tip of the pyramid will work with a default PlaneGeometry which hasn't been rotated
 // out of the XY plane.
 const tip = new THREE.Vector3(0, 0, 1)
-// If the image plane exists in XY, then its Z value is 0.
-const imageScreenZ = 0
 
+// Image screen materials
 const pyramidMaterial = new THREE.LineBasicMaterial({color: 0x66aa00})
 const invisiblePyramidMaterial = new THREE.LineBasicMaterial({visible: false})
 const borderMaterial = new THREE.LineBasicMaterial({color: 0xffffff})
 const unhighlightedBorderMaterial = new THREE.LineBasicMaterial({color: 0x999999})
 const invisibleBorderMaterial = new THREE.LineBasicMaterial({visible: false})
+const inactiveMaterial = new THREE.MeshBasicMaterial({color: 'white', side: THREE.FrontSide, transparent: true, opacity: 0.5})
+
+// Image loader
+const textureLoader = new THREE.TextureLoader()
 
 // Extend lines from the corners of the base to a central point, forming the top of a pyramid.
 // Assume four corners in the base.
 function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
 	const vertices = [
-		tip,
-		base[0],
-		tip,
-		base[1],
-		tip,
-		base[2],
-		tip,
-		base[3],
+		tip, base[0],
+		tip, base[1],
+		tip, base[2],
+		tip, base[3],
 	]
 	return lineGeometry(vertices, visible ? pyramidMaterial : invisiblePyramidMaterial)
 }
@@ -37,11 +36,7 @@ function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
 // Draw a line the four corners of the base.
 function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
 	const vertices = [
-		base[0],
-		base[1],
-		base[3],
-		base[2],
-		base[0],
+		base[0], base[1], base[3], base[2], base[0],
 	]
 	return lineGeometry(vertices, visible ? unhighlightedBorderMaterial : invisibleBorderMaterial)
 }
@@ -52,24 +47,25 @@ function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
 // at the image which forms the base.
 export class ImageScreen extends THREE.Object3D {
 	imageMesh: THREE.Mesh
+	private imageLoaded: boolean
+	private path: string
 	private imageGeometry: THREE.Geometry
 	private visibleWireframe: boolean
 	private highlighted: boolean
 	private border: THREE.Line
 
-	constructor(imageMesh: THREE.Mesh, visibleWireframe: boolean) {
+	constructor(path: string, width: number, height: number, visibleWireframe: boolean) {
 		super()
-		this.imageMesh = imageMesh
+
+		this.imageLoaded = false
+		this.path = path
 		this.visibleWireframe = visibleWireframe
 		this.highlighted = false
 
-		this.imageGeometry = imageMesh.geometry as THREE.Geometry
-		if (this.imageGeometry.type !== 'PlaneGeometry')
-			throw Error('invalid geometry ' + imageMesh.geometry)
-		if (this.imageGeometry.vertices.find(v => v.z !== imageScreenZ))
-			throw Error('invalid geometry ' + imageMesh.geometry)
+		this.imageGeometry = new THREE.PlaneGeometry(width, height)
+		this.imageMesh = new THREE.Mesh(this.imageGeometry, inactiveMaterial.clone())
 
-		this.add(imageMesh)
+		this.add(this.imageMesh)
 		this.add(pyramid(this.imageGeometry.vertices, visibleWireframe))
 		this.border = border(this.imageGeometry.vertices, visibleWireframe)
 		this.add(this.border)
@@ -115,5 +111,34 @@ export class ImageScreen extends THREE.Object3D {
 
 	makeInvisible(): void {
 		this.visibleChildren().forEach(obj => obj.visible = false)
+	}
+
+	loadImage(): Promise<boolean> {
+		if (this.imageLoaded)
+			return Promise.resolve(false)
+		else
+			return new Promise((resolve: (loaded: boolean) => void): void => {
+				const onLoad = (texture: THREE.Texture): void => {
+					texture.minFilter = THREE.LinearFilter
+					const activeMaterial = new THREE.MeshBasicMaterial({
+						side: THREE.FrontSide,
+						transparent: true,
+						opacity: 1.0
+					})
+					activeMaterial.map = texture
+					this.imageMesh.material = activeMaterial
+					this.imageLoaded = true
+					resolve(true)
+				}
+
+				textureLoader.load(this.path, onLoad, undefined, undefined)
+			})
+	}
+
+	unloadImage(): void {
+		if (this.imageLoaded) {
+			this.imageLoaded = false
+			this.imageMesh.material = inactiveMaterial.clone()
+		}
 	}
 }
