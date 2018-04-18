@@ -98,10 +98,40 @@ enum MenuVisibility {
 	TOGGLE
 }
 
-enum ModelVisibility {
-	ALL_VISIBLE = 0,
-	HIDE_SUPER_TILES_AND_POINT_CLOUD_AND_IMAGES,
-	HIDE_SUPER_TILES_AND_ANNOTATIONS,
+// Various types of objects which can be displayed in the three.js scene.
+enum Layer {
+	POINT_CLOUD,
+	SUPER_TILES,
+	IMAGE_SCREENS,
+	ANNOTATIONS,
+}
+
+let allLayers: Layer[] = []
+// Now let javascript show you how easy it is to work with enums:
+for (let key in Layer) {
+	if (Layer.hasOwnProperty(key)) {
+		const index = Layer[key]
+		if (typeof index === 'number')
+			allLayers.push(index)
+	}
+}
+
+// Groups of layers which are visible together. They are toggled on/off with the 'show/hide' command.
+// - all visible
+// - annotations hidden
+// - everything but annotations hidden
+const layerGroups: Layer[][] = [
+	allLayers,
+	[Layer.POINT_CLOUD, Layer.SUPER_TILES, Layer.IMAGE_SCREENS],
+	[Layer.ANNOTATIONS],
+]
+
+const defaultLayerGroupIndex = 0
+
+// Something that toggles on and off, and reports the result.
+interface Toggle {
+	show: () => boolean,
+	hide: () => boolean,
 }
 
 interface MousePosition {
@@ -146,7 +176,7 @@ interface LiveModeSettings {
 }
 
 interface UiState {
-	modelVisibility: ModelVisibility
+	layerGroupIndex: number
 	lockBoundaries: boolean
 	lockLanes: boolean
 	lockTerritories: boolean
@@ -236,6 +266,7 @@ class Annotator {
 	private flyThroughSettings: FlyThroughSettings
 	private liveModeSettings: LiveModeSettings
 	private locationServerStatusClient: LocationServerStatusClient
+	private layerToggle: Map<Layer, Toggle>
 	private gui: DatGui | null
 
 	constructor() {
@@ -270,7 +301,7 @@ class Annotator {
 		}
 		this.settings.animationFrameIntervalMs = this.settings.defaultAnimationFrameIntervalMs
 		this.uiState = {
-			modelVisibility: ModelVisibility.ALL_VISIBLE,
+			layerGroupIndex: defaultLayerGroupIndex,
 			lockBoundaries: false,
 			lockLanes: false,
 			lockTerritories: true,
@@ -358,6 +389,13 @@ class Annotator {
 			cameraOffsetDelta: 1,
 			animationFrameIntervalMs: (1000 / parseFloat(config.get('fly_through.animation.fps'))) || 10
 		}
+
+		this.layerToggle = Map([
+			[Layer.POINT_CLOUD, {show: this.showPointCloud, hide: this.hidePointCloud}],
+			[Layer.SUPER_TILES, {show: this.showSuperTiles, hide: this.hideSuperTiles}],
+			[Layer.IMAGE_SCREENS, {show: this.showImageScreens, hide: this.hideImageScreens}],
+			[Layer.ANNOTATIONS, {show: this.showAnnotations, hide: this.hideAnnotations}],
+		])
 
 		const watchForRebuilds: boolean = config.get('startup.watch_for_rebuilds.enable') || false
 		if (watchForRebuilds) {
@@ -808,8 +846,7 @@ class Annotator {
 		if (!this.annotationManager.setOriginWithInterface(this.tileManager))
 			log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
 
-		if (!this.uiState.isPointCloudVisible)
-			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		this.setLayerVisibility([Layer.POINT_CLOUD])
 
 		if (this.settings.generateVoxelsOnPointLoad) {
 			this.computeVoxelsHeights() // This is based on pre-loaded annotations
@@ -889,8 +926,7 @@ class Annotator {
 	 * 	Incrementally load the point cloud for a single super tile.
 	 */
 	private loadSuperTileData(superTile: SuperTile): Promise<void> {
-		if (!this.uiState.isPointCloudVisible)
-			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		this.setLayerVisibility([Layer.POINT_CLOUD])
 		return this.tileManager.loadFromSuperTile(superTile)
 			.then(() => {
 				this.updatePointCloudBoundingBox()
@@ -1040,17 +1076,6 @@ class Annotator {
 		}
 	}
 
-	private hideSuperTiles(): void {
-		this.unHighlightSuperTileBox()
-		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = false)
-		this.uiState.isSuperTilesVisible = false
-	}
-
-	private showSuperTiles(): void {
-		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = true)
-		this.uiState.isSuperTilesVisible = true
-	}
-
 	/**
 	 * 	Draw a box around the data. Useful for debugging.
 	 */
@@ -1102,7 +1127,7 @@ class Annotator {
 		// mainly while panning across the model. Disable it during rotation for better rendering performance.
 		if (this.uiState.isControlKeyPressed) return
 		// Don't update AOI and load tiles if the point cloud is not visible.
-		if (this.uiState.modelVisibility === ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD_AND_IMAGES) return
+		if (!this.uiState.isPointCloudVisible) return
 		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
 		if (this.tileManager.getIsLoadingPointCloud()) return
 
@@ -1197,8 +1222,7 @@ class Annotator {
 	 */
 	private loadAnnotations(fileName: string): Promise<void> {
 		log.info('Loading annotations from ' + fileName)
-		if (!this.uiState.isAnnotationsVisible)
-			this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		this.setLayerVisibility([Layer.ANNOTATIONS])
 		return this.annotationManager.loadAnnotationsFromFile(fileName)
 			.then(focalPoint => {
 				if (!this.tileManager.setOriginWithInterface(this.annotationManager))
@@ -1758,8 +1782,7 @@ class Annotator {
 	// When ImageManager loads an image, add it to the scene.
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void =
 		(imageScreen: ImageScreen) => {
-			if (!this.uiState.isImageScreensVisible)
-				this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+			this.setLayerVisibility([Layer.IMAGE_SCREENS])
 			this.scene.add(imageScreen)
 			this.render()
 		}
@@ -1772,8 +1795,7 @@ class Annotator {
 				// Accumulate rays while shift is pressed, otherwise clear old ones.
 				if (!this.uiState.isShiftKeyPressed)
 					this.clearLightboxImageRays()
-				if (!this.uiState.isImageScreensVisible)
-					this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+				this.setLayerVisibility([Layer.IMAGE_SCREENS])
 				this.lightboxImageRays.push(ray)
 				this.scene.add(ray)
 				this.render()
@@ -2034,7 +2056,7 @@ class Annotator {
 					break
 				}
 				case 'h': {
-					this.toggleModelVisibility()
+					this.toggleLayerVisibility()
 					break
 				}
 				case 'j': {
@@ -3110,82 +3132,116 @@ class Annotator {
 		this.render()
 	}
 
-	// In normal edit mode, toggles through the states defined in ModelVisibility:
-	// - all visible
-	// - super tile wire frames hidden; point cloud hidden; 2D images hidden
-	// - super tile wire frames hidden; annotations hidden
-	private toggleModelVisibility(): void {
-		let newState = this.uiState.modelVisibility + 1
-		if (!ModelVisibility[newState])
-			newState = ModelVisibility.ALL_VISIBLE
-		this.setModelVisibility(newState)
+	// Toggle the visibility of data by cycling through the groups defined in layerGroups.
+	private toggleLayerVisibility(): void {
+		this.uiState.layerGroupIndex++
+		if (!layerGroups[this.uiState.layerGroupIndex])
+			this.uiState.layerGroupIndex = defaultLayerGroupIndex
+		this.setLayerVisibility(layerGroups[this.uiState.layerGroupIndex], true)
 	}
 
-	private setModelVisibility(newState: ModelVisibility): void {
-		if (this.uiState.isLiveMode) return
-		if (this.uiState.modelVisibility === newState) return
+	// Make everything visible.
+	private setAllLayersVisible(): void {
+		this.uiState.layerGroupIndex = defaultLayerGroupIndex
+		this.setLayerVisibility(layerGroups[this.uiState.layerGroupIndex], false)
+	}
 
-		this.uiState.modelVisibility = newState
-		switch (this.uiState.modelVisibility) {
-			case ModelVisibility.HIDE_SUPER_TILES_AND_POINT_CLOUD_AND_IMAGES:
-				log.info('hiding point cloud')
-				this.hideSuperTiles()
-				this.hidePointCloud()
-				this.hideImageScreens()
-				this.showAnnotations()
-				break
-			case ModelVisibility.HIDE_SUPER_TILES_AND_ANNOTATIONS:
-				log.info('hiding annotations')
-				this.hideSuperTiles()
-				this.showPointCloud()
-				this.showImageScreens()
-				this.hideAnnotations()
-				break
-			default:
-				log.info('showing all objects')
-				this.showSuperTiles()
-				this.showPointCloud()
-				this.showAnnotations()
-				break
+	// Ensure that some layers of the model are visible. Optionally hide the other layers.
+	private setLayerVisibility(show: Layer[], hideOthers: boolean = false): void {
+		let updated = 0
+
+		show.forEach(layer => {
+			if (this.layerToggle.has(layer))
+				// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
+				this.layerToggle.get(layer).show() && updated++
+			else
+				log.error(`missing visibility toggle for ${layer}, ${Layer[layer]}`)
+		})
+
+		if (hideOthers) {
+			const hide = lodash.difference(allLayers, show)
+			hide.forEach(layer => {
+				if (this.layerToggle.has(layer))
+					// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
+					this.layerToggle.get(layer).hide() && updated++
+				else
+					log.error(`missing visibility toggle for ${layer}, ${Layer[layer]}`)
+			})
 		}
 
-		this.render()
+		if (updated)
+			this.render()
 	}
 
-	private hidePointCloud(): void {
+	private hidePointCloud = (): boolean => {
+		if (!this.uiState.isPointCloudVisible)
+			return false
 		this.decorations.forEach(d => d.visible = false)
 		this.tileManager.getPointClouds().forEach(pc => this.scene.remove(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.remove(this.pointCloudBoundingBox)
 		this.uiState.isPointCloudVisible = false
+		return true
 	}
 
-	private showPointCloud(): void {
+	private showPointCloud = (): boolean => {
+		if (this.uiState.isPointCloudVisible)
+			return false
 		this.decorations.forEach(d => d.visible = true)
 		this.tileManager.getPointClouds().forEach(pc => this.scene.add(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.add(this.pointCloudBoundingBox)
 		this.uiState.isPointCloudVisible = true
+		return true
 	}
 
-	private hideImageScreens(): void {
+	private hideSuperTiles = (): boolean => {
+		if (!this.uiState.isSuperTilesVisible)
+			return false
+		this.unHighlightSuperTileBox()
+		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = false)
+		this.uiState.isSuperTilesVisible = false
+		return true
+	}
+
+	private showSuperTiles = (): boolean => {
+		if (this.uiState.isSuperTilesVisible)
+			return false
+		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = true)
+		this.uiState.isSuperTilesVisible = true
+		return true
+	}
+
+	private hideImageScreens = (): boolean => {
+		if (!this.uiState.isImageScreensVisible)
+			return false
 		this.imageManager.hideImageScreens()
 		this.uiState.isImageScreensVisible = false
+		return true
 	}
 
-	private showImageScreens(): void {
+	private showImageScreens = (): boolean => {
+		if (this.uiState.isImageScreensVisible)
+			return false
 		this.imageManager.showImageScreens()
 		this.uiState.isImageScreensVisible = true
+		return true
 	}
 
-	private hideAnnotations(): void {
+	private hideAnnotations = (): boolean => {
+		if (!this.uiState.isAnnotationsVisible)
+			return false
 		this.annotationManager.hideAnnotations()
 		this.uiState.isAnnotationsVisible = false
+		return true
 	}
 
-	private showAnnotations(): void {
+	private showAnnotations = (): boolean => {
+		if (this.uiState.isAnnotationsVisible)
+			return false
 		this.annotationManager.showAnnotations()
 		this.uiState.isAnnotationsVisible = true
+		return true
 	}
 
 	private loadCarModel(): Promise<void> {
@@ -3262,7 +3318,7 @@ class Annotator {
 		log.info('Listening for messages...')
 		this.annotationManager.setLiveMode()
 		this.uiState.isLiveMode = true
-		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		this.setLayerVisibility([Layer.POINT_CLOUD, Layer.ANNOTATIONS], true)
 		if (this.gui)
 			this.gui.close()
 		if (this.axis)
@@ -3273,7 +3329,6 @@ class Annotator {
 			this.grid.visible = false
 		this.orbitControls.enabled = false
 		this.camera.matrixAutoUpdate = false
-		this.hideSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
@@ -3295,7 +3350,7 @@ class Annotator {
 		log.info('Stopped listening for messages...')
 		this.annotationManager.unsetLiveMode()
 		this.uiState.isLiveMode = false
-		this.setModelVisibility(ModelVisibility.ALL_VISIBLE)
+		this.setAllLayersVisible()
 		if (this.gui)
 			this.gui.open()
 		if (this.axis)
@@ -3307,7 +3362,6 @@ class Annotator {
 		this.orbitControls.enabled = true
 		this.camera.matrixAutoUpdate = true
 		this.carModel.visible = false
-		this.showSuperTiles()
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = true
 		this.settings.animationFrameIntervalMs = this.settings.defaultAnimationFrameIntervalMs
@@ -3400,21 +3454,18 @@ class Annotator {
 	/**
 	 * Switch between voxel and point cloud rendering.
 	 * TODO: We might be able to do this by setting the 'visible' parameter of the
-	 * corresponding 3D objects.
+	 * TODO:   corresponding 3D objects.
+	 * TODO: This may conflict with the states in toggleLayerVisibility(). We can
+	 * TODO:   fix it if we start using voxels again.
 	 */
 	private toggleVoxelsAndPointClouds(): void {
-		if (this.uiState.isPointCloudVisible) {
-			this.hidePointCloud()
-			if (this.tileManager.voxelsMeshGroup) {
-				this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
-				this.render()
-			}
-		} else {
-			this.showPointCloud()
-			if (this.tileManager.voxelsMeshGroup) {
-				this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
-				this.render()
-			}
+		if (!this.tileManager.voxelsMeshGroup) return
+		if (this.hidePointCloud()) {
+			this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
+			this.render()
+		} else if (this.showPointCloud()) {
+			this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
+			this.render()
 		}
 	}
 
