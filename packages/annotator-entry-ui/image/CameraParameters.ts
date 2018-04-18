@@ -49,11 +49,11 @@ export class AuroraCameraParameters implements CameraParameters {
 	private imageHeight: number
 	private translation: number[]
 	private rotation: number[]
-	private distanceScaleFactor: number
 
 	constructor(
 		utmInterface: UtmInterface,
 		tileId: string,
+		screenDistanceFromOrigin: number,
 		imageWidth: number,
 		imageHeight: number,
 		translation: number[],
@@ -65,13 +65,13 @@ export class AuroraCameraParameters implements CameraParameters {
 		this.imageHeight = imageHeight
 		this.translation = translation
 		this.rotation = rotation
-		// TODO: make this configurable
-		this.distanceScaleFactor = 15
+		if (screenDistanceFromOrigin <= 0.0)
+			throw Error('invalid screenDistanceFromOrigin: ' + screenDistanceFromOrigin)
 
 		// https://en.wikipedia.org/wiki/Camera_resectioning
 		// https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
 		const cameraOrigin = new THREE.Vector4(translation[0], translation[1], translation[2], 1)
-		const screenPosition = new THREE.Vector4(0, 0, this.distanceScaleFactor, 1)
+		const screenPosition = new THREE.Vector4(0, 0, screenDistanceFromOrigin, 1)
 		const screenRotation = new THREE.Matrix4()
 		screenRotation.set(
 			rotation[0], rotation[1], rotation[2], translation[0],

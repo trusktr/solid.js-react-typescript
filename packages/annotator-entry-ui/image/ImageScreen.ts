@@ -21,13 +21,6 @@ const inactiveMaterial = new THREE.MeshBasicMaterial({color: 'white', side: THRE
 // Image loader
 const textureLoader = new THREE.TextureLoader()
 
-// Image material parameters
-const imageMaterialParameters = {
-	side: THREE.FrontSide,
-	transparent: true,
-	opacity: 1.0
-}
-
 // Extend lines from the corners of the base to a central point, forming the top of a pyramid.
 // Assume four corners in the base.
 function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
@@ -54,24 +47,23 @@ function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
 // at the image which forms the base.
 export class ImageScreen extends THREE.Object3D {
 	imageMesh: THREE.Mesh
+	private imageLoaded: boolean
 	private path: string
 	private imageGeometry: THREE.Geometry
 	private visibleWireframe: boolean
 	private highlighted: boolean
 	private border: THREE.Line
-	private hasImage: boolean
 
 	constructor(path: string, width: number, height: number, visibleWireframe: boolean) {
 		super()
 
+		this.imageLoaded = false
 		this.path = path
 		this.visibleWireframe = visibleWireframe
 		this.highlighted = false
-		this.hasImage = false
 
-		const material = new THREE.MeshBasicMaterial(imageMaterialParameters)
 		this.imageGeometry = new THREE.PlaneGeometry(width, height)
-		this.imageMesh = new THREE.Mesh(this.imageGeometry, material)
+		this.imageMesh = new THREE.Mesh(this.imageGeometry, inactiveMaterial.clone())
 
 		this.add(this.imageMesh)
 		this.add(pyramid(this.imageGeometry.vertices, visibleWireframe))
@@ -121,27 +113,31 @@ export class ImageScreen extends THREE.Object3D {
 		this.visibleChildren().forEach(obj => obj.visible = false)
 	}
 
-	loadImage(): void {
-		if (!this.hasImage) {
-			const onLoad = (texture: THREE.Texture): void => {
-				texture.minFilter = THREE.LinearFilter
-				const activeMaterial = new THREE.MeshBasicMaterial({
-					side: THREE.FrontSide,
-					transparent: true,
-					opacity: 1.0
-				})
-				activeMaterial.map = texture
-				this.imageMesh.material = activeMaterial
-			}
+	loadImage(): Promise<boolean> {
+		if (this.imageLoaded)
+			return Promise.resolve(false)
+		else
+			return new Promise((resolve: (loaded: boolean) => void): void => {
+				const onLoad = (texture: THREE.Texture): void => {
+					texture.minFilter = THREE.LinearFilter
+					const activeMaterial = new THREE.MeshBasicMaterial({
+						side: THREE.FrontSide,
+						transparent: true,
+						opacity: 1.0
+					})
+					activeMaterial.map = texture
+					this.imageMesh.material = activeMaterial
+					this.imageLoaded = true
+					resolve(true)
+				}
 
-			textureLoader.load(this.path, onLoad, undefined, undefined)
-			this.hasImage = true
-		}
+				textureLoader.load(this.path, onLoad, undefined, undefined)
+			})
 	}
 
 	unloadImage(): void {
-		if (this.hasImage) {
-			this.hasImage = false
+		if (this.imageLoaded) {
+			this.imageLoaded = false
 			this.imageMesh.material = inactiveMaterial.clone()
 		}
 	}
