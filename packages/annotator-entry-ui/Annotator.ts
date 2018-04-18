@@ -1883,6 +1883,8 @@ class Annotator {
 		if (this.highlightedSuperTileBox) return
 		if (!this.uiState.isShiftKeyPressed) return
 
+		// Note: image loading takes time, so even if image is marked as "highlighted"
+		// it is required to continue to render until the image is actually loaded and rendered
 		if (imageScreenBox === this.highlightedImageScreenBox) {
 			this.render()
 			return
