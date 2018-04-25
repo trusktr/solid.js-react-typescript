@@ -49,6 +49,7 @@ import {CalibratedImage} from "./image/CalibratedImage"
 import {Connection} from "./annotations/Connection"
 import {TrafficDevice} from "./annotations/TrafficDevice"
 import createPromise from "../util/createPromise"
+import type { Resolve, Reject, PromiseReturn } from "../util/createPromise"
 const  watch = require('watch')
 
 declare global {
@@ -2403,7 +2404,7 @@ class Annotator {
 	}
 
 	private loadTrajectoryFromOpenDialog(): Promise<void> {
-		const { promise, resolve, reject } = createPromise<void, Error>()
+		const { promise, resolve, reject }: PromiseReturn<void, Error> = createPromise<void, Error>()
 
 		const options: Electron.OpenDialogOptions = {
 			message: 'Load Trajectory File',

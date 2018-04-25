@@ -3,14 +3,17 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+export
 interface Resolve<A> {
 	(val?: A | PromiseLike<A>): void
 }
 
+export
 interface Reject<B> {
 	(val: B): void
 }
 
+export
 type PromiseReturn<A, B> = {
 	promise: Promise<A>
 	resolve: Resolve<A>
