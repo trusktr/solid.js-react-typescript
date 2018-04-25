@@ -5,7 +5,7 @@
   "scripts": {
     "lint": "./node_modules/.bin/tslint \"packages/**/*.ts\" --force",
     "start": "./node_modules/.bin/electron bin/annotator-start.js",
-    "postinstall": "npm install grpc@1.7.3 --runtime=electron --target=1.7.9"
+    "postinstall": "npm install --no-save grpc@1.7.3 --runtime=electron --target=1.7.9"
   },
   "license": "UNLICENSED",
   "repository": {
