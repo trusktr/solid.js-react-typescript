@@ -250,9 +250,9 @@ class Annotator {
 	private stats: Stats
 	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
 	private transformControls: any // controller for translating an object within the scene
-	private hideTransformControlTimer: NodeJS.Timer
-	private serverStatusDisplayTimer: NodeJS.Timer
-	private locationServerStatusDisplayTimer: NodeJS.Timer
+	private hideTransformControlTimer: number
+	private serverStatusDisplayTimer: number
+	private locationServerStatusDisplayTimer: number
 	private annotationManager: AnnotationManager
 	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
 	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
