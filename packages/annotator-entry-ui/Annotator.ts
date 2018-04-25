@@ -49,7 +49,7 @@ import {CalibratedImage} from "./image/CalibratedImage"
 import {Connection} from "./annotations/Connection"
 import {TrafficDevice} from "./annotations/TrafficDevice"
 import createPromise from "../util/createPromise"
-import type { Resolve, Reject, PromiseReturn } from "../util/createPromise"
+import { PromiseReturn } from "../util/createPromise"
 const  watch = require('watch')
 
 declare global {
