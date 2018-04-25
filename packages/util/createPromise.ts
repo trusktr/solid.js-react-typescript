@@ -1,9 +1,9 @@
 interface Resolve<A> {
-	(val?:A | PromiseLike<A>): void
+	(val?: A | PromiseLike<A>): void
 }
 
 interface Reject<B> {
-	(val:B): void
+	(val: B): void
 }
 
 type PromiseReturn<A, B> = {
@@ -15,16 +15,16 @@ type PromiseReturn<A, B> = {
 export default
 function createPromise<A, B>(): PromiseReturn<A, B> {
 
-    let resolve: (val?:A | PromiseLike<A>) => void
-    let reject: (val:B) => void
+	let resolve: (val?: A | PromiseLike<A>) => void
+	let reject: (val: B) => void
 
-    const promise = new Promise<A>( ( res, rej ) => {
+	const promise = new Promise<A>( ( res, rej ): void => {
 
-        resolve = res
-        reject = rej
+		resolve = res
+		reject = rej
 
-    } )
+	} )
 
-    return { promise, resolve, reject }
+	return { promise, resolve, reject }
 
 }
