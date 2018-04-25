@@ -6,16 +6,36 @@ This is a web-based GUI to allow humans to visualize point cloud data sets and t
 - [Node.js (includes npm)](https://nodejs.org/en/download/)
 
 ### Private NPM repository
-Set up a [personal account](https://www.npmjs.com/signup).
+Set up a [personal NPM account](https://www.npmjs.com/signup).
 
-Get access to the @mapperai NPM repository, with your NPM username, from [Alonso](alonso@mapper.ai). Then store your credentials locally so that npm can find them:
+Authenticate your local NPM CLI with your npmjs.com credentials:
 
-    npm adduser --scope=@mapperai --always-auth
+```sh
+npm login
+```
 
-### Install application dependencies for testing on the host system
+Get access to the [`@mapperai` org on NPM](https://www.npmjs.com/org/mapperai) by giving your NPM username to [Alonso](alonso@mapper.ai).
+
+You can now successfully install project dependencies, including private dependencies from the `@mapperai` org.
+
+### Install OS dependencies
+
+#### macOS
+
     brew install zeromq
     brew install pkgconfig
-    npm install
+
+#### Debian/Ubuntu
+
+```sh
+sudo apt-get install libzmq-dev
+```
+
+### Install application dependencies (any OS)
+
+```sh
+npm install
+```
 
 ## Configure
 The application uses [nconf](https://www.npmjs.com/package/nconf) for configuration. It is set up to read configs from [yaml files](packages/config), from environment variables, or from the command line. The command line switch is formatted as `--CONFIG_NAME=CONFIG_VALUE`.
@@ -25,12 +45,14 @@ See [the docs](documentation/configuration.md) for details.
 ## Build
 
 ### Run the incremental compiler
-    ./etc/scripts/compile-watch.js 
+    ./etc/scripts/compile-watch.js
 
-### Run the [electron](https://www.npmjs.com/package/electron) debug GUI
-    npm run start
+### Run the [electron](https://www.npmjs.com/package/electron) app with debug GUI
 
-or
+#### Manually with `npm`
+    npm start
+
+#### With IntelliJ IDEA
 
  - Open the project in IntelliJ IDEA.
  - Under Run>Run…, select the Mapper Annotator configuration and run it.
@@ -42,7 +64,7 @@ If you pull down the latest version of the code base and things stop working, tr
     npm rebuild
     ./node_modules/.bin/electron-rebuild
     rm -rf dist
-    ./etc/scripts/compile-watch.js 
+    ./etc/scripts/compile-watch.js
 
 ### gRPC binary
 The `electron-rebuild` script installs a `grpc_node.node` binary, among other things. If you get an error like this at runtime:
