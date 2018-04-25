@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc. Part of the mapper-annotator project.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 interface Resolve<A> {
 	(val?: A | PromiseLike<A>): void
 }
