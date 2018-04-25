@@ -435,6 +435,10 @@ class Annotator {
 		}
 	}
 
+	destroy() {
+		this.gui.destroy()
+	}
+
 	exitApp(): void {
 		Electron.remote.getCurrentWindow().close()
 	}
@@ -516,6 +520,9 @@ class Annotator {
 		// Create stats widget to display frequency of rendering
 		if (config.get('startup.show_stats_module')) {
 			this.stats = new statsModule()
+			this.stats.dom.style.top = 'initial' // disable existing setting
+			this.stats.dom.style.bottom = '50px' // above Mapper logo
+			this.stats.dom.style.left = '13px'
 			root.append(this.stats.dom)
 		}
 
@@ -596,6 +603,21 @@ class Annotator {
 			closeOnTop: true,
 		} as GUIParams)
 		gui.domElement.className = 'threeJs_gui'
+
+		gui.domElement.style = `
+			width: 245px;
+			position: absolute;
+			top: 13px;
+			left: 13px;
+			background: rgba(0,0,0,0.5);
+			padding: 10px;
+		`
+
+		const closeButton = gui.domElement.querySelector('.close-button')
+		closeButton.style = `
+			padding-bottom: 5px;
+			cursor: pointer;
+		`
 
 		gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
 			this.renderer.setClearColor(new THREE.Color(value))

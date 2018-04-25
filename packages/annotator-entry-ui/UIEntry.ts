@@ -34,13 +34,18 @@ export function onLoad(): void {
 
 $(onLoad)
 
+function cleanup() {
+	annotator.destroy()
+	root.empty()
+}
+
 // This is injected by webpack, so it has no type definition:
 // https://webpack.js.org/api/hot-module-replacement/
 if (module.hasOwnProperty('hot')) {
 	// tslint:disable-next-line:no-any
 	const hotReplacement = (module as any).hot
 	if (hotReplacement) {
-		hotReplacement.dispose(() => root.empty())
+		hotReplacement.dispose(cleanup)
 		hotReplacement.accept()
 	}
 }
