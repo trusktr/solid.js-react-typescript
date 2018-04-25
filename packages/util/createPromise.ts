@@ -15,8 +15,11 @@ type PromiseReturn<A, B> = {
 export default
 function createPromise<A, B>(): PromiseReturn<A, B> {
 
-	let resolve: (val?: A | PromiseLike<A>) => void
-	let reject: (val: B) => void
+	// these lines throw a definite assignment error. It can be fixed is we
+	// update to TS ^2.7.1. See
+	// https://github.com/Microsoft/TypeScript/pull/20166
+	let resolve: Resolve<A>
+	let reject: Reject<B>
 
 	const promise = new Promise<A>( ( res, rej ): void => {
 
