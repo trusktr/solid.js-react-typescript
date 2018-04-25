@@ -48,6 +48,7 @@ import {ImageScreen} from "./image/ImageScreen"
 import {CalibratedImage} from "./image/CalibratedImage"
 import {Connection} from "./annotations/Connection"
 import {TrafficDevice} from "./annotations/TrafficDevice"
+import createPromise from "../util/createPromise"
 const  watch = require('watch')
 
 declare global {
@@ -264,6 +265,7 @@ class Annotator {
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
 	private flyThroughTrajectoryPoses: Models.PoseMessage[]
+	private flyThroughDefaultSettings: FlyThroughSettings
 	private flyThroughSettings: FlyThroughSettings
 	private liveModeSettings: LiveModeSettings
 	private locationServerStatusClient: LocationServerStatusClient
@@ -379,12 +381,14 @@ class Annotator {
 		)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
-		this.flyThroughSettings = {
+		this.flyThroughDefaultSettings = {
 			enabled: false,
 			startPoseIndex: 0,
 			endPoseIndex: 0,
 			currentPoseIndex: 0,
 		}
+		this.flyThroughSettings = Object.assign({}, this.flyThroughDefaultSettings)
+
 		if (config.get('fly_through.render.fps'))
 			log.warn('config option fly_through.render.fps has been renamed to fly_through.animation.fps')
 		this.liveModeSettings = {
@@ -711,9 +715,14 @@ class Annotator {
 					this.flyThroughTrajectoryPoses = this.flyThroughTrajectoryPoses.concat(poses)
 				})
 				if (this.flyThroughTrajectoryPoses.length) {
+
+					// reset settings
+					Object.assign(this.flyThroughSettings, this.flyThroughDefaultSettings)
+
 					this.flyThroughSettings.endPoseIndex = this.flyThroughTrajectoryPoses.length
 					this.flyThroughSettings.enabled = true
 					log.info(`loaded ${this.flyThroughSettings.endPoseIndex} trajectory poses`)
+
 				} else {
 					throw Error('failed to load trajectory poses')
 				}
@@ -2393,6 +2402,29 @@ class Annotator {
 		})
 	}
 
+	private loadTrajectoryFromOpenDialog(): Promise<void> {
+		const { promise, resolve, reject } = createPromise<void, Error>()
+
+		const options: Electron.OpenDialogOptions = {
+			message: 'Load Trajectory File',
+			properties: ['openFile'],
+			filters: [{name: 'md', extensions: ['md']}],
+		}
+
+		const handler = (paths: string[]): void => {
+			if (paths && paths.length)
+				this.loadFlyThroughTrajectories([ paths[0] ])
+					.then(() => resolve())
+					.catch(err => reject(err))
+			else
+				reject(Error('no trajectory path selected'))
+		}
+
+		dialog.showOpenDialog(options, handler)
+
+		return promise
+	}
+
 	private addFront(): void {
 		log.info("Adding connected annotation to the front")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
@@ -2715,6 +2747,15 @@ class Annotator {
 		if (toolsLoad)
 			toolsLoad.addEventListener('click', () => {
 				this.loadFromFile()
+					.catch(err => log.warn('loadFromFile failed: ' + err.message))
+			})
+		else
+			log.warn('missing element tools_load')
+
+		const toolsLoadTrajectory = document.getElementById('tools_load_trajectory')
+		if (toolsLoadTrajectory)
+			toolsLoadTrajectory.addEventListener('click', () => {
+				this.loadTrajectoryFromOpenDialog()
 					.catch(err => log.warn('loadFromFile failed: ' + err.message))
 			})
 		else
