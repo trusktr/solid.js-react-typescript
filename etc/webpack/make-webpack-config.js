@@ -215,11 +215,6 @@ export function makeConfig(name, dependencies, entry, configFn) {
 
 				// NAMED MODULES
 				new Webpack.NamedModulesPlugin(),
-
-				// ALWAYS BLUEBIRD
-				new Webpack.ProvidePlugin({
-					'Promise': 'bluebird'
-				})
 			],
 
 			/**
