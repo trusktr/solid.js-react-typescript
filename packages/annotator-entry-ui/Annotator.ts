@@ -52,12 +52,6 @@ import createPromise from "../util/createPromise"
 import { PromiseReturn } from "../util/createPromise"
 const  watch = require('watch')
 
-declare global {
-	namespace THREE {
-		const OBJLoader: any
-	}
-}
-
 const statsModule = require("stats.js")
 const dialog = Electron.remote.dialog
 const zmq = require('zmq')
@@ -418,11 +412,11 @@ class Annotator {
 			watch.createMonitor(
 				'/tmp',
 				{
-					filter: function (f): boolean {
+					filter: function (f: string): boolean {
 						return f === '/tmp/visualizer-rebuilt.flag'
 					}
 				},
-				function (monitor): void {
+				function (monitor: any): void {
 					monitor.on("created", function (): void {
 						log.info("Rebuilt flag file created, exiting app")
 						self.exitApp()
@@ -435,7 +429,7 @@ class Annotator {
 		}
 	}
 
-	destroy() {
+	destroy(): void {
 		if (this.gui) this.gui.destroy()
 	}
 

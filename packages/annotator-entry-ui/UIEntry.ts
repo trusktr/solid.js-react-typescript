@@ -23,9 +23,7 @@ declare global {
 	type Long = number
 }
 
-const root = $("#root")
-
-export function onLoad(): void {
+function onLoad(): void {
 	require("annotator-control-ui/UIControl")
 	log.info('loading ')
 	annotator.initScene()
@@ -34,18 +32,16 @@ export function onLoad(): void {
 
 $(onLoad)
 
-function cleanup() {
+function cleanup(): void {
 	annotator.destroy()
-	root.empty()
+	$("#root").empty()
 }
 
 // This is injected by webpack, so it has no type definition:
 // https://webpack.js.org/api/hot-module-replacement/
-if (module.hasOwnProperty('hot')) {
-	// tslint:disable-next-line:no-any
-	const hotReplacement = (module as any).hot
-	if (hotReplacement) {
-		hotReplacement.dispose(cleanup)
-		hotReplacement.accept()
-	}
+// tslint:disable-next-line:no-any
+const hotReplacement = (module as any).hot
+if (hotReplacement) {
+	hotReplacement.accept()
+	hotReplacement.dispose(cleanup)
 }
