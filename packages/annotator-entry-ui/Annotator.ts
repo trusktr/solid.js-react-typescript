@@ -436,7 +436,7 @@ class Annotator {
 	}
 
 	destroy() {
-		this.gui.destroy()
+		if (this.gui) this.gui.destroy()
 	}
 
 	exitApp(): void {
