@@ -27,7 +27,7 @@ function onLoad(): void {
 	require("annotator-control-ui/UIControl")
 	log.info('loading ')
 	annotator.initScene()
-		.then(() => annotator.animate())
+		.then(() => annotator.startAnimation())
 }
 
 $(onLoad)
