@@ -266,7 +266,6 @@ class Annotator {
 	private liveModeSettings: LiveModeSettings
 	private locationServerStatusClient: LocationServerStatusClient
 	private layerToggle: Map<Layer, Toggle>
-	private animationFrame: number
 	private gui: DatGui | null
 	private loop: any
 	private flyThroughLoop: any
@@ -275,7 +274,6 @@ class Annotator {
 	constructor() {
 		this.storage = new LocalStorage()
 
-		this.animationFrame = 0
 		this.shouldAnimate = false
 
 		let animationFps = config.get('startup.render.fps')
