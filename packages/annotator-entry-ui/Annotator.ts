@@ -3578,7 +3578,6 @@ class Annotator {
 			this.listen()
 			this.switchToMenu('#flyThroughMenu')
 		}
-		// this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
 	}
 
 	switchToMenu( menuId: string ): void {
