@@ -271,12 +271,14 @@ class Annotator {
 	private flyThroughLoop: any
 	private shouldAnimate: boolean
 	private updateOrbitConrols: boolean
+	private flyThroughPaused: boolean
 
 	constructor() {
 		this.storage = new LocalStorage()
 
 		this.shouldAnimate = false
 		this.updateOrbitConrols = false
+		this.flyThroughPaused = false
 
 		if (config.get('startup.animation.fps'))
 			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
@@ -826,6 +828,22 @@ class Annotator {
 				log.error(err.message)
 				dialog.showErrorBox('Fly-through Load Error', err.message)
 			})
+	}
+
+	pauseFlyThrough(): void {
+		this.flyThroughLoop.pause()
+	}
+
+	resumeFlyThrough(): void {
+		this.flyThroughLoop.start()
+	}
+
+	pauseEverything(): void {
+		this.loop.pause()
+	}
+
+	resumeEverything(): void {
+		this.loop.start()
 	}
 
 	/**
@@ -2938,6 +2956,22 @@ class Annotator {
 			log.info("Save car path to file.")
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
+
+		const flyThroughPauseBtn = document.querySelector('#pause')
+		flyThroughPauseBtn!.addEventListener('click', () => {
+			this.toggleFlyThroughPlay()
+		})
+	}
+
+	private toggleFlyThroughPlay(): void {
+		if ( this.flyThroughPaused ) {
+			this.resumeFlyThrough()
+			this.flyThroughPaused = false
+		}
+		else {
+			this.pauseFlyThrough()
+			this.flyThroughPaused = true
+		}
 	}
 
 	private static expandAccordion(domId: string): void {
@@ -3538,11 +3572,33 @@ class Annotator {
 	private toggleListen(): void {
 		let hideMenu
 		if (this.uiState.isLiveMode) {
-			hideMenu = this.stopListening()
+			this.stopListening()
+			this.switchToMenu('#annotationMenu')
 		} else {
-			hideMenu = this.listen()
+			this.listen()
+			this.switchToMenu('#flyThroughMenu')
 		}
-		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
+		// this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
+	}
+
+	switchToMenu( menuId: string ): void {
+
+		this.hideAllMenus()
+		this.show( menuId )
+
+	}
+
+	private hideAllMenus(): void {
+		const menus = Array.from( document.querySelectorAll('#menu .menu') ) as NodeListOf<HTMLElement>
+
+		for (const menu of menus ) {
+			menu.classList.add('hidden')
+		}
+	}
+
+	private show( selector: string ) {
+		const el = document.querySelector( selector )
+		el.classList.remove('hidden')
 	}
 
 	private listen(): boolean {
