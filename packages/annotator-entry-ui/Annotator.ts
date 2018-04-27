@@ -480,9 +480,13 @@ class Annotator {
 		// Add an axes helper to visualize the origin and orientation of the primary directions.
 		const axesHelperLength = parseFloat(config.get('annotator.axes_helper_length')) || 0
 		if (axesHelperLength > 0) {
-			this.grid = new THREE.GridHelper(200, 100)
-			this.grid.material.opacity = 0.25
-			this.grid.material.transparent = true
+			const gridSize = parseFloat(config.get('annotator.grid_size')) || 200
+			const gridUnit = parseFloat(config.get('annotator.grid_unit')) || 10
+			const gridDivisions = gridSize / gridUnit
+
+			this.grid = new THREE.GridHelper( gridSize, gridDivisions, new THREE.Color('white'))
+			this.grid!.material.opacity = 0.25
+			this.grid!.material.transparent = true
 			this.scene.add(this.grid)
 
 			this.axis = AxesHelper(axesHelperLength)
