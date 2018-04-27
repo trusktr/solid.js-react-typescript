@@ -604,20 +604,21 @@ class Annotator {
 		} as GUIParams)
 		gui.domElement.className = 'threeJs_gui'
 
-		gui.domElement.style = `
+		gui.domElement.setAttribute('style', `
 			width: 245px;
 			position: absolute;
 			top: 13px;
 			left: 13px;
 			background: rgba(0,0,0,0.5);
 			padding: 10px;
-		`
+		`)
 
 		const closeButton = gui.domElement.querySelector('.close-button')
-		closeButton.style = `
+
+		closeButton!.setAttribute('style', `
 			padding-bottom: 5px;
 			cursor: pointer;
-		`
+		`)
 
 		gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
 			this.renderer.setClearColor(new THREE.Color(value))
