@@ -9,7 +9,6 @@ export default (opts) => {
 					"es2016-node5",
 					"stage-0",
 					"react",
-					"async-to-bluebird"
 				],
 				plugins: [
 					"transform-es2015-classes",
@@ -19,7 +18,7 @@ export default (opts) => {
 				env: {
 					development: {
 						plugins: ["react-hot-loader/babel"]
-						
+
 					}
 				}
 			}
