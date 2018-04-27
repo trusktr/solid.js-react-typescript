@@ -389,7 +389,7 @@ class Annotator {
 			enabled: false,
 			startPoseIndex: 0,
 			endPoseIndex: 0,
-			currentPoseIndex: -1,
+			currentPoseIndex: 0,
 		}
 		this.flyThroughSettings = Object.assign({}, this.flyThroughDefaultSettings)
 
@@ -834,14 +834,14 @@ class Annotator {
 		if (!this.uiState.isLiveMode) return false
 		if (!this.flyThroughSettings.enabled) return false
 
-		this.flyThroughSettings.currentPoseIndex++
-
 		if (this.flyThroughSettings.currentPoseIndex >= this.flyThroughSettings.endPoseIndex)
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
 		const pose = this.flyThroughTrajectoryPoses[this.flyThroughSettings.currentPoseIndex]
 		this.statusWindow.setMessage(statusKey.flyThrough, `Pose ${this.flyThroughSettings.currentPoseIndex + 1} of ${this.flyThroughSettings.endPoseIndex}`)
 
 		this.updateCarWithPose(pose)
+
+		this.flyThroughSettings.currentPoseIndex++
 
 		return true
 	}
