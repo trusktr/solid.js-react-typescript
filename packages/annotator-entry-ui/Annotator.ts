@@ -250,9 +250,9 @@ class Annotator {
 	private stats: Stats
 	private orbitControls: THREE.OrbitControls // controller for moving the camera about the scene
 	private transformControls: any // controller for translating an object within the scene
-	private hideTransformControlTimer: NodeJS.Timer
-	private serverStatusDisplayTimer: NodeJS.Timer
-	private locationServerStatusDisplayTimer: NodeJS.Timer
+	private hideTransformControlTimer: number
+	private serverStatusDisplayTimer: number
+	private locationServerStatusDisplayTimer: number
 	private annotationManager: AnnotationManager
 	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
 	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
@@ -712,7 +712,7 @@ class Annotator {
 	 * Start THREE.js rendering loop.
 	 */
 	animate = (): void => {
-		setTimeout(() => {
+		window.setTimeout(() => {
 			requestAnimationFrame(this.animate)
 		}, this.settings.animationFrameIntervalMs)
 
@@ -764,7 +764,7 @@ class Annotator {
 		if (!this.uiState.isLiveMode) return
 		if (!this.flyThroughSettings.enabled) return
 
-		setTimeout(() => {
+		window.setTimeout(() => {
 			this.runFlythrough()
 		}, this.liveModeSettings.animationFrameIntervalMs)
 
@@ -2291,12 +2291,12 @@ class Annotator {
 	}
 
 	private hideTransform = (): void => {
-		this.hideTransformControlTimer = setTimeout(() => this.cleanTransformControls(), 1500)
+		this.hideTransformControlTimer = window.setTimeout(() => this.cleanTransformControls(), 1500)
 	}
 
 	private cancelHideTransform = (): void => {
 		if (this.hideTransformControlTimer) {
-			clearTimeout(this.hideTransformControlTimer)
+			window.clearTimeout(this.hideTransformControlTimer)
 		}
 	}
 
@@ -3674,11 +3674,11 @@ class Annotator {
 
 	private cancelHideTileServiceStatus = (): void => {
 		if (this.serverStatusDisplayTimer)
-			clearTimeout(this.serverStatusDisplayTimer)
+			window.clearTimeout(this.serverStatusDisplayTimer)
 	}
 
 	private hideTileServiceStatus = (): void => {
-		this.serverStatusDisplayTimer = setTimeout(() => {
+		this.serverStatusDisplayTimer = window.setTimeout(() => {
 			this.statusWindow.setMessage(statusKey.tileServer, '')
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
@@ -3718,11 +3718,11 @@ class Annotator {
 
 	private cancelHideLocationServerStatus = (): void => {
 		if (this.locationServerStatusDisplayTimer)
-			clearTimeout(this.locationServerStatusDisplayTimer)
+			window.clearTimeout(this.locationServerStatusDisplayTimer)
 	}
 
 	private hideLocationServerStatus = (): void => {
-		this.locationServerStatusDisplayTimer = setTimeout(() => {
+		this.locationServerStatusDisplayTimer = window.setTimeout(() => {
 			this.statusWindow.setMessage(statusKey.locationServer, '')
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
