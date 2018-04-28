@@ -832,10 +832,16 @@ class Annotator {
 
 	pauseFlyThrough(): void {
 		this.flyThroughLoop.pause()
+		const btn = $('#pause')
+		btn.find('span').text('Play')
+		btn.find('i').text('play_arrow')
 	}
 
 	resumeFlyThrough(): void {
 		this.flyThroughLoop.start()
+		const btn = $('#pause')
+		btn.find('span').text('Pause')
+		btn.find('i').text('pause')
 	}
 
 	pauseEverything(): void {
@@ -3570,7 +3576,6 @@ class Annotator {
 	 * Returns the updated state of live-location mode.
 	 */
 	private toggleListen(): void {
-		let hideMenu
 		if (this.uiState.isLiveMode) {
 			this.stopListening()
 			this.switchToMenu('#annotationMenu')
@@ -3588,16 +3593,15 @@ class Annotator {
 	}
 
 	private hideAllMenus(): void {
-		const menus = Array.from( document.querySelectorAll('#menu .menu') ) as NodeListOf<HTMLElement>
-
-		for (const menu of menus ) {
+		for ( const menu of Array.from( $('#menu .menu') ) ) {
 			menu.classList.add('hidden')
 		}
 	}
 
 	private show( selector: string ) {
-		const el = document.querySelector( selector )
-		el.classList.remove('hidden')
+		for ( const el of Array.from( $( selector ) ) ) {
+			el.classList.remove('hidden')
+		}
 	}
 
 	private listen(): boolean {
