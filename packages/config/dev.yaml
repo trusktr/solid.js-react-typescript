@@ -44,6 +44,8 @@ annotator.compass_rose_length: 50
 annotator.point_render_size: 1.0
 annotator.area_of_interest.enable: false
 annotator.area_of_interest.size: [50, 50, 50]
+annotator.grid_size: 1000
+annotator.grid_unit: 100
 
 # persistence of a data file
 output.annotations.json.path: ./data/annotations.json
