@@ -5,8 +5,7 @@ preferences.directory: mapper-annotator
 startup.electron.window.default.width: 800
 startup.electron.window.default.height: 600
 startup.camera_offset: [0, 400, 200]
-startup.animation.fps: 10
-startup.render.fps: 20
+startup.render.fps: 'device' # 'device' means maximum for the device. Specify a number for custom fps.
 startup.kiosk_mode: false
 startup.background_color: '#444444'
 startup.show_control_panel: true

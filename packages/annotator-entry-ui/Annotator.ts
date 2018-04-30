@@ -276,6 +276,9 @@ class Annotator {
 
 		this.shouldAnimate = false
 
+		if (config.get('startup.animation.fps'))
+			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
+
 		let animationFps = config.get('startup.render.fps')
 
 		this.settings = {
