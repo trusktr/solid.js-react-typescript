@@ -270,11 +270,13 @@ class Annotator {
 	private loop: any
 	private flyThroughLoop: any
 	private shouldAnimate: boolean
+	private updateOrbitConrols: boolean
 
 	constructor() {
 		this.storage = new LocalStorage()
 
 		this.shouldAnimate = false
+		this.updateOrbitConrols = false
 
 		if (config.get('startup.animation.fps'))
 			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
@@ -745,9 +747,6 @@ class Annotator {
 	startAnimation(): void {
 		this.shouldAnimate = true
 		this.startAoiUpdates()
-
-		// only needed if using enableDamping or autoRotation on OrbitControls
-		this.startOrbitControlsUpdates()
 
 		this.loop.addAnimationFn(() => {
 			if ( !this.shouldAnimate ) return false
@@ -2384,9 +2383,6 @@ class Annotator {
 
 		// Add listeners.
 
-		// Render the scene again if we translated, rotated or zoomed.
-		this.orbitControls.addEventListener('change', this.render)
-
 		// Update some UI if the camera panned -- that is it moved in relation to the model.
 		this.orbitControls.addEventListener('pan', this.displayCameraInfo)
 
@@ -2395,6 +2391,22 @@ class Annotator {
 
 		// After the scene transformation is over start the timer to hide the transform object.
 		this.orbitControls.addEventListener('end', this.delayHideTransform)
+
+		this.orbitControls.addEventListener('start', () => {
+			this.updateOrbitConrols = true
+
+			this.loop.addAnimationFn(() => {
+
+				// no need for this, all of OrbitControls' event handlers already call the update method
+				// this.orbitControls.update()
+
+				if ( !this.updateOrbitConrols ) return false
+			})
+		})
+
+		this.orbitControls.addEventListener('end', () => {
+			this.updateOrbitConrols = false
+		})
 	}
 
 	/**
