@@ -142,7 +142,7 @@ interface AnnotatorSettings {
 	lightOffset: THREE.Vector3
 	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
 	defaultAnimationFrameIntervalMs: number | false
-	animationFrameIntervalMs: number | false // how long we have to update the animation before the next frame fires
+	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
 	estimateGroundPlane: boolean
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	generateVoxelsOnPointLoad: boolean
@@ -290,8 +290,8 @@ class Annotator {
 			cameraOffset: new THREE.Vector3(0, 400, 200),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
 			orthoCameraHeight: 100, // enough to view ~1 city block of data
-			defaultAnimationFrameIntervalMs: animationFps === 'device' ? false : 1000 / (animationFps || 10),
-			animationFrameIntervalMs: 0,
+			defaultAnimationFrameIntervalMs: animationFps === 'device' ? false : 1 / (animationFps || 10),
+			animationFrameIntervalSecs: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 			tileGroundPlaneScale: 1.05,
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
@@ -319,7 +319,7 @@ class Annotator {
 		} else if (aoiSize) {
 			log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)
 		}
-		this.settings.animationFrameIntervalMs = this.settings.defaultAnimationFrameIntervalMs
+		this.settings.animationFrameIntervalSecs = this.settings.defaultAnimationFrameIntervalMs
 		this.uiState = {
 			layerGroupIndex: defaultLayerGroupIndex,
 			lockBoundaries: false,
@@ -607,6 +607,7 @@ class Annotator {
 		)
 
 		this.loop = new AnimationLoop
+		this.loop.interval = this.settings.animationFrameIntervalSecs
 
 		// starts tracking time, but CPU use is still at 0% at this moment
 		// because there are no animation functions added to the loop yet.
