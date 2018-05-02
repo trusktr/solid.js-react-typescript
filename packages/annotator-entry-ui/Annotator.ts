@@ -227,6 +227,7 @@ class Annotator {
 	private perspectiveCamera: THREE.PerspectiveCamera
 	private orthographicCamera: THREE.OrthographicCamera
 	private camera: THREE.Camera
+	private flyThroughFakeCamera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
@@ -243,8 +244,8 @@ class Annotator {
 	private compassRose: THREE.Object3D | null // indicates the direction of North
 	private light: THREE.SpotLight
 	private stats: Stats
-	private annotatorOrbitControls: THREE.OrbitControls
-	private flyThroughOrbitControls: THREE.OrbitControls
+	private annotatorOrbitControls: any
+	private flyThroughOrbitControls: any
 	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: number
 	private serverStatusDisplayTimer: number
@@ -608,14 +609,10 @@ class Annotator {
 		this.loop = new AnimationLoop
 		this.loop.interval = this.settings.animationFrameIntervalSecs
 
-<<<<<<< HEAD
 		// Point the camera at some reasonable default location.
 		this.setStage(0, 0, 0)
 
-		// starts tracking time, but CPU use is still at 0% at this moment
-=======
 		// starts tracking time, but GPU use is still at 0% at this moment
->>>>>>> orbit camera around the car in flythrough mode
 		// because there are no animation functions added to the loop yet.
 		this.loop.start()
 
@@ -2418,14 +2415,7 @@ class Annotator {
 
 		this.annotatorOrbitControls.addEventListener('start', () => {
 			this.updateOrbitControls = true
-
-			this.loop.addAnimationFn(() => {
-
-				// no need for this, all of OrbitControls' event handlers already call the update method
-				// this.annotatorOrbitControls.update()
-
-				return this.updateOrbitControls
-			})
+			this.loop.addAnimationFn(() => this.updateOrbitConrols)
 		})
 
 		this.annotatorOrbitControls.addEventListener('end', () => {
