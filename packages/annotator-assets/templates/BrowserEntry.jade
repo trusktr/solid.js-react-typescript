@@ -5,218 +5,8 @@ html(lang="en")
 		meta(charset='utf-8')
 		meta(name="viewport" content="width=device-width, initial-scale=1")
 		link(rel="stylesheet" href='https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css')
-		style.
-			body {
-				overflow-x: hidden;
-				overflow-y: hidden;
-			}
-			html, body {
-				height: 100%;
-				margin: 0;
-				border: 0;
-				padding: 0;
-				width: 100%;
-				background-color: white;
-				font-family: Verdana, Geneva, sans-serif;
-			}
-			#threeJs_gui {
-				position: absolute;
-				top: 100%;
-				left: 100%;
-			}
-			#root {
-				height: 100%;
-				border: 0;
-				padding: 0;
-				width: auto;
-			}
-			#logo {
-				position: fixed;
-				z-index: 2;
-				bottom: 0;
-				left: 0;
-				background-color: transparent;
-				padding-bottom: 0px;
-				padding-left: 12px;
-			}
-			#status_window {
-				position: fixed;
-				z-index: 3;
-				bottom: 0;
-				right: 0;
-				background-color: rgba(255, 255, 255, 0.5);
-				padding: 5px;
-			}
-			.statusOk {
-				color: #00aa00;
-			}
-			.statusWarning {
-				color: #ffd260;
-			}
-			.statusError{
-				color: #aa0000;
-			}
-			#menu {
-				height: 100%;
-				width: 250px;
-				position: fixed;
-				z-index: 1;
-				top: 50px;
-				right: 0;
-				background-color: transparent;
-				overflow-x: hidden;
-				padding-top: 0;
-				padding-right: 5px;
-				pointer-events: none;
-			}
-			#menu * {
-				pointer-events: auto;
-			}
-			#menu_control {
-				height: 50px;
-				width: 150px;
-				position: fixed;
-				z-index: 1;
-				top: 0;
-				right: 0;
-				background-color: transparent;
-				padding-right: 5px;
-				text-align: right;
-				visibility: hidden;
-			}
-			.menu_btn {
-				height: 40px;
-				width: 40px;
-				font-size: x-large;
-				background-color: transparent;
-				border: none;
-			}
-			button.menu_btn:hover {
-				font-size: xx-large;
-				background-color: transparent;
-			}
-			button.menu_btn:active {
-				font-size: xx-large;
-			}
-			.fieldset_content_style {
-				margin-top: 2px;
-				width: 100%;
-				height: 100%;
-				text-align: center;
-			}
-			.div_buttons_group {
-				margin-top: 2px;
-				text-align: center;
-			}
-			.div_properties {
-				margin-top: 2px;
-				text-align: center;
-			}
-			.div_glue {
-				margin-top: 2px;
-				text-align: left;
-				font-size: x-small;
-			}
-			.div_help {
-				margin-top: 0;
-				-webkit-margin-after: 0;
-				text-align: left;
-				font-size: x-small;
-			}
-			.button_inline {
-				width: 90px;
-				text-align: center;
-				margin: 0;
-				font-size: x-small;
-				cursor: pointer;
-				background-color: white;
-				color: #4CAF50;
-				border: 2px solid #4CAF50;
-				border-radius: 12px;
-			}
-			button.button_inline:disabled {
-				color: #999999;
-				border: 2px solid #999999;
-			}
-			button.button_inline:hover {
-				background-color: white;
-			}
-			button {
-				width: 30px;
-				text-decoration: none;
-				outline: none;
-				color: #fff;
-				background-color: #4CAF50;
-				border: none;
-				border-radius: 15px;
-			}
-			.ui-btn {
-				font-size: 12px;
-			}
-			button:hover {
-				background-color: #3e8e41
-			}
-			button:active {
-				background-color: #3e8e41;
-				transform: translateY(4px);
-			}
-			.label_style {
-				width: 60%;
-				text-align: left;
-				border: 0;
-				padding: 0;
-				margin: 0;
-				background-color: transparent;
-				float: left;
-				font-size: x-small;
-			}
-			.select_style {
-				width: 40%;
-				text-align: left;
-				padding: 0;
-				margin: 0;
-				float: left;
-				font-size: x-small;
-			}
-			.accordion {
-				outline: none;
-				border-radius: 10px;
-				margin-bottom: 2px;
-				background-color: #f4511e;
-				border: none;
-				color: #FFFFFF;
-				text-align: left;
-				font-size: 15px;
-				padding: 0;
-				width: auto;
-				cursor: pointer;
-			}
-			.dropdown_head {
-				margin: 3px;
-				padding: 2px;
-				font-size: 12px;
-			}
-			.dropdown_head:after {
-				content: '\02795'; /* Unicode character for "plus" sign (+) */
-				font-size: 10px;
-				padding-right: 5px;
-				padding-top: 2px;
-				float: right;
-			}
-			.dropdown_head:active:after {
-				content: '-';
-			}
-			.dropdown_body {
-				height: auto;
-				padding: 5px;
-				border-radius: 5px;
-				-webkit-padding-after: 10px;
-				background-color: antiquewhite;
-				color: black;
-				display: none;
-				overflow: auto;
-			}
-
+		link(rel="stylesheet" href='https://unpkg.com/@material/button@0.35.0/dist/mdc.button.min.css')
+		link(rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons")
 		meta(name="viewport",content="width=device-width, initial-scale=1")
 		title="Mapper Visualizer"
 
@@ -234,100 +24,105 @@ html(lang="en")
 			button#live_location_control_btn.menu_btn &#x2388;
 			button#menu_control_btn.menu_btn &#9776;
 		#menu
-			#tools.div_buttons_group
-				button#tools_add_lane.ui-btn.ui-icon-plus.ui-btn-icon-left New Lane
-				button#tools_add_traffic_device.ui-btn.ui-icon-plus.ui-btn-icon-left New Traffic Device
-				button#tools_delete.ui-btn.ui-icon-minus.ui-btn-icon-left Delete Annotation
-				button#tools_load.ui-btn.ui-icon-grid.ui-btn-icon-left Load Tiles
-				button#tools_load_trajectory.ui-btn.ui-icon-grid.ui-btn-icon-left Load Trajectory
-				button#tools_load_images.ui-btn.ui-icon-camera.ui-btn-icon-left Load Images
-				button#tools_load_annotation.ui-btn.ui-icon-edit.ui-btn-icon-left Load Annotation
-				button#tools_save.ui-btn.ui-icon-check.ui-btn-icon-left Save Annotation
-				button#tools_export_kml.ui-btn.ui-icon-location.ui-btn-icon-left Export KML
-			#menu_boundary.accordion
-				h3#exp_head_1.dropdown_head Boundary Properties
-				#exp_body_1.dropdown_body
-					#boundary_prop.fieldset_content_style
-			#menu_lane.accordion
-				h3#exp_head_2.dropdown_head Lane Properties
-				#exp_body_2.dropdown_body
-					#lane_prop.fieldset_content_style
-						#lane_prop_1.div_properties
-						#lane_prop_2.div_glue Add Neighbor:
-						#lane_prop_3.div_buttons_group
-							button#lp_add_forward &uarr;
-						#lane_prop_4.div_buttons_group
-							button#lp_add_left_opposite &darr;
-							button#lp_add_left_same &uarr;
-							button#lp_current(disabled) C
-							button#lp_add_right_same &uarr;
-							button#lp_add_right_opposite &darr;
-			#menu_connection.accordion
-				h3#exp_head_3.dropdown_head Connection Properties
-				#exp_body_3.dropdown_body
-					#connection_prop.fieldset_content_style
-			#menu_traffic_device.accordion
-				h3#exp_head_4.dropdown_head Traffic Device Properties
-				#exp_body_4.dropdown_body
-					#traffic_device_prop_1.fieldset_content_style
-					#traffic_device_prop_2.fieldset_content_style
-			#menu_territory.accordion
-				h3#menu_head_territory.dropdown_head Territory Properties
-				#menu_body_territory.dropdown_body
-					#property_1_territory.fieldset_content_style
-						text.label_style Label
-						input#input_label_territory
-			#menu_trajectory.accordion
-				h3#exp_head_5.dropdown_head Trajectory
-				#exp_body_5.dropdown_body
-					#trajectory_1.fieldset_content_style
-						text#tr_add_text.label_style Add to trajectory
-						button#tr_add.button_inline Add
-					#trajectory_2.fieldset_content_style
-						text#tr_show_text.label_style Show trajectory
-						button#tr_show.button_inline Show
-					#trajectory_3.fieldset_content_style
-						button#save_path.button_inline Save To File
-			#menu_help.accordion
-				h3#exp_head_6.dropdown_head Help
-				#exp_body_6.dropdown_body
-					p.div_help.
-						<strong>Point cloud</strong><br>
-						C - Center the camera on the tiles<br>
-						R - Reset tilt and compass<br>
-						V - Toggle perspective/orthographic view<br>
-						h - Hide super tiles/point cloud/annotations<br>
-						Shift-click - load points in a super tile; or load an image file<br>
-						U - Unload the point cloud<br>
-						L - Load all super tiles in point cloud<br>
+			#annotationMenu.menu
+				#tools.div_buttons_group
+					button#tools_add_lane.ui-btn.ui-icon-plus.ui-btn-icon-left New Lane
+					button#tools_add_traffic_device.ui-btn.ui-icon-plus.ui-btn-icon-left New Traffic Device
+					button#tools_delete.ui-btn.ui-icon-minus.ui-btn-icon-left Delete Annotation
+					button#tools_load.ui-btn.ui-icon-grid.ui-btn-icon-left Load Tiles
+					button#tools_load_trajectory.ui-btn.ui-icon-grid.ui-btn-icon-left Load Trajectory
+					button#tools_load_images.ui-btn.ui-icon-camera.ui-btn-icon-left Load Images
+					button#tools_load_annotation.ui-btn.ui-icon-edit.ui-btn-icon-left Load Annotation
+					button#tools_save.ui-btn.ui-icon-check.ui-btn-icon-left Save Annotation
+					button#tools_export_kml.ui-btn.ui-icon-location.ui-btn-icon-left Export KML
+				#menu_boundary.accordion
+					h3#exp_head_1.dropdown_head Boundary Properties
+					#exp_body_1.dropdown_body
+						#boundary_prop.fieldset_content_style
+				#menu_lane.accordion
+					h3#exp_head_2.dropdown_head Lane Properties
+					#exp_body_2.dropdown_body
+						#lane_prop.fieldset_content_style
+							#lane_prop_1.div_properties
+							#lane_prop_2.div_glue Add Neighbor:
+							#lane_prop_3.div_buttons_group
+								button#lp_add_forward &uarr;
+							#lane_prop_4.div_buttons_group
+								button#lp_add_left_opposite &darr;
+								button#lp_add_left_same &uarr;
+								button#lp_current(disabled) C
+								button#lp_add_right_same &uarr;
+								button#lp_add_right_opposite &darr;
+				#menu_connection.accordion
+					h3#exp_head_3.dropdown_head Connection Properties
+					#exp_body_3.dropdown_body
+						#connection_prop.fieldset_content_style
+				#menu_traffic_device.accordion
+					h3#exp_head_4.dropdown_head Traffic Device Properties
+					#exp_body_4.dropdown_body
+						#traffic_device_prop_1.fieldset_content_style
+						#traffic_device_prop_2.fieldset_content_style
+				#menu_territory.accordion
+					h3#menu_head_territory.dropdown_head Territory Properties
+					#menu_body_territory.dropdown_body
+						#property_1_territory.fieldset_content_style
+							text.label_style Label
+							input#input_label_territory
+				#menu_trajectory.accordion
+					h3#exp_head_5.dropdown_head Trajectory
+					#exp_body_5.dropdown_body
+						#trajectory_1.fieldset_content_style
+							text#tr_add_text.label_style Add to trajectory
+							button#tr_add.button_inline Add
+						#trajectory_2.fieldset_content_style
+							text#tr_show_text.label_style Show trajectory
+							button#tr_show.button_inline Show
+						#trajectory_3.fieldset_content_style
+							button#save_path.button_inline Save To File
+				#menu_help.accordion
+					h3#exp_head_6.dropdown_head Help
+					#exp_body_6.dropdown_body
+						p.div_help.
+							<strong>Point cloud</strong><br>
+							C - Center the camera on the tiles<br>
+							R - Reset tilt and compass<br>
+							V - Toggle perspective/orthographic view<br>
+							h - Hide super tiles/point cloud/annotations<br>
+							Shift-click - load points in a super tile; or load an image file<br>
+							U - Unload the point cloud<br>
+							L - Load all super tiles in point cloud<br>
 
-						<strong>Annotations</strong><br>
-						s - Save annotations JSON file as UTM<br>
-						S - Save annotations JSON file as Lat/Lon<br>
-						m - Save road network waypoints to KML file<br>
-						A - Delete all annotations<br>
-						X - Toggle translation/rotation editing of traffic devices<br>
-						Delete/Backspace - Delete active annotation<br>
-						c - Hold to add lane connection; click on the lane to connect<br>
-						j - Hold to join two annotations; click on the annotation to join<br>
-						f - Hold to add front lane neighbor; click on the front neighbor<br>
-						l - Hold to add left lane neighbor; click on the left neighbor<br>
-						r - Hold to add right lane neighbor; click on the right neighbor<br>
-						F - Flip/Reverse current lane direction<br>
-						q - Hold and click to add/remove a conflict or device to/from a connection<br>
+							<strong>Annotations</strong><br>
+							s - Save annotations JSON file as UTM<br>
+							S - Save annotations JSON file as Lat/Lon<br>
+							m - Save road network waypoints to KML file<br>
+							A - Delete all annotations<br>
+							X - Toggle translation/rotation editing of traffic devices<br>
+							Delete/Backspace - Delete active annotation<br>
+							c - Hold to add lane connection; click on the lane to connect<br>
+							j - Hold to join two annotations; click on the annotation to join<br>
+							f - Hold to add front lane neighbor; click on the front neighbor<br>
+							l - Hold to add left lane neighbor; click on the left neighbor<br>
+							r - Hold to add right lane neighbor; click on the right neighbor<br>
+							F - Flip/Reverse current lane direction<br>
+							q - Hold and click to add/remove a conflict or device to/from a connection<br>
 
-						<strong>Annotation Markers</strong><br>
-						n - Create new lane<br>
-						b - Create new boundary<br>
-						t - Create new traffic device<br>
-						T - Create new annotator territory<br>
-						a - Hold to add annotation markers<br>
-						d - Delete last marker<br>
-						1-9 - Hold when highlighting a marker to move its neighbors too<br>
+							<strong>Annotation Markers</strong><br>
+							n - Create new lane<br>
+							b - Create new boundary<br>
+							t - Create new traffic device<br>
+							T - Create new annotator territory<br>
+							a - Hold to add annotation markers<br>
+							d - Delete last marker<br>
+							1-9 - Hold when highlighting a marker to move its neighbors too<br>
 
-						<strong>Images</strong><br>
-						Shift-LeftClick - load an image into a new window<br>
-						RightClick - unload image from clicked screen<br>
+							<strong>Images</strong><br>
+							Shift-LeftClick - load an image into a new window<br>
+							RightClick - unload image from clicked screen<br>
 
-						<strong>Live Mode</strong><br>
-						O - Listen/stop listening for live location data<br>
+							<strong>Live Mode</strong><br>
+							O - Listen/stop listening for live location data<br>
+			#flyThroughMenu.menu.hidden
+				button#pause.mdc-button.mdc-button--raised
+					span Pause
+					i.material-icons.mdc-button__icon(aria-hidden="true") pause

@@ -13,6 +13,7 @@ require('!!css-loader!jquery-ui-dist/jquery-ui.css')
 
 import * as TypeLogger from 'typelogger'
 import {annotator} from 'annotator-entry-ui/Annotator'
+import './style.scss'
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -27,7 +28,7 @@ function onLoad(): void {
 	require("annotator-control-ui/UIControl")
 	log.info('loading ')
 	annotator.initScene()
-		.then(() => annotator.animate())
+		.then(() => annotator.startAnimation())
 }
 
 $(onLoad)

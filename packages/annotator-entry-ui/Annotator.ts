@@ -11,6 +11,7 @@ require('electron-unhandled')()
 const sprintf = require("sprintf-js").sprintf
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
+import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
 import LocalStorage from "./state/LocalStorage"
 import {GUI as DatGui, GUIParams} from 'dat.gui'
 import {TransformControls} from './controls/TransformControls'
@@ -52,7 +53,7 @@ import createPromise from "../util/createPromise"
 import { PromiseReturn } from "../util/createPromise"
 const  watch = require('watch')
 
-const statsModule = require("stats.js")
+const Stats = require("stats.js")
 const dialog = Electron.remote.dialog
 const zmq = require('zmq')
 const OBJLoader = require('three-obj-loader')
@@ -140,8 +141,8 @@ interface AnnotatorSettings {
 	cameraOffset: THREE.Vector3
 	lightOffset: THREE.Vector3
 	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
-	defaultAnimationFrameIntervalMs: number
-	animationFrameIntervalMs: number // how long we have to update the animation before the next frame fires
+	defaultAnimationFrameIntervalMs: number | false
+	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
 	estimateGroundPlane: boolean
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	generateVoxelsOnPointLoad: boolean
@@ -168,7 +169,7 @@ interface LiveModeSettings {
 	carModelMaterial: THREE.Material
 	cameraOffset: THREE.Vector3
 	cameraOffsetDelta: number
-	animationFrameIntervalMs: number
+	flyThroughIntervalSecs: number
 }
 
 interface UiState {
@@ -266,16 +267,31 @@ class Annotator {
 	private locationServerStatusClient: LocationServerStatusClient
 	private layerToggle: Map<Layer, Toggle>
 	private gui: DatGui | null
+	private loop: any
+	private flyThroughLoop: any
+	private shouldAnimate: boolean
+	private updateOrbitConrols: boolean
+	private flyThroughPaused: boolean
 
 	constructor() {
 		this.storage = new LocalStorage()
+
+		this.shouldAnimate = false
+		this.updateOrbitConrols = false
+		this.flyThroughPaused = false
+
+		if (config.get('startup.animation.fps'))
+			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
+
+		let animationFps = config.get('startup.render.fps')
+
 		this.settings = {
 			background: config.get('startup.background_color') || '#082839',
 			cameraOffset: new THREE.Vector3(0, 400, 200),
 			lightOffset: new THREE.Vector3(0, 1500, 200),
 			orthoCameraHeight: 100, // enough to view ~1 city block of data
-			defaultAnimationFrameIntervalMs: (1000 / parseInt(config.get('startup.animation.fps'), 10)) || 10,
-			animationFrameIntervalMs: 0,
+			defaultAnimationFrameIntervalMs: animationFps === 'device' ? false : 1 / (animationFps || 10),
+			animationFrameIntervalSecs: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 			tileGroundPlaneScale: 1.05,
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
@@ -303,7 +319,7 @@ class Annotator {
 		} else if (aoiSize) {
 			log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)
 		}
-		this.settings.animationFrameIntervalMs = this.settings.defaultAnimationFrameIntervalMs
+		this.settings.animationFrameIntervalSecs = this.settings.defaultAnimationFrameIntervalMs
 		this.uiState = {
 			layerGroupIndex: defaultLayerGroupIndex,
 			lockBoundaries: false,
@@ -386,6 +402,10 @@ class Annotator {
 
 		if (config.get('fly_through.render.fps'))
 			log.warn('config option fly_through.render.fps has been renamed to fly_through.animation.fps')
+
+		const flyThroughFps = config.get('fly_through.animation.fps')
+		const flyThroughInterval = flyThroughFps === 'device' ? 0 : 1 / (flyThroughFps || 10)
+
 		this.liveModeSettings = {
 			carModelMaterial: new THREE.MeshPhongMaterial({
 				color: 0x002233,
@@ -394,7 +414,7 @@ class Annotator {
 			}),
 			cameraOffset: new THREE.Vector3(30, 10, 0),
 			cameraOffsetDelta: 1,
-			animationFrameIntervalMs: (1000 / parseFloat(config.get('fly_through.animation.fps'))) || 10
+			flyThroughIntervalSecs: flyThroughInterval,
 		}
 
 		this.layerToggle = Map([
@@ -431,6 +451,7 @@ class Annotator {
 
 	destroy(): void {
 		if (this.gui) this.gui.destroy()
+		this.stopAnimation()
 	}
 
 	exitApp(): void {
@@ -517,7 +538,7 @@ class Annotator {
 
 		// Create stats widget to display frequency of rendering
 		if (config.get('startup.show_stats_module')) {
-			this.stats = new statsModule()
+			this.stats = new Stats()
 			this.stats.dom.style.top = 'initial' // disable existing setting
 			this.stats.dom.style.bottom = '50px' // above Mapper logo
 			this.stats.dom.style.left = '13px'
@@ -584,6 +605,25 @@ class Annotator {
 				? MenuVisibility.SHOW
 				: MenuVisibility.HIDE
 		)
+
+		this.loop = new AnimationLoop
+		this.loop.interval = this.settings.animationFrameIntervalSecs
+
+		// starts tracking time, but CPU use is still at 0% at this moment
+		// because there are no animation functions added to the loop yet.
+		this.loop.start()
+
+		this.loop.addBaseFn( () => {
+			if (this.stats) this.stats.update()
+			this.renderer.render(this.scene, this.camera)
+		})
+
+		this.flyThroughLoop = new ChildAnimationLoop
+		this.flyThroughLoop.interval = this.liveModeSettings.flyThroughIntervalSecs
+
+		this.loop.addChildLoop( this.flyThroughLoop )
+
+		this.flyThroughLoop.start()
 
 		return this.loadCarModel()
 			.then(() => this.loadUserData())
@@ -707,18 +747,54 @@ class Annotator {
 		return trajectoryResult
 	}
 
+	startAnimation(): void {
+		this.shouldAnimate = true
+		this.startAoiUpdates()
+
+		this.loop.addAnimationFn(() => {
+			if ( !this.shouldAnimate ) return false
+			this.animate()
+			return true
+		})
+	}
+
+	stopAnimation(): void {
+		this.shouldAnimate = false
+	}
+
+	private startAoiUpdates(): void {
+		this.loop.addAnimationFn(() => {
+			if ( !this.shouldAnimate ) return false
+			this.updatePointCloudAoi()
+			return true
+		})
+	}
+
+	private startOrbitControlsUpdates(): void {
+		this.loop.addAnimationFn(() => {
+			if ( !this.shouldAnimate ) return false
+			this.orbitControls.update()
+			return true
+		})
+	}
+
+	private startFlyThrough(): void {
+		this.flyThroughLoop.addAnimationFn(() => {
+			if ( !this.shouldAnimate ) return false
+			return this.runFlythrough()
+		})
+	}
+
 	/**
 	 * Start THREE.js rendering loop.
 	 */
-	animate = (): void => {
-		window.setTimeout(() => {
-			requestAnimationFrame(this.animate)
-		}, this.settings.animationFrameIntervalMs)
+	private animate(): void {
 
-		this.updatePointCloudAoi()
-		if (this.stats) this.stats.update()
-		this.orbitControls.update()
 		this.transformControls.update()
+
+		if ( this.uiState.isLiveMode && this.flyThroughSettings.enabled ) {
+			this.updateCameraPose()
+		}
 	}
 
 	private loadFlyThroughTrajectories(paths: string[]): Promise<void> {
@@ -755,17 +831,35 @@ class Annotator {
 			})
 	}
 
+	pauseFlyThrough(): void {
+		this.flyThroughLoop.pause()
+		const btn = $('#pause')
+		btn.find('span').text('Play')
+		btn.find('i').text('play_arrow')
+	}
+
+	resumeFlyThrough(): void {
+		this.flyThroughLoop.start()
+		const btn = $('#pause')
+		btn.find('span').text('Pause')
+		btn.find('i').text('pause')
+	}
+
+	pauseEverything(): void {
+		this.loop.pause()
+	}
+
+	resumeEverything(): void {
+		this.loop.start()
+	}
+
 	/**
 	 * 	Move the camera and the car model through poses loaded from a file on disk.
 	 *  See also initClient().
 	 */
-	private runFlythrough(): void {
-		if (!this.uiState.isLiveMode) return
-		if (!this.flyThroughSettings.enabled) return
-
-		window.setTimeout(() => {
-			this.runFlythrough()
-		}, this.liveModeSettings.animationFrameIntervalMs)
+	private runFlythrough(): boolean {
+		if (!this.uiState.isLiveMode) return false
+		if (!this.flyThroughSettings.enabled) return false
 
 		if (this.flyThroughSettings.currentPoseIndex >= this.flyThroughSettings.endPoseIndex)
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
@@ -775,16 +869,14 @@ class Annotator {
 		this.updateCarWithPose(pose)
 
 		this.flyThroughSettings.currentPoseIndex++
+
+		return true
 	}
 
-	/**
-	 * Render the THREE.js scene from the camera's position.
-	 */
-	private render: () => void =
-		lodash.throttle(
-			() => this.renderer.render(this.scene, this.camera),
-			(1000 / parseInt(config.get('startup.render.fps'), 10)) || 10
-		)
+	private render = (): void => {
+		// force a tick which causes renderer.render to be called
+		this.loop.forceTick()
+	}
 
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
@@ -2316,9 +2408,6 @@ class Annotator {
 
 		// Add listeners.
 
-		// Render the scene again if we translated, rotated or zoomed.
-		this.orbitControls.addEventListener('change', this.render)
-
 		// Update some UI if the camera panned -- that is it moved in relation to the model.
 		this.orbitControls.addEventListener('pan', this.displayCameraInfo)
 
@@ -2327,6 +2416,22 @@ class Annotator {
 
 		// After the scene transformation is over start the timer to hide the transform object.
 		this.orbitControls.addEventListener('end', this.delayHideTransform)
+
+		this.orbitControls.addEventListener('start', () => {
+			this.updateOrbitConrols = true
+
+			this.loop.addAnimationFn(() => {
+
+				// no need for this, all of OrbitControls' event handlers already call the update method
+				// this.orbitControls.update()
+
+				if ( !this.updateOrbitConrols ) return false
+			})
+		})
+
+		this.orbitControls.addEventListener('end', () => {
+			this.updateOrbitConrols = false
+		})
 	}
 
 	/**
@@ -2858,6 +2963,22 @@ class Annotator {
 			log.info("Save car path to file.")
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
+
+		const flyThroughPauseBtn = document.querySelector('#pause')
+		flyThroughPauseBtn!.addEventListener('click', () => {
+			this.toggleFlyThroughPlay()
+		})
+	}
+
+	private toggleFlyThroughPlay(): void {
+		if ( this.flyThroughPaused ) {
+			this.resumeFlyThrough()
+			this.flyThroughPaused = false
+		}
+		else {
+			this.pauseFlyThrough()
+			this.flyThroughPaused = true
+		}
 	}
 
 	private static expandAccordion(domId: string): void {
@@ -3456,13 +3577,32 @@ class Annotator {
 	 * Returns the updated state of live-location mode.
 	 */
 	private toggleListen(): void {
-		let hideMenu
 		if (this.uiState.isLiveMode) {
-			hideMenu = this.stopListening()
+			this.stopListening()
+			this.switchToMenu('#annotationMenu')
 		} else {
-			hideMenu = this.listen()
+			this.listen()
+			this.switchToMenu('#flyThroughMenu')
 		}
-		this.displayMenu(hideMenu ? MenuVisibility.HIDE : MenuVisibility.SHOW)
+	}
+
+	switchToMenu( menuId: string ): void {
+
+		this.hideAllMenus()
+		this.show( menuId )
+
+	}
+
+	private hideAllMenus(): void {
+		for ( const menu of Array.from( $('#menu .menu') ) ) {
+			menu.classList.add('hidden')
+		}
+	}
+
+	private show( selector: string ) {
+		for ( const el of Array.from( $( selector ) ) ) {
+			el.classList.remove('hidden')
+		}
 	}
 
 	private listen(): boolean {
@@ -3485,10 +3625,9 @@ class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
-		this.settings.animationFrameIntervalMs = this.liveModeSettings.animationFrameIntervalMs
 		if (this.flyThroughSettings.enabled) {
 			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
-			this.runFlythrough()
+			this.startFlyThrough()
 		} else {
 			this.locationServerStatusClient.connect()
 		}
@@ -3517,7 +3656,6 @@ class Annotator {
 		this.carModel.visible = false
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = true
-		this.settings.animationFrameIntervalMs = this.settings.defaultAnimationFrameIntervalMs
 		this.statusWindow.setMessage(statusKey.flyThrough, '')
 		this.updateAoiHeading(null)
 
@@ -3724,6 +3862,24 @@ class Annotator {
 		this.locationServerStatusDisplayTimer = window.setTimeout(() => {
 			this.statusWindow.setMessage(statusKey.locationServer, '')
 		}, this.settings.timeToDisplayHealthyStatusMs)
+	}
+
+	getObjectCount(): number {
+		let count = 0
+		this.scene.traverse(() => count++)
+		return count
+	}
+
+	getMaterialCount(): number {
+		const result = new Set()
+		this.scene.traverse(n => n instanceof THREE.Mesh && result.add(n.material))
+		return result.size
+	}
+
+	getGeometryCount(): number {
+		const result = new Set()
+		this.scene.traverse(n => n instanceof THREE.Mesh && result.add(n.geometry))
+		return result.size
 	}
 
 }

@@ -740,9 +740,10 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 		event.preventDefault()
 		event.stopPropagation()
 
+		scope.dispatchEvent(startEvent)
+
 		handleMouseWheel(event)
 
-		scope.dispatchEvent(startEvent) // not sure why these are here...
 		scope.dispatchEvent(endEvent)
 
 	}
@@ -751,7 +752,11 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		if (scope.enabled === false || scope.enableKeys === false) return
 
+		scope.dispatchEvent(startEvent)
+
 		handleKeyDown(event)
+
+		scope.dispatchEvent(endEvent)
 
 	}
 
