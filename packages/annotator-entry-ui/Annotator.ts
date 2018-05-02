@@ -2415,7 +2415,7 @@ class Annotator {
 
 		this.annotatorOrbitControls.addEventListener('start', () => {
 			this.updateOrbitControls = true
-			this.loop.addAnimationFn(() => this.updateOrbitConrols)
+			this.loop.addAnimationFn(() => this.updateOrbitControls)
 		})
 
 		this.annotatorOrbitControls.addEventListener('end', () => {
