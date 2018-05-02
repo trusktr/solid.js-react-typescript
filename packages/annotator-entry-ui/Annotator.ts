@@ -3804,6 +3804,24 @@ class Annotator {
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
 
+	getObjectCount(): number {
+		let count = 0
+		this.scene.traverse(() => count++)
+		return count
+	}
+
+	getMaterialCount(): number {
+		const result = new Set()
+		this.scene.traverse(n => n instanceof THREE.Mesh && result.add(n.material))
+		return result.size
+	}
+
+	getGeometryCount(): number {
+		const result = new Set()
+		this.scene.traverse(n => n instanceof THREE.Mesh && result.add(n.geometry))
+		return result.size
+	}
+
 }
 
 export const annotator = new Annotator()
