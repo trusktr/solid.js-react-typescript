@@ -270,14 +270,14 @@ class Annotator {
 	private loop: any
 	private flyThroughLoop: any
 	private shouldAnimate: boolean
-	private updateOrbitConrols: boolean
+	private updateOrbitControls: boolean
 	private flyThroughPaused: boolean
 
 	constructor() {
 		this.storage = new LocalStorage()
 
 		this.shouldAnimate = false
-		this.updateOrbitConrols = false
+		this.updateOrbitControls = false
 		this.flyThroughPaused = false
 
 		if (config.get('startup.animation.fps'))
@@ -559,9 +559,6 @@ class Annotator {
 		this.initOrbitControls()
 		this.initTransformControls()
 
-		// Move everything into position.
-		this.setStage(0, 0, 0)
-
 		// Add panel to change the settings
 		if (config.get('startup.show_color_picker'))
 			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
@@ -608,6 +605,9 @@ class Annotator {
 
 		this.loop = new AnimationLoop
 		this.loop.interval = this.settings.animationFrameIntervalSecs
+
+		// Point the camera at some reasonable default location.
+		this.setStage(0, 0, 0)
 
 		// starts tracking time, but CPU use is still at 0% at this moment
 		// because there are no animation functions added to the loop yet.
@@ -770,14 +770,6 @@ class Annotator {
 		})
 	}
 
-	private startOrbitControlsUpdates(): void {
-		this.loop.addAnimationFn(() => {
-			if ( !this.shouldAnimate ) return false
-			this.orbitControls.update()
-			return true
-		})
-	}
-
 	private startFlyThrough(): void {
 		this.flyThroughLoop.addAnimationFn(() => {
 			if ( !this.shouldAnimate ) return false
@@ -892,6 +884,8 @@ class Annotator {
 			this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
 			this.orbitControls.target.set(x, y, z)
+			this.orbitControls.update()
+			this.render()
 		}
 	}
 
@@ -935,6 +929,8 @@ class Annotator {
 		const center = this.tileManager.centerPoint()
 		if (center) {
 			this.orbitControls.target.set(center.x, center.y, center.z)
+			this.orbitControls.update()
+			this.render()
 			this.displayCameraInfo()
 		} else {
 			log.warn('point cloud has not been initialized')
@@ -949,6 +945,8 @@ class Annotator {
 		this.camera.position.x = this.orbitControls.target.x
 		this.camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
 		this.camera.position.z = this.orbitControls.target.z
+		this.orbitControls.update()
+		this.render()
 	}
 
 	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
@@ -2418,19 +2416,19 @@ class Annotator {
 		this.orbitControls.addEventListener('end', this.delayHideTransform)
 
 		this.orbitControls.addEventListener('start', () => {
-			this.updateOrbitConrols = true
+			this.updateOrbitControls = true
 
 			this.loop.addAnimationFn(() => {
 
 				// no need for this, all of OrbitControls' event handlers already call the update method
 				// this.orbitControls.update()
 
-				if ( !this.updateOrbitConrols ) return false
+				return this.updateOrbitControls
 			})
 		})
 
 		this.orbitControls.addEventListener('end', () => {
-			this.updateOrbitConrols = false
+			this.updateOrbitControls = false
 		})
 	}
 
