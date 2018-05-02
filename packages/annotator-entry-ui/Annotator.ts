@@ -270,14 +270,14 @@ class Annotator {
 	private loop: any
 	private flyThroughLoop: any
 	private shouldAnimate: boolean
-	private updateOrbitConrols: boolean
+	private updateOrbitControls: boolean
 	private flyThroughPaused: boolean
 
 	constructor() {
 		this.storage = new LocalStorage()
 
 		this.shouldAnimate = false
-		this.updateOrbitConrols = false
+		this.updateOrbitControls = false
 		this.flyThroughPaused = false
 
 		if (config.get('startup.animation.fps'))
@@ -2413,19 +2413,19 @@ class Annotator {
 		this.orbitControls.addEventListener('end', this.delayHideTransform)
 
 		this.orbitControls.addEventListener('start', () => {
-			this.updateOrbitConrols = true
+			this.updateOrbitControls = true
 
 			this.loop.addAnimationFn(() => {
 
 				// no need for this, all of OrbitControls' event handlers already call the update method
 				// this.orbitControls.update()
 
-				return this.updateOrbitConrols
+				return this.updateOrbitControls
 			})
 		})
 
 		this.orbitControls.addEventListener('end', () => {
-			this.updateOrbitConrols = false
+			this.updateOrbitControls = false
 		})
 	}
 
