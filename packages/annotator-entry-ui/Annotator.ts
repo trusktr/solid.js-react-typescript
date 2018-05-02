@@ -885,6 +885,7 @@ class Annotator {
 			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
 			this.orbitControls.target.set(x, y, z)
 			this.orbitControls.update()
+			this.render()
 		}
 	}
 
@@ -929,6 +930,7 @@ class Annotator {
 		if (center) {
 			this.orbitControls.target.set(center.x, center.y, center.z)
 			this.orbitControls.update()
+			this.render()
 			this.displayCameraInfo()
 		} else {
 			log.warn('point cloud has not been initialized')
@@ -944,6 +946,7 @@ class Annotator {
 		this.camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
 		this.camera.position.z = this.orbitControls.target.z
 		this.orbitControls.update()
+		this.render()
 	}
 
 	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
