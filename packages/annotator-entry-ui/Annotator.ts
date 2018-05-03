@@ -3727,8 +3727,6 @@ class Annotator {
 		this.updateAoiHeading(rotationThreeJs)
 		this.updateCurrentLocationStatusMessage(standardPosition)
 		this.updateCarPose(positionThreeJs, rotationThreeJs)
-
-		this.flyThroughOrbitControls.update()
 	}
 
 	private updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
