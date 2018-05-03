@@ -282,8 +282,7 @@ class Annotator {
 
 		if (config.get('startup.animation.fps'))
 			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
-
-		let animationFps = config.get('startup.render.fps')
+		const animationFps = config.get('startup.render.fps')
 
 		this.settings = {
 			background: config.get('startup.background_color') || '#082839',
@@ -592,16 +591,13 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed})
 
 		// Bind events
-		if (!this.uiState.isKioskMode) {
-			this.bind()
-			Annotator.deactivateAllAnnotationPropertiesMenus()
-		}
+		this.bind()
+		Annotator.deactivateAllAnnotationPropertiesMenus()
 
-		this.displayMenu(
-			config.get('startup.show_menu') && !this.uiState.isKioskMode
-				? MenuVisibility.SHOW
-				: MenuVisibility.HIDE
-		)
+		// Create the hamburger menu and display (open) it as requested.
+		const startupMenu = this.uiState.isKioskMode ? '#flyThroughMenu' : '#annotationMenu'
+		this.switchToMenu(startupMenu)
+		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
 
 		this.loop = new AnimationLoop
 		this.loop.interval = this.settings.animationFrameIntervalSecs
@@ -628,14 +624,14 @@ class Annotator {
 		return this.loadCarModel()
 			.then(() => this.loadUserData())
 			.then(() => {
-				if (this.uiState.isKioskMode) this.toggleListen()
+				if (this.uiState.isKioskMode && !this.uiState.isLiveMode) this.toggleListen()
 				// Initialize socket for use when "live mode" operation is on
 				this.initClient()
 			})
 	}
 
 	// Create a UI widget to adjust application settings on the fly.
-	createControlsGui(): DatGui {
+	private createControlsGui(): DatGui {
 		const gui = new DatGui({
 			hideable: false,
 			closeOnTop: true,
@@ -2818,12 +2814,8 @@ class Annotator {
 		const menuButton = document.getElementById('menu_control_btn')
 		if (menuButton)
 			menuButton.addEventListener('click', () => {
-				if (this.uiState.isLiveMode) {
-					log.info("Disable live location mode first to access the menu.")
-				} else {
-					log.info("Menu icon clicked. Close/Open menu bar.")
-					this.displayMenu(MenuVisibility.TOGGLE)
-				}
+				log.info("Menu icon clicked. Close/Open menu bar.")
+				this.displayMenu(MenuVisibility.TOGGLE)
 			})
 		else
 			log.warn('missing element menu_control_btn')
@@ -2831,7 +2823,7 @@ class Annotator {
 		const liveLocationControlButton = document.getElementById('live_location_control_btn')
 		if (liveLocationControlButton)
 			liveLocationControlButton.addEventListener('click', () => {
-				this.toggleListen()
+				if (!this.uiState.isKioskMode) this.toggleListen()
 			})
 		else
 			log.warn('missing element live_location_control_btn')
@@ -3597,7 +3589,7 @@ class Annotator {
 		}
 	}
 
-	private show( selector: string ) {
+	private show(selector: string): void {
 		for ( const el of Array.from( $( selector ) ) ) {
 			el.classList.remove('hidden')
 		}
