@@ -14,12 +14,7 @@ require('!!css-loader!jquery-ui-dist/jquery-ui.css')
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import App from './App'
-import * as TypeLogger from 'typelogger'
 import {annotator} from 'annotator-entry-ui/Annotator'
-
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
 
 declare global {
 	// required by mapper-models/protobufjs
