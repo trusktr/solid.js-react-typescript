@@ -3422,6 +3422,8 @@ class Annotator {
 		newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
 		this.annotatorCamera = newCamera
 
+		this.onWindowResize()
+
 		this.transformControls.setCamera(this.camera)
 		this.annotatorOrbitControls.setCamera(this.camera)
 		this.flyThroughOrbitControls.setCamera(this.camera)
