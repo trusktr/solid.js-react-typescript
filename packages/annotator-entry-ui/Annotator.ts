@@ -641,7 +641,7 @@ class Annotator {
 			})
 	}
 
-	private get camera() {
+	private get camera(): THREE.Camera {
 		if (this.uiState.isLiveMode) return this.flyThroughCamera
 		return this.annotatorCamera
 	}
@@ -2141,8 +2141,7 @@ class Annotator {
 		if ( this.camera instanceof THREE.PerspectiveCamera ) {
 			this.camera.aspect = width / height
 			this.camera.updateProjectionMatrix()
-		}
-		else {
+		} else {
 			this.setOrthographicCameraDimensions(width, height)
 		}
 
@@ -2155,11 +2154,11 @@ class Annotator {
 	private setOrthographicCameraDimensions(width: number, height: number): void {
 		const orthoWidth = this.settings.orthoCameraHeight * (width / height)
 		const orthoHeight = this.settings.orthoCameraHeight
-		this.camera.left = orthoWidth / -2
-		this.camera.right = orthoWidth / 2
-		this.camera.top = orthoHeight / 2
-		this.camera.bottom = orthoHeight / -2
-		this.camera.updateProjectionMatrix()
+		this.annotatorOrthoCam.left = orthoWidth / -2
+		this.annotatorOrthoCam.right = orthoWidth / 2
+		this.annotatorOrthoCam.top = orthoHeight / 2
+		this.annotatorOrthoCam.bottom = orthoHeight / -2
+		this.annotatorOrthoCam.updateProjectionMatrix()
 	}
 
 	private onFocus = (): void => {
@@ -3000,8 +2999,7 @@ class Annotator {
 		if ( this.flyThroughPaused ) {
 			this.resumeFlyThrough()
 			this.flyThroughPaused = false
-		}
-		else {
+		} else {
 			this.pauseFlyThrough()
 			this.flyThroughPaused = true
 		}
@@ -3625,7 +3623,7 @@ class Annotator {
 		}
 	}
 
-	private show( selector: string ) {
+	private show( selector: string ): void {
 		for ( const el of Array.from( $( selector ) ) ) {
 			el.classList.remove('hidden')
 		}
