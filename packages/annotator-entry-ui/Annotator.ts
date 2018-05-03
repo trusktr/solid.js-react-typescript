@@ -227,7 +227,6 @@ class Annotator {
 	private perspectiveCamera: THREE.PerspectiveCamera
 	private orthographicCamera: THREE.OrthographicCamera
 	private camera: THREE.Camera
-	private flyThroughFakeCamera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
@@ -2424,11 +2423,7 @@ class Annotator {
 	}
 
 	private initFlyThroughOrbitControls(): void {
-
-		this.flyThroughFakeCamera = new THREE.PerspectiveCamera(70, 16 / 9, 0.1, 10000)
-		this.flyThroughFakeCamera.position.set(300, 150, 0)
-
-		this.flyThroughOrbitControls = new THREE.OrbitControls(this.flyThroughFakeCamera, this.renderer.domElement)
+		this.flyThroughOrbitControls = new THREE.OrbitControls(this.camera, this.renderer.domElement)
 		this.flyThroughOrbitControls.enabled = false
 		this.flyThroughOrbitControls.minDistance = 10
 		this.flyThroughOrbitControls.maxDistance = 5000
@@ -2439,10 +2434,7 @@ class Annotator {
 
 		this.flyThroughOrbitControls.addEventListener('start', () => {
 			this.updateOrbitControls = true
-			this.loop.addAnimationFn(() => {
-				this.updateCamera()
-				return this.updateOrbitControls
-			})
+			this.loop.addAnimationFn(() => return this.updateOrbitControls)
 		})
 
 		this.flyThroughOrbitControls.addEventListener('end', () => {
@@ -3735,8 +3727,8 @@ class Annotator {
 		this.updateAoiHeading(rotationThreeJs)
 		this.updateCurrentLocationStatusMessage(standardPosition)
 		this.updateCarPose(positionThreeJs, rotationThreeJs)
-		this.updateCamera( true )
 
+		this.flyThroughOrbitControls.update()
 	}
 
 	private updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
@@ -3757,12 +3749,6 @@ class Annotator {
 		// Bring the model close to the ground (approx height of the sensors)
 		const p = this.carModel.getWorldPosition()
 		this.carModel.position.set(p.x, p.y - 2, p.z)
-	}
-
-	private updateCamera( updateControls: boolean = false ): void {
-		if ( updateControls ) this.flyThroughOrbitControls.update()
-		this.camera.position.copy( this.flyThroughFakeCamera.position )
-		this.camera.quaternion.copy( this.flyThroughFakeCamera.quaternion )
 	}
 
 	/**
