@@ -199,6 +199,7 @@ interface UiState {
 	// Live mode enables trajectory play-back with minimal user input. The trajectory comes from either a pre-recorded
 	// file (if this.flyThroughSettings.enabled is true) or messages on a live socket.
 	isLiveMode: boolean
+	isLiveModePaused: boolean // When paused the UI for live mode doesn't change, but it ignores new poses.
 	isKioskMode: boolean // hides window chrome and turns on live mode permanently, with even less user input
 	imageScreenOpacity: number
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
@@ -271,14 +272,12 @@ class Annotator {
 	private flyThroughLoop: any
 	private shouldAnimate: boolean
 	private updateOrbitControls: boolean
-	private flyThroughPaused: boolean
 
 	constructor() {
 		this.storage = new LocalStorage()
 
 		this.shouldAnimate = false
 		this.updateOrbitControls = false
-		this.flyThroughPaused = false
 
 		if (config.get('startup.animation.fps'))
 			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
@@ -344,6 +343,7 @@ class Annotator {
 			lastMousePosition: null,
 			numberKeyPressed: null,
 			isLiveMode: false,
+			isLiveModePaused: false,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
 			imageScreenOpacity: parseFloat(config.get('image_manager.image.opacity')) || 0.5,
 			lastPointCloudLoadedErrorModalMs: 0,
@@ -819,14 +819,14 @@ class Annotator {
 			})
 	}
 
-	pauseFlyThrough(): void {
+	private pauseFlyThrough(): void {
 		this.flyThroughLoop.pause()
 		const btn = $('#pause')
 		btn.find('span').text('Play')
 		btn.find('i').text('play_arrow')
 	}
 
-	resumeFlyThrough(): void {
+	private resumeFlyThrough(): void {
 		this.flyThroughLoop.start()
 		const btn = $('#pause')
 		btn.find('span').text('Pause')
@@ -2954,21 +2954,23 @@ class Annotator {
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
 
-		const flyThroughPauseBtn = document.querySelector('#pause')
-		flyThroughPauseBtn!.addEventListener('click', () => {
-			this.toggleFlyThroughPlay()
-		})
+		const liveModePauseBtn = document.querySelector('#pause')
+		if (liveModePauseBtn)
+			liveModePauseBtn.addEventListener('click', () => this.toggleLiveModePlay())
+		else
+			log.warn('missing element pause')
 	}
 
-	private toggleFlyThroughPlay(): void {
-		if ( this.flyThroughPaused ) {
-			this.resumeFlyThrough()
-			this.flyThroughPaused = false
+	private toggleLiveModePlay(): void {
+		if (this.flyThroughSettings.enabled) {
+			if (this.uiState.isLiveModePaused)
+				this.resumeFlyThrough()
+			else
+				this.pauseFlyThrough()
+		} else {
+			// Nothing more to do to pause Live Mode. this.initClient() is keyed on this.uiState.isLiveModePaused.
 		}
-		else {
-			this.pauseFlyThrough()
-			this.flyThroughPaused = true
-		}
+		this.uiState.isLiveModePaused = !this.uiState.isLiveModePaused
 	}
 
 	private static expandAccordion(domId: string): void {
@@ -3543,6 +3545,7 @@ class Annotator {
 
 		this.liveSubscribeSocket.on('message', (msg) => {
 			if (!this.uiState.isLiveMode) return
+			if (this.uiState.isLiveModePaused) return
 			if (this.flyThroughSettings.enabled) return
 
 			const state = Models.InertialStateMessage.decode(msg)
