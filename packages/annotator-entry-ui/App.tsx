@@ -54,14 +54,14 @@ class App extends React.Component<{}, {}> {
 								<div id="lane_prop_1" className="div_properties"></div>
 								<div id="lane_prop_2" className="div_glue"> Add Neighbor: </div>
 								<div id="lane_prop_3" className="div_buttons_group">
-									<button id="lp_add_forward"> &uarr; </button>
+									<button className="laneBtn" id="lp_add_forward"> &uarr; </button>
 								</div>
 								<div id="lane_prop_4" className="div_buttons_group">
-									<button id="lp_add_left_opposite"> &darr; </button>
-									<button id="lp_add_left_same"> &uarr; </button>
-									<button id="lp_current" disabled> C </button>
-									<button id="lp_add_right_same"> &uarr; </button>
-									<button id="lp_add_right_opposite"> &darr; </button>
+									<button className="laneBtn" id="lp_add_left_opposite"> &darr; </button>
+									<button className="laneBtn" id="lp_add_left_same"> &uarr; </button>
+									<button className="laneBtn" id="lp_current" disabled> C </button>
+									<button className="laneBtn" id="lp_add_right_same"> &uarr; </button>
+									<button className="laneBtn" id="lp_add_right_opposite"> &darr; </button>
 								</div>
 							</div>
 						</div>
