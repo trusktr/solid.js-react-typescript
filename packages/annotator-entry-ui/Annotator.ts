@@ -224,9 +224,10 @@ class Annotator {
 	private aoiState: AoiState
 	private statusWindow: StatusWindowController // a place to print status messages
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
-	private perspectiveCamera: THREE.PerspectiveCamera
-	private orthographicCamera: THREE.OrthographicCamera
-	private camera: THREE.Camera
+	private annotatorPerspectiveCam: THREE.PerspectiveCamera
+	private annotatorOrthoCam: THREE.OrthographicCamera
+	private annotatorCamera: THREE.Camera
+	private flyThroughCamera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
@@ -468,16 +469,20 @@ class Annotator {
 
 		const [width, height]: Array<number> = this.getContainerSize()
 
-		this.perspectiveCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		this.orthographicCamera = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 1000)
-		this.setOrthographicCameraDimensions(width, height)
+		this.annotatorPerspectiveCam = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
+		this.annotatorOrthoCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 1000)
 
 		// Create scene and camera
 		this.scene = new THREE.Scene()
 		if (this.storage.getItem(preferenceKey.cameraPreference, cameraTypeString.perspective) === cameraTypeString.orthographic)
-			this.camera = this.orthographicCamera
+			this.annotatorCamera = this.annotatorOrthoCam
 		else
-			this.camera = this.perspectiveCamera
+			this.annotatorCamera = this.annotatorPerspectiveCam
+
+		this.flyThroughCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
+		this.flyThroughCamera.position.set(800, 400, 0)
+
+		this.setOrthographicCameraDimensions(width, height)
 
 		// Add some lights
 		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
@@ -634,6 +639,11 @@ class Annotator {
 				// Initialize socket for use when "live mode" operation is on
 				this.initClient()
 			})
+	}
+
+	private get camera() {
+		if (this.uiState.isLiveMode) return this.flyThroughCamera
+		return this.annotatorCamera
 	}
 
 	// Create a UI widget to adjust application settings on the fly.
@@ -2128,10 +2138,13 @@ class Annotator {
 	private onWindowResize = (): void => {
 		const [width, height]: Array<number> = this.getContainerSize()
 
-		this.perspectiveCamera.aspect = width / height
-		this.perspectiveCamera.updateProjectionMatrix()
-
-		this.setOrthographicCameraDimensions(width, height)
+		if ( this.camera instanceof THREE.PerspectiveCamera ) {
+			this.camera.aspect = width / height
+			this.camera.updateProjectionMatrix()
+		}
+		else {
+			this.setOrthographicCameraDimensions(width, height)
+		}
 
 		this.renderer.setSize(width, height)
 		this.render()
@@ -2142,11 +2155,11 @@ class Annotator {
 	private setOrthographicCameraDimensions(width: number, height: number): void {
 		const orthoWidth = this.settings.orthoCameraHeight * (width / height)
 		const orthoHeight = this.settings.orthoCameraHeight
-		this.orthographicCamera.left = orthoWidth / -2
-		this.orthographicCamera.right = orthoWidth / 2
-		this.orthographicCamera.top = orthoHeight / 2
-		this.orthographicCamera.bottom = orthoHeight / -2
-		this.orthographicCamera.updateProjectionMatrix()
+		this.camera.left = orthoWidth / -2
+		this.camera.right = orthoWidth / 2
+		this.camera.top = orthoHeight / 2
+		this.camera.bottom = orthoHeight / -2
+		this.camera.updateProjectionMatrix()
 	}
 
 	private onFocus = (): void => {
@@ -2397,7 +2410,7 @@ class Annotator {
 	 * Create orbit controls which enable translation, rotation and zooming of the scene.
 	 */
 	private initAnnotatorOrbitControls(): void {
-		this.annotatorOrbitControls = new OrbitControls(this.camera, this.renderer.domElement)
+		this.annotatorOrbitControls = new OrbitControls(this.annotatorCamera, this.renderer.domElement)
 		this.annotatorOrbitControls.minDistance = -Infinity
 		this.annotatorOrbitControls.keyPanSpeed = 100
 
@@ -2423,7 +2436,7 @@ class Annotator {
 	}
 
 	private initFlyThroughOrbitControls(): void {
-		this.flyThroughOrbitControls = new THREE.OrbitControls(this.camera, this.renderer.domElement)
+		this.flyThroughOrbitControls = new THREE.OrbitControls(this.flyThroughCamera, this.renderer.domElement)
 		this.flyThroughOrbitControls.enabled = false
 		this.flyThroughOrbitControls.minDistance = 10
 		this.flyThroughOrbitControls.maxDistance = 5000
@@ -2434,7 +2447,7 @@ class Annotator {
 
 		this.flyThroughOrbitControls.addEventListener('start', () => {
 			this.updateOrbitControls = true
-			this.loop.addAnimationFn(() => return this.updateOrbitControls)
+			this.loop.addAnimationFn(() => this.updateOrbitControls)
 		})
 
 		this.flyThroughOrbitControls.addEventListener('end', () => {
@@ -3392,13 +3405,13 @@ class Annotator {
 		let oldCamera: THREE.Camera
 		let newCamera: THREE.Camera
 		let newType: string
-		if (this.camera === this.perspectiveCamera) {
-			oldCamera = this.perspectiveCamera
-			newCamera = this.orthographicCamera
+		if (this.camera === this.annotatorPerspectiveCam) {
+			oldCamera = this.annotatorPerspectiveCam
+			newCamera = this.annotatorOrthoCam
 			newType = cameraTypeString.orthographic
 		} else {
-			oldCamera = this.orthographicCamera
-			newCamera = this.perspectiveCamera
+			oldCamera = this.annotatorOrthoCam
+			newCamera = this.annotatorPerspectiveCam
 			newType = cameraTypeString.perspective
 		}
 
@@ -3407,7 +3420,7 @@ class Annotator {
 		// care of position and orientation, but not zoom. PerspectiveCamera and OrthographicCamera
 		// calculate zoom differently. It would be nice to convert one to the other here.
 		newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
-		this.camera = newCamera
+		this.annotatorCamera = newCamera
 
 		this.transformControls.setCamera(this.camera)
 		this.annotatorOrbitControls.setCamera(this.camera)
