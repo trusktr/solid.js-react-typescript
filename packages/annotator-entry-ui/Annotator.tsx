@@ -3904,8 +3904,4 @@ class Annotator {
 
 }
 
-// import * as React from 'react'
-// import * as ReactDOM from 'react-dom'
-// ReactDOM.render(<h1> Hello! </h1>, $('#root2')[0])
-
 export const annotator = new Annotator()
