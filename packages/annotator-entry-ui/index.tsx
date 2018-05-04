@@ -7,21 +7,14 @@ import * as $ from 'jquery'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import initUIControl from 'annotator-control-ui/UIControl'
 import App from './App'
-import {annotator} from 'annotator-entry-ui/Annotator'
-
-declare global {
-	// required by mapper-models/protobufjs
-	type Long = number
-}
 
 Object.assign(global, {
 	jQuery: $,
 	$: $
 })
 
-require('jquery-ui-dist/jquery-ui')
+import('jquery-ui-dist/jquery-ui')
 
 $(main)
 
@@ -34,14 +27,12 @@ if (hotReplacement) {
 	hotReplacement.dispose(cleanup)
 }
 
+const root = $('#root')[0]
+
 function main(): void {
-	ReactDOM.render( <App />, $('#root')[0] )
-	initUIControl()
-	annotator.initScene()
-		.then(() => annotator.startAnimation())
+	ReactDOM.render( <App />, root )
 }
 
 function cleanup(): void {
-	annotator.destroy()
-	$("#root").empty()
+	ReactDOM.unmountComponentAtNode( root )
 }
