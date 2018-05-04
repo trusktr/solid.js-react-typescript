@@ -36,7 +36,7 @@ class App extends React.Component<{}, {}> {
 
 	componentDidMount(): void {
 		initUIControl()
-		annotator.mount( this.sceneContainer )
+		annotator.mount( this.sceneContainer! )
 	}
 
 	componentWillUnmount(): void {

@@ -456,10 +456,10 @@ class Annotator {
 		}
 	}
 
-	async mount( root: HTMLElement ): void {
+	async mount( root: HTMLElement ): Promise<void> {
 		this.root = root
 		if ( !this.sceneInitialized ) await this.initScene()
-		root.append(this.renderer.domElement)
+		root.appendChild(this.renderer.domElement)
 		this.createControlsGui()
 		this.makeStats()
 		this.startAnimation()
@@ -648,7 +648,7 @@ class Annotator {
 		this.stats.dom.style.top = 'initial' // disable existing setting
 		this.stats.dom.style.bottom = '50px' // above Mapper logo
 		this.stats.dom.style.left = '13px'
-		this.root.append(this.stats.dom)
+		this.root.appendChild(this.stats.dom)
 
 	}
 
@@ -733,7 +733,7 @@ class Annotator {
 
 	private destroyControlsGui(): void {
 		if (!config.get('startup.show_control_panel')) return
-		this.gui.destroy()
+		this.gui!.destroy()
 	}
 
 	/**
