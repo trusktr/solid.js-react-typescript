@@ -3,6 +3,9 @@ import initUIControl from '@/annotator-control-ui/UIControl'
 import {annotator} from 'annotator-entry-ui/Annotator'
 import Menu from './components/Menu'
 import './style.scss'
+import Logger from '@/util/log'
+
+const log = Logger(__filename)
 
 export default
 class App extends React.Component<{}, {}> {
