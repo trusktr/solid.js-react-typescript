@@ -3,10 +3,10 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const config = require('../../config')
+import config from '@/config'
 import * as TypeLogger from 'typelogger'
+import * as zmq from 'zmq'
 import {Socket} from 'zmq'
-const zmq = require('zmq')
 import * as MapperProtos from "@mapperai/mapper-models"
 import Models = MapperProtos.mapper.models
 
@@ -51,22 +51,25 @@ export class LocationServerStatusClient {
 		var self = this
 		// For anything but "connect", we aren't getting status from the
 		// location server.
-		this.statusClient = zmq.socket('req')
-			.on("connect_delay", function() { self.handleMonitorEvent() })
-			.on("connect_retry", function() { self.handleMonitorEvent() })
-			.on("listen", function() { self.handleMonitorEvent() })
-			.on("bind_error", function() { self.handleMonitorEvent() })
-			.on("accept", function() { self.handleMonitorEvent() })
-			.on("accept_error", function() { self.handleMonitorEvent() })
-			.on("close", function() { self.handleMonitorEvent() })
-			.on("close_error", function() { self.handleMonitorEvent() })
-			.on("disconnect", function() { self.handleMonitorEvent() })
-			.on("monitor_error", function() { self.handleMonitorEvent() })
-			.monitor(this.statusCheckInterval, 0) // The second arg (zero) says to get all available events
-			.on("message", function(reply: Buffer) {
-				self.reqInFlight = false
-				self.parseStatus(reply)
-		}).connect(this.locationServerStatusAddress)
+		const sock = this.statusClient = zmq.socket('req')
+		sock.on("connect_delay", function() { self.handleMonitorEvent() })
+		sock.on("connect_retry", function() { self.handleMonitorEvent() })
+		sock.on("listen", function() { self.handleMonitorEvent() })
+		sock.on("bind_error", function() { self.handleMonitorEvent() })
+		sock.on("accept", function() { self.handleMonitorEvent() })
+		sock.on("accept_error", function() { self.handleMonitorEvent() })
+		sock.on("close", function() { self.handleMonitorEvent() })
+		sock.on("close_error", function() { self.handleMonitorEvent() })
+		sock.on("disconnect", function() { self.handleMonitorEvent() })
+		sock.on("monitor_error", function() { self.handleMonitorEvent() })
+		// typedef for .monitor() is incorrect
+		// tslint:disable-next-line:no-any
+		;(sock as any).monitor(this.statusCheckInterval, 0) // The second arg (zero) says to get all available events
+		sock.on("message", function(reply: Buffer) {
+			self.reqInFlight = false
+			self.parseStatus(reply)
+		})
+		sock.connect(this.locationServerStatusAddress)
 
 		this.pingServer()
 		this.periodicallyCheckServerStatus()

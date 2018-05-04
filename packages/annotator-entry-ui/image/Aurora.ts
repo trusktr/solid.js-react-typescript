@@ -7,8 +7,7 @@ import * as AsyncFile from "async-file"
 import * as sizeOf from 'image-size'
 import {AuroraCameraParameters} from "./CameraParameters"
 import {UtmInterface} from "../UtmInterface";
-
-const config = require('../../config')
+import config from '@/config'
 
 // Convenience functions for Aurora data
 

@@ -53,10 +53,8 @@ function tsAlias(tsFilename) {
 
 function makeAliases() {
 	return {
-		buildResources: Path.resolve(baseDir, 'build'),
-		libs: Path.resolve(baseDir, 'libs'),
-		styles: tsAlias('annotator-assets/styles'),
-		assets: tsAlias('annotator-assets')
+		assets: tsAlias('annotator-assets'),
+		'@': tsAlias(''),
 	}
 }
 

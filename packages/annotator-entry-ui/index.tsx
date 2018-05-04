@@ -3,16 +3,11 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const $ = require('jquery')
-Object.assign(global, {
-	jQuery: $,
-	$: $
-})
-require('jquery-ui-dist/jquery-ui')
-require('!!css-loader!jquery-ui-dist/jquery-ui.css')
-
+import * as $ from 'jquery'
+import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
+import initUIControl from 'annotator-control-ui/UIControl'
 import App from './App'
 import {annotator} from 'annotator-entry-ui/Annotator'
 
@@ -21,19 +16,14 @@ declare global {
 	type Long = number
 }
 
-function onLoad(): void {
-	ReactDOM.render( <App />, $('#root')[0] )
-	require("annotator-control-ui/UIControl")
-	annotator.initScene()
-		.then(() => annotator.startAnimation())
-}
+Object.assign(global, {
+	jQuery: $,
+	$: $
+})
 
-$(onLoad)
+require('jquery-ui-dist/jquery-ui')
 
-function cleanup(): void {
-	annotator.destroy()
-	$("#root").empty()
-}
+$(main)
 
 // This is injected by webpack, so it has no type definition:
 // https://webpack.js.org/api/hot-module-replacement/
@@ -42,4 +32,16 @@ const hotReplacement = (module as any).hot
 if (hotReplacement) {
 	hotReplacement.accept()
 	hotReplacement.dispose(cleanup)
+}
+
+function main(): void {
+	ReactDOM.render( <App />, $('#root')[0] )
+	initUIControl()
+	annotator.initScene()
+		.then(() => annotator.startAnimation())
+}
+
+function cleanup(): void {
+	annotator.destroy()
+	$("#root").empty()
 }

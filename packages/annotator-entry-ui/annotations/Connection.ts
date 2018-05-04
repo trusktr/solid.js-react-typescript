@@ -124,7 +124,7 @@ export class Connection extends Annotation {
 
 	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry,
-			                          ConnectionRenderingProperties.markerMaterial)
+			ConnectionRenderingProperties.markerMaterial)
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
@@ -305,7 +305,7 @@ export class Connection extends Annotation {
 			)
 
 			const marker = new THREE.Mesh(ConnectionRenderingProperties.directionGeometry,
-				                          ConnectionRenderingProperties.directionGeometryMaterial)
+				ConnectionRenderingProperties.directionGeometryMaterial)
 			marker.position.set(this.waypoints[i].x, this.waypoints[i].y, this.waypoints[i].z)
 			marker.rotateY(-angle)
 			this.renderingObject.add(marker)

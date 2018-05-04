@@ -5,8 +5,9 @@
   "scripts": {
     "lint": "./node_modules/.bin/tslint \"packages/**/*.ts\" --force",
     "start": "./node_modules/.bin/electron bin/annotator-start.js",
-    "build-watch": "./etc/scripts/compile-watch.js",
-    "dev": "npm run build-watch & npm start",
+    "build": "./etc/scripts/compile.js",
+    "watch": "./etc/scripts/compile-watch.js",
+    "dev": "npm run watch & npm start",
     "postinstall": "npm install --no-save grpc@1.7.3 --runtime=electron --target=1.7.9"
   },
   "license": "UNLICENSED",

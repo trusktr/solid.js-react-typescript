@@ -3,8 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const config = require('../config')
-const vsprintf = require("sprintf-js").vsprintf
+import config from '@/config'
+import {vsprintf} from 'sprintf-js'
 import * as Electron from 'electron'
 import * as lodash from 'lodash'
 import {isNullOrUndefined} from "util"

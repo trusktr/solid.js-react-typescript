@@ -1,12 +1,12 @@
 // Copyright 2017 Mapper Inc.
 // CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
 
-'use strict'
+import * as nconf from 'nconf'
+import * as yaml from 'nconf-yaml'
+import * as path from 'path'
+import * as fs from 'fs'
 
-const nconf = module.exports = require('nconf')
-nconf.formats.yaml = require('nconf-yaml')
-const path = require('path')
-const fs = require('fs')
+export default nconf
 
 const required = [
 	'tile_manager.tile_message_format',
@@ -42,8 +42,8 @@ nconf
 	// environment variables
 	.env(required)
 	// config files
-	.file('local_config', {file: localFile, format: nconf.formats.yaml})
-	.file('shared_config', {file: envFile, format: nconf.formats.yaml})
+	.file('local_config', {file: localFile, format: yaml})
+	.file('shared_config', {file: envFile, format: yaml})
 	.defaults({})
 
 required.forEach((key) => {
