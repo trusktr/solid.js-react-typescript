@@ -1,16 +1,15 @@
 import * as React from 'react'
-import * as ReactDOM from 'react-dom'
 import './style.scss'
 
 export default
 class App extends React.Component<{}, {}> {
 
-	render() {
+	render(): JSX.Element {
 		return <React.Fragment>
 
 			<div id="logo">
 				<img
-					src={__CWD + "/packages/annotator-assets/images/signature_with_arrow_white.png"}
+					src={process.cwd() + "/packages/annotator-assets/images/signature_with_arrow_white.png"}
 					height="30px"
 					width="auto"
 				/>
