@@ -36,7 +36,8 @@ class App extends React.Component<{}, {}> {
 
 	componentDidMount(): void {
 		initUIControl()
-		annotator.mount( this.sceneContainer! )
+		if (this.sceneContainer) annotator.mount( this.sceneContainer )
+		else log.warn('No scene container!')
 	}
 
 	componentWillUnmount(): void {

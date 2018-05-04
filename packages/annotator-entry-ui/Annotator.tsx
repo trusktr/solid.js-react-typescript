@@ -36,7 +36,7 @@ import {Annotation} from './annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane} from './annotations/Lane'
 import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
-import * as TypeLogger from 'typelogger'
+import Logger from '@/util/log'
 import {getValue} from "typeguard"
 import {isNull} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
@@ -62,9 +62,7 @@ const dialog = Electron.remote.dialog
 electronUnhandled()
 OBJLoader(THREE)
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
 
 function noop(): void {
 	return
@@ -733,7 +731,7 @@ class Annotator {
 
 	private destroyControlsGui(): void {
 		if (!config.get('startup.show_control_panel')) return
-		this.gui!.destroy()
+		if (this.gui) this.gui.destroy()
 	}
 
 	/**
