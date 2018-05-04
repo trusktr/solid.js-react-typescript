@@ -3,19 +3,9 @@
  */
 
 import {BufferGeometry, Camera, Euler, Object3D, Vector3} from "three"
+import * as THREE from 'three'
 
 // tslint:disable:no-string-literal
-
-const THREE = require('three')
-
-declare global {
-	namespace THREE {
-		const TransformGizmo: any
-		const TransformGizmoTranslate: any
-		const TransformGizmoRotate: any
-		const TransformGizmoScale: any
-	}
-}
 
 const GizmoMaterial = function (parameters: any) {
 

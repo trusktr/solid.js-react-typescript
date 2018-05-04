@@ -10,9 +10,8 @@ import {BrowserWindowConstructorOptions} from 'electron'
 import {windowStateKeeperOptions} from '../util/WindowStateKeeperOptions'
 import {channel} from "../electron-ipc/Channel"
 import * as IpcMessages from "../electron-ipc/Messages"
-
-const config = require('../config')
-const windowStateKeeper = require('electron-window-state')
+import config from '@/config'
+import windowStateKeeper = require('electron-window-state')
 
 interface LightboxWindowManagerSettings {
 	backgroundColor: string

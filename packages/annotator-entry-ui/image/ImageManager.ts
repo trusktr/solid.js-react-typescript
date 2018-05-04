@@ -14,12 +14,12 @@ import {readImageMetadataFile} from "./Aurora"
 import * as TypeLogger from "typelogger"
 import {UtmInterface} from "../UtmInterface";
 import {AuroraCameraParameters} from "./CameraParameters"
+import config from '@/config'
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const dialog = Electron.remote.dialog
-const config = require('../../config')
 
 interface ImageManagerSettings {
 	imageScreenWidth: number // image screen width in meters

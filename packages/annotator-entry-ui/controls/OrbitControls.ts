@@ -7,8 +7,7 @@
  */
 
 import {Camera, Matrix4} from "three"
-
-const THREE = require('three')
+import * as THREE from 'three'
 
 enum UpdateTypeEnum {
 	pan,
@@ -23,7 +22,8 @@ enum UpdateTypeEnum {
 //    Zoom - middle mouse, or mousewheel / touch: two finger spread or squish
 //    Pan - left mouse, or arrow keys / touch: three finger swipe
 
-THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): void {
+export
+function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
 
 	this.object = object
 
@@ -889,7 +889,5 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 }
 
-THREE.OrbitControls.prototype = Object.create(THREE.EventDispatcher.prototype)
-THREE.OrbitControls.prototype.constructor = THREE.OrbitControls
-
-export const OrbitControls = THREE.OrbitControls
+OrbitControls.prototype = Object.create(THREE.EventDispatcher.prototype)
+OrbitControls.prototype.constructor = OrbitControls

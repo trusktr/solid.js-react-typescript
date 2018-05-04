@@ -3,12 +3,12 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const config = require('../config')
+import config from '@/config'
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file"
 import * as Electron from 'electron'
-require('electron-unhandled')()
-const sprintf = require("sprintf-js").sprintf
+import * as electronUnhandled from 'electron-unhandled'
+import {sprintf} from 'sprintf-js'
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
 import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
@@ -42,7 +42,6 @@ import {isNull} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
-import {Socket} from 'zmq'
 import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient"
 import {ImageManager} from "./image/ImageManager"
 import {ImageScreen} from "./image/ImageScreen"
@@ -51,12 +50,16 @@ import {Connection} from "./annotations/Connection"
 import {TrafficDevice} from "./annotations/TrafficDevice"
 import createPromise from "../util/createPromise"
 import { PromiseReturn } from "../util/createPromise"
-const  watch = require('watch')
+import * as watch from 'watch'
+import * as Stats from 'stats.js'
+import * as zmq from 'zmq'
+import {Socket} from 'zmq'
+import * as OBJLoader from 'three-obj-loader'
+import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
 
-const Stats = require("stats.js")
 const dialog = Electron.remote.dialog
-const zmq = require('zmq')
-const OBJLoader = require('three-obj-loader')
+
+electronUnhandled()
 OBJLoader(THREE)
 
 // tslint:disable-next-line:no-any
@@ -2435,7 +2438,7 @@ class Annotator {
 	}
 
 	private initFlyThroughOrbitControls(): void {
-		this.flyThroughOrbitControls = new THREE.OrbitControls(this.flyThroughCamera, this.renderer.domElement)
+		this.flyThroughOrbitControls = new OrbitControls(this.flyThroughCamera, this.renderer.domElement)
 		this.flyThroughOrbitControls.enabled = false
 		this.flyThroughOrbitControls.minDistance = 10
 		this.flyThroughOrbitControls.maxDistance = 5000
@@ -3547,8 +3550,7 @@ class Annotator {
 			try {
 				const manager = new THREE.LoadingManager()
 				const loader = new THREE.OBJLoader(manager)
-				const car = require('../annotator-assets/models/BMW_X5_4.obj')
-				loader.load(car, (object: THREE.Object3D) => {
+				loader.load(carModelOBJ, (object: THREE.Object3D) => {
 					const boundingBox = new THREE.Box3().setFromObject(object)
 					const boxSize = boundingBox.getSize().toArray()
 					const modelLength = Math.max(...boxSize)

@@ -4,6 +4,8 @@
  */
 
 import * as THREE from "three"
+import * as mapperLogoObj from 'assets/models/Mapper_logo.obj'
+import * as hondaLogoObj from 'assets/models/Honda_logo.obj'
 
 interface DecorationConfig {
 	// tslint:disable-next-line:no-any
@@ -18,12 +20,12 @@ const objectSize = 5.0 // approx in meters
 
 const configs: DecorationConfig[] = [
 	{ // Mapper, San Francisco
-		asset: require('../annotator-assets/models/Mapper_logo.obj'),
+		asset: mapperLogoObj,
 		material: new THREE.MeshPhongMaterial({color: 0xFFC629, specular: 0x000000, shininess: 0}),
 		lngLatAlt: new THREE.Vector3(-122.4139, 37.7635, 3),
 	},
 	{ // Honda, Mountain View
-		asset: require('../annotator-assets/models/Honda_logo.obj'),
+		asset: hondaLogoObj,
 		material: new THREE.MeshPhongMaterial({color: 0x0080C5, specular: 0x000000, shininess: 0}),
 		lngLatAlt: new THREE.Vector3(-122.0522, 37.3900, 10),
 	},

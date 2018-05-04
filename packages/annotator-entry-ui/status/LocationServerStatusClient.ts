@@ -3,10 +3,10 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const config = require('../../config')
+import config from '@/config'
 import * as TypeLogger from 'typelogger'
+import * as zmq from 'zmq'
 import {Socket} from 'zmq'
-const zmq = require('zmq')
 import * as MapperProtos from "@mapperai/mapper-models"
 import Models = MapperProtos.mapper.models
 

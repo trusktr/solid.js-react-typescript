@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const config = require('../../config')
+import config from '@/config'
 import * as Fs from 'fs'
 import * as Path from 'path'
 import * as AsyncFile from 'async-file'

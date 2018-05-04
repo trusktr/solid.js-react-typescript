@@ -5,8 +5,7 @@
 
 import * as THREE from 'three'
 import {isNull} from "util"
-
-const utmConverter = require('utm')
+import * as utmConverter from 'utm'
 
 export interface UtmLocalOrigin {
 	utmZoneNumber: number
