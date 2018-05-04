@@ -13,9 +13,6 @@ $black: #000;
 
 $default_font: Verdana, Geneva, sans-serif;
 
-//@extend-elements
-//original selectors
-//#root, body, html
 %defaultBox {
 	height: 100%;
 	border: 0;
@@ -40,17 +37,16 @@ body {
 #root {
 	@extend %defaultBox;
 	width: auto;
+
+	.scene-container {
+		@extend %defaultBox;
+	}
 }
 html {
 	@extend %defaultBox;
 }
 .hidden {
 	display: none;
-}
-#threeJs_gui {
-	position: absolute;
-	top: 100%;
-	left: 100%;
 }
 #logo {
 	position: fixed;
@@ -199,8 +195,6 @@ button {
 	font-size: 12px;
 }
 
-//original selectors
-//.label_style, .select_style
 %label-select {
 	text-align: left;
 	padding: 0;

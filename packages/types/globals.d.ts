@@ -1,1 +1,5 @@
-declare const __CWD: string // current working directory
+// current working directory
+declare const __CWD: string
+
+// required by mapper-models/protobufjs
+type Long = number

@@ -36,7 +36,7 @@ import {Annotation} from './annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane} from './annotations/Lane'
 import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
-import * as TypeLogger from 'typelogger'
+import Logger from '@/util/log'
 import {getValue} from "typeguard"
 import {isNull} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
@@ -62,10 +62,7 @@ const dialog = Electron.remote.dialog
 electronUnhandled()
 OBJLoader(THREE)
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
-const root = $("#root")
+const log = Logger(__filename)
 
 function noop(): void {
 	return
@@ -277,6 +274,8 @@ class Annotator {
 	private shouldAnimate: boolean
 	private updateOrbitControls: boolean
 	private flyThroughPaused: boolean
+	private root: HTMLElement
+	private sceneInitialized: boolean
 
 	constructor() {
 		this.storage = new LocalStorage()
@@ -284,6 +283,7 @@ class Annotator {
 		this.shouldAnimate = false
 		this.updateOrbitControls = false
 		this.flyThroughPaused = false
+		this.sceneInitialized = false
 
 		if (config.get('startup.animation.fps'))
 			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
@@ -454,9 +454,20 @@ class Annotator {
 		}
 	}
 
-	destroy(): void {
-		if (this.gui) this.gui.destroy()
+	async mount( root: HTMLElement ): Promise<void> {
+		this.root = root
+		if ( !this.sceneInitialized ) await this.initScene()
+		root.appendChild(this.renderer.domElement)
+		this.createControlsGui()
+		this.makeStats()
+		this.startAnimation()
+	}
+
+	unmount(): void {
 		this.stopAnimation()
+		this.destroyStats()
+		this.destroyControlsGui()
+		this.renderer.domElement.remove()
 	}
 
 	exitApp(): void {
@@ -467,7 +478,7 @@ class Annotator {
 	 * Create the 3D Scene and add some basic objects. It also initializes
 	 * several event listeners.
 	 */
-	initScene(): Promise<void> {
+	private initScene(): Promise<void> {
 		log.info(`Building scene`)
 
 		const [width, height]: Array<number> = this.getContainerSize()
@@ -543,16 +554,6 @@ class Annotator {
 		this.renderer.setPixelRatio(window.devicePixelRatio)
 		this.renderer.setSize(width, height)
 		this.renderer.shadowMap.enabled = true
-		root.append(this.renderer.domElement)
-
-		// Create stats widget to display frequency of rendering
-		if (config.get('startup.show_stats_module')) {
-			this.stats = new Stats()
-			this.stats.dom.style.top = 'initial' // disable existing setting
-			this.stats.dom.style.bottom = '50px' // above Mapper logo
-			this.stats.dom.style.left = '13px'
-			root.append(this.stats.dom)
-		}
 
 		// Give the status window a place to draw in.
 		const statusElementId = 'status_window'
@@ -568,14 +569,6 @@ class Annotator {
 		this.initAnnotatorOrbitControls()
 		this.initFlyThroughOrbitControls()
 		this.initTransformControls()
-
-		// Add panel to change the settings
-		if (config.get('startup.show_color_picker'))
-			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
-		if (config.get('startup.show_control_panel'))
-			this.gui = this.createControlsGui()
-		else
-			this.gui = null
 
 		// Add listeners
 		window.addEventListener('focus', this.onFocus)
@@ -644,14 +637,41 @@ class Annotator {
 			})
 	}
 
+	private makeStats(): void {
+
+		if (!config.get('startup.show_stats_module')) return
+
+		// Create stats widget to display frequency of rendering
+		this.stats = new Stats()
+		this.stats.dom.style.top = 'initial' // disable existing setting
+		this.stats.dom.style.bottom = '50px' // above Mapper logo
+		this.stats.dom.style.left = '13px'
+		this.root.appendChild(this.stats.dom)
+
+	}
+
+	private destroyStats(): void {
+		if (!config.get('startup.show_stats_module')) return
+		this.stats.dom.remove()
+	}
+
 	private get camera(): THREE.Camera {
 		if (this.uiState.isLiveMode) return this.flyThroughCamera
 		return this.annotatorCamera
 	}
 
 	// Create a UI widget to adjust application settings on the fly.
-	createControlsGui(): DatGui {
-		const gui = new DatGui({
+	createControlsGui(): void {
+		// Add panel to change the settings
+		if (config.get('startup.show_color_picker'))
+			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
+
+		if (!config.get('startup.show_control_panel')) {
+			this.gui = null
+			return
+		}
+
+		const gui = this.gui = new DatGui({
 			hideable: false,
 			closeOnTop: true,
 		} as GUIParams)
@@ -662,6 +682,8 @@ class Annotator {
 			position: absolute;
 			top: 13px;
 			left: 13px;
+			right: initial;
+			bottom: initial;
 			background: rgba(0,0,0,0.5);
 			padding: 10px;
 		`)
@@ -705,8 +727,11 @@ class Annotator {
 		const folderConnection = gui.addFolder('Connection params')
 		folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
 		folderConnection.open()
+	}
 
-		return gui
+	private destroyControlsGui(): void {
+		if (!config.get('startup.show_control_panel')) return
+		if (this.gui) this.gui.destroy()
 	}
 
 	/**
@@ -2135,7 +2160,8 @@ class Annotator {
 	 * @returns {[number,number]}
 	 */
 	private getContainerSize = (): Array<number> => {
-		return getValue(() => [root.width(), root.height()], [0, 0])
+		const $root = $(this.root)
+		return getValue(() => [$root.width(), $root.height()], [0, 0])
 	}
 
 	private onWindowResize = (): void => {
