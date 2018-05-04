@@ -5,5 +5,5 @@ TypeLogger.setLoggerOutput(console as any)
 
 export default
 function Logger(path) {
-	return TypeLogger.getLogger(__filename)
+	return TypeLogger.getLogger(path)
 }
