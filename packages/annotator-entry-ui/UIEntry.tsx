@@ -11,13 +11,10 @@ Object.assign(global, {
 require('jquery-ui-dist/jquery-ui')
 require('!!css-loader!jquery-ui-dist/jquery-ui.css')
 
-import * as TypeLogger from 'typelogger'
+import * as React from 'react'
+import * as ReactDOM from 'react-dom'
+import App from './App'
 import {annotator} from 'annotator-entry-ui/Annotator'
-import './style.scss'
-
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
 
 declare global {
 	// required by mapper-models/protobufjs
@@ -25,8 +22,8 @@ declare global {
 }
 
 function onLoad(): void {
+	ReactDOM.render( <App />, $('#root')[0] )
 	require("annotator-control-ui/UIControl")
-	log.info('loading ')
 	annotator.initScene()
 		.then(() => annotator.startAnimation())
 }
