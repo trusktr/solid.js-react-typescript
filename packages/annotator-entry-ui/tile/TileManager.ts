@@ -21,7 +21,7 @@ import {
 } from "./TileMessage"
 import {SuperTile} from "./SuperTile"
 import {UtmTile} from "./UtmTile"
-import {UtmCoordinateSystem} from "../UtmInterface"
+import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
 import {Scale3D} from "../geometry/Scale3D"
 import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"

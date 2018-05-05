@@ -22,7 +22,7 @@ import {
 } from "./geometry/CoordinateFrame"
 import {isTupleOfNumbers} from "../util/Validation"
 import {StatusWindowController} from "./status/StatusWindowController"
-import {UtmCoordinateSystem} from "./UtmInterface"
+import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
 import {TileManager} from './tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"

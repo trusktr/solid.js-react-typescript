@@ -7,7 +7,7 @@ import * as THREE from 'three'
 import {TileIndex} from "../model/TileIndex"
 import {UtmTile} from "./UtmTile"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
-import {UtmCoordinateSystem} from "../UtmInterface"
+import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
 import {emptyPositions, threeDStepSize} from "./Constant"
 
 /*

@@ -29,7 +29,7 @@ import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
 import * as mkdirp from 'mkdirp'
-import {UtmCoordinateSystem} from "./UtmInterface"
+import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
 import * as CRS from "./CoordinateReferenceSystem"
 
 // tslint:disable-next-line:no-any

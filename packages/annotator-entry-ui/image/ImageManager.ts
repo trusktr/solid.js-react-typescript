@@ -12,7 +12,7 @@ import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWind
 import * as IpcMessages from "../../electron-ipc/Messages"
 import {readImageMetadataFile} from "./Aurora"
 import * as TypeLogger from "typelogger"
-import {UtmCoordinateSystem} from "../UtmInterface";
+import {UtmCoordinateSystem} from "../UtmCoordinateSystem";
 import {AuroraCameraParameters} from "./CameraParameters"
 import config from '@/config'
 

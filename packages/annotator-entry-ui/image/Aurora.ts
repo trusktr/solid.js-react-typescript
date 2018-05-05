@@ -6,7 +6,7 @@
 import * as AsyncFile from "async-file"
 import * as sizeOf from 'image-size'
 import {AuroraCameraParameters} from "./CameraParameters"
-import {UtmCoordinateSystem} from "../UtmInterface";
+import {UtmCoordinateSystem} from "../UtmCoordinateSystem";
 import config from '@/config'
 
 // Convenience functions for Aurora data
