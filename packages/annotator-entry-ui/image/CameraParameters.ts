@@ -4,11 +4,14 @@
  */
 
 import * as THREE from 'three'
-import {UtmInterface} from "../UtmInterface";
+import {UtmCoordinateSystem} from "../UtmInterface";
 import {lineGeometry} from "../geometry/ThreeHelpers"
 
 // Mapping between a real-world camera and an image displayed as a 3D object
 
+// TODO Cameras should validate the coordinate system for their 3D location.
+// TODO   See for example TileManager.checkCoordinateSystem().
+// TODO   Aurora gets away without this because all their data uses a local coordinate system.
 export interface CameraParameters {
 	screenPosition: THREE.Vector3
 	cameraOrigin: THREE.Vector3
@@ -43,24 +46,21 @@ function ray(origin: THREE.Vector3, destination: THREE.Vector3): THREE.Line {
 export class AuroraCameraParameters implements CameraParameters {
 	screenPosition: THREE.Vector3
 	cameraOrigin: THREE.Vector3
-	private utmInterface: UtmInterface
-	private tileId: string
+	private utmCoordinateSystem: UtmCoordinateSystem
 	private imageWidth: number
 	private imageHeight: number
 	private translation: number[]
 	private rotation: number[]
 
 	constructor(
-		utmInterface: UtmInterface,
-		tileId: string,
+		utmCoordinateSystem: UtmCoordinateSystem,
 		screenDistanceFromOrigin: number,
 		imageWidth: number,
 		imageHeight: number,
 		translation: number[],
 		rotation: number[]
 	) {
-		this.utmInterface = utmInterface
-		this.tileId = tileId
+		this.utmCoordinateSystem = utmCoordinateSystem
 		this.imageWidth = imageWidth
 		this.imageHeight = imageHeight
 		this.translation = translation
@@ -81,8 +81,8 @@ export class AuroraCameraParameters implements CameraParameters {
 		screenPosition.applyMatrix4(screenRotation)
 
 		// Note: Use camera origin as height to avoid floating images
-		this.screenPosition = utmInterface.utmToThreeJs(screenPosition.x, screenPosition.y, cameraOrigin.z)
-		this.cameraOrigin = utmInterface.utmToThreeJs(cameraOrigin.x, cameraOrigin.y, cameraOrigin.z)
+		this.screenPosition = utmCoordinateSystem.utmToThreeJs(screenPosition.x, screenPosition.y, cameraOrigin.z)
+		this.cameraOrigin = utmCoordinateSystem.utmToThreeJs(cameraOrigin.x, cameraOrigin.y, cameraOrigin.z)
 	}
 
 	// Draw a ray from the camera origin, through a point in the image which corresponds to a point in three.js space.
@@ -104,7 +104,7 @@ export class AuroraCameraParameters implements CameraParameters {
 			0, 0, 0, 1)
 		endPosition.applyMatrix4(endRotation)
 
-		const destination = this.utmInterface.utmToThreeJs(endPosition.x, endPosition.y, endPosition.z)
+		const destination = this.utmCoordinateSystem.utmToThreeJs(endPosition.x, endPosition.y, endPosition.z)
 		return ray(this.cameraOrigin, destination)
 	}
 }

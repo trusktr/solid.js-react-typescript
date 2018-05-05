@@ -22,6 +22,7 @@ import {
 } from "./geometry/CoordinateFrame"
 import {isTupleOfNumbers} from "../util/Validation"
 import {StatusWindowController} from "./status/StatusWindowController"
+import {UtmCoordinateSystem} from "./UtmInterface"
 import {TileManager} from './tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
@@ -236,6 +237,7 @@ class Annotator {
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
+	private utmCoordinateSystem: UtmCoordinateSystem
 	private tileManager: TileManager
 	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
@@ -370,10 +372,11 @@ class Annotator {
 		this.decorations = []
 		this.raycasterAnnotation = new THREE.Raycaster()
 		this.raycasterImageScreen = new THREE.Raycaster()
+		this.utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager(
+			this.utmCoordinateSystem,
 			this.settings.generateVoxelsOnPointLoad,
-			this.onSetOrigin,
 			this.onSuperTileLoad,
 			this.onSuperTileUnload,
 			this.onTileServiceStatusUpdate
@@ -387,7 +390,7 @@ class Annotator {
 		this.highlightedLightboxImage = null
 		this.lightboxImageRays = []
 		this.imageManager = new ImageManager(
-			this.tileManager,
+			this.utmCoordinateSystem,
 			this.uiState.imageScreenOpacity,
 			this.render,
 			this.onImageScreenLoad,
@@ -546,7 +549,7 @@ class Annotator {
 			this.compassRose = null
 
 		// All the annotations go here.
-		this.annotationManager = new AnnotationManager(this.scene, this.onChangeActiveAnnotation)
+		this.annotationManager = new AnnotationManager(this.utmCoordinateSystem, this.scene, this.onChangeActiveAnnotation)
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
@@ -1014,9 +1017,6 @@ class Annotator {
 	// Do some house keeping after loading a point cloud, such as drawing decorations
 	// and centering the stage and the camera on the point cloud.
 	private pointCloudLoadedSideEffects(resetCamera: boolean = true): void {
-		if (!this.annotationManager.setOriginWithInterface(this.tileManager))
-			log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
-
 		this.setLayerVisibility([Layer.POINT_CLOUD])
 
 		if (this.settings.generateVoxelsOnPointLoad) {
@@ -1209,7 +1209,7 @@ class Annotator {
 
 				const material = new THREE.ShadowMaterial()
 				const plane = new THREE.Mesh(geometry, material)
-				const origin = this.tileManager.utmVectorToThreeJs(tile.index.origin)
+				const origin = this.utmCoordinateSystem.utmVectorToThreeJs(tile.index.origin)
 				plane.position.x = origin.x + xSize / 2
 				plane.position.y = y
 				plane.position.z = origin.z - zSize / 2
@@ -1357,8 +1357,8 @@ class Annotator {
 			this.loadPointCloudDataFromMapServer(
 				threeJsSearches.map(threeJs => {
 					return {
-						minPoint: this.tileManager.threeJsToUtm(threeJs.minPoint),
-						maxPoint: this.tileManager.threeJsToUtm(threeJs.maxPoint),
+						minPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
+						maxPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
 					}
 				}),
 				true,
@@ -1380,7 +1380,7 @@ class Annotator {
 			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
 			if (!samePoint) {
 				this.uiState.lastCameraCenterPoint = newPoint
-				const utm = this.tileManager.threeJsToUtm(newPoint)
+				const utm = this.utmCoordinateSystem.threeJsToUtm(newPoint)
 				this.updateCurrentLocationStatusMessage(utm)
 			}
 		}
@@ -1396,8 +1396,6 @@ class Annotator {
 		this.setLayerVisibility([Layer.ANNOTATIONS])
 		return this.annotationManager.loadAnnotationsFromFile(fileName)
 			.then(focalPoint => {
-				if (!this.tileManager.setOriginWithInterface(this.annotationManager))
-					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
 				if (focalPoint)
 					this.setStageByVector(focalPoint)
 			})
@@ -3759,7 +3757,7 @@ class Annotator {
 	private updateCarWithPose(pose: Models.PoseMessage): void {
 		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
 		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
-		const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+		const positionThreeJs = this.utmCoordinateSystem.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
 		const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
 		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
 		const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
@@ -3774,11 +3772,11 @@ class Annotator {
 		// This is a hack to allow data with no coordinate reference system to pass through the UTM classes.
 		// Data in local coordinate systems tend to have small values for X (and Y and Z) which are invalid in UTM.
 		if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO fix this.
-			const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
+			const positionLla = this.utmCoordinateSystem.utmVectorToLngLatAlt(positionUtm)
 			const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
 			this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
 		}
-		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
+		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.utmCoordinateSystem.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
 		this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
 	}
 
@@ -3826,7 +3824,7 @@ class Annotator {
 		return getDecorations()
 			.then(decorations => {
 				decorations.forEach(decoration => {
-					const position = this.tileManager.lngLatAltToThreeJs(decoration.userData)
+					const position = this.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
 					const distanceFromOrigin = position.length()
 					if (distanceFromOrigin < this.settings.maxDistanceToDecorations) {
 						// Don't worry about rotation. The object is just floating in space.

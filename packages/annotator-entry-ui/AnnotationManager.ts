@@ -29,7 +29,7 @@ import * as EM from 'annotator-entry-ui/ErrorMessages'
 import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
 import * as mkdirp from 'mkdirp'
-import {UtmInterface} from "./UtmInterface"
+import {UtmCoordinateSystem} from "./UtmInterface"
 import * as CRS from "./CoordinateReferenceSystem"
 
 // tslint:disable-next-line:no-any
@@ -79,8 +79,8 @@ export interface AnnotationManagerJsonOutputInterface {
  * to modify, add or delete them. It also keeps an index to the "active" annotation as well
  * as its markers. The "active" annotation is the only one that can be modified.
  */
-export class AnnotationManager extends UtmInterface {
-	private datum: string = 'WGS84'
+export class AnnotationManager {
+	private utmCoordinateSystem: UtmCoordinateSystem
 	private scene: THREE.Scene // where objects are placed on behalf of Annotator
 	private onChangeActiveAnnotation: (active: Annotation) => void
 	laneAnnotations: Array<Lane>
@@ -96,8 +96,12 @@ export class AnnotationManager extends UtmInterface {
 	private metadataState: AnnotationState
 	private isLiveMode: boolean
 
-	constructor(scene: THREE.Scene, onChangeActiveAnnotation: (active: Annotation) => void) {
-		super()
+	constructor(
+		utmCoordinateSystem: UtmCoordinateSystem,
+		scene: THREE.Scene,
+		onChangeActiveAnnotation: (active: Annotation) => void
+	) {
+		this.utmCoordinateSystem = utmCoordinateSystem
 		this.scene = scene
 		this.onChangeActiveAnnotation = onChangeActiveAnnotation
 		this.laneAnnotations = []
@@ -112,16 +116,6 @@ export class AnnotationManager extends UtmInterface {
 		this.metadataState = new AnnotationState(this)
 		this.isLiveMode = false
 		this.bezierScaleFactor = 6
-	}
-
-	toString(): string {
-		let offsetStr
-		if (this.offset === undefined) {
-			offsetStr = 'undefined'
-		} else {
-			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
-		}
-		return 'AnnotationManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneNorthernHemisphere + ', offset: [' + offsetStr + '])'
 	}
 
 	/**
@@ -871,8 +865,7 @@ export class AnnotationManager extends UtmInterface {
 
 		let result: string = ''
 		data.forEach((marker) => {
-			// Get latitude longitude
-			const lngLatAlt = this.threeJsToLngLatAlt(marker)
+			const lngLatAlt = this.utmCoordinateSystem.threeJsToLngLatAlt(marker)
 			result += lngLatAlt.x.toString()
 			result += columnDelimiter
 			result += lngLatAlt.y.toString()
@@ -1098,7 +1091,7 @@ export class AnnotationManager extends UtmInterface {
 		if (!this.allAnnotations().find(a => a.isValid()))
 			return Promise.reject(new Error('failed to save empty set of annotations'))
 
-		if (!this.hasOrigin() && !config.get('output.annotations.debug.allow_annotations_without_utm_origin'))
+		if (!this.utmCoordinateSystem.hasOrigin() && !config.get('output.annotations.debug.allow_annotations_without_utm_origin'))
 			return Promise.reject(new Error('failed to save annotations: UTM origin is not set'))
 
 		const self = this
@@ -1114,17 +1107,17 @@ export class AnnotationManager extends UtmInterface {
 		if (format === OutputFormat.UTM) {
 			crs = {
 				coordinateSystem: 'UTM',
-				datum: this.datum,
+				datum: this.utmCoordinateSystem.datum,
 				parameters: {
-					utmZoneNumber: this.utmZoneNumber,
-					utmZoneNorthernHemisphere: this.utmZoneNorthernHemisphere,
+					utmZoneNumber: this.utmCoordinateSystem.utmZoneNumber,
+					utmZoneNorthernHemisphere: this.utmCoordinateSystem.utmZoneNorthernHemisphere,
 				}
 			} as CRS.UtmCrs
 			pointConverter = this.threeJsToUtmJsonObject()
 		} else if (format === OutputFormat.LLA) {
 			crs = {
 				coordinateSystem: 'LLA',
-				datum: this.datum,
+				datum: this.utmCoordinateSystem.datum,
 			} as CRS.LlaCrs
 			pointConverter = this.threeJsToLlaJsonObject()
 		} else {
@@ -1152,7 +1145,7 @@ export class AnnotationManager extends UtmInterface {
 		const geopoints: Array<THREE.Vector3> =
 			lodash.flatten(
 				this.laneAnnotations.map(lane =>
-					lane.waypoints.map(p => this.threeJsToLngLatAlt(p))
+					lane.waypoints.map(p => this.utmCoordinateSystem.threeJsToLngLatAlt(p))
 				)
 			)
 
@@ -1182,7 +1175,7 @@ export class AnnotationManager extends UtmInterface {
 		if (!this.checkCoordinateSystem(data)) {
 			const params = data['coordinateReferenceSystem']['parameters']
 			const zoneId = `${params['utmZoneNumber']}${params['utmZoneNorthernHemisphere']}`
-			throw Error(`UTM Zone for new annotations (${zoneId}) does not match existing zone in ${this.getOrigin()}`)
+			throw Error(`UTM Zone for new annotations (${zoneId}) does not match existing zone in ${this.utmCoordinateSystem}`)
 		}
 		this.convertCoordinates(data)
 
@@ -1611,7 +1604,7 @@ export class AnnotationManager extends UtmInterface {
 	private threeJsToUtmJsonObject(): (p: THREE.Vector3) => UtmJson {
 		const self = this
 		return function (p: THREE.Vector3): UtmJson {
-			const utm = self.threeJsToUtm(p)
+			const utm = self.utmCoordinateSystem.threeJsToUtm(p)
 			return {'E': utm.x, 'N': utm.y, 'alt': utm.z}
 		}
 	}
@@ -1619,7 +1612,7 @@ export class AnnotationManager extends UtmInterface {
 	private threeJsToLlaJsonObject(): (p: THREE.Vector3) => LlaJson {
 		const self = this
 		return function (p: THREE.Vector3): LlaJson {
-			const lngLatAlt = self.threeJsToLngLatAlt(p)
+			const lngLatAlt = self.utmCoordinateSystem.threeJsToLngLatAlt(p)
 			return {'lng': lngLatAlt.x, 'lat': lngLatAlt.y, 'alt': lngLatAlt.z}
 		}
 	}
@@ -1630,7 +1623,7 @@ export class AnnotationManager extends UtmInterface {
 	private checkCoordinateSystem(data: Object): boolean {
 		const crs = data['coordinateReferenceSystem']
 		if (crs['coordinateSystem'] !== 'UTM') return false
-		if (crs['datum'] !== this.datum) return false
+		if (crs['datum'] !== this.utmCoordinateSystem.datum) return false
 		if (isNullOrUndefined(crs['parameters']['utmZoneNumber']))
 			return false
 		const num = crs['parameters']['utmZoneNumber']
@@ -1652,8 +1645,8 @@ export class AnnotationManager extends UtmInterface {
 		}
 		if (!first) return false
 
-		return this.setOrigin(num, northernHemisphere, first) ||
-			this.utmZoneNumber === num && this.utmZoneNorthernHemisphere === northernHemisphere
+		return this.utmCoordinateSystem.setOrigin(num, northernHemisphere, first) ||
+			this.utmCoordinateSystem.utmZoneNumber === num && this.utmCoordinateSystem.utmZoneNorthernHemisphere === northernHemisphere
 	}
 
 	/**
@@ -1664,7 +1657,7 @@ export class AnnotationManager extends UtmInterface {
 			if (annotation['markers']) {
 				for (let i = 0; i < annotation['markers'].length; i++) {
 					const pos = annotation['markers'][i] as UtmJson
-					annotation['markers'][i] = this.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
+					annotation['markers'][i] = this.utmCoordinateSystem.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
 				}
 			}
 		})
