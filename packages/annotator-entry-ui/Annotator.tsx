@@ -29,6 +29,7 @@ import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
 import {getCenter, getSize, getClosestPoints} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
+import {Sky} from "./controls/Sky"
 import {getDecorations} from "./Decorations"
 import {AnnotationType} from './annotations/AnnotationType'
 import {AnnotationManager, OutputFormat} from './AnnotationManager'
@@ -137,9 +138,8 @@ interface MousePosition {
 }
 
 interface AnnotatorSettings {
-	background: string
+	background: THREE.Color
 	cameraOffset: THREE.Vector3
-	lightOffset: THREE.Vector3
 	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
 	defaultAnimationFrameIntervalMs: number | false
 	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
@@ -290,9 +290,8 @@ class Annotator {
 		let animationFps = config.get('startup.render.fps')
 
 		this.settings = {
-			background: config.get('startup.background_color') || '#082839',
+			background: new THREE.Color(config.get('startup.background_color') || '#082839'),
 			cameraOffset: new THREE.Vector3(0, 400, 200),
-			lightOffset: new THREE.Vector3(0, 1500, 200),
 			orthoCameraHeight: 100, // enough to view ~1 city block of data
 			defaultAnimationFrameIntervalMs: animationFps === 'device' ? false : 1 / (animationFps || 10),
 			animationFrameIntervalSecs: 0,
@@ -483,7 +482,7 @@ class Annotator {
 		const [width, height]: Array<number> = this.getContainerSize()
 
 		this.annotatorPerspectiveCam = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		this.annotatorOrthoCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 1000)
+		this.annotatorOrthoCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
 
 		// Create scene and camera
 		this.scene = new THREE.Scene()
@@ -498,7 +497,8 @@ class Annotator {
 		this.setOrthographicCameraDimensions(width, height)
 
 		// Add some lights
-		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
+		this.scene.add(new THREE.AmbientLight(0xffffff))
+		this.scene.add(Sky(this.settings.background, new THREE.Color(0xccccff), 8000))
 
 		// Add a "ground plane" to facilitate annotations
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
@@ -542,10 +542,9 @@ class Annotator {
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
-		this.renderer.setClearColor(new THREE.Color(this.settings.background))
+		this.renderer.setClearColor(this.settings.background)
 		this.renderer.setPixelRatio(window.devicePixelRatio)
 		this.renderer.setSize(width, height)
-		this.renderer.shadowMap.enabled = true
 
 		// Give the status window a place to draw in.
 		const statusElementId = 'status_window'
