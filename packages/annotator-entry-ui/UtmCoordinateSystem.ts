@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three'
-import {isNull, isNullOrUndefined} from "util"
+import {isNull} from "util"
 import * as utmConverter from 'utm'
 
 /**
@@ -38,8 +38,8 @@ export class UtmCoordinateSystem {
 
 	toString(): string {
 		let offsetStr: string
-		if (this.offset === undefined) {
-			offsetStr = 'undefined'
+		if (!this.offset) {
+			offsetStr = 'null'
 		} else {
 			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
 		}
@@ -65,17 +65,18 @@ export class UtmCoordinateSystem {
 	// UTM origin can be set one time; subsequent attempts to set must match the first one.
 	// Assume that the origin does not change for the lifetime of the application.
 	setOrigin(num: number, northernHemisphere: boolean, offset: THREE.Vector3): boolean {
-		if (isNullOrUndefined(offset)) {
+		if (!offset) {
 			return false
 		} else if (this.hasOrigin()) {
 			return this.offset.x === offset.x && this.offset.y === offset.y && this.offset.z === offset.z &&
 				this.utmZoneNumber === num && this.utmZoneNorthernHemisphere === northernHemisphere
 		} else {
-			this.offset = offset
+			this.offset = offset.clone()
 			if (UtmCoordinateSystem.isValidUtmZone(num, northernHemisphere)) {
 				this.utmZoneNumber = num
 				this.utmZoneNorthernHemisphere = northernHemisphere
 			} else {
+				// TODO This legacy behavior should be an error (return false) once we ensure that upstream data sources generate UTM data correctly.
 				this.utmZoneNumber = this.defaultUtmZoneNumber
 				this.utmZoneNorthernHemisphere = this.defaultUtmZoneNorthernHemisphere
 			}
