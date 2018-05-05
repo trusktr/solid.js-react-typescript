@@ -242,7 +242,6 @@ class Annotator {
 	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
 	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
 	private compassRose: THREE.Object3D | null // indicates the direction of North
-	private light: THREE.SpotLight
 	private stats: Stats
 	private annotatorOrbitControls: any
 	private flyThroughOrbitControls: any
@@ -500,13 +499,6 @@ class Annotator {
 
 		// Add some lights
 		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
-		this.light = new THREE.SpotLight(0xffffff, 1.5)
-		this.light.castShadow = true
-		this.light.shadow = new THREE.SpotLightShadow(new THREE.PerspectiveCamera(70, 1, 200, 2000))
-		this.light.shadow.mapSize.width = 1024
-		this.light.shadow.bias = -0.000222
-		this.light.shadow.mapSize.height = 1024
-		this.scene.add(this.light)
 
 		// Add a "ground plane" to facilitate annotations
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
@@ -916,7 +908,6 @@ class Annotator {
 			this.grid.geometry.translate(x, y, z)
 		}
 		if (resetCamera) {
-			this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
 			this.orbitControls.target.set(x, y, z)
 			this.orbitControls.update()
