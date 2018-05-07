@@ -7,7 +7,7 @@ import * as THREE from 'three'
 import {TileIndex} from "../model/TileIndex"
 import {UtmTile} from "./UtmTile"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
-import {UtmInterface} from "../UtmInterface"
+import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
 import {emptyPositions, threeDStepSize} from "./Constant"
 
 /*
@@ -15,12 +15,13 @@ import {emptyPositions, threeDStepSize} from "./Constant"
  * Tile data can be added progressively, but not removed.
  * Bounding box contents are inclusive at the low edges and exclusive at the high edges.
  */
-export class SuperTile extends UtmInterface {
+export class SuperTile {
 	pointCloud: THREE.Points | null
 	pointCount: number
 	private pointCloudBoundingBox: THREE.Box3 | null
 	index: TileIndex
 	coordinateFrame: CoordinateFrameType
+	private utmCoordinateSystem: UtmCoordinateSystem
 	threeJsBoundingBox: THREE.Box3
 	tiles: UtmTile[]
 	private rawPositions: Float32Array
@@ -28,9 +29,8 @@ export class SuperTile extends UtmInterface {
 	constructor(
 		index: TileIndex,
 		coordinateFrame: CoordinateFrameType,
-		utmParent: UtmInterface,
+		utmCoordinateSystem: UtmCoordinateSystem,
 	) {
-		super()
 		this.pointCloud = null
 		this.pointCount = 0
 		this.pointCloudBoundingBox = null
@@ -38,14 +38,14 @@ export class SuperTile extends UtmInterface {
 		this.rawPositions = emptyPositions
 		this.index = index
 		this.coordinateFrame = coordinateFrame
-		this.setOriginWithInterface(utmParent)
+		this.utmCoordinateSystem = utmCoordinateSystem
 
 		const utmBoundingBox = index.boundingBox
 		const min = convertToStandardCoordinateFrame(utmBoundingBox.min, coordinateFrame)
 		const max = convertToStandardCoordinateFrame(utmBoundingBox.max, coordinateFrame)
 		this.threeJsBoundingBox = new THREE.Box3(
-			this.utmToThreeJs(min.x, min.y, min.z),
-			this.utmToThreeJs(max.x, max.y, max.z),
+			this.utmCoordinateSystem.utmToThreeJs(min.x, min.y, min.z),
+			this.utmCoordinateSystem.utmToThreeJs(max.x, max.y, max.z),
 		)
 
 	}

@@ -7,21 +7,16 @@ import * as THREE from 'three'
 import {isNull} from "util"
 import * as utmConverter from 'utm'
 
-export interface UtmLocalOrigin {
-	utmZoneNumber: number
-	utmZoneNorthernHemisphere: boolean
-	offset: THREE.Vector3
-}
-
 /**
- * UtmInterface has two states: it has a zone or not. Zone can be set one time.
+ * UtmCoordinateSystem has two states: it has a zone or not. Zone can be set one time.
  * The 3D origin of the zone is defined by the UTM standard. We apply a local
  * offset to that origin to all point data, for the benefit of three.js.
  */
-export class UtmInterface implements UtmLocalOrigin {
+export class UtmCoordinateSystem {
 	private readonly defaultUtmZoneNumber: number = 18 // Washington, DC
 	private readonly defaultUtmZoneNorthernHemisphere: boolean = true // Washington, DC
 	private zoneAsString: string
+	readonly datum: string = 'WGS84'
 	utmZoneNumber: number
 	utmZoneNorthernHemisphere: boolean
 	// this is an offset from UTM origin for display purposes:
@@ -41,6 +36,16 @@ export class UtmInterface implements UtmLocalOrigin {
 		return num >= 1 && num <= 60 && northernHemisphere !== null
 	}
 
+	toString(): string {
+		let offsetStr: string
+		if (!this.offset) {
+			offsetStr = 'null'
+		} else {
+			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
+		}
+		return 'UtmCoordinateSystem(UTM Zone: ' + this.utmZoneNumber + this.utmZoneNorthernHemisphere + ', offset: [' + offsetStr + '])'
+	}
+
 	utmZoneString(): string {
 		if (this.zoneAsString) {
 			return this.zoneAsString
@@ -54,33 +59,24 @@ export class UtmInterface implements UtmLocalOrigin {
 
 	// Decide whether UTM values have been initialized.
 	hasOrigin(): boolean {
-		return this.offset !== null && UtmInterface.isValidUtmZone(this.utmZoneNumber, this.utmZoneNorthernHemisphere)
-	}
-
-	getOrigin(): UtmLocalOrigin {
-		return this
-	}
-
-	setOriginWithInterface(utm: UtmInterface): boolean {
-		if (utm.hasOrigin()) {
-			return this.setOrigin(utm.utmZoneNumber, utm.utmZoneNorthernHemisphere, utm.offset)
-		} else {
-			return true
-		}
+		return this.offset !== null && UtmCoordinateSystem.isValidUtmZone(this.utmZoneNumber, this.utmZoneNorthernHemisphere)
 	}
 
 	// UTM origin can be set one time; subsequent attempts to set must match the first one.
 	// Assume that the origin does not change for the lifetime of the application.
 	setOrigin(num: number, northernHemisphere: boolean, offset: THREE.Vector3): boolean {
-		if (this.hasOrigin()) {
+		if (!offset) {
+			return false
+		} else if (this.hasOrigin()) {
 			return this.offset.x === offset.x && this.offset.y === offset.y && this.offset.z === offset.z &&
 				this.utmZoneNumber === num && this.utmZoneNorthernHemisphere === northernHemisphere
 		} else {
-			this.offset = offset
-			if (UtmInterface.isValidUtmZone(num, northernHemisphere)) {
+			this.offset = offset.clone()
+			if (UtmCoordinateSystem.isValidUtmZone(num, northernHemisphere)) {
 				this.utmZoneNumber = num
 				this.utmZoneNorthernHemisphere = northernHemisphere
 			} else {
+				// TODO This legacy behavior should be an error (return false) once we ensure that upstream data sources generate UTM data correctly.
 				this.utmZoneNumber = this.defaultUtmZoneNumber
 				this.utmZoneNorthernHemisphere = this.defaultUtmZoneNorthernHemisphere
 			}

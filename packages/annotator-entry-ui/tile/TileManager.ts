@@ -21,7 +21,7 @@ import {
 } from "./TileMessage"
 import {SuperTile} from "./SuperTile"
 import {UtmTile} from "./UtmTile"
-import {UtmInterface} from "../UtmInterface"
+import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
 import {Scale3D} from "../geometry/Scale3D"
 import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
@@ -199,11 +199,12 @@ interface VoxelsConfig {
 // when loaded is provided as a single structure for three.js rendering.
 // All points are stored with reference to UTM origin and offset, but using the local coordinate
 // system which has different axes.
-export class TileManager extends UtmInterface {
+export class TileManager {
 	private config: TileManagerConfig
 	voxelsConfig: VoxelsConfig
 	private storage: LocalStorage // persistent state for UI settings
-	private coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin
+	private coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin // todo ?
+	private utmCoordinateSystem: UtmCoordinateSystem
 	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
 	// Keys to super tiles which have points loaded in memory. It is ordered so that it works as a least-recently-used
 	// cache when it comes time to unload excess super tiles.
@@ -223,13 +224,12 @@ export class TileManager extends UtmInterface {
 	private tileServiceClient: TileServiceClient
 
 	constructor(
+		utmCoordinateSystem: UtmCoordinateSystem,
 		enableVoxels: boolean,
-		onSetOrigin: () => void,
 		onSuperTileLoad: (superTile: SuperTile) => void,
 		onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void,
 		onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
 	) {
-		super(onSetOrigin)
 		this.config = {
 			pointsSize: parseFloat(config.get('annotator.point_render_size')) || 1,
 			tileMessageFormat: TileMessageFormat[config.get('tile_manager.tile_message_format') as string],
@@ -245,6 +245,7 @@ export class TileManager extends UtmInterface {
 			voxelSize: 0.15,
 			voxelsMaxHeight: 7,
 		}
+		this.utmCoordinateSystem = utmCoordinateSystem
 		this.storage = new LocalStorage()
 		this.coordinateSystemInitialized = false
 		this.onSuperTileLoad = onSuperTileLoad
@@ -265,16 +266,6 @@ export class TileManager extends UtmInterface {
 		this.HSVGradient = []
 		this.generateGradient()
 		this.tileServiceClient = new TileServiceClient(onTileServiceStatusUpdate)
-	}
-
-	toString(): string {
-		let offsetStr
-		if (this.offset === undefined) {
-			offsetStr = 'undefined'
-		} else {
-			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
-		}
-		return 'TileManager(UTM Zone: ' + this.utmZoneNumber + this.utmZoneNorthernHemisphere + ', offset: [' + offsetStr + '])'
 	}
 
 	// Get all populated point clouds from all the super tiles.
@@ -311,7 +302,7 @@ export class TileManager extends UtmInterface {
 	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
 		const key = utmIndex.toString()
 		if (!this.superTiles.has(key))
-			this.superTiles = this.superTiles.set(key, new SuperTile(utmIndex, coordinateFrame, this))
+			this.superTiles = this.superTiles.set(key, new SuperTile(utmIndex, coordinateFrame, this.utmCoordinateSystem))
 		return this.superTiles.get(key)
 	}
 
@@ -329,11 +320,11 @@ export class TileManager extends UtmInterface {
 			return false
 		const p = convertToStandardCoordinateFrame(msg.origin, inputCoordinateFrame)
 
-		if (this.setOrigin(num, northernHemisphere, p))
+		if (this.utmCoordinateSystem.setOrigin(num, northernHemisphere, p))
 			return true
 		else
 			return TileManager.isDefaultUtmZone(num, northernHemisphere)
-				|| this.utmZoneNumber === num && this.utmZoneNorthernHemisphere === northernHemisphere
+				|| this.utmCoordinateSystem.utmZoneNumber === num && this.utmCoordinateSystem.utmZoneNorthernHemisphere === northernHemisphere
 	}
 
 	/**
@@ -866,7 +857,7 @@ export class TileManager extends UtmInterface {
 		for (let i = 0; i < pointsSize; i += threeDStepSize) {
 			const inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
 			const standardPoint = convertToStandardCoordinateFrame(inputPoint, coordinateFrame)
-			const threePoint = this.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
+			const threePoint = this.utmCoordinateSystem.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
 			newPositions[i] = threePoint.x
 			newPositions[i + 1] = threePoint.y
 			newPositions[i + 2] = threePoint.z

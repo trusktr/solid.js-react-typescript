@@ -6,7 +6,7 @@
 import * as AsyncFile from "async-file"
 import * as sizeOf from 'image-size'
 import {AuroraCameraParameters} from "./CameraParameters"
-import {UtmInterface} from "../UtmInterface";
+import {UtmCoordinateSystem} from "../UtmCoordinateSystem";
 import config from '@/config'
 
 // Convenience functions for Aurora data
@@ -27,7 +27,7 @@ interface ImageInfo { // 'image-size' shamefully doesn't export this
 
 // Assume we are looking for Aurora data in the form of images and metadata files, sitting
 // nearby on the local filesystem.
-export function readImageMetadataFile(imagePath: string, utmInterface: UtmInterface): Promise<AuroraCameraParameters> {
+export function readImageMetadataFile(imagePath: string, utmCoordinateSystem: UtmCoordinateSystem): Promise<AuroraCameraParameters> {
 	const metadataPath = imagePathToCameraDataPath(imagePath)
 	return new Promise((resolve: (imageInfo: ImageInfo) => void, reject: (reason?: Error) => void): void => {
 		sizeOf(imagePath, function (err: Error, dimensions: ImageInfo): void {
@@ -41,8 +41,7 @@ export function readImageMetadataFile(imagePath: string, utmInterface: UtmInterf
 			.then(text => {
 				const metadata = JSON.parse(text) as AuroraImageMetadata
 				return new AuroraCameraParameters(
-					utmInterface,
-					metadata.tileId,
+					utmCoordinateSystem,
 					screenDistanceFromOrigin,
 					imageInfo.width,
 					imageInfo.height,
