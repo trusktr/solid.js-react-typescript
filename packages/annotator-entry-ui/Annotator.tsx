@@ -40,7 +40,7 @@ import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
 import Logger from '@/util/log'
 import {getValue} from "typeguard"
-import {isNull} from "util"
+import {isNull, isNullOrUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
@@ -666,7 +666,7 @@ class Annotator {
 	// Create a UI widget to adjust application settings on the fly.
 	createControlsGui(): void {
 		// Add panel to change the settings
-		if (config.get('startup.show_color_picker'))
+		if (!isNullOrUndefined(config.get('startup.show_color_picker')))
 			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
 
 		if (!config.get('startup.show_control_panel')) {
