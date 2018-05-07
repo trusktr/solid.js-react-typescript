@@ -243,8 +243,8 @@ class Annotator {
 	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
 	private compassRose: THREE.Object3D | null // indicates the direction of North
 	private stats: Stats
-	private annotatorOrbitControls: any
-	private flyThroughOrbitControls: any
+	private annotatorOrbitControls: THREE.OrbitControls
+	private flyThroughOrbitControls: THREE.OrbitControls
 	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: number
 	private serverStatusDisplayTimer: number
@@ -2474,7 +2474,7 @@ class Annotator {
 		})
 	}
 
-	private get orbitControls() {
+	private get orbitControls(): THREE.OrbitControls {
 		if (this.uiState.isLiveMode) return this.flyThroughOrbitControls
 		else return this.annotatorOrbitControls
 	}
