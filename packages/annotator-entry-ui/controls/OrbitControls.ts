@@ -7,8 +7,7 @@
  */
 
 import {Camera, Matrix4} from "three"
-
-const THREE = require('three')
+import * as THREE from 'three'
 
 enum UpdateTypeEnum {
 	pan,
@@ -23,7 +22,8 @@ enum UpdateTypeEnum {
 //    Zoom - middle mouse, or mousewheel / touch: two finger spread or squish
 //    Pan - left mouse, or arrow keys / touch: three finger swipe
 
-THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): void {
+export
+function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
 
 	this.object = object
 
@@ -40,8 +40,8 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 	this.maxDistance = Infinity
 
 	// How far you can zoom in and out ( OrthographicCamera only )
-	this.minZoom = 0
-	this.maxZoom = Infinity
+	this.minZoom = 0.01
+	this.maxZoom = 50
 
 	// How far you can orbit vertically, upper and lower limits.
 	// Range is 0 to Math.PI radians.
@@ -307,7 +307,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		const v = new THREE.Vector3()
 
-		return function panLeft(distance: number, objectMatrix: Matrix4): void {
+		return (distance: number, objectMatrix: Matrix4): void => {
 
 			v.setFromMatrixColumn(objectMatrix, 0) // get X column of objectMatrix
 			v.multiplyScalar(-distance)
@@ -322,7 +322,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		const v = new THREE.Vector3()
 
-		return function panUp(distance: number, objectMatrix: Matrix4): void {
+		return (distance: number, objectMatrix: Matrix4): void => {
 
 			v.setFromMatrixColumn(objectMatrix, 1) // get Y column of objectMatrix
 			v.multiplyScalar(distance)
@@ -338,7 +338,8 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 		const offset = new THREE.Vector3()
 
-		return function pan(deltaX: number, deltaY: number): void {
+		return (deltaX: number, deltaY: number): void => {
+			if (!deltaX && !deltaY) return
 
 			const element = scope.domElement === document ? scope.domElement.body : scope.domElement
 
@@ -497,7 +498,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 	function handleMouseUp(_: MouseEvent): void {
 	}
 
-	function handleMouseWheel(event: any): void {
+	function handleMouseWheel(event: WheelEvent): void {
 
 		if (event.deltaY < 0) {
 
@@ -733,7 +734,7 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 	}
 
-	function onMouseWheel(event: MouseEvent): void {
+	function onMouseWheel(event: WheelEvent): void {
 
 		if (scope.enabled === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE )) return
 
@@ -889,7 +890,5 @@ THREE.OrbitControls = function (object: Camera, domElement: HTMLCanvasElement): 
 
 }
 
-THREE.OrbitControls.prototype = Object.create(THREE.EventDispatcher.prototype)
-THREE.OrbitControls.prototype.constructor = THREE.OrbitControls
-
-export const OrbitControls = THREE.OrbitControls
+OrbitControls.prototype = Object.create(THREE.EventDispatcher.prototype)
+OrbitControls.prototype.constructor = OrbitControls

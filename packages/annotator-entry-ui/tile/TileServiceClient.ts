@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const config = require('../../config')
+import config from '@/config'
 import {isNullOrUndefined} from "util"
 import * as grpc from 'grpc'
 import * as TypeLogger from 'typelogger'

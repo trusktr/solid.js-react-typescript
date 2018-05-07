@@ -12,14 +12,14 @@ import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWind
 import * as IpcMessages from "../../electron-ipc/Messages"
 import {readImageMetadataFile} from "./Aurora"
 import * as TypeLogger from "typelogger"
-import {UtmInterface} from "../UtmInterface";
+import {UtmCoordinateSystem} from "../UtmCoordinateSystem";
 import {AuroraCameraParameters} from "./CameraParameters"
+import config from '@/config'
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 const dialog = Electron.remote.dialog
-const config = require('../../config')
 
 interface ImageManagerSettings {
 	imageScreenWidth: number // image screen width in meters
@@ -31,7 +31,7 @@ interface ImageManagerSettings {
 // This tracks a set of images which can be displayed within the 3D scene as well as
 // a subset of images which are loaded in their own window for closer inspection.
 export class ImageManager {
-	private utmInterface: UtmInterface
+	private utmCoordinateSystem: UtmCoordinateSystem
 	private settings: ImageManagerSettings
 	private textureLoader: THREE.TextureLoader
 	private imageScreens: ImageScreen[]
@@ -46,7 +46,7 @@ export class ImageManager {
 	loadedImageDetails: OrderedSet<CalibratedImage>
 
 	constructor(
-		utmInterface: UtmInterface,
+		utmCoordinateSystem: UtmCoordinateSystem,
 		opacity: number,
 		renderAnnotator: () => void,
 		onImageScreenLoad: (imageScreen: ImageScreen) => void,
@@ -54,7 +54,7 @@ export class ImageManager {
 		onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void,
 		onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void,
 	) {
-		this.utmInterface = utmInterface
+		this.utmCoordinateSystem = utmCoordinateSystem
 		this.settings = {
 			imageScreenWidth: config.get('image_manager.image_screen.width'),
 			imageScreenHeight: config.get('image_manager.image_screen.height'),
@@ -117,14 +117,13 @@ export class ImageManager {
 
 	// Load an image and its metadata.
 	private loadImageFromPath(path: string): Promise<void> {
-		return readImageMetadataFile(path, this.utmInterface)
+		return readImageMetadataFile(path, this.utmCoordinateSystem)
 			.then(cameraParameters => {
 				this.setUpScreen({
 					path: path,
 					imageScreen: new ImageScreen(path, this.settings.imageScreenWidth, this.settings.imageScreenHeight, this.settings.visibleWireframe),
 					parameters: cameraParameters
 				} as CalibratedImage)
-
 			})
 			.catch(err => {
 				log.warn(`loadImageFromPath() failed on ${path}`)

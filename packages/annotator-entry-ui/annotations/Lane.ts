@@ -526,8 +526,8 @@ export class Lane extends Annotation {
 	 */
 	deleteNeighbor(neighborId: AnnotationUuid): boolean {
 		return this.deleteLeftOrRightNeighbor(neighborId) ||
-			   this.deleteFrontNeighbor(neighborId) ||
-			   this.deleteBackNeighbor(neighborId)
+			this.deleteFrontNeighbor(neighborId) ||
+			this.deleteBackNeighbor(neighborId)
 	}
 
 	deleteLeftOrRightNeighbor(neighborId: AnnotationUuid): boolean {

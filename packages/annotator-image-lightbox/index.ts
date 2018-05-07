@@ -3,4 +3,4 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-require('annotator-image-lightbox/LightboxWindowUI')
+import 'annotator-image-lightbox/LightboxWindowUI'

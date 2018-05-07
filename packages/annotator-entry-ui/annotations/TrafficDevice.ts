@@ -15,12 +15,12 @@ import {QuaternionJsonInterface} from "../geometry/ThreeHelpers"
 TypeLogger.setLoggerOutput(console as any)
 const log = TypeLogger.getLogger(__filename)
 
-const rygFrontUrl = require('../../annotator-assets/images/TrafficDevice/ryg_front.png')
-const rygBackUrl = require('../../annotator-assets/images/TrafficDevice/ryg_back.png')
-const stopFrontUrl = require('../../annotator-assets/images/TrafficDevice/stop_front.png')
-const stopBackUrl = require('../../annotator-assets/images/TrafficDevice/stop_back.png')
-const yieldFrontUrl = require('../../annotator-assets/images/TrafficDevice/yield_front.png')
-const yieldBackUrl = require('../../annotator-assets/images/TrafficDevice/yield_back.png')
+import * as rygFrontUrl from '../../annotator-assets/images/TrafficDevice/ryg_front.png'
+import * as rygBackUrl from '../../annotator-assets/images/TrafficDevice/ryg_back.png'
+import * as stopFrontUrl from '../../annotator-assets/images/TrafficDevice/stop_front.png'
+import * as stopBackUrl from '../../annotator-assets/images/TrafficDevice/stop_back.png'
+import * as yieldFrontUrl from '../../annotator-assets/images/TrafficDevice/yield_front.png'
+import * as yieldBackUrl from '../../annotator-assets/images/TrafficDevice/yield_back.png'
 
 export enum TrafficDeviceType {
 	UNKNOWN = 0,

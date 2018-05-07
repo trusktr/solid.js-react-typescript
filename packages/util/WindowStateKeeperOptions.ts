@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const config = require('../config')
+import config from '@/config'
 
 const applicationDirectory = config.get('preferences.directory') || 'mapper-annotator'
 const windowStateDirectory = 'window-state'

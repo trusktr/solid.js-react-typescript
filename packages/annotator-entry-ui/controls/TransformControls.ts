@@ -3,19 +3,9 @@
  */
 
 import {BufferGeometry, Camera, Euler, Object3D, Vector3} from "three"
+import * as THREE from 'three'
 
 // tslint:disable:no-string-literal
-
-const THREE = require('three')
-
-declare global {
-	namespace THREE {
-		const TransformGizmo: any
-		const TransformGizmoTranslate: any
-		const TransformGizmoRotate: any
-		const TransformGizmoScale: any
-	}
-}
 
 const GizmoMaterial = function (parameters: any) {
 
@@ -89,7 +79,8 @@ GizmoLineMaterial.prototype.constructor = GizmoLineMaterial
 
 const pickerMaterial = new GizmoMaterial({visible: false, transparent: false})
 
-THREE.TransformGizmo = function () {
+export
+function TransformGizmo() {
 
 	this.init = function () {
 
@@ -202,10 +193,10 @@ THREE.TransformGizmo = function () {
 
 }
 
-THREE.TransformGizmo.prototype = Object.create(THREE.Object3D.prototype)
-THREE.TransformGizmo.prototype.constructor = THREE.TransformGizmo
+TransformGizmo.prototype = Object.create(THREE.Object3D.prototype)
+TransformGizmo.prototype.constructor = TransformGizmo
 
-THREE.TransformGizmo.prototype.update = function (rotation: Euler, eye: Vector3): void {
+TransformGizmo.prototype.update = function (rotation: Euler, eye: Vector3): void {
 
 	const vec1 = new THREE.Vector3(0, 0, 0)
 	const vec2 = new THREE.Vector3(0, 1, 0)
@@ -227,9 +218,10 @@ THREE.TransformGizmo.prototype.update = function (rotation: Euler, eye: Vector3)
 
 }
 
-THREE.TransformGizmoTranslate = function (enableThreeAxisTranslation: boolean): void {
+export
+function TransformGizmoTranslate(enableThreeAxisTranslation: boolean): void {
 
-	THREE.TransformGizmo.call(this)
+	TransformGizmo.call(this)
 
 	const arrowGeometry = new THREE.Geometry()
 	const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0, 0.05, 0.2, 12, 1, false))
@@ -373,12 +365,13 @@ THREE.TransformGizmoTranslate = function (enableThreeAxisTranslation: boolean): 
 
 }
 
-THREE.TransformGizmoTranslate.prototype = Object.create(THREE.TransformGizmo.prototype)
-THREE.TransformGizmoTranslate.prototype.constructor = THREE.TransformGizmoTranslate
+TransformGizmoTranslate.prototype = Object.create(TransformGizmo.prototype)
+TransformGizmoTranslate.prototype.constructor = TransformGizmoTranslate
 
-THREE.TransformGizmoRotate = function () {
+export
+function TransformGizmoRotate() {
 
-	THREE.TransformGizmo.call(this)
+	TransformGizmo.call(this)
 
 	const CircleGeometry = (radius: number, facing: string, arc: number): BufferGeometry => {
 
@@ -461,7 +454,7 @@ THREE.TransformGizmoRotate = function () {
 
 	this.update = function (_: Euler, eye2: Vector3): void {
 
-		THREE.TransformGizmo.prototype.update.apply(this, arguments)
+		TransformGizmo.prototype.update.apply(this, arguments)
 
 		const tempMatrix = new THREE.Matrix4()
 		const worldRotation = new THREE.Euler(0, 0, 1)
@@ -516,12 +509,13 @@ THREE.TransformGizmoRotate = function () {
 
 }
 
-THREE.TransformGizmoRotate.prototype = Object.create(THREE.TransformGizmo.prototype)
-THREE.TransformGizmoRotate.prototype.constructor = THREE.TransformGizmoRotate
+TransformGizmoRotate.prototype = Object.create(TransformGizmo.prototype)
+TransformGizmoRotate.prototype.constructor = TransformGizmoRotate
 
-THREE.TransformGizmoScale = function () {
+export
+function TransformGizmoScale() {
 
-	THREE.TransformGizmo.call(this)
+	TransformGizmo.call(this)
 
 	const arrowGeometry = new THREE.Geometry()
 	const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.125, 0.125, 0.125))
@@ -619,10 +613,11 @@ THREE.TransformGizmoScale = function () {
 
 }
 
-THREE.TransformGizmoScale.prototype = Object.create(THREE.TransformGizmo.prototype)
-THREE.TransformGizmoScale.prototype.constructor = THREE.TransformGizmoScale
+TransformGizmoScale.prototype = Object.create(TransformGizmo.prototype)
+TransformGizmoScale.prototype.constructor = TransformGizmoScale
 
-THREE.TransformControls = function (camera: Camera, domElement: any, enableThreeAxisTranslation: boolean) {
+export
+function TransformControls(camera: Camera, domElement: any, enableThreeAxisTranslation: boolean) {
 
 	THREE.Object3D.call(this)
 
@@ -643,9 +638,9 @@ THREE.TransformControls = function (camera: Camera, domElement: any, enableThree
 	let _dragging = false
 	const _gizmo = {
 
-		"translate": new THREE.TransformGizmoTranslate(enableThreeAxisTranslation),
-		"rotate": new THREE.TransformGizmoRotate(),
-		"scale": new THREE.TransformGizmoScale()
+		"translate": new TransformGizmoTranslate(enableThreeAxisTranslation),
+		"rotate": new TransformGizmoRotate(),
+		"scale": new TransformGizmoScale()
 	}
 
 	for (const type in _gizmo) {
@@ -891,7 +886,7 @@ THREE.TransformControls = function (camera: Camera, domElement: any, enableThree
 
 		const intersect = intersectObjects(pointer, _gizmo[_mode].pickers.children)
 
-		let axis = null
+		let axis = ''
 
 		if (intersect) {
 
@@ -1239,9 +1234,7 @@ THREE.TransformControls = function (camera: Camera, domElement: any, enableThree
 
 	}
 
-} as any
+}
 
-THREE.TransformControls.prototype = Object.create(THREE.Object3D.prototype)
-THREE.TransformControls.prototype.constructor = THREE.TransformControls
-
-export const TransformControls = THREE.TransformControls
+TransformControls.prototype = Object.create(THREE.Object3D.prototype)
+TransformControls.prototype.constructor = TransformControls

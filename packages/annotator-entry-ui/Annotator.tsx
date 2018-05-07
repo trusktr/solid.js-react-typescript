@@ -3,12 +3,12 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const config = require('../config')
+import config from '@/config'
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file"
 import * as Electron from 'electron'
-require('electron-unhandled')()
-const sprintf = require("sprintf-js").sprintf
+import * as electronUnhandled from 'electron-unhandled'
+import {sprintf} from 'sprintf-js'
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
 import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
@@ -22,6 +22,7 @@ import {
 } from "./geometry/CoordinateFrame"
 import {isTupleOfNumbers} from "../util/Validation"
 import {StatusWindowController} from "./status/StatusWindowController"
+import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
 import {TileManager} from './tile/TileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
@@ -29,6 +30,7 @@ import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
 import {getCenter, getSize, getClosestPoints} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
+import {Sky} from "./controls/Sky"
 import {getDecorations} from "./Decorations"
 import {AnnotationType} from './annotations/AnnotationType'
 import {AnnotationManager, OutputFormat} from './AnnotationManager'
@@ -36,13 +38,12 @@ import {Annotation} from './annotations/AnnotationBase'
 import {NeighborLocation, NeighborDirection, Lane} from './annotations/Lane'
 import {Territory} from "./annotations/Territory"
 import {Boundary} from "./annotations/Boundary"
-import * as TypeLogger from 'typelogger'
+import Logger from '@/util/log'
 import {getValue} from "typeguard"
 import {isNull} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
-import {Socket} from 'zmq'
 import {LocationServerStatusClient, LocationServerStatusLevel} from "./status/LocationServerStatusClient"
 import {ImageManager} from "./image/ImageManager"
 import {ImageScreen} from "./image/ImageScreen"
@@ -51,18 +52,19 @@ import {Connection} from "./annotations/Connection"
 import {TrafficDevice} from "./annotations/TrafficDevice"
 import createPromise from "../util/createPromise"
 import { PromiseReturn } from "../util/createPromise"
-const  watch = require('watch')
+import * as watch from 'watch'
+import * as Stats from 'stats.js'
+import * as zmq from 'zmq'
+import {Socket} from 'zmq'
+import * as OBJLoader from 'three-obj-loader'
+import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
 
-const Stats = require("stats.js")
 const dialog = Electron.remote.dialog
-const zmq = require('zmq')
-const OBJLoader = require('three-obj-loader')
+
+electronUnhandled()
 OBJLoader(THREE)
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
-const root = $("#root")
+const log = Logger(__filename)
 
 function noop(): void {
 	return
@@ -137,9 +139,8 @@ interface MousePosition {
 }
 
 interface AnnotatorSettings {
-	background: string
+	background: THREE.Color
 	cameraOffset: THREE.Vector3
-	lightOffset: THREE.Vector3
 	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
 	defaultAnimationFrameIntervalMs: number | false
 	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
@@ -156,6 +157,8 @@ interface AnnotatorSettings {
 	timeBetweenErrorDialogsMs: number
 	timeToDisplayHealthyStatusMs: number
 	maxDistanceToDecorations: number // meters
+	skyRadius: number
+	cameraToSkyMaxDistance: number
 }
 
 interface FlyThroughSettings {
@@ -204,6 +207,8 @@ interface UiState {
 	imageScreenOpacity: number
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
 	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
+	skyPosition2D: THREE.Vector2 // sky's position, projected down to approximately the ground surface
+	cameraPosition2D: THREE.Vector2 // active camera's position, projected down to approximately the ground surface
 }
 
 // Area of Interest: where to load point clouds
@@ -235,18 +240,19 @@ class Annotator {
 	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
 	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
+	private sky: THREE.Object3D // makes it easier to tell up from down
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
+	private utmCoordinateSystem: UtmCoordinateSystem
 	private tileManager: TileManager
 	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
 	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
 	private compassRose: THREE.Object3D | null // indicates the direction of North
-	private light: THREE.SpotLight
 	private stats: Stats
-	private annotatorOrbitControls: any
-	private flyThroughOrbitControls: any
+	private annotatorOrbitControls: THREE.OrbitControls
+	private flyThroughOrbitControls: THREE.OrbitControls
 	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: number
 	private serverStatusDisplayTimer: number
@@ -270,25 +276,27 @@ class Annotator {
 	private locationServerStatusClient: LocationServerStatusClient
 	private layerToggle: Map<Layer, Toggle>
 	private gui: DatGui | null
-	private loop: any
-	private flyThroughLoop: any
+	private loop: AnimationLoop
+	private flyThroughLoop: AnimationLoop
 	private shouldAnimate: boolean
 	private updateOrbitControls: boolean
+	private root: HTMLElement
+	private sceneInitialized: boolean
 
 	constructor() {
 		this.storage = new LocalStorage()
 
 		this.shouldAnimate = false
 		this.updateOrbitControls = false
+		this.sceneInitialized = false
 
 		if (config.get('startup.animation.fps'))
 			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
 		const animationFps = config.get('startup.render.fps')
 
 		this.settings = {
-			background: config.get('startup.background_color') || '#082839',
+			background: new THREE.Color(config.get('startup.background_color') || '#082839'),
 			cameraOffset: new THREE.Vector3(0, 400, 200),
-			lightOffset: new THREE.Vector3(0, 1500, 200),
 			orthoCameraHeight: 100, // enough to view ~1 city block of data
 			defaultAnimationFrameIntervalMs: animationFps === 'device' ? false : 1 / (animationFps || 10),
 			animationFrameIntervalSecs: 0,
@@ -305,7 +313,10 @@ class Annotator {
 			timeBetweenErrorDialogsMs: 30000,
 			timeToDisplayHealthyStatusMs: 10000,
 			maxDistanceToDecorations: 50000,
+			skyRadius: 8000,
+			cameraToSkyMaxDistance: 0,
 		}
+		this.settings.cameraToSkyMaxDistance = this.settings.skyRadius * 0.05
 		const cameraOffset: [number, number, number] = config.get('startup.camera_offset')
 		if (isTupleOfNumbers(cameraOffset, 3)) {
 			this.settings.cameraOffset = new THREE.Vector3().fromArray(cameraOffset)
@@ -350,6 +361,8 @@ class Annotator {
 			imageScreenOpacity: parseFloat(config.get('image_manager.image.opacity')) || 0.5,
 			lastPointCloudLoadedErrorModalMs: 0,
 			lastCameraCenterPoint: null,
+			skyPosition2D: new THREE.Vector2(),
+			cameraPosition2D: new THREE.Vector2(),
 		}
 		this.aoiState = {
 			enabled: !!config.get('annotator.area_of_interest.enable'),
@@ -366,10 +379,11 @@ class Annotator {
 		this.decorations = []
 		this.raycasterAnnotation = new THREE.Raycaster()
 		this.raycasterImageScreen = new THREE.Raycaster()
+		this.utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager(
+			this.utmCoordinateSystem,
 			this.settings.generateVoxelsOnPointLoad,
-			this.onSetOrigin,
 			this.onSuperTileLoad,
 			this.onSuperTileUnload,
 			this.onTileServiceStatusUpdate
@@ -383,7 +397,7 @@ class Annotator {
 		this.highlightedLightboxImage = null
 		this.lightboxImageRays = []
 		this.imageManager = new ImageManager(
-			this.tileManager,
+			this.utmCoordinateSystem,
 			this.uiState.imageScreenOpacity,
 			this.render,
 			this.onImageScreenLoad,
@@ -450,9 +464,20 @@ class Annotator {
 		}
 	}
 
-	destroy(): void {
-		if (this.gui) this.gui.destroy()
+	async mount( root: HTMLElement ): Promise<void> {
+		this.root = root
+		if ( !this.sceneInitialized ) await this.initScene()
+		root.appendChild(this.renderer.domElement)
+		this.createControlsGui()
+		this.makeStats()
+		this.startAnimation()
+	}
+
+	unmount(): void {
 		this.stopAnimation()
+		this.destroyStats()
+		this.destroyControlsGui()
+		this.renderer.domElement.remove()
 	}
 
 	exitApp(): void {
@@ -463,13 +488,13 @@ class Annotator {
 	 * Create the 3D Scene and add some basic objects. It also initializes
 	 * several event listeners.
 	 */
-	initScene(): Promise<void> {
+	private initScene(): Promise<void> {
 		log.info(`Building scene`)
 
 		const [width, height]: Array<number> = this.getContainerSize()
 
 		this.annotatorPerspectiveCam = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		this.annotatorOrthoCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 1000)
+		this.annotatorOrthoCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
 
 		// Create scene and camera
 		this.scene = new THREE.Scene()
@@ -484,14 +509,11 @@ class Annotator {
 		this.setOrthographicCameraDimensions(width, height)
 
 		// Add some lights
-		this.scene.add(new THREE.AmbientLight(0xf0f0f0))
-		this.light = new THREE.SpotLight(0xffffff, 1.5)
-		this.light.castShadow = true
-		this.light.shadow = new THREE.SpotLightShadow(new THREE.PerspectiveCamera(70, 1, 200, 2000))
-		this.light.shadow.mapSize.width = 1024
-		this.light.shadow.bias = -0.000222
-		this.light.shadow.mapSize.height = 1024
-		this.scene.add(this.light)
+		this.scene.add(new THREE.AmbientLight(0xffffff))
+
+		// Draw the sky.
+		this.sky = Sky(this.settings.background, new THREE.Color(0xccccff), this.settings.skyRadius)
+		this.scene.add(this.sky)
 
 		// Add a "ground plane" to facilitate annotations
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
@@ -531,24 +553,13 @@ class Annotator {
 			this.compassRose = null
 
 		// All the annotations go here.
-		this.annotationManager = new AnnotationManager(this.scene, this.onChangeActiveAnnotation)
+		this.annotationManager = new AnnotationManager(this.utmCoordinateSystem, this.scene, this.onChangeActiveAnnotation)
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
-		this.renderer.setClearColor(new THREE.Color(this.settings.background))
+		this.renderer.setClearColor(this.settings.background)
 		this.renderer.setPixelRatio(window.devicePixelRatio)
 		this.renderer.setSize(width, height)
-		this.renderer.shadowMap.enabled = true
-		root.append(this.renderer.domElement)
-
-		// Create stats widget to display frequency of rendering
-		if (config.get('startup.show_stats_module')) {
-			this.stats = new Stats()
-			this.stats.dom.style.top = 'initial' // disable existing setting
-			this.stats.dom.style.bottom = '50px' // above Mapper logo
-			this.stats.dom.style.left = '13px'
-			root.append(this.stats.dom)
-		}
 
 		// Give the status window a place to draw in.
 		const statusElementId = 'status_window'
@@ -564,14 +575,6 @@ class Annotator {
 		this.initAnnotatorOrbitControls()
 		this.initFlyThroughOrbitControls()
 		this.initTransformControls()
-
-		// Add panel to change the settings
-		if (config.get('startup.show_color_picker'))
-			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
-		if (config.get('startup.show_control_panel'))
-			this.gui = this.createControlsGui()
-		else
-			this.gui = null
 
 		// Add listeners
 		window.addEventListener('focus', this.onFocus)
@@ -637,14 +640,41 @@ class Annotator {
 			})
 	}
 
-	private get camera() {
+	private makeStats(): void {
+
+		if (!config.get('startup.show_stats_module')) return
+
+		// Create stats widget to display frequency of rendering
+		this.stats = new Stats()
+		this.stats.dom.style.top = 'initial' // disable existing setting
+		this.stats.dom.style.bottom = '50px' // above Mapper logo
+		this.stats.dom.style.left = '13px'
+		this.root.appendChild(this.stats.dom)
+
+	}
+
+	private destroyStats(): void {
+		if (!config.get('startup.show_stats_module')) return
+		this.stats.dom.remove()
+	}
+
+	private get camera(): THREE.Camera {
 		if (this.uiState.isLiveMode) return this.flyThroughCamera
 		return this.annotatorCamera
 	}
 
 	// Create a UI widget to adjust application settings on the fly.
-	private createControlsGui(): DatGui {
-		const gui = new DatGui({
+	createControlsGui(): void {
+		// Add panel to change the settings
+		if (config.get('startup.show_color_picker'))
+			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
+
+		if (!config.get('startup.show_control_panel')) {
+			this.gui = null
+			return
+		}
+
+		const gui = this.gui = new DatGui({
 			hideable: false,
 			closeOnTop: true,
 		} as GUIParams)
@@ -655,6 +685,8 @@ class Annotator {
 			position: absolute;
 			top: 13px;
 			left: 13px;
+			right: initial;
+			bottom: initial;
 			background: rgba(0,0,0,0.5);
 			padding: 10px;
 		`)
@@ -698,8 +730,11 @@ class Annotator {
 		const folderConnection = gui.addFolder('Connection params')
 		folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
 		folderConnection.open()
+	}
 
-		return gui
+	private destroyControlsGui(): void {
+		if (!config.get('startup.show_control_panel')) return
+		if (this.gui) this.gui.destroy()
 	}
 
 	/**
@@ -884,7 +919,6 @@ class Annotator {
 			this.grid.geometry.translate(x, y, z)
 		}
 		if (resetCamera) {
-			this.light.position.set(x + this.settings.lightOffset.x, y + this.settings.lightOffset.y, z + this.settings.lightOffset.z)
 			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
 			this.orbitControls.target.set(x, y, z)
 			this.orbitControls.update()
@@ -982,9 +1016,6 @@ class Annotator {
 	// Do some house keeping after loading a point cloud, such as drawing decorations
 	// and centering the stage and the camera on the point cloud.
 	private pointCloudLoadedSideEffects(resetCamera: boolean = true): void {
-		if (!this.annotationManager.setOriginWithInterface(this.tileManager))
-			log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tile's origin ${this.tileManager.getOrigin()}`)
-
 		this.setLayerVisibility([Layer.POINT_CLOUD])
 
 		if (this.settings.generateVoxelsOnPointLoad) {
@@ -1177,7 +1208,7 @@ class Annotator {
 
 				const material = new THREE.ShadowMaterial()
 				const plane = new THREE.Mesh(geometry, material)
-				const origin = this.tileManager.utmVectorToThreeJs(tile.index.origin)
+				const origin = this.utmCoordinateSystem.utmVectorToThreeJs(tile.index.origin)
 				plane.position.x = origin.x + xSize / 2
 				plane.position.y = y
 				plane.position.z = origin.z - zSize / 2
@@ -1325,14 +1356,26 @@ class Annotator {
 			this.loadPointCloudDataFromMapServer(
 				threeJsSearches.map(threeJs => {
 					return {
-						minPoint: this.tileManager.threeJsToUtm(threeJs.minPoint),
-						maxPoint: this.tileManager.threeJsToUtm(threeJs.maxPoint),
+						minPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
+						maxPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
 					}
 				}),
 				true,
 				false
 			)
 				.catch(err => {log.warn(err.message)})
+		}
+	}
+
+	// The sky needs to be big enough that we don't bump into it but not so big that the camera can't see it.
+	// So make it pretty big, then move it around to keep it centered over the camera in the XZ plane. Sky radius
+	// and camera zoom settings, set elsewhere, should keep the camera from penetrating the shell in the Y dimension.
+	private updateSkyPosition = (): void => {
+		this.uiState.cameraPosition2D.set(this.camera.position.x, this.camera.position.z)
+		if (this.uiState.cameraPosition2D.distanceTo(this.uiState.skyPosition2D) > this.settings.cameraToSkyMaxDistance) {
+			this.sky.position.setX(this.uiState.cameraPosition2D.x)
+			this.sky.position.setZ(this.uiState.cameraPosition2D.y)
+			this.uiState.skyPosition2D.set(this.sky.position.x, this.sky.position.z)
 		}
 	}
 
@@ -1348,7 +1391,7 @@ class Annotator {
 			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
 			if (!samePoint) {
 				this.uiState.lastCameraCenterPoint = newPoint
-				const utm = this.tileManager.threeJsToUtm(newPoint)
+				const utm = this.utmCoordinateSystem.threeJsToUtm(newPoint)
 				this.updateCurrentLocationStatusMessage(utm)
 			}
 		}
@@ -1364,8 +1407,6 @@ class Annotator {
 		this.setLayerVisibility([Layer.ANNOTATIONS])
 		return this.annotationManager.loadAnnotationsFromFile(fileName)
 			.then(focalPoint => {
-				if (!this.tileManager.setOriginWithInterface(this.annotationManager))
-					log.warn(`annotations origin ${this.annotationManager.getOrigin()} does not match tiles origin ${this.tileManager.getOrigin()}`)
 				if (focalPoint)
 					this.setStageByVector(focalPoint)
 			})
@@ -2128,7 +2169,8 @@ class Annotator {
 	 * @returns {[number,number]}
 	 */
 	private getContainerSize = (): Array<number> => {
-		return getValue(() => [root.width(), root.height()], [0, 0])
+		const $root = $(this.root)
+		return getValue(() => [$root.width(), $root.height()], [0, 0])
 	}
 
 	private onWindowResize = (): void => {
@@ -2137,8 +2179,7 @@ class Annotator {
 		if ( this.camera instanceof THREE.PerspectiveCamera ) {
 			this.camera.aspect = width / height
 			this.camera.updateProjectionMatrix()
-		}
-		else {
+		} else {
 			this.setOrthographicCameraDimensions(width, height)
 		}
 
@@ -2151,11 +2192,11 @@ class Annotator {
 	private setOrthographicCameraDimensions(width: number, height: number): void {
 		const orthoWidth = this.settings.orthoCameraHeight * (width / height)
 		const orthoHeight = this.settings.orthoCameraHeight
-		this.camera.left = orthoWidth / -2
-		this.camera.right = orthoWidth / 2
-		this.camera.top = orthoHeight / 2
-		this.camera.bottom = orthoHeight / -2
-		this.camera.updateProjectionMatrix()
+		this.annotatorOrthoCam.left = orthoWidth / -2
+		this.annotatorOrthoCam.right = orthoWidth / 2
+		this.annotatorOrthoCam.top = orthoHeight / 2
+		this.annotatorOrthoCam.bottom = orthoHeight / -2
+		this.annotatorOrthoCam.updateProjectionMatrix()
 	}
 
 	private onFocus = (): void => {
@@ -2407,10 +2448,13 @@ class Annotator {
 	 */
 	private initAnnotatorOrbitControls(): void {
 		this.annotatorOrbitControls = new OrbitControls(this.annotatorCamera, this.renderer.domElement)
-		this.annotatorOrbitControls.minDistance = -Infinity
+		this.annotatorOrbitControls.minDistance = 0.1
+		this.annotatorOrbitControls.maxDistance = 5000
 		this.annotatorOrbitControls.keyPanSpeed = 100
 
 		// Add listeners.
+
+		this.annotatorOrbitControls.addEventListener('change', this.updateSkyPosition)
 
 		// Update some UI if the camera panned -- that is it moved in relation to the model.
 		this.annotatorOrbitControls.addEventListener('pan', this.displayCameraInfo)
@@ -2432,7 +2476,7 @@ class Annotator {
 	}
 
 	private initFlyThroughOrbitControls(): void {
-		this.flyThroughOrbitControls = new THREE.OrbitControls(this.flyThroughCamera, this.renderer.domElement)
+		this.flyThroughOrbitControls = new OrbitControls(this.flyThroughCamera, this.renderer.domElement)
 		this.flyThroughOrbitControls.enabled = false
 		this.flyThroughOrbitControls.minDistance = 10
 		this.flyThroughOrbitControls.maxDistance = 5000
@@ -2440,6 +2484,8 @@ class Annotator {
 		this.flyThroughOrbitControls.maxPolarAngle = Math.PI / 2
 		this.flyThroughOrbitControls.keyPanSpeed = 100
 		this.flyThroughOrbitControls.enablePan = false
+
+		this.flyThroughOrbitControls.addEventListener('change', this.updateSkyPosition)
 
 		this.flyThroughOrbitControls.addEventListener('start', () => {
 			this.updateOrbitControls = true
@@ -2451,7 +2497,7 @@ class Annotator {
 		})
 	}
 
-	private get orbitControls() {
+	private get orbitControls(): THREE.OrbitControls {
 		if (this.uiState.isLiveMode) return this.flyThroughOrbitControls
 		else return this.annotatorOrbitControls
 	}
@@ -3543,8 +3589,7 @@ class Annotator {
 			try {
 				const manager = new THREE.LoadingManager()
 				const loader = new THREE.OBJLoader(manager)
-				const car = require('../annotator-assets/models/BMW_X5_4.obj')
-				loader.load(car, (object: THREE.Object3D) => {
+				loader.load(carModelOBJ, (object: THREE.Object3D) => {
 					const boundingBox = new THREE.Box3().setFromObject(object)
 					const boxSize = boundingBox.getSize().toArray()
 					const modelLength = Math.max(...boxSize)
@@ -3620,7 +3665,7 @@ class Annotator {
 		}
 	}
 
-	private show(selector: string): void {
+	private show( selector: string ): void {
 		for ( const el of Array.from( $( selector ) ) ) {
 			el.classList.remove('hidden')
 		}
@@ -3728,7 +3773,7 @@ class Annotator {
 	private updateCarWithPose(pose: Models.PoseMessage): void {
 		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
 		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
-		const positionThreeJs = this.tileManager.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+		const positionThreeJs = this.utmCoordinateSystem.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
 		const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
 		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
 		const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
@@ -3743,11 +3788,11 @@ class Annotator {
 		// This is a hack to allow data with no coordinate reference system to pass through the UTM classes.
 		// Data in local coordinate systems tend to have small values for X (and Y and Z) which are invalid in UTM.
 		if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO fix this.
-			const positionLla = this.tileManager.utmVectorToLngLatAlt(positionUtm)
+			const positionLla = this.utmCoordinateSystem.utmVectorToLngLatAlt(positionUtm)
 			const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
 			this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
 		}
-		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.tileManager.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
+		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.utmCoordinateSystem.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
 		this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
 	}
 
@@ -3795,7 +3840,7 @@ class Annotator {
 		return getDecorations()
 			.then(decorations => {
 				decorations.forEach(decoration => {
-					const position = this.tileManager.lngLatAltToThreeJs(decoration.userData)
+					const position = this.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
 					const distanceFromOrigin = position.length()
 					if (distanceFromOrigin < this.settings.maxDistanceToDecorations) {
 						// Don't worry about rotation. The object is just floating in space.
