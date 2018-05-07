@@ -2491,7 +2491,7 @@ class Annotator {
 		this.flyThroughOrbitControls.keyPanSpeed = 100
 		this.flyThroughOrbitControls.enablePan = false
 
-		this.annotatorOrbitControls.addEventListener('change', this.updateSkyPosition)
+		this.flyThroughOrbitControls.addEventListener('change', this.updateSkyPosition)
 
 		this.flyThroughOrbitControls.addEventListener('start', () => {
 			this.updateOrbitControls = true
