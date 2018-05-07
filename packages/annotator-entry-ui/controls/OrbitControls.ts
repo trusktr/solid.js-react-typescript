@@ -40,8 +40,8 @@ function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
 	this.maxDistance = Infinity
 
 	// How far you can zoom in and out ( OrthographicCamera only )
-	this.minZoom = 0
-	this.maxZoom = Infinity
+	this.minZoom = 0.01
+	this.maxZoom = 50
 
 	// How far you can orbit vertically, upper and lower limits.
 	// Range is 0 to Math.PI radians.
@@ -307,7 +307,7 @@ function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
 
 		const v = new THREE.Vector3()
 
-		return function panLeft(distance: number, objectMatrix: Matrix4): void {
+		return (distance: number, objectMatrix: Matrix4): void => {
 
 			v.setFromMatrixColumn(objectMatrix, 0) // get X column of objectMatrix
 			v.multiplyScalar(-distance)
@@ -322,7 +322,7 @@ function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
 
 		const v = new THREE.Vector3()
 
-		return function panUp(distance: number, objectMatrix: Matrix4): void {
+		return (distance: number, objectMatrix: Matrix4): void => {
 
 			v.setFromMatrixColumn(objectMatrix, 1) // get Y column of objectMatrix
 			v.multiplyScalar(distance)
@@ -338,7 +338,8 @@ function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
 
 		const offset = new THREE.Vector3()
 
-		return function pan(deltaX: number, deltaY: number): void {
+		return (deltaX: number, deltaY: number): void => {
+			if (!deltaX && !deltaY) return
 
 			const element = scope.domElement === document ? scope.domElement.body : scope.domElement
 
@@ -497,7 +498,7 @@ function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
 	function handleMouseUp(_: MouseEvent): void {
 	}
 
-	function handleMouseWheel(event: any): void {
+	function handleMouseWheel(event: WheelEvent): void {
 
 		if (event.deltaY < 0) {
 
@@ -733,7 +734,7 @@ function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
 
 	}
 
-	function onMouseWheel(event: MouseEvent): void {
+	function onMouseWheel(event: WheelEvent): void {
 
 		if (scope.enabled === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE )) return
 
