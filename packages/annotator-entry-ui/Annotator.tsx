@@ -176,6 +176,7 @@ interface LiveModeSettings {
 }
 
 interface UiState {
+	sceneInitialized: boolean
 	layerGroupIndex: number
 	lockBoundaries: boolean
 	lockLanes: boolean
@@ -281,7 +282,6 @@ class Annotator {
 	private updateOrbitControls: boolean
 	private flyThroughPaused: boolean
 	private root: HTMLElement
-	private sceneInitialized: boolean
 
 	constructor() {
 		this.storage = new LocalStorage()
@@ -289,7 +289,6 @@ class Annotator {
 		this.shouldAnimate = false
 		this.updateOrbitControls = false
 		this.flyThroughPaused = false
-		this.sceneInitialized = false
 
 		if (config.get('startup.animation.fps'))
 			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
@@ -334,6 +333,7 @@ class Annotator {
 		}
 		this.settings.animationFrameIntervalSecs = this.settings.defaultAnimationFrameIntervalMs
 		this.uiState = {
+			sceneInitialized: false,
 			layerGroupIndex: defaultLayerGroupIndex,
 			lockBoundaries: false,
 			lockLanes: false,
@@ -467,7 +467,7 @@ class Annotator {
 
 	async mount( root: HTMLElement ): Promise<void> {
 		this.root = root
-		if ( !this.sceneInitialized ) await this.initScene()
+		if (!this.uiState.sceneInitialized) await this.initScene()
 		root.appendChild(this.renderer.domElement)
 		this.createControlsGui()
 		this.makeStats()
@@ -641,6 +641,7 @@ class Annotator {
 				if (this.uiState.isKioskMode) this.toggleListen()
 				// Initialize socket for use when "live mode" operation is on
 				this.initClient()
+				this.uiState.sceneInitialized = true
 			})
 	}
 
