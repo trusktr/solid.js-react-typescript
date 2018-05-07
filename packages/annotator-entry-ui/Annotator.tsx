@@ -234,6 +234,10 @@ class Annotator {
 	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
 	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
+	private sky: THREE.Object3D // makes it easier to tell up from down
+	private skyPosition2D: THREE.Vector2 // sky's position, projected down to approximately the ground surface
+	private cameraPosition2D: THREE.Vector2 // active camera's position, projected down to approximately the ground surface
+	private cameraToSkyMaxDistance: number
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
 	private tileManager: TileManager
@@ -268,8 +272,8 @@ class Annotator {
 	private locationServerStatusClient: LocationServerStatusClient
 	private layerToggle: Map<Layer, Toggle>
 	private gui: DatGui | null
-	private loop: any
-	private flyThroughLoop: any
+	private loop: AnimationLoop
+	private flyThroughLoop: AnimationLoop
 	private shouldAnimate: boolean
 	private updateOrbitControls: boolean
 	private flyThroughPaused: boolean
@@ -498,7 +502,14 @@ class Annotator {
 
 		// Add some lights
 		this.scene.add(new THREE.AmbientLight(0xffffff))
-		this.scene.add(Sky(this.settings.background, new THREE.Color(0xccccff), 8000))
+
+		// Draw the sky.
+		const skyRadius = 8000
+		this.cameraToSkyMaxDistance = skyRadius * 0.1
+		this.sky = Sky(this.settings.background, new THREE.Color(0xccccff), skyRadius)
+		this.scene.add(this.sky)
+		this.skyPosition2D = new THREE.Vector2(this.sky.position.x, this.sky.position.z)
+		this.cameraPosition2D = new THREE.Vector2()
 
 		// Add a "ground plane" to facilitate annotations
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
@@ -1355,6 +1366,18 @@ class Annotator {
 				false
 			)
 				.catch(err => {log.warn(err.message)})
+		}
+	}
+
+	// The sky needs to be big enough that we don't bump into it but not so big that the camera can't see it.
+	// So make it pretty big, then move it around to keep it centered over the camera in the XZ plane. Sky radius
+	// and camera zoom settings, set elsewhere, should keep the camera from penetrating the shell in the Y dimension.
+	private updateSkyPosition = (): void => {
+		this.cameraPosition2D.set(this.camera.position.x, this.camera.position.z)
+		if (this.cameraPosition2D.distanceTo(this.skyPosition2D) > this.cameraToSkyMaxDistance) {
+			this.sky.position.setX(this.cameraPosition2D.x)
+			this.sky.position.setZ(this.cameraPosition2D.y)
+			this.skyPosition2D.set(this.sky.position.x, this.sky.position.z)
 		}
 	}
 
@@ -2435,6 +2458,8 @@ class Annotator {
 
 		// Add listeners.
 
+		this.annotatorOrbitControls.addEventListener('change', this.updateSkyPosition)
+
 		// Update some UI if the camera panned -- that is it moved in relation to the model.
 		this.annotatorOrbitControls.addEventListener('pan', this.displayCameraInfo)
 
@@ -2463,6 +2488,8 @@ class Annotator {
 		this.flyThroughOrbitControls.maxPolarAngle = Math.PI / 2
 		this.flyThroughOrbitControls.keyPanSpeed = 100
 		this.flyThroughOrbitControls.enablePan = false
+
+		this.annotatorOrbitControls.addEventListener('change', this.updateSkyPosition)
 
 		this.flyThroughOrbitControls.addEventListener('start', () => {
 			this.updateOrbitControls = true
