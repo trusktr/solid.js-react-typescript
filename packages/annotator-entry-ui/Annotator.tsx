@@ -156,6 +156,8 @@ interface AnnotatorSettings {
 	timeBetweenErrorDialogsMs: number
 	timeToDisplayHealthyStatusMs: number
 	maxDistanceToDecorations: number // meters
+	skyRadius: number
+	cameraToSkyMaxDistance: number
 }
 
 interface FlyThroughSettings {
@@ -203,6 +205,8 @@ interface UiState {
 	imageScreenOpacity: number
 	lastPointCloudLoadedErrorModalMs: number // timestamp when an error modal was last displayed
 	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
+	skyPosition2D: THREE.Vector2 // sky's position, projected down to approximately the ground surface
+	cameraPosition2D: THREE.Vector2 // active camera's position, projected down to approximately the ground surface
 }
 
 // Area of Interest: where to load point clouds
@@ -235,9 +239,6 @@ class Annotator {
 	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
 	private sky: THREE.Object3D // makes it easier to tell up from down
-	private skyPosition2D: THREE.Vector2 // sky's position, projected down to approximately the ground surface
-	private cameraPosition2D: THREE.Vector2 // active camera's position, projected down to approximately the ground surface
-	private cameraToSkyMaxDistance: number
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
 	private tileManager: TileManager
@@ -312,7 +313,10 @@ class Annotator {
 			timeBetweenErrorDialogsMs: 30000,
 			timeToDisplayHealthyStatusMs: 10000,
 			maxDistanceToDecorations: 50000,
+			skyRadius: 8000,
+			cameraToSkyMaxDistance: 0,
 		}
+		this.settings.cameraToSkyMaxDistance = this.settings.skyRadius * 0.05
 		const cameraOffset: [number, number, number] = config.get('startup.camera_offset')
 		if (isTupleOfNumbers(cameraOffset, 3)) {
 			this.settings.cameraOffset = new THREE.Vector3().fromArray(cameraOffset)
@@ -356,6 +360,8 @@ class Annotator {
 			imageScreenOpacity: parseFloat(config.get('image_manager.image.opacity')) || 0.5,
 			lastPointCloudLoadedErrorModalMs: 0,
 			lastCameraCenterPoint: null,
+			skyPosition2D: new THREE.Vector2(),
+			cameraPosition2D: new THREE.Vector2(),
 		}
 		this.aoiState = {
 			enabled: !!config.get('annotator.area_of_interest.enable'),
@@ -504,12 +510,8 @@ class Annotator {
 		this.scene.add(new THREE.AmbientLight(0xffffff))
 
 		// Draw the sky.
-		const skyRadius = 8000
-		this.cameraToSkyMaxDistance = skyRadius * 0.1
-		this.sky = Sky(this.settings.background, new THREE.Color(0xccccff), skyRadius)
+		this.sky = Sky(this.settings.background, new THREE.Color(0xccccff), this.settings.skyRadius)
 		this.scene.add(this.sky)
-		this.skyPosition2D = new THREE.Vector2(this.sky.position.x, this.sky.position.z)
-		this.cameraPosition2D = new THREE.Vector2()
 
 		// Add a "ground plane" to facilitate annotations
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
@@ -1373,11 +1375,11 @@ class Annotator {
 	// So make it pretty big, then move it around to keep it centered over the camera in the XZ plane. Sky radius
 	// and camera zoom settings, set elsewhere, should keep the camera from penetrating the shell in the Y dimension.
 	private updateSkyPosition = (): void => {
-		this.cameraPosition2D.set(this.camera.position.x, this.camera.position.z)
-		if (this.cameraPosition2D.distanceTo(this.skyPosition2D) > this.cameraToSkyMaxDistance) {
-			this.sky.position.setX(this.cameraPosition2D.x)
-			this.sky.position.setZ(this.cameraPosition2D.y)
-			this.skyPosition2D.set(this.sky.position.x, this.sky.position.z)
+		this.uiState.cameraPosition2D.set(this.camera.position.x, this.camera.position.z)
+		if (this.uiState.cameraPosition2D.distanceTo(this.uiState.skyPosition2D) > this.settings.cameraToSkyMaxDistance) {
+			this.sky.position.setX(this.uiState.cameraPosition2D.x)
+			this.sky.position.setZ(this.uiState.cameraPosition2D.y)
+			this.uiState.skyPosition2D.set(this.sky.position.x, this.sky.position.z)
 		}
 	}
 
