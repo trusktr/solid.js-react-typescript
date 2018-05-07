@@ -2429,7 +2429,8 @@ class Annotator {
 	 */
 	private initAnnotatorOrbitControls(): void {
 		this.annotatorOrbitControls = new OrbitControls(this.annotatorCamera, this.renderer.domElement)
-		this.annotatorOrbitControls.minDistance = -Infinity
+		this.annotatorOrbitControls.minDistance = 0.1
+		this.annotatorOrbitControls.maxDistance = 5000
 		this.annotatorOrbitControls.keyPanSpeed = 100
 
 		// Add listeners.
