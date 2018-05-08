@@ -48,24 +48,24 @@ export class LocationServerStatusClient {
 			return
 
 		log.info('Connecting to location server status provider at', this.locationServerStatusAddress)
-		var self = this
+		const self = this
 		// For anything but "connect", we aren't getting status from the
 		// location server.
 		const sock = this.statusClient = zmq.socket('req')
-		sock.on("connect_delay", function() { self.handleMonitorEvent() })
-		sock.on("connect_retry", function() { self.handleMonitorEvent() })
-		sock.on("listen", function() { self.handleMonitorEvent() })
-		sock.on("bind_error", function() { self.handleMonitorEvent() })
-		sock.on("accept", function() { self.handleMonitorEvent() })
-		sock.on("accept_error", function() { self.handleMonitorEvent() })
-		sock.on("close", function() { self.handleMonitorEvent() })
-		sock.on("close_error", function() { self.handleMonitorEvent() })
-		sock.on("disconnect", function() { self.handleMonitorEvent() })
-		sock.on("monitor_error", function() { self.handleMonitorEvent() })
+		sock.on("connect_delay", () => {self.handleMonitorEvent()})
+		sock.on("connect_retry", () => {self.handleMonitorEvent()})
+		sock.on("listen", () => {self.handleMonitorEvent()})
+		sock.on("bind_error", () => {self.handleMonitorEvent()})
+		sock.on("accept", () => {self.handleMonitorEvent()})
+		sock.on("accept_error", () => {self.handleMonitorEvent()})
+		sock.on("close", () => {self.handleMonitorEvent()})
+		sock.on("close_error", () => {self.handleMonitorEvent()})
+		sock.on("disconnect", () => {self.handleMonitorEvent()})
+		sock.on("monitor_error", () => {self.handleMonitorEvent()})
 		// typedef for .monitor() is incorrect
 		// tslint:disable-next-line:no-any
-		;(sock as any).monitor(this.statusCheckInterval, 0) // The second arg (zero) says to get all available events
-		sock.on("message", function(reply: Buffer) {
+		{(sock as any).monitor(this.statusCheckInterval, 0)} // The second arg (zero) says to get all available events
+		sock.on("message", (reply: Buffer) => {
 			self.reqInFlight = false
 			self.parseStatus(reply)
 		})
@@ -85,9 +85,9 @@ export class LocationServerStatusClient {
 			log.error("Invalid location server response")
 			this.setServerStatus(LocationServerStatusLevel.ERROR, "Invalid response")
 		} else {
-			var level: LocationServerStatusLevel
-			level = LocationServerStatusLevel.ERROR
+			let level: LocationServerStatusLevel
 			if (responseMessage.source !== this.locationServerStatusTarget) {
+				level = LocationServerStatusLevel.ERROR
 				log.error(
 					"Status is from wrong source (" + responseMessage.source + "): " + responseMessage.statusString
 				)
@@ -127,30 +127,30 @@ export class LocationServerStatusClient {
 	// Ping checks and this.serverStatus maintain a local copy of server state, for diagnostics.
 	private pingServer(): void {
 		if (!this.statusClient) {
-			log.error("Attempted to ping location server before initailizing client")
+			log.error("Attempted to ping location server before initializing client")
 			return
 		}
 		if (this.reqInFlight)
 			return
 		this.reqInFlight = true
 
-		var statusRequestPayload = { "target" : this.locationServerStatusTarget }
-		var errMsg = Models.StatusRequestMessage.verify(statusRequestPayload)
+		const statusRequestPayload = { "target" : this.locationServerStatusTarget }
+		const errMsg = Models.StatusRequestMessage.verify(statusRequestPayload)
 		if (errMsg) {
 			log.error(errMsg)
 			return
 		}
-		var request = Models.StatusRequestMessage.create(statusRequestPayload)
-		var buffer = Models.StatusRequestMessage.encode(request).finish()
+		const request = Models.StatusRequestMessage.create(statusRequestPayload)
+		const buffer = Models.StatusRequestMessage.encode(request).finish()
 
 		// We will receive the error via the .on("message") callback
-		this.statusClient!.send(buffer.toString())
+		this.statusClient.send(buffer.toString())
 	}
 
 	private setServerStatus(level: LocationServerStatusLevel, newStatus: string): void {
 		if (this.serverStatus === null || this.serverStatus !== newStatus) {
 			this.serverStatus = newStatus
-			log.info("Location server is" + this.serverStatus)
+			log.info("Location server is " + this.serverStatus)
 			this.onStatusUpdate(level, newStatus)
 		}
 	}

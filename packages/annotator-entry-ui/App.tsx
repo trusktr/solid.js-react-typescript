@@ -14,7 +14,7 @@ class App extends React.Component<{}, {}> {
 	render(): JSX.Element {
 		return <React.Fragment>
 
-			<div className="scene-container" ref={el => this.sceneContainer = el}></div>
+			<div className="scene-container" ref={(el: HTMLDivElement): void => {this.sceneContainer = el}}/>
 
 			<div id="logo">
 				<img
@@ -24,7 +24,7 @@ class App extends React.Component<{}, {}> {
 				/>
 			</div>
 
-			<div id="status_window"></div>
+			<div id="status_window" />
 
 			<div id="menu_control">
 				<button id="status_window_control_btn" className="menu_btn"> &#x2139; </button>
@@ -39,7 +39,7 @@ class App extends React.Component<{}, {}> {
 
 	componentDidMount(): void {
 		initUIControl()
-		if (this.sceneContainer) annotator.mount( this.sceneContainer )
+		if (this.sceneContainer) annotator.mount(this.sceneContainer).then()
 		else log.warn('No scene container!')
 	}
 
