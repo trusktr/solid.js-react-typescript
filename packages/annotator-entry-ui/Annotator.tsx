@@ -58,6 +58,7 @@ import * as zmq from 'zmq'
 import {Socket} from 'zmq'
 import * as OBJLoader from 'three-obj-loader'
 import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
+import {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
 
 const dialog = Electron.remote.dialog
 
@@ -282,6 +283,7 @@ class Annotator {
 	private updateOrbitControls: boolean
 	private root: HTMLElement
 	private sceneInitialized: boolean
+	private openTrajectoryPickerFunction: ((cb: TrajectoryFileSelectedCallback) => void) | null
 
 	constructor() {
 		this.storage = new LocalStorage()
@@ -356,7 +358,7 @@ class Annotator {
 			lastMousePosition: null,
 			numberKeyPressed: null,
 			isLiveMode: false,
-			isLiveModePaused: false,
+			isLiveModePaused: true,
 			isKioskMode: !!config.get('startup.kiosk_mode'),
 			imageScreenOpacity: parseFloat(config.get('image_manager.image.opacity')) || 0.5,
 			lastPointCloudLoadedErrorModalMs: 0,
@@ -406,6 +408,7 @@ class Annotator {
 			this.onKeyUp,
 		)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
+		this.openTrajectoryPickerFunction = null
 
 		this.flyThroughDefaultSettings = {
 			enabled: false,
@@ -814,15 +817,13 @@ class Annotator {
 	}
 
 	private startFlyThrough(): void {
+		this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
 		this.flyThroughLoop.addAnimationFn(() => {
 			if ( !this.shouldAnimate ) return false
 			return this.runFlythrough()
 		})
 	}
 
-	/**
-	 * Start THREE.js rendering loop.
-	 */
 	private animate(): void {
 		this.transformControls.update()
 	}
@@ -866,6 +867,7 @@ class Annotator {
 		const btn = $('#pause')
 		btn.find('span').text('Play')
 		btn.find('i').text('play_arrow')
+		this.uiState.isLiveModePaused = true
 	}
 
 	private resumeFlyThrough(): void {
@@ -873,6 +875,7 @@ class Annotator {
 		const btn = $('#pause')
 		btn.find('span').text('Pause')
 		btn.find('i').text('pause')
+		this.uiState.isLiveModePaused = false
 	}
 
 	pauseEverything(): void {
@@ -3033,18 +3036,74 @@ class Annotator {
 			liveModePauseBtn.addEventListener('click', () => this.toggleLiveModePlay())
 		else
 			log.warn('missing element pause')
+
+		const liveAndRecordedToggleBtn = document.querySelector('#live_recorded_playback_toggle')
+		if (liveAndRecordedToggleBtn)
+			liveAndRecordedToggleBtn.addEventListener('click', () => this.toggleLiveAndRecordedPlay())
+		else
+			log.warn('missing element live_recorded_playback_toggle')
+
+		const selectTrajectoryPlaybackFile = document.querySelector('#select_trajectory_playback_file')
+		if (selectTrajectoryPlaybackFile)
+			selectTrajectoryPlaybackFile.addEventListener('click', () => this.openTrajectoryPicker())
+		else
+			log.warn('missing element select_trajectory_playback_file')
 	}
 
+	// While live mode is enabled, start or stop playing through a trajectory, whether it is truly live
+	// data or pre-recorded "fly-through" data.
 	private toggleLiveModePlay(): void {
+		if (!this.uiState.isLiveMode) return
+
 		if (this.flyThroughSettings.enabled) {
 			if (this.uiState.isLiveModePaused)
 				this.resumeFlyThrough()
 			else
 				this.pauseFlyThrough()
 		} else {
+			this.uiState.isLiveModePaused = !this.uiState.isLiveModePaused
 			// Nothing more to do to pause Live Mode. this.initClient() is keyed on this.uiState.isLiveModePaused.
 		}
-		this.uiState.isLiveModePaused = !this.uiState.isLiveModePaused
+	}
+
+	// While live mode is enabled, switch between live data and pre-recorded data. Live data takes whatever
+	// pose comes next over the socket. The "pre-recorded" option opens a dialog box to select a data file
+	// if we are so configured.
+	private toggleLiveAndRecordedPlay(): void {
+		if (!this.uiState.isLiveMode) return
+
+		if (this.flyThroughSettings.enabled) {
+			const button = $('#live_recorded_playback_toggle')
+			button.find('span').text('Live')
+			button.find('i').text('card_membership')
+		} else {
+			const button = $('#live_recorded_playback_toggle')
+			button.find('span').text('Recorded')
+			button.find('i').text('bug_report')
+		}
+	}
+
+	private openTrajectoryPicker(): void {
+		if (this.openTrajectoryPickerFunction)
+			this.openTrajectoryPickerFunction(this.trajectoryFileSelectedCallback)
+	}
+
+	setOpenTrajectoryPickerFunction(theFunction: (cb: TrajectoryFileSelectedCallback) => void): void {
+		this.openTrajectoryPickerFunction = theFunction
+	}
+
+	trajectoryFileSelectedCallback = (path: string): void => {
+		if (!this.uiState.isLiveMode) return
+		this.loadFlyThroughTrajectories([path])
+			.then(() => {
+				this.stopAnimation()
+				this.startAnimation()
+
+				if (!this.flyThroughSettings.enabled)
+					this.toggleLiveAndRecordedPlay()
+				if (this.uiState.isLiveModePaused)
+					this.startFlyThrough()
+			})
 	}
 
 	private static expandAccordion(domId: string): void {
@@ -3695,12 +3754,10 @@ class Annotator {
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
 		this.carModel.visible = true
-		if (this.flyThroughSettings.enabled) {
-			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
-			this.startFlyThrough()
-		} else {
-			this.locationServerStatusClient.connect()
-		}
+
+		// Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
+		this.startFlyThrough()
+		this.locationServerStatusClient.connect()
 
 		this.render()
 		return this.uiState.isLiveMode

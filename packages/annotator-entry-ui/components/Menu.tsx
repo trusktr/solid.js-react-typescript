@@ -98,6 +98,14 @@ class App extends React.Component<{}, {}> {
 						<span> Pause </span>
 						<i className="material-icons mdc-button__icon" aria-hidden="true"> pause </i>
 					</button>
+					<button id="live_recorded_playback_toggle" className="mdc-button mdc-button--raised">
+						<span>Live</span>
+						<i className="material-icons mdc-button__icon" aria-hidden="true">card_membership</i>
+					</button>
+					<button id="select_trajectory_playback_file" className="mdc-button mdc-button--raised">
+						<span>Play data set</span>
+						<i className="material-icons mdc-button__icon" aria-hidden="true">playlist_play</i>
+					</button>
 				</menu>
 
 			</div>
