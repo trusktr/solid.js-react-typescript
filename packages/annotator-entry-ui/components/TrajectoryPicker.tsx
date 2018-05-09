@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+import './TrajectoryPicker.scss'
 import config from '@/config'
 import * as React from 'react'
 import * as Modal from 'react-modal'
@@ -11,8 +12,8 @@ import VirtualList from 'react-tiny-virtual-list'
 import Logger from '@/util/log'
 import * as Fs from "fs"
 import * as AsyncFile from "async-file"
-
-const executable = require('executable')
+import * as Executable from 'executable'
+import * as ChildProcess from 'child_process'
 
 const log = Logger(__filename)
 
@@ -35,6 +36,8 @@ interface TrajectoryPickerProps {
 interface TrajectoryPickerState {
 	enabled: boolean
 	isOpen: boolean
+	isProcessing: boolean
+	unprocessedTrajectoryCount: number
 }
 
 Modal.setAppElement('#root')
@@ -45,6 +48,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 	private processedTrajectoriesDir: string
 	private unprocessedTrajectoriesDir: string
 	private localizerPath: string
+	private processingCheckTimer: number
 
 	constructor(props: TrajectoryPickerProps) {
 		super(props)
@@ -52,10 +56,13 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 		this.processedTrajectoriesDir = config.get('fly_through.trajectory_picker.processed_trajectories_dir')
 		this.unprocessedTrajectoriesDir = config.get('fly_through.trajectory_picker.unprocessed_trajectories_dir')
 		this.localizerPath = config.get('perception.offline_localizer_path')
+		this.clearProcessingCheckTimer()
 
 		this.state = {
 			enabled: false,
 			isOpen: false,
+			isProcessing: false,
+			unprocessedTrajectoryCount: 0,
 		}
 	}
 
@@ -63,7 +70,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 		// All for one, one for all
 		if (!(this.processedTrajectoriesDir || this.unprocessedTrajectoriesDir || this.localizerPath)) return
 
-		const localizerPromise = executable(this.localizerPath)
+		const localizerPromise = Executable(this.localizerPath)
 			.then(isExecutable => {
 				if (!isExecutable) throw Error('Offline localizer is not executable')
 			})
@@ -90,6 +97,10 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 			.catch(err => dialog.showErrorBox('Offline data-set configuration error', err.message))
 	}
 
+	componentWillUnmount(): void {
+		this.clearProcessingCheckTimer()
+	}
+
 	render(): JSX.Element {
 		if (!this.state.enabled || !this.state.isOpen)
 			return <div/>
@@ -101,13 +112,10 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 				isOpen={this.state.isOpen}
 				shouldCloseOnOverlayClick={false}
 			>
+				<button className="menu_btn black_text" onClick={this.closeModal}>&#x2612;</button>
 				<h2>Play back a data set</h2>
-				{this.unprocessed()}
 				{this.processed()}
-				<button className="mdc-button mdc-button--raised" onClick={this.closeModal}>
-					<span>Cancel</span>
-					<i className="material-icons mdc-button__icon" aria-hidden="true">close</i>
-				</button>
+				{this.unprocessed()}
 			</Modal>
 		)
 	}
@@ -166,12 +174,12 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 		return (
 			<div>
 				<h3>Processed</h3>
-				<p>{dataSets.length} Data Sets</p>
+				<p className='center'>{dataSets.length} Data Sets</p>
 				<VirtualList
 					width='100%'
-					height={125}
+					height={194}
 					itemCount={dataSets.length}
-					itemSize={50}
+					itemSize={44}
 					scrollDirection='vertical'
 					renderItem={({index, style}): JSX.Element =>
 						<div key={index} style={style}>
@@ -191,19 +199,24 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 		if (!dataSets.length)
 			return <div/>
 
+		const processingButton = this.state.isProcessing
+			? (
+				<button id="processing_button" className="mdc-button mdc-button--raised">
+					<span>Processing…</span>
+				</button>
+			)
+			: (
+				<button className="mdc-button mdc-button--raised" onClick={this.startProcessing}>
+					<span>Start Processing</span>
+					<i className="material-icons mdc-button__icon" aria-hidden="true">update</i>
+				</button>
+			)
+
 		return (
 			<div>
 				<h3>Unprocessed</h3>
-				<p>{dataSets.length} Data Sets</p>
-				<div id="processing_container">
-					<button className="mdc-button mdc-button--raised" onClick={this.startProcessing}>
-						<span>Start Processing</span>
-						<i className="material-icons mdc-button__icon" aria-hidden="true">update</i>
-					</button>
-					<button id="processing_button" className="mdc-button mdc-button--raised">
-						<span>Processing…</span>
-					</button>
-				</div>
+				<p className='center'>{dataSets.length} Data Sets</p>
+				<div className='bottom_padding'>{processingButton}</div>
 				<VirtualList
 					width='100%'
 					height={100}
@@ -211,7 +224,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 					itemSize={20}
 					scrollDirection='vertical'
 					renderItem={({index, style}): JSX.Element =>
-						<div key={index} style={style}>
+						<div key={index} style={style} className={index % 2 ? 'list_element_even' : 'list_element_odd'}>
 							{dataSets[index].name}
 						</div>
 					}
@@ -221,7 +234,46 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 	}
 
 	private startProcessing = (): void => {
-		// todo
+		const command = [this.localizerPath, this.unprocessedTrajectoriesDir, this.processedTrajectoriesDir].join(' ')
+		ChildProcess.exec(command, (error, stdout, stderr) => {
+			if (error) {
+				log.error(`localizer failed: ${error}`)
+				dialog.showErrorBox('Processing error', error.message)
+			} else {
+				if (stdout) log.info(`localizer stdout: ${stdout}`)
+				if (stderr) log.warn(`localizer stderr: ${stderr}`)
+				this.setState({isProcessing: true})
+				if (!this.processingCheckTimer)
+					this.processingCheckTimer = window.setInterval(this.handleProcessingCheckTimer, 30000)
+			}
+		})
+	}
+
+	private handleProcessingCheckTimer = (): void => {
+		if (this.state.isProcessing && this.checkForUnprocessedTrajectories()) {
+			// Keep checking until there are no unprocessed data sets left.
+		} else {
+			this.clearProcessingCheckTimer()
+		}
+	}
+
+	private clearProcessingCheckTimer(): void {
+		if (this.processingCheckTimer) {
+			window.clearInterval(this.processingCheckTimer)
+			this.processingCheckTimer = 0
+		}
+	}
+
+	private checkForUnprocessedTrajectories(): boolean {
+		const dataSets = this.loadDirectory(this.unprocessedTrajectoriesDir)
+		if (dataSets.length) {
+			if (dataSets.length !== this.state.unprocessedTrajectoryCount)
+				this.setState({unprocessedTrajectoryCount: dataSets.length})
+			return true
+		} else {
+			this.setState({isProcessing: false, unprocessedTrajectoryCount: 0})
+			return false
+		}
 	}
 }
 
