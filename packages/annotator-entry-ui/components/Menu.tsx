@@ -93,7 +93,7 @@ class App extends React.Component<{}, {}> {
 					</div>
 				</menu>
 
-				<menu id="flyThroughMenu" className="menu hidden">
+				<menu id="liveModeMenu" className="menu hidden">
 					<button id="pause" className="mdc-button mdc-button--raised">
 						<span> Pause </span>
 						<i className="material-icons mdc-button__icon" aria-hidden="true"> pause </i>
@@ -103,7 +103,7 @@ class App extends React.Component<{}, {}> {
 						<i className="material-icons mdc-button__icon" aria-hidden="true">card_membership</i>
 					</button>
 					<button id="select_trajectory_playback_file" className="mdc-button mdc-button--raised">
-						<span>Play data set</span>
+						<span>Select data set</span>
 						<i className="material-icons mdc-button__icon" aria-hidden="true">playlist_play</i>
 					</button>
 				</menu>

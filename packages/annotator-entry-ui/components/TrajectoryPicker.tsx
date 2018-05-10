@@ -14,21 +14,13 @@ import * as Fs from "fs"
 import * as AsyncFile from "async-file"
 import * as Executable from 'executable'
 import * as ChildProcess from 'child_process'
+import {TrajectoryDataSet, trajectoryFileName} from "@/util/Perception"
 
 const log = Logger(__filename)
 
 const dialog = Electron.remote.dialog
 
-// This magic file is created by RunBatchLidarSLAM.
-// https://github.com/Signafy/Perception/tree/develop/apps/Core/RunBatchLidarSLAM
-const trajectoryFileName = 'trajectory_lidar.md'
-
 export type TrajectoryFileSelectedCallback = (path: string) => void
-
-export interface TrajectoryDataSet {
-	name: string
-	path: string
-}
 
 interface TrajectoryPickerProps {
 }
@@ -107,7 +99,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 
 		return (
 			<Modal
-				contentLabel="Choose a trajectory file"
+				contentLabel="Choose a data set"
 				style={trajectoryPickerStyle}
 				isOpen={this.state.isOpen}
 				shouldCloseOnOverlayClick={false}
@@ -151,7 +143,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 
 		let names: string[] = []
 		try {
-			names = Fs.readdirSync(dataSetRoot)
+			names = Fs.readdirSync(dataSetRoot).sort()
 		} catch (err) {
 			log.warn(`can't load trajectory files at ${dataSetRoot}`)
 			dialog.showErrorBox('Fly-through Load Error', err.message)

@@ -59,6 +59,7 @@ import {Socket} from 'zmq'
 import * as OBJLoader from 'three-obj-loader'
 import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
 import {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
+import {dataSetNameFromPath, TrajectoryDataSet} from "@/util/Perception"
 
 const dialog = Electron.remote.dialog
 
@@ -76,7 +77,8 @@ const cameraCenter = new THREE.Vector2(0, 0)
 const statusKey = {
 	currentLocationLla: 'currentLocationLla',
 	currentLocationUtm: 'currentLocationUtm',
-	flyThrough: 'flyThrough',
+	flyThroughTrajectory: 'flyThroughTrajectory',
+	flyThroughPose: 'flyThroughPose',
 	tileServer: 'tileServer',
 	locationServer: 'locationServer',
 	cameraType: 'cameraType',
@@ -162,11 +164,18 @@ interface AnnotatorSettings {
 	cameraToSkyMaxDistance: number
 }
 
-interface FlyThroughSettings {
+// A pre-processed trajectory, presumably generated from one gps/imu recording session.
+interface FlyThroughTrajectory {
+	dataSet: TrajectoryDataSet | null
+	poses: Models.PoseMessage[]
+}
+
+interface FlyThroughState {
 	enabled: boolean
-	startPoseIndex: number
-	endPoseIndex: number
+	trajectories: FlyThroughTrajectory[]
+	currentTrajectoryIndex: number
 	currentPoseIndex: number
+	endPoseIndex: number
 }
 
 interface LiveModeSettings {
@@ -270,9 +279,7 @@ class Annotator {
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
-	private flyThroughTrajectoryPoses: Models.PoseMessage[]
-	private flyThroughDefaultSettings: FlyThroughSettings
-	private flyThroughSettings: FlyThroughSettings
+	private flyThroughState: FlyThroughState
 	private liveModeSettings: LiveModeSettings
 	private locationServerStatusClient: LocationServerStatusClient
 	private layerToggle: Map<Layer, Toggle>
@@ -409,14 +416,7 @@ class Annotator {
 		)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 		this.openTrajectoryPickerFunction = null
-
-		this.flyThroughDefaultSettings = {
-			enabled: false,
-			startPoseIndex: 0,
-			endPoseIndex: 0,
-			currentPoseIndex: 0,
-		}
-		this.flyThroughSettings = Object.assign({}, this.flyThroughDefaultSettings)
+		this.resetFlyThroughState()
 
 		if (config.get('fly_through.render.fps'))
 			log.warn('config option fly_through.render.fps has been renamed to fly_through.animation.fps')
@@ -608,7 +608,7 @@ class Annotator {
 		Annotator.deactivateAllAnnotationPropertiesMenus()
 
 		// Create the hamburger menu and display (open) it as requested.
-		const startupMenu = this.uiState.isKioskMode ? '#flyThroughMenu' : '#annotationMenu'
+		const startupMenu = this.uiState.isKioskMode ? '#liveModeMenu' : '#annotationMenu'
 		this.switchToMenu(startupMenu)
 		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
 
@@ -817,10 +817,10 @@ class Annotator {
 	}
 
 	private startFlyThrough(): void {
-		this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
+		this.setFlyThroughMessage()
 		this.flyThroughLoop.addAnimationFn(() => {
 			if ( !this.shouldAnimate ) return false
-			return this.runFlythrough()
+			return this.runFlyThrough()
 		})
 	}
 
@@ -828,41 +828,63 @@ class Annotator {
 		this.transformControls.update()
 	}
 
+	private resetFlyThroughState(): void {
+		this.flyThroughState = {
+			enabled: false,
+			trajectories: [],
+			currentTrajectoryIndex: 0,
+			currentPoseIndex: 0,
+			endPoseIndex: 0,
+		}
+	}
+
 	private loadFlyThroughTrajectories(paths: string[]): Promise<void> {
-		return Promise.all(paths.map(path => AsyncFile.readFile(path)))
-			.then(buffers => {
-				this.flyThroughTrajectoryPoses = []
-				buffers.forEach(buffer => {
-					const msg = Models.TrajectoryMessage.decode(buffer)
-					const poses = msg.states
-						.filter(state =>
-							state && state.pose
-							&& state.pose.x !== null && state.pose.y !== null && state.pose.z !== null
-							&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
-						)
-						.map(state => state.pose! as Models.PoseMessage)
-					this.flyThroughTrajectoryPoses = this.flyThroughTrajectoryPoses.concat(poses)
-				})
-				if (this.flyThroughTrajectoryPoses.length) {
+		if (!paths.length)
+			return Promise.reject(Error('called loadFlyThroughTrajectories() with no paths'))
 
-					// reset settings
-					Object.assign(this.flyThroughSettings, this.flyThroughDefaultSettings)
-
-					this.flyThroughSettings.endPoseIndex = this.flyThroughTrajectoryPoses.length
-					this.flyThroughSettings.enabled = true
-					log.info(`loaded ${this.flyThroughSettings.endPoseIndex} trajectory poses`)
-
+		return Promise.all(paths.map(path =>
+			AsyncFile.readFile(path)
+				.then(buffer => [path, buffer]))
+		)
+			.then(tuples => {
+				this.resetFlyThroughState()
+				this.flyThroughState.trajectories =
+					tuples.map(tuple => {
+						const path = tuple[0]
+						const buffer = tuple[1]
+						const msg = Models.TrajectoryMessage.decode(buffer)
+						const poses = msg.states
+							.filter(state =>
+								state && state.pose
+								&& state.pose.x !== null && state.pose.y !== null && state.pose.z !== null
+								&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
+							)
+							.map(state => state.pose! as Models.PoseMessage)
+						const dataSetName = dataSetNameFromPath(path)
+						return {
+							dataSet: dataSetName ? {name: dataSetName, path: path} : null,
+							poses: poses,
+						} as FlyThroughTrajectory
+					})
+						.filter(trajectory => trajectory.poses.length > 0)
+				if (this.flyThroughState.trajectories.length) {
+					this.flyThroughState.enabled = true // todo caller enables it?
+					this.flyThroughState.endPoseIndex = this.currentFlyThroughTrajectory.poses.length
+					log.info(`loaded ${this.flyThroughState.trajectories.length} trajectory poses`)
 				} else {
 					throw Error('failed to load trajectory poses')
 				}
 			})
 			.catch(err => {
+				this.resetFlyThroughState()
 				log.error(err.message)
 				dialog.showErrorBox('Fly-through Load Error', err.message)
 			})
 	}
 
 	private pauseFlyThrough(): void {
+		if (this.uiState.isLiveModePaused) return
+
 		this.flyThroughLoop.pause()
 		const btn = $('#pause')
 		btn.find('span').text('Play')
@@ -871,6 +893,8 @@ class Annotator {
 	}
 
 	private resumeFlyThrough(): void {
+		if (!this.uiState.isLiveModePaused) return
+
 		this.flyThroughLoop.start()
 		const btn = $('#pause')
 		btn.find('span').text('Pause')
@@ -890,20 +914,50 @@ class Annotator {
 	 * 	Move the camera and the car model through poses loaded from a file on disk.
 	 *  See also initClient().
 	 */
-	private runFlythrough(): boolean {
+	private runFlyThrough(): boolean {
 		if (!this.uiState.isLiveMode) return false
-		if (!this.flyThroughSettings.enabled) return false
+		if (!this.flyThroughState.enabled) return false
 
-		if (this.flyThroughSettings.currentPoseIndex >= this.flyThroughSettings.endPoseIndex)
-			this.flyThroughSettings.currentPoseIndex = this.flyThroughSettings.startPoseIndex
-		const pose = this.flyThroughTrajectoryPoses[this.flyThroughSettings.currentPoseIndex]
-		this.statusWindow.setMessage(statusKey.flyThrough, `Pose ${this.flyThroughSettings.currentPoseIndex + 1} of ${this.flyThroughSettings.endPoseIndex}`)
+		if (this.flyThroughState.currentPoseIndex >= this.flyThroughState.endPoseIndex) {
+			this.flyThroughState.currentPoseIndex = 0
+			this.flyThroughState.currentTrajectoryIndex++
+			if (this.flyThroughState.currentTrajectoryIndex >= this.flyThroughState.trajectories.length)
+				this.flyThroughState.currentTrajectoryIndex = 0
+			this.setFlyThroughMessage()
+		}
+		const pose = this.currentFlyThroughTrajectory.poses[this.flyThroughState.currentPoseIndex]
+		this.statusWindow.setMessage(statusKey.flyThroughPose, `Pose: ${this.flyThroughState.currentPoseIndex + 1} of ${this.flyThroughState.endPoseIndex}`)
 
 		this.updateCarWithPose(pose)
 
-		this.flyThroughSettings.currentPoseIndex++
+		this.flyThroughState.currentPoseIndex++
 
 		return true
+	}
+
+	private get currentFlyThroughTrajectory(): FlyThroughTrajectory {
+		return this.flyThroughState.trajectories[this.flyThroughState.currentTrajectoryIndex]
+	}
+
+	// Display some info about what flyThrough mode is doing now.
+	private setFlyThroughMessage(): void {
+		let message: string
+		if (!this.flyThroughState.enabled || !this.currentFlyThroughTrajectory)
+			message = ''
+		else if (this.currentFlyThroughTrajectory.dataSet)
+			message = `Data set: ${this.currentFlyThroughTrajectory.dataSet.name}`
+		else if (this.flyThroughState.trajectories.length > 1)
+			message = `Data set: ${this.flyThroughState.currentTrajectoryIndex + 1} of ${this.flyThroughState.trajectories.length}`
+		else
+			message = ''
+
+		this.statusWindow.setMessage(statusKey.flyThroughTrajectory, message)
+	}
+
+	// Remove all the info about flyThrough mode.
+	private clearFlyThroughMessages(): void {
+		this.statusWindow.setMessage(statusKey.flyThroughTrajectory, '')
+		this.statusWindow.setMessage(statusKey.flyThroughPose, '')
 	}
 
 	private render = (): void => {
@@ -2430,7 +2484,7 @@ class Annotator {
 	}
 
 	private hideTransform = (): void => {
-		this.hideTransformControlTimer = window.setTimeout(() => this.cleanTransformControls(), 1500)
+		this.hideTransformControlTimer = window.setTimeout(this.cleanTransformControls, 1500)
 	}
 
 	private cancelHideTransform = (): void => {
@@ -3055,7 +3109,7 @@ class Annotator {
 	private toggleLiveModePlay(): void {
 		if (!this.uiState.isLiveMode) return
 
-		if (this.flyThroughSettings.enabled) {
+		if (this.flyThroughState.enabled) {
 			if (this.uiState.isLiveModePaused)
 				this.resumeFlyThrough()
 			else
@@ -3067,20 +3121,27 @@ class Annotator {
 	}
 
 	// While live mode is enabled, switch between live data and pre-recorded data. Live data takes whatever
-	// pose comes next over the socket. The "pre-recorded" option opens a dialog box to select a data file
+	// pose comes next over the socket. The "recorded" option opens a dialog box to select a data file
 	// if we are so configured.
 	private toggleLiveAndRecordedPlay(): void {
 		if (!this.uiState.isLiveMode) return
 
-		if (this.flyThroughSettings.enabled) {
+		if (this.flyThroughState.enabled) {
 			const button = $('#live_recorded_playback_toggle')
 			button.find('span').text('Live')
 			button.find('i').text('card_membership')
+			this.flyThroughState.enabled = false
 		} else {
 			const button = $('#live_recorded_playback_toggle')
 			button.find('span').text('Recorded')
 			button.find('i').text('bug_report')
+			this.flyThroughState.enabled = true
 		}
+	}
+
+	// Hang on to a reference to TrajectoryPicker so we can call it later.
+	setOpenTrajectoryPickerFunction(theFunction: (cb: TrajectoryFileSelectedCallback) => void): void {
+		this.openTrajectoryPickerFunction = theFunction
 	}
 
 	private openTrajectoryPicker(): void {
@@ -3088,21 +3149,27 @@ class Annotator {
 			this.openTrajectoryPickerFunction(this.trajectoryFileSelectedCallback)
 	}
 
-	setOpenTrajectoryPickerFunction(theFunction: (cb: TrajectoryFileSelectedCallback) => void): void {
-		this.openTrajectoryPickerFunction = theFunction
-	}
-
-	trajectoryFileSelectedCallback = (path: string): void => {
+	private trajectoryFileSelectedCallback = (path: string): void => {
 		if (!this.uiState.isLiveMode) return
+
 		this.loadFlyThroughTrajectories([path])
 			.then(() => {
+				// Clear out any existing flyThrough animations.
 				this.stopAnimation()
 				this.startAnimation()
 
-				if (!this.flyThroughSettings.enabled)
+				// Make sure that we are in flyThrough mode and that the animation is running.
+				if (!this.flyThroughState.enabled)
 					this.toggleLiveAndRecordedPlay()
 				if (this.uiState.isLiveModePaused)
 					this.startFlyThrough()
+				if (this.uiState.isLiveModePaused)
+					this.resumeFlyThrough()
+				this.setFlyThroughMessage()
+			})
+			.catch(error => {
+				log.error(`loadFlyThroughTrajectories failed: ${error}`)
+				dialog.showErrorBox('Error loading trajectory', error.message)
 			})
 	}
 
@@ -3671,14 +3738,14 @@ class Annotator {
 	}
 
 	// Move the camera and the car model through poses streamed from ZMQ.
-	// See also runFlythrough().
+	// See also runFlyThrough().
 	private initClient(): void {
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
 			if (!this.uiState.isLiveMode) return
 			if (this.uiState.isLiveModePaused) return
-			if (this.flyThroughSettings.enabled) return
+			if (this.flyThroughState.enabled) return
 
 			const state = Models.InertialStateMessage.decode(msg)
 			if (
@@ -3707,7 +3774,7 @@ class Annotator {
 			this.switchToMenu('#annotationMenu')
 		} else {
 			this.listen()
-			this.switchToMenu('#flyThroughMenu')
+			this.switchToMenu('#liveModeMenu')
 		}
 	}
 
@@ -3787,7 +3854,7 @@ class Annotator {
 		this.carModel.visible = false
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = true
-		this.statusWindow.setMessage(statusKey.flyThrough, '')
+		this.clearFlyThroughMessages()
 		this.updateAoiHeading(null)
 
 		this.render()
@@ -3945,7 +4012,7 @@ class Annotator {
 			=> void = (level: LocationServerStatusLevel, serverStatus: string) => {
 		// If we aren't listening then we don't care
 		if (!this.uiState.isLiveMode) return
-		if (this.flyThroughSettings.enabled) return
+		if (this.flyThroughState.enabled) return
 
 		let message = 'Location status: '
 		switch (level) {
