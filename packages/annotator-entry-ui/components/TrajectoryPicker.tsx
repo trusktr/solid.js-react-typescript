@@ -5,6 +5,7 @@
 
 import './TrajectoryPicker.scss'
 import config from '@/config'
+import * as lodash from 'lodash'
 import * as React from 'react'
 import * as Modal from 'react-modal'
 import * as Electron from 'electron'
@@ -30,7 +31,8 @@ interface TrajectoryPickerState {
 	enabled: boolean
 	isOpen: boolean
 	isProcessing: boolean
-	unprocessedTrajectoryCount: number
+	processedTrajectories: TrajectoryDataSet[]
+	unprocessedTrajectories: TrajectoryDataSet[]
 }
 
 Modal.setAppElement('#root')
@@ -55,7 +57,8 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 			enabled: false,
 			isOpen: false,
 			isProcessing: false,
-			unprocessedTrajectoryCount: 0,
+			processedTrajectories: [],
+			unprocessedTrajectories: [],
 		}
 	}
 
@@ -122,11 +125,16 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 		if (this.onTrajectoryFileSelected)
 			log.error('trajectoryFileSelected callback should not be present in openModal()')
 
+		if (!this.processingCheckTimer) {
+			this.checkTrajectoryDirectories()
+			this.processingCheckTimer = window.setInterval(this.checkTrajectoryDirectories, 5000)
+		}
 		this.onTrajectoryFileSelected = cb
 		this.setState({isOpen: true})
 	}
 
 	private closeModal = (): void => {
+		this.clearProcessingCheckTimer()
 		this.onTrajectoryFileSelected = null
 		this.setState({isOpen: false})
 	}
@@ -160,7 +168,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 	}
 
 	private processed(): JSX.Element {
-		const dataSets = this.loadDirectory(this.processedTrajectoriesDir)
+		const dataSets = this.state.processedTrajectories
 		if (!dataSets.length)
 			return <div><em>No processed data sets are available.</em></div>
 
@@ -188,7 +196,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 	}
 
 	private unprocessed(): JSX.Element {
-		const dataSets = this.loadDirectory(this.unprocessedTrajectoriesDir)
+		const dataSets = this.state.unprocessedTrajectories
 		if (!dataSets.length)
 			return <div/>
 
@@ -227,6 +235,8 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 	}
 
 	private startProcessing = (): void => {
+		this.setState({isProcessing: true})
+
 		const command = [this.localizerPath, this.unprocessedTrajectoriesDir, this.processedTrajectoriesDir].join(' ')
 		ChildProcess.exec(command, (error, stdout, stderr) => {
 			if (error) {
@@ -235,19 +245,9 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 			} else {
 				if (stdout) log.info(`localizer stdout: ${stdout}`)
 				if (stderr) log.warn(`localizer stderr: ${stderr}`)
-				this.setState({isProcessing: true})
-				if (!this.processingCheckTimer)
-					this.processingCheckTimer = window.setInterval(this.handleProcessingCheckTimer, 30000)
 			}
+			this.setState({isProcessing: false})
 		})
-	}
-
-	private handleProcessingCheckTimer = (): void => {
-		if (this.state.isProcessing && this.checkForUnprocessedTrajectories()) {
-			// Keep checking until there are no unprocessed data sets left.
-		} else {
-			this.clearProcessingCheckTimer()
-		}
 	}
 
 	private clearProcessingCheckTimer(): void {
@@ -257,16 +257,36 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 		}
 	}
 
-	private checkForUnprocessedTrajectories(): boolean {
-		const dataSets = this.loadDirectory(this.unprocessedTrajectoriesDir)
-		if (dataSets.length) {
-			if (dataSets.length !== this.state.unprocessedTrajectoryCount)
-				this.setState({unprocessedTrajectoryCount: dataSets.length})
-			return true
-		} else {
-			this.setState({isProcessing: false, unprocessedTrajectoryCount: 0})
-			return false
-		}
+	// Scan for all available trajectory files on disk.
+	private checkTrajectoryDirectories = (): void => {
+		const processed = this.loadDirectory(this.processedTrajectoriesDir)
+		// Offline Localizer copies items from unprocessed to processed (and hopefully adds a trajectory file).
+		// It doesn't consume the unprocessed files. If something appears in both lists, ignore the unprocessed copy.
+		const unprocessed = lodash.differenceBy(
+			this.loadDirectory(this.unprocessedTrajectoriesDir),
+			processed,
+			'name'
+		)
+
+		const processedDiffs = processed.length !== this.state.processedTrajectories.length
+			|| lodash.differenceBy(
+				this.state.processedTrajectories,
+				processed,
+				'name'
+			).length
+
+		const unprocessedDiffs = unprocessed.length !== this.state.unprocessedTrajectories.length
+			|| lodash.differenceBy(
+				this.state.unprocessedTrajectories,
+				unprocessed,
+				'name'
+			).length
+
+		if (processedDiffs || unprocessedDiffs)
+			this.setState({
+				processedTrajectories: processed,
+				unprocessedTrajectories: unprocessed,
+			})
 	}
 }
 
