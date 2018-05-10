@@ -8,13 +8,14 @@ import config from '@/config'
 import * as React from 'react'
 import * as Modal from 'react-modal'
 import * as Electron from 'electron'
-import VirtualList from 'react-tiny-virtual-list'
 import Logger from '@/util/log'
 import * as Fs from "fs"
 import * as AsyncFile from "async-file"
 import * as Executable from 'executable'
 import * as ChildProcess from 'child_process'
 import {TrajectoryDataSet, trajectoryFileName} from "@/util/Perception"
+
+const VirtualList = require('react-tiny-virtual-list')
 
 const log = Logger(__filename)
 
