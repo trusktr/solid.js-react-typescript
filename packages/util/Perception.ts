@@ -8,8 +8,8 @@ export interface TrajectoryDataSet {
 	path: string
 }
 
-// A rough heuristic to find the name of a data set. They are usually named as something
-// like a timestamp for the directory, with some .md files inside.
+// A rough heuristic to find the name of a processed data set. They are usually named as
+// something like a timestamp for the directory, with some .md files inside.
 export function dataSetNameFromPath(path: string): string | null {
 	const pieces = path.split('/').filter(piece => piece !== '')
 	const count = pieces.length

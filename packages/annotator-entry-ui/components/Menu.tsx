@@ -2,7 +2,7 @@ import * as React from 'react'
 import Help from './Help'
 
 export default
-class App extends React.Component<{}, {}> {
+class Menu extends React.Component<{}, {}> {
 	render(): JSX.Element {
 		return (
 			<div id="menu">
@@ -94,13 +94,13 @@ class App extends React.Component<{}, {}> {
 				</menu>
 
 				<menu id="liveModeMenu" className="menu hidden">
-					<button id="pause" className="mdc-button mdc-button--raised">
-						<span> Pause </span>
-						<i className="material-icons mdc-button__icon" aria-hidden="true"> pause </i>
+					<button id="live_mode_pause" className="mdc-button mdc-button--raised">
+						<span>Play</span>
+						<i className="material-icons mdc-button__icon" aria-hidden="true">play_arrow</i>
 					</button>
 					<button id="live_recorded_playback_toggle" className="mdc-button mdc-button--raised">
 						<span>Live</span>
-						<i className="material-icons mdc-button__icon" aria-hidden="true">card_membership</i>
+						<i className="material-icons mdc-button__icon" aria-hidden="true">my_location</i>
 					</button>
 					<button id="select_trajectory_playback_file" className="mdc-button mdc-button--raised">
 						<span>Select data set</span>

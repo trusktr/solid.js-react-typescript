@@ -818,10 +818,13 @@ class Annotator {
 
 	private startFlyThrough(): void {
 		this.setFlyThroughMessage()
-		this.flyThroughLoop.addAnimationFn(() => {
-			if ( !this.shouldAnimate ) return false
-			return this.runFlyThrough()
-		})
+		this.flyThroughLoop.removeAnimationFn(this.flyThroughAnimation)
+		this.flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
+	}
+
+	private flyThroughAnimation = (): boolean => {
+		if (!this.shouldAnimate) return false
+		return this.runFlyThrough()
 	}
 
 	private animate(): void {
@@ -868,11 +871,10 @@ class Annotator {
 					})
 						.filter(trajectory => trajectory.poses.length > 0)
 				if (this.flyThroughState.trajectories.length) {
-					this.flyThroughState.enabled = true // todo caller enables it?
 					this.flyThroughState.endPoseIndex = this.currentFlyThroughTrajectory.poses.length
-					log.info(`loaded ${this.flyThroughState.trajectories.length} trajectory poses`)
+					log.info(`loaded ${this.flyThroughState.trajectories.length} trajectories`)
 				} else {
-					throw Error('failed to load trajectory poses')
+					throw Error('failed to load trajectories')
 				}
 			})
 			.catch(err => {
@@ -882,21 +884,19 @@ class Annotator {
 			})
 	}
 
-	private pauseFlyThrough(): void {
+	private pauseLiveMode(): void {
 		if (this.uiState.isLiveModePaused) return
 
-		this.flyThroughLoop.pause()
-		const btn = $('#pause')
+		const btn = $('#live_mode_pause')
 		btn.find('span').text('Play')
 		btn.find('i').text('play_arrow')
 		this.uiState.isLiveModePaused = true
 	}
 
-	private resumeFlyThrough(): void {
+	private resumeLiveMode(): void {
 		if (!this.uiState.isLiveModePaused) return
 
-		this.flyThroughLoop.start()
-		const btn = $('#pause')
+		const btn = $('#live_mode_pause')
 		btn.find('span').text('Pause')
 		btn.find('i').text('pause')
 		this.uiState.isLiveModePaused = false
@@ -3085,58 +3085,65 @@ class Annotator {
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
 
-		const liveModePauseBtn = document.querySelector('#pause')
+		const liveModePauseBtn = document.querySelector('#live_mode_pause')
 		if (liveModePauseBtn)
-			liveModePauseBtn.addEventListener('click', () => this.toggleLiveModePlay())
+			liveModePauseBtn.addEventListener('click', this.toggleLiveModePlay)
 		else
-			log.warn('missing element pause')
+			log.warn('missing element live_mode_pause')
 
 		const liveAndRecordedToggleBtn = document.querySelector('#live_recorded_playback_toggle')
 		if (liveAndRecordedToggleBtn)
-			liveAndRecordedToggleBtn.addEventListener('click', () => this.toggleLiveAndRecordedPlay())
+			liveAndRecordedToggleBtn.addEventListener('click', this.toggleLiveAndRecordedPlay)
 		else
 			log.warn('missing element live_recorded_playback_toggle')
 
 		const selectTrajectoryPlaybackFile = document.querySelector('#select_trajectory_playback_file')
 		if (selectTrajectoryPlaybackFile)
-			selectTrajectoryPlaybackFile.addEventListener('click', () => this.openTrajectoryPicker())
+			selectTrajectoryPlaybackFile.addEventListener('click', this.openTrajectoryPicker)
 		else
 			log.warn('missing element select_trajectory_playback_file')
 	}
 
 	// While live mode is enabled, start or stop playing through a trajectory, whether it is truly live
 	// data or pre-recorded "fly-through" data.
-	private toggleLiveModePlay(): void {
+	private toggleLiveModePlay = (): void => {
 		if (!this.uiState.isLiveMode) return
 
-		if (this.flyThroughState.enabled) {
-			if (this.uiState.isLiveModePaused)
-				this.resumeFlyThrough()
-			else
-				this.pauseFlyThrough()
+		if (this.uiState.isLiveModePaused) {
+			this.resumeLiveMode()
+			if (this.flyThroughState.enabled)
+				this.flyThroughLoop.start()
 		} else {
-			this.uiState.isLiveModePaused = !this.uiState.isLiveModePaused
-			// Nothing more to do to pause Live Mode. this.initClient() is keyed on this.uiState.isLiveModePaused.
+			this.pauseLiveMode()
+			if (this.flyThroughState.enabled)
+				this.flyThroughLoop.pause()
 		}
 	}
 
 	// While live mode is enabled, switch between live data and pre-recorded data. Live data takes whatever
 	// pose comes next over the socket. The "recorded" option opens a dialog box to select a data file
 	// if we are so configured.
-	private toggleLiveAndRecordedPlay(): void {
+	// Side effect: if the animation is paused, start playing.
+	private toggleLiveAndRecordedPlay = (): void => {
 		if (!this.uiState.isLiveMode) return
 
 		if (this.flyThroughState.enabled) {
 			const button = $('#live_recorded_playback_toggle')
 			button.find('span').text('Live')
-			button.find('i').text('card_membership')
+			button.find('i').text('my_location')
+			this.clearFlyThroughMessages()
 			this.flyThroughState.enabled = false
 		} else {
 			const button = $('#live_recorded_playback_toggle')
 			button.find('span').text('Recorded')
-			button.find('i').text('bug_report')
+			button.find('i').text('videocam')
+			if (this.flyThroughState.trajectories.length)
+				this.startFlyThrough()
 			this.flyThroughState.enabled = true
 		}
+
+		if (this.uiState.isLiveModePaused)
+			this.toggleLiveModePlay()
 	}
 
 	// Hang on to a reference to TrajectoryPicker so we can call it later.
@@ -3144,7 +3151,7 @@ class Annotator {
 		this.openTrajectoryPickerFunction = theFunction
 	}
 
-	private openTrajectoryPicker(): void {
+	private openTrajectoryPicker = (): void => {
 		if (this.openTrajectoryPickerFunction)
 			this.openTrajectoryPickerFunction(this.trajectoryFileSelectedCallback)
 	}
@@ -3154,18 +3161,12 @@ class Annotator {
 
 		this.loadFlyThroughTrajectories([path])
 			.then(() => {
-				// Clear out any existing flyThrough animations.
-				this.stopAnimation()
-				this.startAnimation()
-
 				// Make sure that we are in flyThrough mode and that the animation is running.
 				if (!this.flyThroughState.enabled)
 					this.toggleLiveAndRecordedPlay()
+				this.startFlyThrough()
 				if (this.uiState.isLiveModePaused)
-					this.startFlyThrough()
-				if (this.uiState.isLiveModePaused)
-					this.resumeFlyThrough()
-				this.setFlyThroughMessage()
+					this.resumeLiveMode()
 			})
 			.catch(error => {
 				log.error(`loadFlyThroughTrajectories failed: ${error}`)
@@ -3825,6 +3826,7 @@ class Annotator {
 		// Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
 		this.startFlyThrough()
 		this.locationServerStatusClient.connect()
+		this.resumeLiveMode()
 
 		this.render()
 		return this.uiState.isLiveMode
@@ -3857,6 +3859,7 @@ class Annotator {
 		this.clearFlyThroughMessages()
 		this.updateAoiHeading(null)
 
+		this.pauseLiveMode()
 		this.render()
 		return this.uiState.isLiveMode
 	}
