@@ -21,6 +21,9 @@ export function dataSetNameFromPath(path: string): string | null {
 		return null
 }
 
+// This magic file is created by the S1 capture pipeline.
+export const s1SessionFileName = 'session.json'
+
 // This magic file is created by RunBatchLidarSLAM.
 // https://github.com/Signafy/Perception/tree/develop/apps/Core/RunBatchLidarSLAM
 export const trajectoryFileName = 'trajectory_lidar.md'

@@ -14,7 +14,7 @@ import * as Fs from "fs"
 import * as AsyncFile from "async-file"
 import * as Executable from 'executable'
 import * as ChildProcess from 'child_process'
-import {TrajectoryDataSet, trajectoryFileName} from "@/util/Perception"
+import {s1SessionFileName, TrajectoryDataSet, trajectoryFileName} from "@/util/Perception"
 
 const VirtualList = require('react-tiny-virtual-list')
 
@@ -147,7 +147,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 		}
 	}
 
-	private loadDirectory(dataSetRoot: string): TrajectoryDataSet[] {
+	private loadDirectory(dataSetRoot: string, checkChildFileName: string): TrajectoryDataSet[] {
 		if (!dataSetRoot) return []
 
 		let names: string[] = []
@@ -161,7 +161,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 			.map(name => {
 				return {
 					name: name,
-					path: [dataSetRoot, name, trajectoryFileName].join('/'),
+					path: [dataSetRoot, name, checkChildFileName].join('/'),
 				} as TrajectoryDataSet
 			})
 			.filter(dataSet => Fs.existsSync(dataSet.path))
@@ -259,11 +259,11 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 
 	// Scan for all available trajectory files on disk.
 	private checkTrajectoryDirectories = (): void => {
-		const processed = this.loadDirectory(this.processedTrajectoriesDir)
+		const processed = this.loadDirectory(this.processedTrajectoriesDir, trajectoryFileName)
 		// Offline Localizer copies items from unprocessed to processed (and hopefully adds a trajectory file).
 		// It doesn't consume the unprocessed files. If something appears in both lists, ignore the unprocessed copy.
 		const unprocessed = lodash.differenceBy(
-			this.loadDirectory(this.unprocessedTrajectoriesDir),
+			this.loadDirectory(this.unprocessedTrajectoriesDir, s1SessionFileName),
 			processed,
 			'name'
 		)
@@ -293,6 +293,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 // Center it over the main application window.
 const trajectoryPickerStyle: Modal.Styles = {
 	content: {
+		width: '450px',
 		top: '50%',
 		left: '50%',
 		right: 'auto',
