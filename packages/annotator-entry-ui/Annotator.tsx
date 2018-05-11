@@ -793,7 +793,7 @@ class Annotator {
 		return trajectoryResult
 	}
 
-	startAnimation(): void {
+	private startAnimation(): void {
 		this.shouldAnimate = true
 		this.startAoiUpdates()
 
@@ -804,7 +804,7 @@ class Annotator {
 		})
 	}
 
-	stopAnimation(): void {
+	private stopAnimation(): void {
 		this.shouldAnimate = false
 	}
 
@@ -3137,9 +3137,11 @@ class Annotator {
 			const button = $('#live_recorded_playback_toggle')
 			button.find('span').text('Recorded')
 			button.find('i').text('videocam')
-			if (this.flyThroughState.trajectories.length)
-				this.startFlyThrough()
 			this.flyThroughState.enabled = true
+			if (this.flyThroughState.trajectories.length) {
+				this.startFlyThrough()
+				this.flyThroughLoop.start()
+			}
 		}
 
 		if (this.uiState.isLiveModePaused)
