@@ -55,7 +55,10 @@ output.annotations.autosave.interval.seconds: 300
 # Perception integration
 perception.offline_localizer_path: # if set, the fly_through.trajectory_picker paths are also required
 
-# Fly-through trajectory file
+# Play back live or pre-recorded trajectory
+live_mode.display_car_model: true
+
+# Fly-through trajectory file. This is a subset of live mode.
 fly_through.trajectory_path.list:
 fly_through.animation.fps: 10
 fly_through.trajectory_picker.processed_trajectories_dir:
