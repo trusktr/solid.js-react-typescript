@@ -186,6 +186,7 @@ interface LiveModeSettings {
 }
 
 interface UiState {
+	sceneInitialized: boolean
 	layerGroupIndex: number
 	lockBoundaries: boolean
 	lockLanes: boolean
@@ -341,6 +342,7 @@ class Annotator {
 		}
 		this.settings.animationFrameIntervalSecs = this.settings.defaultAnimationFrameIntervalMs
 		this.uiState = {
+			sceneInitialized: false,
 			layerGroupIndex: defaultLayerGroupIndex,
 			lockBoundaries: false,
 			lockLanes: false,
@@ -469,7 +471,7 @@ class Annotator {
 
 	async mount( root: HTMLElement ): Promise<void> {
 		this.root = root
-		if ( !this.sceneInitialized ) await this.initScene()
+		if (!this.uiState.sceneInitialized) await this.initScene()
 		root.appendChild(this.renderer.domElement)
 		this.createControlsGui()
 		this.makeStats()
@@ -640,6 +642,7 @@ class Annotator {
 				if (this.uiState.isKioskMode && !this.uiState.isLiveMode) this.toggleListen()
 				// Initialize socket for use when "live mode" operation is on
 				this.initClient()
+				this.uiState.sceneInitialized = true
 			})
 	}
 
