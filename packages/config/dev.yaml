@@ -52,9 +52,14 @@ output.annotations.kml.path: ./data/waypoints.kml
 output.annotations.autosave.directory.path: ./data/autosave
 output.annotations.autosave.interval.seconds: 300
 
+# Perception integration
+perception.offline_localizer_path: # if set, the fly_through.trajectory_picker paths are also required
+
 # Fly-through trajectory file
 fly_through.trajectory_path.list:
 fly_through.animation.fps: 10
+fly_through.trajectory_picker.processed_trajectories_dir:
+fly_through.trajectory_picker.unprocessed_trajectories_dir:
 
 # persist trajectories
 output.trajectory.csv.path: ./data/trajectory.csv
