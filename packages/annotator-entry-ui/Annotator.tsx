@@ -179,6 +179,7 @@ interface FlyThroughState {
 }
 
 interface LiveModeSettings {
+	displayCarModel: boolean
 	carModelMaterial: THREE.Material
 	cameraOffset: THREE.Vector3
 	cameraOffsetDelta: number
@@ -427,6 +428,7 @@ class Annotator {
 		const flyThroughInterval = flyThroughFps === 'device' ? 0 : 1 / (flyThroughFps || 10)
 
 		this.liveModeSettings = {
+			displayCarModel: !!config.get('live_mode.display_car_model'),
 			carModelMaterial: new THREE.MeshPhongMaterial({
 				color: 0x002233,
 				specular: 0x222222,
@@ -3822,11 +3824,14 @@ class Annotator {
 		this.annotatorOrbitControls.enabled = false
 		this.flyThroughOrbitControls.enabled = true
 
-		this.carModel.add( this.camera ) // follow/orbit around the car
+		// The camera and the point cloud AOI track the car object, so add it to the scene
+		// regardless of whether it is visible in the scene.
+		this.carModel.add(this.camera) // follow/orbit around the car
+		if (this.liveModeSettings.displayCarModel)
+			this.carModel.visible = true
 
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = false
-		this.carModel.visible = true
 
 		// Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
 		this.startFlyThrough()
@@ -3856,9 +3861,10 @@ class Annotator {
 		this.annotatorOrbitControls.enabled = true
 		this.flyThroughOrbitControls.enabled = false
 
-		this.carModel.remove( this.camera )
+		this.carModel.remove(this.camera)
+		if (this.liveModeSettings.displayCarModel)
+			this.carModel.visible = false
 
-		this.carModel.visible = false
 		if (this.pointCloudBoundingBox)
 			this.pointCloudBoundingBox.material.visible = true
 		this.clearFlyThroughMessages()
