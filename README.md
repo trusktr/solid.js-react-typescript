@@ -5,6 +5,16 @@ This is a web-based GUI to allow humans to visualize point cloud data sets and t
 ## Prerequisites
 - [Node.js (includes npm)](https://nodejs.org/en/download/)
 
+> **NOTE:** If you are using Node.js v10, you may get [this
+> error](https://github.com/nodejs/nan/issues/763) when installing dependencies
+> in the following steps. In this case, you can downgrade to v9 using the `n`
+> package as follows:
+>
+> ```
+> sudo npm install --global n
+> n 9
+> ```
+
 ### Private NPM repository
 Set up a [personal NPM account](https://www.npmjs.com/signup).
 
