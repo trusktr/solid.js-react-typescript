@@ -653,7 +653,7 @@ function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
 
 		if (
 			event.button === scope.mouseButtons.ORBIT
-			|| (event.button === scope.mouseButtons.PAN && event.ctrlKey)
+			|| (event.button === scope.mouseButtons.PAN && ( event.ctrlKey || event.metaKey ))
 		) {
 
 			if (scope.enableRotate === false) return
