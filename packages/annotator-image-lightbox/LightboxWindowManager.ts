@@ -6,7 +6,7 @@
 import * as Url from 'url'
 import * as Path from 'path'
 import * as Electron from 'electron'
-import {BrowserWindowConstructorOptions} from 'electron'
+// import {BrowserWindowConstructorOptions} from 'electron'
 import {windowStateKeeperOptions} from '../util/WindowStateKeeperOptions'
 import {channel} from "../electron-ipc/Channel"
 import * as IpcMessages from "../electron-ipc/Messages"
@@ -63,39 +63,121 @@ export class LightboxWindowManager {
 
 		const windowName = 'image-lightbox'
 
+		/// Old One ////////////////////////////////////////////////
+		// const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
+		// const options = {
+		// 	...savedState,
+		// 	show: false,
+		// 	backgroundColor: this.settings.backgroundColor,
+		// 	scrollBounce: true,
+		// } as BrowserWindowConstructorOptions
+		// const win = new Electron.remote.BrowserWindow(options)
+		// savedState.manage(win)
+		//
+		// const result = new Promise<void>((resolve: () => void): void => {
+		// 	win.once('ready-to-show', () => {
+		// 		win.show()
+		// 		this.window = win
+		// 		this.loadingWindow = false
+		// 		resolve()
+		// 	})
+		// })
+		//
+		// if (this.settings.openDevTools)
+		// 	win.webContents.openDevTools()
+		//
+		// win.loadURL(Url.format({
+		// 	pathname: Path.join(process.cwd(), `dist/app/${windowName}.html`),
+		// 	protocol: 'file:',
+		// 	slashes: true
+		// }))
+		//
+		// win.on('closed', () => {
+		// 	this.window = null
+		// 	this.loadingWindow = false
+		// 	this.onClose()
+		// })
+		//
+		// return result
+		///////////////////////////////////////////////////
+
+		// FIXME saved state doesn't work.
 		const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
-		const options = {
-			...savedState,
-			show: false,
-			backgroundColor: this.settings.backgroundColor,
-			scrollBounce: true,
-		} as BrowserWindowConstructorOptions
-		const win = new Electron.remote.BrowserWindow(options)
+		console.log( objectToFeatureString( savedState ) )
+
+		const options = `
+			${objectToFeatureString( savedState )},
+			show=yes,
+			backgroundColor=${this.settings.backgroundColor},
+			scrollBounce=yes,
+		`
+
+		const lightboxWindow = window.open(
+
+			Url.format({
+				pathname: Path.join(process.cwd(), `dist/app/${windowName}.html`),
+				protocol: 'file:',
+				slashes: true
+			}),
+			// 'about:blank',
+
+			windowName,
+			options // yeah, it's a string. Why would they make the API take a string of options???
+		)
+
+		// A trick (hack?) for getting the BrowserWindow we just created with native
+		// window.open. The new window is now the focused window.
+		const win = Electron.remote.BrowserWindow.getFocusedWindow()
+
 		savedState.manage(win)
 
 		const result = new Promise<void>((resolve: () => void): void => {
-			win.once('ready-to-show', () => {
+
+			// FIXME The read-to-show event never fires when doing it this way, so
+			// we're using this setTimeout hack for now. If we don't setTimeout,
+			// then it appears that the lightboxState messasge gets sent before
+			// the window has listeners set up.
+			setTimeout(() => {
+			// win.once('ready-to-show', () => {
+
 				win.show()
 				this.window = win
 				this.loadingWindow = false
 				resolve()
-			})
+
+			// })
+			}, 1000)
+
 		})
 
 		if (this.settings.openDevTools)
 			win.webContents.openDevTools()
 
-		win.loadURL(Url.format({
-			pathname: Path.join(process.cwd(), `dist/app/${windowName}.html`),
-			protocol: 'file:',
-			slashes: true
-		}))
+		// win.loadURL(Url.format({
+		// 	pathname: Path.join(process.cwd(), `dist/app/${windowName}.html`),
+		// 	protocol: 'file:',
+		// 	slashes: true
+		// }))
 
 		win.on('closed', () => {
 			this.window = null
 			this.loadingWindow = false
 			this.onClose()
 		})
+
+		setTimeout(() => {
+			console.log('send message to lightbox window on connect channel')
+			lightboxWindow!.postMessage({ channel: 'connect', msg: Electron.remote.getCurrentWindow().id }, '*')
+		}, 2000)
+
+		addEventListener( 'message', event => {
+			console.log('received a message...')
+			if ( event.source === lightboxWindow ) {
+				if ( event.data.channel === 'connect' ) {
+					console.log( 'message from lightbox window:', event.data.msg )
+				}
+			}
+		} )
 
 		return result
 	}
@@ -105,8 +187,10 @@ export class LightboxWindowManager {
 
 		return this.createWindow()
 			.then(() => {
-				if (this.window)
+				if (this.window) {
+					console.log( 'window created -------------------------------------------------- ' )
 					this.window.webContents.send(channel.lightboxState, state)
+				}
 				else
 					console.warn('missing window')
 			})
@@ -130,4 +214,37 @@ export class LightboxWindowManager {
 
 	private handleOnKeyUp = (_: Electron.EventEmitter, event: IpcMessages.KeyboardEventHighlights): void =>
 		this.onKeyUp(event)
+}
+
+// regarding feature strings, see:
+// https://developer.mozilla.org/en-US/docs/Web/API/Window/open#Window_features
+function objectToFeatureString( obj: object ): string {
+
+	// never set this to show=no or new windows can never be opened. See:
+	// https://github.com/electron/electron/issues/13156
+	let result = 'show=yes'
+
+	let val
+
+ 	for ( const key in obj ) {
+
+		val = obj[ key ]
+
+		if ( typeof val === 'function' ) continue
+
+		val = typeof val === 'string'
+			? ( val === 'yes'
+				? true
+				: ( val === 'no' ? false : val )
+			)
+			: val
+
+		val = typeof val === 'boolean' ? +!!val : val
+
+		result += `,${ key }=${ val }`
+
+	}
+
+	return result
+
 }

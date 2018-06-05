@@ -18,6 +18,7 @@ const log = TypeLogger.getLogger(__filename)
 class LightboxWindowUI {
 	private lightboxState: IpcMessages.LightboxState
 	private imageChildren: HTMLImageElement[]
+	private mainWindow: Electron.BrowserWindow
 
 	constructor() {
 		this.lightboxState = {images: []}
@@ -27,8 +28,20 @@ class LightboxWindowUI {
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
 
+		console.log('set up the darn ipc channel in lightbox window')
 		Electron.ipcRenderer.on(channel.lightboxState, this.onLightboxState)
 		Electron.ipcRenderer.on(channel.imageEditState, this.onImageEditState)
+
+		this.mainWindow = window.opener
+
+		addEventListener('message', event => {
+			if ( event.data.channel === 'connect' ) {
+				this.mainElectronWindowId = Electron.remote.BrowserWindow.fromId( event.data.msg )
+
+				// send a message back to annotator window
+				this.mainWindow.postMessage({ channel: 'connect', msg: 'hello' }, '*')
+			}
+		})
 	}
 
 	private onResize = (): void =>
@@ -48,6 +61,7 @@ class LightboxWindowUI {
 
 	// Throw away the old state. Rebuild the UI based on the new state.
 	private onLightboxState = (_: Electron.EventEmitter, state: IpcMessages.LightboxState): void => {
+		console.log(' ############# receive lightbox state')
 		log.info('onLightboxState', state)
 		const imageListElement = document.getElementById('image_list')
 		if (imageListElement) {

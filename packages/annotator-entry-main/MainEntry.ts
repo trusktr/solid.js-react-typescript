@@ -64,6 +64,11 @@ function createWindow(): void {
 		...dimensionsOptions,
 		show: false,
 		backgroundColor: config.get('startup.background_color') || '#000',
+		webPreferences: {
+			// so that window.open() gives us the underlying `window` object
+			// rather than an Electron BrowserWindowProxy
+			nativeWindowOpen: true
+		},
 	} as BrowserWindowConstructorOptions
 
 	// Create the browser window.
