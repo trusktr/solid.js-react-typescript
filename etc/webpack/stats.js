@@ -1,4 +1,4 @@
-module.exports = global.WebpackStatsConfig = {
+export default {
 	//colors: process.env.COLORS !== '0',
 	colors: true,
 	errors: true,
@@ -14,5 +14,5 @@ module.exports = global.WebpackStatsConfig = {
 	modules: false,
 	chunkOrigins: false,
 	sources: false
-	
+
 }

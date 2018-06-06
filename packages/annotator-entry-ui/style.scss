@@ -28,22 +28,25 @@ $default_font: Verdana, Geneva, sans-serif;
 	}
 }
 
-body {
-	overflow-x: hidden;
-	overflow-y: hidden;
-	@extend %defaultBox;
-}
-#root {
-	@extend %defaultBox;
-	width: auto;
+@if $__SAFFRON__ == false {
+	body {
+		overflow-x: hidden;
+		overflow-y: hidden;
+		@extend %defaultBox;
+	}
+	#root {
+		@extend %defaultBox;
+		width: auto;
 
-	.scene-container {
+		.scene-container {
+			@extend %defaultBox;
+		}
+	}
+	html {
 		@extend %defaultBox;
 	}
 }
-html {
-	@extend %defaultBox;
-}
+
 .hidden {
 	display: none;
 }
