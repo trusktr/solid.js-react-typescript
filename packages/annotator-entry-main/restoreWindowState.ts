@@ -31,14 +31,13 @@ function restoreWindowState( win, windowName ) {
 	}
 
 	// Set some more browser window options.
+    // NOTE It's not possible to set backgroundColor after already constructing a BrowserWindow =(
 	Object.assign(options, {
 		backgroundColor: config.get('startup.background_color') || '#000',
 	})
 
 	win.setSize(options.width, options.height)
 	win.setPosition(options.x, options.y)
-
-    // NOTE not possible to set backgroundColor after already constructing a BrowserWindow
 
 	if (setFullScreen)
 		win.setFullScreen(true)
