@@ -4,7 +4,6 @@
  */
 
 import * as $ from 'jquery'
-import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import App from './App'
