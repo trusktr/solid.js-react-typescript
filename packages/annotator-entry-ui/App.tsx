@@ -4,6 +4,7 @@
  */
 
 import * as React from 'react'
+import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import initUIControl from '@/annotator-control-ui/UIControl'
 import {annotator} from 'annotator-entry-ui/Annotator'
 import Menu from './components/Menu'
