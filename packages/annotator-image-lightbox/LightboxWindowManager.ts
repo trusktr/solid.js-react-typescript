@@ -88,7 +88,7 @@ export class LightboxWindowManager {
 		// window.open API.
 
 		this.lightboxCommunicator = new WindowCommunicator( lightboxWindow )
-		this.openComChannels()
+		this.openChannels()
 
 		const onConnect = () => {
 			this.lightboxCommunicator.off('connect', onConnect)
@@ -112,21 +112,21 @@ export class LightboxWindowManager {
 		win.on('closed', () => {
 			this.window = null
 			this.loadingWindow = false
-			this.closeComChannels()
+			this.closeChannels()
 			this.onClose()
 		})
 
 		return promise
 	}
 
-	openComChannels() {
+	openChannels() {
 		this.lightboxCommunicator.on(channel.imageEditState, this.handleOnImageEditState)
 		this.lightboxCommunicator.on(channel.imageClick, this.handleOnImageClick)
 		this.lightboxCommunicator.on(channel.keyDownEvent, this.handleOnKeyDown)
 		this.lightboxCommunicator.on(channel.keyUpEvent, this.handleOnKeyUp)
 	}
 
-	closeComChannels() {
+	closeChannels() {
 		this.lightboxCommunicator.off(channel.imageEditState, this.handleOnImageEditState)
 		this.lightboxCommunicator.off(channel.imageClick, this.handleOnImageClick)
 		this.lightboxCommunicator.off(channel.keyDownEvent, this.handleOnKeyDown)
