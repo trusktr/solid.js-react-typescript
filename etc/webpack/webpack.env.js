@@ -10,6 +10,8 @@ const
 
 module.exports = {
 	__DEV__: isDev,
+	__PROD__: !isDev,
+	__SAFFRON__: isSaffron,
 	DEBUG: isDev,
 	TEST: false,
 	VERSION: JSON.stringify(pkgJson.version),

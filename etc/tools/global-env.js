@@ -1,5 +1,4 @@
 require('shelljs/global')
-require('../webpack/parts/stats')
 
 const
 	tsc = require('typescript'),
@@ -25,18 +24,20 @@ process.argv.forEach(arg => {
 const
 	processDir = baseDir,
 	TypeScriptEnabled = true,
-	env = process.env.NODE_ENV || 'development'
+	env = process.env.NODE_ENV || 'development',
+	isDev = env === 'development'
 
 
 Object.assign(global, {
 	tsc,
 	_,
 	env,
-	isDev: env === 'development',
+	isDev,
+	isProd: !isDev,
+	isSaffron: typeof process.env.SAFFRON !== 'undefined',
 	processDir,
 	basePackageJson: readJSONFileSync(`${baseDir}/package.json`),
 	srcRootDir: path.resolve(baseDir, TypeScriptEnabled ? 'packages' : 'dist/out'),
-	Deferred: require('./deferred'),
 	assert
 }, require('./helpers'))
 

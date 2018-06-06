@@ -1,3 +1,5 @@
+declare const __SAFFRON__: any
+
 // current working directory
 declare const __CWD: string
 
