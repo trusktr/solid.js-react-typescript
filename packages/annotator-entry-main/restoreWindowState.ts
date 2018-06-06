@@ -12,11 +12,11 @@ function restoreWindowState( win, windowName ) {
 
 	// Deal with window dimensions. Kiosk mode overrides all other settings.
 	const setFullScreen = !!config.get('startup.kiosk_mode')
-	const dimensionsOptions = {} as BrowserWindowConstructorOptions
+	const options = {} as BrowserWindowConstructorOptions
 
 	if (!setFullScreen) {
 		// Merge with saved state.
-		Object.assign(dimensionsOptions, savedState)
+		Object.assign(options, savedState)
 
 		// User's saved settings override config file settings.
 		const userHasSavedState = !(isNullOrUndefined(savedState.x) || isNullOrUndefined(savedState.y))
@@ -24,20 +24,19 @@ function restoreWindowState( win, windowName ) {
 			const width = parseInt(config.get('startup.electron.window.default.width'), 10)
 			const height = parseInt(config.get('startup.electron.window.default.height'), 10)
 			if (width && height) {
-				dimensionsOptions.width = width
-				dimensionsOptions.height = height
+				options.width = width
+				options.height = height
 			}
 		}
 	}
 
 	// Set some more browser window options.
-	const options = {
-		...dimensionsOptions,
+	Object.assign(options, {
 		backgroundColor: config.get('startup.background_color') || '#000',
-	}
+	})
 
-	win.setSize(options.width || 800, options.height || 600)
-	win.setPosition(options.x || 0, options.y || 0)
+	win.setSize(options.width, options.height)
+	win.setPosition(options.x, options.y)
 
     // NOTE not possible to set backgroundColor after already constructing a BrowserWindow
 
