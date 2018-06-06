@@ -3,7 +3,6 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as Electron from 'electron'
 import {channel} from "../electron-ipc/Channel"
 import * as TypeLogger from 'typelogger'
 import * as IpcMessages from "../electron-ipc/Messages"
@@ -18,7 +17,7 @@ const log = TypeLogger.getLogger(__filename)
 class LightboxWindowUI {
 	private lightboxState: IpcMessages.LightboxState
 	private imageChildren: HTMLImageElement[]
-	private com: WindowCommunicator
+	private communicator: WindowCommunicator
 
 	constructor() {
 		this.lightboxState = {images: []}
@@ -28,9 +27,9 @@ class LightboxWindowUI {
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
 
-		this.com = new WindowCommunicator()
-		this.com.emit( 'connect', 'ready!' )
-		this.com.on('connect', msg => {
+		this.communicator = new WindowCommunicator()
+		this.communicator.send( 'connect', 'ready!' )
+		this.communicator.on('connect', msg => {
 			console.log('Main window says: ', msg)
 		})
 
@@ -39,8 +38,8 @@ class LightboxWindowUI {
 
 	private openComChannels() {
 		console.log('set up the darn ipc channel in lightbox window')
-		this.com.on(channel.lightboxState, this.onLightboxState)
-		this.com.on(channel.imageEditState, this.onImageEditState)
+		this.communicator.on(channel.lightboxState, this.onLightboxState)
+		this.communicator.on(channel.imageEditState, this.onImageEditState)
 	}
 
 	private onResize = (): void =>
@@ -50,12 +49,12 @@ class LightboxWindowUI {
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
 		if (!event.repeat) // Annotator ignores repeating events, and streaming them through IPC probably wouldn't perform well.
-			this.com.emit(channel.keyDownEvent, toKeyboardEventHighlights(event))
+			this.communicator.send(channel.keyDownEvent, toKeyboardEventHighlights(event))
 	}
 
 	private onKeyUp = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
-		this.com.emit(channel.keyUpEvent, toKeyboardEventHighlights(event))
+		this.communicator.send(channel.keyUpEvent, toKeyboardEventHighlights(event))
 	}
 
 	// Throw away the old state. Rebuild the UI based on the new state.
@@ -86,7 +85,7 @@ class LightboxWindowUI {
 	}
 
 	private imageSetState(uuid: string, active: boolean): void {
-		this.com.emit(channel.imageEditState, {uuid: uuid, active: active} as IpcMessages.ImageEditState)
+		this.communicator.send(channel.imageEditState, {uuid: uuid, active: active} as IpcMessages.ImageEditState)
 	}
 
 	// Notify listeners when the pointer hovers over an image.
@@ -109,7 +108,7 @@ class LightboxWindowUI {
 		const pixelY = ev.clientY - rect.top
 		const ratioX = pixelX / img.width
 		const ratioY = pixelY / img.height
-		this.com.emit(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as IpcMessages.ImageClick)
+		this.communicator.send(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as IpcMessages.ImageClick)
 	}
 
 	// Scale it to fit the width of its parent.

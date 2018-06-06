@@ -31,7 +31,7 @@ export class LightboxWindowManager {
 	private onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void
 	private onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void
 	private onClose: () => void
-	private lightboxCom: WindowCommunicator
+	private lightboxCommunicator: WindowCommunicator
 
 	constructor(
 		onImageEditState: (state: IpcMessages.ImageEditState) => void,
@@ -87,7 +87,7 @@ export class LightboxWindowManager {
 			options // yeah, it's a string. Why would they make the API take a string of options???
 		)!
 
-		this.lightboxCom = new WindowCommunicator( lightboxWindow )
+		this.lightboxCommunicator = new WindowCommunicator( lightboxWindow )
 
 		this.openComChannels()
 
@@ -99,15 +99,15 @@ export class LightboxWindowManager {
 		savedState.manage(win)
 
 		const onConnect = () => {
-			this.lightboxCom.off('connect', onConnect)
-			this.lightboxCom.emit('connect', 'ready!')
+			this.lightboxCommunicator.off('connect', onConnect)
+			this.lightboxCommunicator.send('connect', 'ready!')
 
 			win.show()
 			this.loadingWindow = false
 			resolve()
 		}
 
-		this.lightboxCom.on('connect', onConnect)
+		this.lightboxCommunicator.on('connect', onConnect)
 
 		if (this.settings.openDevTools)
 			win.webContents.openDevTools()
@@ -129,17 +129,17 @@ export class LightboxWindowManager {
 	}
 
 	openComChannels() {
-		this.lightboxCom.on(channel.imageEditState, this.handleOnImageEditState)
-		this.lightboxCom.on(channel.imageClick, this.handleOnImageClick)
-		this.lightboxCom.on(channel.keyDownEvent, this.handleOnKeyDown)
-		this.lightboxCom.on(channel.keyUpEvent, this.handleOnKeyUp)
+		this.lightboxCommunicator.on(channel.imageEditState, this.handleOnImageEditState)
+		this.lightboxCommunicator.on(channel.imageClick, this.handleOnImageClick)
+		this.lightboxCommunicator.on(channel.keyDownEvent, this.handleOnKeyDown)
+		this.lightboxCommunicator.on(channel.keyUpEvent, this.handleOnKeyUp)
 	}
 
 	closeComChannels() {
-		this.lightboxCom.off(channel.imageEditState, this.handleOnImageEditState)
-		this.lightboxCom.off(channel.imageClick, this.handleOnImageClick)
-		this.lightboxCom.off(channel.keyDownEvent, this.handleOnKeyDown)
-		this.lightboxCom.off(channel.keyUpEvent, this.handleOnKeyUp)
+		this.lightboxCommunicator.off(channel.imageEditState, this.handleOnImageEditState)
+		this.lightboxCommunicator.off(channel.imageClick, this.handleOnImageClick)
+		this.lightboxCommunicator.off(channel.keyDownEvent, this.handleOnKeyDown)
+		this.lightboxCommunicator.off(channel.keyUpEvent, this.handleOnKeyUp)
 	}
 
 	windowSetState(state: IpcMessages.LightboxState): Promise<void> {
@@ -149,7 +149,7 @@ export class LightboxWindowManager {
 			.then(() => {
 				if (this.window) {
 					console.log( 'window created -------------------------------------------------- ' )
-					this.lightboxCom.emit(channel.lightboxState, state)
+					this.lightboxCommunicator.send(channel.lightboxState, state)
 				}
 				else
 					console.warn('missing window')
@@ -158,7 +158,7 @@ export class LightboxWindowManager {
 
 	imageSetState(state: IpcMessages.ImageEditState): void {
 		if (this.window)
-			this.lightboxCom.emit(channel.imageEditState, state)
+			this.lightboxCommunicator.send(channel.imageEditState, state)
 		else
 			console.warn('missing window')
 	}

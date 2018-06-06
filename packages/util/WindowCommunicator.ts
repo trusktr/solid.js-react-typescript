@@ -33,7 +33,7 @@ class WindowCommunicator {
         }
     }
 
-	emit( channel: string, msg: any ) {
+	send( channel: string, msg: any ) {
 		this.window.postMessage({ channel, msg }, '*')
 	}
 
