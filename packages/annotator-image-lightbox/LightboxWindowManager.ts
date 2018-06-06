@@ -62,47 +62,38 @@ export class LightboxWindowManager {
 		const windowName = 'image-lightbox'
 		const {promise, resolve} = createPromise<void, void>()
 
-		// FIXME saved state doesn't work.
 		const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
-		console.log( objectToFeatureString( savedState ) )
 
-		const options = `
-			${objectToFeatureString( savedState )},
-			show=yes,
-			backgroundColor=${this.settings.backgroundColor},
-			scrollBounce=yes,
-			_blank,
-		`
+		const options = `${objectToFeatureString( savedState )},_blank`
+		console.log( savedState, options )
 
 		const lightboxWindow = window.open(
-
-			Url.format({
-				pathname: Path.join(process.cwd(), `dist/app/${windowName}.html`),
-				protocol: 'file:',
-				slashes: true
-			}),
-			// 'about:blank',
-
+			'about:blank',
 			windowName,
 			options // yeah, it's a string. Why would they make the API take a string of options???
 		)!
-
-		this.lightboxCommunicator = new WindowCommunicator( lightboxWindow )
-
-		this.openComChannels()
 
 		// A trick (hack?) for getting the BrowserWindow we just created with native
 		// window.open. The new window is now the focused window.
 		const win = Electron.remote.BrowserWindow.getFocusedWindow()
 		this.window = win
 
+		if ( savedState.isMaximized ) win.maximize()
+		if ( savedState.isFullScreen ) win.setFullScreen(true)
+
 		savedState.manage(win)
+
+		// NOTE: not currently possible to set backgroundColor, show, and other
+		// features of BrowserWindow of the new window with the native
+		// window.open API.
+
+		this.lightboxCommunicator = new WindowCommunicator( lightboxWindow )
+		this.openComChannels()
 
 		const onConnect = () => {
 			this.lightboxCommunicator.off('connect', onConnect)
 			this.lightboxCommunicator.send('connect', 'ready!')
 
-			win.show()
 			this.loadingWindow = false
 			resolve()
 		}
@@ -112,11 +103,11 @@ export class LightboxWindowManager {
 		if (this.settings.openDevTools)
 			win.webContents.openDevTools()
 
-		// win.loadURL(Url.format({
-		// 	pathname: Path.join(process.cwd(), `dist/app/${windowName}.html`),
-		// 	protocol: 'file:',
-		// 	slashes: true
-		// }))
+		win.loadURL(Url.format({
+			pathname: Path.join(process.cwd(), `dist/app/${windowName}.html`),
+			protocol: 'file:',
+			slashes: true
+		}))
 
 		win.on('closed', () => {
 			this.window = null
@@ -147,10 +138,8 @@ export class LightboxWindowManager {
 
 		return this.createWindow()
 			.then(() => {
-				if (this.window) {
-					console.log( 'window created -------------------------------------------------- ' )
+				if (this.window)
 					this.lightboxCommunicator.send(channel.lightboxState, state)
-				}
 				else
 					console.warn('missing window')
 			})
@@ -186,11 +175,14 @@ function objectToFeatureString( obj: object ): string {
 
 	let val
 
- 	for ( const key in obj ) {
+ 	for ( let key in obj ) {
 
 		val = obj[ key ]
 
 		if ( typeof val === 'function' ) continue
+
+		if ( key === 'x' ) key = 'left'
+		if ( key === 'y' ) key = 'top'
 
 		val = typeof val === 'string'
 			? ( val === 'yes'
