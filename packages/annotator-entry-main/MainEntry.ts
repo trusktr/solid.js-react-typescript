@@ -9,7 +9,6 @@ import * as Electron from 'electron'
 import {BrowserWindow, BrowserWindowConstructorOptions} from 'electron'
 import {isNullOrUndefined} from "util"
 import {windowStateKeeperOptions} from "../util/WindowStateKeeperOptions"
-import {listen, stopListening} from "./MessageHandlers"
 import windowStateKeeper = require('electron-window-state')
 import config from '@/config'
 
@@ -80,7 +79,6 @@ function createWindow(): void {
 
 	win.once('ready-to-show', () => {
 		win!.show()
-		listen(win!)
 	})
 
 	// Open the DevTools.
@@ -96,7 +94,6 @@ function createWindow(): void {
 
 	// Emitted when the window is closed.
 	win.on('closed', () => {
-		stopListening()
 		// Dereference the window object, usually you would store windows
 		// in an array if your app supports multi windows, this is the time
 		// when you should delete the corresponding element.
