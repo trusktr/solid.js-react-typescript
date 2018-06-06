@@ -3,12 +3,11 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as Electron from 'electron'
 import {channel} from "../electron-ipc/Channel"
 import * as TypeLogger from 'typelogger'
 import * as IpcMessages from "../electron-ipc/Messages"
-import {sendToAnnotator} from "../electron-ipc/Wrapper"
 import {toKeyboardEventHighlights} from "../electron-ipc/Serializaton"
+import WindowCommunicator from '../util/WindowCommunicator'
 
 // tslint:disable-next-line:no-any
 TypeLogger.setLoggerOutput(console as any)
@@ -18,6 +17,7 @@ const log = TypeLogger.getLogger(__filename)
 class LightboxWindowUI {
 	private lightboxState: IpcMessages.LightboxState
 	private imageChildren: HTMLImageElement[]
+	private communicator: WindowCommunicator
 
 	constructor() {
 		this.lightboxState = {images: []}
@@ -27,8 +27,19 @@ class LightboxWindowUI {
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
 
-		Electron.ipcRenderer.on(channel.lightboxState, this.onLightboxState)
-		Electron.ipcRenderer.on(channel.imageEditState, this.onImageEditState)
+		this.communicator = new WindowCommunicator()
+		this.communicator.send( 'connect', 'ready!' )
+		this.communicator.on('connect', msg => {
+			console.log('Main window says: ', msg)
+		})
+
+		this.openComChannels()
+	}
+
+	private openComChannels() {
+		console.log('set up the darn ipc channel in lightbox window')
+		this.communicator.on(channel.lightboxState, this.onLightboxState)
+		this.communicator.on(channel.imageEditState, this.onImageEditState)
 	}
 
 	private onResize = (): void =>
@@ -38,16 +49,17 @@ class LightboxWindowUI {
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
 		if (!event.repeat) // Annotator ignores repeating events, and streaming them through IPC probably wouldn't perform well.
-			sendToAnnotator(channel.keyDownEvent, toKeyboardEventHighlights(event))
+			this.communicator.send(channel.keyDownEvent, toKeyboardEventHighlights(event))
 	}
 
 	private onKeyUp = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
-		sendToAnnotator(channel.keyUpEvent, toKeyboardEventHighlights(event))
+		this.communicator.send(channel.keyUpEvent, toKeyboardEventHighlights(event))
 	}
 
 	// Throw away the old state. Rebuild the UI based on the new state.
-	private onLightboxState = (_: Electron.EventEmitter, state: IpcMessages.LightboxState): void => {
+	private onLightboxState = (state: IpcMessages.LightboxState): void => {
+		console.log(' ############# receive lightbox state')
 		log.info('onLightboxState', state)
 		const imageListElement = document.getElementById('image_list')
 		if (imageListElement) {
@@ -60,31 +72,32 @@ class LightboxWindowUI {
 				this.imageChildren.push(img)
 			})
 			this.lightboxState = state
+			console.log(this.lightboxState)
 		} else
 			log.warn('missing element image_list')
 	}
 
 	// Update UI for one image.
-	private onImageEditState = (_: Electron.EventEmitter, state: IpcMessages.ImageEditState): void => {
+	private onImageEditState = (state: IpcMessages.ImageEditState): void => {
 		this.imageChildren
 			.filter(img => img.id === state.uuid)
 			.forEach(img => img.className = state.active ? 'image_highlighted' : 'image_default')
 	}
 
-	private static imageSetState(uuid: string, active: boolean): void {
-		sendToAnnotator(channel.imageEditState, {uuid: uuid, active: active} as IpcMessages.ImageEditState)
+	private imageSetState(uuid: string, active: boolean): void {
+		this.communicator.send(channel.imageEditState, {uuid: uuid, active: active} as IpcMessages.ImageEditState)
 	}
 
 	// Notify listeners when the pointer hovers over an image.
 	private onImageMouseEnter = (ev: MouseEvent): void => {
 		if ((ev.target as HTMLImageElement).id)
-			LightboxWindowUI.imageSetState((ev.target as HTMLImageElement).id, true)
+			this.imageSetState((ev.target as HTMLImageElement).id, true)
 	}
 
 	// Notify listeners when the pointer stops hovering over an image.
 	private onImageMouseLeave = (ev: MouseEvent): void => {
 		if ((ev.target as HTMLImageElement).id)
-			LightboxWindowUI.imageSetState((ev.target as HTMLImageElement).id, false)
+			this.imageSetState((ev.target as HTMLImageElement).id, false)
 	}
 
 	// Notify listeners of the coordinates of a click on an image.
@@ -95,7 +108,7 @@ class LightboxWindowUI {
 		const pixelY = ev.clientY - rect.top
 		const ratioX = pixelX / img.width
 		const ratioY = pixelY / img.height
-		sendToAnnotator(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as IpcMessages.ImageClick)
+		this.communicator.send(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as IpcMessages.ImageClick)
 	}
 
 	// Scale it to fit the width of its parent.
