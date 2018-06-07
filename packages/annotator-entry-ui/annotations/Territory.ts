@@ -206,22 +206,14 @@ export class Territory extends Annotation {
 	makeActive(): void {
 		(this.mesh.material as THREE.Material).transparent = false
 		this.markers.forEach(m => m.scale.setScalar(markerSettings.activeScale))
+		this.showMarkers()
 	}
 
 	makeInactive(): void {
 		(this.mesh.material as THREE.Material).transparent = true
 		this.unhighlightMarkers()
 		this.markers.forEach(m => m.scale.setScalar(markerSettings.inactiveScale))
-	}
-
-	setLiveMode(): void {
-		this.mesh.visible = false
-		this.territoryContour.visible = false
-	}
-
-	unsetLiveMode(): void {
-		this.mesh.visible = true
-		this.territoryContour.visible = true
+		this.hideMarkers()
 	}
 
 	updateVisualization(): void {
