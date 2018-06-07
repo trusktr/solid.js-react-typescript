@@ -42,9 +42,6 @@ class Help extends React.Component<{}, {}> {
 				<strong>Images</strong><br />
 				Shift-LeftClick - load an image into a new window<br />
 				RightClick - unload image from clicked screen<br />
-
-				<strong>Live Mode</strong><br />
-				O - Listen/stop listening for live location data<br />
 			</p>
 		)
 	}
