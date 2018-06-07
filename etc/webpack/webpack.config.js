@@ -5,12 +5,12 @@ import DefinedEnv from './webpack.env'
 import assert from 'assert'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import Path from 'path'
+import nodeExternals from 'webpack-node-externals'
 import CircularDependencyPlugin from "circular-dependency-plugin"
 import Webpack, { DefinePlugin, HotModuleReplacementPlugin } from 'webpack'
 import Fs from 'fs'
 import { CheckerPlugin } from 'awesome-typescript-loader'
 import WebpackStatsConfig from './stats'
-import nodeExternals from 'webpack-node-externals'
 
 const name = 'annotator-app'
 const { isDev, baseDir, srcRootDir, _ } = global
@@ -55,7 +55,7 @@ module.exports = patchConfig({
 		loaders: [
 			{
 				test: /\.json$/,
-				loader: 'json-loader'
+				loader: 'json'
 			},
 
 			// SourceCode
@@ -210,18 +210,14 @@ module.exports = patchConfig({
 	},
 
 	externals: [
-		{
-	        'react': 'commonjs react',
-	        'react-dom': 'react-dom',
-	        '@mapperai/mapper-saffron-sdk': '@mapperai/mapper-saffron-sdk',
-	        'material-ui': 'material-ui',
-	        'material-ui-icons': 'material-ui-icons',
-	        'typelogger': 'typelogger',
-	        'reselect': 'reselect',
-	        'react-redux': 'react-redux',
-	        'lodash': 'lodash',
-		},
-		nodeExternals()
+		// makes all node_modules external
+		nodeExternals({
+			whitelist: [
+				/webpack/,
+				/webpack-hot/,
+				/react-hot-loader/
+			]
+		})
 	],
 })
 
