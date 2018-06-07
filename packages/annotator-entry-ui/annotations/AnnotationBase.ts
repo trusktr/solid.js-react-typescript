@@ -6,13 +6,11 @@
 import * as lodash from 'lodash'
 import * as THREE from 'three'
 import * as UUID from 'uuid'
-import * as TypeLogger from 'typelogger'
 import {AnnotationType} from "./AnnotationType"
 import {isNumber} from "util"
+import Logger from "@/util/log"
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
 
 export type AnnotationId = number
 export type AnnotationUuid = string

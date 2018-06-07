@@ -4,15 +4,13 @@
  */
 
 import * as THREE from 'three'
-import * as TypeLogger from 'typelogger'
 import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
 import {AnnotationGeometryType, AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
+import Logger from "@/util/log"
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
 
 const defaultLabel = 'NEW_TERRITORY'
 

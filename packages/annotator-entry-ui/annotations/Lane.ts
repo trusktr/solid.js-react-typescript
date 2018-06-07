@@ -4,7 +4,6 @@
  */
 
 import * as THREE from 'three'
-import * as TypeLogger from 'typelogger'
 import * as $ from 'jquery'
 import * as lodash from 'lodash'
 import {
@@ -14,10 +13,9 @@ import {
 } from './AnnotationBase'
 import {AnnotationType} from "./AnnotationType"
 import {isNullOrUndefined} from "util"
+import Logger from "@/util/log"
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
 
 const directionGeometry = new THREE.Geometry()
 directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25,  0.5))
