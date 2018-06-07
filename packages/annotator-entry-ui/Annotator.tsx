@@ -556,7 +556,12 @@ class Annotator {
 			this.compassRose = null
 
 		// All the annotations go here.
-		this.annotationManager = new AnnotationManager(this.utmCoordinateSystem, this.scene, this.onChangeActiveAnnotation)
+		this.annotationManager = new AnnotationManager(
+			!this.uiState.isKioskMode,
+			this.utmCoordinateSystem,
+			this.scene,
+			this.onChangeActiveAnnotation
+		)
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
@@ -3776,7 +3781,6 @@ class Annotator {
 		if (this.uiState.isLiveMode) return this.uiState.isLiveMode
 
 		log.info('Listening for messages...')
-		this.annotationManager.setLiveMode()
 		this.uiState.isLiveMode = true
 		this.setLayerVisibility([Layer.POINT_CLOUD, Layer.ANNOTATIONS], true)
 		if (this.gui)
