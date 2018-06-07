@@ -89,8 +89,6 @@ export abstract class Annotation {
 	abstract complete(): boolean        // Close the loop of markers or do any other clean-up to designate an annotation "complete"
 	abstract makeActive(): void
 	abstract makeInactive(): void
-	abstract setLiveMode(): void
-	abstract unsetLiveMode(): void
 	abstract updateVisualization(): void
 
 	boundingBox(): THREE.Box3 {
@@ -101,6 +99,15 @@ export abstract class Annotation {
 	// The array of markers forms a closed loop when the annotation is complete.
 	markersFormRing(): boolean {
 		return this.geometryType === AnnotationGeometryType.RING
+	}
+
+	// Typically markers will be shown only when the annotation is made active for editing.
+	protected showMarkers(): void {
+		this.markers.forEach((marker) => marker.visible = true)
+	}
+
+	protected hideMarkers(): void {
+		this.markers.forEach((marker) => marker.visible = false)
 	}
 
 	/**

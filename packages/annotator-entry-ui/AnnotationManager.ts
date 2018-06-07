@@ -236,7 +236,7 @@ export class AnnotationManager {
 		this.annotationObjects.push(newAnnotation.renderingObject)
 		this.scene.add(newAnnotation.renderingObject)
 		if (activate)
-			this.changeActiveAnnotation(newAnnotation)
+			this.setActiveAnnotation(newAnnotation)
 
 		return [newAnnotation, AnnotationConstructResult.SUCCESS]
 	}
@@ -388,7 +388,7 @@ export class AnnotationManager {
 		}
 
 		// delete
-		this.changeActiveAnnotation(annotation1)
+		this.setActiveAnnotation(annotation1)
 		this.deleteAnnotation(annotation2)
 
 		this.metadataState.dirty()
@@ -631,7 +631,6 @@ export class AnnotationManager {
 	setLiveMode(): void {
 		if (!this.isLiveMode) {
 			this.unsetActiveAnnotation()
-			this.allAnnotations().forEach(a => a.setLiveMode())
 			this.isLiveMode = true
 		}
 	}
@@ -641,7 +640,6 @@ export class AnnotationManager {
 	 */
 	unsetLiveMode(): void {
 		if (this.isLiveMode) {
-			this.allAnnotations().forEach(a => a.unsetLiveMode())
 			this.isLiveMode = false
 		}
 	}
@@ -909,7 +907,7 @@ export class AnnotationManager {
 	/**
 	 * Activate (i.e. make editable), the given annotation.
 	 */
-	changeActiveAnnotation(changeTo: Annotation | null): boolean {
+	setActiveAnnotation(changeTo: Annotation | null): boolean {
 		if (!changeTo) return false
 		// Can't activate annotations during live mode
 		if (this.isLiveMode) return false

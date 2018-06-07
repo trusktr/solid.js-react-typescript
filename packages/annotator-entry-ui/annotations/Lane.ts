@@ -93,7 +93,6 @@ export class LaneNeighborsIds {
 class LaneRenderingProperties {
 	markerMaterial: THREE.MeshLambertMaterial
 	activeMaterial: THREE.MeshBasicMaterial
-	inactiveMaterial: THREE.MeshLambertMaterial
 	leftNeighborMaterial: THREE.MeshBasicMaterial
 	rightNeighborMaterial: THREE.MeshBasicMaterial
 	frontNeighborMaterial: THREE.MeshBasicMaterial
@@ -104,7 +103,6 @@ class LaneRenderingProperties {
 	constructor() {
 		this.markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 		this.activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
-		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: "white", side: THREE.DoubleSide})
 		this.leftNeighborMaterial = new THREE.MeshBasicMaterial({color: 0xffff66, side: THREE.DoubleSide})
 		this.rightNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x00ffff, side: THREE.DoubleSide})
 		this.frontNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x66ff99, side: THREE.DoubleSide})
@@ -384,19 +382,36 @@ export class Lane extends Annotation {
 	makeActive(): void {
 		this.mesh.material = this.renderingProperties.activeMaterial
 		this.laneCenterLine.visible = false
+		this.showMarkers()
 	}
 
 	/**
 	 * Make this annotation inactive. This changes the displayed material.
 	 */
 	makeInactive(): void {
+		switch (this.type) {
+			case LaneType.BIKE_ONLY:
+				this.setBikeLaneLiveModeRendering()
+				break
+			case LaneType.CROSSWALK:
+				this.setCrosswalkLiveModeRendering()
+				break
+			case LaneType.PARKING:
+				this.setParkingLiveModeRendering()
+				break
+			default:
+				this.setAllVehiclesLiveModeRendering()
+		}
+		if (this.type !== LaneType.CROSSWALK)
+			this.showDirectionMarkers()
 		if (this.inTrajectory) {
 			this.mesh.material = this.renderingProperties.trajectoryMaterial
 		} else {
-			this.mesh.material = this.renderingProperties.inactiveMaterial
+			this.mesh.material = this.renderingProperties.liveModeMaterial
 		}
 		this.laneCenterLine.visible = true
 		this.unhighlightMarkers()
+		this.hideMarkers()
 	}
 
 	/**
@@ -414,38 +429,6 @@ export class Lane extends Annotation {
 		}
 		this.laneCenterLine.visible = true
 		this.unhighlightMarkers()
-	}
-
-	setLiveMode(): void {
-		switch (this.type) {
-			case LaneType.BIKE_ONLY:
-				this.setBikeLaneLiveModeRendering()
-				break
-			case LaneType.CROSSWALK:
-				this.setCrosswalkLiveModeRendering()
-				break
-			case LaneType.PARKING:
-				this.setParkingLiveModeRendering()
-				break
-			default:
-				this.setAllVehiclesLiveModeRendering()
-		}
-
-		this.markers.forEach((marker) => {
-			marker.visible = false
-		})
-
-		this.mesh.material = this.renderingProperties.liveModeMaterial
-	}
-
-	unsetLiveMode(): void {
-		this.markers.forEach((marker) => {
-			marker.visible = true
-		})
-		if (this.type !== LaneType.CROSSWALK) {
-			this.showDirectionMarkers()
-		}
-		this.makeInactive()
 	}
 
 	/**
@@ -582,7 +565,7 @@ export class Lane extends Annotation {
 		if (this.inTrajectory) {
 			this.mesh.material = this.renderingProperties.trajectoryMaterial
 		} else {
-			this.mesh.material = this.renderingProperties.inactiveMaterial
+			this.mesh.material = this.renderingProperties.liveModeMaterial
 		}
 	}
 

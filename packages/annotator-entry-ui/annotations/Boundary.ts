@@ -176,20 +176,11 @@ export class Boundary extends Annotation {
 
 	makeActive(): void {
 		this.boundaryContour.material = BoundaryRenderingProperties.activeMaterial
+		this.showMarkers()
 	}
 
 	makeInactive(): void {
-		this.boundaryContour.material = BoundaryRenderingProperties.inactiveMaterial
-		this.unhighlightMarkers()
-	}
-
-	setLiveMode(): void {
-		this.markers.forEach((marker) => {
-			marker.visible = false
-		})
-
 		const liveColor = MapBoundaryColorToHex[this.color.toString()]
-
 		switch (this.type) {
 			case BoundaryType.DASHED:
 			case BoundaryType.SOLID_DASHED:
@@ -199,13 +190,9 @@ export class Boundary extends Annotation {
 			default:
 				this.boundaryContour.material = new THREE.LineBasicMaterial({color: liveColor})
 		}
-	}
-
-	unsetLiveMode(): void {
-		this.markers.forEach((marker) => {
-			marker.visible = true
-		})
-		this.makeInactive()
+		this.boundaryContour.material = BoundaryRenderingProperties.inactiveMaterial
+		this.unhighlightMarkers()
+		this.hideMarkers()
 	}
 
 	updateVisualization(): void {

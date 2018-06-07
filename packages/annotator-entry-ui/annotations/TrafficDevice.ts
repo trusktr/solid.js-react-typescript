@@ -40,7 +40,7 @@ interface MaterialFaces {
 namespace TrafficDeviceRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 	export const defaultMaterial = new THREE.MeshLambertMaterial({color: 0x008800, side: THREE.DoubleSide})
-	export const defaultContourMaterial = new THREE.LineBasicMaterial({color: 0x00ff00})
+	export const defaultContourMaterial = new THREE.LineBasicMaterial({color: 0x00ff00, visible: false})
 	export const activeContourMaterial = new THREE.LineBasicMaterial({color: 0xffff00, linewidth: 2})
 	export const normalMaterial = new THREE.LineBasicMaterial( {color: 0xff00ff})
 
@@ -199,17 +199,15 @@ export class TrafficDevice extends Annotation {
 		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.activeContourMaterial
 		this.linkLine.visible = false
 		this.normalLine.visible = true
-		if (this.markers.length > 0)
-			this.markers[0].visible = true
+		this.showMarkers()
 	}
 
 	makeInactive(): void {
 		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.defaultContourMaterial
 		this.linkLine.visible = false
 		this.normalLine.visible = false
-		if (this.markers.length > 0)
-			this.markers[0].visible = false
 		this.unhighlightMarkers()
+		this.hideMarkers()
 	}
 
 	setAssociatedMode(position: THREE.Vector3): void {
@@ -223,19 +221,6 @@ export class TrafficDevice extends Annotation {
 		this.linkLine.visible = true
 		if (this.markers.length > 0)
 			this.markers[0].visible = false
-	}
-
-	setLiveMode(): void {
-		this.markers.forEach((marker) => {
-			marker.visible = false
-		})
-	}
-
-	unsetLiveMode(): void {
-		this.markers.forEach((marker) => {
-			marker.visible = true
-		})
-		this.makeInactive()
 	}
 
 	updateVisualization(): void {
