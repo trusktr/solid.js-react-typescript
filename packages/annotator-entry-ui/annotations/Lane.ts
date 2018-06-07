@@ -98,7 +98,7 @@ class LaneRenderingProperties {
 	frontNeighborMaterial: THREE.MeshBasicMaterial
 	centerLineMaterial: THREE.LineDashedMaterial
 	trajectoryMaterial: THREE.MeshLambertMaterial
-	liveModeMaterial: THREE.MeshLambertMaterial
+	inactiveMaterial: THREE.MeshLambertMaterial
 
 	constructor() {
 		this.markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
@@ -108,7 +108,7 @@ class LaneRenderingProperties {
 		this.frontNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x66ff99, side: THREE.DoubleSide})
 		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: "black", side: THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial({color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2})
-		this.liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.3, side: THREE.DoubleSide})
+		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.3, side: THREE.DoubleSide})
 	}
 }
 
@@ -391,23 +391,23 @@ export class Lane extends Annotation {
 	makeInactive(): void {
 		switch (this.type) {
 			case LaneType.BIKE_ONLY:
-				this.setBikeLaneLiveModeRendering()
+				this.setBikeLaneInactiveRendering()
 				break
 			case LaneType.CROSSWALK:
-				this.setCrosswalkLiveModeRendering()
+				this.setCrosswalkInactiveRendering()
 				break
 			case LaneType.PARKING:
-				this.setParkingLiveModeRendering()
+				this.setParkingInactiveRendering()
 				break
 			default:
-				this.setAllVehiclesLiveModeRendering()
+				this.setAllVehiclesInactiveRendering()
 		}
 		if (this.type !== LaneType.CROSSWALK)
 			this.showDirectionMarkers()
 		if (this.inTrajectory) {
 			this.mesh.material = this.renderingProperties.trajectoryMaterial
 		} else {
-			this.mesh.material = this.renderingProperties.liveModeMaterial
+			this.mesh.material = this.renderingProperties.inactiveMaterial
 		}
 		this.laneCenterLine.visible = true
 		this.unhighlightMarkers()
@@ -565,7 +565,7 @@ export class Lane extends Annotation {
 		if (this.inTrajectory) {
 			this.mesh.material = this.renderingProperties.trajectoryMaterial
 		} else {
-			this.mesh.material = this.renderingProperties.liveModeMaterial
+			this.mesh.material = this.renderingProperties.inactiveMaterial
 		}
 	}
 
@@ -748,49 +748,45 @@ export class Lane extends Annotation {
 	}
 
 	private hideDirectionMarkers(): void {
-		this.laneDirectionMarkers.forEach( (m) => {
-			m.visible = false;
-		})
+		this.laneDirectionMarkers.forEach(m => m.visible = false)
 	}
 
 	private showDirectionMarkers(): void {
-		this.laneDirectionMarkers.forEach( (m) => {
-			m.visible = true;
-		})
+		this.laneDirectionMarkers.forEach(m => m.visible = true)
 	}
 
-	private setCrosswalkLiveModeRendering(): void {
+	private setCrosswalkInactiveRendering(): void {
 		// No direction markers, no center line, no side lines and yellow color
 		this.hideDirectionMarkers()
 		this.laneCenterLine.visible = false
 		this.laneRightLine.visible = false
 		this.laneLeftLine.visible = false
-		this.renderingProperties.liveModeMaterial.color.setHex(0xaa6600)
+		this.renderingProperties.inactiveMaterial.color.setHex(0xaa6600)
 	}
 
-	private setParkingLiveModeRendering(): void {
+	private setParkingInactiveRendering(): void {
 		// No direction markers, no center line, no side lines and blue color
 		this.hideDirectionMarkers()
 		this.laneCenterLine.visible = false
 		this.laneRightLine.visible = false
 		this.laneLeftLine.visible = false
-		this.renderingProperties.liveModeMaterial.color.setHex(0x3cb371)
+		this.renderingProperties.inactiveMaterial.color.setHex(0x3cb371)
 	}
 
-	private setBikeLaneLiveModeRendering(): void {
+	private setBikeLaneInactiveRendering(): void {
 		// No direction markers, no center line, no side lines and green color
 		this.hideDirectionMarkers()
 		this.laneCenterLine.visible = false
 		this.laneRightLine.visible = false
 		this.laneLeftLine.visible = false
-		this.renderingProperties.liveModeMaterial.color.setHex(0x33d720)
+		this.renderingProperties.inactiveMaterial.color.setHex(0x33d720)
 	}
 
-	private setAllVehiclesLiveModeRendering(): void {
+	private setAllVehiclesInactiveRendering(): void {
 		this.laneCenterLine.visible = false
 		this.laneRightLine.visible = true
 		this.laneLeftLine.visible = true
-		this.renderingProperties.liveModeMaterial.color.setHex(0x443333)
+		this.renderingProperties.inactiveMaterial.color.setHex(0x443333)
 	}
 
 	private updateLaneSideLinesGeometry(): void {

@@ -34,7 +34,7 @@ namespace ConnectionRenderingProperties {
 	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
 	export const activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
 	export const conflictMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
-	export const liveModeMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
+	export const inactiveMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 }
 
 export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterface {
@@ -175,7 +175,7 @@ export class Connection extends Annotation {
 	}
 
 	makeInactive(): void {
-		this.mesh.material = ConnectionRenderingProperties.liveModeMaterial
+		this.mesh.material = ConnectionRenderingProperties.inactiveMaterial
 		this.unhighlightMarkers()
 		this.hideMarkers()
 	}
