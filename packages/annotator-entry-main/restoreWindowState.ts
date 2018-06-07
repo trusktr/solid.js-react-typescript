@@ -1,11 +1,16 @@
-import {BrowserWindowConstructorOptions} from 'electron'
+/**
+ *  Copyright 2018 Mapper Inc. Part of the mapper-annotator project.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
+import {BrowserWindow, BrowserWindowConstructorOptions} from 'electron'
 import {isNullOrUndefined} from "util"
 import {windowStateKeeperOptions} from "../util/WindowStateKeeperOptions"
 import windowStateKeeper = require('electron-window-state')
 import config from '@/config'
 
 export default
-function restoreWindowState( win, windowName ) {
+function restoreWindowState(win: BrowserWindow, windowName: string): void {
 
 	// Load user's saved state.
 	const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
@@ -36,8 +41,10 @@ function restoreWindowState( win, windowName ) {
 		backgroundColor: config.get('startup.background_color') || '#000',
 	})
 
-	win.setSize(options.width, options.height)
-	win.setPosition(options.x, options.y)
+	if (!(isNullOrUndefined(options.width) || isNullOrUndefined(options.height)))
+		win.setSize(options.width, options.height)
+	if (!(isNullOrUndefined(options.x) || isNullOrUndefined(options.y)))
+		win.setPosition(options.x, options.y)
 
 	if (setFullScreen)
 		win.setFullScreen(true)
