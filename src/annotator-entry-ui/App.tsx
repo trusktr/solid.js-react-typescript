@@ -11,6 +11,7 @@ import Menu from './components/Menu'
 import './style.scss'
 import Logger from '@/util/log'
 import TrajectoryPicker from "./components/TrajectoryPicker"
+import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
 
 const log = Logger(__filename)
 
@@ -40,7 +41,7 @@ class App extends React.Component<AppProps, AppState> {
 
 			<div id="logo">
 				<img
-					src={process.cwd() + "/packages/annotator-assets/images/signature_with_arrow_white.png"}
+					src={logo}
 					height="30px"
 					width="auto"
 				/>

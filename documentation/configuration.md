@@ -1,11 +1,11 @@
 # Configuration
 
 ## Where
-Annotator configuration files live in [packages/config](../packages/config). They are consumed by [the index file](../packages/config/index.ts).
+Annotator configuration files live in [src/config](../src/config). They are consumed by [the index file](../src/config/index.ts).
 
-Default configuration is in [dev.yaml](../packages/config/dev.yaml). There could be a `prod.yaml` with distinct settings for production deployments, but we never made one.
+Default configuration is in [dev.yaml](../src/config/dev.yaml). There could be a `prod.yaml` with distinct settings for production deployments, but we never made one.
 
-For local testing, add configurations to [local.yaml](../packages/config/local.yaml). That file overrides the others and is not included in source control.
+For local testing, add configurations to [local.yaml](../src/config/local.yaml). That file overrides the others and is not included in source control.
 
 ## How
 In the application code each setting is loaded at run time with `config.get(<setting_name>)`.

@@ -1,6 +1,7 @@
 
 import '../scripts/init-scripts'
 import '../tools/global-env'
+const { isDev, baseDir, srcRootDir, _ } = global
 import DefinedEnv from './webpack.env'
 import assert from 'assert'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
@@ -13,7 +14,6 @@ import { CheckerPlugin } from 'awesome-typescript-loader'
 import WebpackStatsConfig from './stats'
 
 const name = 'annotator-app'
-const { isDev, baseDir, srcRootDir, _ } = global
 const moduleDirs = resolveDirs(srcRootDir, 'node_modules')
 const isPackaging = false
 const distDir = `${baseDir}/dist/${isPackaging ? 'app-package' : 'app'}`
@@ -41,7 +41,7 @@ module.exports = patchConfig({
 		} : {}
 	),
 
-	// Source root, './packages'
+	// Source root, './src'
 	context: srcRootDir,
 
 	stats: WebpackStatsConfig,
@@ -92,7 +92,7 @@ module.exports = patchConfig({
 			// 3D models
 			{
 				test: /\.(obj)$/,
-				loaders: ['file-loader?name=packages/annotator-assets/models/[name].[ext]'],
+				loaders: ['file-loader?name=assets/models/[name].[ext]'],
 			},
 
 			// CSS
@@ -137,8 +137,8 @@ module.exports = patchConfig({
 	// Currently we need to add '.ts' to the resolve.extensions array.
 	resolve: {
 		alias: {
-			assets: tsAlias('annotator-assets'),
-			'@': tsAlias(''),
+			assets: alias('annotator-assets'),
+			'@': alias(''),
 		},
 		modules: moduleDirs,
 		extensions: ['.ts', '.tsx', '.js', '.jsx']
@@ -148,14 +148,14 @@ module.exports = patchConfig({
 
         new HtmlWebpackPlugin({
             filename: 'browser-entry.html',
-            template: `${process.cwd()}/packages/annotator-assets/templates/BrowserEntry.jade`,
+            template: `${process.cwd()}/src/annotator-assets/templates/BrowserEntry.jade`,
             inject: false,
             isDev
         }),
 
         new HtmlWebpackPlugin({
             filename: 'image-lightbox.html',
-            template: `${process.cwd()}/packages/annotator-assets/templates/ImageLightbox.jade`,
+            template: `${process.cwd()}/src/annotator-assets/templates/ImageLightbox.jade`,
             inject: false,
             isDev
         }),
@@ -225,6 +225,7 @@ module.exports = patchConfig({
  */
 function resolveDirs(...dirs) {
 	return dirs.map(dir => {
+		// f.e. c:\path, C:\path, /path, ./path, ../path
 		return (['c', 'C', '/', '.'].includes(dir.charAt(0))) ?
 			Path.resolve(dir) :
 			Path.join(baseDir, dir)
@@ -232,7 +233,8 @@ function resolveDirs(...dirs) {
 }
 
 // TypeScript SRC ALIAS
-function tsAlias(tsFilename) {
+function alias(tsFilename) {
+	console.log('alias:', Path.resolve(srcRootDir, tsFilename))
 	return Path.resolve(srcRootDir, tsFilename)
 }
 

@@ -7,7 +7,7 @@ import config from '@/config'
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file"
 import * as Electron from 'electron'
-import * as electronUnhandled from 'electron-unhandled'
+// import * as electronUnhandled from 'electron-unhandled'
 import {sprintf} from 'sprintf-js'
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
@@ -63,7 +63,7 @@ import {dataSetNameFromPath, TrajectoryDataSet} from "@/util/Perception"
 
 const dialog = Electron.remote.dialog
 
-electronUnhandled()
+// electronUnhandled()
 OBJLoader(THREE)
 
 const log = Logger(__filename)
@@ -481,6 +481,10 @@ class Annotator {
 		this.destroyStats()
 		this.destroyControlsGui()
 		this.renderer.domElement.remove()
+
+		// TODO:
+		//  - remove event listeners
+		//  - clean up child windows
 	}
 
 	exitApp(): void {
