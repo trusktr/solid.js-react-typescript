@@ -59,8 +59,8 @@ function createWindow(): void {
 		win = null
 	})
 
-	Electron.ipcMain.on('connect', (event) => {
-		win!.webContents.send('connect', { APP_PATH: global.APP_PATH })
+	Electron.ipcMain.on('connect', () => {
+		win!.webContents.send('connect', { APP_PATH })
 	})
 }
 
