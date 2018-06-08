@@ -18,18 +18,14 @@ const maxPointsToDefineGround = 1000 // arbitrary setting to shorten the estimat
  */
 export class UtmTile {
 	hasPointCloud: boolean
-	index: TileIndex
-	private pointCloudLoader: () => Promise<[number[], number[]]>
 	private rawPositions: Array<number>
 	private rawColors: Array<number>
 
 	constructor(
-		index: TileIndex,
-		pointCloudLoader: () => Promise<[number[], number[]]>
+		public index: TileIndex,
+		private pointCloudLoader: () => Promise<[number[], number[]]>
 	) {
 		this.hasPointCloud = false
-		this.index = index
-		this.pointCloudLoader = pointCloudLoader
 	}
 
 	// Find the TileIndex for a super tile which contains the origin of this tile.

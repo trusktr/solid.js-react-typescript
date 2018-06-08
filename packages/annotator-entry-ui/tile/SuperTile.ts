@@ -17,28 +17,22 @@ import {emptyPositions, threeDStepSize} from "./Constant"
  */
 export class SuperTile {
 	pointCloud: THREE.Points | null
-	pointCount: number
+	objectCount: number
 	private pointCloudBoundingBox: THREE.Box3 | null
-	index: TileIndex
-	coordinateFrame: CoordinateFrameType
-	private utmCoordinateSystem: UtmCoordinateSystem
 	threeJsBoundingBox: THREE.Box3
 	tiles: UtmTile[]
 	private rawPositions: Float32Array
 
 	constructor(
-		index: TileIndex,
-		coordinateFrame: CoordinateFrameType,
-		utmCoordinateSystem: UtmCoordinateSystem,
+		public index: TileIndex,
+		public coordinateFrame: CoordinateFrameType,
+		private utmCoordinateSystem: UtmCoordinateSystem,
 	) {
 		this.pointCloud = null
-		this.pointCount = 0
+		this.objectCount = 0
 		this.pointCloudBoundingBox = null
 		this.tiles = []
 		this.rawPositions = emptyPositions
-		this.index = index
-		this.coordinateFrame = coordinateFrame
-		this.utmCoordinateSystem = utmCoordinateSystem
 
 		const utmBoundingBox = index.boundingBox
 		const min = convertToStandardCoordinateFrame(utmBoundingBox.min, coordinateFrame)
@@ -119,7 +113,7 @@ export class SuperTile {
 				geometry.addAttribute('position', new THREE.BufferAttribute(rawPositions, threeDStepSize))
 				geometry.addAttribute('color', new THREE.BufferAttribute(rawColors, threeDStepSize))
 				this.pointCloud = new THREE.Points(geometry, pointsMaterial)
-				this.pointCount = arraySize / threeDStepSize
+				this.objectCount = arraySize / threeDStepSize
 				this.rawPositions = rawPositions
 
 				return true
@@ -134,7 +128,7 @@ export class SuperTile {
 			this.pointCloud = null
 		}
 		this.pointCloudBoundingBox = null
-		this.pointCount = 0
+		this.objectCount = 0
 		this.rawPositions = emptyPositions
 	}
 

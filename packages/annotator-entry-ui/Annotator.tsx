@@ -23,7 +23,7 @@ import {
 import {isTupleOfNumbers} from "../util/Validation"
 import {StatusWindowController} from "./status/StatusWindowController"
 import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
-import {TileManager} from './tile/TileManager'
+import {PointCloudTileManager} from './tile/PointCloudTileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
 import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
@@ -60,6 +60,7 @@ import * as OBJLoader from 'three-obj-loader'
 import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
 import {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
 import {dataSetNameFromPath, TrajectoryDataSet} from "@/util/Perception"
+import {TileServiceClient} from "@/annotator-entry-ui/tile/TileServiceClient"
 
 const dialog = Electron.remote.dialog
 
@@ -252,7 +253,7 @@ class Annotator {
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
 	private utmCoordinateSystem: UtmCoordinateSystem
-	private tileManager: TileManager
+	private pointCloudTileManager: PointCloudTileManager
 	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
@@ -388,13 +389,13 @@ class Annotator {
 		this.raycasterAnnotation = new THREE.Raycaster()
 		this.raycasterImageScreen = new THREE.Raycaster()
 		this.utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
-		// Initialize super tile that will load the point clouds
-		this.tileManager = new TileManager(
+		const tileServiceClient = new TileServiceClient(this.onTileServiceStatusUpdate)
+		this.pointCloudTileManager = new PointCloudTileManager(
 			this.utmCoordinateSystem,
-			this.settings.generateVoxelsOnPointLoad,
 			this.onSuperTileLoad,
 			this.onSuperTileUnload,
-			this.onTileServiceStatusUpdate
+			tileServiceClient,
+			this.settings.generateVoxelsOnPointLoad,
 		)
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
@@ -999,7 +1000,7 @@ class Annotator {
 	 * Set the stage at the bottom center of TileManager's point cloud.
 	 */
 	private setStageByPointCloud(resetCamera: boolean): void {
-		const focalPoint = this.tileManager.centerPoint()
+		const focalPoint = this.pointCloudTileManager.centerPoint()
 		if (focalPoint)
 			this.setStageByVector(focalPoint, resetCamera)
 	}
@@ -1009,7 +1010,7 @@ class Annotator {
 	 */
 	private setCompassRoseByPointCloud(): void {
 		if (!this.compassRose) return
-		const boundingBox = this.tileManager.getPointCloudBoundingBox()
+		const boundingBox = this.pointCloudTileManager.getLoadedObjectsBoundingBox()
 		if (!boundingBox) return
 
 		// Find the center of one of the sides of the bounding box. This is the side that is
@@ -1025,7 +1026,7 @@ class Annotator {
 	 * Set the point cloud as the center of the visible world.
 	 */
 	private focusOnPointCloud(): void {
-		const center = this.tileManager.centerPoint()
+		const center = this.pointCloudTileManager.centerPoint()
 		if (center) {
 			this.orbitControls.target.set(center.x, center.y, center.z)
 			this.orbitControls.update()
@@ -1051,7 +1052,7 @@ class Annotator {
 	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
 	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
 		log.info('Loading point cloud from ' + pathToTiles)
-		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
+		return this.pointCloudTileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
 			.catch(err => this.pointCloudLoadedError(err))
 	}
@@ -1070,7 +1071,7 @@ class Annotator {
 
 	// Load tiles within a bounding box and add them to the scene.
 	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
-		return this.tileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
+		return this.pointCloudTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
 			.catch(err => this.pointCloudLoadedError(err))
 	}
@@ -1082,7 +1083,7 @@ class Annotator {
 
 		if (this.settings.generateVoxelsOnPointLoad) {
 			this.computeVoxelsHeights() // This is based on pre-loaded annotations
-			this.tileManager.generateVoxels()
+			this.pointCloudTileManager.generateVoxels()
 		}
 
 		this.renderEmptySuperTiles()
@@ -1116,10 +1117,10 @@ class Annotator {
 		if (this.annotationManager.laneAnnotations.length === 0)
 			log.error(`Unable to compute voxels height, there are no annotations.`)
 
-		const voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
-		const voxelSize: number = this.tileManager.voxelsConfig.voxelSize
+		const voxels: Set<THREE.Vector3> = this.pointCloudTileManager.voxelsDictionary
+		const voxelSize: number = this.pointCloudTileManager.voxelsConfig.voxelSize
 		const annotationCutoffDistance: number = 1.2 * 1.2 // 1.2 meters radius
-		this.tileManager.voxelsHeight = []
+		this.pointCloudTileManager.voxelsHeight = []
 		for (let voxel of voxels) {
 			let x: number = voxel.x * voxelSize
 			let y: number = voxel.y * voxelSize
@@ -1147,9 +1148,9 @@ class Annotator {
 			let height: number = y - minDistanceHeight
 			// TODO: Remove this voxel filtering. For CES only
 			if (height < 2.0 && minDistance < annotationCutoffDistance) {
-				this.tileManager.voxelsHeight.push(-1)
+				this.pointCloudTileManager.voxelsHeight.push(-1)
 			} else {
-				this.tileManager.voxelsHeight.push(height)
+				this.pointCloudTileManager.voxelsHeight.push(height)
 			}
 		}
 	}
@@ -1159,7 +1160,7 @@ class Annotator {
 	 */
 	private loadSuperTileData(superTile: SuperTile): Promise<void> {
 		this.setLayerVisibility([Layer.POINT_CLOUD])
-		return this.tileManager.loadFromSuperTile(superTile)
+		return this.pointCloudTileManager.loadFromSuperTile(superTile)
 			.then(() => {
 				this.updatePointCloudBoundingBox()
 				this.setCompassRoseByPointCloud()
@@ -1183,7 +1184,7 @@ class Annotator {
 	}
 
 	private unloadPointCloudData(): void {
-		if (this.tileManager.unloadAllPoints()) {
+		if (this.pointCloudTileManager.unloadAllTiles()) {
 			this.unHighlightSuperTileBox()
 			this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
 			if (this.pointCloudBoundingBox)
@@ -1197,7 +1198,7 @@ class Annotator {
 	 * 	Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
 	 */
 	private renderEmptySuperTiles(): void {
-		this.tileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
+		this.pointCloudTileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
 
 		if (this.uiState.isLiveMode)
 			this.hideSuperTiles()
@@ -1318,7 +1319,7 @@ class Annotator {
 				this.pointCloudBoundingBox = null
 			}
 
-			const bbox = this.tileManager.getPointCloudBoundingBox()
+			const bbox = this.pointCloudTileManager.getLoadedObjectsBoundingBox()
 			if (bbox) {
 				// BoxHelper wants an Object3D, but a three.js bounding box is a Box3, which is not an Object3D.
 				// Maybe BoxHelper isn't so helpful after all. But guess what? It will take a Box3 anyway and
@@ -1361,7 +1362,7 @@ class Annotator {
 		// Don't update AOI and load tiles if the point cloud is not visible.
 		if (!this.uiState.isPointCloudVisible) return
 		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
-		if (this.tileManager.getIsLoadingPointCloud()) return
+		if (this.pointCloudTileManager.getIsLoadingTiles()) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
@@ -1951,19 +1952,19 @@ class Annotator {
 
 	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
 		let intersections: THREE.Intersection[]
-		if (this.settings.estimateGroundPlane || !this.tileManager.pointCount()) {
+		if (this.settings.estimateGroundPlane || !this.pointCloudTileManager.objectCount()) {
 			if (this.allGroundPlanes.length)
 				intersections = raycaster.intersectObjects(this.allGroundPlanes)
 			else
 				intersections = raycaster.intersectObject(this.plane)
 		} else {
-			intersections = raycaster.intersectObjects(this.tileManager.getPointClouds())
+			intersections = raycaster.intersectObjects(this.pointCloudTileManager.getPointClouds())
 		}
 		return intersections
 	}
 
 	private intersectWithPointCloud(raycaster: THREE.Raycaster): THREE.Intersection[] {
-		return raycaster.intersectObjects(this.tileManager.getPointClouds())
+		return raycaster.intersectObjects(this.pointCloudTileManager.getPointClouds())
 	}
 
 	private intersectWithLightboxImageRay(raycaster: THREE.Raycaster): THREE.Intersection[] {
@@ -2635,7 +2636,7 @@ class Annotator {
 	}
 
 	private loadFromFile(): Promise<void> {
-		if (this.tileManager.getPointClouds().length)
+		if (this.pointCloudTileManager.getPointClouds().length)
 			log.warn('you should probably unload the existing point cloud before loading another')
 
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
@@ -3633,7 +3634,7 @@ class Annotator {
 		if (!this.uiState.isPointCloudVisible)
 			return false
 		this.decorations.forEach(d => d.visible = false)
-		this.tileManager.getPointClouds().forEach(pc => this.scene.remove(pc))
+		this.pointCloudTileManager.getPointClouds().forEach(pc => this.scene.remove(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.remove(this.pointCloudBoundingBox)
 		this.uiState.isPointCloudVisible = false
@@ -3644,7 +3645,7 @@ class Annotator {
 		if (this.uiState.isPointCloudVisible)
 			return false
 		this.decorations.forEach(d => d.visible = true)
-		this.tileManager.getPointClouds().forEach(pc => this.scene.add(pc))
+		this.pointCloudTileManager.getPointClouds().forEach(pc => this.scene.add(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.add(this.pointCloudBoundingBox)
 		this.uiState.isPointCloudVisible = true
@@ -3889,12 +3890,12 @@ class Annotator {
 	 * TODO:   fix it if we start using voxels again.
 	 */
 	private toggleVoxelsAndPointClouds(): void {
-		if (!this.tileManager.voxelsMeshGroup) return
+		if (!this.pointCloudTileManager.voxelsMeshGroup) return
 		if (this.hidePointCloud()) {
-			this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
+			this.pointCloudTileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
 			this.render()
 		} else if (this.showPointCloud()) {
-			this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
+			this.pointCloudTileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
 			this.render()
 		}
 	}
@@ -3904,7 +3905,7 @@ class Annotator {
 		if (!this.settings.enableTileManagerStats) return
 		if (!this.statusWindow.isEnabled()) return
 
-		const message = `Loaded ${this.tileManager.superTiles.size} super tiles; ${this.tileManager.pointCount()} points`
+		const message = `Loaded ${this.pointCloudTileManager.superTiles.size} super tiles; ${this.pointCloudTileManager.objectCount()} points`
 		this.statusWindow.setMessage(statusKey.tileManagerStats, message)
 	}
 
