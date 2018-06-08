@@ -4,15 +4,13 @@
  */
 
 import config from '@/config'
-import * as TypeLogger from 'typelogger'
 import * as zmq from 'zmq'
 import {Socket} from 'zmq'
 import * as MapperProtos from "@mapperai/mapper-models"
 import Models = MapperProtos.mapper.models
+import Logger from "@/util/log"
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
 
 export enum LocationServerStatusLevel {
 	INFO = 0,

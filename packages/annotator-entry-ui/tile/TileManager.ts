@@ -13,7 +13,6 @@ import {OrderedMap, OrderedSet} from 'immutable'
 import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
-import * as TypeLogger from 'typelogger'
 import {threeDStepSize} from "./Constant"
 import {
 	baseGeometryTileMessageToTileMessage, pointCloudTileMessageToTileMessage,
@@ -30,10 +29,9 @@ import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "../model/RangeSearch"
 import {LocalTileInstance, RemoteTileInstance, TileInstance} from "../model/TileInstance"
 import {isTupleOfNumbers} from "../../util/Validation"
+import Logger from "@/util/log"
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
 
 // Set the dimensions of tiles and super tiles.
 // Super tile boundaries coincide with tile boundaries, with no overlap.

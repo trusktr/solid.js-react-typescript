@@ -11,14 +11,13 @@ import {CalibratedImage} from './CalibratedImage'
 import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWindowManager"
 import * as IpcMessages from "../../electron-ipc/Messages"
 import {readImageMetadataFile} from "./Aurora"
-import * as TypeLogger from "typelogger"
 import {UtmCoordinateSystem} from "../UtmCoordinateSystem";
 import {AuroraCameraParameters} from "./CameraParameters"
 import config from '@/config'
+import Logger from "@/util/log"
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
+
 const dialog = Electron.remote.dialog
 
 interface ImageManagerSettings {
