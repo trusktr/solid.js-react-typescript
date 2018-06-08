@@ -58,6 +58,10 @@ function createWindow(): void {
 		// when you should delete the corresponding element.
 		win = null
 	})
+
+	Electron.ipcMain.on('connect', (event) => {
+		win!.webContents.send('connect', { APP_PATH: global.APP_PATH })
+	})
 }
 
 // This method will be called when Electron has finished
