@@ -13,7 +13,7 @@ import * as IpcMessages from "../electron-ipc/Messages"
 import config from '@/config'
 import windowStateKeeper = require('electron-window-state')
 import WindowCommunicator from '../util/WindowCommunicator'
-import createPromise from '../util/createPromise'
+import createPromise, { Resolve } from '../util/createPromise'
 
 interface LightboxWindowManagerSettings {
 	backgroundColor: string
@@ -60,7 +60,7 @@ export class LightboxWindowManager {
 		this.loadingWindow = true
 
 		const windowName = 'image-lightbox'
-		const {promise, resolve} = createPromise<void, void>()
+		const {promise, resolve}: {promise: Promise<void>, resolve: Resolve<void>} = createPromise<void, void>()
 
 		const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
 
@@ -90,7 +90,7 @@ export class LightboxWindowManager {
 		this.lightboxCommunicator = new WindowCommunicator( lightboxWindow )
 		this.openChannels()
 
-		const onConnect = () => {
+		const onConnect = (): void => {
 			this.lightboxCommunicator.off('connect', onConnect)
 			this.lightboxCommunicator.send('connect', 'ready!')
 
@@ -119,14 +119,14 @@ export class LightboxWindowManager {
 		return promise
 	}
 
-	openChannels() {
+	openChannels(): void {
 		this.lightboxCommunicator.on(channel.imageEditState, this.handleOnImageEditState)
 		this.lightboxCommunicator.on(channel.imageClick, this.handleOnImageClick)
 		this.lightboxCommunicator.on(channel.keyDownEvent, this.handleOnKeyDown)
 		this.lightboxCommunicator.on(channel.keyUpEvent, this.handleOnKeyUp)
 	}
 
-	closeChannels() {
+	closeChannels(): void {
 		this.lightboxCommunicator.off(channel.imageEditState, this.handleOnImageEditState)
 		this.lightboxCommunicator.off(channel.imageClick, this.handleOnImageClick)
 		this.lightboxCommunicator.off(channel.keyDownEvent, this.handleOnKeyDown)
@@ -175,7 +175,8 @@ function objectToFeatureString( obj: object ): string {
 
 	let val
 
- 	for ( let key in obj ) {
+	for ( let key in obj ) {
+		if ( !obj.hasOwnProperty( key ) ) continue
 
 		val = obj[ key ]
 

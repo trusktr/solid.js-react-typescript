@@ -34,7 +34,7 @@ class LightboxWindowUI {
 		this.openComChannels()
 	}
 
-	private openComChannels() {
+	private openComChannels(): void {
 		console.log('set up the darn ipc channel in lightbox window')
 		this.communicator.on(channel.lightboxState, this.onLightboxState)
 		this.communicator.on(channel.imageEditState, this.onImageEditState)

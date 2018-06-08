@@ -14,5 +14,16 @@ html(lang="en")
 		#root
 
 		script.
-			var __CWD = process.cwd()
-			require(__CWD + "/dist/app/annotator-entry-ui")
+			const Electron = require('electron')
+			let connected = false
+
+			Electron.ipcRenderer.on('connect', (event, msg) => {
+				if (connected) return
+
+				global.APP_PATH = msg.APP_PATH
+				require(__dirname + "/annotator-entry-ui")
+
+			})
+
+			Electron.ipcRenderer.sendToHost('connect')
+			Electron.ipcRenderer.send('connect')
