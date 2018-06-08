@@ -14,5 +14,5 @@ fi
 ./build-scripts/build.sh
 
 echo "**** Copying config..."
-cp $1/local.yaml packages/config/
+cp $1/local.yaml src/config/
 echo "**** Copying config complete"

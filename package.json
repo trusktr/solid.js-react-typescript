@@ -6,7 +6,7 @@
   "description": "Mapper.ai Point Cloud Annotator",
   "htmlEntry": "dist/app/browser-entry.html",
   "scripts": {
-    "lint": "./node_modules/.bin/tslint \"packages/**/*.ts\" --force",
+    "lint": "./node_modules/.bin/tslint \"src/**/*.ts\" --force",
     "start": "./node_modules/.bin/electron bin/annotator-start.js",
     "build": "./etc/scripts/compile.js",
     "watch": "./etc/scripts/compile-watch.js",

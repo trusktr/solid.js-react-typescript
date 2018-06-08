@@ -29,8 +29,12 @@ if (envInput === 'prod' || envInput === 'production') {
 	throw new Error('Unknown environment name: MAPPER_ENV=' + envInput)
 }
 
-APP_PATH = APP_PATH || process.cwd()
-const dirName = path.join( APP_PATH, 'packages', 'config' )
+// tslint:disable-next-line:no-any
+const g = global as any
+
+export const APP_PATH = g.APP_PATH = g.APP_PATH || process.cwd()
+
+const dirName = path.join( APP_PATH, 'src', 'config' )
 const envFile = path.join(dirName, deployEnv + '.yaml')
 if (!fs.existsSync(envFile)) {
 	throw new Error(`Bad environment variable MAPPER_ENV=${deployEnv}. Missing required config file ${envFile}.`)

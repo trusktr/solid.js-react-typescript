@@ -6,12 +6,11 @@ const
 	assert = require('assert'),
 	path = require('path'),
 	semver = require('semver'),
-	_ = require('lodash')
-
-global.baseDir = global.baseDir || path.resolve(__dirname, '../..')
-const
+	_ = require('lodash'),
 	log = global.log = console,
 	{readJSONFileSync} = require('./helpers')
+
+global.baseDir = global.baseDir || path.resolve(__dirname, '../..')
 
 process.argv.forEach(arg => {
 	if (arg == '--dev')
@@ -22,7 +21,6 @@ process.argv.forEach(arg => {
  * Global modules and
  */
 const
-	processDir = baseDir,
 	TypeScriptEnabled = true,
 	env = process.env.NODE_ENV || 'development',
 	isDev = env === 'development'
@@ -35,9 +33,8 @@ Object.assign(global, {
 	isDev,
 	isProd: !isDev,
 	isSaffron: typeof process.env.SAFFRON !== 'undefined',
-	processDir,
 	basePackageJson: readJSONFileSync(`${baseDir}/package.json`),
-	srcRootDir: path.resolve(baseDir, TypeScriptEnabled ? 'packages' : 'dist/out'),
+	srcRootDir: path.resolve(baseDir, TypeScriptEnabled ? 'src' : 'dist/out'),
 	assert
 }, require('./helpers'))
 

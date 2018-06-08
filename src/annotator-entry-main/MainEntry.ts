@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+import { APP_PATH } from '@/config'
 import * as Url from 'url'
 import * as Path from 'path'
 import * as Electron from 'electron'
