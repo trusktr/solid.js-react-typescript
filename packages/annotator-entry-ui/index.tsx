@@ -17,25 +17,25 @@ import('jquery-ui-dist/jquery-ui')
 
 const inSaffron = typeof __SAFFRON__ !== 'undefined' ? __SAFFRON__ : false
 
-if ( !inSaffron ) {
-	$(main)
+console.log(' --- in Saffron:', inSaffron)
 
-	// This is injected by webpack, so it has no type definition:
-	// https://webpack.js.org/api/hot-module-replacement/
-	// tslint:disable-next-line:no-any
-	const hotReplacement = (module as any).hot
-	if (hotReplacement) {
-		hotReplacement.accept()
-		hotReplacement.dispose(cleanup)
-	}
+$(main)
 
-	const root = $('#root')[0]
+// This is injected by webpack, so it has no type definition:
+// https://webpack.js.org/api/hot-module-replacement/
+// tslint:disable-next-line:no-any
+const hotReplacement = (module as any).hot
+if (hotReplacement) {
+	hotReplacement.accept()
+	hotReplacement.dispose(cleanup)
+}
 
-	function main(): void {
-		ReactDOM.render( <App />, root )
-	}
+const root = $('#root')[0]
 
-	function cleanup(): void {
-		ReactDOM.unmountComponentAtNode( root )
-	}
+function main(): void {
+	ReactDOM.render( <App />, root )
+}
+
+function cleanup(): void {
+	ReactDOM.unmountComponentAtNode( root )
 }
