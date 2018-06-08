@@ -39,14 +39,3 @@ if ( !inSaffron ) {
 		ReactDOM.unmountComponentAtNode( root )
 	}
 }
-
-/// for Saffron {
-async function start() {}
-async function stop() {}
-
-export {
-	App as component,
-	start,
-	stop,
-}
-/// }
