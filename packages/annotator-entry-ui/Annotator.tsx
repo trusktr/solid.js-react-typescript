@@ -1787,7 +1787,7 @@ class Annotator {
 
 				this.cleanTransformControls()
 				Annotator.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
-				this.annotationManager.changeActiveAnnotation(inactive)
+				this.annotationManager.setActiveAnnotation(inactive)
 				this.resetAllAnnotationPropertiesMenuElements()
 				this.render()
 			}
