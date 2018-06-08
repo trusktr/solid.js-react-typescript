@@ -49,7 +49,6 @@ class App extends React.Component<AppProps, AppState> {
 
 			<div id="menu_control">
 				<button id="status_window_control_btn" className="menu_btn"> &#x2139; </button>
-				<button id="live_location_control_btn" className="menu_btn"> &#x2388; </button>
 				<button id="menu_control_btn" className="menu_btn"> &#9776; </button>
 			</div>
 

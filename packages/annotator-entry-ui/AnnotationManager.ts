@@ -80,9 +80,6 @@ export interface AnnotationManagerJsonOutputInterface {
  * as its markers. The "active" annotation is the only one that can be modified.
  */
 export class AnnotationManager {
-	private utmCoordinateSystem: UtmCoordinateSystem
-	private scene: THREE.Scene // where objects are placed on behalf of Annotator
-	private onChangeActiveAnnotation: (active: Annotation) => void
 	laneAnnotations: Array<Lane>
 	boundaryAnnotations: Array<Boundary>
 	trafficDeviceAnnotations: Array<TrafficDevice>
@@ -94,16 +91,13 @@ export class AnnotationManager {
 	private carPath: Array<AnnotationUuid>
 	private carPathActivation: boolean
 	private metadataState: AnnotationState
-	private isLiveMode: boolean
 
 	constructor(
-		utmCoordinateSystem: UtmCoordinateSystem,
-		scene: THREE.Scene,
-		onChangeActiveAnnotation: (active: Annotation) => void
+		private readonly isInteractiveMode: boolean, // Interactive allows annotations to be selected and edited; otherwise they can only be added or removed.
+		private readonly utmCoordinateSystem: UtmCoordinateSystem,
+		private readonly scene: THREE.Scene, // where objects are placed on behalf of Annotator
+		private onChangeActiveAnnotation: (active: Annotation) => void
 	) {
-		this.utmCoordinateSystem = utmCoordinateSystem
-		this.scene = scene
-		this.onChangeActiveAnnotation = onChangeActiveAnnotation
 		this.laneAnnotations = []
 		this.boundaryAnnotations = []
 		this.trafficDeviceAnnotations = []
@@ -114,7 +108,6 @@ export class AnnotationManager {
 		this.carPath = []
 		this.carPathActivation = false
 		this.metadataState = new AnnotationState(this)
-		this.isLiveMode = false
 		this.bezierScaleFactor = 6
 	}
 
@@ -187,8 +180,6 @@ export class AnnotationManager {
 		annotationType: AnnotationType | null = null,
 		activate: boolean = false
 	): [Annotation | null, AnnotationConstructResult] {
-		if (this.isLiveMode) return [null, AnnotationConstructResult.INVALID_STATE]
-
 		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost).
 		if (this.activeAnnotation && !this.activeAnnotation.isValid()) return [null, AnnotationConstructResult.INVALID_STATE]
@@ -257,8 +248,6 @@ export class AnnotationManager {
 	 * Add a new relation between two existing lanes
 	 */
 	addRelation(fromId: AnnotationId, toId: AnnotationId, relation: string): boolean {
-		if (this.isLiveMode) return false
-
 		let laneFrom: Lane | null = null
 		for (const annotation of this.laneAnnotations) {
 			if (annotation.id === fromId) {
@@ -487,8 +476,6 @@ export class AnnotationManager {
 	 * mesh and markers from the scene and reset any active annotation variables.
 	 */
 	deleteActiveAnnotation(): boolean {
-		if (this.isLiveMode) return false
-
 		if (!this.activeAnnotation) {
 			log.warn("Can't delete active annotation. No active annotation selected.")
 			return false
@@ -510,8 +497,6 @@ export class AnnotationManager {
 	 * to the scene.
 	 */
 	addMarkerToActiveAnnotation(position: THREE.Vector3): boolean {
-		if (this.isLiveMode) return false
-
 		if (!this.activeAnnotation) {
 			log.info("No active annotation. Can't add marker")
 			return false
@@ -529,8 +514,6 @@ export class AnnotationManager {
 	 * Close the loop of markers or do any other clean-up to designate an annotation "complete".
 	 */
 	completeActiveAnnotation(): boolean {
-		if (this.isLiveMode) return false
-
 		if (!this.activeAnnotation) {
 			log.info("No active annotation. Can't complete")
 			return false
@@ -549,8 +532,6 @@ export class AnnotationManager {
 	 * the scene.
 	 */
 	deleteLastMarker(): boolean {
-		if (this.isLiveMode) return false
-
 		if (!this.activeAnnotation) {
 			log.info("No active annotation. Can't delete marker")
 			return false
@@ -623,25 +604,6 @@ export class AnnotationManager {
 
 	hideAnnotations(): void {
 		this.allAnnotations().forEach(a => a.makeInvisible())
-	}
-
-	/**
-	 * Changes the rendering attribute of some objects and disables editing, for live presentation mode.
-	 */
-	setLiveMode(): void {
-		if (!this.isLiveMode) {
-			this.unsetActiveAnnotation()
-			this.isLiveMode = true
-		}
-	}
-
-	/**
-	 * Reverses setLiveMode().
-	 */
-	unsetLiveMode(): void {
-		if (this.isLiveMode) {
-			this.isLiveMode = false
-		}
 	}
 
 	/**
@@ -909,8 +871,11 @@ export class AnnotationManager {
 	 */
 	setActiveAnnotation(changeTo: Annotation | null): boolean {
 		if (!changeTo) return false
-		// Can't activate annotations during live mode
-		if (this.isLiveMode) return false
+
+		if (!this.isInteractiveMode) {
+			log.warn("setActiveAnnotation() is allowed only in interactive mode")
+			return false
+		}
 
 		// Trying to activate the currently active annotation, there is nothing to do
 		if (this.activeAnnotation && this.activeAnnotation.uuid === changeTo.uuid) {
@@ -970,8 +935,6 @@ export class AnnotationManager {
 
 	// Make no annotations active.
 	unsetActiveAnnotation(): boolean {
-		if (this.isLiveMode) return false
-
 		if (this.activeAnnotation) {
 			// If the active annotation was a connection make sure its conflicting connections appearance is set back
 			// to inactive mode. In the future this behavior should happen inside the makeInactive function
@@ -1060,8 +1023,6 @@ export class AnnotationManager {
 	 *   there will be something to look at there
 	 */
 	loadAnnotationsFromFile(fileName: string): Promise<THREE.Vector3 | null> {
-		if (this.isLiveMode) return Promise.reject(new Error("can't load annotations while in live presentation mode"))
-
 		return AsyncFile.readFile(fileName, 'ascii')
 			.then((text: string) => this.loadAnnotationsFromObject(JSON.parse(text)))
 	}

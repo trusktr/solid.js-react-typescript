@@ -68,10 +68,6 @@ OBJLoader(THREE)
 
 const log = Logger(__filename)
 
-function noop(): void {
-	return
-}
-
 const cameraCenter = new THREE.Vector2(0, 0)
 
 const statusKey = {
@@ -560,7 +556,12 @@ class Annotator {
 			this.compassRose = null
 
 		// All the annotations go here.
-		this.annotationManager = new AnnotationManager(this.utmCoordinateSystem, this.scene, this.onChangeActiveAnnotation)
+		this.annotationManager = new AnnotationManager(
+			!this.uiState.isKioskMode,
+			this.utmCoordinateSystem,
+			this.scene,
+			this.onChangeActiveAnnotation
+		)
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
@@ -641,9 +642,8 @@ class Annotator {
 		return this.loadCarModel()
 			.then(() => this.loadUserData())
 			.then(() => {
-				if (this.uiState.isKioskMode && !this.uiState.isLiveMode) this.toggleListen()
-				// Initialize socket for use when "live mode" operation is on
-				this.initClient()
+				if (this.uiState.isKioskMode)
+					this.listen()
 				this.uiState.sceneInitialized = true
 			})
 	}
@@ -2323,7 +2323,7 @@ class Annotator {
 
 	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
 		if (event.repeat) {
-			noop()
+			// tslint:disable-line:no-empty
 		} else if (event.keyCode >= 48 && event.keyCode <= 57) { // digits 0 to 9
 			this.uiState.numberKeyPressed = parseInt(event.key, 10)
 		} else {
@@ -2400,10 +2400,6 @@ class Annotator {
 				}
 				case 'n': {
 					this.addAnnotation(AnnotationType.LANE)
-					break
-				}
-				case 'O': {
-					this.toggleListen()
 					break
 				}
 				case 'q': {
@@ -2955,14 +2951,6 @@ class Annotator {
 			})
 		else
 			log.warn('missing element menu_control_btn')
-
-		const liveLocationControlButton = document.getElementById('live_location_control_btn')
-		if (liveLocationControlButton)
-			liveLocationControlButton.addEventListener('click', () => {
-				if (!this.uiState.isKioskMode) this.toggleListen()
-			})
-		else
-			log.warn('missing element live_location_control_btn')
 
 		const statusWindowControlButton = document.getElementById('status_window_control_btn')
 		if (statusWindowControlButton)
@@ -3614,12 +3602,6 @@ class Annotator {
 		this.setLayerVisibility(layerGroups[this.uiState.layerGroupIndex], true)
 	}
 
-	// Make everything visible.
-	private setAllLayersVisible(): void {
-		this.uiState.layerGroupIndex = defaultLayerGroupIndex
-		this.setLayerVisibility(layerGroups[this.uiState.layerGroupIndex], false)
-	}
-
 	// Ensure that some layers of the model are visible. Optionally hide the other layers.
 	private setLayerVisibility(show: Layer[], hideOthers: boolean = false): void {
 		let updated = 0
@@ -3748,6 +3730,8 @@ class Annotator {
 	// Move the camera and the car model through poses streamed from ZMQ.
 	// See also runFlyThrough().
 	private initClient(): void {
+		if (this.liveSubscribeSocket) return
+
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
@@ -3772,20 +3756,6 @@ class Annotator {
 		this.liveSubscribeSocket.subscribe("")
 	}
 
-	/**
-	 * Toggle whether or not to listen for live-location updates.
-	 * Returns the updated state of live-location mode.
-	 */
-	private toggleListen(): void {
-		if (this.uiState.isLiveMode) {
-			this.stopListening()
-			this.switchToMenu('#annotationMenu')
-		} else {
-			this.listen()
-			this.switchToMenu('#liveModeMenu')
-		}
-	}
-
 	switchToMenu( menuId: string ): void {
 
 		this.hideAllMenus()
@@ -3805,11 +3775,12 @@ class Annotator {
 		}
 	}
 
+	// Switch from interactive editing mode into a read-only, first-person view for displaying
+	// live or recorded vehicle trajectories.
 	private listen(): boolean {
 		if (this.uiState.isLiveMode) return this.uiState.isLiveMode
 
 		log.info('Listening for messages...')
-		this.annotationManager.setLiveMode()
 		this.uiState.isLiveMode = true
 		this.setLayerVisibility([Layer.POINT_CLOUD, Layer.ANNOTATIONS], true)
 		if (this.gui)
@@ -3837,40 +3808,8 @@ class Annotator {
 		this.startFlyThrough()
 		this.locationServerStatusClient.connect()
 		this.resumeLiveMode()
+		this.initClient()
 
-		this.render()
-		return this.uiState.isLiveMode
-	}
-
-	private stopListening(): boolean {
-		if (!this.uiState.isLiveMode) return this.uiState.isLiveMode
-
-		log.info('Stopped listening for messages...')
-		this.annotationManager.unsetLiveMode()
-		this.uiState.isLiveMode = false
-		this.setAllLayersVisible()
-		if (this.gui)
-			this.gui.open()
-		if (this.axis)
-			this.scene.add(this.axis)
-		if (this.compassRose)
-			this.scene.add(this.compassRose)
-		if (this.grid)
-			this.grid.visible = true
-
-		this.annotatorOrbitControls.enabled = true
-		this.flyThroughOrbitControls.enabled = false
-
-		this.carModel.remove(this.camera)
-		if (this.liveModeSettings.displayCarModel)
-			this.carModel.visible = false
-
-		if (this.pointCloudBoundingBox)
-			this.pointCloudBoundingBox.material.visible = true
-		this.clearFlyThroughMessages()
-		this.updateAoiHeading(null)
-
-		this.pauseLiveMode()
 		this.render()
 		return this.uiState.isLiveMode
 	}
