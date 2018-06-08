@@ -28,23 +28,25 @@ $default_font: Verdana, Geneva, sans-serif;
 	}
 }
 
-@if $__SAFFRON__ == false {
-	body {
-		overflow-x: hidden;
-		overflow-y: hidden;
-		@extend %defaultBox;
-	}
-	#root {
-		@extend %defaultBox;
-		width: auto;
+body {
+	overflow-x: hidden;
+	overflow-y: hidden;
+	@extend %defaultBox;
+}
+#root {
+	@extend %defaultBox;
+	width: auto;
 
-		.scene-container {
-			@extend %defaultBox;
-		}
-	}
-	html {
+	.scene-container {
 		@extend %defaultBox;
 	}
+}
+html {
+	@extend %defaultBox;
+}
+
+@if $__SAFFRON__ == false {
+	// ...styles for when in Saffron, if needed...
 }
 
 .hidden {

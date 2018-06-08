@@ -31,13 +31,15 @@ module.exports = patchConfig({
 	dependencies: [],
 	target: 'node',
 
-	entry: Object.assign({
-	    'annotator-entry-ui': './annotator-entry-ui/index',
-	    'annotator-image-lightbox': './annotator-image-lightbox/index',
-	}, isSaffron ? {
-	} : {
-	    'annotator-entry-main': './annotator-entry-main/MainEntry',
-	}),
+	entry: Object.assign(
+		{
+		    'annotator-entry-ui': './annotator-entry-ui/index',
+		    'annotator-image-lightbox': './annotator-image-lightbox/index',
+		},
+		!isSaffron ? {
+		    'annotator-entry-main': './annotator-entry-main/MainEntry',
+		} : {}
+	),
 
 	// Source root, './packages'
 	context: srcRootDir,
@@ -145,6 +147,13 @@ module.exports = patchConfig({
 	plugins: [
 
         new HtmlWebpackPlugin({
+            filename: 'browser-entry.html',
+            template: `${process.cwd()}/packages/annotator-assets/templates/BrowserEntry.jade`,
+            inject: false,
+            isDev
+        }),
+
+        new HtmlWebpackPlugin({
             filename: 'image-lightbox.html',
             template: `${process.cwd()}/packages/annotator-assets/templates/ImageLightbox.jade`,
             inject: false,
@@ -156,18 +165,7 @@ module.exports = patchConfig({
 		// ENV
 		new DefinePlugin(DefinedEnv),
 
-	].concat( !isSaffron ? [
-
-        new HtmlWebpackPlugin({
-            filename: 'browser-entry.html',
-            template: `${process.cwd()}/packages/annotator-assets/templates/BrowserEntry.jade`,
-            inject: false,
-            isDev
-        }),
-
-	] : [
-
-	]).concat( isDev ? [
+	].concat( isDev ? [
 
 		// AVOID CIRCULAR
 		new CircularDependencyPlugin(),
