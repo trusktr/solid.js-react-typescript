@@ -4,14 +4,12 @@
  */
 
 import {channel} from "../electron-ipc/Channel"
-import * as TypeLogger from 'typelogger'
 import * as IpcMessages from "../electron-ipc/Messages"
 import {toKeyboardEventHighlights} from "../electron-ipc/Serializaton"
 import WindowCommunicator from '../util/WindowCommunicator'
+import Logger from "@/util/log"
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
 
 // The main class responsible for rendering a Lightbox window, which contains a variable list of 2D images.
 class LightboxWindowUI {

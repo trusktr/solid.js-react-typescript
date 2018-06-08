@@ -6,7 +6,6 @@
 import config from '@/config'
 import {isNullOrUndefined} from "util"
 import * as grpc from 'grpc'
-import * as TypeLogger from 'typelogger'
 import {TileServiceClient as GrpcClient} from '../../grpc-compiled-protos/TileService_grpc_pb'
 import {
 	GetTilesRequest, GetTilesResponse,
@@ -22,10 +21,9 @@ import {RangeSearch} from "../model/RangeSearch"
 import {TileIndex} from "../model/TileIndex"
 import {RemoteTileInstance} from "../model/TileInstance"
 import {spatialTileScaleToScale3D, stringToSpatialTileScale} from "./ScaleUtil"
+import Logger from "@/util/log"
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
 
 function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undefined): TileIndex | null {
 	if (!msg) return null

@@ -26,15 +26,14 @@ import {Connection} from 'annotator-entry-ui/annotations/Connection'
 import {Boundary} from 'annotator-entry-ui/annotations/Boundary'
 import {SimpleKML} from '../util/KmlUtils'
 import * as EM from 'annotator-entry-ui/ErrorMessages'
-import * as TypeLogger from 'typelogger'
 import * as AsyncFile from 'async-file'
 import * as mkdirp from 'mkdirp'
 import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
 import * as CRS from "./CoordinateReferenceSystem"
+import Logger from "@/util/log"
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
+
 const dialog = Electron.remote.dialog
 
 // tslint:disable:no-string-literal

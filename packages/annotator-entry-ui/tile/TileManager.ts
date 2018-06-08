@@ -6,7 +6,6 @@
 import config from '@/config'
 import {OrderedMap, OrderedSet} from 'immutable'
 import * as THREE from 'three'
-import * as TypeLogger from 'typelogger'
 import {TileMessage} from "./TileMessage"
 import {SuperTile} from "./SuperTile"
 import {UtmTile} from "./UtmTile"
@@ -19,10 +18,9 @@ import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "../model/RangeSearch"
 import {TileInstance} from "../model/TileInstance"
 import {isTupleOfNumbers} from "../../util/Validation"
+import Logger from "@/util/log"
 
-// tslint:disable-next-line:no-any
-TypeLogger.setLoggerOutput(console as any)
-const log = TypeLogger.getLogger(__filename)
+const log = Logger(__filename)
 
 // Set the dimensions of tiles and super tiles.
 // Super tile boundaries coincide with tile boundaries, with no overlap.
