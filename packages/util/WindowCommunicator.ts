@@ -3,8 +3,8 @@
 export default
 class WindowCommunicator {
 
-    private _eventMap: Map<string, Array<[Function, any]>> | null
-    private window: Window
+	private _eventMap: Map<string, Array<[Function, Object | undefined]>> | null
+	private window: Window
 
 	constructor( win?: Window ) {
 		this.window = win || window.opener
@@ -14,59 +14,54 @@ class WindowCommunicator {
 		})
 	}
 
-    receive(channel, msg) {
-        if (!this._eventMap || !this._eventMap.has(channel)) return
+	// tslint:disable-next-line:no-any
+	receive(channel: string, msg: any): void {
+		if (!this._eventMap || !this._eventMap.has(channel)) return
 
-        const callbacks = this._eventMap.get(channel)
+		const callbacks = this._eventMap.get(channel)
 
-        if (!callbacks) return
+		if (!callbacks) return
 
-        let tuple
-        let callback
-        let context
+		let tuple
+		let callback
+		let context
 
-        for (let i=0, len=callbacks.length; i<len; i+=1) {
-            tuple = callbacks[i]
-            callback = tuple[0]
-            context = tuple[1]
-            callback.call(context, msg)
-        }
-    }
+		for (let i = 0, len = callbacks.length; i < len; i += 1) {
+			tuple = callbacks[i]
+			callback = tuple[0]
+			context = tuple[1]
+			callback.call(context, msg)
+		}
+	}
 
-	send( channel: string, msg: any ) {
+	// tslint:disable-next-line:no-any
+	send( channel: string, msg: any ): void {
 		this.window.postMessage({ channel, msg }, '*')
 	}
 
-    on(eventName, callback, context?) {
-        if (!this._eventMap)
-            this._eventMap = new Map
+	on(eventName: string, callback: Function, context?: Object): void {
+		if (!this._eventMap)
+			this._eventMap = new Map
 
-        let callbacks = this._eventMap.get(eventName)
+		let callbacks = this._eventMap.get(eventName)
 
-        if (!callbacks)
-            this._eventMap.set(eventName, callbacks = [])
+		if (!callbacks)
+			this._eventMap.set(eventName, callbacks = [])
 
-        if (typeof callback == 'function')
-            callbacks.push([callback, context]) // save callback associated with context
-        else
-            throw new Error('Expected a function in callback argument of MessageEmitter#on.')
-    }
+		if (typeof callback === 'function')
+			callbacks.push([callback, context]) // save callback associated with context
+		else
+			throw new Error('Expected a function in callback argument of MessageEmitter#on.')
+	}
 
-    off(eventName, callback) {
-        if (!this._eventMap || !this._eventMap.has(eventName)) return
-
-        const callbacks = this._eventMap.get(eventName)
-
-        if (!callbacks) return
-
-        const index = callbacks.findIndex(tuple => tuple[0] === callback)
-
-        if (index == -1) return
-
-        callbacks.splice(index, 1)
-
-        if (callbacks.length === 0) this._eventMap.delete(eventName)
-
-        if (this._eventMap.size === 0) this._eventMap = null
-    }
+	off(eventName: string, callback: Function): void {
+		if (!this._eventMap || !this._eventMap.has(eventName)) return
+		const callbacks = this._eventMap.get(eventName)
+		if (!callbacks) return
+		const index = callbacks.findIndex(tuple => tuple[0] === callback)
+		if (index === -1) return
+		callbacks.splice(index, 1)
+		if (callbacks.length === 0) this._eventMap.delete(eventName)
+		if (this._eventMap.size === 0) this._eventMap = null
+	}
 }
