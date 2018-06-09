@@ -61,6 +61,7 @@ import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
 import {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
 import {dataSetNameFromPath, TrajectoryDataSet} from "@/util/Perception"
 import {TileServiceClient} from "@/annotator-entry-ui/tile/TileServiceClient"
+import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile"
 
 const dialog = Electron.remote.dialog
 
@@ -1158,7 +1159,7 @@ class Annotator {
 	/**
 	 * 	Incrementally load the point cloud for a single super tile.
 	 */
-	private loadSuperTileData(superTile: SuperTile): Promise<void> {
+	private loadPointCloudSuperTileData(superTile: PointCloudSuperTile): Promise<void> {
 		this.setLayerVisibility([Layer.POINT_CLOUD])
 		return this.pointCloudTileManager.loadFromSuperTile(superTile)
 			.then(() => {
@@ -1168,12 +1169,12 @@ class Annotator {
 			})
 	}
 
-	private loadAllSuperTileData(): void {
+	private loadAllPointCloudSuperTileData(): void {
 		if (this.uiState.isLiveMode) return
 
 		log.info('loading all super tiles')
 		const promises = this.pendingSuperTileBoxes.map(box =>
-			this.loadSuperTileData(box.userData as SuperTile)
+			this.loadPointCloudSuperTileData(box.userData as PointCloudSuperTile)
 		)
 		Promise.all(promises)
 			.then(() => {
@@ -1207,50 +1208,54 @@ class Annotator {
 	// When TileManager loads a super tile, update Annotator's parallel data structure.
 	private onSuperTileLoad: (superTile: SuperTile) => void =
 		(superTile: SuperTile) => {
-			this.loadTileGroundPlanes(superTile)
-			this.updateTileManagerStats()
+			if (superTile instanceof PointCloudSuperTile) {
+				this.loadTileGroundPlanes(superTile)
+				this.updateTileManagerStats()
 
-			if (superTile.pointCloud)
-				this.scene.add(superTile.pointCloud)
-			else
-				log.error('onSuperTileLoad() got a super tile with no point cloud')
+				if (superTile.pointCloud)
+					this.scene.add(superTile.pointCloud)
+				else
+					log.error('onSuperTileLoad() got a super tile with no point cloud')
 
-			this.render()
+				this.render()
+			}
 		}
 
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
 	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void =
 		(superTile: SuperTile, action: SuperTileUnloadAction) => {
-			this.unloadTileGroundPlanes(superTile)
-			this.updateTileManagerStats()
+			if (superTile instanceof PointCloudSuperTile) {
+				this.unloadTileGroundPlanes(superTile)
+				this.updateTileManagerStats()
 
-			if (superTile.pointCloud)
-				this.scene.remove(superTile.pointCloud)
-			else
-				log.error('onSuperTileUnload() got a super tile with no point cloud')
+				if (superTile.pointCloud)
+					this.scene.remove(superTile.pointCloud)
+				else
+					log.error('onSuperTileUnload() got a super tile with no point cloud')
 
-			switch (action) {
-				case SuperTileUnloadAction.Unload:
-					this.superTileToBoundingBox(superTile)
-					break
-				case SuperTileUnloadAction.Delete:
-					const name = superTile.key()
-					this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(bbox => bbox.name !== name)
-					if (this.highlightedSuperTileBox && this.highlightedSuperTileBox.name === name)
-						this.unHighlightSuperTileBox()
-					break
-				default:
-					log.error('unknown SuperTileUnloadAction: ' + action)
+				switch (action) {
+					case SuperTileUnloadAction.Unload:
+						this.superTileToBoundingBox(superTile)
+						break
+					case SuperTileUnloadAction.Delete:
+						const name = superTile.key()
+						this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(bbox => bbox.name !== name)
+						if (this.highlightedSuperTileBox && this.highlightedSuperTileBox.name === name)
+							this.unHighlightSuperTileBox()
+						break
+					default:
+						log.error('unknown SuperTileUnloadAction: ' + action)
+				}
+
+				this.render()
 			}
-
-			this.render()
 		}
 
 	// Construct a set of 2D planes, each of which approximates the ground plane within a tile.
 	// This assumes that each ground plane is locally flat and normal to gravity.
 	// This assumes that the ground planes in neighboring tiles are close enough that the discrete
 	// jumps between them won't matter much.
-	private loadTileGroundPlanes(superTile: SuperTile): void {
+	private loadTileGroundPlanes(superTile: PointCloudSuperTile): void {
 		if (!this.settings.estimateGroundPlane) return
 		if (!superTile.pointCloud) return
 		if (this.superTileGroundPlanes.has(superTile.key())) return
@@ -1285,7 +1290,7 @@ class Annotator {
 		groundPlanes.forEach(plane => this.scene.add(plane))
 	}
 
-	private unloadTileGroundPlanes(superTile: SuperTile): void {
+	private unloadTileGroundPlanes(superTile: PointCloudSuperTile): void {
 		if (!this.superTileGroundPlanes.has(superTile.key())) return
 
 		const groundPlanes = this.superTileGroundPlanes.get(superTile.key())!
@@ -1295,7 +1300,7 @@ class Annotator {
 		groundPlanes.forEach(plane => this.scene.remove(plane))
 	}
 
-	private superTileToBoundingBox(superTile: SuperTile): void {
+	private superTileToBoundingBox(superTile: PointCloudSuperTile): void {
 		if (!superTile.pointCloud) {
 			const size = getSize(superTile.threeJsBoundingBox)
 			const center = getCenter(superTile.threeJsBoundingBox)
@@ -2015,11 +2020,11 @@ class Annotator {
 		const intersects = this.raycasterSuperTiles.intersectObject(this.highlightedSuperTileBox)
 
 		if (intersects.length) {
-			const superTile = this.highlightedSuperTileBox.userData as SuperTile
+			const superTile = this.highlightedSuperTileBox.userData as PointCloudSuperTile
 			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
 			this.scene.remove(this.highlightedSuperTileBox)
 			this.unHighlightSuperTileBox()
-			this.loadSuperTileData(superTile).then()
+			this.loadPointCloudSuperTileData(superTile).then()
 			this.render()
 		}
 	}
@@ -2388,7 +2393,7 @@ class Annotator {
 					break
 				}
 				case 'L': {
-					this.loadAllSuperTileData()
+					this.loadAllPointCloudSuperTileData()
 					break
 				}
 				case 'l': {

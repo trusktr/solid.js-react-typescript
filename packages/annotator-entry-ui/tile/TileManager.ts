@@ -6,9 +6,11 @@
 import config from '@/config'
 import {OrderedMap, OrderedSet} from 'immutable'
 import * as THREE from 'three'
-import {TileMessage} from "./TileMessage"
+import {TileMessage} from "@/annotator-entry-ui/model/TileMessage"
+import {NullTileContents, PointCloudTileContents} from "@/annotator-entry-ui/model/TileContents"
 import {SuperTile} from "./SuperTile"
 import {UtmTile} from "./UtmTile"
+import {PointCloudUtmTile} from "./PointCloudUtmTile"
 import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
 import {Scale3D} from "../geometry/Scale3D"
@@ -48,9 +50,7 @@ function makeTileMessageForCurrentUtmZone(origin: THREE.Vector3): TileMessage {
 		origin: origin,
 		utmZoneNumber: 10, // TODO get these from config? read from an API call?
 		utmZoneNorthernHemisphere: true,
-		points: [],
-		colors: [],
-		intensities: [],
+		contents: {} as NullTileContents,
 	}
 }
 
@@ -115,18 +115,17 @@ export interface TileManagerConfig {
 // TileManager loads tile data from the network. Tiles are aggregated into SuperTiles,
 // which serve as a local cache for chunks of tile data. Each SuperTile has a point cloud, which
 // when loaded is provided as a single structure for three.js rendering.
-// All points are stored with reference to UTM origin and offset, but using the local coordinate
+// All objects are stored with reference to UTM origin and offset, but using the local coordinate
 // system which has different axes.
 export abstract class TileManager {
 	protected config: TileManagerConfig
 	private storage: LocalStorage // persistent state for UI settings
 	protected coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin // todo ?
 	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
-	// Keys to super tiles which have points loaded in memory. It is ordered so that it works as a least-recently-used
+	// Keys to super tiles which have objects loaded in memory. It is ordered so that it works as a least-recently-used
 	// cache when it comes time to unload excess super tiles.
 	private loadedSuperTileKeys: OrderedSet<string>
 	private superTileUnloadBehavior: SuperTileUnloadAction
-	private pointsMaterial: THREE.PointsMaterial
 	// TileManager makes some assumptions about the state of super tiles and point clouds which lead to problems
 	// with asynchronous requests to load points. Allow only one request at a time.
 	protected isLoadingTiles: boolean
@@ -143,14 +142,11 @@ export abstract class TileManager {
 		this.superTiles = OrderedMap()
 		this.loadedSuperTileKeys = OrderedSet()
 		this.superTileUnloadBehavior = SuperTileUnloadAction.Unload
-		this.pointsMaterial = new THREE.PointsMaterial({
-			size: 1,
-			sizeAttenuation: false,
-			vertexColors: THREE.VertexColors,
-		})
 		this.isLoadingTiles = false
 		this.loadedObjectsBoundingBox = null
 	}
+
+	protected abstract constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile
 
 	// Update state of which super tiles are loaded.
 	private setLoadedSuperTileKeys(newKeys: OrderedSet<string>): void {
@@ -160,7 +156,7 @@ export abstract class TileManager {
 	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
 		const key = utmIndex.toString()
 		if (!this.superTiles.has(key))
-			this.superTiles = this.superTiles.set(key, new SuperTile(utmIndex, coordinateFrame, this.utmCoordinateSystem))
+			this.superTiles = this.superTiles.set(key, this.constructSuperTile(utmIndex, coordinateFrame, this.utmCoordinateSystem))
 		return this.superTiles.get(key)
 	}
 
@@ -185,16 +181,16 @@ export abstract class TileManager {
 				|| this.utmCoordinateSystem.utmZoneNumber === num && this.utmCoordinateSystem.utmZoneNorthernHemisphere === northernHemisphere
 	}
 
-	// Given a range search, find all intersecting super tiles. Load point cloud data for as many
-	// as allowed by configuration, or all if loadAllPoints.
+	// Given a range search, find all intersecting super tiles. Load tile data for as many
+	// as allowed by configuration, or all if loadAllObjects.
 	// Side effect: Prune old SuperTiles as necessary.
 	// Returns true if super tiles were loaded.
-	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<boolean> {
+	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects: boolean = false): Promise<boolean> {
 		if (this.isLoadingTiles)
-			return Promise.reject(new BusyError('busy loading point cloud'))
+			return Promise.reject(new BusyError('busy loading tiles'))
 		this.isLoadingTiles = true
 		return this.resetIsLoadingTiles(
-			this.loadFromMapServerImpl(searches, coordinateFrame, loadAllPoints)
+			this.loadFromMapServerImpl(searches, coordinateFrame, loadAllObjects)
 		)
 	}
 
@@ -202,8 +198,8 @@ export abstract class TileManager {
 		return this.isLoadingTiles
 	}
 
-	protected resetIsLoadingTiles(pointCloudResult: Promise<boolean>): Promise<boolean> {
-		return pointCloudResult
+	protected resetIsLoadingTiles(tileLoadedResult: Promise<boolean>): Promise<boolean> {
+		return tileLoadedResult
 			.then(loaded => {
 				this.isLoadingTiles = false
 				return loaded
@@ -215,8 +211,8 @@ export abstract class TileManager {
 	}
 
 	// The useful bits of loadFromMapServer()
-	protected loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<boolean> {
-		// Default behavior when a super tile is evicted from cache is to unload its point cloud without deleting it.
+	protected loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects: boolean = false): Promise<boolean> {
+		// Default behavior when a super tile is evicted from cache is to unload its contents without deleting it.
 		// That works well with a fixed data set which we would get with loadFromDirectory(). The UI allows a mix of
 		// loading from directory and from a map server at any time. If we ever see a request for map server tiles,
 		// assume the number of tiles (and super tiles) is unlimited, so we can't afford to keep any old ones.
@@ -228,7 +224,7 @@ export abstract class TileManager {
 			.filter(sti => this.superTiles.get(sti.toString()) === undefined)
 		if (!filteredStIndexes.length)
 			return Promise.resolve(false)
-		if (!loadAllPoints && filteredStIndexes.length > this.config.initialSuperTilesToLoad)
+		if (!loadAllObjects && filteredStIndexes.length > this.config.initialSuperTilesToLoad)
 			filteredStIndexes.length = this.config.initialSuperTilesToLoad
 
 		// Ensure that we have a valid coordinate system before doing anything else.
@@ -265,7 +261,7 @@ export abstract class TileManager {
 								this.getOrCreateSuperTile(stIndex, coordinateFrame)
 							} else
 								tileInstances.forEach(tileInstance => {
-									const utmTile = new UtmTile(tileInstance.tileIndex, this.pointCloudFileLoader(tileInstance, coordinateFrame))
+									const utmTile = new PointCloudUtmTile(tileInstance.tileIndex, this.pointCloudFileLoader(tileInstance, coordinateFrame))
 									this.addTileToSuperTile(utmTile, coordinateFrame, tileInstance.url)
 								})
 						})
@@ -290,9 +286,9 @@ export abstract class TileManager {
 			.map(sti => this.superTiles.get(sti.toString()))
 	}
 
-	protected abstract pointCloudFileLoader(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[]]>
+	protected abstract pointCloudFileLoader(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): () => Promise<PointCloudTileContents>
 
-	// Tiles are collected into super tiles. Later the super tiles will manage loading and unloading point cloud data.
+	// Tiles are collected into super tiles. Later the super tiles will manage loading and unloading their tile data.
 	protected addTileToSuperTile(utmTile: UtmTile, coordinateFrame: CoordinateFrameType, tileName: string): void {
 		const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale), coordinateFrame)
 		if (!superTile.addTile(utmTile))
@@ -319,7 +315,7 @@ export abstract class TileManager {
 			}
 			return Promise.resolve(true)
 		} else
-			return superTile.loadPointCloud(this.pointsMaterial)
+			return superTile.loadContents()
 				.then(success => {
 					if (success) {
 						this.loadedObjectsBoundingBox = null
@@ -335,7 +331,7 @@ export abstract class TileManager {
 		let success = false
 		switch (this.superTileUnloadBehavior) {
 			case SuperTileUnloadAction.Unload:
-				superTile.unloadPointCloud()
+				superTile.unloadContents()
 				success = true
 				break
 			case SuperTileUnloadAction.Delete:
@@ -389,7 +385,7 @@ export abstract class TileManager {
 		} else {
 			let bbox = new THREE.Box3()
 			this.superTiles.forEach(st => {
-				const newBbox = st!.getPointCloudBoundingBox()
+				const newBbox = st!.getContentsBoundingBox()
 				if (newBbox && newBbox.min.x !== null && newBbox.min.x !== Infinity)
 					bbox = bbox.union(newBbox)
 			})

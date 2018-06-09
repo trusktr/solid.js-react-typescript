@@ -11,12 +11,12 @@ import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import {threeDStepSize} from "./Constant"
-import {
-	baseGeometryTileMessageToTileMessage, pointCloudTileMessageToTileMessage,
-	TileMessage, TileMessageFormat
-} from "./TileMessage"
+import {baseGeometryTileMessageToTileMessage, pointCloudTileMessageToTileMessage} from "./Conversion"
+import {PointCloudTileContents} from "@/annotator-entry-ui/model/TileContents"
+import {TileMessage, TileMessageFormat} from "@/annotator-entry-ui/model/TileMessage"
 import {SuperTile} from "./SuperTile"
-import {UtmTile} from "./UtmTile"
+import {PointCloudUtmTile} from "./PointCloudUtmTile"
+import {PointCloudSuperTile} from "./PointCloudSuperTile"
 import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
 import {TileIndex} from "../model/TileIndex"
@@ -29,6 +29,7 @@ import {
 	TileMetadata, utmTileScale
 } from "@/annotator-entry-ui/tile/TileManager"
 import {RangeSearch} from "@/annotator-entry-ui/model/RangeSearch"
+import {OrderedMap} from "immutable"
 
 const log = Logger(__filename)
 
@@ -60,35 +61,37 @@ function tileFileNameToTileMetadata(name: string): TileMetadata | null {
 	}
 }
 
-const sampleData = (msg: TileMessage, step: number): Array<Array<number>> => {
+const nullContents = new PointCloudTileContents([], [])
+
+const sampleData = (contents: PointCloudTileContents, step: number): Array<Array<number>> => {
 	if (step <= 0) {
 		log.error("Can't sample data. Step should be > 0.")
 		return []
 	}
-	if (!msg.points) {
+	if (!contents.points) {
 		log.error("tile message is missing points")
 		return []
 	}
-	if (!msg.colors) {
+	if (!contents.colors) {
 		log.error("tile message is missing colors")
 		return []
 	}
 
 	if (step === 1)
-		return [msg.points, msg.colors]
+		return [contents.points, contents.colors]
 
 	const sampledPoints: Array<number> = []
 	const sampledColors: Array<number> = []
 	const stride = step * threeDStepSize
 
-	for (let i = 0; i < msg.points.length; i += stride) {
+	for (let i = 0; i < contents.points.length; i += stride) {
 		// Assuming the utm points are: easting, northing, altitude
-		sampledPoints.push(msg.points[i])
-		sampledPoints.push(msg.points[i + 1])
-		sampledPoints.push(msg.points[i + 2])
-		sampledColors.push(msg.colors[i])
-		sampledColors.push(msg.colors[i + 1])
-		sampledColors.push(msg.colors[i + 2])
+		sampledPoints.push(contents.points[i])
+		sampledPoints.push(contents.points[i + 1])
+		sampledPoints.push(contents.points[i + 2])
+		sampledColors.push(contents.colors[i])
+		sampledColors.push(contents.colors[i + 1])
+		sampledColors.push(contents.colors[i + 2])
 	}
 	return [sampledPoints, sampledColors]
 }
@@ -109,6 +112,8 @@ interface VoxelsConfig {
 
 export class PointCloudTileManager extends TileManager {
 	protected readonly config: PointCloudTileManagerConfig
+	superTiles: OrderedMap<string, PointCloudSuperTile> // all super tiles which we are aware of
+	private pointsMaterial: THREE.PointsMaterial
 	// TODO kill legacy voxel features
 	voxelsConfig: VoxelsConfig
 	voxelsMeshGroup: Array<THREE.Mesh>
@@ -139,6 +144,11 @@ export class PointCloudTileManager extends TileManager {
 		}
 		if (!this.config.tileMessageFormat)
 			throw Error('bad tile_manager.tile_message_format: ' + config.get('tile_manager.tile_message_format'))
+		this.pointsMaterial = new THREE.PointsMaterial({
+			size: this.config.pointsSize,
+			sizeAttenuation: false,
+			vertexColors: THREE.VertexColors,
+		})
 		this.voxelsConfig = {
 			enable: enableVoxels,
 			voxelSize: 0.15,
@@ -149,6 +159,10 @@ export class PointCloudTileManager extends TileManager {
 		this.voxelsDictionary = new Set<THREE.Vector3>()
 		this.HSVGradient = []
 		this.generateGradient()
+	}
+
+	protected constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile {
+		return new PointCloudSuperTile(index, coordinateFrame, utmCoordinateSystem, this.pointsMaterial)
 	}
 
 	// Get all populated point clouds from all the super tiles.
@@ -346,9 +360,7 @@ export class PointCloudTileManager extends TileManager {
 		log.info('Done adding them to the mesh.')
 	}
 
-	/**
-	 * Load a point cloud tile message from a proto binary file
-	 */
+	// Load a point cloud tile message from a proto binary file.
 	private loadTile(tileInstance: TileInstance): Promise<TileMessage> {
 		let loader: Promise<Uint8Array>
 		let parser: (buffer: Uint8Array) => TileMessage
@@ -456,7 +468,7 @@ export class PointCloudTileManager extends TileManager {
 				fileMetadataList.forEach(metadata => {
 					const tileIndex = new TileIndex(utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z)
 					const tileInstance = new LocalTileInstance(tileIndex, Path.join(datasetPath, metadata!.name))
-					const utmTile = new UtmTile(
+					const utmTile = new PointCloudUtmTile(
 						tileIndex,
 						this.pointCloudFileLoader(tileInstance, coordinateFrame),
 					)
@@ -481,18 +493,20 @@ export class PointCloudTileManager extends TileManager {
 	//  - array of raw position data
 	//  - array of raw color data
 	//  - count of points
-	protected pointCloudFileLoader(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): () => Promise<[number[], number[]]> {
-		return (): Promise<[number[], number[]]> =>
+	protected pointCloudFileLoader(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): () => Promise<PointCloudTileContents> {
+		return (): Promise<PointCloudTileContents> =>
 			this.loadTile(tileInstance)
 				.then(msg => {
-					if (!msg.points || msg.points.length === 0) {
-						return [[], []] as [number[], number[]]
+					if (!(msg.contents instanceof PointCloudTileContents)) {
+						throw Error('got bad message contents with type: ' + typeof msg.contents)
+					} else if (!msg.contents.points || msg.contents.points.length === 0) {
+						return nullContents
 					} else if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
 						throw Error('checkCoordinateSystem failed on: ' + tileInstance.url)
 					} else {
-						const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg, this.config.samplingStep)
+						const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg.contents, this.config.samplingStep)
 						const positions = this.rawDataToPositions(sampledPoints, coordinateFrame)
-						return [positions, sampledColors] as [number[], number[]]
+						return new PointCloudTileContents(positions, sampledColors)
 					}
 				})
 	}

@@ -4,4 +4,3 @@
  */
 
 export const threeDStepSize = 3
-export const emptyPositions = new Float32Array(0)
