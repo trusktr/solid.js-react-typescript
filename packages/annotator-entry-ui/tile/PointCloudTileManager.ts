@@ -100,8 +100,6 @@ const sampleData = (contents: PointCloudTileContents, step: number): Array<Array
 interface PointCloudTileManagerConfig extends TileManagerConfig {
 	pointsSize: number,
 	tileMessageFormat: TileMessageFormat,
-	initialSuperTilesToLoad: number, // preload some super tiles; initially we don't know how many points they will contain
-	maximumSuperTilesToLoad: number, // sanity check so we don't load lots of very sparse or empty super tiles
 	samplingStep: number,
 }
 
@@ -139,6 +137,7 @@ export class PointCloudTileManager extends TileManager {
 			tileServiceClient,
 		)
 		this.config = {
+			layerId: 'base1', // a layer which contains instances of `BaseGeometryTileMessage`
 			pointsSize: parseFloat(config.get('annotator.point_render_size')) || 1,
 			tileMessageFormat: TileMessageFormat[config.get('tile_manager.tile_message_format') as string],
 			initialSuperTilesToLoad: parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4,
@@ -382,9 +381,12 @@ export class PointCloudTileManager extends TileManager {
 					return Promise.reject(Error('unknown tileMessageFormat: ' + this.config.tileMessageFormat))
 			}
 		} else if (tileInstance instanceof RemoteTileInstance) {
-			loader = this.tileServiceClient.getTileContents(tileInstance.url)
-			// TODO map tileInstance.layerId to parser
-			parser = PointCloudTileManager.parseBaseGeometryTileMessage
+			if (tileInstance.layerId === this.config.layerId) {
+				loader = this.tileServiceClient.getTileContents(tileInstance.url)
+				parser = PointCloudTileManager.parseBaseGeometryTileMessage
+			} else {
+				return Promise.reject(Error('unknown tileInstance.layerId: ' + tileInstance.layerId))
+			}
 		} else {
 			return Promise.reject(Error('unknown tileInstance: ' + tileInstance))
 		}
