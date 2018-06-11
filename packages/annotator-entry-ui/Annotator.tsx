@@ -1367,7 +1367,7 @@ class Annotator {
 		// Don't update AOI and load tiles if the point cloud is not visible.
 		if (!this.uiState.isPointCloudVisible) return
 		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
-		if (this.pointCloudTileManager.getIsLoadingTiles()) return
+		if (this.pointCloudTileManager.isLoadingTiles) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {

@@ -32,14 +32,12 @@ export class PointCloudUtmTile extends UtmTile {
 		return this.pointCloudLoader()
 			.then(result => {
 				this.contents = result
-				this.isLoaded = true
 				return this.contents
 			})
 	}
 
 	// Reset the object to its initial state.
 	unload(): void {
-		this.isLoaded = false
 		this.contents = null
 	}
 

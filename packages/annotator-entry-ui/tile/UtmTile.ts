@@ -12,13 +12,9 @@ import {TileContents} from "@/annotator-entry-ui/model/TileContents"
  * This assumes a single UTM zone, which is a Cartesian 3D space.
  */
 export abstract class UtmTile {
-	isLoaded: boolean
-
 	constructor(
 		public index: TileIndex,
-	) {
-		this.isLoaded = false
-	}
+	) {}
 
 	// Find the TileIndex for a super tile which contains the origin of this tile.
 	// First convert from the tile's scale to the world coordinate frame,

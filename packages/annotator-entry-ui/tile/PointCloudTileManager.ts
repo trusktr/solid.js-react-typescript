@@ -14,6 +14,7 @@ import {threeDStepSize} from "./Constant"
 import {baseGeometryTileMessageToTileMessage, pointCloudTileMessageToTileMessage} from "./Conversion"
 import {PointCloudTileContents} from "@/annotator-entry-ui/model/TileContents"
 import {TileMessage, TileMessageFormat} from "@/annotator-entry-ui/model/TileMessage"
+import {UtmTile} from "./UtmTile"
 import {SuperTile} from "./SuperTile"
 import {PointCloudUtmTile} from "./PointCloudUtmTile"
 import {PointCloudSuperTile} from "./PointCloudSuperTile"
@@ -110,6 +111,9 @@ interface VoxelsConfig {
 	voxelsMaxHeight: number,
 }
 
+// This handles loading and unloading point cloud data (for read only). Each SuperTile has a point cloud,
+// consolidated from its constituent Tiles, which when loaded is merged into a single data structure for
+// three.js rendering.
 export class PointCloudTileManager extends TileManager {
 	protected readonly config: PointCloudTileManagerConfig
 	superTiles: OrderedMap<string, PointCloudSuperTile> // all super tiles which we are aware of
@@ -421,7 +425,7 @@ export class PointCloudTileManager extends TileManager {
 	loadFromDirectory(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<boolean> {
 		if (this.isLoadingTiles)
 			return Promise.reject(new BusyError('busy loading point cloud'))
-		this.isLoadingTiles = true
+		this._isLoadingTiles = true
 		return this.resetIsLoadingTiles(
 			this.loadFromDirectoryImpl(datasetPath, coordinateFrame)
 		)
@@ -468,10 +472,7 @@ export class PointCloudTileManager extends TileManager {
 				fileMetadataList.forEach(metadata => {
 					const tileIndex = new TileIndex(utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z)
 					const tileInstance = new LocalTileInstance(tileIndex, Path.join(datasetPath, metadata!.name))
-					const utmTile = new PointCloudUtmTile(
-						tileIndex,
-						this.pointCloudFileLoader(tileInstance, coordinateFrame),
-					)
+					const utmTile = this.tileInstanceToUtmTile(tileInstance, coordinateFrame)
 					this.addTileToSuperTile(utmTile, coordinateFrame, metadata!.name)
 				})
 
@@ -480,6 +481,13 @@ export class PointCloudTileManager extends TileManager {
 				return Promise.all(promises)
 			})
 			.then(() => true) // true because we loaded some SuperTiles
+	}
+
+	protected tileInstanceToUtmTile(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): UtmTile {
+		return new PointCloudUtmTile(
+			tileInstance.tileIndex,
+			this.pointCloudFileLoader(tileInstance, coordinateFrame),
+		)
 	}
 
 	protected loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<boolean> {
@@ -493,7 +501,7 @@ export class PointCloudTileManager extends TileManager {
 	//  - array of raw position data
 	//  - array of raw color data
 	//  - count of points
-	protected pointCloudFileLoader(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): () => Promise<PointCloudTileContents> {
+	private pointCloudFileLoader(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): () => Promise<PointCloudTileContents> {
 		return (): Promise<PointCloudTileContents> =>
 			this.loadTile(tileInstance)
 				.then(msg => {
