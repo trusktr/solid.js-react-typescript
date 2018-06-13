@@ -78,8 +78,8 @@ export class LightboxWindowManager {
 		const win = Electron.remote.BrowserWindow.getFocusedWindow()
 		this.window = win
 
-		if ( savedState.isMaximized ) win.maximize()
-		if ( savedState.isFullScreen ) win.setFullScreen(true)
+		// if ( savedState.isMaximized ) win.maximize()
+		// if ( savedState.isFullScreen ) win.setFullScreen(true)
 
 		savedState.manage(win)
 

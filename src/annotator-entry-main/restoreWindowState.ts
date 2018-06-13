@@ -11,12 +11,12 @@ import config from '@/config'
 
 export default
 function restoreWindowState(win: BrowserWindow, windowName: string): void {
-
+	console.log("INSIDE RESTORE")
 	// Load user's saved state.
 	const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
 
 	// Deal with window dimensions. Kiosk mode overrides all other settings.
-	const setFullScreen = !!config.get('startup.kiosk_mode')
+	const setFullScreen = false //!!config.get('startup.kiosk_mode')
 	const options = {} as BrowserWindowConstructorOptions
 
 	if (!setFullScreen) {
@@ -46,10 +46,10 @@ function restoreWindowState(win: BrowserWindow, windowName: string): void {
 	if (!(isNullOrUndefined(options.x) || isNullOrUndefined(options.y)))
 		win.setPosition(options.x, options.y)
 
-	if (setFullScreen)
-		win.setFullScreen(true)
-	else
-		savedState.manage(win)
+	// if (setFullScreen)
+	// 	win.setFullScreen(false)
+	// else
+	// 	savedState.manage(win)
 
 	// Open the DevTools.
 	if (!!config.get('startup.show_dev_tools'))

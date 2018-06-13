@@ -7,7 +7,9 @@ import { configReady } from '../config'
 import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
+import { AppContainer } from "react-hot-loader"
 import App from './App'
+
 
 Object.assign(global, {
 	jQuery: $,
@@ -22,7 +24,27 @@ console.log(' --- in Saffron:', inSaffron)
 const root = $('#root')[0]
 
 function main(): void {
-	ReactDOM.render( <App />, root )
+	// Setup the store, actions, and reducers
+	require("annotator-operation-hydra/src/services/index").loadStore()
+
+
+	const
+		{Provider} = require("react-redux")
+
+	ReactDOM.render(
+		<AppContainer>
+			<Provider store={getRoadNetworkEditorReduxStore()}>
+				<App />
+			</Provider>
+		</AppContainer>,
+		root
+	)
+
+
+
+
+
+
 }
 
 function cleanup(): void {

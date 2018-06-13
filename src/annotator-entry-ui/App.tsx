@@ -7,11 +7,13 @@ import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import initUIControl from '@/annotator-control-ui/UIControl'
 import Annotator from 'annotator-entry-ui/Annotator'
-import Menu from './components/Menu'
 import './style.scss'
 import Logger from '@/util/log'
 import TrajectoryPicker from "./components/TrajectoryPicker"
 import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
+import config from "@/config";
+import AnnotatorMenuView from "annotator-entry-ui/AnnotatorMenuView";
+import KioskMenuView from "annotator-entry-ui/KioskMenuView";
 
 const log = Logger(__filename)
 
@@ -36,7 +38,19 @@ class App extends React.Component<AppProps, AppState> {
 		this.annotator = new Annotator()
 	}
 
+	MenuComponent() {
+		if (config.get('startup.kiosk_mode')) {
+			return <KioskMenuView />
+		} else {
+			return <AnnotatorMenuView />
+		}
+	}
+
 	render(): JSX.Element {
+		console.log("HELLO", config.get('startup.kiosk_mode'))
+		const MenuComponent = this.MenuComponent()
+
+
 		return <React.Fragment>
 
 			<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
@@ -56,7 +70,8 @@ class App extends React.Component<AppProps, AppState> {
 				<button id="menu_control_btn" className="menu_btn"> &#9776; </button>
 			</div>
 
-			<Menu />
+			{/*<Menu />*/}
+			{MenuComponent}
 
 			{this.trajectoryPicker}
 
