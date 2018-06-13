@@ -14,16 +14,4 @@ html(lang="en")
 		#root
 
 		script.
-			const Electron = require('electron')
-			let connected = false
-
-			Electron.ipcRenderer.on('connect', (event, msg) => {
-				if (connected) return
-
-				global.APP_PATH = msg.APP_PATH
-				require(APP_PATH + "/dist/app/annotator-entry-ui")
-
-			})
-
-			Electron.ipcRenderer.sendToHost('connect')
-			Electron.ipcRenderer.send('connect')
+			require("./annotator-entry-ui")

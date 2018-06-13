@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+import { configReady } from '../config'
 import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
@@ -16,19 +17,7 @@ Object.assign(global, {
 import('jquery-ui-dist/jquery-ui')
 
 const inSaffron = typeof __SAFFRON__ !== 'undefined' ? __SAFFRON__ : false
-
 console.log(' --- in Saffron:', inSaffron)
-
-$(main)
-
-// This is injected by webpack, so it has no type definition:
-// https://webpack.js.org/api/hot-module-replacement/
-// tslint:disable-next-line:no-any
-const hotReplacement = (module as any).hot
-if (hotReplacement) {
-	hotReplacement.accept()
-	hotReplacement.dispose(cleanup)
-}
 
 const root = $('#root')[0]
 
@@ -38,4 +27,15 @@ function main(): void {
 
 function cleanup(): void {
 	ReactDOM.unmountComponentAtNode( root )
+}
+
+configReady().then( () => $( main ) )
+
+// https://webpack.js.org/api/hot-module-replacement/
+// TODO hot replacement isn't enabled or working at the moment
+// tslint:disable-next-line:no-any
+const hotReplacement = (module as any).hot
+if (hotReplacement) {
+	hotReplacement.accept()
+	hotReplacement.dispose(cleanup)
 }

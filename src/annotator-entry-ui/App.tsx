@@ -6,7 +6,7 @@
 import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import initUIControl from '@/annotator-control-ui/UIControl'
-import {annotator} from 'annotator-entry-ui/Annotator'
+import Annotator from 'annotator-entry-ui/Annotator'
 import Menu from './components/Menu'
 import './style.scss'
 import Logger from '@/util/log'
@@ -24,6 +24,7 @@ class App extends React.Component<AppProps, AppState> {
 	private sceneContainer: HTMLElement | null
 	private trajectoryPicker: JSX.Element
 	private trajectoryPickerRef: TrajectoryPicker
+	private annotator: Annotator
 
 	constructor(props: AppProps) {
 		super(props)
@@ -32,6 +33,7 @@ class App extends React.Component<AppProps, AppState> {
 				ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
 			/>
 		)
+		this.annotator = new Annotator()
 	}
 
 	render(): JSX.Element {
@@ -64,15 +66,15 @@ class App extends React.Component<AppProps, AppState> {
 	componentDidMount(): void {
 		initUIControl()
 		if (this.sceneContainer)
-			annotator
+			this.annotator
 				.mount(this.sceneContainer)
-				.then(() => annotator.setOpenTrajectoryPickerFunction(this.trajectoryPickerRef.openModal))
+				.then(() => this.annotator.setOpenTrajectoryPickerFunction(this.trajectoryPickerRef.openModal))
 		else
 			log.warn('No scene container!')
 	}
 
 	componentWillUnmount(): void {
-		annotator.unmount()
+		this.annotator.unmount()
 	}
 
 }
