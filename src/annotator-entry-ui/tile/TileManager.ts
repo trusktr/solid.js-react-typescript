@@ -41,10 +41,6 @@ function configToSharedScale(key: string): Scale3D {
 		throw Error(`invalid ${key} configuration '${tileScaleConfig}'`)
 	return new Scale3D(tileScaleConfig)
 }
-const utmTileScale = configToSharedScale('tile_manager.utm_tile_scale')
-const superTileScale = configToSharedScale('tile_manager.super_tile_scale')
-if (!superTileScale.isMultipleOf(utmTileScale))
-	throw Error('super_tile_scale must be a multiple of utm_tile_scale')
 
 const loadedSuperTileKeysKey = 'loadedSuperTileKeys'
 let warningDelivered = false
@@ -125,53 +121,6 @@ function makeTileMessageForCurrentUtmZone(origin: THREE.Vector3): TileMessage {
 	}
 }
 
-// SuperTiles have a simple caching strategy for their constituent tiles; that is, they cache
-// data for tiles they already know about. We make it simpler by populating all the constituent
-// tiles up front. Then we can treat a SuperTile as the basic unit of cache within TileManager.
-// This expands the input range searches to cover the entire volume of the SuperTiles that are
-// intersected by the searches, and it converts the ranges to an array of all those SuperTiles.
-function enumerateIntersectingSuperTileIndexes(searches: RangeSearch[]): TileIndex[] {
-	switch (searches.length) {
-		case 0:
-			return []
-		case 1:
-			return enumerateOneRange(searches[0])
-		default:
-			const enumerations = searches.map(search => enumerateOneRange(search))
-			const uniqueTileIndexes = enumerations[0]
-			const seen: Set<string> = new Set(uniqueTileIndexes.map(ti => ti.toString()))
-			for (let n = 1; n < enumerations.length; n++) {
-				enumerations[n].forEach(ti => {
-					if (!seen.has(ti.toString())) {
-						seen.add(ti.toString())
-						uniqueTileIndexes.push(ti)
-					}
-				})
-			}
-			return uniqueTileIndexes
-	}
-}
-
-function enumerateOneRange(search: RangeSearch): TileIndex[] {
-	const min = tileIndexFromVector3(superTileScale, search.minPoint)
-	const max = tileIndexFromVector3(superTileScale, search.maxPoint)
-	const indexes: TileIndex[] = []
-	const minX = min.xIndex < max.xIndex ? min.xIndex : max.xIndex
-	const maxX = min.xIndex < max.xIndex ? max.xIndex : min.xIndex
-	const minY = min.yIndex < max.yIndex ? min.yIndex : max.yIndex
-	const maxY = min.yIndex < max.yIndex ? max.yIndex : min.yIndex
-	const minZ = min.zIndex < max.zIndex ? min.zIndex : max.zIndex
-	const maxZ = min.zIndex < max.zIndex ? max.zIndex : min.zIndex
-	for (let x = minX; x <= maxX; x++) {
-		for (let y = minY; y <= maxY; y++) {
-			for (let z = minZ; z <= maxZ; z++) {
-				indexes.push(min.copy(x, y, z))
-			}
-		}
-	}
-	return indexes
-}
-
 export enum SuperTileUnloadAction {
 	Unload,
 	Delete,
@@ -220,6 +169,8 @@ export class TileManager {
 	private onSuperTileLoad: (superTile: SuperTile) => void
 	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void
 	private tileServiceClient: TileServiceClient
+	private utmTileScale: Scale3D
+	private superTileScale: Scale3D
 
 	constructor(
 		utmCoordinateSystem: UtmCoordinateSystem,
@@ -264,6 +215,59 @@ export class TileManager {
 		this.HSVGradient = []
 		this.generateGradient()
 		this.tileServiceClient = new TileServiceClient(onTileServiceStatusUpdate)
+
+		this.utmTileScale = configToSharedScale('tile_manager.utm_tile_scale')
+		this.superTileScale = configToSharedScale('tile_manager.super_tile_scale')
+
+		if (!this.superTileScale.isMultipleOf(this.utmTileScale))
+			throw Error('super_tile_scale must be a multiple of utm_tile_scale')
+	}
+
+	private enumerateOneRange(search: RangeSearch): TileIndex[] {
+		const min = tileIndexFromVector3(this.superTileScale, search.minPoint)
+		const max = tileIndexFromVector3(this.superTileScale, search.maxPoint)
+		const indexes: TileIndex[] = []
+		const minX = min.xIndex < max.xIndex ? min.xIndex : max.xIndex
+		const maxX = min.xIndex < max.xIndex ? max.xIndex : min.xIndex
+		const minY = min.yIndex < max.yIndex ? min.yIndex : max.yIndex
+		const maxY = min.yIndex < max.yIndex ? max.yIndex : min.yIndex
+		const minZ = min.zIndex < max.zIndex ? min.zIndex : max.zIndex
+		const maxZ = min.zIndex < max.zIndex ? max.zIndex : min.zIndex
+		for (let x = minX; x <= maxX; x++) {
+			for (let y = minY; y <= maxY; y++) {
+				for (let z = minZ; z <= maxZ; z++) {
+					indexes.push(min.copy(x, y, z))
+				}
+			}
+		}
+		return indexes
+	}
+
+	// SuperTiles have a simple caching strategy for their constituent tiles; that is, they cache
+	// data for tiles they already know about. We make it simpler by populating all the constituent
+	// tiles up front. Then we can treat a SuperTile as the basic unit of cache within TileManager.
+	// This expands the input range searches to cover the entire volume of the SuperTiles that are
+	// intersected by the searches, and it converts the ranges to an array of all those SuperTiles.
+	enumerateIntersectingSuperTileIndexes(searches: RangeSearch[]): TileIndex[] {
+		switch (searches.length) {
+			case 0:
+				return []
+			case 1:
+				return this.enumerateOneRange(searches[0])
+			default:
+				const enumerations = searches.map(search => this.enumerateOneRange(search))
+				const uniqueTileIndexes = enumerations[0]
+				const seen: Set<string> = new Set(uniqueTileIndexes.map(ti => ti.toString()))
+				for (let n = 1; n < enumerations.length; n++) {
+					enumerations[n].forEach(ti => {
+						if (!seen.has(ti.toString())) {
+							seen.add(ti.toString())
+							uniqueTileIndexes.push(ti)
+						}
+					})
+				}
+				return uniqueTileIndexes
+		}
 	}
 
 	// Get all populated point clouds from all the super tiles.
@@ -607,6 +611,7 @@ export class TileManager {
 
 	// The useful bits of loadFromDirectory()
 	private loadFromDirectoryImpl(datasetPath: string, coordinateFrame: CoordinateFrameType): Promise<boolean> {
+
 		// Consider all tiles within datasetPath.
 		let names: string[]
 		try {
@@ -626,7 +631,7 @@ export class TileManager {
 			firstTilePromise = Promise.resolve()
 		else {
 			const metadata = fileMetadataList[0]!
-			const tileIndex = new TileIndex(utmTileScale, metadata.index.x, metadata.index.y, metadata.index.z)
+			const tileIndex = new TileIndex(this.utmTileScale, metadata.index.x, metadata.index.y, metadata.index.z)
 			const tileInstance = new LocalTileInstance(tileIndex, Path.join(datasetPath, metadata!.name))
 			firstTilePromise = this.loadTile(tileInstance)
 				.then(firstMessage => {
@@ -644,7 +649,7 @@ export class TileManager {
 		return firstTilePromise
 			.then(() => {
 				fileMetadataList.forEach(metadata => {
-					const tileIndex = new TileIndex(utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z)
+					const tileIndex = new TileIndex(this.utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z)
 					const tileInstance = new LocalTileInstance(tileIndex, Path.join(datasetPath, metadata!.name))
 					const utmTile = new UtmTile(
 						tileIndex,
@@ -672,7 +677,7 @@ export class TileManager {
 			log.warn('This app will leak memory when generating voxels while incrementally loading tiles. Fix it.')
 
 		// Figure out which super tiles to load.
-		const allStIndexes = enumerateIntersectingSuperTileIndexes(searches)
+		const allStIndexes = this.enumerateIntersectingSuperTileIndexes(searches)
 		const filteredStIndexes = allStIndexes
 			.filter(sti => this.superTiles.get(sti.toString()) === undefined)
 		if (!filteredStIndexes.length)
@@ -762,7 +767,7 @@ export class TileManager {
 
 	// Tiles are collected into super tiles. Later the super tiles will manage loading and unloading point cloud data.
 	private addTileToSuperTile(utmTile: UtmTile, coordinateFrame: CoordinateFrameType, tileName: string): void {
-		const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(superTileScale), coordinateFrame)
+		const superTile = this.getOrCreateSuperTile(utmTile.superTileIndex(this.superTileScale), coordinateFrame)
 		if (!superTile.addTile(utmTile))
 			log.warn(`addTile() to ${superTile.key()} failed for ${tileName}`)
 	}

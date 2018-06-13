@@ -232,6 +232,7 @@ interface AoiState {
  * and the annotations. It also handles the mouse and keyboard events needed to select
  * and modify the annotations.
  */
+export default
 class Annotator {
 	private storage: LocalStorage // persistent state for UI settings
 	private uiState: UiState
@@ -4026,5 +4027,3 @@ class Annotator {
 	}
 
 }
-
-export const annotator = new Annotator()

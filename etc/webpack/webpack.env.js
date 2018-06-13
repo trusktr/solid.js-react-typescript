@@ -18,7 +18,6 @@ module.exports = {
 	'Env.isDev': isDev,
 	'process.env.__DEV__': isDev,
 	'process.env.NODE_ENV': JSON.stringify(env),
-	'process.env.BASEDIR': baseDir,
 	'process.env.DefaultTransportScheme': JSON.stringify('IPC'),
 	'ProcessConfig.isStorybook()': false,
 	'Env.isElectron': true
