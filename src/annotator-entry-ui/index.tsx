@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import { configReady } from '../config'
+import { configReady, getMeta } from '../config'
 import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
@@ -16,8 +16,12 @@ Object.assign(global, {
 
 import('jquery-ui-dist/jquery-ui')
 
-const inSaffron = typeof __SAFFRON__ !== 'undefined' ? __SAFFRON__ : false
-console.log(' --- in Saffron:', inSaffron)
+// example of getMeta:
+getMeta().then( ( { IN_SAFFRON } ) => {
+
+	console.log( ' --- in Saffron:', !!IN_SAFFRON )
+
+})
 
 const root = $('#root')[0]
 
