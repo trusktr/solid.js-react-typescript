@@ -10,6 +10,25 @@ import createPromise from '@/util/createPromise'
 
 export default nconf
 
+// see https://github.com/jprichardson/is-electron-renderer
+function detectRenderer() {
+
+	// running in a web browser
+	if (typeof process === 'undefined') return true
+
+	// node-integration is disabled
+	if (!process) return true
+
+	// We're in node.js somehow
+	if (!process.type) return false
+
+	return process.type === 'renderer'
+
+}
+
+const isRenderer = detectRenderer()
+const isMain = !isRenderer
+
 const envInput = (process.env.MAPPER_ENV || '').toLowerCase()
 let deployEnv
 if (envInput === 'prod' || envInput === 'production') {
@@ -22,43 +41,59 @@ if (envInput === 'prod' || envInput === 'production') {
 	throw new Error('Unknown environment name: MAPPER_ENV=' + envInput)
 }
 
-// tslint:disable-next-line:no-any
-const { promise: appPathPromise, resolve: resolveAppPath, reject: rejectAppPath } = createPromise<string, Error>()
-
-export async function getAppPath() {
-	return appPathPromise
+interface IMeta {
+	APP_PATH: string
+	IN_SAFFRON: boolean
 }
 
-function connect() {
+// tslint:disable-next-line:no-any
+const { promise: metaPromise, resolve: resolveMeta, reject: rejectMeta } = createPromise<IMeta, Error>()
 
-	if ( !__SAFFRON__ ) {
+export async function getMeta() {
+	return metaPromise
+}
 
-		const APP_PATH = process.cwd()
-		resolveAppPath( APP_PATH )
+async function connect() {
+
+	if ( isMain ) {
+
+		resolveMeta( {
+			APP_PATH: process.cwd(),
+			IN_SAFFRON: false,
+		} )
+
+		const { APP_PATH, IN_SAFFRON } = await getMeta()
+
+		Electron.ipcMain.on('connect', (event) => {
+
+			event.sender.send('connect', { APP_PATH, IN_SAFFRON })
+
+		})
 
 	}
-	else {
 
-		let connected = false
+	else if ( isRenderer ) {
 
-		Electron.ipcRenderer.on('connect', (event, msg) => {
+		// otherwise we're in Saffron and in a renderer process
 
-			if (connected) return
-			resolveAppPath( msg.APP_PATH )
+		Electron.ipcRenderer.once('connect', (event, { APP_PATH, IN_SAFFRON }) => {
+
+			resolveMeta( { APP_PATH, IN_SAFFRON } )
 
 			// pointless return to silence unused-parameter TypeScript error
 			return event
 
 		})
 
-		// we're either running in a <webview> (in Saffron) or as a new BrowserWindow
-		// (outside of Saffron), so we send a 'connect' message to both destinations.
+		// we're either running in a <webview> in Saffron (so sendToHost() connects
+		// to the parent document where the <webview> is located), or we're running
+		// standlone outside of Saffron (so send() connects to main)
 		Electron.ipcRenderer.sendToHost('connect')
 		Electron.ipcRenderer.send('connect')
 
 		setTimeout( () => {
 
-			rejectAppPath( new Error('Unable to connect') )
+			rejectMeta( new Error('Unable to connect') )
 
 		}, 5000 )
 
@@ -76,7 +111,7 @@ export function configReady() {
 
 async function setupConfig() {
 
-	const APP_PATH = await getAppPath()
+	const { APP_PATH } = await getMeta()
 
 	const dirName = path.join( APP_PATH, 'src', 'config' )
 	const envFile = path.join(dirName, deployEnv + '.yaml')

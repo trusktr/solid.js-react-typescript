@@ -7,13 +7,16 @@ import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import initUIControl from '@/annotator-control-ui/UIControl'
 import Annotator from 'annotator-entry-ui/Annotator'
+import Annotator from 'annotator-entry-ui/Annotator'
+import Menu from './components/Menu'
 import './style.scss'
 import Logger from '@/util/log'
 import TrajectoryPicker from "./components/TrajectoryPicker"
-import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
 import config from "@/config";
 import AnnotatorMenuView from "annotator-entry-ui/AnnotatorMenuView";
 import KioskMenuView from "annotator-entry-ui/KioskMenuView";
+import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
+
 
 const log = Logger(__filename)
 

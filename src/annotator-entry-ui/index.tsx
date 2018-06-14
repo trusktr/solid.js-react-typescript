@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import { configReady } from '../config'
+import { configReady, getMeta } from '../config'
 import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
@@ -18,16 +18,16 @@ Object.assign(global, {
 
 import('jquery-ui-dist/jquery-ui')
 
-const inSaffron = typeof __SAFFRON__ !== 'undefined' ? __SAFFRON__ : false
-console.log(' --- in Saffron:', inSaffron)
+// example of getMeta:
+getMeta().then( ( { IN_SAFFRON } ) => {
+
+	console.log( ' --- in Saffron:', !!IN_SAFFRON )
+
+})
 
 const root = $('#root')[0]
 
 function main(): void {
-	// Setup the store, actions, and reducers
-	require("annotator-operation-hydra/src/services/index").loadStore()
-
-
 	const
 		{Provider} = require("react-redux")
 
@@ -39,12 +39,6 @@ function main(): void {
 		</AppContainer>,
 		root
 	)
-
-
-
-
-
-
 }
 
 function cleanup(): void {
@@ -52,6 +46,7 @@ function cleanup(): void {
 }
 
 configReady().then( () => $( main ) )
+
 
 // https://webpack.js.org/api/hot-module-replacement/
 // TODO hot replacement isn't enabled or working at the moment

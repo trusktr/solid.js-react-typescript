@@ -10,7 +10,7 @@ import * as Electron from 'electron'
 import {windowStateKeeperOptions} from '../util/WindowStateKeeperOptions'
 import {channel} from "../electron-ipc/Channel"
 import * as IpcMessages from "../electron-ipc/Messages"
-import config, { getAppPath } from '@/config'
+import config, { getMeta } from '@/config'
 import windowStateKeeper = require('electron-window-state')
 import WindowCommunicator from '../util/WindowCommunicator'
 import createPromise, { Resolve } from '../util/createPromise'
@@ -104,7 +104,7 @@ export class LightboxWindowManager {
 			win.webContents.openDevTools()
 
 		win.loadURL(Url.format({
-			pathname: Path.join( await getAppPath(), `dist/app/${windowName}.html`),
+			pathname: Path.join( (await getMeta()).APP_PATH, `dist/app/${windowName}.html`),
 			protocol: 'file:',
 			slashes: true
 		}))
