@@ -3,8 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+import { configReady, getMeta } from '../config'
 import * as $ from 'jquery'
-import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import App from './App'
@@ -16,16 +16,12 @@ Object.assign(global, {
 
 import('jquery-ui-dist/jquery-ui')
 
-$(main)
+// example of getMeta:
+getMeta().then( ( { IN_SAFFRON } ) => {
 
-// This is injected by webpack, so it has no type definition:
-// https://webpack.js.org/api/hot-module-replacement/
-// tslint:disable-next-line:no-any
-const hotReplacement = (module as any).hot
-if (hotReplacement) {
-	hotReplacement.accept()
-	hotReplacement.dispose(cleanup)
-}
+	console.log( ' --- in Saffron:', !!IN_SAFFRON )
+
+})
 
 const root = $('#root')[0]
 
@@ -35,4 +31,15 @@ function main(): void {
 
 function cleanup(): void {
 	ReactDOM.unmountComponentAtNode( root )
+}
+
+configReady().then( () => $( main ) )
+
+// https://webpack.js.org/api/hot-module-replacement/
+// TODO hot replacement isn't enabled or working at the moment
+// tslint:disable-next-line:no-any
+const hotReplacement = (module as any).hot
+if (hotReplacement) {
+	hotReplacement.accept()
+	hotReplacement.dispose(cleanup)
 }
