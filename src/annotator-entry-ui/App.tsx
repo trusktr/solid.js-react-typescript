@@ -7,38 +7,58 @@ import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import initUIControl from '@/annotator-control-ui/UIControl'
 import Annotator from 'annotator-entry-ui/Annotator'
-import Annotator from 'annotator-entry-ui/Annotator'
 import Menu from './components/Menu'
 import './style.scss'
 import Logger from '@/util/log'
 import TrajectoryPicker from "./components/TrajectoryPicker"
 import config from "@/config";
 import AnnotatorMenuView from "annotator-entry-ui/AnnotatorMenuView";
-import KioskMenuView from "annotator-entry-ui/KioskMenuView";
+import KioskMenuView from "annotator-z-hydra-kiosk/KioskMenuView";
 import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
+import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import {createStructuredSelector} from "reselect";
+import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
+import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
+import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 
 
 const log = Logger(__filename)
 
-interface AppProps {}
+interface AppProps {
+	mapStyle ?: string
+	liveModeEnabled ?: boolean
+	playModeEnabled ?: boolean
+	uiMenuVisible ?: boolean
+}
 
 interface AppState {}
 
-export default
-class App extends React.Component<AppProps, AppState> {
-	private sceneContainer: HTMLElement | null
-	private trajectoryPicker: JSX.Element
-	private trajectoryPickerRef: TrajectoryPicker
-	private annotator: Annotator
+@typedConnect(createStructuredSelector({
+	mapStyle: (state) => state.get(RoadEditorState.Key).mapStyle,
+
+	liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
+	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
+
+	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
+
+}))
+export default class App extends React.Component<AppProps, AppState> {
+	// private sceneContainer: HTMLElement | null
+	// private trajectoryPicker: JSX.Element
+	// private trajectoryPickerRef: TrajectoryPicker
+	//private annotator: Annotator
 
 	constructor(props: AppProps) {
 		super(props)
-		this.trajectoryPicker = (
-			<TrajectoryPicker
-				ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
-			/>
-		)
-		this.annotator = new Annotator()
+		console.log("TESTING APP PROPS", props)
+		// this.trajectoryPicker = (
+		// 	<TrajectoryPicker
+		// 		ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
+		// 	/>
+		// )
+		console.log("ABOUT TO SETUP ANNOTATOR")
+		//this.annotator = new Annotator(props)
 	}
 
 	MenuComponent() {
@@ -49,14 +69,23 @@ class App extends React.Component<AppProps, AppState> {
 		}
 	}
 
-	render(): JSX.Element {
-		console.log("HELLO", config.get('startup.kiosk_mode'))
-		const MenuComponent = this.MenuComponent()
+	private makeOnStatusWindowClick = () => () => {
+		console.log("Testing click to toggle Status Window")
+		new StatusWindowActions().toggleEnabled()
+	}
 
+	private makeOnMenuClick = () => () => {
+		console.log("Testing click to toggle UI Menu")
+		new RoadNetworkEditorActions().toggleUIMenuVisible()
+	}
+
+	render(): JSX.Element {
+		console.log("IN RENDER", config.get('startup.kiosk_mode'))
+		const MenuComponent = this.MenuComponent()
+		const {uiMenuVisible} = this.props
 
 		return <React.Fragment>
-
-			<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
+			<Annotator />
 
 			<div id="logo">
 				<img
@@ -66,33 +95,32 @@ class App extends React.Component<AppProps, AppState> {
 				/>
 			</div>
 
-			<div id="status_window" />
+			{/* RYAN @TODO REPLACE WITH REACT COMP */}
+			{/*<div id="status_window" />*/}
+			<StatusWindow />
+
 
 			<div id="menu_control">
-				<button id="status_window_control_btn" className="menu_btn"> &#x2139; </button>
-				<button id="menu_control_btn" className="menu_btn"> &#9776; </button>
+				<button id="status_window_control_btn" className="menu_btn" onClick={this.makeOnStatusWindowClick()}> &#x2139; </button>
+				<button id="menu_control_btn" className="menu_btn" onClick={this.makeOnMenuClick()}> &#9776; </button>
 			</div>
 
 			{/*<Menu />*/}
-			{MenuComponent}
+			{uiMenuVisible && MenuComponent}
 
-			{this.trajectoryPicker}
+			{/*{this.trajectoryPicker}*/}
 
 		</React.Fragment>
 	}
 
 	componentDidMount(): void {
 		initUIControl()
-		if (this.sceneContainer)
-			this.annotator
-				.mount(this.sceneContainer)
-				.then(() => this.annotator.setOpenTrajectoryPickerFunction(this.trajectoryPickerRef.openModal))
-		else
-			log.warn('No scene container!')
+
+
 	}
 
 	componentWillUnmount(): void {
-		this.annotator.unmount()
+		//this.annotator.unmount()
 	}
 
 }

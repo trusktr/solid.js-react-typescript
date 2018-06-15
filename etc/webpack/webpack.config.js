@@ -214,7 +214,8 @@ module.exports = patchConfig({
 				/webpack/,
 				/webpack-hot/,
 				/react-hot-loader/
-			]
+			],
+			'@mapperai/mapper-saffron-sdk': '@mapperai/mapper-saffron-sdk'
 		})
 	],
 })

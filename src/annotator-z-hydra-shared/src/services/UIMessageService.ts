@@ -1,7 +1,7 @@
 
-import UIMessage from "annotator-operation-hydra/src/models/UIMessage"
-import RoadNetworkEditorState from "annotator-operation-hydra/src/store/state/RoadNetworkEditorState"
-import RoadNetworkEditorActions from "annotator-operation-hydra/src/store/actions/RoadNetworkEditorActions"
+import UIMessage from "annotator-z-hydra-shared/src/models/UIMessage"
+import RoadNetworkEditorState from "annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState"
+import RoadNetworkEditorActions from "annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions"
 
 
 function expireMessages() {

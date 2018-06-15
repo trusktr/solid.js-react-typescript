@@ -2,10 +2,10 @@ import {Map as IMMap} from "immutable"
 import {compose, Store as ReduxStore, StoreEnhancer} from "redux"
 import {ILeafReducer, ObservableStore, setStoreProvider} from "typedux"
 
-import { loadReducers, updateReducers } from "annotator-operation-hydra/src/store/Reducers"
-import { loadActions } from "annotator-operation-hydra/src/store/Actions"
+import { loadReducers, updateReducers } from "annotator-z-hydra-shared/src/store/Reducers"
+import { loadActions } from "annotator-z-hydra-shared/src/store/Actions"
 import * as _ from "lodash"
-import {getHot} from "annotator-operation-hydra/src/util/HotUtil"
+import {getHot} from "annotator-z-hydra-shared/src/util/HotUtil"
 import Logger from "@/util/log";
 
 

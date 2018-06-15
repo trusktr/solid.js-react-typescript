@@ -16,13 +16,13 @@ export function loadServices() {
  * Load offline data for initial state
  */
 function loadInitialState() {
-  const RoadNetworkEditorActions = require("annotator-operation-hydra/src/store/actions/RoadNetworkEditorActions").default
+  const RoadNetworkEditorActions = require("annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions").default
   new RoadNetworkEditorActions().loadAppState()
 }
 
 export function loadStore() {
   console.log("Starting to load store")
-  const roadEditorStore = require("annotator-operation-hydra/src/store/AppStore")
+  const roadEditorStore = require("annotator-z-hydra-shared/src/store/AppStore")
   try {
     roadEditorStore.loadAndInitStore()
 
@@ -33,4 +33,5 @@ export function loadStore() {
   } catch (err) {
     log.error("Failed to load store", err)
   }
+  console.log("FINISHED LOADING STORE")
 }

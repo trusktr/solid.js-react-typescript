@@ -60,6 +60,16 @@ import * as OBJLoader from 'three-obj-loader'
 import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
 import {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
 import {dataSetNameFromPath, TrajectoryDataSet} from "@/util/Perception"
+import * as React from "react";
+import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import {createStructuredSelector} from "reselect";
+import TrajectoryPicker from "@/annotator-entry-ui/components/TrajectoryPicker";
+import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import FlyThroughActions from "@/annotator-z-hydra-kiosk/FlyThroughActions";
+import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
+import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
+import {Status} from "tslint/lib/runner";
 
 const dialog = Electron.remote.dialog
 
@@ -161,18 +171,18 @@ interface AnnotatorSettings {
 }
 
 // A pre-processed trajectory, presumably generated from one gps/imu recording session.
-interface FlyThroughTrajectory {
-	dataSet: TrajectoryDataSet | null
-	poses: Models.PoseMessage[]
-}
+// interface FlyThroughTrajectory {
+// 	dataSet: TrajectoryDataSet | null
+// 	poses: Models.PoseMessage[]
+// }
 
-interface FlyThroughState {
-	enabled: boolean
-	trajectories: FlyThroughTrajectory[]
-	currentTrajectoryIndex: number
-	currentPoseIndex: number
-	endPoseIndex: number
-}
+// interface FlyThroughState {
+// 	enabled: boolean
+// 	trajectories: FlyThroughTrajectory[]
+// 	currentTrajectoryIndex: number
+// 	currentPoseIndex: number
+// 	endPoseIndex: number
+// }
 
 interface LiveModeSettings {
 	displayCarModel: boolean
@@ -232,12 +242,27 @@ interface AoiState {
  * and the annotations. It also handles the mouse and keyboard events needed to select
  * and modify the annotations.
  */
-export default
-class Annotator {
+interface AnnotatorProps {
+	mapStyle ?: string
+	liveModeEnabled ?: boolean
+	playModeEnabled ?: boolean
+	statusWindowState ?: StatusWindowState
+	uiMenuVisible ?: boolean
+}
+// state = getRoadNetworkEditorReduxStore().getState()
+@typedConnect(createStructuredSelector({
+	mapStyle: (state) => state.get(RoadEditorState.Key).mapStyle,
+
+	liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
+	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
+	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
+	statusWindowState: (state) => state.get(RoadEditorState.Key).statusWindowState,
+}))
+export default class Annotator extends React.Component<AnnotatorProps, any> {
 	private storage: LocalStorage // persistent state for UI settings
 	private uiState: UiState
 	private aoiState: AoiState
-	private statusWindow: StatusWindowController // a place to print status messages
+	// private statusWindow: StatusWindowController // a place to print status messages
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
 	private annotatorPerspectiveCam: THREE.PerspectiveCamera
 	private annotatorOrthoCam: THREE.OrthographicCamera
@@ -278,7 +303,7 @@ class Annotator {
 	private liveSubscribeSocket: Socket
 	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
-	private flyThroughState: FlyThroughState
+	//private flyThroughState: FlyThroughState
 	private liveModeSettings: LiveModeSettings
 	private locationServerStatusClient: LocationServerStatusClient
 	private layerToggle: Map<Layer, Toggle>
@@ -290,8 +315,16 @@ class Annotator {
 	private root: HTMLElement
 	private sceneInitialized: boolean
 	private openTrajectoryPickerFunction: ((cb: TrajectoryFileSelectedCallback) => void) | null
+	private sceneContainer: HTMLDivElement
+	private trajectoryPicker: JSX.Element
+	private trajectoryPickerRef: TrajectoryPicker
 
-	constructor() {
+	constructor(props) {
+		super(props)
+		console.log("TEST STORE22", getRoadNetworkEditorReduxStore())
+		console.log("NEW PROPS FROM APP222", props.playModeEnabled)
+		console.log("ANNOTATOR CONTEXT redux store", this.context)
+		//super(props)
 		this.storage = new LocalStorage()
 
 		this.shouldAnimate = false
@@ -299,8 +332,8 @@ class Annotator {
 		this.sceneInitialized = false
 
 		if (config.get('startup.animation.fps'))
-			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
-		const animationFps = config.get('startup.render.fps')
+			log.warn('config option startup.animation.fps has been removed. Use startup.renderAnnotator.fps.')
+		const animationFps = config.get('startup.renderAnnotator.fps')
 
 		this.settings = {
 			background: new THREE.Color(config.get('startup.background_color') || '#082839'),
@@ -379,7 +412,7 @@ class Annotator {
 			boundingBoxes: [],
 			currentHeading: null,
 		}
-		this.statusWindow = new StatusWindowController()
+		// this.statusWindow = new StatusWindowController()
 		this.hovered = null
 		this.raycasterPlane = new THREE.Raycaster()
 		this.raycasterPlane.params.Points!.threshold = 0.1
@@ -408,7 +441,7 @@ class Annotator {
 		this.imageManager = new ImageManager(
 			this.utmCoordinateSystem,
 			this.uiState.imageScreenOpacity,
-			this.render,
+			this.renderAnnotator,
 			this.onImageScreenLoad,
 			this.onLightboxImageRay,
 			this.onKeyDown,
@@ -416,10 +449,12 @@ class Annotator {
 		)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 		this.openTrajectoryPickerFunction = null
-		this.resetFlyThroughState()
 
-		if (config.get('fly_through.render.fps'))
-			log.warn('config option fly_through.render.fps has been renamed to fly_through.animation.fps')
+		// this.resetFlyThroughState()
+		new FlyThroughActions().resetFlyThroughState()
+
+		if (config.get('fly_through.renderAnnotator.fps'))
+			log.warn('config option fly_through.renderAnnotator.fps has been renamed to fly_through.animation.fps')
 
 		const flyThroughFps = config.get('fly_through.animation.fps')
 		const flyThroughInterval = flyThroughFps === 'device' ? 0 : 1 / (flyThroughFps || 10)
@@ -468,10 +503,10 @@ class Annotator {
 		}
 	}
 
-	async mount( root: HTMLElement ): Promise<void> {
-		this.root = root
+	async mount(): Promise<void> {
+		this.root = this.sceneContainer
 		if (!this.uiState.sceneInitialized) await this.initScene()
-		root.appendChild(this.renderer.domElement)
+		this.sceneContainer.appendChild(this.renderer.domElement)
 		this.createControlsGui()
 		this.makeStats()
 		this.startAnimation()
@@ -575,14 +610,15 @@ class Annotator {
 		this.renderer.setSize(width, height)
 
 		// Give the status window a place to draw in.
-		const statusElementId = 'status_window'
-		const elem = document.getElementById(statusElementId)
-		if (elem)
-			this.statusWindow
-				.setContainer(elem)
-				.setEnabled(!!config.get('startup.show_status_panel'))
-		else
-			log.warn('missing element ' + statusElementId)
+		// [RYAN] moved to StatusWindowActions (shared lib)
+		// const statusElementId = 'status_window'
+		// const elem = document.getElementById(statusElementId)
+		// if (elem)
+		// 	this.statusWindow
+		// 		.setContainer(elem)
+		// 		.setEnabled(!!config.get('startup.show_status_panel'))
+		// else
+		// 	log.warn('missing element ' + statusElementId)
 
 		// Initialize all control objects.
 		this.initAnnotatorOrbitControls()
@@ -620,7 +656,12 @@ class Annotator {
 		// Create the hamburger menu and display (open) it as requested.
 		const startupMenu = this.uiState.isKioskMode ? '#liveModeMenu' : '#annotationMenu'
 		this.switchToMenu(startupMenu)
-		this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
+
+
+		// RYAN UPDATED
+		// this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
+		// @TODO this action shouldn't be needed because the default state is based on config.get('startup.show_menu') directly
+		new RoadNetworkEditorActions().setUIMenuVisibility(config.get('startup.show_menu'))
 
 		this.loop = new AnimationLoop
 		this.loop.interval = this.settings.animationFrameIntervalSecs
@@ -713,12 +754,12 @@ class Annotator {
 
 		gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
 			this.renderer.setClearColor(new THREE.Color(value))
-			this.render()
+			this.renderAnnotator()
 		})
 
 		gui.add(this.uiState, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
 			if (this.imageManager.setOpacity(value))
-				this.render()
+				this.renderAnnotator()
 		})
 
 		const folderLock = gui.addFolder('Lock')
@@ -826,91 +867,31 @@ class Annotator {
 		})
 	}
 
-	private startFlyThrough(): void {
-		this.setFlyThroughMessage()
-		this.flyThroughLoop.removeAnimationFn(this.flyThroughAnimation)
-		this.flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
-	}
 
-	private flyThroughAnimation = (): boolean => {
-		if (!this.shouldAnimate) return false
-		return this.runFlyThrough()
-	}
 
 	private animate(): void {
 		this.transformControls.update()
 	}
 
-	private resetFlyThroughState(): void {
-		this.flyThroughState = {
-			enabled: false,
-			trajectories: [],
-			currentTrajectoryIndex: 0,
-			currentPoseIndex: 0,
-			endPoseIndex: 0,
-		}
-	}
 
-	private loadFlyThroughTrajectories(paths: string[]): Promise<void> {
-		if (!paths.length)
-			return Promise.reject(Error('called loadFlyThroughTrajectories() with no paths'))
 
-		return Promise.all(paths.map(path =>
-			AsyncFile.readFile(path)
-				.then(buffer => [path, buffer]))
-		)
-			.then(tuples => {
-				this.resetFlyThroughState()
-				this.flyThroughState.trajectories =
-					tuples.map(tuple => {
-						const path = tuple[0]
-						const buffer = tuple[1]
-						const msg = Models.TrajectoryMessage.decode(buffer)
-						const poses = msg.states
-							.filter(state =>
-								state && state.pose
-								&& state.pose.x !== null && state.pose.y !== null && state.pose.z !== null
-								&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
-							)
-							.map(state => state.pose! as Models.PoseMessage)
-						const dataSetName = dataSetNameFromPath(path)
-						return {
-							dataSet: dataSetName ? {name: dataSetName, path: path} : null,
-							poses: poses,
-						} as FlyThroughTrajectory
-					})
-						.filter(trajectory => trajectory.poses.length > 0)
-				if (this.flyThroughState.trajectories.length) {
-					this.flyThroughState.endPoseIndex = this.currentFlyThroughTrajectory.poses.length
-					log.info(`loaded ${this.flyThroughState.trajectories.length} trajectories`)
-				} else {
-					throw Error('failed to load trajectories')
-				}
-			})
-			.catch(err => {
-				this.resetFlyThroughState()
-				log.error(err.message)
-				dialog.showErrorBox('Fly-through Load Error', err.message)
-			})
-	}
-
-	private pauseLiveMode(): void {
-		if (this.uiState.isLiveModePaused) return
-
-		const btn = $('#live_mode_pause')
-		btn.find('span').text('Play')
-		btn.find('i').text('play_arrow')
-		this.uiState.isLiveModePaused = true
-	}
-
-	private resumeLiveMode(): void {
-		if (!this.uiState.isLiveModePaused) return
-
-		const btn = $('#live_mode_pause')
-		btn.find('span').text('Pause')
-		btn.find('i').text('pause')
-		this.uiState.isLiveModePaused = false
-	}
+	// private pauseLiveMode(): void {
+	// 	if (this.uiState.isLiveModePaused) return
+  //
+	// 	const btn = $('#live_mode_pause')
+	// 	btn.find('span').text('Play')
+	// 	btn.find('i').text('play_arrow')
+	// 	this.uiState.isLiveModePaused = true
+	// }
+  //
+	// private resumeLiveMode(): void {
+	// 	if (!this.uiState.isLiveModePaused) return
+  //
+	// 	const btn = $('#live_mode_pause')
+	// 	btn.find('span').text('Pause')
+	// 	btn.find('i').text('pause')
+	// 	this.uiState.isLiveModePaused = false
+	// }
 
 	pauseEverything(): void {
 		this.loop.pause()
@@ -920,58 +901,10 @@ class Annotator {
 		this.loop.start()
 	}
 
-	/**
-	 * 	Move the camera and the car model through poses loaded from a file on disk.
-	 *  See also initClient().
-	 */
-	private runFlyThrough(): boolean {
-		if (!this.uiState.isLiveMode) return false
-		if (!this.flyThroughState.enabled) return false
 
-		if (this.flyThroughState.currentPoseIndex >= this.flyThroughState.endPoseIndex) {
-			this.flyThroughState.currentPoseIndex = 0
-			this.flyThroughState.currentTrajectoryIndex++
-			if (this.flyThroughState.currentTrajectoryIndex >= this.flyThroughState.trajectories.length)
-				this.flyThroughState.currentTrajectoryIndex = 0
-			this.setFlyThroughMessage()
-		}
-		const pose = this.currentFlyThroughTrajectory.poses[this.flyThroughState.currentPoseIndex]
-		this.statusWindow.setMessage(statusKey.flyThroughPose, `Pose: ${this.flyThroughState.currentPoseIndex + 1} of ${this.flyThroughState.endPoseIndex}`)
 
-		this.updateCarWithPose(pose)
-
-		this.flyThroughState.currentPoseIndex++
-
-		return true
-	}
-
-	private get currentFlyThroughTrajectory(): FlyThroughTrajectory {
-		return this.flyThroughState.trajectories[this.flyThroughState.currentTrajectoryIndex]
-	}
-
-	// Display some info about what flyThrough mode is doing now.
-	private setFlyThroughMessage(): void {
-		let message: string
-		if (!this.flyThroughState.enabled || !this.currentFlyThroughTrajectory)
-			message = ''
-		else if (this.currentFlyThroughTrajectory.dataSet)
-			message = `Data set: ${this.currentFlyThroughTrajectory.dataSet.name}`
-		else if (this.flyThroughState.trajectories.length > 1)
-			message = `Data set: ${this.flyThroughState.currentTrajectoryIndex + 1} of ${this.flyThroughState.trajectories.length}`
-		else
-			message = ''
-
-		this.statusWindow.setMessage(statusKey.flyThroughTrajectory, message)
-	}
-
-	// Remove all the info about flyThrough mode.
-	private clearFlyThroughMessages(): void {
-		this.statusWindow.setMessage(statusKey.flyThroughTrajectory, '')
-		this.statusWindow.setMessage(statusKey.flyThroughPose, '')
-	}
-
-	private render = (): void => {
-		// force a tick which causes renderer.render to be called
+	private renderAnnotator = (): void => {
+		// force a tick which causes renderer.renderAnnotator to be called
 		this.loop.forceTick()
 	}
 
@@ -989,7 +922,7 @@ class Annotator {
 			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
 			this.orbitControls.target.set(x, y, z)
 			this.orbitControls.update()
-			this.render()
+			this.renderAnnotator()
 		}
 	}
 
@@ -1034,7 +967,7 @@ class Annotator {
 		if (center) {
 			this.orbitControls.target.set(center.x, center.y, center.z)
 			this.orbitControls.update()
-			this.render()
+			this.renderAnnotator()
 			this.displayCameraInfo()
 		} else {
 			log.warn('point cloud has not been initialized')
@@ -1050,7 +983,7 @@ class Annotator {
 		this.camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
 		this.camera.position.z = this.orbitControls.target.z
 		this.orbitControls.update()
-		this.render()
+		this.renderAnnotator()
 	}
 
 	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
@@ -1094,7 +1027,7 @@ class Annotator {
 		this.updatePointCloudBoundingBox()
 		this.setCompassRoseByPointCloud()
 		this.setStageByPointCloud(resetCamera)
-		this.render()
+		this.renderAnnotator()
 	}
 
 	private pointCloudLoadedError(err: Error): void {
@@ -1219,7 +1152,7 @@ class Annotator {
 			else
 				log.error('onSuperTileLoad() got a super tile with no point cloud')
 
-			this.render()
+			this.renderAnnotator()
 		}
 
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
@@ -1247,7 +1180,7 @@ class Annotator {
 					log.error('unknown SuperTileUnloadAction: ' + action)
 			}
 
-			this.render()
+			this.renderAnnotator()
 		}
 
 	// Construct a set of 2D planes, each of which approximates the ground plane within a tile.
@@ -1449,7 +1382,10 @@ class Annotator {
 	// Display some info in the UI about where the camera is pointed.
 	private displayCameraInfo = (): void => {
 		if (this.uiState.isLiveMode) return
-		if (!this.statusWindow.isEnabled()) return
+
+		// if (!this.statusWindow.isEnabled()) return
+		// [RYAN] updated
+		if(! getValue(() => this.props.statusWindowState.enabled, false)) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
@@ -1540,7 +1476,7 @@ class Annotator {
 
 		if (intersections.length) {
 			this.annotationManager.addMarkerToActiveAnnotation(intersections[0].point)
-			this.render()
+			this.renderAnnotator()
 		}
 	}
 
@@ -1591,7 +1527,7 @@ class Annotator {
 		if (activeLane.id === fromUID)
 			Annotator.deactivateFrontSideNeighbours()
 
-		this.render()
+		this.renderAnnotator()
 	}
 
 	/**
@@ -1645,7 +1581,7 @@ class Annotator {
 			inactive.setNeighborMode(NeighborLocation.FRONT)
 			inactive.addNeighbor(activeLane.uuid, NeighborLocation.BACK)
 			Annotator.deactivateFrontSideNeighbours()
-			this.render()
+			this.renderAnnotator()
 			return
 		}
 
@@ -1696,7 +1632,7 @@ class Annotator {
 			}
 		}
 
-		this.render()
+		this.renderAnnotator()
 	}
 
 	/**
@@ -1747,7 +1683,7 @@ class Annotator {
 		// update UI panel
 		this.resetAllAnnotationPropertiesMenuElements()
 
-		this.render()
+		this.renderAnnotator()
 	}
 
 	private isAnnotationLocked(annotation: Annotation): boolean {
@@ -1794,7 +1730,7 @@ class Annotator {
 				Annotator.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
 				this.annotationManager.setActiveAnnotation(inactive)
 				this.resetAllAnnotationPropertiesMenuElements()
-				this.render()
+				this.renderAnnotator()
 			}
 		}
 	}
@@ -1845,7 +1781,7 @@ class Annotator {
 				// HOVER ON
 				this.transformControls.attach(moveableMarkers)
 				this.cancelHideTransform()
-				this.render()
+				this.renderAnnotator()
 			}
 		} else {
 			if (this.hovered !== null) {
@@ -1853,7 +1789,7 @@ class Annotator {
 				this.renderer.domElement.style.cursor = 'auto'
 				this.hovered = null
 				this.delayHideTransform()
-				this.render()
+				this.renderAnnotator()
 			}
 		}
 	}
@@ -1890,7 +1826,7 @@ class Annotator {
 					log.info("removed conflict")
 					dstAnnotation.makeInactive()
 				}
-				this.render()
+				this.renderAnnotator()
 				return
 			}
 
@@ -1917,7 +1853,7 @@ class Annotator {
 					log.info("removed traffic device")
 					dstAnnotation.makeInactive()
 				}
-				this.render()
+				this.renderAnnotator()
 			}
 		}
 	}
@@ -1945,7 +1881,7 @@ class Annotator {
 		} else if (this.annotationManager.activeAnnotation) {
 			this.annotationManager.unsetActiveAnnotation()
 			Annotator.deactivateAllAnnotationPropertiesMenus()
-			this.render()
+			this.renderAnnotator()
 		}
 	}
 
@@ -2024,7 +1960,7 @@ class Annotator {
 			this.scene.remove(this.highlightedSuperTileBox)
 			this.unHighlightSuperTileBox()
 			this.loadSuperTileData(superTile).then()
-			this.render()
+			this.renderAnnotator()
 		}
 	}
 
@@ -2039,7 +1975,7 @@ class Annotator {
 		material.transparent = true
 		material.opacity = 0.5
 		this.highlightedSuperTileBox = superTileBox
-		this.render()
+		this.renderAnnotator()
 	}
 
 	// Draw the box as a simple wireframe like all the other boxes.
@@ -2051,7 +1987,7 @@ class Annotator {
 		material.transparent = false
 		material.opacity = 1.0
 		this.highlightedSuperTileBox = null
-		this.render()
+		this.renderAnnotator()
 	}
 
 	// When ImageManager loads an image, add it to the scene.
@@ -2059,7 +1995,7 @@ class Annotator {
 		(imageScreen: ImageScreen) => {
 			this.setLayerVisibility([Layer.IMAGE_SCREENS])
 			this.scene.add(imageScreen)
-			this.render()
+			this.renderAnnotator()
 		}
 
 	// When a lightbox ray is created, add it to the scene.
@@ -2073,7 +2009,7 @@ class Annotator {
 				this.setLayerVisibility([Layer.IMAGE_SCREENS])
 				this.lightboxImageRays.push(ray)
 				this.scene.add(ray)
-				this.render()
+				this.renderAnnotator()
 			} else {
 				this.clearLightboxImageRays()
 			}
@@ -2084,7 +2020,7 @@ class Annotator {
 
 		this.lightboxImageRays.forEach(r => this.scene.remove(r))
 		this.lightboxImageRays = []
-		this.render()
+		this.renderAnnotator()
 	}
 
 	private checkForImageScreenSelection = (mousePosition: MousePosition): void => {
@@ -2142,7 +2078,7 @@ class Annotator {
 				if (intersects.length) {
 					const image = this.highlightedImageScreenBox.userData as CalibratedImage
 					this.unHighlightImageScreenBox()
-					this.render()
+					this.renderAnnotator()
 					this.imageManager.loadImageIntoWindow(image)
 				}
 				break
@@ -2166,7 +2102,7 @@ class Annotator {
 					const screen = this.imageManager.getImageScreen(first)
 					if (screen) screen.unloadImage()
 
-					this.render()
+					this.renderAnnotator()
 				}
 				break
 			} default:
@@ -2181,9 +2117,9 @@ class Annotator {
 		if (!this.uiState.isShiftKeyPressed) return
 
 		// Note: image loading takes time, so even if image is marked as "highlighted"
-		// it is required to continue to render until the image is actually loaded and rendered
+		// it is required to continue to renderAnnotator until the image is actually loaded and rendered
 		if (imageScreenBox === this.highlightedImageScreenBox) {
-			this.render()
+			this.renderAnnotator()
 			return
 		}
 		this.highlightedImageScreenBox = imageScreenBox
@@ -2191,7 +2127,7 @@ class Annotator {
 		const screen = this.imageManager.getImageScreen(imageScreenBox)
 		if (screen)
 			screen.loadImage()
-				.then(loaded => {if (loaded) this.render()})
+				.then(loaded => {if (loaded) this.renderAnnotator()})
 				.catch(err => log.warn('getImageScreen() failed', err))
 
 		const image = imageScreenBox.userData as CalibratedImage
@@ -2205,7 +2141,7 @@ class Annotator {
 
 		const material = imageScreenBox.material as THREE.MeshBasicMaterial
 		material.opacity = 1.0
-		this.render()
+		this.renderAnnotator()
 	}
 
 	// Draw the box with default opacity like all the other boxes.
@@ -2220,7 +2156,7 @@ class Annotator {
 		const material = this.highlightedImageScreenBox.material as THREE.MeshBasicMaterial
 		material.opacity = this.uiState.imageScreenOpacity
 		this.highlightedImageScreenBox = null
-		this.render()
+		this.renderAnnotator()
 	}
 
 	/*
@@ -2251,7 +2187,7 @@ class Annotator {
 		}
 
 		this.renderer.setSize(width, height)
-		this.render()
+		this.renderAnnotator()
 	}
 
 	// Scale the ortho camera frustum along with window dimensions to preserve a 1:1
@@ -2503,7 +2439,7 @@ class Annotator {
 		this.cancelHideTransform()
 		this.transformControls.detach()
 		this.annotationManager.unhighlightMarkers()
-		this.render()
+		this.renderAnnotator()
 	}
 
 	/**
@@ -2570,7 +2506,7 @@ class Annotator {
 	 */
 	private initTransformControls(): void {
 		this.transformControls = new TransformControls(this.camera, this.renderer.domElement, false)
-		this.transformControls.addEventListener('change', this.render)
+		this.transformControls.addEventListener('change', this.renderAnnotator)
 		this.scene.add(this.transformControls)
 
 		// Add listeners.
@@ -2597,7 +2533,7 @@ class Annotator {
 			log.info("Deleted selected annotation")
 			Annotator.deactivateLaneProp()
 			this.hideTransform()
-			this.render()
+			this.renderAnnotator()
 		}
 	}
 
@@ -2688,7 +2624,7 @@ class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
 			Annotator.deactivateFrontSideNeighbours()
 		}
-		this.render()
+		this.renderAnnotator()
 	}
 
 	private addLeftSame(): void {
@@ -2696,7 +2632,7 @@ class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
-		this.render()
+		this.renderAnnotator()
 	}
 
 	private addLeftReverse(): void {
@@ -2704,7 +2640,7 @@ class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
-		this.render()
+		this.renderAnnotator()
 	}
 
 	private addRightSame(): void {
@@ -2712,7 +2648,7 @@ class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
-		this.render()
+		this.renderAnnotator()
 	}
 
 	private addRightReverse(): void {
@@ -2720,7 +2656,7 @@ class Annotator {
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
-		this.render()
+		this.renderAnnotator()
 	}
 
 	private reverseLaneDirection(): void {
@@ -2738,7 +2674,7 @@ class Annotator {
 			} else {
 				Annotator.activateRightSideNeighbours()
 			}
-			this.render()
+			this.renderAnnotator()
 		}
 	}
 
@@ -2908,7 +2844,7 @@ class Annotator {
 			log.info("Adding traffic device type: " + tpType.children("option").filter(":selected").text())
 			activeAnnotation.type = +tpType.val()
 			activeAnnotation.updateVisualization()
-			this.render()
+			this.renderAnnotator()
 		})
 	}
 
@@ -2957,13 +2893,13 @@ class Annotator {
 		else
 			log.warn('missing element menu_control_btn')
 
-		const statusWindowControlButton = document.getElementById('status_window_control_btn')
-		if (statusWindowControlButton)
-			statusWindowControlButton.addEventListener('click', () => {
-				this.toggleStatusWindow()
-			})
-		else
-			log.warn('missing element status_window_control_btn')
+		// const statusWindowControlButton = document.getElementById('status_window_control_btn')
+		// if (statusWindowControlButton)
+		// 	statusWindowControlButton.addEventListener('click', () => {
+		// 		this.toggleStatusWindow()
+		// 	})
+		// else
+		// 	log.warn('missing element status_window_control_btn')
 
 		const toolsDelete = document.getElementById('tools_delete')
 		if (toolsDelete)
@@ -3086,6 +3022,7 @@ class Annotator {
 		const liveModePauseBtn = document.querySelector('#live_mode_pause')
 		if (liveModePauseBtn)
 			liveModePauseBtn.addEventListener('click', this.toggleLiveModePlay)
+			// HERE
 		else
 			log.warn('missing element live_mode_pause')
 
@@ -3108,11 +3045,11 @@ class Annotator {
 		if (!this.uiState.isLiveMode) return
 
 		if (this.uiState.isLiveModePaused) {
-			this.resumeLiveMode()
+			//this.resumeLiveMode()
 			if (this.flyThroughState.enabled)
 				this.flyThroughLoop.start()
 		} else {
-			this.pauseLiveMode()
+			//this.pauseLiveMode()
 			if (this.flyThroughState.enabled)
 				this.flyThroughLoop.pause()
 		}
@@ -3126,15 +3063,15 @@ class Annotator {
 		if (!this.uiState.isLiveMode) return
 
 		if (this.flyThroughState.enabled) {
-			const button = $('#live_recorded_playback_toggle')
-			button.find('span').text('Live')
-			button.find('i').text('my_location')
+			// const button = $('#live_recorded_playback_toggle')
+			// button.find('span').text('Live')
+			// button.find('i').text('my_location')
 			this.clearFlyThroughMessages()
 			this.flyThroughState.enabled = false
 		} else {
-			const button = $('#live_recorded_playback_toggle')
-			button.find('span').text('Recorded')
-			button.find('i').text('videocam')
+			// const button = $('#live_recorded_playback_toggle')
+			// button.find('span').text('Recorded')
+			// button.find('i').text('videocam')
 			this.flyThroughState.enabled = true
 			if (this.flyThroughState.trajectories.length) {
 				this.startFlyThrough()
@@ -3156,6 +3093,34 @@ class Annotator {
 			this.openTrajectoryPickerFunction(this.trajectoryFileSelectedCallback)
 	}
 
+	render() {
+		return (
+			<>
+				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
+				<TrajectoryPicker
+					ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
+				/>
+			</>
+		)
+
+	}
+
+	componentDidMount() {
+		this.mount()
+			.then(() => this.setOpenTrajectoryPickerFunction(this.trajectoryPickerRef.openModal))
+
+	}
+
+	componentWillUnmount(): void {
+		this.unmount()
+	}
+
+	componentWillReceiveProps(nextProps) {
+		console.log("NEW PROPS", nextProps)
+
+	}
+
+
 	private trajectoryFileSelectedCallback = (path: string): void => {
 		if (!this.uiState.isLiveMode) return
 
@@ -3166,7 +3131,8 @@ class Annotator {
 					this.toggleLiveAndRecordedPlay()
 				this.startFlyThrough()
 				if (this.uiState.isLiveModePaused)
-					this.resumeLiveMode()
+					console.log("WANTING TO RESUME LIVE MODE")
+					// this.resumeLiveMode()
 			})
 			.catch(error => {
 				log.error(`loadFlyThroughTrajectories failed: ${error}`)
@@ -3594,9 +3560,13 @@ class Annotator {
 		this.transformControls.setCamera(this.camera)
 		this.annotatorOrbitControls.setCamera(this.camera)
 		this.flyThroughOrbitControls.setCamera(this.camera)
-		this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
+
+		// RYAN UPDATED
+		// this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
+		new StatusWindowActions().setMessage(statusKey.cameraType, 'Camera: ' + newType)
+
 		this.storage.setItem(preferenceKey.cameraPreference, newType)
-		this.render()
+		this.renderAnnotator()
 	}
 
 	// Toggle the visibility of data by cycling through the groups defined in layerGroups.
@@ -3631,7 +3601,7 @@ class Annotator {
 		}
 
 		if (updated)
-			this.render()
+			this.renderAnnotator()
 	}
 
 	private hidePointCloud = (): boolean => {
@@ -3812,38 +3782,39 @@ class Annotator {
 		// Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
 		this.startFlyThrough()
 		this.locationServerStatusClient.connect()
-		this.resumeLiveMode()
+		//this.resumeLiveMode()
 		this.initClient()
 
-		this.render()
+		this.renderAnnotator()
 		return this.uiState.isLiveMode
 	}
 
 	// Toggle whether to display the status window.
-	private toggleStatusWindow(): void {
-		this.statusWindow.setEnabled(!this.statusWindow.isEnabled())
-	}
+	// private toggleStatusWindow(): void {
+	// 	this.statusWindow.setEnabled(!this.statusWindow.isEnabled())
+	// }
 
+	// RYAN UPDATED -- visibility is controlled by redux state  uiMenuVisible
 	// Show or hide the menu as requested.
-	private displayMenu(visibility: MenuVisibility): void {
-		const menu = document.getElementById('menu')
-		if (menu)
-			switch (visibility) {
-				case MenuVisibility.HIDE:
-					menu.style.visibility = 'hidden'
-					break
-				case MenuVisibility.SHOW:
-					menu.style.visibility = 'visible'
-					break
-				case MenuVisibility.TOGGLE:
-					menu.style.visibility = menu.style.visibility === 'hidden' ? 'visible' : 'hidden'
-					break
-				default:
-					log.warn(`unhandled visibility option ${visibility} in displayMenu()`)
-			}
-		else
-			log.warn('missing element menu')
-	}
+	// private displayMenu(visibility: MenuVisibility): void {
+	// 	const menu = document.getElementById('menu')
+	// 	if (menu)
+	// 		switch (visibility) {
+	// 			case MenuVisibility.HIDE:
+	// 				menu.style.visibility = 'hidden'
+	// 				break
+	// 			case MenuVisibility.SHOW:
+	// 				menu.style.visibility = 'visible'
+	// 				break
+	// 			case MenuVisibility.TOGGLE:
+	// 				menu.style.visibility = menu.style.visibility === 'hidden' ? 'visible' : 'hidden'
+	// 				break
+	// 			default:
+	// 				log.warn(`unhandled visibility option ${visibility} in displayMenu()`)
+	// 		}
+	// 	else
+	// 		log.warn('missing element menu')
+	// }
 
 	private updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
 		if (this.aoiState.enabled)
@@ -3872,10 +3843,13 @@ class Annotator {
 		if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO fix this.
 			const positionLla = this.utmCoordinateSystem.utmVectorToLngLatAlt(positionUtm)
 			const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
-			this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+
+			// this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
+			new StatusWindowActions().setMessage(statusKey.currentLocationLla, messageLla)
 		}
 		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.utmCoordinateSystem.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
-		this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
+		// this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
+		new StatusWindowActions().setMessage(statusKey.currentLocationUtm, messageUtm)
 	}
 
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
@@ -3897,20 +3871,25 @@ class Annotator {
 		if (!this.tileManager.voxelsMeshGroup) return
 		if (this.hidePointCloud()) {
 			this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
-			this.render()
+			this.renderAnnotator()
 		} else if (this.showPointCloud()) {
 			this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
-			this.render()
+			this.renderAnnotator()
 		}
 	}
 
 	// Print a message about how big our tiles are.
 	private updateTileManagerStats(): void {
 		if (!this.settings.enableTileManagerStats) return
-		if (!this.statusWindow.isEnabled()) return
 
+		// RYAN UPDATED
+		// if (!this.statusWindow.isEnabled()) return
+		if (this.props.uiMenuVisible) return
+
+		//RYAN UPDATED
 		const message = `Loaded ${this.tileManager.superTiles.size} super tiles; ${this.tileManager.pointCount()} points`
-		this.statusWindow.setMessage(statusKey.tileManagerStats, message)
+		// this.statusWindow.setMessage(statusKey.tileManagerStats, message)
+		new StatusWindowActions().setMessage(statusKey.tileManagerStats, message)
 	}
 
 	private onSetOrigin = (): void => {
@@ -4004,7 +3983,9 @@ class Annotator {
 
 	private hideLocationServerStatus = (): void => {
 		this.locationServerStatusDisplayTimer = window.setTimeout(() => {
-			this.statusWindow.setMessage(statusKey.locationServer, '')
+			// RYAN UPDATED
+			// this.statusWindow.setMessage(statusKey.locationServer, '')
+			new StatusWindowActions().setMessage(statusKey.locationServer, '')
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
 
@@ -4025,5 +4006,163 @@ class Annotator {
 		this.scene.traverse(n => n instanceof THREE.Mesh && result.add(n.geometry))
 		return result.size
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	// private resetFlyThroughState(): void {
+	// 	this.flyThroughState = {
+	// 		enabled: false,
+	// 		trajectories: [],
+	// 		currentTrajectoryIndex: 0,
+	// 		currentPoseIndex: 0,
+	// 		endPoseIndex: 0,
+	// 	}
+	// }
+
+	private startFlyThrough(): void {
+		this.setFlyThroughMessage()
+		this.flyThroughLoop.removeAnimationFn(this.flyThroughAnimation)
+		this.flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
+	}
+
+	private flyThroughAnimation = (): boolean => {
+		if (!this.shouldAnimate) return false
+		return this.runFlyThrough()
+	}
+
+	private loadFlyThroughTrajectories(paths: string[]): Promise<void> {
+		if (!paths.length)
+			return Promise.reject(Error('called loadFlyThroughTrajectories() with no paths'))
+
+		return Promise.all(paths.map(path =>
+			AsyncFile.readFile(path)
+				.then(buffer => [path, buffer]))
+		)
+			.then(tuples => {
+
+				new RoadNetworkEditorActions().resetFlyThroughState()
+				// this.resetFlyThroughState()
+				this.flyThroughState.trajectories =
+					tuples.map(tuple => {
+						const path = tuple[0]
+						const buffer = tuple[1]
+						const msg = Models.TrajectoryMessage.decode(buffer)
+						const poses = msg.states
+							.filter(state =>
+								state && state.pose
+								&& state.pose.x !== null && state.pose.y !== null && state.pose.z !== null
+								&& state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
+							)
+							.map(state => state.pose! as Models.PoseMessage)
+						const dataSetName = dataSetNameFromPath(path)
+						return {
+							dataSet: dataSetName ? {name: dataSetName, path: path} : null,
+							poses: poses,
+						} as FlyThroughTrajectory
+					})
+						.filter(trajectory => trajectory.poses.length > 0)
+				if (this.flyThroughState.trajectories.length) {
+					this.flyThroughState.endPoseIndex = this.currentFlyThroughTrajectory.poses.length
+					log.info(`loaded ${this.flyThroughState.trajectories.length} trajectories`)
+				} else {
+					throw Error('failed to load trajectories')
+				}
+			})
+			.catch(err => {
+				this.resetFlyThroughState()
+				log.error(err.message)
+				dialog.showErrorBox('Fly-through Load Error', err.message)
+			})
+	}
+
+	/**
+	 * 	Move the camera and the car model through poses loaded from a file on disk.
+	 *  See also initClient().
+	 */
+	private runFlyThrough(): boolean {
+		if (!this.uiState.isLiveMode) return false
+		if (!this.flyThroughState.enabled) return false
+
+		if (this.flyThroughState.currentPoseIndex >= this.flyThroughState.endPoseIndex) {
+			this.flyThroughState.currentPoseIndex = 0
+			this.flyThroughState.currentTrajectoryIndex++
+			if (this.flyThroughState.currentTrajectoryIndex >= this.flyThroughState.trajectories.length)
+				this.flyThroughState.currentTrajectoryIndex = 0
+			this.setFlyThroughMessage()
+		}
+		const pose = this.currentFlyThroughTrajectory.poses[this.flyThroughState.currentPoseIndex]
+		this.statusWindow.setMessage(statusKey.flyThroughPose, `Pose: ${this.flyThroughState.currentPoseIndex + 1} of ${this.flyThroughState.endPoseIndex}`)
+
+		this.updateCarWithPose(pose)
+
+		this.flyThroughState.currentPoseIndex++
+
+		return true
+	}
+
+	private get currentFlyThroughTrajectory(): FlyThroughTrajectory {
+		return this.flyThroughState.trajectories[this.flyThroughState.currentTrajectoryIndex]
+	}
+
+	// Display some info about what flyThrough mode is doing now.
+	private setFlyThroughMessage(): void {
+		let message: string
+		if (!this.flyThroughState.enabled || !this.currentFlyThroughTrajectory)
+			message = ''
+		else if (this.currentFlyThroughTrajectory.dataSet)
+			message = `Data set: ${this.currentFlyThroughTrajectory.dataSet.name}`
+		else if (this.flyThroughState.trajectories.length > 1)
+			message = `Data set: ${this.flyThroughState.currentTrajectoryIndex + 1} of ${this.flyThroughState.trajectories.length}`
+		else
+			message = ''
+
+		// RYAN UPDATED
+		// this.statusWindow.setMessage(statusKey.flyThroughTrajectory, message)
+		new StatusWindowActions().setMessage(statusKey.flyThroughTrajectory, message)
+	}
+
+	// Remove all the info about flyThrough mode.
+	private clearFlyThroughMessages(): void {
+		// RYAN UPDATED
+		// this.statusWindow.setMessage(statusKey.flyThroughTrajectory, '')
+		// this.statusWindow.setMessage(statusKey.flyThroughPose, '')
+
+		new StatusWindowActions().setMessage(statusKey.flyThroughTrajectory, '')
+		new StatusWindowActions().setMessage(statusKey.flyThroughPose, '')
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }

@@ -1,6 +1,6 @@
 import {ActionMessage, DefaultLeafReducer} from "typedux"
 
-import RoadNetworkEditorState from "annotator-operation-hydra/src/store/state/RoadNetworkEditorState"
+import RoadNetworkEditorState from "annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState"
 
 export class RoadNetworkEditorReducer extends DefaultLeafReducer<RoadNetworkEditorState, ActionMessage<RoadNetworkEditorState>> {
 

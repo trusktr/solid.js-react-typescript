@@ -1,11 +1,11 @@
 import * as SaffronSDK from "@mapperai/mapper-saffron-sdk"
 
-import LineSegment, {mapToLineSegment} from "annotator-operation-hydra/src/models/LineSegment"
-import {apiDomain, apiRoadNetwork, apiVersion, defaultRequestHeaders} from "annotator-operation-hydra/src/services/Constants"
-import UIMessage, {UIMessageType} from "annotator-operation-hydra/src/models/UIMessage"
-import RoadNetworkEditorActions from "annotator-operation-hydra/src/store/actions/RoadNetworkEditorActions"
-import RoadNetworkEditorState from "annotator-operation-hydra/src/store/state/RoadNetworkEditorState"
-import RoadnetworkVertex, {mapToVertex} from "annotator-operation-hydra/src/models/RoadnetworkVertex"
+import LineSegment, {mapToLineSegment} from "annotator-z-hydra-shared/src/models/LineSegment"
+import {apiDomain, apiRoadNetwork, apiVersion, defaultRequestHeaders} from "annotator-z-hydra-shared/src/services/Constants"
+import UIMessage, {UIMessageType} from "annotator-z-hydra-shared/src/models/UIMessage"
+import RoadNetworkEditorActions from "annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions"
+import RoadNetworkEditorState from "annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState"
+import RoadnetworkVertex, {mapToVertex} from "annotator-z-hydra-shared/src/models/RoadnetworkVertex"
 import Logger from "@/util/log";
 
 const log = Logger(__filename)

@@ -28,6 +28,8 @@ getMeta().then( ( { IN_SAFFRON } ) => {
 const root = $('#root')[0]
 
 function main(): void {
+	require( 'annotator-z-hydra-shared/src/services' ).loadStore()
+
 	const
 		{Provider} = require("react-redux")
 

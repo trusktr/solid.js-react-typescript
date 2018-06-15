@@ -1,4 +1,4 @@
-import RoadnetworkVertex from "annotator-operation-hydra/src/models/RoadnetworkVertex"
+import RoadnetworkVertex from "annotator-z-hydra-shared/src/models/RoadnetworkVertex"
 import Logger from "@/util/log";
 
 const log = Logger(__filename)
