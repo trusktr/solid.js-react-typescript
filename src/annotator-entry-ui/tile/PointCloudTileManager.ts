@@ -27,7 +27,7 @@ import Logger from "@/util/log"
 import {
 	BusyError,
 	SuperTileUnloadAction, TileManager, TileManagerConfig,
-	TileMetadata, utmTileScale
+	TileMetadata
 } from "@/annotator-entry-ui/tile/TileManager"
 import {RangeSearch} from "@/annotator-entry-ui/model/RangeSearch"
 import {OrderedMap} from "immutable"
@@ -454,7 +454,7 @@ export class PointCloudTileManager extends TileManager {
 			firstTilePromise = Promise.resolve()
 		else {
 			const metadata = fileMetadataList[0]!
-			const tileIndex = new TileIndex(utmTileScale, metadata.index.x, metadata.index.y, metadata.index.z)
+			const tileIndex = new TileIndex(this.utmTileScale, metadata.index.x, metadata.index.y, metadata.index.z)
 			const tileInstance = new LocalTileInstance(tileIndex, Path.join(datasetPath, metadata!.name))
 			firstTilePromise = this.loadTile(tileInstance)
 				.then(firstMessage => {
@@ -472,7 +472,7 @@ export class PointCloudTileManager extends TileManager {
 		return firstTilePromise
 			.then(() => {
 				fileMetadataList.forEach(metadata => {
-					const tileIndex = new TileIndex(utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z)
+					const tileIndex = new TileIndex(this.utmTileScale, metadata!.index.x, metadata!.index.y, metadata!.index.z)
 					const tileInstance = new LocalTileInstance(tileIndex, Path.join(datasetPath, metadata!.name))
 					const utmTile = this.tileInstanceToUtmTile(tileInstance, coordinateFrame)
 					this.addTileToSuperTile(utmTile, coordinateFrame, metadata!.name)
