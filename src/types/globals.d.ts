@@ -1,3 +1,6 @@
+// tslint:disable-next-line:no-any
+declare const __SAFFRON__: boolean
+
 // current working directory
 declare const __CWD: string
 

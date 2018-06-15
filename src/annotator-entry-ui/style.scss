@@ -44,6 +44,11 @@ body {
 html {
 	@extend %defaultBox;
 }
+
+@if $__SAFFRON__ == false {
+	// ...styles for when in Saffron, if needed...
+}
+
 .hidden {
 	display: none;
 }

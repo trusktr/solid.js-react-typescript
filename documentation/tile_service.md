@@ -22,24 +22,27 @@ These should be good for twelve hours:
 	docker pull 196031044544.dkr.ecr.us-east-1.amazonaws.com/mapper/strabo:latest
 
 ## Get Some Tiles
-Make a `HOST_DIR` to contain the tiles.
+Make a `SOURCE_DIR` to contain the Perception tiles. For the sake of consistency, name it "BaseGeometryTiles". For example:
+
+	SOURCE_DIR=~/BaseGeometryTiles
 
 Run [RegisteredScansToTiles](https://github.com/Signafy/Perception/tree/develop/apps/Core/RegisteredScansToTiles) with:
 
-	--output_path=${HOST_DIR}/BaseGeometryTiles
+	--output_path=${SOURCE_DIR}
 	--tile_type=BaseGeometryTiles
 
-The next step assumes the tiles live in a directory named `BaseGeometryTiles`.
-
 ## Configure The Server
-Copy [LoadTilesFromPerception.sh](https://github.com/Signafy/mapper-hdk-map-service/blob/master/bin/LoadTilesFromPerception.sh) and enter suitable configuration values.
- - set `SCALE` to match `--tile_scale` in RegisteredScansToTiles
- - set `HOST_DIR` to match the one in RegisteredScansToTiles
+Copy [LoadTiles.sh](https://github.com/Signafy/mapper-hdk-map-service/blob/master/bin/LoadTiles.sh) and enter suitable configuration values.
 
-Run `LoadTilesFromPerception.sh`. It will create a directory next to `BaseGeometryTiles` called `mapper-db`.
+ - set `SCALE` to match `--tile_scale` in `RegisteredScansToTiles`
+ - set `SOURCE_DIR` to match `--output_path` in `RegisteredScansToTiles`
+ - set `DATABASE_DIR` to something sensible
+
+Run `LoadTiles.sh`. It will create `DATABASE_DIR` if necessary.
 
 ## Run The Server
 Copy [TileServer.sh](https://github.com/Signafy/mapper-hdk-map-service/blob/master/bin/TileServer.sh).
- - set `HOST_DIR` to match the one in RegisteredScansToTiles
 
-Run `TileServer.sh`. It reads from `mapper-db` and streams tile data through its public TCP port.
+ - set `DATABASE_DIR` to match the one in `LoadTiles.sh`
+
+Run `TileServer.sh`. It reads from `LoadTiles.sh` and streams tile data through its public TCP port.

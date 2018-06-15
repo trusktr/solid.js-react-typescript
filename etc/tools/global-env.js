@@ -1,5 +1,4 @@
 require('shelljs/global')
-require('../webpack/parts/stats')
 
 const
 	tsc = require('typescript'),
@@ -7,12 +6,11 @@ const
 	assert = require('assert'),
 	path = require('path'),
 	semver = require('semver'),
-	_ = require('lodash')
-
-global.baseDir = global.baseDir || path.resolve(__dirname, '../..')
-const
+	_ = require('lodash'),
 	log = global.log = console,
 	{readJSONFileSync} = require('./helpers')
+
+global.baseDir = global.baseDir || path.resolve(__dirname, '../..')
 
 process.argv.forEach(arg => {
 	if (arg == '--dev')
@@ -23,20 +21,20 @@ process.argv.forEach(arg => {
  * Global modules and
  */
 const
-	processDir = baseDir,
 	TypeScriptEnabled = true,
-	env = process.env.NODE_ENV || 'development'
+	env = process.env.NODE_ENV || 'development',
+	isDev = env === 'development'
 
 
 Object.assign(global, {
 	tsc,
 	_,
 	env,
-	isDev: env === 'development',
-	processDir,
+	isDev,
+	isProd: !isDev,
+	isSaffron: typeof process.env.SAFFRON !== 'undefined',
 	basePackageJson: readJSONFileSync(`${baseDir}/package.json`),
-	srcRootDir: path.resolve(baseDir, TypeScriptEnabled ? 'packages' : 'dist/out'),
-	Deferred: require('./deferred'),
+	srcRootDir: path.resolve(baseDir, TypeScriptEnabled ? 'src' : 'dist/out'),
 	assert
 }, require('./helpers'))
 

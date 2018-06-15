@@ -7,7 +7,7 @@ ENV VISUALIZER_DEST=$DEST/mapper-annotator
 RUN mkdir -p $VISUALIZER_DEST
 COPY bin $VISUALIZER_DEST/bin
 COPY etc $VISUALIZER_DEST/etc
-COPY packages $VISUALIZER_DEST/packages
+COPY src $VISUALIZER_DEST/src
 COPY .*rc $VISUALIZER_DEST/
 COPY *.json $VISUALIZER_DEST/
 ENV BUILD_SCRIPTS_DIR=build-scripts
@@ -19,4 +19,3 @@ COPY docker/copy-to-volume.sh $DEST/
 RUN chmod +x $DEST/copy-to-volume.sh
 
 CMD $DEST/copy-to-volume.sh
-

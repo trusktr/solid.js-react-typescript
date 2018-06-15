@@ -7,7 +7,7 @@ import config from '@/config'
 import * as $ from 'jquery'
 import * as AsyncFile from "async-file"
 import * as Electron from 'electron'
-import * as electronUnhandled from 'electron-unhandled'
+// import * as electronUnhandled from 'electron-unhandled'
 import {sprintf} from 'sprintf-js'
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
@@ -65,7 +65,7 @@ import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile
 
 const dialog = Electron.remote.dialog
 
-electronUnhandled()
+// electronUnhandled()
 OBJLoader(THREE)
 
 const log = Logger(__filename)
@@ -234,6 +234,7 @@ interface AoiState {
  * and the annotations. It also handles the mouse and keyboard events needed to select
  * and modify the annotations.
  */
+export default
 class Annotator {
 	private storage: LocalStorage // persistent state for UI settings
 	private uiState: UiState
@@ -483,6 +484,10 @@ class Annotator {
 		this.destroyStats()
 		this.destroyControlsGui()
 		this.renderer.domElement.remove()
+
+		// TODO:
+		//  - remove event listeners
+		//  - clean up child windows
 	}
 
 	exitApp(): void {
@@ -4028,5 +4033,3 @@ class Annotator {
 	}
 
 }
-
-export const annotator = new Annotator()
