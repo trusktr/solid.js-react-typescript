@@ -181,7 +181,7 @@ export abstract class TileManager {
 			return true
 		else
 			return TileManager.isDefaultUtmZone(num, northernHemisphere)
-				|| this.utmCoordinateSystem.utmZoneNumber === num && this.utmCoordinateSystem.utmZoneNorthernHemisphere === northernHemisphere
+				|| this.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
 	}
 
 	// Given a range search, find all intersecting super tiles. Load tile data for as many

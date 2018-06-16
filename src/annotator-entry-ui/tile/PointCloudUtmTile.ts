@@ -36,7 +36,6 @@ export class PointCloudUtmTile extends UtmTile {
 			})
 	}
 
-	// Reset the object to its initial state.
 	unload(): void {
 		this.contents = null
 	}
