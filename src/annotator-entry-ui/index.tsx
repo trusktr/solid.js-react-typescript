@@ -16,30 +16,37 @@ Object.assign(global, {
 
 import('jquery-ui-dist/jquery-ui')
 
-// example of getMeta:
-getMeta().then( ( { IN_SAFFRON } ) => {
+// otherwise, Saffron will mount the exported App for us.
+export async function start() {
 
-	console.log( ' --- in Saffron:', !!IN_SAFFRON )
+	// if we're not in Saffron, then we manually mount our component into the DOM
+	const { IN_SAFFRON } = await getMeta()
 
-})
+	if ( !IN_SAFFRON ) {
 
-const root = $('#root')[0]
+		const root = $('#root')[0]
+		await configReady()
+		$( () => ReactDOM.render( <App />, root ) )
 
-function main(): void {
-	ReactDOM.render( <App />, root )
+	}
+	else {
+
+		await configReady()
+
+	}
+
 }
-
-function cleanup(): void {
-	ReactDOM.unmountComponentAtNode( root )
-}
-
-configReady().then( () => $( main ) )
+export async function stop() {}
+export const component = App
 
 // https://webpack.js.org/api/hot-module-replacement/
 // TODO hot replacement isn't enabled or working at the moment
 // tslint:disable-next-line:no-any
-const hotReplacement = (module as any).hot
-if (hotReplacement) {
-	hotReplacement.accept()
-	hotReplacement.dispose(cleanup)
-}
+// const hotReplacement = (module as any).hot
+// if (hotReplacement) {
+// 	hotReplacement.accept()
+// 	hotReplacement.dispose(cleanup)
+// }
+// function cleanup(): void {
+// 	ReactDOM.unmountComponentAtNode( root )
+// }

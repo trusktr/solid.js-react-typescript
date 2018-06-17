@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "description": "Mapper.ai Point Cloud Annotator",
   "htmlEntry": "dist/app/browser-entry.html",
+  "main-off": "dist/app/annotator-entry-ui.js",
   "scripts": {
     "lint": "./node_modules/.bin/tslint \"src/**/*.ts\" --force",
     "start": "./node_modules/.bin/electron bin/annotator-start.js",
