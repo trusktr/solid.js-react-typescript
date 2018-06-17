@@ -8,6 +8,7 @@ import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import App from './App'
+import * as packageDotJson from '../../package.json'
 
 Object.assign(global, {
 	jQuery: $,
@@ -22,18 +23,26 @@ export async function start() {
 	// if we're not in Saffron, then we manually mount our component into the DOM
 	const { IN_SAFFRON } = await getMeta()
 
-	if ( !IN_SAFFRON ) {
+	await configReady()
+
+	if (
+
+		// if we're running Annotator standlone, outside of Saffron
+		!IN_SAFFRON ||
+
+		// or we're in saffron but we're running inside of a <webview>
+		IN_SAFFRON && typeof ( packageDotJson as any ).htmlEntry !== 'undefined'
+
+	) {
 
 		const root = $('#root')[0]
-		await configReady()
 		$( () => ReactDOM.render( <App />, root ) )
 
 	}
-	else {
 
-		await configReady()
-
-	}
+	// otherwise we're running in Saffron as a React component like how the
+	// other existing Saffron apps do, so we don't need to do anything because
+	// Saffron handles mounting the component.
 
 }
 export async function stop() {}
