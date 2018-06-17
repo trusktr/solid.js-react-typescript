@@ -62,6 +62,8 @@ import {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
 import {dataSetNameFromPath, TrajectoryDataSet} from "@/util/Perception"
 import {TileServiceClient} from "@/annotator-entry-ui/tile/TileServiceClient"
 import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile"
+import {AnnotationTileManager} from "@/annotator-entry-ui/tile/AnnotationTileManager"
+import {AnnotationSuperTile} from "@/annotator-entry-ui/tile/AnnotationSuperTile"
 
 const dialog = Electron.remote.dialog
 
@@ -80,7 +82,8 @@ const statusKey = {
 	tileServer: 'tileServer',
 	locationServer: 'locationServer',
 	cameraType: 'cameraType',
-	tileManagerStats: 'tileManagerStats',
+	tileManagerPointStats: 'tileManagerStats',
+	tileManagerAnnotationStats: 'tileManagerAnnotationStats',
 }
 
 const preferenceKey = {
@@ -148,6 +151,7 @@ interface AnnotatorSettings {
 	estimateGroundPlane: boolean
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	generateVoxelsOnPointLoad: boolean
+	enableAnnotationTileManager: boolean
 	drawBoundingBox: boolean
 	enableTileManagerStats: boolean
 	superTileBboxMaterial: THREE.Material // for visualizing available, but unpopulated, super tiles
@@ -256,6 +260,7 @@ class Annotator {
 	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
 	private utmCoordinateSystem: UtmCoordinateSystem
 	private pointCloudTileManager: PointCloudTileManager
+	private annotationTileManager: AnnotationTileManager
 	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
@@ -313,6 +318,7 @@ class Annotator {
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 			tileGroundPlaneScale: 1.05,
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
+			enableAnnotationTileManager: false,
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
 			enableTileManagerStats: !!config.get('tile_manager.stats_display.enable'),
 			superTileBboxMaterial: new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true}),
@@ -375,6 +381,8 @@ class Annotator {
 			skyPosition2D: new THREE.Vector2(),
 			cameraPosition2D: new THREE.Vector2(),
 		}
+		// AnnotationTileManager will load and unload annotations without warning, which isn't helpful in interactive mode, so:
+		this.settings.enableAnnotationTileManager = this.uiState.isKioskMode
 		this.aoiState = {
 			enabled: !!config.get('annotator.area_of_interest.enable'),
 			focalPoint: null,
@@ -391,14 +399,6 @@ class Annotator {
 		this.raycasterAnnotation = new THREE.Raycaster()
 		this.raycasterImageScreen = new THREE.Raycaster()
 		this.utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
-		const tileServiceClient = new TileServiceClient(this.onTileServiceStatusUpdate)
-		this.pointCloudTileManager = new PointCloudTileManager(
-			this.utmCoordinateSystem,
-			this.onSuperTileLoad,
-			this.onSuperTileUnload,
-			tileServiceClient,
-			this.settings.generateVoxelsOnPointLoad,
-		)
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.superTileGroundPlanes = Map()
@@ -569,6 +569,24 @@ class Annotator {
 			this.scene,
 			this.onChangeActiveAnnotation
 		)
+
+		// remote, tiled data sources
+		const tileServiceClient = new TileServiceClient(this.onTileServiceStatusUpdate)
+		this.pointCloudTileManager = new PointCloudTileManager(
+			this.utmCoordinateSystem,
+			this.onSuperTileLoad,
+			this.onSuperTileUnload,
+			tileServiceClient,
+			this.settings.generateVoxelsOnPointLoad,
+		)
+		if (this.settings.enableAnnotationTileManager)
+			this.annotationTileManager = new AnnotationTileManager(
+				this.utmCoordinateSystem,
+				this.onSuperTileLoad,
+				this.onSuperTileUnload,
+				tileServiceClient,
+				this.annotationManager,
+			)
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
@@ -1060,13 +1078,13 @@ class Annotator {
 		log.info('Loading point cloud from ' + pathToTiles)
 		return this.pointCloudTileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
-			.catch(err => this.pointCloudLoadedError(err))
+			.catch(err => this.handleTileManagerLoadError('Point Cloud', err))
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
 	private loadPointCloudDataFromConfigBoundingBox(bbox: number[]): Promise<void> {
 		if (!isTupleOfNumbers(bbox, 6)) {
-			this.pointCloudLoadedError(Error('invalid point cloud bounding box config'))
+			this.handleTileManagerLoadError('Point Cloud', Error('invalid point cloud bounding box config'))
 			return Promise.resolve()
 		} else {
 			const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])
@@ -1079,7 +1097,7 @@ class Annotator {
 	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
 		return this.pointCloudTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
-			.catch(err => this.pointCloudLoadedError(err))
+			.catch(err => this.handleTileManagerLoadError('Point Cloud', err))
 	}
 
 	// Do some house keeping after loading a point cloud, such as drawing decorations
@@ -1099,7 +1117,7 @@ class Annotator {
 		this.render()
 	}
 
-	private pointCloudLoadedError(err: Error): void {
+	private handleTileManagerLoadError(dataType: string, err: Error): void {
 		if (err instanceof BusyError) {
 			log.info(err.message)
 		} else if (this.uiState.isKioskMode) {
@@ -1110,7 +1128,7 @@ class Annotator {
 				log.warn(err.message)
 			} else {
 				log.error(err.message)
-				dialog.showErrorBox('Point Cloud Load Error', err.message)
+				dialog.showErrorBox(`${dataType} Load Error`, err.message)
 				this.uiState.lastPointCloudLoadedErrorModalMs = now
 			}
 		}
@@ -1200,6 +1218,21 @@ class Annotator {
 		}
 	}
 
+	// Load tiles within a bounding box and add them to the scene.
+	private loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false): Promise<void> {
+		return this.annotationTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
+			.then(loaded => {
+				if (loaded) this.annotationLoadedSideEffects()
+			})
+			.catch(err => this.handleTileManagerLoadError('Annotations', err))
+	}
+
+	// Do some house keeping after loading annotations.
+	private annotationLoadedSideEffects(): void {
+		this.setLayerVisibility([Layer.ANNOTATIONS])
+		this.render()
+	}
+
 	/**
 	 * 	Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
 	 */
@@ -1215,15 +1248,22 @@ class Annotator {
 		(superTile: SuperTile) => {
 			if (superTile instanceof PointCloudSuperTile) {
 				this.loadTileGroundPlanes(superTile)
-				this.updateTileManagerStats()
 
 				if (superTile.pointCloud)
 					this.scene.add(superTile.pointCloud)
 				else
 					log.error('onSuperTileLoad() got a super tile with no point cloud')
-
-				this.render()
+			} else if (superTile instanceof AnnotationSuperTile) {
+				if (superTile.annotations)
+					superTile.annotations.forEach(a => this.annotationManager.addAnnotation(a))
+				else
+					log.error('onSuperTileLoad() got a super tile with no annotations')
+			} else {
+				log.error('unknown superTile')
 			}
+
+			this.render()
+			this.updateTileManagerStats()
 		}
 
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
@@ -1231,7 +1271,6 @@ class Annotator {
 		(superTile: SuperTile, action: SuperTileUnloadAction) => {
 			if (superTile instanceof PointCloudSuperTile) {
 				this.unloadTileGroundPlanes(superTile)
-				this.updateTileManagerStats()
 
 				if (superTile.pointCloud)
 					this.scene.remove(superTile.pointCloud)
@@ -1251,9 +1290,14 @@ class Annotator {
 					default:
 						log.error('unknown SuperTileUnloadAction: ' + action)
 				}
-
-				this.render()
+			} else if (superTile instanceof AnnotationSuperTile) {
+				superTile.annotations.forEach(a => this.annotationManager.deleteAnnotation(a))
+			} else {
+				log.error('unknown superTile')
 			}
+
+			this.render()
+			this.updateTileManagerStats()
 		}
 
 	// Construct a set of 2D planes, each of which approximates the ground plane within a tile.
@@ -1426,17 +1470,19 @@ class Annotator {
 				})
 			}
 
-			this.loadPointCloudDataFromMapServer(
-				threeJsSearches.map(threeJs => {
-					return {
-						minPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
-						maxPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
-					}
-				}),
-				true,
-				false
-			)
+			const utmSearches = threeJsSearches.map(threeJs => {
+				return {
+					minPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
+					maxPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
+				}
+			})
+
+			this.loadPointCloudDataFromMapServer(utmSearches, true, false)
 				.catch(err => {log.warn(err.message)})
+
+			if (this.settings.enableAnnotationTileManager)
+				this.loadAnnotationDataFromMapServer(utmSearches, true)
+					.catch(err => {log.warn(err.message)})
 		}
 	}
 
@@ -1455,7 +1501,7 @@ class Annotator {
 	// Display some info in the UI about where the camera is pointed.
 	private displayCameraInfo = (): void => {
 		if (this.uiState.isLiveMode) return
-		if (!this.statusWindow.isEnabled()) return
+		if (!this.statusWindow.isEnabled) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
@@ -2616,7 +2662,7 @@ class Annotator {
 
 	// Create an annotation, add it to the scene, and activate (highlight) it.
 	private addAnnotation(annotationType: AnnotationType): void {
-		if (this.annotationManager.addAnnotation(null, annotationType, true)[0]) {
+		if (this.annotationManager.createAndAddAnnotation(annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
 			Annotator.deactivateAllAnnotationPropertiesMenus(annotationType)
 			this.resetAllAnnotationPropertiesMenuElements()
@@ -3827,7 +3873,7 @@ class Annotator {
 
 	// Toggle whether to display the status window.
 	private toggleStatusWindow(): void {
-		this.statusWindow.setEnabled(!this.statusWindow.isEnabled())
+		this.statusWindow.setEnabled(!this.statusWindow.isEnabled)
 	}
 
 	// Show or hide the menu as requested.
@@ -3913,10 +3959,15 @@ class Annotator {
 	// Print a message about how big our tiles are.
 	private updateTileManagerStats(): void {
 		if (!this.settings.enableTileManagerStats) return
-		if (!this.statusWindow.isEnabled()) return
+		if (!this.statusWindow.isEnabled) return
 
-		const message = `Loaded ${this.pointCloudTileManager.superTiles.size} super tiles; ${this.pointCloudTileManager.objectCount()} points`
-		this.statusWindow.setMessage(statusKey.tileManagerStats, message)
+		const message = `Loaded ${this.pointCloudTileManager.superTiles.size} point tiles; ${this.pointCloudTileManager.objectCount()} points`
+		this.statusWindow.setMessage(statusKey.tileManagerPointStats, message)
+
+		if (this.settings.enableAnnotationTileManager) {
+			const message2 = `Loaded ${this.annotationTileManager.superTiles.size} annotation tiles; ${this.annotationTileManager.objectCount()} annotations`
+			this.statusWindow.setMessage(statusKey.tileManagerAnnotationStats, message2)
+		}
 	}
 
 	private onSetOrigin = (): void => {

@@ -24,6 +24,7 @@ export class AnnotationSuperTile extends SuperTile {
 		this.annotations = []
 	}
 
+	// This is not used by Annotation tiles for now.
 	getContentsBoundingBox(): THREE.Box3 | null {
 		return null
 	}
