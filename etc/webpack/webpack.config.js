@@ -50,6 +50,7 @@ module.exports = patchConfig({
 		path: `${distDir}/`,
 		publicPath: `${distDir}/`,
 		filename: '[name].js',
+        libraryTarget: 'commonjs2',
 	},
 
 	// LOADERS
