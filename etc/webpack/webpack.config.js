@@ -58,7 +58,8 @@ module.exports = patchConfig({
 		loaders: [
 			{
 				test: /\.json$/,
-				loader: 'json'
+				exclude: [/node_modules/],
+				loader: 'json-loader'
 			},
 
 			// SourceCode
