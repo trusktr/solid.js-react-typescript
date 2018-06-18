@@ -108,6 +108,8 @@ _.assign(global, {
   getRoadNetworkEditorStoreState: getRoadNetworkEditorStoreState,
 })
 
+console.log("DONE WITH ASSIGNING STORE GLOBALS")
+
 declare global {
   function getRoadNetworkEditorReduxStore():ReduxStore<Map<string, any>>
   function getRoadNetworkEditorStore():ObservableStore<any>

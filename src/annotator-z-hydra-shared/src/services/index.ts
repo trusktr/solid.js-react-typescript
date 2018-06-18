@@ -20,7 +20,7 @@ function loadInitialState() {
   new RoadNetworkEditorActions().loadAppState()
 }
 
-export function loadStore() {
+export async function loadStore() {
   console.log("Starting to load store")
   const roadEditorStore = require("annotator-z-hydra-shared/src/store/AppStore")
   try {

@@ -27,20 +27,28 @@ getMeta().then( ( { IN_SAFFRON } ) => {
 
 const root = $('#root')[0]
 
-function main(): void {
-	require( 'annotator-z-hydra-shared/src/services' ).loadStore()
+async function main() {
 
-	const
-		{Provider} = require("react-redux")
 
-	ReactDOM.render(
-		<AppContainer>
-			<Provider store={getRoadNetworkEditorReduxStore()}>
-				<App />
-			</Provider>
-		</AppContainer>,
-		root
-	)
+	const doRender = () => {
+		const
+			{Provider} = require("react-redux")
+
+		ReactDOM.render(
+			<AppContainer>
+				<Provider store={getRoadNetworkEditorReduxStore()}>
+					<App />
+				</Provider>
+			</AppContainer>,
+			root
+		)
+	}
+
+	console.log("STARTING MAIN in index.tsx")
+	await require( 'annotator-z-hydra-shared/src/services' ).loadStore()
+	await require('@/annotator-z-hydra-kiosk/FlyThroughManager').init()
+	doRender()
+
 }
 
 function cleanup(): void {

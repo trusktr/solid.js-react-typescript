@@ -10,6 +10,8 @@ import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import RoadEditorState from "annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState"
 import {createStructuredSelector} from "reselect"
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import * as FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
+
 
 interface KioskViewProps {
 	mapStyle ?: string
@@ -37,13 +39,15 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 	private makeOnPlayModeClick = () => () => {
 		console.log("Clicked onPlayMode")
+		FlyThroughManager.toggleLiveModePlay()
 		new RoadNetworkEditorActions().togglePlayMode()
 
 	}
 
 	private makeOnLiveModeClick = () => () => {
 		console.log("Clicked onLiveMode")
-		new RoadNetworkEditorActions().togglePlayMode()
+		FlyThroughManager.toggleLiveAndRecordedPlay()
+		new RoadNetworkEditorActions().toggleLiveMode()
 	}
 
 	private makeOnSelectDataSetClick = () => () => {

@@ -12,6 +12,7 @@ import {createStructuredSelector} from "reselect"
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState"
 import {getValue} from "typeguard";
+import * as $ from "jquery";
 
 interface StatusWindowProps {
 	statusWindowState ?: StatusWindowState
@@ -37,10 +38,19 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 		const isEnabled = getValue(() => statusWindowState.enabled, false)
 		const messages = getValue(() => statusWindowState.messages, new Map<string, string>())
 
+		let out = ''
+		messages.forEach(value => {
+			if (value !== '')
+				out += value + '<br>'
+		})
+		// this.statusElement.innerHTML = out
+		// const laneWidth = $('#lp_width_value')
+
 		// @TODO show/hide internal parts of the component based on the value of isEnabled
 		return (
 			<div id="status_window">
-				HELLO FROM THE STATUS WINDOW
+				STATUS WINDOW <br/>
+				<span dangerouslySetInnerHTML={{__html: out}} />
 			</div>
 		)
 	}

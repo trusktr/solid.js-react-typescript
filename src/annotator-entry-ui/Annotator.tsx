@@ -70,8 +70,11 @@ import FlyThroughActions from "@/annotator-z-hydra-kiosk/FlyThroughActions";
 import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import {Status} from "tslint/lib/runner";
-import FlyThrough from "@/annotator-z-hydra-kiosk/FlyThrough";
 import {FlyThroughState} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
+
+import * as FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
+import { StatusKey } from "@/annotator-z-hydra-shared/src/models/StatusKey";
+
 
 const dialog = Electron.remote.dialog
 
@@ -256,9 +259,7 @@ interface AnnotatorProps {
 	carPose ?: Models.PoseMessage
 }
 
-interface AnnotatorState {
-	flyThrough ?: FlyThrough
-}
+interface AnnotatorState {}
 
 // state = getRoadNetworkEditorReduxStore().getState()
 @typedConnect(createStructuredSelector({
@@ -693,21 +694,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.renderer.render(this.scene, this.camera)
 		})
 
-		// RYAN UPDATED
-		console.log("ABOUT TO CREATE NEW FLY THROUGH IN ANNOTATOR")
-		const flyThrough = new FlyThrough(null)
-		console.log("FINISHED SETTING UP FLY THROUGH 1")
-		this.setState({
-			flyThrough: flyThrough
-		})
-		console.log("FINISHED SETTING UP FLY THROUGH 2")
+
 		// this.flyThroughLoop = new ChildAnimationLoop
 		// this.flyThroughLoop.interval = this.liveModeSettings.flyThroughIntervalSecs
+		console.log("Attempting fly through in annotator!!!")
+		this.loop.addChildLoop( FlyThroughManager.getAnimationLoop() )
 
-		this.loop.addChildLoop( flyThrough.getAnimationLoop() )
-		console.log("FINISHED SETTING UP FLY THROUGH 3")
-		flyThrough.startLoop()
-		// this.flyThroughLoop.start()
+		FlyThroughManager.startLoop()
 
 		return this.loadCarModel()
 			.then(() => this.loadUserData())
@@ -859,7 +852,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			trajectoryResult = pointCloudResult
 				.then(() => {
 					log.info('loading pre-configured trajectories')
-					return this.state.flyThrough.loadFlyThroughTrajectories(trajectoryPaths)
+					return FlyThroughManager.loadFlyThroughTrajectories(trajectoryPaths)
 				})
 		} else {
 			trajectoryResult = pointCloudResult
@@ -2634,7 +2627,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		const handler = (paths: string[]): void => {
 			if (paths && paths.length)
-				this.state.flyThrough.loadFlyThroughTrajectories([ paths[0] ])
+				FlyThroughManager.loadFlyThroughTrajectories([ paths[0] ])
 					.then(() => resolve())
 					.catch(err => reject(err))
 			else
@@ -3049,18 +3042,18 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
 		})
 
-		const liveModePauseBtn = document.querySelector('#live_mode_pause')
-		if (liveModePauseBtn)
-			liveModePauseBtn.addEventListener('click', this.toggleLiveModePlay)
-			// HERE
-		else
-			log.warn('missing element live_mode_pause')
+		// const liveModePauseBtn = document.querySelector('#live_mode_pause')
+		// if (liveModePauseBtn)
+		// 	liveModePauseBtn.addEventListener('click', this.toggleLiveModePlay)
+		// 	// HERE
+		// else
+		// 	log.warn('missing element live_mode_pause')
 
-		const liveAndRecordedToggleBtn = document.querySelector('#live_recorded_playback_toggle')
-		if (liveAndRecordedToggleBtn)
-			liveAndRecordedToggleBtn.addEventListener('click', this.toggleLiveAndRecordedPlay)
-		else
-			log.warn('missing element live_recorded_playback_toggle')
+		// const liveAndRecordedToggleBtn = document.querySelector('#live_recorded_playback_toggle')
+		// if (liveAndRecordedToggleBtn)
+		// 	liveAndRecordedToggleBtn.addEventListener('click', this.toggleLiveAndRecordedPlay)
+		// else
+		// 	log.warn('missing element live_recorded_playback_toggle')
 
 		const selectTrajectoryPlaybackFile = document.querySelector('#select_trajectory_playback_file')
 		if (selectTrajectoryPlaybackFile)
@@ -3071,53 +3064,63 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// While live mode is enabled, start or stop playing through a trajectory, whether it is truly live
 	// data or pre-recorded "fly-through" data.
-	private toggleLiveModePlay = (): void => {
-		if (!this.props.liveModeEnabled) return
-
-		if (!this.props.liveModeEnabled) {
-			//this.resumeLiveMode()
-			if (this.props.flyThroughState.enabled)
-				this.state.flyThrough.startLoop()
-		} else {
-			//this.pauseLiveMode()
-			if (this.props.flyThroughState.enabled)
-				this.state.flyThrough.pauseLoop()
-		}
-	}
+	// private toggleLiveModePlay = (): void => {
+	// 	if (!this.props.liveModeEnabled) {
+	// 		console.log("Early return live mode disabled")
+	// 		return
+	// 	}
+  //
+	// 	if (!this.props.playModeEnabled) {
+	// 		//this.resumeLiveMode()
+	// 		if (this.props.flyThroughState.enabled)
+	// 			console.log("STARTING LOOP onToggle")
+	// 			FlyThroughManager.startLoop()
+	// 	} else {
+	// 		//this.pauseLiveMode()
+	// 		if (this.props.flyThroughState.enabled)
+	// 			console.log("PAUSING LOOP onToggle")
+	// 			FlyThroughManager.pauseLoop()
+	// 	}
+	// }
 
 	// While live mode is enabled, switch between live data and pre-recorded data. Live data takes whatever
 	// pose comes next over the socket. The "recorded" option opens a dialog box to select a data file
 	// if we are so configured.
 	// Side effect: if the animation is paused, start playing.
-	private toggleLiveAndRecordedPlay = (): void => {
-		if (!this.props.liveModeEnabled) return
-
-		if (this.props.flyThroughState.enabled) {
-			// const button = $('#live_recorded_playback_toggle')
-			// button.find('span').text('Live')
-			// button.find('i').text('my_location')
-			// this.clearFlyThroughMessages()
-			this.state.flyThrough.clearFlyThroughMessages()
-			new FlyThroughActions().setEnable(false)
-			// this.flyThroughState.enabled = false
-		} else {
-			// const button = $('#live_recorded_playback_toggle')
-			// button.find('span').text('Recorded')
-			// button.find('i').text('videocam')
-			// this.flyThroughState.enabled = true
-			new FlyThroughActions().setEnable(true)
-
-			if (this.props.flyThroughState.trajectories.length) {
-				this.state.flyThrough.startFlyThrough()
-				this.state.flyThrough.startLoop()
-				// this.startFlyThrough()
-				// this.flyThroughLoop.start()
-			}
-		}
-
-		if (this.uiState.isLiveModePaused)
-			this.toggleLiveModePlay()
-	}
+	// RYAN - when someone clicks between LIVE AND RECORDED
+	// private toggleLiveAndRecordedPlay = (): void => {
+	// 	if (!this.uiState.isLiveMode) return
+  //
+	// 	if (this.props.flyThroughState.enabled) {
+	// 		// const button = $('#live_recorded_playback_toggle')
+	// 		// button.find('span').text('Live')
+	// 		// button.find('i').text('my_location')
+	// 		// this.clearFlyThroughMessages()
+	// 		console.log("toggling LiveAndRecordedPlay - moving to enable=false")
+	// 		FlyThroughManager.clearFlyThroughMessages()
+	// 		new FlyThroughActions().setEnable(false)
+	// 		// this.flyThroughState.enabled = false
+	// 	} else {
+	// 		// const button = $('#live_recorded_playback_toggle')
+	// 		// button.find('span').text('Recorded')
+	// 		// button.find('i').text('videocam')
+	// 		// this.flyThroughState.enabled = true
+	// 		console.log("toggling LiveAndRecordedPlay - moving to enable=true")
+	// 		new FlyThroughActions().setEnable(true)
+  //
+	// 		if (this.props.flyThroughState.trajectories.length) {
+	// 			console.log("Looking to start animation loop")
+	// 			FlyThroughManager.startFlyThrough()
+	// 			FlyThroughManager.startLoop()
+	// 			// this.startFlyThrough()
+	// 			// this.flyThroughLoop.start()
+	// 		}
+	// 	}
+  //
+	// 	// if (this.uiState.isLiveModePaused)
+	// 	if (!this.props.liveModeEnabled)
+	// 		this.toggleLiveModePlay()
+	// }
 
 	// Hang on to a reference to TrajectoryPicker so we can call it later.
 	setOpenTrajectoryPickerFunction(theFunction: (cb: TrajectoryFileSelectedCallback) => void): void {
@@ -3136,7 +3139,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				<TrajectoryPicker
 					ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
 				/>
-				<FlyThrough/>
 			</>
 		)
 
@@ -3152,24 +3154,24 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.unmount()
 	}
 
-	componentWillReceiveProps(nextProps) {
-		console.log("NEW PROPS", nextProps)
-		console.log("TEST GETTING CAR POSE", nextProps.carPose)
-
-	}
 
 
 	private trajectoryFileSelectedCallback = (path: string): void => {
 		if (!this.uiState.isLiveMode) return
 
-		this.state.flyThrough.loadFlyThroughTrajectories([path])
+		FlyThroughManager.loadFlyThroughTrajectories([path])
 			.then(() => {
 				// Make sure that we are in flyThrough mode and that the animation is running.
-				if (!this.props.flyThroughState.enabled)
-					this.toggleLiveAndRecordedPlay()
-				this.state.flyThrough.startFlyThrough()
+				if (!this.props.flyThroughState.enabled) {
+					// this.toggleLiveAndRecordedPlay()
+					FlyThroughManager.toggleLiveAndRecordedPlay()
+				}
+
+				FlyThroughManager.startFlyThrough()
 				//this.startFlyThrough()
-				if (this.uiState.isLiveModePaused)
+
+				//if (this.uiState.isLiveModePaused)
+				if (!this.props.liveModeEnabled)
 					console.log("WANTING TO RESUME LIVE MODE")
 					// this.resumeLiveMode()
 			})
@@ -3749,8 +3751,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.liveSubscribeSocket = zmq.socket('sub')
 
 		this.liveSubscribeSocket.on('message', (msg) => {
-			if (!this.uiState.isLiveMode) return
-			if (this.uiState.isLiveModePaused) return
+			// if (!this.uiState.isLiveMode) return
+			// if (this.uiState.isLiveModePaused) return
+			if(!this.props.liveModeEnabled || !this.props.playModeEnabled) return
 
 			// RYAN UPDATED
 			// if (this.flyThroughState.enabled) return
@@ -3822,7 +3825,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.pointCloudBoundingBox.material.visible = false
 
 		// Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
-		this.state.flyThrough.startFlyThrough()
+		FlyThroughManager.startFlyThrough()
 		// this.startFlyThrough()
 		this.locationServerStatusClient.connect()
 		//this.resumeLiveMode()
@@ -3878,6 +3881,20 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.updateAoiHeading(rotationThreeJs)
 		this.updateCurrentLocationStatusMessage(standardPosition)
 		this.updateCarPose(positionThreeJs, rotationThreeJs)
+	}
+
+	componentWillReceiveProps(newProps) {
+		// console.log("====== START OF NEW PROPS ======")
+		// console.log("NEW PROPS", newProps)
+		// console.log("carPose", newProps.carPose)
+		// console.log("existing car pose", this.props.carPose)
+    //
+		// console.log("====== END OF NEW PROPS ======")
+		if(newProps.carPose && (newProps.carPose != this.props.carPose)) {
+			console.log("Updating updateCarWithPose from lifecycle")
+			this.updateCarWithPose(newProps.carPose)
+		}
+
 	}
 
 

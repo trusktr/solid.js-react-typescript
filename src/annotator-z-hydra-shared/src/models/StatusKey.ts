@@ -1,7 +1,7 @@
 
 
 
-enum StatusKey {
+export enum StatusKey {
 	CURRENT_LOCATION_LLA = 'currentLocationLla',
 	CURRENT_LOCATION_UTM = 'currentLocationUtm',
 	FLY_THROUGH_TRAJECTORY = 'flyThroughTrajectory',

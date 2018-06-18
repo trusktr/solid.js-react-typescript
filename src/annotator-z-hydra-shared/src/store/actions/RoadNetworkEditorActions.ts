@@ -52,7 +52,7 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 
 
 			flyThroughState: {
-				enabled: false,
+				enabled: true,
 				trajectories: [],
 				currentTrajectoryIndex: 0,
 				currentPoseIndex: 0,
