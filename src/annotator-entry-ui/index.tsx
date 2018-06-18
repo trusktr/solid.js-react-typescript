@@ -9,7 +9,7 @@ import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { AppContainer } from "react-hot-loader"
 import App from './App'
-
+import * as packageDotJson from '../../package.json'
 
 Object.assign(global, {
 	jQuery: $,
@@ -18,51 +18,63 @@ Object.assign(global, {
 
 import('jquery-ui-dist/jquery-ui')
 
-// example of getMeta:
-getMeta().then( ( { IN_SAFFRON } ) => {
+// otherwise, Saffron will mount the exported App for us.
+export async function start() {
 
-	console.log( ' --- in Saffron:', !!IN_SAFFRON )
+	// if we're not in Saffron, then we manually mount our component into the DOM
+	const { IN_SAFFRON } = await getMeta()
 
-})
+	await configReady()
 
-const root = $('#root')[0]
+	if (
 
-async function main() {
+		// if we're running Annotator standlone, outside of Saffron
+		!IN_SAFFRON ||
 
+		// or we're in saffron but we're running inside of a <webview>
+		IN_SAFFRON && typeof ( packageDotJson as any ).htmlEntry !== 'undefined'
 
-	const doRender = () => {
-		const
-			{Provider} = require("react-redux")
+	) {
 
-		ReactDOM.render(
-			<AppContainer>
-				<Provider store={getRoadNetworkEditorReduxStore()}>
-					<App />
-				</Provider>
-			</AppContainer>,
-			root
-		)
+		await require( 'annotator-z-hydra-shared/src/services' ).loadStore()
+		await require('@/annotator-z-hydra-kiosk/FlyThroughManager').init()
+
+		const root = $('#root')[0]
+
+		const doRender = () => {
+			const {Provider} = require("react-redux")
+
+			ReactDOM.render(
+				<AppContainer>
+					<Provider store={getRoadNetworkEditorReduxStore()}>
+						<App />
+					</Provider>
+				</AppContainer>,
+				root
+			)
+		}
+
+		$( doRender )
+
 	}
 
-	console.log("STARTING MAIN in index.tsx")
-	await require( 'annotator-z-hydra-shared/src/services' ).loadStore()
-	await require('@/annotator-z-hydra-kiosk/FlyThroughManager').init()
-	doRender()
+	// otherwise we're running in Saffron as a React component like how the
+	// other existing Saffron apps do, so we don't need to do anything because
+	// Saffron handles mounting the component.
 
 }
-
-function cleanup(): void {
-	ReactDOM.unmountComponentAtNode( root )
-}
-
-configReady().then( () => $( main ) )
+export async function stop() {}
+export const component = App
 
 
 // https://webpack.js.org/api/hot-module-replacement/
 // TODO hot replacement isn't enabled or working at the moment
 // tslint:disable-next-line:no-any
-const hotReplacement = (module as any).hot
-if (hotReplacement) {
-	hotReplacement.accept()
-	hotReplacement.dispose(cleanup)
-}
+// const hotReplacement = (module as any).hot
+// if (hotReplacement) {
+// 	hotReplacement.accept()
+// 	hotReplacement.dispose(cleanup)
+// }
+// function cleanup(): void {
+// 	ReactDOM.unmountComponentAtNode( root )
+// }
