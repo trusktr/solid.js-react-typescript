@@ -1,9 +1,8 @@
 
 
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
-import {FlyThroughState, FlyThroughTrajectory} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
+import {FlyThroughTrajectory} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
-import {getValue} from "typeguard";
 import FlyThroughActions from "@/annotator-z-hydra-kiosk/FlyThroughActions";
 import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
 import config from "@/config";
@@ -15,6 +14,7 @@ import Logger from "@/util/log";
 import * as Electron from "electron";
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 import { StatusKey } from "@/annotator-z-hydra-shared/src/models/StatusKey";
+import {getValue} from "typeguard";
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -110,11 +110,10 @@ function runFlyThrough(): boolean {
 	const liveModeEnabled = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).liveModeEnabled
 	const flyThroughState = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).flyThroughState
 
-
-	// if (!liveModeEnabled || !flyThroughState || !getValue(() => flyThroughState.enabled, false)) {
-	// 	console.log("Returning early from within runFlyThrough")
-	// 	return false
-	// }
+	if (!liveModeEnabled || !flyThroughState || !getValue(() => flyThroughState.enabled, false)) {
+		console.log("Returning early from within runFlyThrough")
+		return false
+	}
 
 	if (flyThroughState.currentPoseIndex >= flyThroughState.endPoseIndex) {
 		// Reset pose index
@@ -204,7 +203,6 @@ export function toggleLiveAndRecordedPlay() {
 	// if (!this.uiState.isLiveMode) return
 
 	if (flyThroughState.enabled) {
-
 		console.log("toggling LiveAndRecordedPlay - moving to enable=false")
 		clearFlyThroughMessages()
 		new FlyThroughActions().setEnable(false)

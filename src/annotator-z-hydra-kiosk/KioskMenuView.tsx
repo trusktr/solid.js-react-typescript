@@ -39,15 +39,17 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 	private makeOnPlayModeClick = () => () => {
 		console.log("Clicked onPlayMode")
-		FlyThroughManager.toggleLiveModePlay()
 		new RoadNetworkEditorActions().togglePlayMode()
+		FlyThroughManager.toggleLiveModePlay()
+
 
 	}
 
 	private makeOnLiveModeClick = () => () => {
 		console.log("Clicked onLiveMode")
-		FlyThroughManager.toggleLiveAndRecordedPlay()
 		new RoadNetworkEditorActions().toggleLiveMode()
+		FlyThroughManager.toggleLiveAndRecordedPlay()
+
 	}
 
 	private makeOnSelectDataSetClick = () => () => {

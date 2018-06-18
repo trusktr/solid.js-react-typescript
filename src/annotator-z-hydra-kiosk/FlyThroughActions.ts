@@ -28,7 +28,7 @@ export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorSt
 		log.info("Resetting fly through state")
 		return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
 			...roadEditorState, flyThroughState: {
-				enabled: false,
+				enabled: true,
 				trajectories: [],
 				currentTrajectoryIndex: 0,
 				currentPoseIndex: 0,
@@ -37,8 +37,6 @@ export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorSt
 		})
 	}
 
-
-	// set trajectories
 
 	@ActionReducer()
 	setCurrentTrajectoryIndex(value:number) {
@@ -104,9 +102,6 @@ export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorSt
 			})
 		}
 	}
-
-
-
 }
 
 
