@@ -5,6 +5,8 @@ import LineSegment from "annotator-z-hydra-shared/src/models/LineSegment"
 import UIMessage from "annotator-z-hydra-shared/src/models/UIMessage"
 import {getRoadSegments, getVertices} from "annotator-z-hydra-shared/src/services/RoadNetworkService"
 import RoadnetworkVertex from "annotator-z-hydra-shared/src/models/RoadnetworkVertex"
+import * as MapperProtos from '@mapperai/mapper-models'
+import Models = MapperProtos.mapper.models
 import Logger from "@/util/log";
 
 const log = Logger(__filename)
@@ -62,7 +64,9 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 				messages: new Map<string, string>()
 			},
 
-			uiMenuVisible: config.get('startup.show_menu')
+			uiMenuVisible: config.get('startup.show_menu'),
+			shouldAnimate: false,
+			carPose: null,
 
 
 		}
@@ -319,6 +323,21 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 		})
 	}
 
+	@ActionReducer()
+	setShouldAnimate(shouldAnimate:boolean) {
+		log.info("Setting should animate", shouldAnimate)
+		return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+			...roadEditorState, shouldAnimate: shouldAnimate
+		})
+	}
+
+	@ActionReducer()
+	setCarPose(pose:Models.PoseMessage) {
+		log.info("Setting car pose", pose)
+		return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+			...roadEditorState, carPose: pose
+		})
+	}
 
 
 

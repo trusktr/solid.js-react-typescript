@@ -27,7 +27,7 @@ export default class StatusWindowActions extends ActionFactory<RoadNetworkEditor
 	setEnabled(isEnabled:boolean) {
 		log.info("Setting isEnabled for StatusWindow", isEnabled)
 		return (roadEditorState: RoadNetworkEditorState) => {
-			const statusWindowState = new StatusWindowState([...roadEditorState.statusWindowState])
+			const statusWindowState = new StatusWindowState({...roadEditorState.statusWindowState})
 			statusWindowState.enabled = isEnabled
 			return new RoadNetworkEditorState({
 				...roadEditorState, statusWindowState: statusWindowState
@@ -39,7 +39,7 @@ export default class StatusWindowActions extends ActionFactory<RoadNetworkEditor
 	toggleEnabled() {
 		log.info("Toggling enabled for StatusWindow")
 		return (roadEditorState: RoadNetworkEditorState) => {
-			const statusWindowState = new StatusWindowState([...roadEditorState.statusWindowState])
+			const statusWindowState = new StatusWindowState({...roadEditorState.statusWindowState})
 			statusWindowState.enabled = !roadEditorState.statusWindowState
 			return new RoadNetworkEditorState({
 				...roadEditorState, statusWindowState: statusWindowState
@@ -51,7 +51,7 @@ export default class StatusWindowActions extends ActionFactory<RoadNetworkEditor
 	setMessage(key:string, message:string) {
 		log.info("Setting new status window message", {key:key, message:message})
 		return (roadEditorState: RoadNetworkEditorState) => {
-			const statusWindowState = new StatusWindowState([...roadEditorState.statusWindowState])
+			const statusWindowState = new StatusWindowState({...roadEditorState.statusWindowState})
 			statusWindowState.messages.set(key, message)
 			return new RoadNetworkEditorState({
 				...roadEditorState, statusWindowState: statusWindowState

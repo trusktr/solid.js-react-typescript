@@ -1,3 +1,12 @@
+import {TrajectoryDataSet} from "@/util/Perception"
+import * as MapperProtos from '@mapperai/mapper-models'
+import Models = MapperProtos.mapper.models
+
+// A pre-processed trajectory, presumably generated from one gps/imu recording session.
+export interface FlyThroughTrajectory {
+	dataSet: TrajectoryDataSet | null
+	poses: Models.PoseMessage[]
+}
 
 export class FlyThroughState {
 
@@ -6,7 +15,7 @@ export class FlyThroughState {
 	}
 
 	enabled:boolean
-	trajectories:any[]
+	trajectories:FlyThroughTrajectory[]
 	currentTrajectoryIndex:number
 	currentPoseIndex:number
 	endPoseIndex:number

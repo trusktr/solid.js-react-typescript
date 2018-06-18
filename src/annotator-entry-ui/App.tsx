@@ -21,6 +21,7 @@ import {createStructuredSelector} from "reselect";
 import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import FlyThrough from "@/annotator-z-hydra-kiosk/FlyThrough";
 
 
 const log = Logger(__filename)
@@ -85,7 +86,9 @@ export default class App extends React.Component<AppProps, AppState> {
 		const {uiMenuVisible} = this.props
 
 		return <React.Fragment>
+			<FlyThrough />
 			<Annotator />
+
 
 			<div id="logo">
 				<img
