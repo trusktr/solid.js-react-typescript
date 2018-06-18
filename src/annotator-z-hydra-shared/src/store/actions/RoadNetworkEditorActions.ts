@@ -333,7 +333,7 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 
 	@ActionReducer()
 	setCarPose(pose:Models.PoseMessage) {
-		log.info("Setting car pose", pose)
+		// log.info("Setting car pose", pose)
 		return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
 			...roadEditorState, carPose: pose
 		})

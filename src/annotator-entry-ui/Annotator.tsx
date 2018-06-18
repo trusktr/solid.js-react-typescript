@@ -336,10 +336,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	constructor(props) {
 		super(props)
-		console.log("TEST STORE22", getRoadNetworkEditorReduxStore())
-		console.log("NEW PROPS FROM APP222", props.playModeEnabled)
-		console.log("ANNOTATOR CONTEXT redux store", this.context)
-		//super(props)
 		this.storage = new LocalStorage()
 
 		// this.shouldAnimate = false
@@ -3884,14 +3880,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	componentWillReceiveProps(newProps) {
-		// console.log("====== START OF NEW PROPS ======")
-		// console.log("NEW PROPS", newProps)
-		// console.log("carPose", newProps.carPose)
-		// console.log("existing car pose", this.props.carPose)
-    //
-		// console.log("====== END OF NEW PROPS ======")
 		if(newProps.carPose && (newProps.carPose != this.props.carPose)) {
-			console.log("Updating updateCarWithPose from lifecycle")
+			// console.log("Updating updateCarWithPose from lifecycle")
 			this.updateCarWithPose(newProps.carPose)
 		}
 

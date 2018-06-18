@@ -106,16 +106,11 @@ function flyThroughAnimation(): boolean {
  *  See also initClient().
  */
 function runFlyThrough(): boolean {
-	console.log("Inside runFlyThrough")
+	// console.log("Inside runFlyThrough")
 	const liveModeEnabled = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).liveModeEnabled
 	const flyThroughState = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).flyThroughState
 
 
-	// console.log("TEST -- liveModeEnabled", liveModeEnabled)
-	// console.log("TEST -- flyThroughState", flyThroughState)
-	// console.log("TEST -- flyThroughState.enabled", flyThroughState.enabled)
-	// console.log("TEST -- final result", (!liveModeEnabled || !flyThroughState || !getValue(() => flyThroughState.enabled, false)))
-  //
 	// if (!liveModeEnabled || !flyThroughState || !getValue(() => flyThroughState.enabled, false)) {
 	// 	console.log("Returning early from within runFlyThrough")
 	// 	return false
@@ -138,14 +133,9 @@ function runFlyThrough(): boolean {
 	const pose = getCurrentFlyThroughTrajectory().poses[newFlyThroughState.currentPoseIndex]
 	new StatusWindowActions().setMessage(StatusKey.FLY_THROUGH_POSE, `Pose: ${newFlyThroughState.currentPoseIndex + 1} of ${newFlyThroughState.endPoseIndex}`)
 
-	// RYAN UPDATED -- let's see ??!
-	console.log("ABOUT TO UPDATE CAR POSE", pose)
 	new RoadNetworkEditorActions().setCarPose(pose)
 
-
-	console.log("123 - currentPoseIndex", newFlyThroughState.currentPoseIndex)
 	const newValue = newFlyThroughState.currentPoseIndex + 1
-	console.log("123 - newValue", newValue)
 	new FlyThroughActions().setCurrentPoseIndex(newValue)
 	return true
 }

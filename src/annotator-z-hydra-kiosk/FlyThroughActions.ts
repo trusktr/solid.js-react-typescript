@@ -55,7 +55,7 @@ export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorSt
 
 	@ActionReducer()
 	setCurrentPoseIndex(value:number) {
-		log.info("Setting current pose index on FlyThroughState", value)
+		// log.info("Setting current pose index on FlyThroughState", value)
 		return (roadEditorState: RoadNetworkEditorState) => {
 			const flyThroughState = new FlyThroughState({...roadEditorState.flyThroughState})
 

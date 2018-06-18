@@ -51,13 +51,11 @@ export default class App extends React.Component<AppProps, AppState> {
 
 	constructor(props: AppProps) {
 		super(props)
-		console.log("TESTING APP PROPS", props)
 		// this.trajectoryPicker = (
 		// 	<TrajectoryPicker
 		// 		ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
 		// 	/>
 		// )
-		console.log("ABOUT TO SETUP ANNOTATOR")
 		//this.annotator = new Annotator(props)
 	}
 

@@ -49,7 +49,7 @@ export default class StatusWindowActions extends ActionFactory<RoadNetworkEditor
 
 	@ActionReducer()
 	setMessage(key:string, message:string) {
-		log.info("Setting new status window message", {key:key, message:message})
+		// log.info("Setting new status window message", {key:key, message:message})
 		return (roadEditorState: RoadNetworkEditorState) => {
 			const statusWindowState = new StatusWindowState({...roadEditorState.statusWindowState})
 			statusWindowState.messages.set(key, message)
