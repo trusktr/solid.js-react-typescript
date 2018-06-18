@@ -14,7 +14,6 @@ import * as FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager"
 
 
 interface KioskViewProps {
-	mapStyle ?: string
 	liveModeEnabled ?: boolean
 	playModeEnabled ?: boolean
 }
@@ -23,8 +22,6 @@ interface KioskViewState {}
 
 
 @typedConnect(createStructuredSelector({
-	mapStyle: (state) => state.get(RoadEditorState.Key).mapStyle,
-
 	liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
 	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
 }))
@@ -32,7 +29,6 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 	constructor(props: KioskViewProps) {
 		super(props)
-		console.log("PROP VALUE", this.props.mapStyle)
 	}
 
 

@@ -59,7 +59,6 @@ export default class StatusWindowActions extends ActionFactory<RoadNetworkEditor
 		}
 	}
 
-
 }
 
 

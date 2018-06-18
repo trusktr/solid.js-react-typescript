@@ -220,7 +220,6 @@ interface AoiState {
  * and modify the annotations.
  */
 interface AnnotatorProps {
-	mapStyle ?: string
 	liveModeEnabled ?: boolean
 	playModeEnabled ?: boolean
 	statusWindowState ?: StatusWindowState
@@ -234,8 +233,6 @@ interface AnnotatorState {}
 
 // state = getRoadNetworkEditorReduxStore().getState()
 @typedConnect(createStructuredSelector({
-	mapStyle: (state) => state.get(RoadEditorState.Key).mapStyle,
-
 	liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
 	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
 	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,

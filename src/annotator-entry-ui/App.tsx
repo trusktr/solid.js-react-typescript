@@ -26,7 +26,6 @@ import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actio
 const log = Logger(__filename)
 
 interface AppProps {
-	mapStyle ?: string
 	liveModeEnabled ?: boolean
 	playModeEnabled ?: boolean
 	uiMenuVisible ?: boolean
@@ -35,13 +34,10 @@ interface AppProps {
 interface AppState {}
 
 @typedConnect(createStructuredSelector({
-	mapStyle: (state) => state.get(RoadEditorState.Key).mapStyle,
-
 	liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
 	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
 
 	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
-
 }))
 export default class App extends React.Component<AppProps, AppState> {
 	// private sceneContainer: HTMLElement | null

@@ -9,7 +9,6 @@ const log = Logger(__filename)
 export function loadServices() {
   log.info("Loading services")
   require("./UIMessageService")
-  require("./RoadNetworkService")
 }
 
 /**

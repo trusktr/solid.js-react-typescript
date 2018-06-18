@@ -1,6 +1,4 @@
-import LineSegment from "annotator-z-hydra-shared/src/models/LineSegment"
 import UIMessage from "annotator-z-hydra-shared/src/models/UIMessage"
-import RoadnetworkVertex from "annotator-z-hydra-shared/src/models/RoadnetworkVertex"
 import {FlyThroughState} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
 import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
 import * as MapperProtos from '@mapperai/mapper-models'
@@ -23,17 +21,7 @@ export default class RoadNetworkEditorState {
 		Object.assign(this, o)
 	}
 
-	lineSegments: Map<string, LineSegment>
-	vertices: Map<string, RoadnetworkVertex>
 	messages: Array<UIMessage>
-	unpublishedLineSegments: Map<string, LineSegment>
-	creationModeEnabled: boolean
-	segmentSelectionModeEnabled: boolean
-	selectedLineSegment: LineSegment
-	selectedVertex: RoadnetworkVertex
-	startingPoint: RoadnetworkVertex
-	previousPoint: RoadnetworkVertex
-	mapStyle: string
 
 	// ANNOTATOR SPECIFIC STATE
 	liveModeEnabled: boolean // toggles between live mode and recorded mode
@@ -41,13 +29,6 @@ export default class RoadNetworkEditorState {
 
 	flyThroughState: FlyThroughState
 	statusWindowState: StatusWindowState
-
-
-
-
-
-
-
 
 	uiMenuVisible: boolean
 	shouldAnimate: boolean
