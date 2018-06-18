@@ -20,7 +20,8 @@ import {TileRangeSearch} from "../model/TileRangeSearch"
 import {RangeSearch} from "../model/RangeSearch"
 import {TileIndex} from "../model/TileIndex"
 import {RemoteTileInstance} from "../model/TileInstance"
-import {spatialTileScaleToScale3D, stringToSpatialTileScale} from "./ScaleUtil"
+import {scale3DToSpatialTileScale, spatialTileScaleToScale3D} from "./ScaleUtil"
+import {configToScale3D} from "@/annotator-entry-ui/geometry/Scale3D"
 import Logger from "@/util/log"
 
 const log = Logger(__filename)
@@ -62,9 +63,11 @@ export class TileServiceClient {
 		this.healthCheckInterval = config.get('tile_client.service.health_check.interval.seconds') * 1000
 
 		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO config: UTM_10N (and make the server aware of UTM zones)
-		const scale = stringToSpatialTileScale(config.get('tile_client.tile_scale') || '_010_010_010')
+		if (config.get('tile_client.tile_scale'))
+			log.warn('Config option tile_client.tile_scale is deprecated. Use tile_manager.utm_tile_scale.')
+		const scale = scale3DToSpatialTileScale(configToScale3D('tile_manager.utm_tile_scale'))
 		if (isNullOrUndefined(scale))
-			throw Error(`invalid tile_client.tile_scale config: ${config.get('tile_client.tile_scale')}`)
+			throw Error(`invalid tile_manager.utm_tile_scale config: ${config.get('tile_manager.utm_tile_scale')}`)
 		this.scale = scale
 		const tileServiceHost = config.get('tile_client.service.host') || 'localhost'
 		const tileServicePort = config.get('tile_client.service.port') || '50051'

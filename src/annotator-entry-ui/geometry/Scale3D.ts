@@ -4,6 +4,8 @@
  */
 
 import * as THREE from 'three'
+import config from "@/config"
+import {isTupleOfNumbers} from "@/util/Validation"
 
 export class Scale3D {
 	xSize: number
@@ -47,4 +49,11 @@ export function coordToIndex(coord: number, size: number): TileIndexDimension {
 
 export function indexToCoord(index: TileIndexDimension, size: number): number {
 	return index * size
+}
+
+export function configToScale3D(key: string): Scale3D {
+	const tileScaleConfig: [number, number, number] = config.get(key) || [10, 10, 10]
+	if (!isTupleOfNumbers(tileScaleConfig, 3))
+		throw Error(`invalid ${key} configuration '${tileScaleConfig}'`)
+	return new Scale3D(tileScaleConfig)
 }

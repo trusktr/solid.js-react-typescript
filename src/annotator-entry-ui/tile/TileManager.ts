@@ -3,7 +3,6 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import config from '@/config'
 import {OrderedMap, OrderedSet} from 'immutable'
 import * as THREE from 'three'
 import {TileMessage} from "@/annotator-entry-ui/model/TileMessage"
@@ -12,25 +11,15 @@ import {SuperTile} from "./SuperTile"
 import {UtmTile} from "./UtmTile"
 import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
-import {Scale3D} from "../geometry/Scale3D"
+import {configToScale3D, Scale3D} from "../geometry/Scale3D"
 import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
 import LocalStorage from "../state/LocalStorage"
 import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "../model/RangeSearch"
 import {TileInstance} from "../model/TileInstance"
-import {isTupleOfNumbers} from "@/util/Validation"
 import Logger from "@/util/log"
 
 const log = Logger(__filename)
-
-// Set the dimensions of tiles and super tiles.
-// Super tile boundaries coincide with tile boundaries, with no overlap.
-function configToSharedScale(key: string): Scale3D {
-	const tileScaleConfig: [number, number, number] = config.get(key) || [10, 10, 10]
-	if (!isTupleOfNumbers(tileScaleConfig, 3))
-		throw Error(`invalid ${key} configuration '${tileScaleConfig}'`)
-	return new Scale3D(tileScaleConfig)
-}
 
 export class BusyError extends Error {}
 
@@ -95,9 +84,10 @@ export abstract class TileManager {
 		this._isLoadingTiles = false
 		this.loadedObjectsBoundingBox = null
 
-		this.utmTileScale = configToSharedScale('tile_manager.utm_tile_scale')
-		this.superTileScale = configToSharedScale('tile_manager.super_tile_scale')
-
+		// Set the dimensions of tiles and super tiles.
+		// Super tile boundaries coincide with tile boundaries, with no overlap.
+		this.utmTileScale = configToScale3D('tile_manager.utm_tile_scale')
+		this.superTileScale = configToScale3D('tile_manager.super_tile_scale')
 		if (!this.superTileScale.isMultipleOf(this.utmTileScale))
 			throw Error('super_tile_scale must be a multiple of utm_tile_scale')
 	}

@@ -38,6 +38,15 @@ export function spatialTileScaleToScale3D(msg: SpatialTileScale): Scale3D | null
 	}
 }
 
+export function scale3DToSpatialTileScale(scale: Scale3D): SpatialTileScale | null {
+	if (scale.equals(scale3D_008_008_008))
+		return SpatialTileScale._008_008_008
+	else if (scale.equals(scale3D_010_010_010))
+		return SpatialTileScale._010_010_010
+	else
+		return null
+}
+
 export function spatialTileScaleEnumToScaleVector(scale: Models.SpatialTileScale): THREE.Vector3 | null {
 	switch (scale) {
 		case Models.SpatialTileScale._008_008_008:

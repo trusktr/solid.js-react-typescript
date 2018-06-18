@@ -8,13 +8,11 @@ Two file formats are supported: [BaseGeometryTileMessage](https://github.com/Sig
 ### Configuration
 	tile_manager.tile_message_format: BaseGeometryTileMessage
 	tile_manager.utm_tile_scale: [8, 8, 8]
-	tile_client.tile_scale: _008_008_008
 
 or
 
 	tile_manager.tile_message_format: PointCloudTileMessage
 	tile_manager.utm_tile_scale: [8, 8, 8]
-	tile_client.tile_scale: _008_008_008
 
 ## Super Tiles
 Super tiles are the unit of loading and caching sets of tiles. Read all about them [in the code](../src/annotator-entry-ui/tile/TileManager.ts). Each super tile should contain between one and perhaps thirty tiles, depending on tile size and density. Super tile dimensions are specified in the same units (meters) as tiles.
