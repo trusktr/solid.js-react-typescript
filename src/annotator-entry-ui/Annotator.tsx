@@ -617,7 +617,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		// Bind events
 		this.bind()
-		Annotator.deactivateAllAnnotationPropertiesMenus()
+		// if ( this.props.uiMenuVisible ) this.deactivateAllAnnotationPropertiesMenus()
 
 		// Create the hamburger menu and display (open) it as requested.
 		const startupMenu = this.uiState.isKioskMode ? '#liveModeMenu' : '#annotationMenu'
@@ -1674,7 +1674,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					return
 
 				this.cleanTransformControls()
-				Annotator.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
+				this.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
 				this.annotationManager.setActiveAnnotation(inactive)
 				this.resetAllAnnotationPropertiesMenuElements()
 				this.renderAnnotator()
@@ -1827,7 +1827,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.cleanTransformControls()
 		} else if (this.annotationManager.activeAnnotation) {
 			this.annotationManager.unsetActiveAnnotation()
-			Annotator.deactivateAllAnnotationPropertiesMenus()
+			this.deactivateAllAnnotationPropertiesMenus()
 			this.renderAnnotator()
 		}
 	}
@@ -2478,7 +2478,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// Delete annotation from scene
 		if (this.annotationManager.deleteActiveAnnotation()) {
 			log.info("Deleted selected annotation")
-			Annotator.deactivateLaneProp()
+			this.deactivateLaneProp()
 			this.hideTransform()
 			this.renderAnnotator()
 		}
@@ -2495,7 +2495,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private addAnnotation(annotationType: AnnotationType): void {
 		if (this.annotationManager.addAnnotation(null, annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
-			Annotator.deactivateAllAnnotationPropertiesMenus(annotationType)
+			this.deactivateAllAnnotationPropertiesMenus(annotationType)
 			this.resetAllAnnotationPropertiesMenuElements()
 			this.hideTransform()
 		}
@@ -2980,17 +2980,18 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	render() {
 		return (
-			<>
+			<React.Fragment>
 				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
 				<TrajectoryPicker
 					ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
 				/>
-			</>
+			</React.Fragment>
 		)
 
 	}
 
 	componentDidMount() {
+
 		this.mount()
 			.then(() => this.setOpenTrajectoryPickerFunction(this.trajectoryPickerRef.openModal))
 
@@ -3027,11 +3028,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			})
 	}
 
-	private static expandAccordion(domId: string): void {
+	private expandAccordion(domId: string): void {
+		if ( !this.props.uiMenuVisible ) return
 		$(domId).accordion('option', {active: 0})
 	}
 
-	private static collapseAccordion(domId: string): void {
+	private collapseAccordion(domId: string): void {
+		if ( !this.props.uiMenuVisible ) return
 		$(domId).accordion('option', {active: false})
 	}
 
@@ -3050,7 +3053,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_lane')
+		this.expandAccordion('#menu_lane')
 
 		if (activeAnnotation.neighborsIds.left.length > 0) {
 			Annotator.deactivateLeftSideNeighbours()
@@ -3124,7 +3127,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const activeAnnotation = this.annotationManager.getActiveTerritoryAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_territory')
+		this.expandAccordion('#menu_territory')
 
 		const territoryLabel = document.getElementById('input_label_territory')
 		if (territoryLabel) {
@@ -3140,7 +3143,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const activeAnnotation = this.annotationManager.getActiveTrafficDeviceAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_traffic_device')
+		this.expandAccordion('#menu_traffic_device')
 
 		const tpId = document.getElementById('tp_id_value')
 		if (tpId)
@@ -3160,7 +3163,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_boundary')
+		this.expandAccordion('#menu_boundary')
 
 		const bpId = document.getElementById('bp_id_value')
 		if (bpId)
@@ -3184,7 +3187,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_connection')
+		this.expandAccordion('#menu_connection')
 
 		const cpId = document.getElementById('cp_id_value')
 		if (cpId)
@@ -3197,19 +3200,20 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		cpSelectType.val(activeAnnotation.type.toString())
 	}
 
-	private static deactivateAllAnnotationPropertiesMenus(exceptFor: AnnotationType = AnnotationType.UNKNOWN): void {
-		if (exceptFor !== AnnotationType.BOUNDARY) Annotator.deactivateBoundaryProp()
-		if (exceptFor !== AnnotationType.LANE) Annotator.deactivateLaneProp()
-		if (exceptFor !== AnnotationType.CONNECTION) Annotator.deactivateConnectionProp()
-		if (exceptFor !== AnnotationType.TERRITORY) Annotator.deactivateTerritoryProp()
-		if (exceptFor !== AnnotationType.TRAFFIC_DEVICE) Annotator.deactivateTrafficDeviceProp()
+	private deactivateAllAnnotationPropertiesMenus(exceptFor: AnnotationType = AnnotationType.UNKNOWN): void {
+		if ( !this.props.uiMenuVisible ) return
+		if (exceptFor !== AnnotationType.BOUNDARY) this.deactivateBoundaryProp()
+		if (exceptFor !== AnnotationType.LANE) this.deactivateLaneProp()
+		if (exceptFor !== AnnotationType.CONNECTION) this.deactivateConnectionProp()
+		if (exceptFor !== AnnotationType.TERRITORY) this.deactivateTerritoryProp()
+		if (exceptFor !== AnnotationType.TRAFFIC_DEVICE) this.deactivateTrafficDeviceProp()
 	}
 
 	/**
 	 * Deactivate lane properties menu panel
 	 */
-	private static deactivateLaneProp(): void {
-		Annotator.collapseAccordion('#menu_lane')
+	private deactivateLaneProp(): void {
+		this.collapseAccordion('#menu_lane')
 
 		Annotator.deactivateLeftSideNeighbours()
 		Annotator.deactivateRightSideNeighbours()
@@ -3246,8 +3250,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate boundary properties menu panel
 	 */
-	private static deactivateBoundaryProp(): void {
-		Annotator.collapseAccordion('#menu_boundary')
+	private deactivateBoundaryProp(): void {
+		this.collapseAccordion('#menu_boundary')
 
 		const bpId = document.getElementById('bp_id_value')
 		if (bpId)
@@ -3281,8 +3285,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate connection properties menu panel
 	 */
-	private static deactivateConnectionProp(): void {
-		Annotator.collapseAccordion('#menu_connection')
+	private deactivateConnectionProp(): void {
+		this.collapseAccordion('#menu_connection')
 
 		const cpId = document.getElementById('cp_id_value')
 		if (cpId)
@@ -3310,8 +3314,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate territory properties menu panel
 	 */
-	private static deactivateTerritoryProp(): void {
-		Annotator.collapseAccordion('#menu_territory')
+	private deactivateTerritoryProp(): void {
+		this.collapseAccordion('#menu_territory')
 
 		const territoryLabel = document.getElementById('input_label_territory')
 		if (territoryLabel)
@@ -3323,8 +3327,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate traffic device properties menu panel
 	 */
-	private static deactivateTrafficDeviceProp(): void {
-		Annotator.collapseAccordion('#menu_traffic_device')
+	private deactivateTrafficDeviceProp(): void {
+		this.collapseAccordion('#menu_traffic_device')
 
 		const tpId = document.getElementById('tp_id_value')
 		if (tpId)
