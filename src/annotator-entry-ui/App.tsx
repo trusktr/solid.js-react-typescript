@@ -6,6 +6,7 @@
 import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import Annotator from 'annotator-entry-ui/Annotator'
+import Kiosk from 'annotator-entry-ui/Kiosk'
 // import Menu from './components/Menu'
 import './style.scss'
 import Logger from '@/util/log'
@@ -70,7 +71,12 @@ export default class App extends React.Component<AppProps, AppState> {
 		const {uiMenuVisible} = this.props
 
 		return <React.Fragment>
-			<Annotator />
+
+			{ config.get('startup.kiosk_mode') ?
+				<Kiosk />
+			:
+				<Annotator />
+			}
 
 
 			<div id="logo">
