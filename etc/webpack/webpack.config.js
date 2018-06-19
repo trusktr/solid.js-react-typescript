@@ -50,6 +50,7 @@ module.exports = patchConfig({
 		path: `${distDir}/`,
 		publicPath: `${distDir}/`,
 		filename: '[name].js',
+        libraryTarget: 'commonjs2',
 	},
 
 	// LOADERS
@@ -57,7 +58,8 @@ module.exports = patchConfig({
 		loaders: [
 			{
 				test: /\.json$/,
-				loader: 'json'
+				exclude: [/node_modules/],
+				loader: 'json-loader'
 			},
 
 			// SourceCode
