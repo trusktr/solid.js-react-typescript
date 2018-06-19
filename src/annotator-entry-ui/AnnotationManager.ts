@@ -4,7 +4,7 @@
  */
 
 import config from '@/config'
-import {vsprintf} from 'sprintf-js'
+import {dateToString} from "@/util/dateToString"
 import * as Electron from 'electron'
 import * as lodash from 'lodash'
 import {isNullOrUndefined} from "util"
@@ -31,6 +31,8 @@ import * as mkdirp from 'mkdirp'
 import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
 import * as CRS from "./CoordinateReferenceSystem"
 import Logger from "@/util/log"
+import {tileIndexFromVector3} from "@/annotator-entry-ui/model/TileIndex"
+import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
 
 const log = Logger(__filename)
 
@@ -93,6 +95,7 @@ export class AnnotationManager {
 
 	constructor(
 		private readonly isInteractiveMode: boolean, // Interactive allows annotations to be selected and edited; otherwise they can only be added or removed.
+		private readonly scaleProvider: ScaleProvider,
 		private readonly utmCoordinateSystem: UtmCoordinateSystem,
 		private readonly scene: THREE.Scene, // where objects are placed on behalf of Annotator
 		private onChangeActiveAnnotation: (active: Annotation) => void
@@ -1050,42 +1053,72 @@ export class AnnotationManager {
 		return this.metadataState.immediateAutoSave()
 	}
 
-	async saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
-		if (!this.allAnnotations().find(a => a.isValid()))
-			return Promise.reject(new Error('failed to save empty set of annotations'))
+	saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
+		const annotations = this.allAnnotations()
+			.filter(a => a.isValid())
+		if (!annotations.length)
+			return Promise.reject(Error('failed to save empty set of annotations'))
 
 		if (!this.utmCoordinateSystem.hasOrigin && !config.get('output.annotations.debug.allow_annotations_without_utm_origin'))
-			return Promise.reject(new Error('failed to save annotations: UTM origin is not set'))
+			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
 
 		const self = this
 		const dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		return Promise.resolve(mkdirp.sync(dirName))
-			.then(() => AsyncFile.writeTextFile(fileName, JSON.stringify(self.toJSON(format), null, 2)))
+			.then(() => AsyncFile.writeTextFile(fileName, JSON.stringify(self.toJSON(format, annotations), null, 2)))
 			.then(() => self.metadataState.clean())
 	}
 
-	toJSON(format: OutputFormat): AnnotationManagerJsonOutputInterface {
-		let crs: CRS.CoordinateReferenceSystem
-		let pointConverter: (p: THREE.Vector3) => Object
-		if (format === OutputFormat.UTM) {
-			crs = {
-				coordinateSystem: 'UTM',
-				datum: this.utmCoordinateSystem.datum,
-				parameters: {
-					utmZoneNumber: this.utmCoordinateSystem.utmZoneNumber,
-					utmZoneNorthernHemisphere: this.utmCoordinateSystem.utmZoneNorthernHemisphere,
-				}
-			} as CRS.UtmCrs
-			pointConverter = this.threeJsToUtmJsonObject()
-		} else if (format === OutputFormat.LLA) {
-			crs = {
-				coordinateSystem: 'LLA',
-				datum: this.utmCoordinateSystem.datum,
-			} as CRS.LlaCrs
-			pointConverter = this.threeJsToLlaJsonObject()
-		} else {
-			throw new Error('unknown OutputFormat: ' + format)
-		}
+	// Parcel out the annotations to tile files. This produces output similar to the Perception
+	// TileManager, which conveniently is ready to be consumed by the Strabo LoadTiles script.
+	// https://github.com/Signafy/mapper-annotator/blob/develop/documentation/tile_service.md
+	exportAnnotationsTiles(directory: string, format: OutputFormat): Promise<void> {
+		const annotations = this.allAnnotations()
+			.filter(a => a.isValid())
+		if (!annotations.length)
+			return Promise.reject(Error('failed to save empty set of annotations'))
+
+		if (!this.utmCoordinateSystem.hasOrigin && !config.get('output.annotations.debug.allow_annotations_without_utm_origin'))
+			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
+
+		if (format !== OutputFormat.UTM)
+			return Promise.reject(Error('exportAnnotationsTiles() is implemented only for UTM'))
+
+		mkdirp.sync(directory)
+
+		// Repeat the entire annotation record in each tile that is intersected by the annotation.
+		// TODO For now the intersection algorithm only checks the markers (vertices) of the annotation
+		// TODO   geometry. It might be nice to interpolate between markers to find all intersections.
+		const groups: Map<string, Set<Annotation>> = new Map()
+		annotations.forEach(annotation => {
+			annotation.markers.forEach(marker => {
+				const utmPosition = this.utmCoordinateSystem.threeJsToUtm(marker.position)
+				const key = tileIndexFromVector3(this.scaleProvider.utmTileScale, utmPosition).toString('_')
+				const existing = groups.get(key)
+				if (existing)
+					groups.set(key, existing.add(annotation))
+				else
+					groups.set(key, new Set<Annotation>().add(annotation))
+			})
+		})
+
+		// Generate a file for each tile.
+		const promises: Promise<void>[] = []
+		groups.forEach((tileAnnotations, key) => {
+			const fileName = directory + '/' + key + '.json'
+			promises.push(AsyncFile.writeTextFile(fileName,
+				JSON.stringify(this.toJSON(format, Array.from(tileAnnotations)))
+			))
+		})
+
+		return Promise.all(promises)
+			.then(() => {return})
+	}
+
+	toJSON(format: OutputFormat, annotations: Annotation[]): AnnotationManagerJsonOutputInterface {
+		const crs = this.outputFormatToCoordinateReferenceSystem(format)
+		const pointConverter = this.outputFormatToPointConverter(format)
+
 		const data: AnnotationManagerJsonOutputInterface = {
 			version: currentAnnotationFileVersion,
 			created: new Date().toISOString(),
@@ -1093,11 +1126,42 @@ export class AnnotationManager {
 			annotations: [],
 		}
 
-		data.annotations = this.allAnnotations()
-			.filter(a => a.isValid())
+		data.annotations = annotations
 			.map(a => a.toJSON(pointConverter))
 
 		return data
+	}
+
+	private outputFormatToPointConverter(format: OutputFormat): (p: THREE.Vector3) => Object {
+		switch (format) {
+			case OutputFormat.UTM:
+				return this.threeJsToUtmJsonObject()
+			case OutputFormat.LLA:
+				return this.threeJsToLlaJsonObject()
+			default:
+				throw Error('unknown OutputFormat: ' + format)
+		}
+	}
+
+	private outputFormatToCoordinateReferenceSystem(format: OutputFormat): CRS.CoordinateReferenceSystem {
+		switch (format) {
+			case OutputFormat.UTM:
+				return {
+					coordinateSystem: 'UTM',
+					datum: this.utmCoordinateSystem.datum,
+					parameters: {
+						utmZoneNumber: this.utmCoordinateSystem.utmZoneNumber,
+						utmZoneNorthernHemisphere: this.utmCoordinateSystem.utmZoneNorthernHemisphere,
+					}
+				} as CRS.UtmCrs
+			case OutputFormat.LLA:
+				return {
+					coordinateSystem: 'LLA',
+					datum: this.utmCoordinateSystem.datum,
+				} as CRS.LlaCrs
+			default:
+				throw Error('unknown OutputFormat: ' + format)
+		}
 	}
 
 	/**
@@ -1775,18 +1839,7 @@ export class AnnotationState {
 	}
 
 	private saveAnnotations(): Promise<void> {
-		const now = new Date()
-		const nowElements = [
-			now.getUTCFullYear(),
-			now.getUTCMonth() + 1,
-			now.getUTCDate(),
-			now.getUTCHours(),
-			now.getUTCMinutes(),
-			now.getUTCSeconds(),
-			now.getUTCMilliseconds(),
-		]
-		const fileName = vsprintf("%04d-%02d-%02dT%02d-%02d-%02d.%03dZ.json", nowElements)
-		const savePath = this.autoSaveDirectory + '/' + fileName
+		const savePath = this.autoSaveDirectory + '/' + dateToString(new Date()) + '.json'
 		log.info("auto-saving annotations to: " + savePath)
 		return this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM)
 			.catch(error => log.warn('save annotations failed: ' + error.message))

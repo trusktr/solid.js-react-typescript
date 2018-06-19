@@ -11,7 +11,8 @@ import {SuperTile} from "./SuperTile"
 import {UtmTile} from "./UtmTile"
 import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
-import {configToScale3D, Scale3D} from "../geometry/Scale3D"
+import {Scale3D} from "../geometry/Scale3D"
+import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
 import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
 import LocalStorage from "../state/LocalStorage"
 import {TileServiceClient} from "./TileServiceClient"
@@ -71,6 +72,7 @@ export abstract class TileManager {
 	protected superTileScale: Scale3D
 
 	constructor(
+		scaleProvider: ScaleProvider,
 		protected utmCoordinateSystem: UtmCoordinateSystem,
 		private onSuperTileLoad: (superTile: SuperTile) => void,
 		private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void,
@@ -84,12 +86,8 @@ export abstract class TileManager {
 		this._isLoadingTiles = false
 		this.loadedObjectsBoundingBox = null
 
-		// Set the dimensions of tiles and super tiles.
-		// Super tile boundaries coincide with tile boundaries, with no overlap.
-		this.utmTileScale = configToScale3D('tile_manager.utm_tile_scale')
-		this.superTileScale = configToScale3D('tile_manager.super_tile_scale')
-		if (!this.superTileScale.isMultipleOf(this.utmTileScale))
-			throw Error('super_tile_scale must be a multiple of utm_tile_scale')
+		this.utmTileScale = scaleProvider.utmTileScale
+		this.superTileScale = scaleProvider.superTileScale
 	}
 
 	private enumerateOneRange(search: RangeSearch): TileIndex[] {

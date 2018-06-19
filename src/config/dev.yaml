@@ -51,6 +51,7 @@ output.annotations.json.path: ./data/annotations.json
 output.annotations.kml.path: ./data/waypoints.kml
 output.annotations.autosave.directory.path: ./data/autosave
 output.annotations.autosave.interval.seconds: 300
+output.annotations.tiles_dir: ./data/tiles
 
 # Perception integration
 perception.offline_localizer_path: # if set, the fly_through.trajectory_picker paths are also required

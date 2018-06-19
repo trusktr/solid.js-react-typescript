@@ -31,6 +31,7 @@ import {
 } from "@/annotator-entry-ui/tile/TileManager"
 import {RangeSearch} from "@/annotator-entry-ui/model/RangeSearch"
 import {OrderedMap} from "immutable"
+import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
 
 const log = Logger(__filename)
 
@@ -124,6 +125,7 @@ export class PointCloudTileManager extends TileManager {
 	private HSVGradient: Array<THREE.Vector3>
 
 	constructor(
+		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
 		onSuperTileLoad: (superTile: SuperTile) => void,
 		onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void,
@@ -131,6 +133,7 @@ export class PointCloudTileManager extends TileManager {
 		enableVoxels: boolean,
 	) {
 		super(
+			scaleProvider,
 			utmCoordinateSystem,
 			onSuperTileLoad,
 			onSuperTileUnload,

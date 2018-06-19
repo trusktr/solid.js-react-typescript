@@ -27,6 +27,17 @@ export function stringToSpatialTileScale(str: string): SpatialTileScale | null {
 	}
 }
 
+export function spatialTileScaleToString(scale: SpatialTileScale): string | null {
+	switch (scale) {
+		case SpatialTileScale._008_008_008:
+			return '_008_008_008'
+		case SpatialTileScale._010_010_010:
+			return '_010_010_010'
+		default:
+			return null
+	}
+}
+
 export function spatialTileScaleToScale3D(msg: SpatialTileScale): Scale3D | null {
 	switch (msg) {
 		case SpatialTileScale._008_008_008:

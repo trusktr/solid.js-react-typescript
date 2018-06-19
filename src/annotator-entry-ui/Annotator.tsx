@@ -64,6 +64,9 @@ import {TileServiceClient} from "@/annotator-entry-ui/tile/TileServiceClient"
 import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile"
 import {AnnotationTileManager} from "@/annotator-entry-ui/tile/AnnotationTileManager"
 import {AnnotationSuperTile} from "@/annotator-entry-ui/tile/AnnotationSuperTile"
+import {dateToString} from "@/util/dateToString"
+import {scale3DToSpatialTileScale, spatialTileScaleToString} from "@/annotator-entry-ui/tile/ScaleUtil"
+import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
 
 const dialog = Electron.remote.dialog
 
@@ -258,6 +261,7 @@ class Annotator {
 	private sky: THREE.Object3D // makes it easier to tell up from down
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
+	private scaleProvider: ScaleProvider
 	private utmCoordinateSystem: UtmCoordinateSystem
 	private pointCloudTileManager: PointCloudTileManager
 	private annotationTileManager: AnnotationTileManager
@@ -398,6 +402,7 @@ class Annotator {
 		this.decorations = []
 		this.raycasterAnnotation = new THREE.Raycaster()
 		this.raycasterImageScreen = new THREE.Raycaster()
+		this.scaleProvider = new ScaleProvider()
 		this.utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
@@ -565,14 +570,16 @@ class Annotator {
 		// All the annotations go here.
 		this.annotationManager = new AnnotationManager(
 			!this.uiState.isKioskMode,
+			this.scaleProvider,
 			this.utmCoordinateSystem,
 			this.scene,
 			this.onChangeActiveAnnotation
 		)
 
 		// remote, tiled data sources
-		const tileServiceClient = new TileServiceClient(this.onTileServiceStatusUpdate)
+		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.onTileServiceStatusUpdate)
 		this.pointCloudTileManager = new PointCloudTileManager(
+			this.scaleProvider,
 			this.utmCoordinateSystem,
 			this.onSuperTileLoad,
 			this.onSuperTileUnload,
@@ -581,6 +588,7 @@ class Annotator {
 		)
 		if (this.settings.enableAnnotationTileManager)
 			this.annotationTileManager = new AnnotationTileManager(
+				this.scaleProvider,
 				this.utmCoordinateSystem,
 				this.onSuperTileLoad,
 				this.onSuperTileUnload,
@@ -2455,6 +2463,10 @@ class Annotator {
 					this.saveWaypointsKml().then()
 					break
 				}
+				case 'N': {
+					this.exportAnnotationsTiles(OutputFormat.UTM).then()
+					break
+				}
 				case 'n': {
 					this.addAnnotation(AnnotationType.LANE)
 					break
@@ -2681,6 +2693,20 @@ class Annotator {
 		log.info(`Saving annotations JSON to ${formattedPath}`)
 		return this.annotationManager.saveAnnotationsToFile(formattedPath, format)
 			.catch(error => log.warn("save to file failed: " + error.message))
+	}
+
+	private exportAnnotationsTiles(format: OutputFormat): Promise<void> {
+		const basePath = config.get('output.annotations.tiles_dir')
+		const scale = scale3DToSpatialTileScale(this.scaleProvider.utmTileScale)
+		if (isNullOrUndefined(scale))
+			return Promise.reject(Error(`1can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
+		const scaleString = spatialTileScaleToString(scale)
+		if (isNullOrUndefined(scaleString))
+			return Promise.reject(Error(`2can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
+		const dir = basePath + '/' + dateToString(new Date()) + scaleString
+		log.info(`Exporting annotations tiles to ${dir}`)
+		return this.annotationManager.exportAnnotationsTiles(dir, format)
+			.catch(error => log.warn("export failed: " + error.message))
 	}
 
 	// Save lane waypoints only.

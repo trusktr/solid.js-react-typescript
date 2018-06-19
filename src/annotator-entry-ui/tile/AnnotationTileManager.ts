@@ -16,9 +16,11 @@ import {RemoteTileInstance, TileInstance} from "@/annotator-entry-ui/model/TileI
 import {AnnotationTileContents} from "@/annotator-entry-ui/model/TileContents"
 import {AnnotationUtmTile} from "@/annotator-entry-ui/tile/AnnotationUtmTile"
 import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager"
+import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
 
 export class AnnotationTileManager extends TileManager {
 	constructor(
+		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
 		onSuperTileLoad: (superTile: SuperTile) => void,
 		onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void,
@@ -26,6 +28,7 @@ export class AnnotationTileManager extends TileManager {
 		private annotationManager: AnnotationManager,
 	) {
 		super(
+			scaleProvider,
 			utmCoordinateSystem,
 			onSuperTileLoad,
 			onSuperTileUnload,
