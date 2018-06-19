@@ -67,7 +67,7 @@ function initStore():ObservableStore<any> {
   const newObservableStore:ObservableStore<any> = ObservableStore.createObservableStore(
     reducers,
     compose.call(null) as StoreEnhancer<any>,
-    null,
+    undefined,
     null,
   )
 
