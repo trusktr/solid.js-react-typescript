@@ -58,7 +58,7 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 
 		}
 
-		return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState(defaultState)
+		return (__roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState(defaultState)
 	}
 
 	@ActionReducer()

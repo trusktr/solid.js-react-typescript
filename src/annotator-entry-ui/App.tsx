@@ -6,10 +6,9 @@
 import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import Annotator from 'annotator-entry-ui/Annotator'
-import Menu from './components/Menu'
+// import Menu from './components/Menu'
 import './style.scss'
 import Logger from '@/util/log'
-import TrajectoryPicker from "./components/TrajectoryPicker"
 import config from "@/config";
 import AnnotatorMenuView from "annotator-entry-ui/AnnotatorMenuView";
 import KioskMenuView from "annotator-z-hydra-kiosk/KioskMenuView";
@@ -41,17 +40,10 @@ interface AppState {}
 export default class App extends React.Component<AppProps, AppState> {
 	// private sceneContainer: HTMLElement | null
 	// private trajectoryPicker: JSX.Element
-	// private trajectoryPickerRef: TrajectoryPicker
 	//private annotator: Annotator
 
 	constructor(props: AppProps) {
 		super(props)
-		// this.trajectoryPicker = (
-		// 	<TrajectoryPicker
-		// 		ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
-		// 	/>
-		// )
-		//this.annotator = new Annotator(props)
 	}
 
 	MenuComponent() {
@@ -63,17 +55,17 @@ export default class App extends React.Component<AppProps, AppState> {
 	}
 
 	private makeOnStatusWindowClick = () => () => {
-		console.log("Testing click to toggle Status Window")
+		log.info("Testing click to toggle Status Window")
 		new StatusWindowActions().toggleEnabled()
 	}
 
 	private makeOnMenuClick = () => () => {
-		console.log("Testing click to toggle UI Menu")
+		log.info("Testing click to toggle UI Menu")
 		new RoadNetworkEditorActions().toggleUIMenuVisible()
 	}
 
 	render(): JSX.Element {
-		console.log("IN RENDER", config.get('startup.kiosk_mode'))
+		log.info("IN RENDER", config.get('startup.kiosk_mode'))
 		const MenuComponent = this.MenuComponent()
 		const {uiMenuVisible} = this.props
 
@@ -101,8 +93,6 @@ export default class App extends React.Component<AppProps, AppState> {
 
 			{/*<Menu />*/}
 			{uiMenuVisible && MenuComponent}
-
-			{/*{this.trajectoryPicker}*/}
 
 		</React.Fragment>
 	}

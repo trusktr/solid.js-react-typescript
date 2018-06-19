@@ -9,10 +9,8 @@ import '@/annotator-entry-ui/style.scss'
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import RoadEditorState from "annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState"
 import {createStructuredSelector} from "reselect"
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState"
 import {getValue} from "typeguard";
-import * as $ from "jquery";
 
 interface StatusWindowProps {
 	statusWindowState ?: StatusWindowState
@@ -35,8 +33,8 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
 	render(): JSX.Element {
 		const {statusWindowState} = this.props
-		const isEnabled = getValue(() => statusWindowState.enabled, false)
-		const messages = getValue(() => statusWindowState.messages, new Map<string, string>())
+		// const isEnabled = getValue(() => statusWindowState.enabled, false)
+		const messages = getValue(() => statusWindowState && statusWindowState.messages, new Map<string, string>()) as Map<string, string>
 
 		let out = ''
 		messages.forEach(value => {

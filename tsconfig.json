@@ -1,20 +1,20 @@
 {
     "compilerOptions": {
         "allowSyntheticDefaultImports": true,
+        "alwaysStrict": true,
         "baseUrl": "./src",
+        "declaration": false,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
+        "forceConsistentCasingInFileNames": true,
         "jsx": "react",
-		"lib": [
-			"es6",
-			"es7",
-			"es2016",
-			"es2017",
-			"dom"
-		],
+		"lib": ["es6", "dom", "esnext.asynciterable"],
         "module": "commonjs",
         "moduleResolution": "node",
-        "noImplicitReturns": false,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
         "outDir": "./dist/out",
         "paths": {
 			"*": [ "*" ],
@@ -22,27 +22,30 @@
 			"@/*": [ "*" ]
 		},
         "preserveConstEnums": true,
+        "pretty": true,
         "sourceMap": true,
+		"strictNullChecks": true,
 		"target": "es6"
     },
+    "compileOnSave": true,
     "include": [
         "src"
     ],
-	"awesomeTypescriptLoaderOptions": {
-		"useBabel": false,
-		"forkChecker": true,
-		"useCache": true,
-		"cacheDirectory": "dist/.awcache",
-		"babelOptions": {
-			"sourceMaps": "both",
-			"env": {
-				"development": {
-					"plugins": [
-						"react-hot-loader/babel"
-					]
-				}
-			}
-		}
-	}
+    "awesomeTypescriptLoaderOptions": {
+        "useBabel": false,
+        "forkChecker": true,
+        "useCache": true,
+        "cacheDirectory": "dist/.awcache",
+        "babelOptions": {
+            "sourceMaps": "both",
+            "env": {
+                "development": {
+                    "plugins": [
+                        "react-hot-loader/babel"
+                    ]
+                }
+            }
+        }
+    }
 
 }

@@ -5,13 +5,12 @@
 
 import config from '@/config'
 import * as $ from 'jquery'
-import * as AsyncFile from "async-file"
 import * as Electron from 'electron'
 // import * as electronUnhandled from 'electron-unhandled'
 import {sprintf} from 'sprintf-js'
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
-import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
+import {AnimationLoop} from 'animation-loop'
 import LocalStorage from "./state/LocalStorage"
 import {GUI as DatGui, GUIParams} from 'dat.gui'
 import {TransformControls} from './controls/TransformControls'
@@ -91,11 +90,11 @@ const cameraTypeString = {
 	perspective: 'perspective',
 }
 
-enum MenuVisibility {
-	HIDE = 0,
-	SHOW,
-	TOGGLE
-}
+// enum MenuVisibility {
+// 	HIDE = 0,
+// 	SHOW,
+// 	TOGGLE
+// }
 
 // Various types of objects which can be displayed in the three.js scene.
 enum Layer {
@@ -296,10 +295,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// private shouldAnimate: boolean
 	private updateOrbitControls: boolean
 	private root: HTMLElement
-	private sceneInitialized: boolean
 	private openTrajectoryPickerFunction: ((cb: TrajectoryFileSelectedCallback) => void) | null
 	private sceneContainer: HTMLDivElement
-	private trajectoryPicker: JSX.Element
 	private trajectoryPickerRef: TrajectoryPicker
 
 	constructor(props) {
@@ -308,7 +305,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		// this.shouldAnimate = false
 		this.updateOrbitControls = false
-		this.sceneInitialized = false
 
 		if (config.get('startup.animation.fps'))
 			log.warn('config option startup.animation.fps has been removed. Use startup.renderAnnotator.fps.')
@@ -1332,7 +1328,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		// if (!this.statusWindow.isEnabled()) return
 		// [RYAN] updated
-		if(! getValue(() => this.props.statusWindowState.enabled, false)) return
+		if( !getValue( () => this.props.statusWindowState && this.props.statusWindowState.enabled, false ) ) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
@@ -3009,7 +3005,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		FlyThroughManager.loadFlyThroughTrajectories([path])
 			.then(() => {
 				// Make sure that we are in flyThrough mode and that the animation is running.
-				if (!this.props.flyThroughState.enabled) {
+				if (this.props.flyThroughState && !this.props.flyThroughState.enabled) {
 					// this.toggleLiveAndRecordedPlay()
 					FlyThroughManager.toggleLiveAndRecordedPlay()
 				}
@@ -3607,7 +3603,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 			// RYAN UPDATED
 			// if (this.flyThroughState.enabled) return
-			if (this.props.flyThroughState.enabled) return
+			if (this.props.flyThroughState && this.props.flyThroughState.enabled) return
 
 			const state = Models.InertialStateMessage.decode(msg)
 			if (
@@ -3835,7 +3831,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// RYAN UPDATED
 		// if (!this.uiState.isLiveMode) return
 		// if (this.flyThroughState.enabled) return
-		if (!this.props.liveModeEnabled || this.props.flyThroughState.enabled) return
+		if (!this.props.liveModeEnabled || this.props.flyThroughState && this.props.flyThroughState.enabled) return
 
 		let message = 'Location status: '
 		switch (level) {
