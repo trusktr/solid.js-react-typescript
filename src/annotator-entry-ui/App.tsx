@@ -5,7 +5,6 @@
 
 import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
-import initUIControl from '@/annotator-control-ui/UIControl'
 import Annotator from 'annotator-entry-ui/Annotator'
 import Menu from './components/Menu'
 import './style.scss'
@@ -106,16 +105,6 @@ export default class App extends React.Component<AppProps, AppState> {
 			{/*{this.trajectoryPicker}*/}
 
 		</React.Fragment>
-	}
-
-	componentDidMount(): void {
-		initUIControl()
-
-
-	}
-
-	componentWillUnmount(): void {
-		//this.annotator.unmount()
 	}
 
 }

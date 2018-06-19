@@ -7,6 +7,7 @@ import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import './style.scss'
 import Help from 'annotator-entry-ui/components/Help'
+import initUIControl from '@/annotator-control-ui/UIControl'
 
 interface KioskViewProps {}
 
@@ -106,5 +107,10 @@ export default class AnnotatorMenuView extends React.Component<KioskViewProps, K
 			</div>
 		</menu>
 		</div>)
+	}
+
+
+	componentDidMount(): void {
+		initUIControl()
 	}
 }
