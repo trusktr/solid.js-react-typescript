@@ -572,7 +572,8 @@ class Annotator {
 			!this.uiState.isKioskMode,
 			this.scaleProvider,
 			this.utmCoordinateSystem,
-			this.scene,
+			this.onAddAnnotation,
+			this.onRemoveAnnotation,
 			this.onChangeActiveAnnotation
 		)
 
@@ -1980,6 +1981,14 @@ class Annotator {
 				this.render()
 			}
 		}
+	}
+
+	private onAddAnnotation = (object: THREE.Object3D): void => {
+		this.scene.add(object)
+	}
+
+	private onRemoveAnnotation = (object: THREE.Object3D): void => {
+		this.scene.remove(object)
 	}
 
 	// Ensure that the current UiState is compatible with a new active annotation.
