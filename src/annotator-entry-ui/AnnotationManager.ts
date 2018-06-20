@@ -4,7 +4,7 @@
  */
 
 import config from '@/config'
-import {vsprintf} from 'sprintf-js'
+import {dateToString} from "@/util/dateToString"
 import * as Electron from 'electron'
 import * as lodash from 'lodash'
 import {isNullOrUndefined} from "util"
@@ -31,6 +31,8 @@ import * as mkdirp from 'mkdirp'
 import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
 import * as CRS from "./CoordinateReferenceSystem"
 import Logger from "@/util/log"
+import {tileIndexFromVector3} from "@/annotator-entry-ui/model/TileIndex"
+import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
 
 const log = Logger(__filename)
 
@@ -93,6 +95,7 @@ export class AnnotationManager {
 
 	constructor(
 		private readonly isInteractiveMode: boolean, // Interactive allows annotations to be selected and edited; otherwise they can only be added or removed.
+		private readonly scaleProvider: ScaleProvider,
 		private readonly utmCoordinateSystem: UtmCoordinateSystem,
 		private readonly scene: THREE.Scene, // where objects are placed on behalf of Annotator
 		private onChangeActiveAnnotation: (active: Annotation) => void
@@ -165,70 +168,70 @@ export class AnnotationManager {
 			return []
 	}
 
+	private static createAnnotationFromJson(obj: AnnotationJsonInputInterface): [Annotation | null, AnnotationConstructResult] {
+		const annotationType = AnnotationType[obj.annotationType]
+
+		const newAnnotation = AnnotationFactory.construct(annotationType, obj)
+		if (!newAnnotation)
+			return [null, AnnotationConstructResult.CONSTRUCTOR_ERROR]
+		if (!newAnnotation.isValid())
+			return [null, AnnotationConstructResult.INVALID_INPUT]
+
+		return [newAnnotation, AnnotationConstructResult.SUCCESS]
+	}
+
+	private static createAnnotationByType(annotationType: AnnotationType): [Annotation | null, AnnotationConstructResult] {
+		const newAnnotation = AnnotationFactory.construct(annotationType)
+		if (!newAnnotation)
+			return [null, AnnotationConstructResult.CONSTRUCTOR_ERROR]
+
+		return [newAnnotation, AnnotationConstructResult.SUCCESS]
+	}
+
 	/**
 	 * Create a new annotation. Add its associated rendering object to the scene for display.
-	 * @param obj             Construct the annotation from a JSON object
 	 * @param annotationType  Construct a new annotation with the given type
 	 * @param activate        Activate the new annotation after creation
-	 * One of obj and annotationType is required.
 	 * @return either an Annotation with success result code
 	 *           or null with a failure result code
 	 */
+	createAndAddAnnotation(
+		annotationType: AnnotationType,
+		activate: boolean = false
+	): [Annotation | null, AnnotationConstructResult] {
+		const result = AnnotationManager.createAnnotationByType(annotationType)
+		const annotation = result[0]
+		if (annotation === null)
+			return result
+		else
+			return this.addAnnotation(annotation, activate)
+	}
+
 	addAnnotation(
-		obj: AnnotationJsonInputInterface | null,
-		annotationType: AnnotationType | null = null,
+		annotation: Annotation,
 		activate: boolean = false
 	): [Annotation | null, AnnotationConstructResult] {
 		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost).
 		if (this.activeAnnotation && !this.activeAnnotation.isValid()) return [null, AnnotationConstructResult.INVALID_STATE]
 
-		// Figure out which type we are working with.
-		let myAnnotationType: AnnotationType
-		if (obj) {
-			myAnnotationType = AnnotationType[obj.annotationType]
-		} else if (annotationType) {
-			myAnnotationType = annotationType
-		} else {
-			log.warn('addAnnotation() requires either an AnnotationJsonInputInterface or an AnnotationType input')
-			return [null, AnnotationConstructResult.INVALID_INPUT]
-		}
-
-		// Get methods and data structures appropriate to the type.
-		const similarAnnotations = this.annotationTypeToSimilarAnnotationsList(myAnnotationType)
+		// Discard duplicate annotations.
+		const similarAnnotations = this.annotationTypeToSimilarAnnotationsList(annotation.annotationType)
 		if (similarAnnotations === null) {
-			if (obj)
-				log.warn(`discarding annotation with invalid type ${obj.annotationType}`)
-			else
-				log.warn(`discarding annotation with invalid type ${annotationType}`)
+			log.warn(`discarding annotation with invalid type ${annotation.annotationType}`)
 			return [null, AnnotationConstructResult.INVALID_INPUT]
 		}
-
-		// Instantiate it.
-		let newAnnotation: Annotation | null
-		if (obj) {
-			// Discard duplicate annotations.
-			if (similarAnnotations.some(a => a.uuid === obj.uuid))
-				return [null, AnnotationConstructResult.DUPLICATE]
-
-			// Instantiate and validate.
-			newAnnotation = AnnotationFactory.construct(myAnnotationType, obj)
-			if (!(newAnnotation && newAnnotation.isValid()))
-				return [null, AnnotationConstructResult.INVALID_INPUT]
-		} else {
-			newAnnotation = AnnotationFactory.construct(myAnnotationType)
-		}
-		if (!newAnnotation)
-			return [null, AnnotationConstructResult.CONSTRUCTOR_ERROR]
+		if (similarAnnotations.some(a => a.uuid === annotation.uuid))
+			return [null, AnnotationConstructResult.DUPLICATE]
 
 		// Set state.
-		similarAnnotations.push(newAnnotation)
-		this.annotationObjects.push(newAnnotation.renderingObject)
-		this.scene.add(newAnnotation.renderingObject)
+		similarAnnotations.push(annotation)
+		this.annotationObjects.push(annotation.renderingObject)
+		this.scene.add(annotation.renderingObject)
 		if (activate)
-			this.setActiveAnnotation(newAnnotation)
+			this.setActiveAnnotation(annotation)
 
-		return [newAnnotation, AnnotationConstructResult.SUCCESS]
+		return [annotation, AnnotationConstructResult.SUCCESS]
 	}
 
 	// Get a reference to the list containing matching AnnotationType.
@@ -1023,7 +1026,12 @@ export class AnnotationManager {
 	 */
 	loadAnnotationsFromFile(fileName: string): Promise<THREE.Vector3 | null> {
 		return AsyncFile.readFile(fileName, 'ascii')
-			.then((text: string) => this.loadAnnotationsFromObject(JSON.parse(text)))
+			.then((text: string) => {
+				const annotations = this.objectToAnnotations(JSON.parse(text))
+				if (!annotations)
+					throw Error(`annotation file ${fileName} has no annotations`)
+				return this.addAnnotationsList(annotations)
+			})
 	}
 
 	unloadAllAnnotations(): void {
@@ -1045,42 +1053,72 @@ export class AnnotationManager {
 		return this.metadataState.immediateAutoSave()
 	}
 
-	async saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
-		if (!this.allAnnotations().find(a => a.isValid()))
-			return Promise.reject(new Error('failed to save empty set of annotations'))
+	saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
+		const annotations = this.allAnnotations()
+			.filter(a => a.isValid())
+		if (!annotations.length)
+			return Promise.reject(Error('failed to save empty set of annotations'))
 
-		if (!this.utmCoordinateSystem.hasOrigin() && !config.get('output.annotations.debug.allow_annotations_without_utm_origin'))
-			return Promise.reject(new Error('failed to save annotations: UTM origin is not set'))
+		if (!this.utmCoordinateSystem.hasOrigin && !config.get('output.annotations.debug.allow_annotations_without_utm_origin'))
+			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
 
 		const self = this
 		const dirName = fileName.substring(0, fileName.lastIndexOf("/"))
 		return Promise.resolve(mkdirp.sync(dirName))
-			.then(() => AsyncFile.writeTextFile(fileName, JSON.stringify(self.toJSON(format), null, 2)))
+			.then(() => AsyncFile.writeTextFile(fileName, JSON.stringify(self.toJSON(format, annotations), null, 2)))
 			.then(() => self.metadataState.clean())
 	}
 
-	toJSON(format: OutputFormat): AnnotationManagerJsonOutputInterface {
-		let crs: CRS.CoordinateReferenceSystem
-		let pointConverter: (p: THREE.Vector3) => Object
-		if (format === OutputFormat.UTM) {
-			crs = {
-				coordinateSystem: 'UTM',
-				datum: this.utmCoordinateSystem.datum,
-				parameters: {
-					utmZoneNumber: this.utmCoordinateSystem.utmZoneNumber,
-					utmZoneNorthernHemisphere: this.utmCoordinateSystem.utmZoneNorthernHemisphere,
-				}
-			} as CRS.UtmCrs
-			pointConverter = this.threeJsToUtmJsonObject()
-		} else if (format === OutputFormat.LLA) {
-			crs = {
-				coordinateSystem: 'LLA',
-				datum: this.utmCoordinateSystem.datum,
-			} as CRS.LlaCrs
-			pointConverter = this.threeJsToLlaJsonObject()
-		} else {
-			throw new Error('unknown OutputFormat: ' + format)
-		}
+	// Parcel out the annotations to tile files. This produces output similar to the Perception
+	// TileManager, which conveniently is ready to be consumed by the Strabo LoadTiles script.
+	// https://github.com/Signafy/mapper-annotator/blob/develop/documentation/tile_service.md
+	exportAnnotationsTiles(directory: string, format: OutputFormat): Promise<void> {
+		const annotations = this.allAnnotations()
+			.filter(a => a.isValid())
+		if (!annotations.length)
+			return Promise.reject(Error('failed to save empty set of annotations'))
+
+		if (!this.utmCoordinateSystem.hasOrigin && !config.get('output.annotations.debug.allow_annotations_without_utm_origin'))
+			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
+
+		if (format !== OutputFormat.UTM)
+			return Promise.reject(Error('exportAnnotationsTiles() is implemented only for UTM'))
+
+		mkdirp.sync(directory)
+
+		// Repeat the entire annotation record in each tile that is intersected by the annotation.
+		// TODO For now the intersection algorithm only checks the markers (vertices) of the annotation
+		// TODO   geometry. It might be nice to interpolate between markers to find all intersections.
+		const groups: Map<string, Set<Annotation>> = new Map()
+		annotations.forEach(annotation => {
+			annotation.markers.forEach(marker => {
+				const utmPosition = this.utmCoordinateSystem.threeJsToUtm(marker.position)
+				const key = tileIndexFromVector3(this.scaleProvider.utmTileScale, utmPosition).toString('_')
+				const existing = groups.get(key)
+				if (existing)
+					groups.set(key, existing.add(annotation))
+				else
+					groups.set(key, new Set<Annotation>().add(annotation))
+			})
+		})
+
+		// Generate a file for each tile.
+		const promises: Promise<void>[] = []
+		groups.forEach((tileAnnotations, key) => {
+			const fileName = directory + '/' + key + '.json'
+			promises.push(AsyncFile.writeTextFile(fileName,
+				JSON.stringify(this.toJSON(format, Array.from(tileAnnotations)))
+			))
+		})
+
+		return Promise.all(promises)
+			.then(() => {return})
+	}
+
+	toJSON(format: OutputFormat, annotations: Annotation[]): AnnotationManagerJsonOutputInterface {
+		const crs = this.outputFormatToCoordinateReferenceSystem(format)
+		const pointConverter = this.outputFormatToPointConverter(format)
+
 		const data: AnnotationManagerJsonOutputInterface = {
 			version: currentAnnotationFileVersion,
 			created: new Date().toISOString(),
@@ -1088,11 +1126,42 @@ export class AnnotationManager {
 			annotations: [],
 		}
 
-		data.annotations = this.allAnnotations()
-			.filter(a => a.isValid())
+		data.annotations = annotations
 			.map(a => a.toJSON(pointConverter))
 
 		return data
+	}
+
+	private outputFormatToPointConverter(format: OutputFormat): (p: THREE.Vector3) => Object {
+		switch (format) {
+			case OutputFormat.UTM:
+				return this.threeJsToUtmJsonObject()
+			case OutputFormat.LLA:
+				return this.threeJsToLlaJsonObject()
+			default:
+				throw Error('unknown OutputFormat: ' + format)
+		}
+	}
+
+	private outputFormatToCoordinateReferenceSystem(format: OutputFormat): CRS.CoordinateReferenceSystem {
+		switch (format) {
+			case OutputFormat.UTM:
+				return {
+					coordinateSystem: 'UTM',
+					datum: this.utmCoordinateSystem.datum,
+					parameters: {
+						utmZoneNumber: this.utmCoordinateSystem.utmZoneNumber,
+						utmZoneNorthernHemisphere: this.utmCoordinateSystem.utmZoneNorthernHemisphere,
+					}
+				} as CRS.UtmCrs
+			case OutputFormat.LLA:
+				return {
+					coordinateSystem: 'LLA',
+					datum: this.utmCoordinateSystem.datum,
+				} as CRS.LlaCrs
+			default:
+				throw Error('unknown OutputFormat: ' + format)
+		}
 	}
 
 	/**
@@ -1124,12 +1193,12 @@ export class AnnotationManager {
 	 * Get a usable data structure from raw JSON. There are plenty of ways for this to throw errors.
 	 * Assume that they are caught and handled upstream.
 	 */
-	private loadAnnotationsFromObject(rawData: Object): THREE.Vector3 | null {
+	objectToAnnotations(json: Object): Annotation[] {
 		// Check versioning and coordinate system
-		const data = toCurrentAnnotationVersion(rawData)
-		if (!data['annotations']) {
-			throw Error(`got an annotation file with no annotations`)
-		}
+		const data = toCurrentAnnotationVersion(json)
+		if (!data['annotations'])
+			return []
+
 		if (!this.checkCoordinateSystem(data)) {
 			const params = data['coordinateReferenceSystem']['parameters']
 			const zoneId = `${params['utmZoneNumber']}${params['utmZoneNorthernHemisphere']}`
@@ -1137,14 +1206,40 @@ export class AnnotationManager {
 		}
 		this.convertCoordinates(data)
 
+		// Convert data to annotations
+		const errors: Map<string, number> = new Map()
+		const annotations: Annotation[] = []
+		data['annotations'].forEach((obj: AnnotationJsonInputInterface) => {
+			const [newAnnotation, result]: [Annotation | null, AnnotationConstructResult] = AnnotationManager.createAnnotationFromJson(obj)
+			if (newAnnotation) {
+				annotations.push(newAnnotation)
+			} else {
+				const errorString = AnnotationConstructResult[result]
+				const count = errors.get(errorString)
+				if (count)
+					errors.set(errorString, count + 1)
+				else
+					errors.set(errorString, 1)
+			}
+		})
+
+		// Clean up and go home
+		errors.forEach((v: number, k: string) =>
+			log.warn(`discarding ${v} annotations with error ${k}`)
+		)
+
+		return annotations
+	}
+
+	private addAnnotationsList(annotations: Annotation[]): THREE.Vector3 | null {
 		// Unset active, to pass a validation check in addAnnotation().
 		this.unsetActiveAnnotation()
 
 		// Convert data to annotations
 		let boundingBox = new THREE.Box3()
 		const errors: Map<string, number> = new Map()
-		data['annotations'].forEach((obj: AnnotationJsonInputInterface) => {
-			const [newAnnotation, result]: [Annotation | null, AnnotationConstructResult] = this.addAnnotation(obj)
+		annotations.forEach((annotation: Annotation) => {
+			const [newAnnotation, result]: [Annotation | null, AnnotationConstructResult] = this.addAnnotation(annotation)
 			if (newAnnotation) {
 				boundingBox = boundingBox.union(newAnnotation.boundingBox())
 			} else {
@@ -1188,7 +1283,7 @@ export class AnnotationManager {
 	 */
 	private addFrontConnection(source: Lane): boolean {
 
-		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE)[0] as Lane
+		const newAnnotation = this.createAndAddAnnotation(AnnotationType.LANE)[0] as Lane
 		if (!newAnnotation) return false
 
 		const lastMarkerIndex = source.markers.length - 1
@@ -1229,7 +1324,7 @@ export class AnnotationManager {
 	 */
 	private addLeftConnection(source: Lane, neighborDirection: NeighborDirection): boolean {
 
-		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE)[0] as Lane
+		const newAnnotation = this.createAndAddAnnotation(AnnotationType.LANE)[0] as Lane
 		if (!newAnnotation) return false
 
 		switch (neighborDirection) {
@@ -1287,7 +1382,7 @@ export class AnnotationManager {
 	 */
 	private addRightConnection(source: Lane, neighborDirection: NeighborDirection): boolean {
 
-		const newAnnotation = this.addAnnotation(null, AnnotationType.LANE)[0] as Lane
+		const newAnnotation = this.createAndAddAnnotation(AnnotationType.LANE)[0] as Lane
 		if (!newAnnotation) return false
 
 		switch (neighborDirection) {
@@ -1377,7 +1472,7 @@ export class AnnotationManager {
 				// If the front neighbor is a connection delete it
 				if (this.deleteAnnotation(frontNeighbor))
 					modifications++
-			} else {
+			} else if (frontNeighbor) {
 				log.error('Not valid front neighbor')
 			}
 		}
@@ -1394,7 +1489,7 @@ export class AnnotationManager {
 				// If the back neighbor is a connection delete it
 				if (this.deleteAnnotation(backNeighbor))
 					modifications++
-			} else {
+			} else if (backNeighbor) {
 				log.error('Not valid back neighbor')
 			}
 		}
@@ -1529,7 +1624,7 @@ export class AnnotationManager {
 	/**
 	 * Delete an annotation and tear down references to it.
 	 */
-	private deleteAnnotation(annotation: Annotation): boolean {
+	deleteAnnotation(annotation: Annotation): boolean {
 		// Get data structures appropriate to the type.
 		const similarAnnotations = this.annotationTypeToSimilarAnnotationsList(annotation.annotationType)
 		if (!similarAnnotations)
@@ -1589,7 +1684,9 @@ export class AnnotationManager {
 			return false
 		const northernHemisphere = !!crs['parameters']['utmZoneNorthernHemisphere']
 
-		if (!data['annotations']) return false
+		if (!data['annotations'])
+			return !this.utmCoordinateSystem.hasOrigin || this.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
+
 		// generate an arbitrary offset for internal use, given the first point in the data set
 		let first: THREE.Vector3 | null = null
 		// and round off the values for nicer debug output
@@ -1601,10 +1698,11 @@ export class AnnotationManager {
 				first = new THREE.Vector3(trunc(pos['E']), trunc(pos['N']), trunc(pos['alt']))
 			}
 		}
-		if (!first) return false
+		if (!first)
+			return !this.utmCoordinateSystem.hasOrigin || this.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
 
 		return this.utmCoordinateSystem.setOrigin(num, northernHemisphere, first) ||
-			this.utmCoordinateSystem.utmZoneNumber === num && this.utmCoordinateSystem.utmZoneNorthernHemisphere === northernHemisphere
+			this.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
 	}
 
 	/**
@@ -1741,18 +1839,7 @@ export class AnnotationState {
 	}
 
 	private saveAnnotations(): Promise<void> {
-		const now = new Date()
-		const nowElements = [
-			now.getUTCFullYear(),
-			now.getUTCMonth() + 1,
-			now.getUTCDate(),
-			now.getUTCHours(),
-			now.getUTCMinutes(),
-			now.getUTCSeconds(),
-			now.getUTCMilliseconds(),
-		]
-		const fileName = vsprintf("%04d-%02d-%02dT%02d-%02d-%02d.%03dZ.json", nowElements)
-		const savePath = this.autoSaveDirectory + '/' + fileName
+		const savePath = this.autoSaveDirectory + '/' + dateToString(new Date()) + '.json'
 		log.info("auto-saving annotations to: " + savePath)
 		return this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM)
 			.catch(error => log.warn('save annotations failed: ' + error.message))
