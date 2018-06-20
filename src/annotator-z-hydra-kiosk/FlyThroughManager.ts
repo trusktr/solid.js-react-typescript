@@ -4,7 +4,7 @@ import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetw
 import {FlyThroughTrajectory} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import FlyThroughActions from "@/annotator-z-hydra-kiosk/FlyThroughActions";
-import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
+import {ChildAnimationLoop} from 'animation-loop'
 import config from "@/config";
 import * as AsyncFile from "async-file";
 import {dataSetNameFromPath} from "@/util/Perception";
@@ -31,7 +31,7 @@ loop.interval = flyThroughInterval
 export async function init() {
 	try {
 		log.info('Setting up FlyThroughManager')
-		getRoadNetworkEditorStore().observe([RoadEditorState.Key,'playModeEnabled'],(newValue:Boolean,oldValue:Boolean,observer) => {
+		getRoadNetworkEditorStore().observe([RoadEditorState.Key,'playModeEnabled'], (newValue:Boolean, __oldValue:Boolean, __observer) => {
 			log.info("playModeEnabled changed, new value is", newValue)
 			// storeUser(newValue)
 			if(newValue)

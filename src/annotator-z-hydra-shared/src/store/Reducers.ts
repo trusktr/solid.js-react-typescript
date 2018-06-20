@@ -1,8 +1,6 @@
 import * as _ from "lodash"
 import {DefaultLeafReducer, ILeafReducer} from "typedux"
-import Logger from "@/util/log";
 
-const log = Logger(__filename)
 /**
  * Load all the reducers from store/reducer
  * @returns {ILeafReducer<any, any>[]}
@@ -28,8 +26,8 @@ function filterReducers(modules):DefaultLeafReducer<any, any>[] {
       reducerClass = module,
       reducer = new reducerClass()
 
-    if(_.isFunction(reducer.leaf) && !reducers.find(it => it.leaf() === reducer.leaf())){
-      reducers.push(reducer)
+    if(_.isFunction((reducer as any).leaf) && !reducers.find(it => (it as any).leaf() === reducer.leaf())){
+      reducers.push(reducer as never) // FIXME, fix types
     }
   }
   return reducers

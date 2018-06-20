@@ -5,13 +5,12 @@
 
 import config from '@/config'
 import * as $ from 'jquery'
-import * as AsyncFile from "async-file"
 import * as Electron from 'electron'
 // import * as electronUnhandled from 'electron-unhandled'
 import {sprintf} from 'sprintf-js'
 import * as lodash from 'lodash'
 import {Map} from 'immutable'
-import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
+import {AnimationLoop} from 'animation-loop'
 import LocalStorage from "./state/LocalStorage"
 import {GUI as DatGui, GUIParams} from 'dat.gui'
 import {TransformControls} from './controls/TransformControls'
@@ -91,11 +90,11 @@ const cameraTypeString = {
 	perspective: 'perspective',
 }
 
-enum MenuVisibility {
-	HIDE = 0,
-	SHOW,
-	TOGGLE
-}
+// enum MenuVisibility {
+// 	HIDE = 0,
+// 	SHOW,
+// 	TOGGLE
+// }
 
 // Various types of objects which can be displayed in the three.js scene.
 enum Layer {
@@ -296,10 +295,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// private shouldAnimate: boolean
 	private updateOrbitControls: boolean
 	private root: HTMLElement
-	private sceneInitialized: boolean
 	private openTrajectoryPickerFunction: ((cb: TrajectoryFileSelectedCallback) => void) | null
 	private sceneContainer: HTMLDivElement
-	private trajectoryPicker: JSX.Element
 	private trajectoryPickerRef: TrajectoryPicker
 
 	constructor(props) {
@@ -308,7 +305,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		// this.shouldAnimate = false
 		this.updateOrbitControls = false
-		this.sceneInitialized = false
 
 		if (config.get('startup.animation.fps'))
 			log.warn('config option startup.animation.fps has been removed. Use startup.renderAnnotator.fps.')
@@ -619,8 +615,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed}) // RYAN Annotator-specific
 
 		// Bind events
-		this.bind() // Annotator-specific
-		Annotator.deactivateAllAnnotationPropertiesMenus() // Annotator-specific
+		this.bind()
+		// if ( this.props.uiMenuVisible ) this.deactivateAllAnnotationPropertiesMenus()
+
 		// Create the hamburger menu and display (open) it as requested.
 		const startupMenu = this.uiState.isKioskMode ? '#liveModeMenu' : '#annotationMenu'
 		this.switchToMenu(startupMenu)
@@ -683,7 +680,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Create a UI widget to adjust application settings on the fly.
-	// ONLY ANNOTATOR
 	createControlsGui(): void {
 		// Add panel to change the settings
 		if (!isNullOrUndefined(config.get('startup.show_color_picker')))
@@ -752,7 +748,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		folderConnection.open()
 	}
 
-	// ONLY ANNOTATOR
 	private destroyControlsGui(): void {
 		if (!config.get('startup.show_control_panel')) return
 		if (this.gui) this.gui.destroy()
@@ -1364,7 +1359,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		// if (!this.statusWindow.isEnabled()) return
 		// [RYAN] updated
-		if(! getValue(() => this.props.statusWindowState.enabled, false)) return
+		if( !getValue( () => this.props.statusWindowState && this.props.statusWindowState.enabled, false ) ) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
@@ -1714,7 +1709,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					return
 
 				this.cleanTransformControls()
-				Annotator.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
+				this.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
 				this.annotationManager.setActiveAnnotation(inactive)
 				this.resetAllAnnotationPropertiesMenuElements()
 				this.renderAnnotator()
@@ -1872,7 +1867,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.cleanTransformControls()
 		} else if (this.annotationManager.activeAnnotation) {
 			this.annotationManager.unsetActiveAnnotation()
-			Annotator.deactivateAllAnnotationPropertiesMenus()
+			this.deactivateAllAnnotationPropertiesMenus()
 			this.renderAnnotator()
 		}
 	}
@@ -2559,7 +2554,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// Delete annotation from scene
 		if (this.annotationManager.deleteActiveAnnotation()) {
 			log.info("Deleted selected annotation")
-			Annotator.deactivateLaneProp()
+			this.deactivateLaneProp()
 			this.hideTransform()
 			this.renderAnnotator()
 		}
@@ -2578,7 +2573,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private addAnnotation(annotationType: AnnotationType): void {
 		if (this.annotationManager.addAnnotation(null, annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
-			Annotator.deactivateAllAnnotationPropertiesMenus(annotationType)
+			this.deactivateAllAnnotationPropertiesMenus(annotationType)
 			this.resetAllAnnotationPropertiesMenuElements()
 			this.hideTransform()
 		}
@@ -3082,17 +3077,18 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	render() {
 		return (
-			<>
+			<React.Fragment>
 				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
 				<TrajectoryPicker
 					ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
 				/>
-			</>
+			</React.Fragment>
 		)
 
 	}
 
 	componentDidMount() {
+
 		this.mount()
 			.then(() => this.setOpenTrajectoryPickerFunction(this.trajectoryPickerRef.openModal))
 
@@ -3110,7 +3106,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		FlyThroughManager.loadFlyThroughTrajectories([path])
 			.then(() => {
 				// Make sure that we are in flyThrough mode and that the animation is running.
-				if (!this.props.flyThroughState.enabled) {
+				if (this.props.flyThroughState && !this.props.flyThroughState.enabled) {
 					// this.toggleLiveAndRecordedPlay()
 					FlyThroughManager.toggleLiveAndRecordedPlay()
 				}
@@ -3129,11 +3125,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			})
 	}
 
-	private static expandAccordion(domId: string): void {
+	private expandAccordion(domId: string): void {
+		if ( !this.props.uiMenuVisible ) return
 		$(domId).accordion('option', {active: 0})
 	}
 
-	private static collapseAccordion(domId: string): void {
+	private collapseAccordion(domId: string): void {
+		if ( !this.props.uiMenuVisible ) return
 		$(domId).accordion('option', {active: false})
 	}
 
@@ -3153,7 +3151,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_lane')
+		this.expandAccordion('#menu_lane')
 
 		if (activeAnnotation.neighborsIds.left.length > 0) {
 			Annotator.deactivateLeftSideNeighbours()
@@ -3228,7 +3226,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const activeAnnotation = this.annotationManager.getActiveTerritoryAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_territory')
+		this.expandAccordion('#menu_territory')
 
 		const territoryLabel = document.getElementById('input_label_territory')
 		if (territoryLabel) {
@@ -3245,7 +3243,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const activeAnnotation = this.annotationManager.getActiveTrafficDeviceAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_traffic_device')
+		this.expandAccordion('#menu_traffic_device')
 
 		const tpId = document.getElementById('tp_id_value')
 		if (tpId)
@@ -3266,7 +3264,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_boundary')
+		this.expandAccordion('#menu_boundary')
 
 		const bpId = document.getElementById('bp_id_value')
 		if (bpId)
@@ -3291,7 +3289,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
 		if (!activeAnnotation) return
 
-		Annotator.expandAccordion('#menu_connection')
+		this.expandAccordion('#menu_connection')
 
 		const cpId = document.getElementById('cp_id_value')
 		if (cpId)
@@ -3305,20 +3303,21 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
-	private static deactivateAllAnnotationPropertiesMenus(exceptFor: AnnotationType = AnnotationType.UNKNOWN): void {
-		if (exceptFor !== AnnotationType.BOUNDARY) Annotator.deactivateBoundaryProp()
-		if (exceptFor !== AnnotationType.LANE) Annotator.deactivateLaneProp()
-		if (exceptFor !== AnnotationType.CONNECTION) Annotator.deactivateConnectionProp()
-		if (exceptFor !== AnnotationType.TERRITORY) Annotator.deactivateTerritoryProp()
-		if (exceptFor !== AnnotationType.TRAFFIC_DEVICE) Annotator.deactivateTrafficDeviceProp()
+	private deactivateAllAnnotationPropertiesMenus(exceptFor: AnnotationType = AnnotationType.UNKNOWN): void {
+		if ( !this.props.uiMenuVisible ) return
+		if (exceptFor !== AnnotationType.BOUNDARY) this.deactivateBoundaryProp()
+		if (exceptFor !== AnnotationType.LANE) this.deactivateLaneProp()
+		if (exceptFor !== AnnotationType.CONNECTION) this.deactivateConnectionProp()
+		if (exceptFor !== AnnotationType.TERRITORY) this.deactivateTerritoryProp()
+		if (exceptFor !== AnnotationType.TRAFFIC_DEVICE) this.deactivateTrafficDeviceProp()
 	}
 
 	/**
 	 * Deactivate lane properties menu panel
 	 */
 	// ANNOTATOR ONLY
-	private static deactivateLaneProp(): void {
-		Annotator.collapseAccordion('#menu_lane')
+	private deactivateLaneProp(): void {
+		this.collapseAccordion('#menu_lane')
 
 		Annotator.deactivateLeftSideNeighbours()
 		Annotator.deactivateRightSideNeighbours()
@@ -3356,8 +3355,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * Deactivate boundary properties menu panel
 	 */
 	// ANNOTATOR ONLY
-	private static deactivateBoundaryProp(): void {
-		Annotator.collapseAccordion('#menu_boundary')
+	private deactivateBoundaryProp(): void {
+		this.collapseAccordion('#menu_boundary')
 
 		const bpId = document.getElementById('bp_id_value')
 		if (bpId)
@@ -3392,8 +3391,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * Deactivate connection properties menu panel
 	 */
 	// ANNOTATOR ONLY
-	private static deactivateConnectionProp(): void {
-		Annotator.collapseAccordion('#menu_connection')
+	private deactivateConnectionProp(): void {
+		this.collapseAccordion('#menu_connection')
 
 		const cpId = document.getElementById('cp_id_value')
 		if (cpId)
@@ -3422,8 +3421,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * Deactivate territory properties menu panel
 	 */
 	// ANNOTATOR ONLY
-	private static deactivateTerritoryProp(): void {
-		Annotator.collapseAccordion('#menu_territory')
+	private deactivateTerritoryProp(): void {
+		this.collapseAccordion('#menu_territory')
 
 		const territoryLabel = document.getElementById('input_label_territory')
 		if (territoryLabel)
@@ -3436,8 +3435,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * Deactivate traffic device properties menu panel
 	 */
 	// ANNOTATOR ONLY
-	private static deactivateTrafficDeviceProp(): void {
-		Annotator.collapseAccordion('#menu_traffic_device')
+	private deactivateTrafficDeviceProp(): void {
+		this.collapseAccordion('#menu_traffic_device')
 
 		const tpId = document.getElementById('tp_id_value')
 		if (tpId)
@@ -3735,7 +3734,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 			// RYAN UPDATED
 			// if (this.flyThroughState.enabled) return
-			if (this.props.flyThroughState.enabled) return
+			if (this.props.flyThroughState && this.props.flyThroughState.enabled) return
 
 			const state = Models.InertialStateMessage.decode(msg)
 			if (
@@ -3981,7 +3980,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// RYAN UPDATED
 		// if (!this.uiState.isLiveMode) return
 		// if (this.flyThroughState.enabled) return
-		if (!this.props.liveModeEnabled || this.props.flyThroughState.enabled) return
+		if (!this.props.liveModeEnabled || this.props.flyThroughState && this.props.flyThroughState.enabled) return
 
 		let message = 'Location status: '
 		switch (level) {

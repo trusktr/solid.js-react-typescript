@@ -32,7 +32,6 @@ interface ImageManagerSettings {
 export class ImageManager {
 	private utmCoordinateSystem: UtmCoordinateSystem
 	private settings: ImageManagerSettings
-	private textureLoader: THREE.TextureLoader
 	private imageScreens: ImageScreen[]
 	imageScreenMeshes: THREE.Mesh[]
 	private opacity: number
@@ -60,7 +59,6 @@ export class ImageManager {
 			visibleWireframe: config.get('image_manager.image.wireframe.visible'),
 			clickedRayLength: 100,
 		}
-		this.textureLoader = new THREE.TextureLoader()
 		this.imageScreens = []
 		this.imageScreenMeshes = []
 		this.opacity = opacity

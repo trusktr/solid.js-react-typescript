@@ -67,7 +67,7 @@ function initStore():ObservableStore<any> {
   const newObservableStore:ObservableStore<any> = ObservableStore.createObservableStore(
     reducers,
     compose.call(null) as StoreEnhancer<any>,
-    null,
+    undefined,
     null,
   )
 
@@ -100,8 +100,7 @@ function onError(err:Error, reducer?:ILeafReducer<any, any>) {
   log.error("Reducer error occurred", reducer, err, err.stack)
 }
 
-
-
+// TODO: let's avoid globals
 _.assign(global, {
   getRoadNetworkEditorReduxStore: getRoadNetworkEditorReduxStore,
   getRoadNetworkEditorStore: getRoadNetworkEditorStore,
