@@ -97,7 +97,8 @@ export class AnnotationManager {
 		private readonly isInteractiveMode: boolean, // Interactive allows annotations to be selected and edited; otherwise they can only be added or removed.
 		private readonly scaleProvider: ScaleProvider,
 		private readonly utmCoordinateSystem: UtmCoordinateSystem,
-		private readonly scene: THREE.Scene, // where objects are placed on behalf of Annotator
+		private onAddAnnotation: (object: THREE.Object3D) => void,
+		private onRemoveAnnotation: (object: THREE.Object3D) => void,
 		private onChangeActiveAnnotation: (active: Annotation) => void
 	) {
 		this.laneAnnotations = []
@@ -189,7 +190,7 @@ export class AnnotationManager {
 	}
 
 	/**
-	 * Create a new annotation. Add its associated rendering object to the scene for display.
+	 * Create a new annotation.
 	 * @param annotationType  Construct a new annotation with the given type
 	 * @param activate        Activate the new annotation after creation
 	 * @return either an Annotation with success result code
@@ -227,7 +228,7 @@ export class AnnotationManager {
 		// Set state.
 		similarAnnotations.push(annotation)
 		this.annotationObjects.push(annotation.renderingObject)
-		this.scene.add(annotation.renderingObject)
+		this.onAddAnnotation(annotation.renderingObject)
 		if (activate)
 			this.setActiveAnnotation(annotation)
 
@@ -324,9 +325,8 @@ export class AnnotationManager {
 	}
 
 	/**
-	 * Create a new lane annotation connected to the current active annotation at the given location and with
-	 * the given direction of traffic. The new annotation is added to the scene for display and set as
-	 * inactive.
+	 * Create a new inactive lane annotation connected to the current active annotation at the given location and with
+	 * the given direction of traffic.
 	 */
 	addConnectedLaneAnnotation(neighborLocation: NeighborLocation, neighborDirection: NeighborDirection): boolean {
 		const activeLane = this.getActiveLaneAnnotation()
@@ -475,7 +475,7 @@ export class AnnotationManager {
 
 	/**
 	 * Eliminate the current active annotation from the manager. Delete its associated
-	 * mesh and markers from the scene and reset any active annotation variables.
+	 * mesh and markers and reset any active annotation variables.
 	 */
 	deleteActiveAnnotation(): boolean {
 		if (!this.activeAnnotation) {
@@ -494,10 +494,6 @@ export class AnnotationManager {
 		return true
 	}
 
-	/**
-	 * Add marker to the active annotation at the given position and add it
-	 * to the scene.
-	 */
 	addMarkerToActiveAnnotation(position: THREE.Vector3): boolean {
 		if (!this.activeAnnotation) {
 			log.info("No active annotation. Can't add marker")
@@ -529,10 +525,6 @@ export class AnnotationManager {
 		}
 	}
 
-	/**
-	 * Remove last marker from the annotation. The marker is also removed from
-	 * the scene.
-	 */
 	deleteLastMarker(): boolean {
 		if (!this.activeAnnotation) {
 			log.info("No active annotation. Can't delete marker")
@@ -1499,64 +1491,6 @@ export class AnnotationManager {
 	}
 
 	/**
-	 * Create a new lane connection between given lanes using a cubic spline.
-	 * This is the old implementation of former "addConnection" function.
-	 */
-	/* replaced by addConnectionWithBezier:
-	private addConnectionWithSpline(laneFrom: Lane, laneTo: Lane): void {
-
-		if (laneFrom.markers.length < 4 || laneTo.markers.length < 4) {
-			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, "Unable to generate forward relation." +
-				"Possible reasons: one of the two lanes connected does not have at least 4 markers.")
-			return
-		}
-
-		// Create new connection
-		const connection = new Connection()
-		connection.setConnectionEndPoints(laneFrom.uuid, laneTo.uuid)
-		this.connectionAnnotations.push(connection)
-
-		// Glue neighbors
-		laneFrom.neighborsIds.front.push(connection.uuid)
-		laneTo.neighborsIds.back.push(connection.uuid)
-
-		// Compute path
-		const lastIndex = laneFrom.markers.length - 1
-		const pointsRight: Array<THREE.Vector3> = []
-		pointsRight.push(laneFrom.markers[lastIndex - 3].position)
-		pointsRight.push(laneFrom.markers[lastIndex - 1].position)
-		pointsRight.push(laneTo.markers[0].position)
-		pointsRight.push(laneTo.markers[2].position)
-		const pointsLeft: Array<THREE.Vector3> = []
-		pointsLeft.push(laneFrom.markers[lastIndex - 2].position)
-		pointsLeft.push(laneFrom.markers[lastIndex].position)
-		pointsLeft.push(laneTo.markers[1].position)
-		pointsLeft.push(laneTo.markers[3].position)
-
-		const splineLeft = new THREE.CatmullRomCurve3(pointsLeft)
-		const splineRight = new THREE.CatmullRomCurve3(pointsRight)
-
-		// Add path to the connection
-		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.4), false)
-		connection.addMarker(getMarkerInBetween(pointsRight[1], pointsLeft[1], 0.6), false)
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.4), false)
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.45), splineLeft.getPoint(0.45), 0.6), false)
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.4), false)
-		connection.addMarker(getMarkerInBetween(splineRight.getPoint(0.55), splineLeft.getPoint(0.55), 0.6), false)
-		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.4), false)
-		connection.addMarker(getMarkerInBetween(pointsRight[2], pointsLeft[2], 0.6), false)
-
-		// Add annotation to the scene
-		this.scene.add(connection.renderingObject)
-		this.annotationObjects.push(connection.renderingObject)
-
-		connection.makeInactive()
-		connection.updateVisualization()
-		this.metadataState.dirty()
-	}
-	*/
-
-	/**
 	 * Create a new lane connection between given lanes using a cubic Bezier curve
 	 * This is the new implementation of former "addConnection" function.
 	 */
@@ -1613,8 +1547,8 @@ export class AnnotationManager {
 		connection.addMarker(getMarkerInBetween(rp2, lp2, 0.6), false)
 
 		// Add annotation to the scene
-		this.scene.add(connection.renderingObject)
 		this.annotationObjects.push(connection.renderingObject)
+		this.onAddAnnotation(connection.renderingObject)
 
 		connection.makeInactive()
 		connection.updateVisualization()
@@ -1649,7 +1583,7 @@ export class AnnotationManager {
 		const eraseIndex = this.getAnnotationIndexFromUuid(similarAnnotations, annotation.uuid)
 		similarAnnotations.splice(eraseIndex, 1)
 		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
-		this.scene.remove(annotation.renderingObject)
+		this.onRemoveAnnotation(annotation.renderingObject)
 
 		return true
 	}
