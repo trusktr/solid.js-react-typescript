@@ -15,6 +15,7 @@ import * as Electron from "electron";
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 import { StatusKey } from "@/annotator-z-hydra-shared/src/models/StatusKey";
 import {getValue} from "typeguard";
+import {OrbitControls} from "@/annotator-entry-ui/controls/OrbitControls";
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -255,4 +256,30 @@ export function toggleLiveModePlay() {
 		}
 
 	}
+}
+
+
+// @TODO add this.initFlyThroughOrbitControls() here and on init() above
+
+
+export function initFlyThroughOrbitControls(camera:THREE.Camera, domElement:HTMLCanvasElement): void {
+	const flyThroughOrbitControls = new OrbitControls(camera, domElement)
+	flyThroughOrbitControls.enabled = false
+	flyThroughOrbitControls.minDistance = 10
+	flyThroughOrbitControls.maxDistance = 5000
+	flyThroughOrbitControls.minPolarAngle = 0
+	flyThroughOrbitControls.maxPolarAngle = Math.PI / 2
+	flyThroughOrbitControls.keyPanSpeed = 100
+	flyThroughOrbitControls.enablePan = false
+
+	flyThroughOrbitControls.addEventListener('change', this.updateSkyPosition)
+
+	flyThroughOrbitControls.addEventListener('start', () => {
+		this.updateOrbitControls = true
+		this.loop.addAnimationFn(() => this.updateOrbitControls)
+	})
+
+	this.flyThroughOrbitControls.addEventListener('end', () => {
+		this.updateOrbitControls = false
+	})
 }

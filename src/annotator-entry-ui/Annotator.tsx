@@ -573,6 +573,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.compassRose = null
 
 		// All the annotations go here.
+		// @TODO Ryan/Joe to be added outside of initial scene (only annotator specific)
 		this.annotationManager = new AnnotationManager(
 			!this.uiState.isKioskMode,
 			this.utmCoordinateSystem,
@@ -592,33 +593,34 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.initTransformControls()
 
 		// Add listeners
-		window.addEventListener('focus', this.onFocus)
-		window.addEventListener('blur', this.onBlur)
-		window.addEventListener('beforeunload', this.onBeforeUnload)
-		window.addEventListener('resize', this.onWindowResize)
-		window.addEventListener('keydown', this.onKeyDown)
-		window.addEventListener('keyup', this.onKeyUp)
 
-		this.renderer.domElement.addEventListener('mousemove', this.setLastMousePosition)
-		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
-		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
-		this.renderer.domElement.addEventListener('mousemove', this.checkForImageScreenSelection)
-		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictOrDeviceSelection)
+		window.addEventListener('focus', this.onFocus)  // RYAN Annotator-specific
+		window.addEventListener('blur', this.onBlur)  // RYAN Annotator-specific
+		window.addEventListener('beforeunload', this.onBeforeUnload) // RYAN Annotator-specific
+		window.addEventListener('resize', this.onWindowResize) // BOTH
+		window.addEventListener('keydown', this.onKeyDown) // split
+		window.addEventListener('keyup', this.onKeyUp) // split
+
+		// Annotator-specific
+		this.renderer.domElement.addEventListener('mousemove', this.setLastMousePosition) // RYAN Annotator-specific
+		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)  // RYAN Annotator-specific
+		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection) // RYAN Annotator-specific
+		this.renderer.domElement.addEventListener('mousemove', this.checkForImageScreenSelection) // RYAN Annotator-specific
+		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection) // RYAN Annotator-specific
+		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictOrDeviceSelection) // RYAN Annotator-specific
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
-		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
-		this.renderer.domElement.addEventListener('mouseup', this.connectNeighbor)
+		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)   // RYAN Annotator-specific
+		this.renderer.domElement.addEventListener('mouseup', this.connectNeighbor)  // RYAN Annotator-specific
 		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
 		this.renderer.domElement.addEventListener('mouseup', this.clickSuperTileBox)
 		this.renderer.domElement.addEventListener('mouseup', this.clickImageScreenBox)
-		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
-		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
-		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed})
+		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})  // RYAN Annotator-specific
+		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true}) // RYAN Annotator-specific
+		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed}) // RYAN Annotator-specific
 
 		// Bind events
-		this.bind()
-		Annotator.deactivateAllAnnotationPropertiesMenus()
-
+		this.bind() // Annotator-specific
+		Annotator.deactivateAllAnnotationPropertiesMenus() // Annotator-specific
 		// Create the hamburger menu and display (open) it as requested.
 		const startupMenu = this.uiState.isKioskMode ? '#liveModeMenu' : '#annotationMenu'
 		this.switchToMenu(startupMenu)
@@ -681,6 +683,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Create a UI widget to adjust application settings on the fly.
+	// ONLY ANNOTATOR
 	createControlsGui(): void {
 		// Add panel to change the settings
 		if (!isNullOrUndefined(config.get('startup.show_color_picker')))
@@ -749,6 +752,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		folderConnection.open()
 	}
 
+	// ONLY ANNOTATOR
 	private destroyControlsGui(): void {
 		if (!config.get('startup.show_control_panel')) return
 		if (this.gui) this.gui.destroy()
@@ -757,6 +761,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * 	Load up any data which configuration has asked for on start-up.
 	 */
+	// TAKE OUT TRAJECTORIES (beholder specific)
+	// SHARED
 	private loadUserData(): Promise<void> {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
@@ -769,6 +775,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const pointCloudDir: string = config.get('startup.point_cloud_directory')
 		const pointCloudBbox: [number, number, number, number, number, number] = config.get('startup.point_cloud_bounding_box')
 		let pointCloudResult: Promise<void>
+
+		// @TODO potentially remove (loading from directory) -- make change in develop
 		if (pointCloudDir) {
 			if (pointCloudBbox)
 				log.warn(`don't set startup.point_cloud_directory and startup.point_cloud_bounding_box config options at the same time`)
@@ -807,6 +815,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return trajectoryResult
 	}
 
+	// SHARED
 	private startAnimation(): void {
 		new RoadNetworkEditorActions().setShouldAnimate(true)
 
@@ -820,13 +829,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		})
 	}
 
+	// SHARED
 	private stopAnimation(): void {
 		// this.shouldAnimate = false
 		new RoadNetworkEditorActions().setShouldAnimate(false)
 	}
 
+	// SHARED
 	private startAoiUpdates(): void {
-		console.log("I GOT IN startAoiUpdates ")
 		this.loop.addAnimationFn(() => {
 			if ( !this.props.shouldAnimate ) return false
 			this.updatePointCloudAoi()
@@ -835,7 +845,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 
-
+	// Annotator only
 	private animate(): void {
 		this.transformControls.update()
 	}
@@ -849,7 +859,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 
-
+	// BOTH (moved)
 	private renderAnnotator = (): void => {
 		// force a tick which causes renderer.renderAnnotator to be called
 		this.loop.forceTick()
@@ -858,6 +868,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
+	// BOTH (moved)
 	private setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
 		this.plane.geometry.center()
 		this.plane.geometry.translate(x, y, z)
@@ -876,6 +887,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Set some point as the center of the visible world.
 	 */
+	// BOTH
 	private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true): void {
 		this.setStage(point.x, point.y, point.z, resetCamera)
 	}
@@ -883,6 +895,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Set the stage at the bottom center of TileManager's point cloud.
 	 */
+	// BOTH
 	private setStageByPointCloud(resetCamera: boolean): void {
 		const focalPoint = this.tileManager.centerPoint()
 		if (focalPoint)
@@ -892,6 +905,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * 	Display the compass rose just outside the bounding box of the point cloud.
 	 */
+	// BOTH
 	private setCompassRoseByPointCloud(): void {
 		if (!this.compassRose) return
 		const boundingBox = this.tileManager.getPointCloudBoundingBox()
@@ -909,6 +923,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Set the point cloud as the center of the visible world.
 	 */
+	// BOTH
 	private focusOnPointCloud(): void {
 		const center = this.tileManager.centerPoint()
 		if (center) {
@@ -924,6 +939,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * 	Set the camera directly above the current target, looking down.
 	 */
+	// BOTH
 	private resetTiltAndCompass(): void {
 		const distanceCameraToTarget = this.camera.position.distanceTo(this.orbitControls.target)
 		this.camera.position.x = this.orbitControls.target.x
@@ -934,6 +950,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
+	// ANNOTATOR - maybe die on develop
 	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
 		log.info('Loading point cloud from ' + pathToTiles)
 		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
@@ -942,6 +959,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
+	// BOTH
 	private loadPointCloudDataFromConfigBoundingBox(bbox: number[]): Promise<void> {
 		if (!isTupleOfNumbers(bbox, 6)) {
 			this.pointCloudLoadedError(Error('invalid point cloud bounding box config'))
@@ -954,6 +972,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
+	// BOTH
 	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
 		return this.tileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
@@ -962,9 +981,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Do some house keeping after loading a point cloud, such as drawing decorations
 	// and centering the stage and the camera on the point cloud.
+	// BOTH
 	private pointCloudLoadedSideEffects(resetCamera: boolean = true): void {
 		this.setLayerVisibility([Layer.POINT_CLOUD])
 
+		// RYAN this should go away
 		if (this.settings.generateVoxelsOnPointLoad) {
 			this.computeVoxelsHeights() // This is based on pre-loaded annotations
 			this.tileManager.generateVoxels()
@@ -977,6 +998,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.renderAnnotator()
 	}
 
+	// BOTH
 	private pointCloudLoadedError(err: Error): void {
 		if (err instanceof BusyError) {
 			log.info(err.message)
@@ -997,6 +1019,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * 	Compute corresponding height for each voxel based on near by annotations
 	 */
+	// ryan - remove
 	private computeVoxelsHeights(): void {
 		if (this.annotationManager.laneAnnotations.length === 0)
 			log.error(`Unable to compute voxels height, there are no annotations.`)
@@ -1042,6 +1065,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * 	Incrementally load the point cloud for a single super tile.
 	 */
+	// both
 	private loadSuperTileData(superTile: SuperTile): Promise<void> {
 		this.setLayerVisibility([Layer.POINT_CLOUD])
 		return this.tileManager.loadFromSuperTile(superTile)
@@ -1052,6 +1076,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			})
 	}
 
+	// should die
 	private loadAllSuperTileData(): void {
 		if (this.uiState.isLiveMode) return
 
@@ -1067,6 +1092,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			})
 	}
 
+	// BOTH
 	private unloadPointCloudData(): void {
 		if (this.tileManager.unloadAllPoints()) {
 			this.unHighlightSuperTileBox()
@@ -1081,6 +1107,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * 	Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
 	 */
+	// BOTH
 	private renderEmptySuperTiles(): void {
 		this.tileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
 
@@ -1089,6 +1116,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// When TileManager loads a super tile, update Annotator's parallel data structure.
+	// BOTH
 	private onSuperTileLoad: (superTile: SuperTile) => void =
 		(superTile: SuperTile) => {
 			this.loadTileGroundPlanes(superTile)
@@ -1103,6 +1131,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
+	// BOTH
 	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void =
 		(superTile: SuperTile, action: SuperTileUnloadAction) => {
 			this.unloadTileGroundPlanes(superTile)
@@ -1134,6 +1163,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// This assumes that each ground plane is locally flat and normal to gravity.
 	// This assumes that the ground planes in neighboring tiles are close enough that the discrete
 	// jumps between them won't matter much.
+	// ??????
 	private loadTileGroundPlanes(superTile: SuperTile): void {
 		if (!this.settings.estimateGroundPlane) return
 		if (!superTile.pointCloud) return
@@ -1196,6 +1226,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * 	Draw a box around the data. Useful for debugging.
 	 */
+	// RYAN DEBUG TOOL
 	private updatePointCloudBoundingBox(): void {
 		if (this.settings.drawBoundingBox) {
 			if (this.pointCloudBoundingBox) {
@@ -1216,6 +1247,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Find the point in the scene that is most interesting to a human user.
+	// BOTH - used with AOI
 	private currentPointOfInterest(): THREE.Vector3 | null {
 		if (this.uiState.isLiveMode) {
 			// In live mode track the car, regardless of what the camera does.
@@ -1366,10 +1398,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			})
 	}
 
+	// ANNOTATOR ONLY
 	private setLastMousePosition = (event: MouseEvent | null): void => {
 		this.uiState.lastMousePosition = event
 	}
 
+	// ANNOTATOR ONLY
 	private getMouseCoordinates = (mousePosition: MousePosition): THREE.Vector2 => {
 		const mouse = new THREE.Vector2()
 		mouse.x = ( mousePosition.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
@@ -1380,6 +1414,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * If the mouse was clicked while pressing the "a" key, drop an annotation marker.
 	 */
+	// ANNOTATOR ONLY
 	private addAnnotationMarker = (event: MouseEvent): void => {
 		if (this.uiState.isMouseDragging) return
 		if (this.uiState.isConnectLeftNeighborKeyPressed ||
@@ -1431,6 +1466,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * If the mouse was clicked while pressing the "c" key, add new lane connection
 	 * between current active lane and the "clicked" lane
 	 */
+	// ANNOTATOR ONLY
 	private addLaneConnection = (event: MouseEvent): void => {
 		if (!this.uiState.isAddConnectionKeyPressed) return
 		if (this.uiState.isMouseDragging) return
@@ -1481,6 +1517,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * If the mouse was clicked while pressing the "l"/"r"/"f" key, then
 	 * add new neighbor between current active lane and the "clicked" lane
 	 */
+		// ANNOTATOR ONLY
 	private connectNeighbor = (event: MouseEvent): void => {
 		if (this.uiState.isAddConnectionKeyPressed) return
 		if (this.uiState.isJoinAnnotationKeyPressed) return
@@ -1586,6 +1623,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * If the mouse was clicked while pressing the "j" key, then join active
 	 * annotation with the clicked one, if they are of the same type
 	 */
+		// ANNOTATOR ONLY
 	private joinAnnotations = (event: MouseEvent): void => {
 		if (this.uiState.isMouseDragging) return
 		if (!this.uiState.isJoinAnnotationKeyPressed) return
@@ -1633,6 +1671,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.renderAnnotator()
 	}
 
+	// ANNOTATOR ONLY
 	private isAnnotationLocked(annotation: Annotation): boolean {
 		if (this.uiState.lockLanes && (annotation instanceof Lane || annotation instanceof Connection))
 			return true
@@ -1648,6 +1687,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Check if we clicked an annotation. If so, make it active for editing
 	 */
+		// ANNOTATOR ONLY
 	private checkForAnnotationSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseDragging) return
@@ -1686,6 +1726,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * Check if the mouse is on top of an editable lane marker. If so, attach the
 	 * marker to the transform control for editing.
 	 */
+		// ANNOTATOR ONLY
 	private checkForActiveMarker = (event: MouseEvent): void => {
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
@@ -1744,6 +1785,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Check if we clicked a connection or device while pressing the add conflict/device key
 	 */
+		// ANNOTATOR ONLY
 	private checkForConflictOrDeviceSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseDragging) return
@@ -1806,11 +1848,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Ensure that the current UiState is compatible with a new active annotation.
+	// ANNOTATOR ONLY
 	private onChangeActiveAnnotation = (active: Annotation): void => {
 		if (this.uiState.isRotationModeActive && !active.isRotatable)
 			this.toggleTransformControlsRotationMode()
 	}
 
+	// ANNOTATOR ONLY
 	private toggleTransformControlsRotationMode(): void {
 		this.uiState.isRotationModeActive = !this.uiState.isRotationModeActive
 		const mode = this.uiState.isRotationModeActive ? 'rotate' : 'translate'
@@ -1822,6 +1866,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 *  - an active control point
 	 *  - a selected annotation
 	 */
+	// ANNOTATOR ONLY
 	private escapeSelection(): void {
 		if (this.transformControls.isAttached()) {
 			this.cleanTransformControls()
@@ -1832,11 +1877,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	// ANNOTATOR ONLY
 	cleanTransformControlsAndEscapeSelection(): void {
 		this.cleanTransformControls()
 		this.escapeSelection()
 	}
 
+	// BOTH
 	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
 		let intersections: THREE.Intersection[]
 		if (this.settings.estimateGroundPlane || !this.tileManager.pointCount()) {
@@ -1850,10 +1897,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return intersections
 	}
 
+	// BOTH -- may be annotator only???
 	private intersectWithPointCloud(raycaster: THREE.Raycaster): THREE.Intersection[] {
 		return raycaster.intersectObjects(this.tileManager.getPointClouds())
 	}
 
+	// ANNOTATOR ONLY
 	private intersectWithLightboxImageRay(raycaster: THREE.Raycaster): THREE.Intersection[] {
 		if (this.lightboxImageRays.length)
 			return raycaster.intersectObjects(this.lightboxImageRays)
@@ -1861,6 +1910,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			return []
 	}
 
+	// ANNOTATOR ONLY
 	private checkForSuperTileSelection = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseButtonPressed) return
@@ -1891,6 +1941,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	// ANNOTATOR ONLY
 	private clickSuperTileBox = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseDragging) return
@@ -1912,6 +1963,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Draw the box in a more solid form to indicate that it is active.
+	// ANNOTATOR ONLY
 	private highlightSuperTileBox(superTileBox: THREE.Mesh): void {
 		if (this.uiState.isLiveMode) return
 		if (this.highlightedImageScreenBox) return
@@ -1926,6 +1978,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Draw the box as a simple wireframe like all the other boxes.
+	// ANNOTATOR ONLY
 	private unHighlightSuperTileBox(): void {
 		if (!this.highlightedSuperTileBox) return
 
@@ -1938,6 +1991,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// When ImageManager loads an image, add it to the scene.
+	// ANNOTATOR ONLY
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void =
 		(imageScreen: ImageScreen) => {
 			this.setLayerVisibility([Layer.IMAGE_SCREENS])
@@ -1947,6 +2001,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// When a lightbox ray is created, add it to the scene.
 	// On null, remove all rays.
+	// ANNOTATOR ONLY
 	private onLightboxImageRay: (ray: THREE.Line | null) => void =
 		(ray: THREE.Line | null) => {
 			if (ray) {
@@ -1961,7 +2016,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				this.clearLightboxImageRays()
 			}
 		}
-
+	// ANNOTATOR ONLY
 	private clearLightboxImageRays(): void {
 		if (!this.lightboxImageRays.length) return
 
@@ -1970,6 +2025,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.renderAnnotator()
 	}
 
+	// ANNOTATOR ONLY
 	private checkForImageScreenSelection = (mousePosition: MousePosition): void => {
 		if (this.uiState.isLiveMode) return
 		if (!this.uiState.isShiftKeyPressed) return
@@ -2008,6 +2064,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	// ANNOTATOR ONLY
 	private clickImageScreenBox = (event: MouseEvent): void => {
 		if (this.uiState.isLiveMode) return
 		if (this.uiState.isMouseDragging) return
@@ -2058,6 +2115,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Draw the box with max opacity to indicate that it is active.
+	// ANNOTATOR ONLY
 	private highlightImageScreenBox(imageScreenBox: THREE.Mesh): void {
 		if (this.uiState.isLiveMode) return
 		if (this.highlightedSuperTileBox) return
@@ -2092,6 +2150,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Draw the box with default opacity like all the other boxes.
+	// ANNOTATOR ONLY
 	private unHighlightImageScreenBox(): void {
 		if (this.highlightedLightboxImage) {
 			if (this.imageManager.unhighlightImageInLightbox(this.highlightedLightboxImage))
@@ -2110,6 +2169,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * Make a best effort to save annotations before exiting. There is no guarantee the
 	 * promise will complete, but it seems to work in practice.
 	 */
+	// ANNOTATOR ONLY
 	private onBeforeUnload: (e: BeforeUnloadEvent) => void = (_: BeforeUnloadEvent) => {
 		this.annotationManager.immediateAutoSave().then()
 	}
@@ -2118,11 +2178,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * Get the size of the canvas
 	 * @returns {[number,number]}
 	 */
+	// BOTH
 	private getContainerSize = (): Array<number> => {
 		const $root = $(this.root)
 		return getValue(() => [$root.width(), $root.height()], [0, 0])
 	}
 
+	// BOTH
 	private onWindowResize = (): void => {
 		const [width, height]: Array<number> = this.getContainerSize()
 
@@ -2139,6 +2201,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Scale the ortho camera frustum along with window dimensions to preserve a 1:1
 	// proportion for model width:height.
+	// BOTH
 	private setOrthographicCameraDimensions(width: number, height: number): void {
 		const orthoWidth = this.settings.orthoCameraHeight * (width / height)
 		const orthoHeight = this.settings.orthoCameraHeight
@@ -2149,10 +2212,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.annotatorOrthoCam.updateProjectionMatrix()
 	}
 
+	// ANNOTATOR ONLY
 	private onFocus = (): void => {
 		this.annotationManager.enableAutoSave()
 	}
 
+	// ANNOTATOR ONLY
 	private onBlur = (): void => {
 		this.setLastMousePosition(null)
 		this.annotationManager.disableAutoSave()
@@ -2161,6 +2226,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Handle keyboard events
 	 */
+	// BOTH (moved) -- requires keyboard event registration now though
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
 		if (event.altKey) return
@@ -2175,6 +2241,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.onKeyDownInteractiveMode(event)
 	}
 
+	// ANNOTATOR ONLY
 	private onKeyDownInputElement = (event: KeyboardEvent): void => {
 		switch (event.key) {
 			case 'Escape': {
@@ -2186,6 +2253,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	// @TODO BEHOLDER -- beholder needs to register these with SceneManager
 	private onKeyDownLiveMode = (event: KeyboardEvent): void => {
 		switch (event.keyCode) {
 			case 37: { // left arrow
@@ -2209,6 +2277,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	// ANNOTATOR ONLY
 	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
 		if (event.repeat) {
 			// tslint:disable-line:no-empty
@@ -2341,6 +2410,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	// ANNOTATOR ONLY
 	private onKeyUp = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
 
@@ -2356,32 +2426,38 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.onShiftKeyUp()
 	}
 
+	// ANNOTATOR ONLY
 	private onShiftKeyDown = (): void => {
 		this.uiState.isShiftKeyPressed = true
 		if (this.uiState.lastMousePosition)
 			this.checkForImageScreenSelection(this.uiState.lastMousePosition)
 	}
 
+	// ANNOTATOR ONLY
 	private onShiftKeyUp = (): void => {
 		this.uiState.isShiftKeyPressed = false
 		this.unHighlightImageScreenBox()
 	}
 
+	// ANNOTATOR ONLY
 	private delayHideTransform = (): void => {
 		this.cancelHideTransform()
 		this.hideTransform()
 	}
 
+	// ANNOTATOR ONLY
 	private hideTransform = (): void => {
 		this.hideTransformControlTimer = window.setTimeout(this.cleanTransformControls, 1500)
 	}
 
+	// ANNOTATOR ONLY
 	private cancelHideTransform = (): void => {
 		if (this.hideTransformControlTimer) {
 			window.clearTimeout(this.hideTransformControlTimer)
 		}
 	}
 
+	// ANNOTATOR ONLY
 	private cleanTransformControls = (): void => {
 		this.cancelHideTransform()
 		this.transformControls.detach()
@@ -2392,6 +2468,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Create orbit controls which enable translation, rotation and zooming of the scene.
 	 */
+	// ANNOTATOR ONLY
 	private initAnnotatorOrbitControls(): void {
 		this.annotatorOrbitControls = new OrbitControls(this.annotatorCamera, this.renderer.domElement)
 		this.annotatorOrbitControls.minDistance = 0.1
@@ -2421,6 +2498,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		})
 	}
 
+	// BEHOLDER
 	private initFlyThroughOrbitControls(): void {
 		this.flyThroughOrbitControls = new OrbitControls(this.flyThroughCamera, this.renderer.domElement)
 		this.flyThroughOrbitControls.enabled = false
@@ -2443,6 +2521,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		})
 	}
 
+	// OBSOLETE :)
 	private get orbitControls(): THREE.OrbitControls {
 		if (this.uiState.isLiveMode) return this.flyThroughOrbitControls
 		else return this.annotatorOrbitControls
@@ -2451,6 +2530,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Create Transform controls object. This allows for the translation of an object in the scene.
 	 */
+	// ANNOTATOR ONLY
 	private initTransformControls(): void {
 		this.transformControls = new TransformControls(this.camera, this.renderer.domElement, false)
 		this.transformControls.addEventListener('change', this.renderAnnotator)
@@ -2474,6 +2554,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Functions to bind
 	 */
+	// ANNOTATOR ONLY
 	private deleteActiveAnnotation(): void {
 		// Delete annotation from scene
 		if (this.annotationManager.deleteActiveAnnotation()) {
@@ -2484,6 +2565,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	// ANNOTATOR ONLY
 	private deleteAllAnnotations(): void {
 		this.annotationManager.immediateAutoSave()
 			.then(() => {
@@ -2492,6 +2574,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Create an annotation, add it to the scene, and activate (highlight) it.
+	// ANNOTATOR ONLY
 	private addAnnotation(annotationType: AnnotationType): void {
 		if (this.annotationManager.addAnnotation(null, annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
@@ -2502,6 +2585,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Save all annotation data.
+	// ANNOTATOR ONLY
 	private saveToFile(format: OutputFormat): Promise<void> {
 		// Attempt to insert a string representing the coordinate system format into the requested path, then save.
 		const basePath = config.get('output.annotations.json.path')
@@ -2515,6 +2599,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Save lane waypoints only.
+	// ANNOTATOR ONLY
 	private saveWaypointsKml(): Promise<void> {
 		const basePath = config.get('output.annotations.kml.path')
 		log.info(`Saving waypoints KML to ${basePath}`)
@@ -2522,6 +2607,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			.catch(err => log.warn('saveToKML failed: ' + err.message))
 	}
 
+	// ANNOTATOR ONLY
 	private loadFromFile(): Promise<void> {
 		if (this.tileManager.getPointClouds().length)
 			log.warn('you should probably unload the existing point cloud before loading another')
@@ -2542,7 +2628,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			dialog.showOpenDialog(options, handler)
 		})
 	}
-
+// ANNOTATOR ONLY
 	private loadTrajectoryFromOpenDialog(): Promise<void> {
 		const { promise, resolve, reject }: PromiseReturn<void, Error> = createPromise<void, Error>()
 
@@ -2566,6 +2652,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return promise
 	}
 
+	// ANNOTATOR ONLY
 	private addFront(): void {
 		log.info("Adding connected annotation to the front")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
@@ -2574,6 +2661,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.renderAnnotator()
 	}
 
+	// ANNOTATOR ONLY
 	private addLeftSame(): void {
 		log.info("Adding connected annotation to the left - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME)) {
@@ -2582,6 +2670,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.renderAnnotator()
 	}
 
+	// ANNOTATOR ONLY
 	private addLeftReverse(): void {
 		log.info("Adding connected annotation to the left - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
@@ -2590,6 +2679,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.renderAnnotator()
 	}
 
+	// ANNOTATOR ONLY
 	private addRightSame(): void {
 		log.info("Adding connected annotation to the right - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME)) {
@@ -2598,6 +2688,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.renderAnnotator()
 	}
 
+	// ANNOTATOR ONLY
 	private addRightReverse(): void {
 		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
@@ -2606,6 +2697,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.renderAnnotator()
 	}
 
+	// ANNOTATOR ONLY
 	private reverseLaneDirection(): void {
 		log.info("Reverse lane direction.")
 		const {result, existLeftNeighbour, existRightNeighbour}: { result: boolean, existLeftNeighbour: boolean, existRightNeighbour: boolean }
@@ -2628,6 +2720,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Bind functions events to interface elements
 	 */
+	// ANNOTATOR ONLY
 	private bindLanePropertiesPanel(): void {
 		const lcType = $('#lp_select_type')
 		lcType.on('change', () => {
@@ -2704,6 +2797,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		})
 	}
 
+	// ANNOTATOR ONLY
 	private bindLaneNeighborsPanel(): void {
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
 		if (lpAddLeftOpposite)
@@ -2746,6 +2840,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('missing element lp_add_forward')
 	}
 
+	// ANNOTATOR ONLY
 	private bindConnectionPropertiesPanel(): void {
 		const cpType = $('#cp_select_type')
 		cpType.on('change', () => {
@@ -2758,6 +2853,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		})
 	}
 
+	// ANNOTATOR ONLY
 	private bindTerritoryPropertiesPanel(): void {
 		const territoryLabel = document.getElementById('input_label_territory')
 		if (territoryLabel) {
@@ -2781,6 +2877,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('missing element input_label_territory')
 	}
 
+	// ANNOTATOR ONLY
 	private bindTrafficDevicePropertiesPanel(): void {
 		const tpType = $('#tp_select_type')
 		tpType.on('change', () => {
@@ -2795,6 +2892,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		})
 	}
 
+	// ANNOTATOR ONLY
 	private bindBoundaryPropertiesPanel(): void {
 		const bpType = $('#bp_select_type')
 		bpType.on('change', () => {
@@ -2817,6 +2915,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		})
 	}
 
+	// RYAN -- mostly Annotator specific
+	// ANNOTATOR ONLY
 	private bind(): void {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
@@ -2969,10 +3069,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Hang on to a reference to TrajectoryPicker so we can call it later.
+	// ANNOTATOR ONLY
 	setOpenTrajectoryPickerFunction(theFunction: (cb: TrajectoryFileSelectedCallback) => void): void {
 		this.openTrajectoryPickerFunction = theFunction
 	}
 
+	// ANNOTATOR ONLY
 	private openTrajectoryPicker = (): void => {
 		if (this.openTrajectoryPickerFunction)
 			this.openTrajectoryPickerFunction(this.trajectoryFileSelectedCallback)
@@ -3046,6 +3148,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Reset lane properties elements based on the current active lane
 	 */
+	// ANNOTATOR ONLY
 	private resetLaneProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveLaneAnnotation()
 		if (!activeAnnotation) return
@@ -3120,6 +3223,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Reset territory properties elements based on the current active territory
 	 */
+	// ANNOTATOR ONLY
 	private resetTerritoryProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveTerritoryAnnotation()
 		if (!activeAnnotation) return
@@ -3136,6 +3240,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Reset traffic device properties elements based on the current active traffic device
 	 */
+	// ANNOTATOR ONLY
 	private resetTrafficDeviceProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveTrafficDeviceAnnotation()
 		if (!activeAnnotation) return
@@ -3156,6 +3261,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Reset boundary properties elements based on the current active boundary
 	 */
+	// ANNOTATOR ONLY
 	private resetBoundaryProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveBoundaryAnnotation()
 		if (!activeAnnotation) return
@@ -3180,6 +3286,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Reset connection properties elements based on the current active connection
 	 */
+	// ANNOTATOR ONLY
 	private resetConnectionProp(): void {
 		const activeAnnotation = this.annotationManager.getActiveConnectionAnnotation()
 		if (!activeAnnotation) return
@@ -3197,6 +3304,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		cpSelectType.val(activeAnnotation.type.toString())
 	}
 
+	// ANNOTATOR ONLY
 	private static deactivateAllAnnotationPropertiesMenus(exceptFor: AnnotationType = AnnotationType.UNKNOWN): void {
 		if (exceptFor !== AnnotationType.BOUNDARY) Annotator.deactivateBoundaryProp()
 		if (exceptFor !== AnnotationType.LANE) Annotator.deactivateLaneProp()
@@ -3208,6 +3316,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate lane properties menu panel
 	 */
+	// ANNOTATOR ONLY
 	private static deactivateLaneProp(): void {
 		Annotator.collapseAccordion('#menu_lane')
 
@@ -3246,6 +3355,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate boundary properties menu panel
 	 */
+	// ANNOTATOR ONLY
 	private static deactivateBoundaryProp(): void {
 		Annotator.collapseAccordion('#menu_boundary')
 
@@ -3281,6 +3391,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate connection properties menu panel
 	 */
+	// ANNOTATOR ONLY
 	private static deactivateConnectionProp(): void {
 		Annotator.collapseAccordion('#menu_connection')
 
@@ -3310,6 +3421,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate territory properties menu panel
 	 */
+	// ANNOTATOR ONLY
 	private static deactivateTerritoryProp(): void {
 		Annotator.collapseAccordion('#menu_territory')
 
@@ -3323,6 +3435,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate traffic device properties menu panel
 	 */
+	// ANNOTATOR ONLY
 	private static deactivateTrafficDeviceProp(): void {
 		Annotator.collapseAccordion('#menu_traffic_device')
 
@@ -3342,6 +3455,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate/activate left side neighbours
 	 */
+	// ANNOTATOR ONLY
 	private static deactivateLeftSideNeighbours(): void {
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
 		if (lpAddLeftOpposite)
@@ -3356,6 +3470,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('missing element lp_add_left_same')
 	}
 
+	// ANNOTATOR ONLY
 	private static activateLeftSideNeighbours(): void {
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
 		if (lpAddLeftOpposite)
@@ -3373,6 +3488,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate right side neighbours
 	 */
+	// ANNOTATOR ONLY
 	private static deactivateRightSideNeighbours(): void {
 		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
 		if (lpAddRightOpposite)
@@ -3387,6 +3503,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('missing element lp_add_right_same')
 	}
 
+	// ANNOTATOR ONLY
 	private static activateRightSideNeighbours(): void {
 		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
 		if (lpAddRightOpposite)
@@ -3404,6 +3521,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate/activate front side neighbours
 	 */
+	// ANNOTATOR ONLY
 	private static deactivateFrontSideNeighbours(): void {
 		const lpAddFront = document.getElementById('lp_add_forward')
 		if (lpAddFront)
@@ -3412,6 +3530,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('missing element lp_add_forward')
 	}
 
+	// ANNOTATOR ONLY
 	private static activateFrontSideNeighbours(): void {
 		const lpAddFront = document.getElementById('lp_add_forward')
 		if (lpAddFront)
@@ -3421,6 +3540,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
+	// BOTH
 	private toggleCameraType(): void {
 		let oldCamera: THREE.Camera
 		let newCamera: THREE.Camera
@@ -3457,6 +3577,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Toggle the visibility of data by cycling through the groups defined in layerGroups.
+	// ANNOTATOR ONLY
 	private toggleLayerVisibility(): void {
 		this.uiState.layerGroupIndex++
 		if (!layerGroups[this.uiState.layerGroupIndex])
@@ -3465,6 +3586,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Ensure that some layers of the model are visible. Optionally hide the other layers.
+	// BOTH
 	private setLayerVisibility(show: Layer[], hideOthers: boolean = false): void {
 		let updated = 0
 
@@ -3491,6 +3613,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.renderAnnotator()
 	}
 
+	// BOTH
 	private hidePointCloud = (): boolean => {
 		if (!this.uiState.isPointCloudVisible)
 			return false
@@ -3502,6 +3625,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return true
 	}
 
+	// BOTH
 	private showPointCloud = (): boolean => {
 		if (this.uiState.isPointCloudVisible)
 			return false
@@ -3513,6 +3637,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return true
 	}
 
+	// BOTH
 	private hideSuperTiles = (): boolean => {
 		if (!this.uiState.isSuperTilesVisible)
 			return false
@@ -3522,6 +3647,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return true
 	}
 
+	// BOTH
 	private showSuperTiles = (): boolean => {
 		if (this.uiState.isSuperTilesVisible)
 			return false
@@ -3530,6 +3656,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return true
 	}
 
+	// BOTH
 	private hideImageScreens = (): boolean => {
 		if (!this.uiState.isImageScreensVisible)
 			return false
@@ -3538,6 +3665,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return true
 	}
 
+	// BOTH
 	private showImageScreens = (): boolean => {
 		if (this.uiState.isImageScreensVisible)
 			return false
@@ -3546,6 +3674,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return true
 	}
 
+	// BOTH
 	private hideAnnotations = (): boolean => {
 		if (!this.uiState.isAnnotationsVisible)
 			return false
@@ -3554,6 +3683,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return true
 	}
 
+	// BOTH
 	private showAnnotations = (): boolean => {
 		if (this.uiState.isAnnotationsVisible)
 			return false
@@ -3562,6 +3692,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return true
 	}
 
+	// BEHOLDER ONLY
 	private loadCarModel(): Promise<void> {
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
 			try {
@@ -3591,6 +3722,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Move the camera and the car model through poses streamed from ZMQ.
 	// See also runFlyThrough().
+	// BEHOLDER
 	private initClient(): void {
 		if (this.liveSubscribeSocket) return
 
@@ -3622,6 +3754,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.liveSubscribeSocket.subscribe("")
 	}
 
+	// BOTH (NOT MOVED) REPLACED WITH redux action .setUIMenuVisibility()
 	switchToMenu( menuId: string ): void {
 
 		this.hideAllMenus()
@@ -3629,12 +3762,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	}
 
+	// BOTH (not moved) REPLACED WITH redux action .setUIMenuVisibility()
 	private hideAllMenus(): void {
 		for ( const menu of Array.from( $('#menu .menu') ) ) {
 			menu.classList.add('hidden')
 		}
 	}
 
+	// BOTH (not moved) REPLACED WITH redux action .setUIMenuVisibility()
 	private show( selector: string ): void {
 		for ( const el of Array.from( $( selector ) ) ) {
 			el.classList.remove('hidden')
@@ -3643,6 +3778,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Switch from interactive editing mode into a read-only, first-person view for displaying
 	// live or recorded vehicle trajectories.
+	// BEHOLDER!!!!!!!!
 	private listen(): boolean {
 		if (this.uiState.isLiveMode) return this.uiState.isLiveMode
 
@@ -3681,6 +3817,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return this.uiState.isLiveMode
 	}
 
+	// BOTH
 	private updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
 		if (this.aoiState.enabled)
 			this.aoiState.currentHeading = rotationThreeJs
@@ -3688,6 +3825,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				: null
 	}
 
+	// BEHOLDER
 	private updateCarWithPose(pose: Models.PoseMessage): void {
 		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
 		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
@@ -3702,6 +3840,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.updateCarPose(positionThreeJs, rotationThreeJs)
 	}
 
+	// BEHOLDER
 	componentWillReceiveProps(newProps) {
 		if(newProps.carPose && (newProps.carPose != this.props.carPose)) {
 			// console.log("Updating updateCarWithPose from lifecycle")
@@ -3711,6 +3850,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 
+	// BOTH - statusWindowManager
 	private updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
 		// This is a hack to allow data with no coordinate reference system to pass through the UTM classes.
 		// Data in local coordinate systems tend to have small values for X (and Y and Z) which are invalid in UTM.
@@ -3726,6 +3866,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		new StatusWindowActions().setMessage(StatusKey.CURRENT_LOCATION_UTM, messageUtm)
 	}
 
+	// BEHOLDER
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
 		this.carModel.position.set(position.x, position.y, position.z)
 		this.carModel.setRotationFromQuaternion(rotation)
@@ -3741,6 +3882,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * TODO: This may conflict with the states in toggleLayerVisibility(). We can
 	 * TODO:   fix it if we start using voxels again.
 	 */
+	// RIP OUT!??!
 	private toggleVoxelsAndPointClouds(): void {
 		if (!this.tileManager.voxelsMeshGroup) return
 		if (this.hidePointCloud()) {
@@ -3753,6 +3895,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Print a message about how big our tiles are.
+	// RELATED TO ABOVE -- statusWindowManager
 	private updateTileManagerStats(): void {
 		if (!this.settings.enableTileManagerStats) return
 
@@ -3766,11 +3909,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_STATS, message)
 	}
 
+	// BOTH
 	private onSetOrigin = (): void => {
 		this.loadDecorations().then()
 	}
 
 	// Add some easter eggs to the scene if they are close enough.
+	// BOTH
 	private loadDecorations(): Promise<void> {
 		return getDecorations()
 			.then(decorations => {
@@ -3789,6 +3934,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
 	// and success messages disappear after a time-out.
+	// BOTH - STATUS WINDOW
 	private onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
 		let message = 'Tile server status: '
 		if (tileServiceStatus) {
@@ -3803,16 +3949,19 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
 	}
 
+	// BOTH STATUS WINDOW
 	private delayHideTileServiceStatus = (): void => {
 		this.cancelHideTileServiceStatus()
 		this.hideTileServiceStatus()
 	}
 
+	// BOTH STATUS WINDOW
 	private cancelHideTileServiceStatus = (): void => {
 		if (this.serverStatusDisplayTimer)
 			window.clearTimeout(this.serverStatusDisplayTimer)
 	}
 
+	// BOTH STATUS WINDOW
 	private hideTileServiceStatus = (): void => {
 		this.serverStatusDisplayTimer = window.setTimeout(() => {
 
@@ -3824,6 +3973,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Display a UI element to tell the user what is happening with the location server.
 	// Error messages persist,  and success messages disappear after a time-out.
+	// BEHOLDER - with status window
 	private onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string)
 			=> void = (level: LocationServerStatusLevel, serverStatus: string) => {
 		// If we aren't listening then we don't care
@@ -3855,16 +4005,19 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// this.statusWindow.setMessage(statusKey.locationServer, message)
 	}
 
+	// BEHOLDER STATUS WINDOW
 	private delayLocationServerStatus = (): void => {
 		this.cancelHideLocationServerStatus()
 		this.hideLocationServerStatus()
 	}
 
+	// BEHOLDER STATUS WINDOW
 	private cancelHideLocationServerStatus = (): void => {
 		if (this.locationServerStatusDisplayTimer)
 			window.clearTimeout(this.locationServerStatusDisplayTimer)
 	}
 
+	// BEHOLDER STATUS WINDOW
 	private hideLocationServerStatus = (): void => {
 		this.locationServerStatusDisplayTimer = window.setTimeout(() => {
 			// RYAN UPDATED

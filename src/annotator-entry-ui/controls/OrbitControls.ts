@@ -22,8 +22,7 @@ enum UpdateTypeEnum {
 //    Zoom - middle mouse, or mousewheel / touch: two finger spread or squish
 //    Pan - left mouse, or arrow keys / touch: three finger swipe
 
-export
-function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
+export function OrbitControls(object: Camera, domElement: HTMLCanvasElement): void {
 
 	this.object = object
 

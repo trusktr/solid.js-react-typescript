@@ -3,6 +3,7 @@ import {FlyThroughState} from "@/annotator-z-hydra-shared/src/models/FlyThroughS
 import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
+import {CameraType} from "@/annotator-z-hydra-shared/src/models/CameraType";
 
 export default class RoadNetworkEditorState {
 
@@ -34,4 +35,12 @@ export default class RoadNetworkEditorState {
 	shouldAnimate: boolean
 
 	carPose: Models.PoseMessage
+
+
+
+
+	// Shared State
+	cameraPreference: CameraType
+
+
 }

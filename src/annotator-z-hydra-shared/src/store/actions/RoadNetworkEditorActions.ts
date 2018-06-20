@@ -5,6 +5,7 @@ import UIMessage from "annotator-z-hydra-shared/src/models/UIMessage"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import Logger from "@/util/log";
+import {CameraType} from "@/annotator-z-hydra-shared/src/models/CameraType";
 
 const log = Logger(__filename)
 
@@ -54,6 +55,8 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 			uiMenuVisible: config.get('startup.show_menu'),
 			shouldAnimate: false,
 			carPose: null,
+
+			cameraPreference: CameraType.PERSPECTIVE
 
 
 		}
