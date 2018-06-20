@@ -68,7 +68,7 @@ import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindo
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import {FlyThroughState} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
 
-import * as FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
+import * as FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManagerNonReact";
 import { StatusKey } from "@/annotator-z-hydra-shared/src/models/StatusKey";
 
 

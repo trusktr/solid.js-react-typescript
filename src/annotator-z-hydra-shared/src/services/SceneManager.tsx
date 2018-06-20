@@ -37,7 +37,7 @@ export interface SceneManagerState {
 	renderer: THREE.WebGLRenderer
 	loop: AnimationLoop
 	cameraOffset: THREE.Vector3
-	orbitControls: THREE.OrbitControls
+	orbitControls ?: THREE.OrbitControls
 	orthoCameraHeight: number
 	cameraPosition2D: THREE.Vector2
 	cameraToSkyMaxDistance: number
@@ -87,7 +87,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// @TODO handle flyThroughCamera (see below with addCamera)
 
 
-		this.setOrthographicCameraDimensions(width, height)
+		// this.setOrthographicCameraDimensions(width, height) -- moved to bottom
 
 		// Add some lights
 		scene.add(new THREE.AmbientLight(0xffffff))
@@ -148,8 +148,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		renderer.setSize(width, height)
 
 
-		// Initialize all control objects.
-		const orbitControls = this.initOrbitControls()
+
 
 		// Add Listeners
 		window.addEventListener('resize', this.onWindowResize)
@@ -168,6 +167,42 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const animationFps = config.get('startup.renderScene.fps')
 		loop.interval = animationFps === 'device' ? false : 1 / (animationFps || 10)
 
+
+    this.state = {
+      plane: plane,
+      grid: grid,
+      axis: axis,
+      camera: camera,
+      perspectiveCamera: perspectiveCam,
+      orthographicCamera: orthographicCam,
+
+      scene: scene,
+      compassRose: compassRose,
+      renderer: renderer,
+      loop: loop,
+      cameraOffset: cameraOffset,
+      orthoCameraHeight: orthoCameraHeight,
+
+      cameraPosition2D: new THREE.Vector2(),
+      cameraToSkyMaxDistance: cameraToSkyMaxDistance,
+
+      sky: sky,
+      skyPosition2D: skyPosition2D,
+      updateOrbitControls: updateOrbitControls,
+
+      registeredKeyDownEvents: new Map<number, any>(),
+      registeredKeyUpEvents: new Map<number, any>(),
+    }
+
+    this.setOrthographicCameraDimensions(this.props.width, this.props.height)
+
+    // Initialize all control objects.
+    const orbitControls = this.initOrbitControls()
+
+    this.setState({orbitControls})
+
+
+
 		// Point the camera at some reasonable default location.
 		this.setStage(0, 0, 0)
 
@@ -181,33 +216,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 
 
-		this.state = {
-			plane: plane,
-			grid: grid,
-			axis: axis,
-			camera: camera,
-			perspectiveCamera: perspectiveCam,
-			orthographicCamera: orthographicCam,
 
-			scene: scene,
-			compassRose: compassRose,
-			renderer: renderer,
-			loop: loop,
-			cameraOffset: cameraOffset,
-			orthoCameraHeight: orthoCameraHeight,
 
-      cameraPosition2D: new THREE.Vector2(),
-      cameraToSkyMaxDistance: cameraToSkyMaxDistance,
 
-			sky: sky,
-      skyPosition2D: skyPosition2D,
-      updateOrbitControls: updateOrbitControls,
-
-      registeredKeyDownEvents: new Map<number, any>(),
-      registeredKeyUpEvents: new Map<number, any>(),
-
-			orbitControls: orbitControls
-		}
 
 		// @TODO - AnnotationManager needs to call loadUserData()
 		// @TODO - Beholder needs to call this.listen()
@@ -342,6 +353,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	 */
 	private setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
 		const {camera, cameraOffset, orbitControls, plane, grid} = this.state
+
+		if(!orbitControls) {
+			log.info("Unable to set SceneManager stage, orbitControls not found")
+			return
+		}
+
 
 		plane.geometry.center()
 		plane.geometry.translate(x, y, z)

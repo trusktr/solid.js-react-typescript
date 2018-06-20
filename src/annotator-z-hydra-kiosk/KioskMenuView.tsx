@@ -10,12 +10,13 @@ import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import RoadEditorState from "annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState"
 import {createStructuredSelector} from "reselect"
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
-import * as FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
+import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
 
 
 interface KioskViewProps {
 	liveModeEnabled ?: boolean
 	playModeEnabled ?: boolean
+	flyThroughManager: FlyThroughManager | null
 }
 
 interface KioskViewState {}
@@ -31,12 +32,18 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 		super(props)
 	}
 
+	componentWillReceiveProps(newProps) {
+		if(!this.props.flyThroughManager && newProps.flyThroughManager) {
+			// we now have a fly through manager
+		}
+	}
 
 
 	private makeOnPlayModeClick = () => () => {
 		console.log("Clicked onPlayMode")
 		new RoadNetworkEditorActions().togglePlayMode()
-		FlyThroughManager.toggleLiveModePlay()
+		const flyThroughManager = this.props.flyThroughManager
+    flyThroughManager && flyThroughManager.toggleLiveModePlay()
 
 
 	}
@@ -44,8 +51,8 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 	private makeOnLiveModeClick = () => () => {
 		console.log("Clicked onLiveMode")
 		new RoadNetworkEditorActions().toggleLiveMode()
-		FlyThroughManager.toggleLiveAndRecordedPlay()
-
+    const flyThroughManager = this.props.flyThroughManager
+    flyThroughManager && flyThroughManager.toggleLiveAndRecordedPlay()
 	}
 
 	private makeOnSelectDataSetClick = () => () => {

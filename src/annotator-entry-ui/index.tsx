@@ -37,7 +37,7 @@ export async function start() {
 	) {
 
 		await require( 'annotator-z-hydra-shared/src/services' ).loadStore()
-		await require('@/annotator-z-hydra-kiosk/FlyThroughManager').init()
+		// await require('@/annotator-z-hydra-kiosk/FlyThroughManager').init()
 
 		const root = $('#root')[0]
 

@@ -4,7 +4,8 @@ import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import * as FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
+import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
+import KioskMenuView from "@/annotator-z-hydra-kiosk/KioskMenuView";
 
 export interface KioskProps {
   sceneInitialized ?: boolean
@@ -33,15 +34,17 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	}
 
 	componentWillReceiveProps(newProps) {
-		if(newProps.sceneInitialized && !this.props.sceneInitialized && this.state.sceneManager) {
+		if(newProps.sceneInitialized && !this.props.sceneInitialized && this.state.sceneManager && this.state.flyThroughManager) {
 			// this is the transition from the Scene not being setup to when it is
 			// Since it's setup now let's setup the fly through manager
-      FlyThroughManager.init()
+      const flyThroughManager = this.state.flyThroughManager
+      // flyThroughManager.init() -- called on componentDidMount within FlyThroughManager
 			const sceneManager = this.state.sceneManager
-			sceneManager.addChildLoop(FlyThroughManager.getAnimationLoop())
+			sceneManager.addChildLoop(flyThroughManager.getAnimationLoop())
 
-      FlyThroughManager.startLoop()
+      flyThroughManager.startLoop()
 
+			this.setState({flyThroughManager})
 		}
 	}
 
@@ -63,10 +66,12 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	render() {
 		return <div style={{width: "100%", height: "100%"}}>
 			TODO
-			<SceneManager ref={this.getSceneManager} width={100} height={100} />
+			<SceneManager ref={this.getSceneManager} width={1000} height={1000} />
 			<CarManager ref={this.getCarManager} sceneManager={this.state.sceneManager}/>
 
 			<FlyThroughManager ref={this.getFlyThroughManager} />
+
+      <KioskMenuView flyThroughManager={this.state.flyThroughManager}/>
 		</div>
 	}
 

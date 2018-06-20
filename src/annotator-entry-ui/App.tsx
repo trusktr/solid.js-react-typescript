@@ -12,7 +12,7 @@ import './style.scss'
 import Logger from '@/util/log'
 import config from "@/config";
 import AnnotatorMenuView from "annotator-entry-ui/AnnotatorMenuView";
-import KioskMenuView from "annotator-z-hydra-kiosk/KioskMenuView";
+// import KioskMenuView from "annotator-z-hydra-kiosk/KioskMenuView";
 import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
@@ -49,7 +49,7 @@ export default class App extends React.Component<AppProps, AppState> {
 
 	MenuComponent() {
 		if (config.get('startup.kiosk_mode')) {
-			return <KioskMenuView />
+			return <div>Temp Menu</div>  // <KioskMenuView />
 		} else {
 			return <AnnotatorMenuView />
 		}
@@ -67,8 +67,8 @@ export default class App extends React.Component<AppProps, AppState> {
 
 	render(): JSX.Element {
 		log.info("IN RENDER", config.get('startup.kiosk_mode'))
-		const MenuComponent = this.MenuComponent()
-		const {uiMenuVisible} = this.props
+		// const MenuComponent = this.MenuComponent()
+		// const {uiMenuVisible} = this.props
 
 		return <React.Fragment>
 
@@ -98,7 +98,7 @@ export default class App extends React.Component<AppProps, AppState> {
 			</div>
 
 			{/*<Menu />*/}
-			{uiMenuVisible && MenuComponent}
+			{/*{uiMenuVisible && MenuComponent}*/}
 
 		</React.Fragment>
 	}
