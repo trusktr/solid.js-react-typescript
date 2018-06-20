@@ -42,5 +42,5 @@ export default class RoadNetworkEditorState {
 	// Shared State
 	cameraPreference: CameraType
 
-
+	sceneInitialized: boolean
 }

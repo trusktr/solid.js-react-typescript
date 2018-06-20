@@ -4,9 +4,10 @@
 import * as React from "react"
 import * as THREE from "three";
 import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
+import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
 
 export interface CarManagerProps {
-
+	sceneManager: SceneManager | null
 }
 
 export interface CarManagerState {
@@ -15,9 +16,10 @@ export interface CarManagerState {
 
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
 
-	constructor(props){
-		super(props)
-		this.loadCarModel()
+	componentWillReceiveProps(newProps: CarManagerProps) {
+		if(newProps.sceneManager) {
+			this.loadCarModel()
+		}
 	}
 
 
@@ -44,12 +46,9 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 							})
 					})
 
-					this.setState({
-						carModel: carModel
-					})
-
-					// @TODO call SceneManager.addObjectToScene(object)
-					// this.scene.add(object)
+					this.setState({carModel})
+					const sceneManager = this.props.sceneManager
+					sceneManager && sceneManager.addObjectToScene(object)
 					resolve()
 				})
 			} catch (err) {

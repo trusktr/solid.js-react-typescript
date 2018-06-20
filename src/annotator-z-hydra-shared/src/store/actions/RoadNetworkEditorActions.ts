@@ -56,7 +56,8 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 			shouldAnimate: false,
 			carPose: null,
 
-			cameraPreference: CameraType.PERSPECTIVE
+			cameraPreference: CameraType.PERSPECTIVE,
+			sceneInitialized: false
 
 
 		}
@@ -129,6 +130,14 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 		// log.info("Setting car pose", pose)
 		return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
 			...roadEditorState, carPose: pose
+		})
+	}
+
+	@ActionReducer()
+	setSceneInitialized(isInitialized:boolean) {
+		log.info("Setting sceneInitialized", isInitialized)
+		return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+			...roadEditorState, sceneInitialized: isInitialized
 		})
 	}
 

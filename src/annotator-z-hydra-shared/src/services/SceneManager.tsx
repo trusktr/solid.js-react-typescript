@@ -8,25 +8,24 @@ import config from "@/config";
 import {AxesHelper} from "@/annotator-entry-ui/controls/AxesHelper";
 import {CompassRose} from "@/annotator-entry-ui/controls/CompassRose";
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
-import * as FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
 import Logger from "@/util/log";
 import {OrbitControls} from "@/annotator-entry-ui/controls/OrbitControls";
 import {getValue} from "typeguard";
-import * as $ from "jquery";
-import {render} from "react-dom";
-import {Scene} from "three";
+import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import {createStructuredSelector} from "reselect";
 
 const log = Logger(__filename)
 
 export interface SceneManagerProps {
 	width: number
 	height: number
-	orbitControls: THREE.OrbitControls
+	// orbitControls: THREE.OrbitControls
+	shouldAnimate ?: boolean
 }
 
 export interface SceneManagerState {
-	width: number
-	height: number
+	// width: number
+	// height: number
 	plane: THREE.Mesh
 	grid: THREE.GridHelper
 	axis: THREE.Object3D
@@ -52,9 +51,12 @@ export interface SceneManagerState {
 }
 
 
+@typedConnect(createStructuredSelector({
+	shouldAnimate: (state) => state.get(RoadEditorState.Key).shouldAnimate,
+}))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
-
+	private sceneContainer: HTMLDivElement
 
 	constructor(props) {
 		super(props)
@@ -71,14 +73,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const updateOrbitControls = false
 
 		const perspectiveCam = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		const orthoCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
+		const orthographicCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
 
 		const scene = new THREE.Scene()
-		let camera = null
+		let camera;
 
 		const cameraPreference = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).cameraPreference
 		if (cameraPreference === CameraType.ORTHOGRAPHIC)
-			camera = orthoCam
+			camera = orthographicCam
 		else
 			camera = perspectiveCam
 
@@ -109,8 +111,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// Add grid on top of the plane to visualize where the plane is.
 		// Add an axes helper to visualize the origin and orientation of the primary directions.
 		const axesHelperLength = parseFloat(config.get('annotator.axes_helper_length')) || 0
-		let grid = null
-		let axis = null
+		let grid;
+		let axis;
 		if (axesHelperLength > 0) {
 			const gridSize = parseFloat(config.get('annotator.grid_size')) || 200
 			const gridUnit = parseFloat(config.get('annotator.grid_unit')) || 10
@@ -129,7 +131,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		}
 
 		const compassRoseLength = parseFloat(config.get('annotator.compass_rose_length')) || 0
-		let compassRose = null
+		let compassRose;
 		if (compassRoseLength > 0) {
 			compassRose = CompassRose(compassRoseLength)
 			compassRose.rotateX(Math.PI / -2)
@@ -147,7 +149,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
 		// Initialize all control objects.
-		this.initOrbitControls()
+		const orbitControls = this.initOrbitControls()
 
 		// Add Listeners
 		window.addEventListener('resize', this.onWindowResize)
@@ -178,15 +180,95 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			renderer.render(scene, camera)
 		})
 
-		this.loadCarModel()
-			.then(() => this.loadUserData())
-			.then(() => {
-				if (this.uiState.isKioskMode)
-					this.listen()
-				this.uiState.sceneInitialized = true
-			})
+
+		this.state = {
+			plane: plane,
+			grid: grid,
+			axis: axis,
+			camera: camera,
+			perspectiveCamera: perspectiveCam,
+			orthographicCamera: orthographicCam,
+
+			scene: scene,
+			compassRose: compassRose,
+			renderer: renderer,
+			loop: loop,
+			cameraOffset: cameraOffset,
+			orthoCameraHeight: orthoCameraHeight,
+
+      cameraPosition2D: new THREE.Vector2(),
+      cameraToSkyMaxDistance: cameraToSkyMaxDistance,
+
+			sky: sky,
+      skyPosition2D: skyPosition2D,
+      updateOrbitControls: updateOrbitControls,
+
+      registeredKeyDownEvents: new Map<number, any>(),
+      registeredKeyUpEvents: new Map<number, any>(),
+
+			orbitControls: orbitControls
+		}
+
+		// @TODO - AnnotationManager needs to call loadUserData()
+		// @TODO - Beholder needs to call this.listen()
+
+		new RoadNetworkEditorActions().setSceneInitialized(true)
+	}
+
+	componentDidMount() {
+		this.mount()
+	}
+
+	async mount(): Promise<void> {
+		this.sceneContainer.appendChild(this.state.renderer.domElement)
+
+		// @TODO (annotator only)
+		// this.createControlsGui()
+
+		// this.makeStats()
+		this.startAnimation()
+	}
+
+	// SHARED
+	private startAnimation(): void {
+		new RoadNetworkEditorActions().setShouldAnimate(true)
+
+		// this.shouldAnimate = true
+		this.startAoiUpdates()
+
+		const loop = this.state.loop
+		loop.addAnimationFn(() => {
+			if ( !this.props.shouldAnimate ) return false
 
 
+			// @TODO create a way to register animate methods
+			// this.animate()
+
+			return true
+		})
+
+		this.setState({
+			loop: loop
+		})
+	}
+
+	private startAoiUpdates(): void {
+		const loop = this.state.loop
+
+		loop.addAnimationFn(() => {
+			if ( !this.props.shouldAnimate ) return false
+			this.updatePointCloudAoi()
+			return true
+		})
+
+		this.setState({
+			loop: loop
+		})
+	}
+
+	// @TODO need to implement
+	private updatePointCloudAoi(): void {
+		console.log("IMPLEMENT ME!!!")
 	}
 
 	addObjectToScene(object:any) {
@@ -308,7 +390,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
-	private initOrbitControls(): void {
+	private initOrbitControls() {
 		const orbitControls = new OrbitControls(this.state.camera, this.state.renderer.domElement)
 		orbitControls.enabled = false
 		orbitControls.minDistance = 10
@@ -329,11 +411,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		orbitControls.addEventListener('end', () => {
 			this.state.loop.removeAnimationFn(fn)
 		})
+
+		return orbitControls
 	}
 
 
 	private getContainerSize = (): Array<number> => {
-		return getValue(() => [this.state.width, this.state.height], [0, 0])
+		return getValue(() => [this.props.width, this.props.height], [0, 0])
 	}
 
 	private onWindowResize = (): void => {
@@ -400,7 +484,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
 	render() {
-		return null
+		return (
+			<React.Fragment>
+				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
+
+			</React.Fragment>
+	)
+
 	}
 
 

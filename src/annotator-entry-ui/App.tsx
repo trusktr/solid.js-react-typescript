@@ -6,7 +6,7 @@
 import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import Annotator from 'annotator-entry-ui/Annotator'
-import Kiosk from 'annotator-entry-ui/Kiosk'
+import Kiosk from 'annotator-z-hydra-kiosk/Kiosk'
 // import Menu from './components/Menu'
 import './style.scss'
 import Logger from '@/util/log'

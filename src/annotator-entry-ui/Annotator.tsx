@@ -758,6 +758,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 */
 	// TAKE OUT TRAJECTORIES (beholder specific)
 	// SHARED
+	// EDITED AND MOVED 6/20
 	private loadUserData(): Promise<void> {
 		const annotationsPath = config.get('startup.annotations_path')
 		let annotationsResult: Promise<void>
@@ -810,7 +811,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return trajectoryResult
 	}
 
-	// SHARED
+	// SHARED (moved)
 	private startAnimation(): void {
 		new RoadNetworkEditorActions().setShouldAnimate(true)
 
@@ -830,7 +831,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		new RoadNetworkEditorActions().setShouldAnimate(false)
 	}
 
-	// SHARED
+	// SHARED (moved)
 	private startAoiUpdates(): void {
 		this.loop.addAnimationFn(() => {
 			if ( !this.props.shouldAnimate ) return false
