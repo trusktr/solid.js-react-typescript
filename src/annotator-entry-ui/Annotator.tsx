@@ -153,7 +153,6 @@ interface AnnotatorSettings {
 	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
 	estimateGroundPlane: boolean
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
-	generateVoxelsOnPointLoad: boolean
 	enableAnnotationTileManager: boolean
 	drawBoundingBox: boolean
 	enableTileManagerStats: boolean
@@ -309,8 +308,10 @@ class Annotator {
 		this.updateOrbitControls = false
 		this.sceneInitialized = false
 
+		if (!isNullOrUndefined(config.get('annotator.generate_voxels_on_point_load')))
+			log.warn('Config option annotator.generate_voxels_on_point_load has been removed.')
 		if (config.get('startup.animation.fps'))
-			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
+			log.warn('Config option startup.animation.fps has been removed. Use startup.render.fps.')
 		const animationFps = config.get('startup.render.fps')
 
 		this.settings = {
@@ -321,7 +322,6 @@ class Annotator {
 			animationFrameIntervalSecs: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 			tileGroundPlaneScale: 1.05,
-			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
 			enableAnnotationTileManager: false,
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
 			enableTileManagerStats: !!config.get('tile_manager.stats_display.enable'),
@@ -585,7 +585,6 @@ class Annotator {
 			this.onSuperTileLoad,
 			this.onSuperTileUnload,
 			tileServiceClient,
-			this.settings.generateVoxelsOnPointLoad,
 		)
 		if (this.settings.enableAnnotationTileManager)
 			this.annotationTileManager = new AnnotationTileManager(
@@ -1114,11 +1113,6 @@ class Annotator {
 	private pointCloudLoadedSideEffects(resetCamera: boolean = true): void {
 		this.setLayerVisibility([Layer.POINT_CLOUD])
 
-		if (this.settings.generateVoxelsOnPointLoad) {
-			this.computeVoxelsHeights() // This is based on pre-loaded annotations
-			this.pointCloudTileManager.generateVoxels()
-		}
-
 		this.renderEmptySuperTiles()
 		this.updatePointCloudBoundingBox()
 		this.setCompassRoseByPointCloud()
@@ -1139,51 +1133,6 @@ class Annotator {
 				log.error(err.message)
 				dialog.showErrorBox(`${dataType} Load Error`, err.message)
 				this.uiState.lastPointCloudLoadedErrorModalMs = now
-			}
-		}
-	}
-
-	/**
-	 * 	Compute corresponding height for each voxel based on near by annotations
-	 */
-	private computeVoxelsHeights(): void {
-		if (this.annotationManager.laneAnnotations.length === 0)
-			log.error(`Unable to compute voxels height, there are no annotations.`)
-
-		const voxels: Set<THREE.Vector3> = this.pointCloudTileManager.voxelsDictionary
-		const voxelSize: number = this.pointCloudTileManager.voxelsConfig.voxelSize
-		const annotationCutoffDistance: number = 1.2 * 1.2 // 1.2 meters radius
-		this.pointCloudTileManager.voxelsHeight = []
-		for (let voxel of voxels) {
-			let x: number = voxel.x * voxelSize
-			let y: number = voxel.y * voxelSize
-			let z: number = voxel.z * voxelSize
-			let minDistance: number = Number.MAX_VALUE
-			// in case there is no annotation close enough these voxels will be all colored the same
-			let minDistanceHeight: number = y
-			for (let annotation of this.annotationManager.laneAnnotations) {
-				for (let wayPoint of annotation.denseWaypoints) {
-					let dx: number = wayPoint.x - x
-					let dz: number = wayPoint.z - z
-					let distance = dx * dx + dz * dz
-					if (distance < minDistance) {
-						minDistance = distance
-						minDistanceHeight = wayPoint.y
-					}
-					if (minDistance < annotationCutoffDistance) {
-						break
-					}
-				}
-				if (minDistance < annotationCutoffDistance) {
-					break
-				}
-			}
-			let height: number = y - minDistanceHeight
-			// TODO: Remove this voxel filtering. For CES only
-			if (height < 2.0 && minDistance < annotationCutoffDistance) {
-				this.pointCloudTileManager.voxelsHeight.push(-1)
-			} else {
-				this.pointCloudTileManager.voxelsHeight.push(height)
 			}
 		}
 	}
@@ -2514,10 +2463,6 @@ class Annotator {
 				}
 				case 'V': {
 					this.toggleCameraType()
-					break
-				}
-				case 'v': {
-					this.toggleVoxelsAndPointClouds()
 					break
 				}
 				case 'X': {
@@ -3971,24 +3916,6 @@ class Annotator {
 		// Bring the model close to the ground (approx height of the sensors)
 		const p = this.carModel.getWorldPosition()
 		this.carModel.position.set(p.x, p.y - 2, p.z)
-	}
-
-	/**
-	 * Switch between voxel and point cloud rendering.
-	 * TODO: We might be able to do this by setting the 'visible' parameter of the
-	 * TODO:   corresponding 3D objects.
-	 * TODO: This may conflict with the states in toggleLayerVisibility(). We can
-	 * TODO:   fix it if we start using voxels again.
-	 */
-	private toggleVoxelsAndPointClouds(): void {
-		if (!this.pointCloudTileManager.voxelsMeshGroup) return
-		if (this.hidePointCloud()) {
-			this.pointCloudTileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
-			this.render()
-		} else if (this.showPointCloud()) {
-			this.pointCloudTileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
-			this.render()
-		}
 	}
 
 	// Print a message about how big our tiles are.
