@@ -13,7 +13,6 @@ class Menu extends React.Component<{}, {}> {
 						<button id="tools_add_lane" className="ui-btn ui-icon-plus ui-btn-icon-left"> New Lane </button>
 						<button id="tools_add_traffic_device" className="ui-btn ui-icon-plus ui-btn-icon-left"> New Traffic Device </button>
 						<button id="tools_delete" className="ui-btn ui-icon-minus ui-btn-icon-left"> Delete Annotation </button>
-						<button id="tools_load" className="ui-btn ui-icon-grid ui-btn-icon-left"> Load Tiles </button>
 						<button id="tools_load_trajectory" className="ui-btn ui-icon-grid ui-btn-icon-left"> Load Trajectory </button>
 						<button id="tools_load_images" className="ui-btn ui-icon-camera ui-btn-icon-left"> Load Images </button>
 						<button id="tools_load_annotation" className="ui-btn ui-icon-edit ui-btn-icon-left"> Load Annotation </button>

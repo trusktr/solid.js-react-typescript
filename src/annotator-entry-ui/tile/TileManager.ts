@@ -39,11 +39,6 @@ function makeTileMessageForCurrentUtmZone(origin: THREE.Vector3): TileMessage {
 	}
 }
 
-export enum SuperTileUnloadAction {
-	Unload,
-	Delete,
-}
-
 export interface TileManagerConfig {
 	layerId: LayerId, // Each TileManager gets all its data from a single layer of tiles.
 	initialSuperTilesToLoad: number, // preload some super tiles; initially we don't know how many objects they will contain
@@ -63,7 +58,6 @@ export abstract class TileManager {
 	// Keys to super tiles which have objects loaded in memory. It is ordered so that it works as a least-recently-used
 	// cache when it comes time to unload excess super tiles.
 	private loadedSuperTileKeys: OrderedSet<string>
-	private superTileUnloadBehavior: SuperTileUnloadAction
 	// TileManager makes some assumptions about the state of super tiles and their contents which lead to problems
 	// with asynchronous requests to load them. Allow only one request at a time.
 	protected _isLoadingTiles: boolean
@@ -75,14 +69,13 @@ export abstract class TileManager {
 		scaleProvider: ScaleProvider,
 		protected utmCoordinateSystem: UtmCoordinateSystem,
 		private onSuperTileLoad: (superTile: SuperTile) => void,
-		private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void,
+		private onSuperTileUnload: (superTile: SuperTile) => void,
 		protected tileServiceClient: TileServiceClient,
 	) {
 		this.storage = new LocalStorage()
 		this.coordinateSystemInitialized = false
 		this.superTiles = OrderedMap()
 		this.loadedSuperTileKeys = OrderedSet()
-		this.superTileUnloadBehavior = SuperTileUnloadAction.Unload
 		this._isLoadingTiles = false
 		this.loadedObjectsBoundingBox = null
 
@@ -203,12 +196,6 @@ export abstract class TileManager {
 
 	// The useful bits of loadFromMapServer()
 	protected loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects: boolean = false): Promise<boolean> {
-		// Default behavior when a super tile is evicted from cache is to unload its contents without deleting it.
-		// That works well with a fixed data set which we would get with loadFromDirectory(). The UI allows a mix of
-		// loading from directory and from a map server at any time. If we ever see a request for map server tiles,
-		// assume the number of tiles (and super tiles) is unlimited, so we can't afford to keep any old ones.
-		this.superTileUnloadBehavior = SuperTileUnloadAction.Delete
-
 		// Figure out which super tiles to load.
 		const allStIndexes = this.enumerateIntersectingSuperTileIndexes(searches)
 		const filteredStIndexes = allStIndexes
@@ -287,17 +274,6 @@ export abstract class TileManager {
 			log.warn(`addTile() to ${superTile.key()} failed for ${tileName}`)
 	}
 
-	// Load data for a single SuperTile. This assumes that loadFromDirectory() or loadFromMapServer() already happened.
-	// Side effect: prune old SuperTiles as necessary.
-	loadFromSuperTile(superTile: SuperTile): Promise<void> {
-		const foundSuperTile = this.superTiles.get(superTile.key())
-		if (!foundSuperTile)
-			return Promise.reject(`can't load nonexistent super tile '${superTile.key()}'`)
-		else
-			return this.loadSuperTile(foundSuperTile)
-				.then(() => this.pruneSuperTiles())
-	}
-
 	protected loadSuperTile(superTile: SuperTile): Promise<boolean> {
 		if (this.loadedSuperTileKeys.contains(superTile.key())) {
 			// Move it to the end of the queue for pruning super tiles.
@@ -319,26 +295,11 @@ export abstract class TileManager {
 	}
 
 	private unloadSuperTile(superTile: SuperTile): boolean {
-		this.onSuperTileUnload(superTile, this.superTileUnloadBehavior)
-		let success = false
-		switch (this.superTileUnloadBehavior) {
-			case SuperTileUnloadAction.Unload:
-				superTile.unloadContents()
-				success = true
-				break
-			case SuperTileUnloadAction.Delete:
-				this.superTiles = this.superTiles.remove(superTile.key())
-				success = true
-				break
-			default:
-				log.error('unknown SuperTileUnloadAction: ' + this.superTileUnloadBehavior)
-				success = false
-		}
-		if (success) {
-			this.loadedObjectsBoundingBox = null
-			this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.remove(superTile.key()))
-		}
-		return success
+		this.onSuperTileUnload(superTile)
+		this.superTiles = this.superTiles.remove(superTile.key())
+		this.loadedObjectsBoundingBox = null
+		this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.remove(superTile.key()))
+		return true
 	}
 
 	// When we exceed maximumSuperTilesToLoad or maximumObjectsToLoad, unload old SuperTiles, keeping a minimum of one in memory.

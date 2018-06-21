@@ -5,12 +5,7 @@
 
 import {TileIndex} from "./TileIndex"
 
-export interface TileInstance {
-	tileIndex: TileIndex,
-	url: string,
-}
-
-export class RemoteTileInstance implements TileInstance {
+export class TileInstance {
 	tileIndex: TileIndex
 	layerId: LayerId
 	url: string
@@ -23,20 +18,5 @@ export class RemoteTileInstance implements TileInstance {
 		this.tileIndex = tileIndex
 		this.layerId = layerId
 		this.url = url
-	}
-}
-
-export class LocalTileInstance implements TileInstance {
-	tileIndex: TileIndex
-	url: string
-	fileSystemPath: string
-
-	constructor(
-		tileIndex: TileIndex,
-		fileSystemPath: string
-	) {
-		this.tileIndex = tileIndex
-		this.url = 'file://' + fileSystemPath
-		this.fileSystemPath = fileSystemPath
 	}
 }

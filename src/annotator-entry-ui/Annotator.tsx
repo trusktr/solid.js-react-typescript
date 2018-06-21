@@ -26,8 +26,8 @@ import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
 import {PointCloudTileManager} from './tile/PointCloudTileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
-import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
-import {getCenter, getSize, getClosestPoints} from "./geometry/ThreeHelpers"
+import {BusyError} from "./tile/TileManager"
+import {getClosestPoints} from "./geometry/ThreeHelpers"
 import {AxesHelper} from "./controls/AxesHelper"
 import {CompassRose} from "./controls/CompassRose"
 import {Sky} from "./controls/Sky"
@@ -107,7 +107,6 @@ enum MenuVisibility {
 // Various types of objects which can be displayed in the three.js scene.
 enum Layer {
 	POINT_CLOUD,
-	SUPER_TILES,
 	IMAGE_SCREENS,
 	ANNOTATIONS,
 }
@@ -128,7 +127,7 @@ for (let key in Layer) {
 // - everything but annotations hidden
 const layerGroups: Layer[][] = [
 	allLayers,
-	[Layer.POINT_CLOUD, Layer.SUPER_TILES, Layer.IMAGE_SCREENS],
+	[Layer.POINT_CLOUD, Layer.IMAGE_SCREENS],
 	[Layer.ANNOTATIONS],
 ]
 
@@ -153,12 +152,10 @@ interface AnnotatorSettings {
 	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
 	estimateGroundPlane: boolean
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
-	generateVoxelsOnPointLoad: boolean
 	enableAnnotationTileManager: boolean
 	drawBoundingBox: boolean
 	enableTileManagerStats: boolean
-	superTileBboxMaterial: THREE.Material // for visualizing available, but unpopulated, super tiles
-	superTileBboxColor: THREE.Color
+	pointCloudBboxColor: THREE.Color
 	aoiBboxColor: THREE.Color
 	aoiFullSize: THREE.Vector3 // the dimensions of an AOI box, which will be constructed around a center point
 	aoiHalfSize: THREE.Vector3 // half the dimensions of an AOI box
@@ -198,7 +195,6 @@ interface UiState {
 	lockLanes: boolean
 	lockTerritories: boolean
 	lockTrafficDevices: boolean
-	isSuperTilesVisible: boolean
 	isPointCloudVisible: boolean
 	isImageScreensVisible: boolean
 	isAnnotationsVisible: boolean
@@ -255,7 +251,6 @@ class Annotator {
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
-	private raycasterSuperTiles: THREE.Raycaster // used to select a pending super tile for loading
 	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
 	private sky: THREE.Object3D // makes it easier to tell up from down
@@ -278,8 +273,6 @@ class Annotator {
 	private serverStatusDisplayTimer: number
 	private locationServerStatusDisplayTimer: number
 	private annotationManager: AnnotationManager
-	private pendingSuperTileBoxes: THREE.Mesh[] // bounding boxes of super tiles that exist but have not been loaded
-	private highlightedSuperTileBox: THREE.Mesh | null // pending super tile which is currently active in the UI
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
 	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
@@ -311,8 +304,10 @@ class Annotator {
 
 		if (!isNullOrUndefined(config.get('output.trajectory.csv.path')))
 			log.warn('Config option output.trajectory.csv.path has been removed.')
+		if (!isNullOrUndefined(config.get('annotator.generate_voxels_on_point_load')))
+			log.warn('Config option annotator.generate_voxels_on_point_load has been removed.')
 		if (config.get('startup.animation.fps'))
-			log.warn('config option startup.animation.fps has been removed. Use startup.render.fps.')
+			log.warn('Config option startup.animation.fps has been removed. Use startup.render.fps.')
 		const animationFps = config.get('startup.render.fps')
 
 		this.settings = {
@@ -323,12 +318,10 @@ class Annotator {
 			animationFrameIntervalSecs: 0,
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 			tileGroundPlaneScale: 1.05,
-			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
 			enableAnnotationTileManager: false,
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
 			enableTileManagerStats: !!config.get('tile_manager.stats_display.enable'),
-			superTileBboxMaterial: new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true}),
-			superTileBboxColor: new THREE.Color(0xff0000),
+			pointCloudBboxColor: new THREE.Color(0xff0000),
 			aoiBboxColor: new THREE.Color(0x00ff00),
 			aoiFullSize: new THREE.Vector3(30, 30, 30),
 			aoiHalfSize: new THREE.Vector3(15, 15, 15),
@@ -360,7 +353,6 @@ class Annotator {
 			lockLanes: false,
 			lockTerritories: true,
 			lockTrafficDevices: false,
-			isSuperTilesVisible: true,
 			isPointCloudVisible: true,
 			isImageScreensVisible: true,
 			isAnnotationsVisible: true,
@@ -400,14 +392,11 @@ class Annotator {
 		this.raycasterPlane = new THREE.Raycaster()
 		this.raycasterPlane.params.Points!.threshold = 0.1
 		this.raycasterMarker = new THREE.Raycaster()
-		this.raycasterSuperTiles = new THREE.Raycaster()
 		this.decorations = []
 		this.raycasterAnnotation = new THREE.Raycaster()
 		this.raycasterImageScreen = new THREE.Raycaster()
 		this.scaleProvider = new ScaleProvider()
 		this.utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
-		this.pendingSuperTileBoxes = []
-		this.highlightedSuperTileBox = null
 		this.superTileGroundPlanes = Map()
 		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
@@ -447,7 +436,6 @@ class Annotator {
 
 		this.layerToggle = Map([
 			[Layer.POINT_CLOUD, {show: this.showPointCloud, hide: this.hidePointCloud}],
-			[Layer.SUPER_TILES, {show: this.showSuperTiles, hide: this.hideSuperTiles}],
 			[Layer.IMAGE_SCREENS, {show: this.showImageScreens, hide: this.hideImageScreens}],
 			[Layer.ANNOTATIONS, {show: this.showAnnotations, hide: this.hideAnnotations}],
 		])
@@ -587,7 +575,6 @@ class Annotator {
 			this.onSuperTileLoad,
 			this.onSuperTileUnload,
 			tileServiceClient,
-			this.settings.generateVoxelsOnPointLoad,
 		)
 		if (this.settings.enableAnnotationTileManager)
 			this.annotationTileManager = new AnnotationTileManager(
@@ -630,7 +617,6 @@ class Annotator {
 
 		this.renderer.domElement.addEventListener('mousemove', this.setLastMousePosition)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
-		this.renderer.domElement.addEventListener('mousemove', this.checkForSuperTileSelection)
 		this.renderer.domElement.addEventListener('mousemove', this.checkForImageScreenSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.checkForConflictOrDeviceSelection)
@@ -638,7 +624,6 @@ class Annotator {
 		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)
 		this.renderer.domElement.addEventListener('mouseup', this.connectNeighbor)
 		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
-		this.renderer.domElement.addEventListener('mouseup', this.clickSuperTileBox)
 		this.renderer.domElement.addEventListener('mouseup', this.clickImageScreenBox)
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true})
@@ -793,18 +778,9 @@ class Annotator {
 			annotationsResult = Promise.resolve()
 		}
 
-		const pointCloudDir: string = config.get('startup.point_cloud_directory')
 		const pointCloudBbox: [number, number, number, number, number, number] = config.get('startup.point_cloud_bounding_box')
 		let pointCloudResult: Promise<void>
-		if (pointCloudDir) {
-			if (pointCloudBbox)
-				log.warn(`don't set startup.point_cloud_directory and startup.point_cloud_bounding_box config options at the same time`)
-			pointCloudResult = annotationsResult
-				.then(() => {
-					log.info('loading pre-configured data set ' + pointCloudDir)
-					return this.loadPointCloudDataFromDirectory(pointCloudDir)
-				})
-		} else if (pointCloudBbox) {
+		if (pointCloudBbox) {
 			pointCloudResult = annotationsResult
 				.then(() => {
 					log.info('loading pre-configured bounding box ' + pointCloudBbox)
@@ -814,6 +790,8 @@ class Annotator {
 			pointCloudResult = annotationsResult
 		}
 
+		if (config.get('startup.point_cloud_directory'))
+			log.warn('config option startup.point_cloud_directory has been removed.')
 		if (config.get('live_mode.trajectory_path'))
 			log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
 		if (config.get('fly_through.trajectory_path'))
@@ -1084,14 +1062,6 @@ class Annotator {
 		this.render()
 	}
 
-	// Given a path to a directory that contains point cloud tiles, load them and add them to the scene.
-	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
-		log.info('Loading point cloud from ' + pathToTiles)
-		return this.pointCloudTileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
-			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
-			.catch(err => this.handleTileManagerLoadError('Point Cloud', err))
-	}
-
 	// Load tiles within a bounding box and add them to the scene.
 	private loadPointCloudDataFromConfigBoundingBox(bbox: number[]): Promise<void> {
 		if (!isTupleOfNumbers(bbox, 6)) {
@@ -1116,12 +1086,6 @@ class Annotator {
 	private pointCloudLoadedSideEffects(resetCamera: boolean = true): void {
 		this.setLayerVisibility([Layer.POINT_CLOUD])
 
-		if (this.settings.generateVoxelsOnPointLoad) {
-			this.computeVoxelsHeights() // This is based on pre-loaded annotations
-			this.pointCloudTileManager.generateVoxels()
-		}
-
-		this.renderEmptySuperTiles()
 		this.updatePointCloudBoundingBox()
 		this.setCompassRoseByPointCloud()
 		this.setStageByPointCloud(resetCamera)
@@ -1145,83 +1109,8 @@ class Annotator {
 		}
 	}
 
-	/**
-	 * 	Compute corresponding height for each voxel based on near by annotations
-	 */
-	private computeVoxelsHeights(): void {
-		if (this.annotationManager.laneAnnotations.length === 0)
-			log.error(`Unable to compute voxels height, there are no annotations.`)
-
-		const voxels: Set<THREE.Vector3> = this.pointCloudTileManager.voxelsDictionary
-		const voxelSize: number = this.pointCloudTileManager.voxelsConfig.voxelSize
-		const annotationCutoffDistance: number = 1.2 * 1.2 // 1.2 meters radius
-		this.pointCloudTileManager.voxelsHeight = []
-		for (let voxel of voxels) {
-			let x: number = voxel.x * voxelSize
-			let y: number = voxel.y * voxelSize
-			let z: number = voxel.z * voxelSize
-			let minDistance: number = Number.MAX_VALUE
-			// in case there is no annotation close enough these voxels will be all colored the same
-			let minDistanceHeight: number = y
-			for (let annotation of this.annotationManager.laneAnnotations) {
-				for (let wayPoint of annotation.denseWaypoints) {
-					let dx: number = wayPoint.x - x
-					let dz: number = wayPoint.z - z
-					let distance = dx * dx + dz * dz
-					if (distance < minDistance) {
-						minDistance = distance
-						minDistanceHeight = wayPoint.y
-					}
-					if (minDistance < annotationCutoffDistance) {
-						break
-					}
-				}
-				if (minDistance < annotationCutoffDistance) {
-					break
-				}
-			}
-			let height: number = y - minDistanceHeight
-			// TODO: Remove this voxel filtering. For CES only
-			if (height < 2.0 && minDistance < annotationCutoffDistance) {
-				this.pointCloudTileManager.voxelsHeight.push(-1)
-			} else {
-				this.pointCloudTileManager.voxelsHeight.push(height)
-			}
-		}
-	}
-
-	/**
-	 * 	Incrementally load the point cloud for a single super tile.
-	 */
-	private loadPointCloudSuperTileData(superTile: PointCloudSuperTile): Promise<void> {
-		this.setLayerVisibility([Layer.POINT_CLOUD])
-		return this.pointCloudTileManager.loadFromSuperTile(superTile)
-			.then(() => {
-				this.updatePointCloudBoundingBox()
-				this.setCompassRoseByPointCloud()
-				this.setStageByPointCloud(false)
-			})
-	}
-
-	private loadAllPointCloudSuperTileData(): void {
-		if (this.uiState.isLiveMode) return
-
-		log.info('loading all super tiles')
-		const promises = this.pendingSuperTileBoxes.map(box =>
-			this.loadPointCloudSuperTileData(box.userData as PointCloudSuperTile)
-		)
-		Promise.all(promises)
-			.then(() => {
-				this.unHighlightSuperTileBox()
-				this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
-				this.pendingSuperTileBoxes = []
-			})
-	}
-
 	private unloadPointCloudData(): void {
 		if (this.pointCloudTileManager.unloadAllTiles()) {
-			this.unHighlightSuperTileBox()
-			this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
 			if (this.pointCloudBoundingBox)
 				this.scene.remove(this.pointCloudBoundingBox)
 		} else {
@@ -1242,16 +1131,6 @@ class Annotator {
 	private annotationLoadedSideEffects(): void {
 		this.setLayerVisibility([Layer.ANNOTATIONS])
 		this.render()
-	}
-
-	/**
-	 * 	Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
-	 */
-	private renderEmptySuperTiles(): void {
-		this.pointCloudTileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
-
-		if (this.uiState.isLiveMode)
-			this.hideSuperTiles()
 	}
 
 	// When TileManager loads a super tile, update Annotator's parallel data structure.
@@ -1278,8 +1157,8 @@ class Annotator {
 		}
 
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
-	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void =
-		(superTile: SuperTile, action: SuperTileUnloadAction) => {
+	private onSuperTileUnload: (superTile: SuperTile) => void =
+		(superTile: SuperTile) => {
 			if (superTile instanceof PointCloudSuperTile) {
 				this.unloadTileGroundPlanes(superTile)
 
@@ -1287,20 +1166,6 @@ class Annotator {
 					this.scene.remove(superTile.pointCloud)
 				else
 					log.error('onSuperTileUnload() got a super tile with no point cloud')
-
-				switch (action) {
-					case SuperTileUnloadAction.Unload:
-						this.superTileToBoundingBox(superTile)
-						break
-					case SuperTileUnloadAction.Delete:
-						const name = superTile.key()
-						this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(bbox => bbox.name !== name)
-						if (this.highlightedSuperTileBox && this.highlightedSuperTileBox.name === name)
-							this.unHighlightSuperTileBox()
-						break
-					default:
-						log.error('unknown SuperTileUnloadAction: ' + action)
-				}
 			} else if (superTile instanceof AnnotationSuperTile) {
 				superTile.annotations.forEach(a => this.annotationManager.deleteAnnotation(a))
 			} else {
@@ -1360,20 +1225,6 @@ class Annotator {
 		groundPlanes.forEach(plane => this.scene.remove(plane))
 	}
 
-	private superTileToBoundingBox(superTile: PointCloudSuperTile): void {
-		if (!superTile.pointCloud) {
-			const size = getSize(superTile.threeJsBoundingBox)
-			const center = getCenter(superTile.threeJsBoundingBox)
-			const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
-			const box = new THREE.Mesh(geometry, this.settings.superTileBboxMaterial.clone())
-			box.geometry.translate(center.x, center.y, center.z)
-			box.userData = superTile
-			box.name = superTile.key()
-			this.scene.add(box)
-			this.pendingSuperTileBoxes.push(box)
-		}
-	}
-
 	/**
 	 * 	Draw a box around the data. Useful for debugging.
 	 */
@@ -1390,7 +1241,7 @@ class Annotator {
 				// Maybe BoxHelper isn't so helpful after all. But guess what? It will take a Box3 anyway and
 				// do the right thing with it.
 				// tslint:disable-next-line:no-any
-				this.pointCloudBoundingBox = new THREE.BoxHelper(bbox as any, this.settings.superTileBboxColor)
+				this.pointCloudBoundingBox = new THREE.BoxHelper(bbox as any, this.settings.pointCloudBboxColor)
 				this.scene.add(this.pointCloudBoundingBox)
 			}
 		}
@@ -2049,82 +1900,6 @@ class Annotator {
 			return []
 	}
 
-	private checkForSuperTileSelection = (event: MouseEvent): void => {
-		if (this.uiState.isLiveMode) return
-		if (this.uiState.isMouseButtonPressed) return
-		if (this.uiState.isAddMarkerKeyPressed) return
-		if (this.uiState.isAddConnectionKeyPressed) return
-		if (this.uiState.isConnectLeftNeighborKeyPressed ||
-			this.uiState.isConnectRightNeighborKeyPressed ||
-			this.uiState.isConnectFrontNeighborKeyPressed) return
-		if (this.uiState.isJoinAnnotationKeyPressed) return
-		if (!this.uiState.isSuperTilesVisible) return
-
-		if (!this.pendingSuperTileBoxes.length) return this.unHighlightSuperTileBox()
-
-		const mouse = this.getMouseCoordinates(event)
-		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterSuperTiles.intersectObjects(this.pendingSuperTileBoxes)
-
-		if (!intersects.length) {
-			this.unHighlightSuperTileBox()
-		} else {
-			const first = intersects[0].object as THREE.Mesh
-
-			if (this.highlightedSuperTileBox && this.highlightedSuperTileBox.id !== first.id)
-				this.unHighlightSuperTileBox()
-
-			if (!this.highlightedSuperTileBox)
-				this.highlightSuperTileBox(first)
-		}
-	}
-
-	private clickSuperTileBox = (event: MouseEvent): void => {
-		if (this.uiState.isLiveMode) return
-		if (this.uiState.isMouseDragging) return
-		if (!this.highlightedSuperTileBox) return
-		if (!this.uiState.isSuperTilesVisible) return
-
-		const mouse = this.getMouseCoordinates(event)
-		this.raycasterSuperTiles.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterSuperTiles.intersectObject(this.highlightedSuperTileBox)
-
-		if (intersects.length) {
-			const superTile = this.highlightedSuperTileBox.userData as PointCloudSuperTile
-			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
-			this.scene.remove(this.highlightedSuperTileBox)
-			this.unHighlightSuperTileBox()
-			this.loadPointCloudSuperTileData(superTile).then()
-			this.render()
-		}
-	}
-
-	// Draw the box in a more solid form to indicate that it is active.
-	private highlightSuperTileBox(superTileBox: THREE.Mesh): void {
-		if (this.uiState.isLiveMode) return
-		if (this.highlightedImageScreenBox) return
-		if (!this.uiState.isShiftKeyPressed) return
-
-		const material = superTileBox.material as THREE.MeshBasicMaterial
-		material.wireframe = false
-		material.transparent = true
-		material.opacity = 0.5
-		this.highlightedSuperTileBox = superTileBox
-		this.render()
-	}
-
-	// Draw the box as a simple wireframe like all the other boxes.
-	private unHighlightSuperTileBox(): void {
-		if (!this.highlightedSuperTileBox) return
-
-		const material = this.highlightedSuperTileBox.material as THREE.MeshBasicMaterial
-		material.wireframe = true
-		material.transparent = false
-		material.opacity = 1.0
-		this.highlightedSuperTileBox = null
-		this.render()
-	}
-
 	// When ImageManager loads an image, add it to the scene.
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void =
 		(imageScreen: ImageScreen) => {
@@ -2248,7 +2023,6 @@ class Annotator {
 	// Draw the box with max opacity to indicate that it is active.
 	private highlightImageScreenBox(imageScreenBox: THREE.Mesh): void {
 		if (this.uiState.isLiveMode) return
-		if (this.highlightedSuperTileBox) return
 		if (!this.uiState.isShiftKeyPressed) return
 
 		// Note: image loading takes time, so even if image is marked as "highlighted"
@@ -2462,10 +2236,6 @@ class Annotator {
 					this.uiState.isJoinAnnotationKeyPressed = true
 					break
 				}
-				case 'L': {
-					this.loadAllPointCloudSuperTileData()
-					break
-				}
 				case 'l': {
 					this.uiState.isConnectLeftNeighborKeyPressed = true
 					break
@@ -2516,10 +2286,6 @@ class Annotator {
 				}
 				case 'V': {
 					this.toggleCameraType()
-					break
-				}
-				case 'v': {
-					this.toggleVoxelsAndPointClouds()
 					break
 				}
 				case 'X': {
@@ -2726,27 +2492,6 @@ class Annotator {
 		log.info(`Saving waypoints KML to ${basePath}`)
 		return this.annotationManager.saveToKML(basePath)
 			.catch(err => log.warn('saveToKML failed: ' + err.message))
-	}
-
-	private loadFromFile(): Promise<void> {
-		if (this.pointCloudTileManager.getPointClouds().length)
-			log.warn('you should probably unload the existing point cloud before loading another')
-
-		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
-			const options: Electron.OpenDialogOptions = {
-				message: 'Load Point Cloud Directory',
-				properties: ['openDirectory'],
-			}
-			const handler = (paths: string[]): void => {
-				if (paths && paths.length)
-					this.loadPointCloudDataFromDirectory(paths[0])
-						.then(() => resolve())
-						.catch(err => reject(err))
-				else
-					reject(Error('no path selected'))
-			}
-			dialog.showOpenDialog(options, handler)
-		})
 	}
 
 	private loadTrajectoryFromOpenDialog(): Promise<void> {
@@ -3078,15 +2823,6 @@ class Annotator {
 		else
 			log.warn('missing element tools_add_traffic_device')
 
-		const toolsLoad = document.getElementById('tools_load')
-		if (toolsLoad)
-			toolsLoad.addEventListener('click', () => {
-				this.loadFromFile()
-					.catch(err => log.warn('loadFromFile failed: ' + err.message))
-			})
-		else
-			log.warn('missing element tools_load')
-
 		const toolsLoadTrajectory = document.getElementById('tools_load_trajectory')
 		if (toolsLoadTrajectory)
 			toolsLoadTrajectory.addEventListener('click', () => {
@@ -3094,7 +2830,7 @@ class Annotator {
 					.catch(err => log.warn('loadFromFile failed: ' + err.message))
 			})
 		else
-			log.warn('missing element tools_load')
+			log.warn('missing element tools_load_trajectory')
 
 		const toolsLoadImages = document.getElementById('tools_load_images')
 		if (toolsLoadImages)
@@ -3695,23 +3431,6 @@ class Annotator {
 		return true
 	}
 
-	private hideSuperTiles = (): boolean => {
-		if (!this.uiState.isSuperTilesVisible)
-			return false
-		this.unHighlightSuperTileBox()
-		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = false)
-		this.uiState.isSuperTilesVisible = false
-		return true
-	}
-
-	private showSuperTiles = (): boolean => {
-		if (this.uiState.isSuperTilesVisible)
-			return false
-		this.pendingSuperTileBoxes.forEach(box => (box.material as THREE.MeshBasicMaterial).visible = true)
-		this.uiState.isSuperTilesVisible = true
-		return true
-	}
-
 	private hideImageScreens = (): boolean => {
 		if (!this.uiState.isImageScreensVisible)
 			return false
@@ -3923,24 +3642,6 @@ class Annotator {
 		// Bring the model close to the ground (approx height of the sensors)
 		const p = this.carModel.getWorldPosition()
 		this.carModel.position.set(p.x, p.y - 2, p.z)
-	}
-
-	/**
-	 * Switch between voxel and point cloud rendering.
-	 * TODO: We might be able to do this by setting the 'visible' parameter of the
-	 * TODO:   corresponding 3D objects.
-	 * TODO: This may conflict with the states in toggleLayerVisibility(). We can
-	 * TODO:   fix it if we start using voxels again.
-	 */
-	private toggleVoxelsAndPointClouds(): void {
-		if (!this.pointCloudTileManager.voxelsMeshGroup) return
-		if (this.hidePointCloud()) {
-			this.pointCloudTileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
-			this.render()
-		} else if (this.showPointCloud()) {
-			this.pointCloudTileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
-			this.render()
-		}
 	}
 
 	// Print a message about how big our tiles are.

@@ -13,7 +13,6 @@ class Help extends React.Component<{}, {}> {
 				h - Hide super tiles/point cloud/annotations<br />
 				Shift-click - load an image file<br />
 				U - Unload the point cloud<br />
-				L - Load all super tiles in point cloud<br />
 
 				<strong>Annotations</strong><br />
 				s - Save annotations JSON file as UTM<br />
