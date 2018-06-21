@@ -8,31 +8,22 @@ import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {isNullOrUndefined} from "util"
 import {spatialTileScaleEnumToScaleVector} from "./ScaleUtil"
-
-export enum TileMessageFormat {
-	PointCloudTileMessage = 1,
-	BaseGeometryTileMessage = 2,
-}
-
-export interface TileMessage {
-	origin: THREE.Vector3
-	utmZoneNumber: number
-	utmZoneNorthernHemisphere: boolean
-	points: number[]
-	colors: number[]
-	intensities: number[]
-}
+import {PointCloudTileContents} from "@/annotator-entry-ui/model/TileContents"
+import {TileMessage} from "@/annotator-entry-ui/model/TileMessage"
 
 export function pointCloudTileMessageToTileMessage(msg: Models.PointCloudTileMessage): TileMessage {
+	const contents = new PointCloudTileContents(
+		msg.points,
+		msg.colors,
+	)
+
 	if (msg.sizeX) { // Messages created before ~2018-02-01 don't have spatialIndex.
-		return {
-			origin: new THREE.Vector3(msg.originX, msg.originY, msg.originZ),
-			utmZoneNumber: msg.utmZoneNumber,
-			utmZoneNorthernHemisphere: msg.utmZoneNorthernHemisphere,
-			points: msg.points,
-			colors: msg.colors,
-			intensities: msg.intensities,
-		} as TileMessage
+		return new TileMessage(
+			new THREE.Vector3(msg.originX, msg.originY, msg.originZ),
+			msg.utmZoneNumber,
+			msg.utmZoneNorthernHemisphere,
+			contents
+		)
 	} else {
 		const spatialIndex = msg.spatialIndex
 		if (
@@ -57,14 +48,12 @@ export function pointCloudTileMessageToTileMessage(msg: Models.PointCloudTileMes
 			spatialIndex.zIndex * scale.z,
 		)
 
-		return {
-			origin: origin,
-			utmZoneNumber: utmZone[0],
-			utmZoneNorthernHemisphere: utmZone[1],
-			points: msg.points,
-			colors: msg.colors,
-			intensities: msg.intensities,
-		} as TileMessage
+		return new TileMessage(
+			origin,
+			utmZone[0],
+			utmZone[1],
+			contents
+		)
 	}
 }
 
@@ -100,14 +89,17 @@ export function baseGeometryTileMessageToTileMessage(msg: Models.BaseGeometryTil
 		points.push(msg.points[i + 2] * 0.001 + origin.z)
 	}
 
-	return {
-		origin: origin,
-		utmZoneNumber: utmZone[0],
-		utmZoneNorthernHemisphere: utmZone[1],
-		points: points,
-		colors: msg.colors.map(c => c * 0.003921568627450980),
-		intensities: msg.intensities.map(i => i * 0.003921568627450980),
-	} as TileMessage
+	const contents = new PointCloudTileContents(
+		points,
+		msg.colors.map(c => c * 0.003921568627450980),
+	)
+
+	return new TileMessage(
+		origin,
+		utmZone[0],
+		utmZone[1],
+		contents
+	)
 }
 
 const firstUtmZone = 6
