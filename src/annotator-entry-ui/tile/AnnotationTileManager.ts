@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {SuperTileUnloadAction, TileManager} from "@/annotator-entry-ui/tile/TileManager"
+import {TileManager} from "@/annotator-entry-ui/tile/TileManager"
 import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem"
 import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile"
 import {TileServiceClient} from "@/annotator-entry-ui/tile/TileServiceClient"
@@ -12,7 +12,7 @@ import {CoordinateFrameType} from "@/annotator-entry-ui/geometry/CoordinateFrame
 import {TileIndex} from "@/annotator-entry-ui/model/TileIndex"
 import {AnnotationSuperTile} from "@/annotator-entry-ui/tile/AnnotationSuperTile"
 import {UtmTile} from "@/annotator-entry-ui/tile/UtmTile"
-import {RemoteTileInstance, TileInstance} from "@/annotator-entry-ui/model/TileInstance"
+import {TileInstance} from "@/annotator-entry-ui/model/TileInstance"
 import {AnnotationTileContents} from "@/annotator-entry-ui/model/TileContents"
 import {AnnotationUtmTile} from "@/annotator-entry-ui/tile/AnnotationUtmTile"
 import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager"
@@ -23,7 +23,7 @@ export class AnnotationTileManager extends TileManager {
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
 		onSuperTileLoad: (superTile: SuperTile) => void,
-		onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void,
+		onSuperTileUnload: (superTile: SuperTile) => void,
 		tileServiceClient: TileServiceClient,
 		private annotationManager: AnnotationManager,
 	) {
@@ -64,13 +64,10 @@ export class AnnotationTileManager extends TileManager {
 
 	// Load an annotations JSON object from a file.
 	private loadTile(tileInstance: TileInstance): Promise<Object> {
-		if (tileInstance instanceof RemoteTileInstance)
-			if (tileInstance.layerId === this.config.layerId)
-				return this.tileServiceClient.getTileContents(tileInstance.url)
-					.then(buffer => JSON.parse(String.fromCharCode.apply(null, buffer)))
-			else
-				return Promise.reject(Error('unknown tileInstance.layerId: ' + tileInstance.layerId))
+		if (tileInstance.layerId === this.config.layerId)
+			return this.tileServiceClient.getTileContents(tileInstance.url)
+				.then(buffer => JSON.parse(String.fromCharCode.apply(null, buffer)))
 		else
-			return Promise.reject(Error('unknown tileInstance: ' + tileInstance))
+			return Promise.reject(Error('unknown tileInstance.layerId: ' + tileInstance.layerId))
 	}
 }

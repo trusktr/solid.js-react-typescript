@@ -45,4 +45,4 @@ Copy [TileServer.sh](https://github.com/Signafy/mapper-hdk-map-service/blob/mast
 
  - set `DATABASE_DIR` to match the one in `LoadTiles.sh`
 
-Run `TileServer.sh`. It reads from `LoadTiles.sh` and streams tile data through its public TCP port.
+Run `TileServer.sh`. It reads from `DATABASE_DIR` and streams tile data through its public TCP port.
