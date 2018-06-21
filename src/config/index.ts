@@ -121,7 +121,6 @@ async function setupConfig() {
 	}
 
 	const required = [
-		'tile_manager.tile_message_format',
 		'tile_manager.utm_tile_scale',
 		'tile_manager.super_tile_scale',
 		'output.annotations.json.path',

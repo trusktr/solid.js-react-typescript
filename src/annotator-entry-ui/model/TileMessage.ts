@@ -6,11 +6,6 @@
 import * as THREE from "three"
 import {TileContents} from "@/annotator-entry-ui/model/TileContents"
 
-export enum TileMessageFormat {
-	PointCloudTileMessage = 1,
-	BaseGeometryTileMessage = 2,
-}
-
 export class TileMessage {
 	constructor(
 		public origin: THREE.Vector3,
