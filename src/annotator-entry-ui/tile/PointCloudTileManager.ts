@@ -22,7 +22,6 @@ import {TileServiceClient} from "./TileServiceClient"
 import {TileInstance} from "../model/TileInstance"
 import Logger from "@/util/log"
 import {TileManager, TileManagerConfig} from "@/annotator-entry-ui/tile/TileManager"
-import {RangeSearch} from "@/annotator-entry-ui/model/RangeSearch"
 import {OrderedMap} from "immutable"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
 
@@ -68,12 +67,6 @@ interface PointCloudTileManagerConfig extends TileManagerConfig {
 	samplingStep: number,
 }
 
-interface VoxelsConfig {
-	enable: boolean,
-	voxelSize: number,
-	voxelsMaxHeight: number,
-}
-
 // This handles loading and unloading point cloud data (for read only). Each SuperTile has a point cloud,
 // consolidated from its constituent Tiles, which when loaded is merged into a single data structure for
 // three.js rendering.
@@ -81,12 +74,6 @@ export class PointCloudTileManager extends TileManager {
 	protected readonly config: PointCloudTileManagerConfig
 	superTiles: OrderedMap<string, PointCloudSuperTile> // all super tiles which we are aware of
 	private pointsMaterial: THREE.PointsMaterial
-	// TODO kill legacy voxel features
-	voxelsConfig: VoxelsConfig
-	voxelsMeshGroup: Array<THREE.Mesh>
-	voxelsDictionary: Set<THREE.Vector3>
-	voxelsHeight: Array<number>
-	private HSVGradient: Array<THREE.Vector3>
 
 	constructor(
 		scaleProvider: ScaleProvider,
@@ -94,7 +81,6 @@ export class PointCloudTileManager extends TileManager {
 		onSuperTileLoad: (superTile: SuperTile) => void,
 		onSuperTileUnload: (superTile: SuperTile) => void,
 		tileServiceClient: TileServiceClient,
-		enableVoxels: boolean,
 	) {
 		super(
 			scaleProvider,
@@ -118,16 +104,6 @@ export class PointCloudTileManager extends TileManager {
 			sizeAttenuation: false,
 			vertexColors: THREE.VertexColors,
 		})
-		this.voxelsConfig = {
-			enable: enableVoxels,
-			voxelSize: 0.15,
-			voxelsMaxHeight: 7,
-		}
-		this.voxelsMeshGroup = []
-		this.voxelsHeight = []
-		this.voxelsDictionary = new Set<THREE.Vector3>()
-		this.HSVGradient = []
-		this.generateGradient()
 	}
 
 	protected constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile {
@@ -140,193 +116,6 @@ export class PointCloudTileManager extends TileManager {
 			.valueSeq().toArray()
 			.filter(st => !!st.pointCloud)
 			.map(st => st.pointCloud!)
-	}
-
-	/**
-	 * Generate a new color palette using HSV space
-	 */
-	private generateGradient(): void {
-		log.info(`Generate color palette....`)
-		let gradientValues: number = Math.floor((this.voxelsConfig.voxelsMaxHeight / this.voxelsConfig.voxelSize + 1))
-		let height: number = this.voxelsConfig.voxelSize / 2
-		for (let i = 0; i < gradientValues; ++i) {
-			this.HSVGradient.push(PointCloudTileManager.heightToColor(height, this.voxelsConfig.voxelsMaxHeight))
-			height += this.voxelsConfig.voxelSize
-		}
-	}
-
-	/**
-	 * Assign an RGB color for a height value, given a fixed range [0, scale]
-	 */
-	private static heightToColor(height: number, scale: number): THREE.Vector3 {
-		let x = (height / scale) * 360;
-		if (x > 360.0)
-			x = 360.0
-
-		let color: THREE.Vector3 = new THREE.Vector3()
-		let kMax: number = 1.0
-		let kMin: number = 0.0
-		let posSlope: number = (kMax - kMin) / 60.0
-		let negSlope: number = (kMin - kMax) / 60.0
-
-		if (x < 60.0) {
-			color[0] = kMax
-			color[1] = posSlope * x + kMin
-			color[2] = kMin
-		} else if (x < 120.0) {
-			color[0] = negSlope * x + 2 * kMax + kMin
-			color[1] = kMax
-			color[2] = kMin
-		} else if (x < 180.0) {
-			color[0] = kMin
-			color[1] = kMax
-			color[2] = posSlope * x - 2 * kMax + kMin
-		} else if (x < 240.0) {
-			color[0] = kMin
-			color[1] = negSlope * x + 4 * kMax + kMin
-			color[2] = kMax
-		} else if (x <= 360) {
-			color[0] = posSlope * x - 4 * kMax + kMin
-			color[1] = kMin
-			color[2] = kMax
-		}
-		return color
-	}
-
-	/**
-	 * Create voxels geometry given a list of indices for the occupied voxels
-	 */
-	generateVoxels(): void {
-		if (!this.voxelsConfig.enable) {
-			log.error('called generateVoxels() without enabling voxelsConfig')
-			return
-		}
-		let maxBandValue: number = Math.floor((this.voxelsConfig.voxelsMaxHeight / this.voxelsConfig.voxelSize + 1))
-		for (let band = 0; band < maxBandValue; band++) {
-			log.info(`Processing height band ${band}...`)
-			this.generateSingleBandVoxels(band, this.HSVGradient[band])
-			log.info(`Height band ${band} done.`)
-		}
-	}
-
-	/**
-	 * Generate voxels in a single height band
-	 */
-	private generateSingleBandVoxels(heightBand: number, color: THREE.Vector3): void {
-
-		log.info(`There are ${this.voxelsDictionary.size} voxels. Start creating them....`)
-
-		// Voxel params
-		let voxelSizeForRender = 0.9 * this.voxelsConfig.voxelSize
-		let maxVoxelsPerArray: number = 100000
-
-		// Voxels buffers
-		const allPositions: Array<Array<number>> = []
-		let positions: Array<number> = []
-
-		// Generate voxels
-		let heightIndex: number = 0
-		let count: number = 0
-		let voxelIndex: THREE.Vector3
-		for (voxelIndex of this.voxelsDictionary) {
-
-			// Prepare voxel color from voxel height
-			let height = this.voxelsHeight[heightIndex]
-			heightIndex++
-			let currentHeightBand = Math.floor((height / this.voxelsConfig.voxelSize))
-			if (currentHeightBand !== heightBand) {
-				continue
-			}
-
-			if (count % maxVoxelsPerArray === 0) {
-				positions = []
-				allPositions.push(positions)
-				log.info(`Processing voxel ${count}`)
-			}
-
-			// Prepare voxel geometry
-			let p11 = voxelIndex.clone()
-			p11.multiplyScalar(this.voxelsConfig.voxelSize)
-			let p12 = new THREE.Vector3((p11.x + voxelSizeForRender), p11.y, p11.z)
-			let p13 = new THREE.Vector3((p11.x + voxelSizeForRender), (p11.y + voxelSizeForRender), p11.z)
-			let p14 = new THREE.Vector3(p11.x, (p11.y + voxelSizeForRender), p11.z)
-
-			let p21 = new THREE.Vector3(p11.x, p11.y, (p11.z + voxelSizeForRender))
-			let p22 = new THREE.Vector3(p12.x, p12.y, (p12.z + voxelSizeForRender))
-			let p23 = new THREE.Vector3(p13.x, p13.y, (p13.z + voxelSizeForRender))
-			let p24 = new THREE.Vector3(p14.x, p14.y, (p14.z + voxelSizeForRender))
-
-			// Top
-			positions.push(p11.x, p11.y, p11.z)
-			positions.push(p12.x, p12.y, p12.z)
-			positions.push(p13.x, p13.y, p13.z)
-
-			positions.push(p11.x, p11.y, p11.z)
-			positions.push(p13.x, p13.y, p13.z)
-			positions.push(p14.x, p14.y, p14.z)
-
-			// Bottom
-			positions.push(p21.x, p21.y, p21.z)
-			positions.push(p22.x, p22.y, p22.z)
-			positions.push(p23.x, p23.y, p23.z)
-
-			positions.push(p21.x, p21.y, p21.z)
-			positions.push(p23.x, p23.y, p23.z)
-			positions.push(p24.x, p24.y, p24.z)
-
-			// Side 1
-			positions.push(p11.x, p11.y, p11.z)
-			positions.push(p12.x, p12.y, p12.z)
-			positions.push(p22.x, p22.y, p22.z)
-
-			positions.push(p11.x, p11.y, p11.z)
-			positions.push(p22.x, p22.y, p22.z)
-			positions.push(p21.x, p21.y, p21.z)
-
-			// Side 2
-			positions.push(p12.x, p12.y, p12.z)
-			positions.push(p13.x, p13.y, p13.z)
-			positions.push(p23.x, p23.y, p23.z)
-
-			positions.push(p12.x, p12.y, p12.z)
-			positions.push(p23.x, p23.y, p23.z)
-			positions.push(p22.x, p22.y, p22.z)
-
-			// Side 3
-			positions.push(p13.x, p13.y, p13.z)
-			positions.push(p14.x, p14.y, p14.z)
-			positions.push(p24.x, p24.y, p24.z)
-
-			positions.push(p13.x, p13.y, p13.z)
-			positions.push(p24.x, p24.y, p24.z)
-			positions.push(p23.x, p23.y, p23.z)
-
-			// Side 4
-			positions.push(p14.x, p14.y, p14.z)
-			positions.push(p11.x, p11.y, p11.z)
-			positions.push(p21.x, p21.y, p21.z)
-
-			positions.push(p14.x, p14.y, p14.z)
-			positions.push(p21.x, p21.y, p21.z)
-			positions.push(p24.x, p24.y, p24.z)
-
-			count++
-		}
-		log.info('Done generating voxels.')
-
-		log.info('Add them to the mesh....')
-		this.voxelsMeshGroup = []
-		for (let j = 0; j < allPositions.length; j++) {
-			let pointsBuffer = new THREE.Float32BufferAttribute(allPositions[j], 3)
-			let buffer = new THREE.BufferGeometry()
-			buffer.addAttribute('position', pointsBuffer)
-			let voxelsMesh = new THREE.Mesh(buffer, new THREE.MeshLambertMaterial({
-				color: new THREE.Color(color[0], color[1], color[2]),
-				side: THREE.DoubleSide
-			}))
-			this.voxelsMeshGroup.push(voxelsMesh)
-		}
-		log.info('Done adding them to the mesh.')
 	}
 
 	// Load a point cloud tile message from a proto binary file.
@@ -359,12 +148,6 @@ export class PointCloudTileManager extends TileManager {
 			tileInstance.tileIndex,
 			this.pointCloudFileLoader(tileInstance, coordinateFrame),
 		)
-	}
-
-	protected loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllPoints: boolean = false): Promise<boolean> {
-		if (this.voxelsConfig.enable)
-			log.warn('This app will leak memory when generating voxels while incrementally loading tiles. Fix it.')
-		return super.loadFromMapServerImpl(searches, coordinateFrame, loadAllPoints)
 	}
 
 	// Get data from a file. Prepare it to instantiate a UtmTile.
@@ -405,11 +188,6 @@ export class PointCloudTileManager extends TileManager {
 			newPositions[i] = threePoint.x
 			newPositions[i + 1] = threePoint.y
 			newPositions[i + 2] = threePoint.z
-			if (this.voxelsConfig.enable) {
-				// TODO this.voxelsDictionary should be spread out among super tiles so that voxels can be
-				// TODO unloaded along with point clouds
-				this.voxelsDictionary.add(threePoint.divideScalar(this.voxelsConfig.voxelSize).floor())
-			}
 		}
 
 		return newPositions

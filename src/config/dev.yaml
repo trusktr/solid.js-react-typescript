@@ -34,7 +34,6 @@ tile_client.service.port: 30123
 
 # annotator controls
 annotator.add_points_to_estimated_ground_plane: true
-annotator.generate_voxels_on_point_load: false
 annotator.draw_bounding_box: false
 annotator.axes_helper_length: 10
 annotator.compass_rose_length: 50

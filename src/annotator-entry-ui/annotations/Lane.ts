@@ -161,7 +161,6 @@ export class Lane extends Annotation {
 	isRotatable: boolean
 	private renderingProperties: LaneRenderingProperties
 	waypoints: Array<THREE.Vector3>
-	denseWaypoints: Array<THREE.Vector3>
 	laneCenterLine: THREE.Line
 	laneLeftLine: THREE.Line
 	laneRightLine: THREE.Line
@@ -215,7 +214,6 @@ export class Lane extends Annotation {
 		this.laneRightLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
 		this.laneDirectionMarkers = []
 		this.waypoints = []
-		this.denseWaypoints = []
 		this.inTrajectory = false
 
 		if (obj) {
@@ -702,9 +700,6 @@ export class Lane extends Annotation {
 
 		const numPoints = spline.getLength() / distanceBetweenMarkers
 		this.waypoints = spline.getSpacedPoints(numPoints)
-
-		const numPointsDense = spline.getLength() // sample every meter
-		this.denseWaypoints = spline.getSpacedPoints(numPointsDense)
 
 		this.updateLaneDirectionMarkers()
 
