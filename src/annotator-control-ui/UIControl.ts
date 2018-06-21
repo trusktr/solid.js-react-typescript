@@ -264,7 +264,6 @@ function initUIControl(): void {
 		'#menu_connection',
 		'#menu_territory',
 		'#menu_traffic_device',
-		'#menu_trajectory',
 	]
 	menuIds.forEach(domId => $(domId).accordion(accordionOptions))
 }

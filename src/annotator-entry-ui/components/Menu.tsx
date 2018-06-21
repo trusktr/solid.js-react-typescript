@@ -13,7 +13,6 @@ class Menu extends React.Component<{}, {}> {
 						<button id="tools_add_lane" className="ui-btn ui-icon-plus ui-btn-icon-left"> New Lane </button>
 						<button id="tools_add_traffic_device" className="ui-btn ui-icon-plus ui-btn-icon-left"> New Traffic Device </button>
 						<button id="tools_delete" className="ui-btn ui-icon-minus ui-btn-icon-left"> Delete Annotation </button>
-						<button id="tools_load" className="ui-btn ui-icon-grid ui-btn-icon-left"> Load Tiles </button>
 						<button id="tools_load_trajectory" className="ui-btn ui-icon-grid ui-btn-icon-left"> Load Trajectory </button>
 						<button id="tools_load_images" className="ui-btn ui-icon-camera ui-btn-icon-left"> Load Images </button>
 						<button id="tools_load_annotation" className="ui-btn ui-icon-edit ui-btn-icon-left"> Load Annotation </button>
@@ -66,22 +65,6 @@ class Menu extends React.Component<{}, {}> {
 							<div id="property_1_territory" className="fieldset_content_style">
 								<span className="label_style"> Label </span>
 								<input id="input_label_territory" />
-							</div>
-						</div>
-					</div>
-					<div id="menu_trajectory" className="accordion">
-						<h3 id="exp_head_5" className="dropdown_head"> Trajectory </h3>
-						<div id="exp_body_5" className="dropdown_body">
-							<div id="trajectory_1" className="fieldset_content_style">
-								<span id="tr_add_text" className="label_style"> Add to trajectory </span>
-								<button id="tr_add" className="button_inline"> Add </button>
-							</div>
-							<div id="trajectory_2" className="fieldset_content_style">
-								<span id="tr_show_text" className="label_style"> Show trajectory </span>
-								<button id="tr_show" className="button_inline"> Show </button>
-							</div>
-							<div id="trajectory_3" className="fieldset_content_style">
-								<button id="save_path" className="button_inline"> Save To File </button>
 							</div>
 						</div>
 					</div>

@@ -19,7 +19,7 @@ import {
 import {TileRangeSearch} from "../model/TileRangeSearch"
 import {RangeSearch} from "../model/RangeSearch"
 import {TileIndex} from "../model/TileIndex"
-import {RemoteTileInstance} from "../model/TileInstance"
+import {TileInstance} from "../model/TileInstance"
 import {scale3DToSpatialTileScale, spatialTileScaleToScale3D} from "./ScaleUtil"
 import Logger from "@/util/log"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
@@ -132,7 +132,7 @@ export class TileServiceClient {
 	}
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum points.
-	getTilesByCoordinateRange(layerId: LayerId, search: RangeSearch): Promise<RemoteTileInstance[]> {
+	getTilesByCoordinateRange(layerId: LayerId, search: RangeSearch): Promise<TileInstance[]> {
 		const corner1 = new GeographicPoint3DMessage()
 		corner1.setSrid(this.srid)
 		corner1.setX(search.minPoint.x)
@@ -149,7 +149,7 @@ export class TileServiceClient {
 	}
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum corner tiles.
-	getTilesByTileRange(layerId: LayerId, search: TileRangeSearch): Promise<RemoteTileInstance[]> {
+	getTilesByTileRange(layerId: LayerId, search: TileRangeSearch): Promise<TileInstance[]> {
 		const corner1 = new GeographicPoint3DMessage()
 		corner1.setSrid(this.srid)
 		corner1.setX(search.minTileIndex.origin.x)
@@ -165,7 +165,7 @@ export class TileServiceClient {
 			.then(() => this.getTiles(layerId, corner1, corner2))
 	}
 
-	private getTiles(layerId: LayerId, corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<RemoteTileInstance[]> {
+	private getTiles(layerId: LayerId, corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<TileInstance[]> {
 		const rangeSearch = new RangeSearchMessage()
 		rangeSearch.setCorner1(corner1)
 		rangeSearch.setCorner2(corner2)
@@ -174,19 +174,19 @@ export class TileServiceClient {
 		request.setRangeSearch(rangeSearch)
 		request.setLayerIdsList([layerId])
 
-		return new Promise((resolve: (tile: RemoteTileInstance[]) => void, reject: (reason?: Error) => void): void => {
+		return new Promise((resolve: (tile: TileInstance[]) => void, reject: (reason?: Error) => void): void => {
 			this.client!.searchTiles(request, (err: Error, response: SearchTilesResponse): void => {
 				if (err) {
 					reject(Error(`searchTiles() failed: ${err.message}`))
 				} else {
-					const tiles: RemoteTileInstance[] = []
+					const tiles: TileInstance[] = []
 					response.getTileInstancesList().forEach(instance => {
 						const tileIndex = spatialTileIndexMessageToTileIndex(instance.getId())
 						if (tileIndex) {
 							instance.getLayersMap()
 								.forEach((responseLayerUrl, responseLayerId) => {
 									if (responseLayerId === layerId) // should be always true
-										tiles.push(new RemoteTileInstance(
+										tiles.push(new TileInstance(
 											tileIndex,
 											responseLayerId,
 											responseLayerUrl,
