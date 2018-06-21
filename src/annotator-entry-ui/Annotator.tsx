@@ -1131,6 +1131,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
+	// ANNOTATOR ONLY???
 	private loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false): Promise<void> {
 		return this.annotationTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {
@@ -3675,6 +3676,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Ensure that some layers of the model are visible. Optionally hide the other layers.
 	// BOTH
+	// MOVED TO LayerManager
 	private setLayerVisibility(show: Layer[], hideOthers: boolean = false): void {
 		let updated = 0
 
@@ -4017,7 +4019,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		if (this.settings.enableAnnotationTileManager) {
 			const message2 = `Loaded ${this.annotationTileManager.superTiles.size} annotation tiles; ${this.annotationTileManager.objectCount()} annotations`
-			new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
+			new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message2)
 		}
 	}
 

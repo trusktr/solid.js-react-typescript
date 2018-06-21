@@ -13,6 +13,9 @@ import {OrbitControls} from "@/annotator-entry-ui/controls/OrbitControls";
 import {getValue} from "typeguard";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
+import LayerManager, {Layer} from "@/annotator-z-hydra-shared/src/services/LayerManager";
+import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
+import LayerToggle from "@/annotator-z-hydra-shared/src/models/LayerToggle";
 
 const log = Logger(__filename)
 
@@ -48,6 +51,8 @@ export interface SceneManagerState {
 
 	registeredKeyDownEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
 	registeredKeyUpEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
+
+	layerManager: LayerManager | null
 }
 
 
@@ -192,6 +197,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
       registeredKeyDownEvents: new Map<number, any>(),
       registeredKeyUpEvents: new Map<number, any>(),
+
+			layerManager: null
     }
 
     this.setOrthographicCameraDimensions(this.props.width, this.props.height)
@@ -228,6 +235,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	componentDidMount() {
 		this.mount()
+
+		// @TODO register the initial layerToggles
+		const pointCloudLayerToggle = new LayerToggle({show: this.showPointCloud, hide: this.hidePointCloud})
+		this.state.layerManager!.addLayerToggle(Layer.POINT_CLOUD, pointCloudLayerToggle)
+
+    const superTilesLayerToggle = new LayerToggle({show: this.showSuperTiles, hide: this.hideSuperTiles})
+    this.state.layerManager!.addLayerToggle(Layer.POINT_CLOUD, superTilesLayerToggle)
 	}
 
 	async mount(): Promise<void> {
@@ -541,12 +555,17 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		fn()
 	}
 
+  getLayerManager = (layerManager:LayerManager) => {
+    this.setState({layerManager,})
+  }
+
 
 	render() {
 		return (
 			<React.Fragment>
 				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
 
+				<LayerManager onRerender={this.renderScene} ref={this.getLayerManager}/>
 			</React.Fragment>
 	)
 
