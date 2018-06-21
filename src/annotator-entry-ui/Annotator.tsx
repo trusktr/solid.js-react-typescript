@@ -21,7 +21,7 @@ import {
 } from "./geometry/CoordinateFrame"
 import {isTupleOfNumbers} from "../util/Validation"
 import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
-import {TileManager} from './tile/TileManager'
+import {PointCloudTileManager} from './tile/PointCloudTileManager'
 import {SuperTile} from "./tile/SuperTile"
 import {RangeSearch} from "./model/RangeSearch"
 import {BusyError, SuperTileUnloadAction} from "./tile/TileManager"
@@ -56,21 +56,29 @@ import * as zmq from 'zmq'
 import {Socket} from 'zmq'
 import * as OBJLoader from 'three-obj-loader'
 import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
-import {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
+
 import * as React from "react";
-import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import RoadEditorState from "../annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import {typedConnect} from "../annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import TrajectoryPicker from "@/annotator-entry-ui/components/TrajectoryPicker";
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
-import FlyThroughActions from "@/annotator-z-hydra-kiosk/FlyThroughActions";
-import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
-import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
-import {FlyThroughState} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
+import TrajectoryPicker, {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
+import RoadNetworkEditorActions from "../annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import FlyThroughActions from "../annotator-z-hydra-kiosk/FlyThroughActions";
+import StatusWindowState from "../annotator-z-hydra-shared/src/models/StatusWindowState";
+import StatusWindowActions from "../annotator-z-hydra-shared/StatusWindowActions";
+import {FlyThroughState} from "../annotator-z-hydra-shared/src/models/FlyThroughState";
 
-import * as FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManagerNonReact";
-import { StatusKey } from "@/annotator-z-hydra-shared/src/models/StatusKey";
+import * as FlyThroughManager from "../annotator-z-hydra-kiosk/FlyThroughManagerNonReact";
+import { StatusKey } from "../annotator-z-hydra-shared/src/models/StatusKey";
 
+import {dataSetNameFromPath, TrajectoryDataSet} from "../util/Perception"
+import {TileServiceClient} from "./tile/TileServiceClient"
+import {PointCloudSuperTile} from "./tile/PointCloudSuperTile"
+import {AnnotationTileManager} from "./tile/AnnotationTileManager"
+import {AnnotationSuperTile} from "./tile/AnnotationSuperTile"
+import {dateToString} from "../util/dateToString"
+import {scale3DToSpatialTileScale, spatialTileScaleToString} from "./tile/ScaleUtil"
+import {ScaleProvider} from "./tile/ScaleProvider"
 
 const dialog = Electron.remote.dialog
 
@@ -146,6 +154,7 @@ interface AnnotatorSettings {
 	estimateGroundPlane: boolean
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	generateVoxelsOnPointLoad: boolean
+	enableAnnotationTileManager: boolean
 	drawBoundingBox: boolean
 	enableTileManagerStats: boolean
 	superTileBboxMaterial: THREE.Material // for visualizing available, but unpopulated, super tiles
@@ -259,8 +268,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private sky: THREE.Object3D // makes it easier to tell up from down
 	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
 	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
+	private scaleProvider: ScaleProvider
 	private utmCoordinateSystem: UtmCoordinateSystem
-	private tileManager: TileManager
+	private pointCloudTileManager: PointCloudTileManager
+	private annotationTileManager: AnnotationTileManager
 	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
@@ -319,6 +330,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 			tileGroundPlaneScale: 1.05,
 			generateVoxelsOnPointLoad: !!config.get('annotator.generate_voxels_on_point_load'),
+			enableAnnotationTileManager: false,
 			drawBoundingBox: !!config.get('annotator.draw_bounding_box'),
 			enableTileManagerStats: !!config.get('tile_manager.stats_display.enable'),
 			superTileBboxMaterial: new THREE.MeshBasicMaterial({color: 0x774400, wireframe: true}),
@@ -381,6 +393,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			skyPosition2D: new THREE.Vector2(),
 			cameraPosition2D: new THREE.Vector2(),
 		}
+		// AnnotationTileManager will load and unload annotations without warning, which isn't helpful in interactive mode, so:
+		this.settings.enableAnnotationTileManager = this.uiState.isKioskMode
 		this.aoiState = {
 			enabled: !!config.get('annotator.area_of_interest.enable'),
 			focalPoint: null,
@@ -396,15 +410,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.decorations = []
 		this.raycasterAnnotation = new THREE.Raycaster()
 		this.raycasterImageScreen = new THREE.Raycaster()
+		this.scaleProvider = new ScaleProvider()
 		this.utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
-		// Initialize super tile that will load the point clouds
-		this.tileManager = new TileManager(
-			this.utmCoordinateSystem,
-			this.settings.generateVoxelsOnPointLoad,
-			this.onSuperTileLoad,
-			this.onSuperTileUnload,
-			this.onTileServiceStatusUpdate
-		)
 		this.pendingSuperTileBoxes = []
 		this.highlightedSuperTileBox = null
 		this.superTileGroundPlanes = Map()
@@ -572,10 +579,32 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// @TODO Ryan/Joe to be added outside of initial scene (only annotator specific)
 		this.annotationManager = new AnnotationManager(
 			!this.uiState.isKioskMode,
+			this.scaleProvider,
 			this.utmCoordinateSystem,
-			this.scene,
+			this.onAddAnnotation,
+			this.onRemoveAnnotation,
 			this.onChangeActiveAnnotation
 		)
+
+		// remote, tiled data sources
+		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.onTileServiceStatusUpdate)
+		this.pointCloudTileManager = new PointCloudTileManager(
+			this.scaleProvider,
+			this.utmCoordinateSystem,
+			this.onSuperTileLoad,
+			this.onSuperTileUnload,
+			tileServiceClient,
+			this.settings.generateVoxelsOnPointLoad,
+		)
+		if (this.settings.enableAnnotationTileManager)
+			this.annotationTileManager = new AnnotationTileManager(
+				this.scaleProvider,
+				this.utmCoordinateSystem,
+				this.onSuperTileLoad,
+				this.onSuperTileUnload,
+				tileServiceClient,
+				this.annotationManager,
+			)
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
@@ -893,7 +922,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 */
 	// BOTH
 	private setStageByPointCloud(resetCamera: boolean): void {
-		const focalPoint = this.tileManager.centerPoint()
+		const focalPoint = this.pointCloudTileManager.centerPoint()
 		if (focalPoint)
 			this.setStageByVector(focalPoint, resetCamera)
 	}
@@ -904,7 +933,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// BOTH
 	private setCompassRoseByPointCloud(): void {
 		if (!this.compassRose) return
-		const boundingBox = this.tileManager.getPointCloudBoundingBox()
+		const boundingBox = this.pointCloudTileManager.getLoadedObjectsBoundingBox()
 		if (!boundingBox) return
 
 		// Find the center of one of the sides of the bounding box. This is the side that is
@@ -921,7 +950,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 */
 	// BOTH
 	private focusOnPointCloud(): void {
-		const center = this.tileManager.centerPoint()
+		const center = this.pointCloudTileManager.centerPoint()
 		if (center) {
 			this.orbitControls.target.set(center.x, center.y, center.z)
 			this.orbitControls.update()
@@ -949,16 +978,16 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// ANNOTATOR - maybe die on develop
 	private loadPointCloudDataFromDirectory(pathToTiles: string): Promise<void> {
 		log.info('Loading point cloud from ' + pathToTiles)
-		return this.tileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
+		return this.pointCloudTileManager.loadFromDirectory(pathToTiles, CoordinateFrameType.STANDARD)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects()})
-			.catch(err => this.pointCloudLoadedError(err))
+			.catch(err => this.handleTileManagerLoadError('Point Cloud', err))
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
 	// BOTH
 	private loadPointCloudDataFromConfigBoundingBox(bbox: number[]): Promise<void> {
 		if (!isTupleOfNumbers(bbox, 6)) {
-			this.pointCloudLoadedError(Error('invalid point cloud bounding box config'))
+			this.handleTileManagerLoadError('Point Cloud', Error('invalid point cloud bounding box config'))
 			return Promise.resolve()
 		} else {
 			const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])
@@ -970,9 +999,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// Load tiles within a bounding box and add them to the scene.
 	// BOTH
 	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = true): Promise<void> {
-		return this.tileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
+		return this.pointCloudTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
-			.catch(err => this.pointCloudLoadedError(err))
+			.catch(err => this.handleTileManagerLoadError('Point Cloud', err))
 	}
 
 	// Do some house keeping after loading a point cloud, such as drawing decorations
@@ -984,7 +1013,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// RYAN this should go away
 		if (this.settings.generateVoxelsOnPointLoad) {
 			this.computeVoxelsHeights() // This is based on pre-loaded annotations
-			this.tileManager.generateVoxels()
+			this.pointCloudTileManager.generateVoxels()
 		}
 
 		this.renderEmptySuperTiles()
@@ -995,7 +1024,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// BOTH
-	private pointCloudLoadedError(err: Error): void {
+	private handleTileManagerLoadError(dataType: string, err: Error): void {
 		if (err instanceof BusyError) {
 			log.info(err.message)
 		} else if (this.uiState.isKioskMode) {
@@ -1006,7 +1035,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				log.warn(err.message)
 			} else {
 				log.error(err.message)
-				dialog.showErrorBox('Point Cloud Load Error', err.message)
+				dialog.showErrorBox(`${dataType} Load Error`, err.message)
 				this.uiState.lastPointCloudLoadedErrorModalMs = now
 			}
 		}
@@ -1020,10 +1049,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.annotationManager.laneAnnotations.length === 0)
 			log.error(`Unable to compute voxels height, there are no annotations.`)
 
-		const voxels: Set<THREE.Vector3> = this.tileManager.voxelsDictionary
-		const voxelSize: number = this.tileManager.voxelsConfig.voxelSize
+		const voxels: Set<THREE.Vector3> = this.pointCloudTileManager.voxelsDictionary
+		const voxelSize: number = this.pointCloudTileManager.voxelsConfig.voxelSize
 		const annotationCutoffDistance: number = 1.2 * 1.2 // 1.2 meters radius
-		this.tileManager.voxelsHeight = []
+		this.pointCloudTileManager.voxelsHeight = []
 		for (let voxel of voxels) {
 			let x: number = voxel.x * voxelSize
 			let y: number = voxel.y * voxelSize
@@ -1051,9 +1080,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			let height: number = y - minDistanceHeight
 			// TODO: Remove this voxel filtering. For CES only
 			if (height < 2.0 && minDistance < annotationCutoffDistance) {
-				this.tileManager.voxelsHeight.push(-1)
+				this.pointCloudTileManager.voxelsHeight.push(-1)
 			} else {
-				this.tileManager.voxelsHeight.push(height)
+				this.pointCloudTileManager.voxelsHeight.push(height)
 			}
 		}
 	}
@@ -1062,9 +1091,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * 	Incrementally load the point cloud for a single super tile.
 	 */
 	// both
-	private loadSuperTileData(superTile: SuperTile): Promise<void> {
+	private loadPointCloudSuperTileData(superTile: PointCloudSuperTile): Promise<void> {
 		this.setLayerVisibility([Layer.POINT_CLOUD])
-		return this.tileManager.loadFromSuperTile(superTile)
+		return this.pointCloudTileManager.loadFromSuperTile(superTile)
 			.then(() => {
 				this.updatePointCloudBoundingBox()
 				this.setCompassRoseByPointCloud()
@@ -1073,12 +1102,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// should die
-	private loadAllSuperTileData(): void {
+	private loadAllPointCloudSuperTileData(): void {
 		if (this.uiState.isLiveMode) return
 
 		log.info('loading all super tiles')
 		const promises = this.pendingSuperTileBoxes.map(box =>
-			this.loadSuperTileData(box.userData as SuperTile)
+			this.loadPointCloudSuperTileData(box.userData as PointCloudSuperTile)
 		)
 		Promise.all(promises)
 			.then(() => {
@@ -1090,7 +1119,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// BOTH
 	private unloadPointCloudData(): void {
-		if (this.tileManager.unloadAllPoints()) {
+		if (this.pointCloudTileManager.unloadAllTiles()) {
 			this.unHighlightSuperTileBox()
 			this.pendingSuperTileBoxes.forEach(box => this.scene.remove(box))
 			if (this.pointCloudBoundingBox)
@@ -1100,12 +1129,27 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	// Load tiles within a bounding box and add them to the scene.
+	private loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false): Promise<void> {
+		return this.annotationTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
+			.then(loaded => {
+				if (loaded) this.annotationLoadedSideEffects()
+			})
+			.catch(err => this.handleTileManagerLoadError('Annotations', err))
+	}
+
+	// Do some house keeping after loading annotations.
+	private annotationLoadedSideEffects(): void {
+		this.setLayerVisibility([Layer.ANNOTATIONS])
+		this.renderAnnotator()
+	}
+
 	/**
 	 * 	Display a bounding box for each super tile that exists but doesn't have points loaded in memory.
 	 */
 	// BOTH
 	private renderEmptySuperTiles(): void {
-		this.tileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
+		this.pointCloudTileManager.superTiles.forEach(st => this.superTileToBoundingBox(st!))
 
 		if (this.uiState.isLiveMode)
 			this.hideSuperTiles()
@@ -1115,44 +1159,59 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// BOTH
 	private onSuperTileLoad: (superTile: SuperTile) => void =
 		(superTile: SuperTile) => {
-			this.loadTileGroundPlanes(superTile)
-			this.updateTileManagerStats()
+			if (superTile instanceof PointCloudSuperTile) {
+				this.loadTileGroundPlanes(superTile)
 
-			if (superTile.pointCloud)
-				this.scene.add(superTile.pointCloud)
-			else
-				log.error('onSuperTileLoad() got a super tile with no point cloud')
+				if (superTile.pointCloud)
+					this.scene.add(superTile.pointCloud)
+				else
+					log.error('onSuperTileLoad() got a super tile with no point cloud')
+			} else if (superTile instanceof AnnotationSuperTile) {
+				if (superTile.annotations)
+					superTile.annotations.forEach(a => this.annotationManager.addAnnotation(a))
+				else
+					log.error('onSuperTileLoad() got a super tile with no annotations')
+			} else {
+				log.error('unknown superTile')
+			}
 
 			this.renderAnnotator()
+			this.updateTileManagerStats()
 		}
 
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
 	// BOTH
 	private onSuperTileUnload: (superTile: SuperTile, action: SuperTileUnloadAction) => void =
 		(superTile: SuperTile, action: SuperTileUnloadAction) => {
-			this.unloadTileGroundPlanes(superTile)
-			this.updateTileManagerStats()
+			if (superTile instanceof PointCloudSuperTile) {
+				this.unloadTileGroundPlanes(superTile)
 
-			if (superTile.pointCloud)
-				this.scene.remove(superTile.pointCloud)
-			else
-				log.error('onSuperTileUnload() got a super tile with no point cloud')
+				if (superTile.pointCloud)
+					this.scene.remove(superTile.pointCloud)
+				else
+					log.error('onSuperTileUnload() got a super tile with no point cloud')
 
-			switch (action) {
-				case SuperTileUnloadAction.Unload:
-					this.superTileToBoundingBox(superTile)
-					break
-				case SuperTileUnloadAction.Delete:
-					const name = superTile.key()
-					this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(bbox => bbox.name !== name)
-					if (this.highlightedSuperTileBox && this.highlightedSuperTileBox.name === name)
-						this.unHighlightSuperTileBox()
-					break
-				default:
-					log.error('unknown SuperTileUnloadAction: ' + action)
+				switch (action) {
+					case SuperTileUnloadAction.Unload:
+						this.superTileToBoundingBox(superTile)
+						break
+					case SuperTileUnloadAction.Delete:
+						const name = superTile.key()
+						this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(bbox => bbox.name !== name)
+						if (this.highlightedSuperTileBox && this.highlightedSuperTileBox.name === name)
+							this.unHighlightSuperTileBox()
+						break
+					default:
+						log.error('unknown SuperTileUnloadAction: ' + action)
+				}
+			} else if (superTile instanceof AnnotationSuperTile) {
+				superTile.annotations.forEach(a => this.annotationManager.deleteAnnotation(a))
+			} else {
+				log.error('unknown superTile')
 			}
 
 			this.renderAnnotator()
+			this.updateTileManagerStats()
 		}
 
 	// Construct a set of 2D planes, each of which approximates the ground plane within a tile.
@@ -1160,7 +1219,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// This assumes that the ground planes in neighboring tiles are close enough that the discrete
 	// jumps between them won't matter much.
 	// ??????
-	private loadTileGroundPlanes(superTile: SuperTile): void {
+	private loadTileGroundPlanes(superTile: PointCloudSuperTile): void {
 		if (!this.settings.estimateGroundPlane) return
 		if (!superTile.pointCloud) return
 		if (this.superTileGroundPlanes.has(superTile.key())) return
@@ -1195,7 +1254,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		groundPlanes.forEach(plane => this.scene.add(plane))
 	}
 
-	private unloadTileGroundPlanes(superTile: SuperTile): void {
+	private unloadTileGroundPlanes(superTile: PointCloudSuperTile): void {
 		if (!this.superTileGroundPlanes.has(superTile.key())) return
 
 		const groundPlanes = this.superTileGroundPlanes.get(superTile.key())!
@@ -1205,7 +1264,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		groundPlanes.forEach(plane => this.scene.remove(plane))
 	}
 
-	private superTileToBoundingBox(superTile: SuperTile): void {
+	private superTileToBoundingBox(superTile: PointCloudSuperTile): void {
 		if (!superTile.pointCloud) {
 			const size = getSize(superTile.threeJsBoundingBox)
 			const center = getCenter(superTile.threeJsBoundingBox)
@@ -1230,7 +1289,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				this.pointCloudBoundingBox = null
 			}
 
-			const bbox = this.tileManager.getPointCloudBoundingBox()
+			const bbox = this.pointCloudTileManager.getLoadedObjectsBoundingBox()
 			if (bbox) {
 				// BoxHelper wants an Object3D, but a three.js bounding box is a Box3, which is not an Object3D.
 				// Maybe BoxHelper isn't so helpful after all. But guess what? It will take a Box3 anyway and
@@ -1274,7 +1333,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// Don't update AOI and load tiles if the point cloud is not visible.
 		if (!this.uiState.isPointCloudVisible) return
 		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
-		if (this.tileManager.getIsLoadingPointCloud()) return
+		if (this.pointCloudTileManager.isLoadingTiles) return
 
 		const currentPoint = this.currentPointOfInterest()
 		if (currentPoint) {
@@ -1328,17 +1387,19 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				})
 			}
 
-			this.loadPointCloudDataFromMapServer(
-				threeJsSearches.map(threeJs => {
-					return {
-						minPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
-						maxPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
-					}
-				}),
-				true,
-				false
-			)
+			const utmSearches = threeJsSearches.map(threeJs => {
+				return {
+					minPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
+					maxPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
+				}
+			})
+
+			this.loadPointCloudDataFromMapServer(utmSearches, true, false)
 				.catch(err => {log.warn(err.message)})
+
+			if (this.settings.enableAnnotationTileManager)
+				this.loadAnnotationDataFromMapServer(utmSearches, true)
+					.catch(err => {log.warn(err.message)})
 		}
 	}
 
@@ -1843,6 +1904,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	private onAddAnnotation = (object: THREE.Object3D): void => {
+		this.scene.add(object)
+	}
+
+	private onRemoveAnnotation = (object: THREE.Object3D): void => {
+		this.scene.remove(object)
+	}
+
 	// Ensure that the current UiState is compatible with a new active annotation.
 	// ANNOTATOR ONLY
 	private onChangeActiveAnnotation = (active: Annotation): void => {
@@ -1882,20 +1951,20 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// BOTH
 	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
 		let intersections: THREE.Intersection[]
-		if (this.settings.estimateGroundPlane || !this.tileManager.pointCount()) {
+		if (this.settings.estimateGroundPlane || !this.pointCloudTileManager.objectCount()) {
 			if (this.allGroundPlanes.length)
 				intersections = raycaster.intersectObjects(this.allGroundPlanes)
 			else
 				intersections = raycaster.intersectObject(this.plane)
 		} else {
-			intersections = raycaster.intersectObjects(this.tileManager.getPointClouds())
+			intersections = raycaster.intersectObjects(this.pointCloudTileManager.getPointClouds())
 		}
 		return intersections
 	}
 
 	// BOTH -- may be annotator only???
 	private intersectWithPointCloud(raycaster: THREE.Raycaster): THREE.Intersection[] {
-		return raycaster.intersectObjects(this.tileManager.getPointClouds())
+		return raycaster.intersectObjects(this.pointCloudTileManager.getPointClouds())
 	}
 
 	// ANNOTATOR ONLY
@@ -1949,11 +2018,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const intersects = this.raycasterSuperTiles.intersectObject(this.highlightedSuperTileBox)
 
 		if (intersects.length) {
-			const superTile = this.highlightedSuperTileBox.userData as SuperTile
+			const superTile = this.highlightedSuperTileBox.userData as PointCloudSuperTile
 			this.pendingSuperTileBoxes = this.pendingSuperTileBoxes.filter(box => box !== this.highlightedSuperTileBox)
 			this.scene.remove(this.highlightedSuperTileBox)
 			this.unHighlightSuperTileBox()
-			this.loadSuperTileData(superTile).then()
+			this.loadPointCloudSuperTileData(superTile).then()
 			this.renderAnnotator()
 		}
 	}
@@ -2340,7 +2409,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					break
 				}
 				case 'L': {
-					this.loadAllSuperTileData()
+					this.loadAllPointCloudSuperTileData()
 					break
 				}
 				case 'l': {
@@ -2349,6 +2418,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				}
 				case 'm': {
 					this.saveWaypointsKml().then()
+					break
+				}
+				case 'N': {
+					this.exportAnnotationsTiles(OutputFormat.UTM).then()
 					break
 				}
 				case 'n': {
@@ -2572,7 +2645,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// Create an annotation, add it to the scene, and activate (highlight) it.
 	// ANNOTATOR ONLY
 	private addAnnotation(annotationType: AnnotationType): void {
-		if (this.annotationManager.addAnnotation(null, annotationType, true)[0]) {
+		if (this.annotationManager.createAndAddAnnotation(annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
 			this.deactivateAllAnnotationPropertiesMenus(annotationType)
 			this.resetAllAnnotationPropertiesMenuElements()
@@ -2594,6 +2667,20 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			.catch(error => log.warn("save to file failed: " + error.message))
 	}
 
+	private exportAnnotationsTiles(format: OutputFormat): Promise<void> {
+		const basePath = config.get('output.annotations.tiles_dir')
+		const scale = scale3DToSpatialTileScale(this.scaleProvider.utmTileScale)
+		if (isNullOrUndefined(scale))
+			return Promise.reject(Error(`1can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
+		const scaleString = spatialTileScaleToString(scale)
+		if (isNullOrUndefined(scaleString))
+			return Promise.reject(Error(`2can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
+		const dir = basePath + '/' + dateToString(new Date()) + scaleString
+		log.info(`Exporting annotations tiles to ${dir}`)
+		return this.annotationManager.exportAnnotationsTiles(dir, format)
+			.catch(error => log.warn("export failed: " + error.message))
+	}
+
 	// Save lane waypoints only.
 	// ANNOTATOR ONLY
 	private saveWaypointsKml(): Promise<void> {
@@ -2605,7 +2692,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// ANNOTATOR ONLY
 	private loadFromFile(): Promise<void> {
-		if (this.tileManager.getPointClouds().length)
+		if (this.pointCloudTileManager.getPointClouds().length)
 			log.warn('you should probably unload the existing point cloud before loading another')
 
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
@@ -3618,7 +3705,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (!this.uiState.isPointCloudVisible)
 			return false
 		this.decorations.forEach(d => d.visible = false)
-		this.tileManager.getPointClouds().forEach(pc => this.scene.remove(pc))
+		this.pointCloudTileManager.getPointClouds().forEach(pc => this.scene.remove(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.remove(this.pointCloudBoundingBox)
 		this.uiState.isPointCloudVisible = false
@@ -3630,7 +3717,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.uiState.isPointCloudVisible)
 			return false
 		this.decorations.forEach(d => d.visible = true)
-		this.tileManager.getPointClouds().forEach(pc => this.scene.add(pc))
+		this.pointCloudTileManager.getPointClouds().forEach(pc => this.scene.add(pc))
 		if (this.pointCloudBoundingBox)
 			this.scene.add(this.pointCloudBoundingBox)
 		this.uiState.isPointCloudVisible = true
@@ -3817,6 +3904,28 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return this.uiState.isLiveMode
 	}
 
+	// Show or hide the menu as requested.
+	// RYAN UPDATED (added by joe)
+	// private displayMenu(visibility: MenuVisibility): void {
+	// 	const menu = document.getElementById('menu')
+	// 	if (menu)
+	// 		switch (visibility) {
+	// 			case MenuVisibility.HIDE:
+	// 				menu.style.visibility = 'hidden'
+	// 				break
+	// 			case MenuVisibility.SHOW:
+	// 				menu.style.visibility = 'visible'
+	// 				break
+	// 			case MenuVisibility.TOGGLE:
+	// 				menu.style.visibility = menu.style.visibility === 'hidden' ? 'visible' : 'hidden'
+	// 				break
+	// 			default:
+	// 				log.warn(`unhandled visibility option ${visibility} in displayMenu()`)
+	// 		}
+	// 	else
+	// 		log.warn('missing element menu')
+	// }
+
 	// BOTH
 	private updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
 		if (this.aoiState.enabled)
@@ -3884,12 +3993,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 */
 	// RIP OUT!??!
 	private toggleVoxelsAndPointClouds(): void {
-		if (!this.tileManager.voxelsMeshGroup) return
+		if (!this.pointCloudTileManager.voxelsMeshGroup) return
 		if (this.hidePointCloud()) {
-			this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
+			this.pointCloudTileManager.voxelsMeshGroup.forEach(mesh => this.scene.add(mesh))
 			this.renderAnnotator()
 		} else if (this.showPointCloud()) {
-			this.tileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
+			this.pointCloudTileManager.voxelsMeshGroup.forEach(mesh => this.scene.remove(mesh))
 			this.renderAnnotator()
 		}
 	}
@@ -3898,15 +4007,17 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// RELATED TO ABOVE -- statusWindowManager
 	private updateTileManagerStats(): void {
 		if (!this.settings.enableTileManagerStats) return
-
-		// RYAN UPDATED
 		// if (!this.statusWindow.isEnabled()) return
-		if (this.props.uiMenuVisible) return
+		if (!this.props.uiMenuVisible) return
 
 		//RYAN UPDATED
-		const message = `Loaded ${this.tileManager.superTiles.size} super tiles; ${this.tileManager.pointCount()} points`
-		// this.statusWindow.setMessage(statusKey.tileManagerStats, message)
-		new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_STATS, message)
+		const message = `Loaded ${this.pointCloudTileManager.superTiles.size} point tiles; ${this.pointCloudTileManager.objectCount()} points`
+		new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
+
+		if (this.settings.enableAnnotationTileManager) {
+			const message2 = `Loaded ${this.annotationTileManager.superTiles.size} annotation tiles; ${this.annotationTileManager.objectCount()} annotations`
+			new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
+		}
 	}
 
 	// BOTH

@@ -23,7 +23,7 @@ export class StatusWindowController {
 		return this
 	}
 
-	isEnabled(): boolean {
+	get isEnabled(): boolean {
 		return this.enabled
 	}
 

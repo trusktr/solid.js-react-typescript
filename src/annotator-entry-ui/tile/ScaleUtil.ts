@@ -27,6 +27,17 @@ export function stringToSpatialTileScale(str: string): SpatialTileScale | null {
 	}
 }
 
+export function spatialTileScaleToString(scale: SpatialTileScale): string | null {
+	switch (scale) {
+		case SpatialTileScale._008_008_008:
+			return '_008_008_008'
+		case SpatialTileScale._010_010_010:
+			return '_010_010_010'
+		default:
+			return null
+	}
+}
+
 export function spatialTileScaleToScale3D(msg: SpatialTileScale): Scale3D | null {
 	switch (msg) {
 		case SpatialTileScale._008_008_008:
@@ -36,6 +47,15 @@ export function spatialTileScaleToScale3D(msg: SpatialTileScale): Scale3D | null
 		default:
 			return null
 	}
+}
+
+export function scale3DToSpatialTileScale(scale: Scale3D): SpatialTileScale | null {
+	if (scale.equals(scale3D_008_008_008))
+		return SpatialTileScale._008_008_008
+	else if (scale.equals(scale3D_010_010_010))
+		return SpatialTileScale._010_010_010
+	else
+		return null
 }
 
 export function spatialTileScaleEnumToScaleVector(scale: Models.SpatialTileScale): THREE.Vector3 | null {

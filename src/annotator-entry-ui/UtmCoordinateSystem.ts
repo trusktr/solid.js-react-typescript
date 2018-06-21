@@ -49,7 +49,7 @@ export class UtmCoordinateSystem {
 	utmZoneString(): string {
 		if (this.zoneAsString) {
 			return this.zoneAsString
-		} else if (this.hasOrigin()) {
+		} else if (this.hasOrigin) {
 			this.zoneAsString = this.utmZoneNumber.toString() + (this.utmZoneNorthernHemisphere ? 'N' : 'S')
 			return this.zoneAsString
 		} else {
@@ -58,8 +58,13 @@ export class UtmCoordinateSystem {
 	}
 
 	// Decide whether UTM values have been initialized.
-	hasOrigin(): boolean {
+	get hasOrigin(): boolean {
 		return this.offset !== null && UtmCoordinateSystem.isValidUtmZone(this.utmZoneNumber, this.utmZoneNorthernHemisphere)
+	}
+
+	// Test whether the given zone parameters match the current coordinate system.
+	zoneMatch(num: number, northernHemisphere: boolean): boolean {
+		return this.utmZoneNumber === num && this.utmZoneNorthernHemisphere === northernHemisphere
 	}
 
 	// UTM origin can be set one time; subsequent attempts to set must match the first one.
@@ -67,9 +72,9 @@ export class UtmCoordinateSystem {
 	setOrigin(num: number, northernHemisphere: boolean, offset: THREE.Vector3): boolean {
 		if (!offset) {
 			return false
-		} else if (this.hasOrigin()) {
+		} else if (this.hasOrigin) {
 			return this.offset.x === offset.x && this.offset.y === offset.y && this.offset.z === offset.z &&
-				this.utmZoneNumber === num && this.utmZoneNorthernHemisphere === northernHemisphere
+				this.zoneMatch(num, northernHemisphere)
 		} else {
 			this.offset = offset.clone()
 			if (UtmCoordinateSystem.isValidUtmZone(num, northernHemisphere)) {
