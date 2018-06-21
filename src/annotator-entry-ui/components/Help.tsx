@@ -18,6 +18,7 @@ class Help extends React.Component<{}, {}> {
 				<strong>Annotations</strong><br />
 				s - Save annotations JSON file as UTM<br />
 				S - Save annotations JSON file as Lat/Lon<br />
+				N - Export annotations to UTM tile files<br />
 				m - Save road network waypoints to KML file<br />
 				A - Delete all annotations<br />
 				X - Toggle translation/rotation editing of traffic devices<br />

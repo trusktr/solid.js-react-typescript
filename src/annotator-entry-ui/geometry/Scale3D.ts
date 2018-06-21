@@ -4,16 +4,45 @@
  */
 
 import * as THREE from 'three'
+import {vsprintf} from 'sprintf-js'
+import config from "@/config"
+import {isTupleOfNumbers} from "@/util/Validation"
+
+const defaultSeparator = "_" // for generating serializable ID strings
+
+function numberToString(n: number): string {
+	return vsprintf('%03d', [n])
+}
 
 export class Scale3D {
 	xSize: number
 	ySize: number
 	zSize: number
+	private cachedString: string | null
 
 	constructor(scales: [number, number, number]) {
 		this.xSize = scales[0]
 		this.ySize = scales[1]
 		this.zSize = scales[2]
+		this.cachedString = null
+	}
+
+	toString(separator: string = defaultSeparator): string {
+		if (separator === defaultSeparator) {
+			if (this.cachedString === null) {
+				// The string representation with underscores leads with an underscore
+				// for consistency with the protobuf enumerations of these things.
+				this.cachedString = separator +
+					numberToString(this.xSize) + separator +
+					numberToString(this.ySize) + separator +
+					numberToString(this.zSize)
+			}
+			return this.cachedString
+		} else {
+			return numberToString(this.xSize) + separator +
+				numberToString(this.ySize) + separator +
+				numberToString(this.zSize)
+		}
 	}
 
 	equals(that: Scale3D): boolean {
@@ -47,4 +76,11 @@ export function coordToIndex(coord: number, size: number): TileIndexDimension {
 
 export function indexToCoord(index: TileIndexDimension, size: number): number {
 	return index * size
+}
+
+export function configToScale3D(key: string): Scale3D {
+	const tileScaleConfig: [number, number, number] = config.get(key) || [10, 10, 10]
+	if (!isTupleOfNumbers(tileScaleConfig, 3))
+		throw Error(`invalid ${key} configuration '${tileScaleConfig}'`)
+	return new Scale3D(tileScaleConfig)
 }
