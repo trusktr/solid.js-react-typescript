@@ -95,7 +95,6 @@ class LaneRenderingProperties {
 	rightNeighborMaterial: THREE.MeshBasicMaterial
 	frontNeighborMaterial: THREE.MeshBasicMaterial
 	centerLineMaterial: THREE.LineDashedMaterial
-	trajectoryMaterial: THREE.MeshLambertMaterial
 	inactiveMaterial: THREE.MeshLambertMaterial
 
 	constructor() {
@@ -104,7 +103,6 @@ class LaneRenderingProperties {
 		this.leftNeighborMaterial = new THREE.MeshBasicMaterial({color: 0xffff66, side: THREE.DoubleSide})
 		this.rightNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x00ffff, side: THREE.DoubleSide})
 		this.frontNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x66ff99, side: THREE.DoubleSide})
-		this.trajectoryMaterial = new THREE.MeshLambertMaterial({color: "black", side: THREE.DoubleSide})
 		this.centerLineMaterial = new THREE.LineDashedMaterial({color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2})
 		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.3, side: THREE.DoubleSide})
 	}
@@ -173,7 +171,6 @@ export class Lane extends Annotation {
 	rightLineColor: LaneLineColor
 	entryType: LaneEntryExitType
 	exitType: LaneEntryExitType
-	inTrajectory: boolean
 
 	constructor(obj?: LaneJsonInputInterfaceV3) {
 		super(obj)
@@ -214,7 +211,6 @@ export class Lane extends Annotation {
 		this.laneRightLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
 		this.laneDirectionMarkers = []
 		this.waypoints = []
-		this.inTrajectory = false
 
 		if (obj) {
 			if (obj.markers.length >= this.minimumMarkerCount) {
@@ -400,11 +396,7 @@ export class Lane extends Annotation {
 		}
 		if (this.type !== LaneType.CROSSWALK)
 			this.showDirectionMarkers()
-		if (this.inTrajectory) {
-			this.mesh.material = this.renderingProperties.trajectoryMaterial
-		} else {
-			this.mesh.material = this.renderingProperties.inactiveMaterial
-		}
+		this.mesh.material = this.renderingProperties.inactiveMaterial
 		this.laneCenterLine.visible = true
 		this.unhighlightMarkers()
 		this.hideMarkers()
@@ -547,24 +539,6 @@ export class Lane extends Annotation {
 		return false
 	}
 
-	/**
-	 * Make this annotation part of the car path
-	 */
-	setTrajectory(isTrajectoryActive: boolean): void {
-		this.inTrajectory = isTrajectoryActive
-
-		// Do not change the active lane
-		if (!this.laneCenterLine.visible) {
-			return
-		}
-
-		if (this.inTrajectory) {
-			this.mesh.material = this.renderingProperties.trajectoryMaterial
-		} else {
-			this.mesh.material = this.renderingProperties.inactiveMaterial
-		}
-	}
-
 	toJSON(pointConverter?: (p: THREE.Vector3) => Object): LaneJsonOutputInterfaceV3 {
 		// Create data structure to export (this is the min amount of data
 		// needed to reconstruct this object from scratch)
@@ -600,28 +574,6 @@ export class Lane extends Annotation {
 		})
 
 		return data
-	}
-
-	tryTrajectory(trajectory: Array<THREE.Vector3>): void {
-		// Remove points from lineDirection object
-		this.laneDirectionMarkers.forEach((marker) => {
-			this.renderingObject.remove(marker)
-		})
-
-		if (trajectory.length < 3) {
-			return
-		}
-
-		for (let i = 1; i < trajectory.length - 1; i++) {
-			const angle = Math.atan2(trajectory[i + 1].z - trajectory[i].z,
-				trajectory[i + 1].x - trajectory[i].x)
-
-			const marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
-			marker.position.set(trajectory[i].x, trajectory[i].y, trajectory[i].z)
-			marker.rotateY(-angle)
-			this.renderingObject.add(marker)
-			this.laneDirectionMarkers.push(marker)
-		}
 	}
 
 	getLaneWidth(): number {

@@ -62,9 +62,6 @@ fly_through.animation.fps: 10
 fly_through.trajectory_picker.processed_trajectories_dir:
 fly_through.trajectory_picker.unprocessed_trajectories_dir:
 
-# persist trajectories
-output.trajectory.csv.path: ./data/trajectory.csv
-
 # for photos displayed within the 3D scene
 image_manager.image_screen.width: 3
 image_manager.image_screen.height: 2

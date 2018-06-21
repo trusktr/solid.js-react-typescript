@@ -17,7 +17,7 @@ import {
 	AnnotationJsonOutputInterface, AnnotationUuid, LlaJson, UtmJson
 } from './annotations/AnnotationBase'
 import {
-	Lane, NeighborDirection, NeighborLocation, LaneNeighborsIds
+	Lane, NeighborDirection, NeighborLocation
 } from './annotations/Lane'
 import * as AnnotationFactory from "./annotations/AnnotationFactory"
 import {TrafficDevice} from 'annotator-entry-ui/annotations/TrafficDevice'
@@ -39,22 +39,6 @@ const log = Logger(__filename)
 const dialog = Electron.remote.dialog
 
 // tslint:disable:no-string-literal
-
-export enum LinkType {
-	FORWARD = 1,
-	SIDE = 2,
-	OTHER = 3
-}
-
-export class Link {
-	index: number
-	type: LinkType
-
-	constructor() {
-		this.index = -1
-		this.type = LinkType.OTHER
-	}
-}
 
 export enum OutputFormat {
 	UTM = 1,
@@ -89,8 +73,6 @@ export class AnnotationManager {
 	annotationObjects: Array<THREE.Object3D>
 	activeAnnotation: Annotation | null
 	bezierScaleFactor: number  // Used when creating connections
-	private carPath: Array<AnnotationUuid>
-	private carPathActivation: boolean
 	private metadataState: AnnotationState
 
 	constructor(
@@ -108,8 +90,6 @@ export class AnnotationManager {
 		this.connectionAnnotations = []
 		this.annotationObjects = []
 		this.activeAnnotation = null
-		this.carPath = []
-		this.carPathActivation = false
 		this.metadataState = new AnnotationState(this)
 		this.bezierScaleFactor = 6
 	}
@@ -537,61 +517,6 @@ export class AnnotationManager {
 		return true
 	}
 
-	/**
-	 * Add current lane to the car path
-	 */
-	laneIndexInPath(laneUuid: AnnotationUuid): number {
-		return this.carPath.findIndex((uuid) => {
-			return laneUuid === uuid
-		})
-	}
-
-	addLaneToPath(): boolean {
-		const activeLane = this.getActiveLaneAnnotation()
-		if (!activeLane) {
-			return false
-		}
-
-		// Check if lane already added
-		const index = this.laneIndexInPath(activeLane.uuid)
-		if (index === -1) {
-			this.carPath.push(activeLane.uuid)
-			activeLane.setTrajectory(this.carPathActivation)
-			log.info("Lane added to the car path.")
-		} else {
-			activeLane.setTrajectory(false)
-			this.carPath.splice(index, 1)
-			log.info("Lane removed from the car path.")
-		}
-
-		this.metadataState.dirty()
-		return true
-	}
-
-	/**
-	 * Show the car path in the visualizer
-	 */
-	showPath(): boolean {
-
-		if (this.carPath.length === 0) {
-			log.info("Empty car path.")
-			return false
-		}
-
-		this.carPathActivation = !this.carPathActivation
-		this.carPath.forEach((uuid) => {
-			const index = this.laneAnnotations.findIndex((annotation) => {
-				return annotation.uuid === uuid
-			})
-			if (index !== -1) {
-				this.laneAnnotations[index].setTrajectory(this.carPathActivation)
-			} else {
-				log.warn("Trajectory contains invalid lane id.")
-			}
-		})
-		return true
-	}
-
 	showAnnotations(): void {
 		this.allAnnotations().forEach(a => a.makeVisible())
 	}
@@ -610,239 +535,6 @@ export class AnnotationManager {
 		return annotations.findIndex((item) => {
 			return item.uuid === uuid
 		})
-	}
-
-	/**
-	 * Checks if the given is within a list of given ids
-	 * @param listUuids  List of ids
-	 * @param queryUuid  Desired id
-	 * @returns True if the id is within the list, false otherwise
-	 */
-	isUuidInList(listUuids: Array<AnnotationUuid>, queryUuid: AnnotationUuid): boolean {
-		return listUuids.findIndex((uuid) => {
-				return uuid === queryUuid
-			}) !== -1
-	}
-
-	/**
-	 * Tries to connect a forward lane with current lane
-	 * @param neighbors   Current lane neighbors
-	 * @returns Connected lane index from the list of annotations, or -1 if no connection found
-	 */
-	tryGoStraight(neighbors: LaneNeighborsIds): number {
-		for (const neighbor of neighbors.front) {
-			if (neighbor !== null &&
-				this.isUuidInList(this.carPath, neighbor)) {
-				return this.getAnnotationIndexFromUuid(this.laneAnnotations, neighbor)
-			}
-		}
-		return -1
-	}
-
-	/**
-	 * Tries to connect a side-forward lane with the current lane
-	 * @param neighbors Current lane neighbors
-	 * @returns Connected lane index from the list of annotations, or -1 if no connection found
-	 */
-	tryGoSides(neighbors: LaneNeighborsIds): number {
-
-		// Try left and right neighbors of the front lane
-		for (const neighbor of neighbors.front) {
-
-			// check for valid front neighbor
-			if (neighbor !== null) {
-
-				const frontLaneIndex = this.getAnnotationIndexFromUuid(this.laneAnnotations, neighbor)
-				if (frontLaneIndex === -1)
-					return frontLaneIndex
-				const frontLane = this.laneAnnotations[frontLaneIndex]
-
-				for (const neighborRight of frontLane.neighborsIds.right) {
-					if (this.isUuidInList(this.carPath, neighborRight)) {
-						return this.getAnnotationIndexFromUuid(this.laneAnnotations, neighborRight)
-					}
-				}
-
-				for (const neighborLeft of frontLane.neighborsIds.left) {
-					if (this.isUuidInList(this.carPath, neighborLeft)) {
-						return this.getAnnotationIndexFromUuid(this.laneAnnotations, neighborLeft)
-					}
-				}
-			}
-		}
-
-		return -1
-	}
-
-	/**
-	 * Sort car path such that each lane connects to the next in the list
-	 * The list consist of lane indices from the list of annotations, for easy access
-	 * @returns Sorted list of lane indices
-	 */
-	sortCarPath(): Array<Link> {
-		const trajectoryAsOrderedLaneIndices: Array<Link> = []
-		let newLink: Link = new Link()
-		newLink.index = this.getAnnotationIndexFromUuid(this.laneAnnotations, this.carPath[0])
-		newLink.type = LinkType.FORWARD
-		trajectoryAsOrderedLaneIndices.push(newLink)
-		while (newLink.index !== -1 &&
-		trajectoryAsOrderedLaneIndices.length <= this.carPath.length) {
-
-			// Try to go straight
-			const neighbors = this.laneAnnotations[newLink.index].neighborsIds
-			const nextFrontIndex = this.tryGoStraight(neighbors)
-			if (nextFrontIndex !== -1) {
-				newLink = new Link()
-				newLink.index = nextFrontIndex
-				newLink.type = LinkType.FORWARD
-				trajectoryAsOrderedLaneIndices.push(newLink)
-				continue
-			}
-
-			// Try to go sides
-			const nextSideIndex = this.tryGoSides(neighbors)
-			if (nextSideIndex !== -1) {
-				newLink = new Link()
-				newLink.index = nextSideIndex
-				newLink.type = LinkType.SIDE
-				trajectoryAsOrderedLaneIndices.push(newLink)
-				continue
-			}
-
-			// If no valid next lane
-			newLink = new Link()
-			newLink.index = -1
-			newLink.type = LinkType.OTHER
-			trajectoryAsOrderedLaneIndices.push(newLink)
-		}
-
-		return trajectoryAsOrderedLaneIndices
-	}
-
-	/**
-	 * Generate trajectory points from sorted lanes of the car path
-	 * @param sortedCarPath      Trajectory sorted lanes
-	 * @param minDistLaneChange  Minimum distance to interpolate lane change
-	 * @returns {Array<Vector3>} Points along the trajectory
-	 */
-	generatePointsFromSortedCarPath(sortedCarPath: Array<Link>, minDistLaneChange: number): Array<THREE.Vector3> {
-
-		let points: Array<THREE.Vector3> = []
-		let hasValidIndexes = true
-		sortedCarPath.forEach((laneLink) => {
-			if (hasValidIndexes) {
-				const laneIndex: number = laneLink.index
-				if (laneIndex === null || laneIndex < 0 || laneIndex >= this.laneAnnotations.length) {
-					dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
-						"Sorted car path contains invalid index: " + laneIndex)
-					points = []
-					hasValidIndexes = false
-				}
-
-				if (points.length > 0) {
-					// If side link: make sure there is enough distance between first point of the link
-					// and previous link last point added
-					if (laneLink.type === LinkType.SIDE) {
-						const firstPoint = this.laneAnnotations[laneIndex].markers[0].position.clone()
-						firstPoint.add(this.laneAnnotations[laneIndex].markers[1].position).divideScalar(2)
-						let distance: number = firstPoint.distanceTo(points[points.length - 1])
-						while (points.length > 0 && distance < minDistLaneChange) {
-							points.pop()
-							distance = firstPoint.distanceTo(points[points.length - 1])
-						}
-					} else {
-						// Delete the last point from lane since this is usually duplicated at the
-						// beginning of the next lane
-						points.pop()
-					}
-				}
-
-				const lane: Lane = this.laneAnnotations[laneIndex]
-				for (let i = 0; i < lane.markers.length - 1; i += 2) {
-					const waypoint = lane.markers[i].position.clone()
-					waypoint.add(lane.markers[i + 1].position).divideScalar(2)
-					points.push(waypoint)
-				}
-			}
-		})
-
-		return points
-	}
-
-	/**
-	 * Compute car trajectory by connecting all lane segments form the car path
-	 * @param step  Distance between waypoints in meters
-	 * @param minDistanceLaneChange Minimum distance between points when changing lane
-	 * @returns Car trajectory from car path
-	 */
-	getFullInterpolatedTrajectory(step: number, minDistanceLaneChange: number): Array<THREE.Vector3> {
-
-		// Check for car path size (at least one lane)
-		if (this.carPath.length === 0) {
-			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL, "Empty car path.")
-			return []
-		}
-
-		// Sort lanes
-		const sortedCarPath: Array<Link> = this.sortCarPath()
-		if (sortedCarPath.length !== this.carPath.length + 1) {
-			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
-				"Annotator failed to sort car path. Possible reasons: path may have gaps.")
-			return []
-		}
-
-		// Take out last index
-		sortedCarPath.pop()
-
-		// Create spline
-		const points: Array<THREE.Vector3> = this.generatePointsFromSortedCarPath(sortedCarPath, minDistanceLaneChange)
-		if (points.length === 0) {
-			dialog.showErrorBox(EM.ET_TRAJECTORY_GEN_FAIL,
-				"There are no waypoints in the selected car path lanes.")
-			return []
-		}
-		const spline = new THREE.CatmullRomCurve3(points)
-		const numPoints = spline.getLength() / step
-
-		// Generate trajectory from spline
-		return spline.getSpacedPoints(numPoints)
-	}
-
-	/**
-	 * Saves car path to CSV file
-	 */
-	convertAnnotationToCSV(data: Array<THREE.Vector3>, columnDelimiter: string = ',', lineDelimiter: string = '\n'): string {
-		if (data.length === 0) {
-			log.warn("Empty annotation.")
-			return ''
-		}
-
-		let result: string = ''
-		data.forEach((marker) => {
-			const lngLatAlt = this.utmCoordinateSystem.threeJsToLngLatAlt(marker)
-			result += lngLatAlt.x.toString()
-			result += columnDelimiter
-			result += lngLatAlt.y.toString()
-			result += lineDelimiter
-		})
-
-		return result
-	}
-
-	saveCarPath(fileName: string): void {
-		const self = this
-		const dirName = fileName.substring(0, fileName.lastIndexOf("/"))
-		const writeFile = function (er: Error): void {
-			if (!er) {
-				const trajectoryData = self.getFullInterpolatedTrajectory(0.2, 5)
-				// Debug only
-				// self.annotations[0].tryTrajectory(trajectoryData)
-				const strAnnotations = self.convertAnnotationToCSV(trajectoryData)
-				AsyncFile.writeTextFile(fileName, strAnnotations)
-					.catch((err: Error) => log.warn('saveCarPath failed: ' + err.message))
-			}
-		}
-		mkdirp(dirName, writeFile)
 	}
 
 	/**
@@ -1567,13 +1259,6 @@ export class AnnotationManager {
 		// Side effect: remove references to this annotation from its neighbors
 		if (annotation instanceof Lane) {
 			this.deleteConnectionToNeighbors(annotation)
-			// Remove lane from path
-			const index = this.laneIndexInPath(annotation.uuid)
-			if (index !== -1) {
-				this.laneAnnotations[index].setTrajectory(false)
-				this.carPath.splice(index, 1)
-				log.info("Lane removed from the car path.")
-			}
 		} else if (annotation instanceof Connection) {
 			this.removeUuidFromLaneNeighbors(annotation.startLaneUuid, annotation.uuid)
 			this.removeUuidFromLaneNeighbors(annotation.endLaneUuid, annotation.uuid)

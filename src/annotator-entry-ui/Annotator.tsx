@@ -302,6 +302,8 @@ class Annotator {
 		this.updateOrbitControls = false
 		this.sceneInitialized = false
 
+		if (!isNullOrUndefined(config.get('output.trajectory.csv.path')))
+			log.warn('Config option output.trajectory.csv.path has been removed.')
 		if (!isNullOrUndefined(config.get('annotator.generate_voxels_on_point_load')))
 			log.warn('Config option annotator.generate_voxels_on_point_load has been removed.')
 		if (config.get('startup.animation.fps'))
@@ -2873,39 +2875,6 @@ class Annotator {
 		else
 			log.warn('missing element tools_export_kml')
 
-		const trAdd = $('#tr_add')
-		trAdd.on('click', () => {
-			log.info("Add/remove lane to/from car path.")
-			if (this.annotationManager.addLaneToPath()) {
-				if (trAdd.text() === "Add") {
-					trAdd.text("Remove")
-				} else {
-					trAdd.text("Add")
-				}
-			}
-		})
-
-		const trShow = $('#tr_show')
-		trShow.on('click', () => {
-			log.info("Show/hide car path.")
-			if (!this.annotationManager.showPath()) {
-				return
-			}
-
-			// Change button text only if showPath succeed
-			if (trShow.text() === "Show") {
-				trShow.text("Hide")
-			} else {
-				trShow.text("Show")
-			}
-		})
-
-		const savePath = $('#save_path')
-		savePath.on('click', () => {
-			log.info("Save car path to file.")
-			this.annotationManager.saveCarPath(config.get('output.trajectory.csv.path'))
-		})
-
 		const liveModePauseBtn = document.querySelector('#live_mode_pause')
 		if (liveModePauseBtn)
 			liveModePauseBtn.addEventListener('click', this.toggleLiveModePlay)
@@ -3074,17 +3043,6 @@ class Annotator {
 		const lpSelectExit = $('#lp_select_exit')
 		lpSelectExit.removeAttr('disabled')
 		lpSelectExit.val(activeAnnotation.exitType.toString())
-
-		const trAdd = $('#tr_add')
-		trAdd.removeAttr('disabled')
-		if (this.annotationManager.laneIndexInPath(activeAnnotation.uuid) === -1) {
-			trAdd.text("Add")
-		} else {
-			trAdd.text("Remove")
-		}
-
-		const trShow = $('#tr_show')
-		trShow.removeAttr('disabled')
 	}
 
 	/**
@@ -3205,12 +3163,6 @@ class Annotator {
 			}
 		} else
 			log.warn('missing element lane_prop_1')
-
-		const trAdd = document.getElementById('tr_add')
-		if (trAdd)
-			trAdd.setAttribute('disabled', 'disabled')
-		else
-			log.warn('missing element tr_add')
 	}
 
 	/**
