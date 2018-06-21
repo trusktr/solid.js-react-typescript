@@ -126,7 +126,6 @@ async function setupConfig() {
 		'tile_manager.super_tile_scale',
 		'output.annotations.json.path',
 		'output.annotations.kml.path',
-		'output.trajectory.csv.path',
 	]
 
 	const localFile = path.join(dirName, 'local.yaml')
