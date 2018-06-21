@@ -290,6 +290,48 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
+	removeAxisFromScene() {
+    const scene = this.state.scene
+		if(this.state.axis) {
+      scene.remove(this.state.axis)
+      this.setState({
+        scene: scene
+      })
+		}
+	}
+
+  removeCompassFromScene() {
+    const scene = this.state.scene
+    if(this.state.compassRose) {
+      scene.remove(this.state.compassRose)
+      this.setState({
+        scene: scene
+      })
+    }
+  }
+
+  hideGridVisibility() {
+		const grid = this.state.grid
+		grid.visible = false
+		this.setState({grid})
+	}
+
+	enableOrbitControls() {
+		const orbitControls = this.state.orbitControls
+		if(!orbitControls) {
+			log.error("Orbit controls not found, unable to enable them")
+			return
+		}
+
+		orbitControls.enabled = true
+		this.setState({orbitControls})
+	}
+
+
+	getCamera(): THREE.Camera {
+		return this.state.camera
+	}
+
 
 	addChildLoop(childLoop: ChildAnimationLoop) {
 		// this.loop.addChildLoop( FlyThroughManager.getAnimationLoop() )
@@ -324,7 +366,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
 	// used to be called renderAnnotator
-	private renderScene = (): void => {
+	renderScene = (): void => {
 		// force a tick which causes renderer.renderScene to be called
 		this.state.loop.forceTick()
 	}

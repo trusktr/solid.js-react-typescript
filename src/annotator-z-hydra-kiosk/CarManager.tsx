@@ -22,6 +22,18 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		}
 	}
 
+  addObjectToCar(object:THREE.Object3D):void {
+		const carModel = this.state.carModel
+		carModel.add(object)
+		this.setState({carModel})
+	}
+
+	setCarVisibility(visible:boolean) {
+		const carModel = this.state.carModel
+		carModel.visible = visible
+    this.setState({carModel})
+	}
+
 
 	private loadCarModel(): Promise<void> {
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {

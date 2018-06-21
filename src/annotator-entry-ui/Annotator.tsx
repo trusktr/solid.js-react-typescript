@@ -394,8 +394,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterSuperTiles = new THREE.Raycaster()
 		this.decorations = []
-		this.raycasterAnnotation = new THREE.Raycaster()
-		this.raycasterImageScreen = new THREE.Raycaster()
+		this.raycasterAnnotation = new THREE.Raycaster() // ANNOTATOR ONLY
+		this.raycasterImageScreen = new THREE.Raycaster() // ANNOTATOR ONLY
 		this.utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
 		// Initialize super tile that will load the point clouds
 		this.tileManager = new TileManager(
@@ -444,6 +444,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			// flyThroughIntervalSecs: flyThroughInterval,
 		}
 
+		// RYAN - move to "AppGeneral"
 		this.layerToggle = Map([
 			[Layer.POINT_CLOUD, {show: this.showPointCloud, hide: this.hidePointCloud}],
 			[Layer.SUPER_TILES, {show: this.showSuperTiles, hide: this.hideSuperTiles}],
