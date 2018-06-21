@@ -16,6 +16,10 @@ import {createStructuredSelector} from "reselect";
 import LayerManager, {Layer} from "@/annotator-z-hydra-shared/src/services/LayerManager";
 import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
 import LayerToggle from "@/annotator-z-hydra-shared/src/models/LayerToggle";
+import {PointCloudTileManager} from "@/annotator-entry-ui/tile/PointCloudTileManager";
+import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider";
+import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
+import {getDecorations} from "@/annotator-entry-ui/Decorations";
 
 const log = Logger(__filename)
 
@@ -53,6 +57,14 @@ export interface SceneManagerState {
 	registeredKeyUpEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
 
 	layerManager: LayerManager | null
+  pointCloudTileManager: PointCloudTileManager,
+
+	scaleProvider: ScaleProvider,
+  utmCoordinateSystem: UtmCoordinateSystem,
+  maxDistanceToDecorations: number, // meters
+
+  decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
+
 }
 
 
@@ -172,6 +184,15 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const animationFps = config.get('startup.renderScene.fps')
 		loop.interval = animationFps === 'device' ? false : 1 / (animationFps || 10)
 
+		const scaleProvider = new ScaleProvider()
+		const utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
+		const pointCloudTileManager = new PointCloudTileManager(
+      scaleProvider,
+      utmCoordinateSystem,
+      this.onSuperTileLoad,
+      this.onSuperTileUnload,
+      tileServiceClient,
+    )
 
     this.state = {
       plane: plane,
@@ -198,7 +219,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
       registeredKeyDownEvents: new Map<number, any>(),
       registeredKeyUpEvents: new Map<number, any>(),
 
-			layerManager: null
+			layerManager: null,
+      pointCloudTileManager: pointCloudTileManager,
+      scaleProvider: scaleProvider,
+      utmCoordinateSystem: utmCoordinateSystem,
+      maxDistanceToDecorations: 50000,
+			decorations: []
     }
 
     this.setOrthographicCameraDimensions(this.props.width, this.props.height)
@@ -236,12 +262,15 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	componentDidMount() {
 		this.mount()
 
-		// @TODO register the initial layerToggles
+		// Register the layer toggles now that the LayerManager is setup
 		const pointCloudLayerToggle = new LayerToggle({show: this.showPointCloud, hide: this.hidePointCloud})
 		this.state.layerManager!.addLayerToggle(Layer.POINT_CLOUD, pointCloudLayerToggle)
 
-    const superTilesLayerToggle = new LayerToggle({show: this.showSuperTiles, hide: this.hideSuperTiles})
-    this.state.layerManager!.addLayerToggle(Layer.POINT_CLOUD, superTilesLayerToggle)
+		const imageScreensLayerToggle = new LayerToggle({show: this.showImageScreens, hide: this.hideImageScreens})
+		this.state.layerManager!.addLayerToggle(Layer.IMAGE_SCREENS, imageScreensLayerToggle)
+
+    const annotationLayerToggle = new LayerToggle({show: this.showAnnotations, hide: this.hideAnnotations})
+    this.state.layerManager!.addLayerToggle(Layer.ANNOTATIONS, annotationLayerToggle)
 	}
 
 	async mount(): Promise<void> {
@@ -303,6 +332,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			scene: scene
 		})
 	}
+
+  removeObjectToScene(object:any) {
+    const scene = this.state.scene
+    scene.remove(object)
+    this.setState({
+      scene: scene
+    })
+  }
 
 	removeAxisFromScene() {
     const scene = this.state.scene
@@ -440,6 +477,22 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
+  /**
+   * Set some point as the center of the visible world.
+   */
+  private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true): void {
+    this.setStage(point.x, point.y, point.z, resetCamera)
+  }
+
+  /**
+   * Set the stage at the bottom center of TileManager's point cloud.
+   */
+  setStageByPointCloud(resetCamera: boolean): void {
+    const focalPoint = this.state.pointCloudTileManager.centerPoint()
+    if (focalPoint)
+      this.setStageByVector(focalPoint, resetCamera)
+  }
+
 	// The sky needs to be big enough that we don't bump into it but not so big that the camera can't see it.
 	// So make it pretty big, then move it around to keep it centered over the camera in the XZ plane. Sky radius
 	// and camera zoom settings, set elsewhere, should keep the camera from penetrating the shell in the Y dimension.
@@ -570,6 +623,47 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	)
 
 	}
+
+  /**
+   * 	Display the compass rose just outside the bounding box of the point cloud.
+   */
+  setCompassRoseByPointCloud(): void {
+    if (!this.state.compassRose) return
+    const boundingBox = this.state.pointCloudTileManager.getLoadedObjectsBoundingBox()
+    if (!boundingBox) return
+
+    // Find the center of one of the sides of the bounding box. This is the side that is
+    // considered to be North given the current implementation of UtmInterface.utmToThreeJs().
+    const topPoint = boundingBox.getCenter().setZ(boundingBox.min.z)
+    const boundingBoxHeight = Math.abs(boundingBox.max.z - boundingBox.min.z)
+    const zOffset = boundingBoxHeight / 10
+
+    this.state.compassRose.position.set(topPoint.x, topPoint.y, topPoint.z - zOffset)
+  }
+
+  private onSetOrigin = (): void => {
+    this.loadDecorations().then()
+  }
+
+  // Add some easter eggs to the scene if they are close enough.
+  private loadDecorations(): Promise<void> {
+    return getDecorations()
+      .then(decorations => {
+        decorations.forEach(decoration => {
+          const position = this.state.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
+          const distanceFromOrigin = position.length()
+          if (distanceFromOrigin < this.state.maxDistanceToDecorations) {
+            // Don't worry about rotation. The object is just floating in space.
+            decoration.position.set(position.x, position.y, position.z)
+
+						const decorations = this.state.decorations
+						decorations.push(decoration)
+						this.setState({decorations})
+            this.addObjectToScene(decoration)
+          }
+        })
+      })
+  }
 
 
 

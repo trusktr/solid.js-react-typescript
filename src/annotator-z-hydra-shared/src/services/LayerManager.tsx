@@ -6,9 +6,8 @@ import Logger from "@/util/log";
 const log = Logger(__filename)
 
 
-enum Layer {
+export enum Layer {
   POINT_CLOUD,
-  SUPER_TILES,
   IMAGE_SCREENS,
   ANNOTATIONS,
 }
