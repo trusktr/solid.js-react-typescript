@@ -57,8 +57,8 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 			carPose: null,
 
 			cameraPreference: CameraType.PERSPECTIVE,
-			sceneInitialized: false
-
+			sceneInitialized: false,
+      isPointCloudVisible: true,
 
 		}
 

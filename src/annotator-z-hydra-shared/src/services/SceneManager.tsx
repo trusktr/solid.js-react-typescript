@@ -665,6 +665,29 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
       })
   }
 
+  // Find the point in the scene that is most interesting to a human user.
+  // BOTH - used with AOI - AOI is now in PointCloudManager
+	currentPointOfInterest(): THREE.Vector3 | null {
+    if (this.uiState.isLiveMode) {
+      // In live mode track the car, regardless of what the camera does.
+      return this.carModel.position
+    } else {
+      // In interactive mode intersect the camera with the ground plane.
+      this.raycasterPlane.setFromCamera(cameraCenter, this.camera)
+
+      let intersections: THREE.Intersection[] = []
+      if (this.settings.estimateGroundPlane)
+        intersections = this.raycasterPlane.intersectObjects(this.allGroundPlanes)
+      if (!intersections.length)
+        intersections = this.raycasterPlane.intersectObject(this.plane)
+
+      if (intersections.length)
+        return intersections[0].point
+      else
+        return null
+    }
+  }
+
 
 
 }
