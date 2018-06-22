@@ -45,4 +45,6 @@ export default class RoadNetworkEditorState {
 	sceneInitialized: boolean
 
   isPointCloudVisible: boolean
+  isImageScreensVisible: boolean
+  isAnnotationsVisible: boolean
 }

@@ -451,7 +451,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.sceneContainer.appendChild(this.renderer.domElement)
 		this.createControlsGui()
 		this.makeStats()
-		this.startAnimation()
+		// GONE this.startAnimation()
 	}
 
 	unmount(): void {
@@ -619,7 +619,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.loop.interval = this.settings.animationFrameIntervalSecs
 
 		// Point the camera at some reasonable default location.
-		this.setStage(0, 0, 0)
+		// this.setStage(0, 0, 0)
 
 		// starts tracking time, but GPU use is still at 0% at this moment
 		// because there are no animation functions added to the loop yet.
@@ -740,68 +740,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.gui) this.gui.destroy()
 	}
 
-	/**
-	 * 	Load up any data which configuration has asked for on start-up.
-	 */
-	// TAKE OUT TRAJECTORIES (beholder specific)
-	// SHARED
-	// EDITED AND MOVED 6/20
-	private loadUserData(): Promise<void> {
-		const annotationsPath = config.get('startup.annotations_path')
-		let annotationsResult: Promise<void>
-		if (annotationsPath) {
-			annotationsResult = this.loadAnnotations(annotationsPath)
-		} else {
-			annotationsResult = Promise.resolve()
-		}
 
-		const pointCloudBbox: [number, number, number, number, number, number] = config.get('startup.point_cloud_bounding_box')
-		let pointCloudResult: Promise<void>
-		if (pointCloudBbox) {
-			pointCloudResult = annotationsResult
-				.then(() => {
-					log.info('loading pre-configured bounding box ' + pointCloudBbox)
-					return this.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
-				})
-		} else {
-			pointCloudResult = annotationsResult
-		}
 
-		if (config.get('startup.point_cloud_directory'))
-			log.warn('config option startup.point_cloud_directory has been removed.')
-		if (config.get('live_mode.trajectory_path'))
-			log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
-		if (config.get('fly_through.trajectory_path'))
-			log.warn('config option fly_through.trajectory_path is now a list: fly_through.trajectory_path.list')
-
-		let trajectoryResult: Promise<void>
-		const trajectoryPaths = config.get('fly_through.trajectory_path.list')
-		if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
-			trajectoryResult = pointCloudResult
-				.then(() => {
-					log.info('loading pre-configured trajectories')
-					return FlyThroughManager.loadFlyThroughTrajectories(trajectoryPaths)
-				})
-		} else {
-			trajectoryResult = pointCloudResult
-		}
-
-		return trajectoryResult
-	}
-
-	// SHARED (moved)
-	private startAnimation(): void {
-		new RoadNetworkEditorActions().setShouldAnimate(true)
-
-		// this.shouldAnimate = true
-		this.startAoiUpdates()
-
-		this.loop.addAnimationFn(() => {
-			if ( !this.props.shouldAnimate ) return false
-			this.animate()
-			return true
-		})
-	}
 
 	// SHARED
 	private stopAnimation(): void {
@@ -809,14 +749,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		new RoadNetworkEditorActions().setShouldAnimate(false)
 	}
 
-	// SHARED (moved)
-	private startAoiUpdates(): void {
-		this.loop.addAnimationFn(() => {
-			if ( !this.props.shouldAnimate ) return false
-			this.updatePointCloudAoi()
-			return true
-		})
-	}
 
 
 	// Annotator only
@@ -839,61 +771,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.loop.forceTick()
 	}
 
-	/**
-	 * Move all visible elements into position, centered on a coordinate.
-	 */
-	// BOTH (moved)
-	private setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
-		this.plane.geometry.center()
-		this.plane.geometry.translate(x, y, z)
-		if (this.grid) {
-			this.grid.geometry.center()
-			this.grid.geometry.translate(x, y, z)
-		}
-		if (resetCamera) {
-			this.camera.position.set(x + this.settings.cameraOffset.x, y + this.settings.cameraOffset.y, z + this.settings.cameraOffset.z)
-			this.orbitControls.target.set(x, y, z)
-			this.orbitControls.update()
-			this.renderAnnotator()
-		}
-	}
 
-	/**
-	 * Set some point as the center of the visible world.
-	 */
-	// BOTH
-	private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true): void {
-		this.setStage(point.x, point.y, point.z, resetCamera)
-	}
 
-	/**
-	 * Set the point cloud as the center of the visible world.
-	 */
-	// BOTH
-	private focusOnPointCloud(): void {
-		const center = this.pointCloudTileManager.centerPoint()
-		if (center) {
-			this.orbitControls.target.set(center.x, center.y, center.z)
-			this.orbitControls.update()
-			this.renderAnnotator()
-			this.displayCameraInfo()
-		} else {
-			log.warn('point cloud has not been initialized')
-		}
-	}
 
-	/**
-	 * 	Set the camera directly above the current target, looking down.
-	 */
-	// BOTH
-	private resetTiltAndCompass(): void {
-		const distanceCameraToTarget = this.camera.position.distanceTo(this.orbitControls.target)
-		this.camera.position.x = this.orbitControls.target.x
-		this.camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
-		this.camera.position.z = this.orbitControls.target.z
-		this.orbitControls.update()
-		this.renderAnnotator()
-	}
+
+
+
 
 
 
@@ -903,6 +786,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Load tiles within a bounding box and add them to the scene.
 	// ANNOTATOR ONLY???
+	// Move to Annotation Manager -- wait for Joe to conver to React comp
+	// @TODO @Joe please move this method to AnnotationManager, Ryan will then call it within PointCloudManager.updatePointCloudAoiBoundingBox()
 	private loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false): Promise<void> {
 		return this.annotationTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {
@@ -912,34 +797,41 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// Do some house keeping after loading annotations.
+	// @TODO @Joe please move this as well to AnnotationManager
 	private annotationLoadedSideEffects(): void {
 		this.setLayerVisibility([Layer.ANNOTATIONS])
-		this.renderAnnotator()
+		this.renderAnnotator() // @TODO @Joe this will be SceneManager.renderScene()
 	}
 
-	// When TileManager loads a super tile, update Annotator's parallel data structure.
-	// BOTH
-	private onSuperTileLoad: (superTile: SuperTile) => void =
-		(superTile: SuperTile) => {
-			if (superTile instanceof PointCloudSuperTile) {
-				this.loadTileGroundPlanes(superTile)
 
-				if (superTile.pointCloud)
-					this.scene.add(superTile.pointCloud)
-				else
-					log.error('onSuperTileLoad() got a super tile with no point cloud')
-			} else if (superTile instanceof AnnotationSuperTile) {
-				if (superTile.annotations)
-					superTile.annotations.forEach(a => this.annotationManager.addAnnotation(a))
-				else
-					log.error('onSuperTileLoad() got a super tile with no annotations')
-			} else {
-				log.error('unknown superTile')
-			}
 
-			this.renderAnnotator()
-			this.updateTileManagerStats()
-		}
+// When TileManager loads a super tile, update Annotator's parallel data structure.
+  onSuperTileLoad: (superTile: SuperTile) => void = (superTile: SuperTile) => {
+    if (superTile instanceof PointCloudSuperTile) {
+      this.loadTileGroundPlanes(superTile)
+
+      if (superTile.pointCloud)
+        this.props.sceneManager.add(superTile.pointCloud)
+      else
+        log.error('onSuperTileLoad() got a super tile with no point cloud')
+    } else if (superTile instanceof AnnotationSuperTile) {
+      if (superTile.annotations)
+        superTile.annotations.forEach(a => this.annotationManager.addAnnotation(a))
+      else
+        log.error('onSuperTileLoad() got a super tile with no annotations')
+    } else {
+      log.error('unknown superTile')
+    }
+
+    // GONE this.renderAnnotator()
+    this.updateTileManagerStats()
+  }
+
+
+
+
+
+
 
 	// When TileManager unloads a super tile, update Annotator's parallel data structure.
   // BOTH
@@ -958,7 +850,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				log.error('unknown superTile')
 			}
 
-			this.renderAnnotator()
+			// GONE this.renderAnnotator()
 			this.updateTileManagerStats()
 		}
 
@@ -1016,32 +908,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 
 
-	// Display some info in the UI about where the camera is pointed.
-	private displayCameraInfo = (): void => {
-		if (this.uiState.isLiveMode) return
 
-		// if (!this.statusWindow.isEnabled()) return
-		// [RYAN] updated
-		if( !getValue( () => this.props.statusWindowState && this.props.statusWindowState.enabled, false ) ) return
-
-		const currentPoint = this.currentPointOfInterest()
-		if (currentPoint) {
-			const oldPoint = this.uiState.lastCameraCenterPoint
-			const newPoint = currentPoint.clone().round()
-			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
-			if (!samePoint) {
-				this.uiState.lastCameraCenterPoint = newPoint
-				const utm = this.utmCoordinateSystem.threeJsToUtm(newPoint)
-				this.updateCurrentLocationStatusMessage(utm)
-			}
-		}
-	}
 
 	/**
 	 * Load annotations from file. Add all annotations to the annotation manager
 	 * and to the scene.
 	 * Center the stage and the camera on the annotations model.
 	 */
+	// ON CALLED for button onCLICK = possibly ANNOTATOR only
 	private loadAnnotations(fileName: string): Promise<void> {
 		log.info('Loading annotations from ' + fileName)
 		this.setLayerVisibility([Layer.ANNOTATIONS])
@@ -1116,7 +990,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		if (intersections.length) {
 			this.annotationManager.addMarkerToActiveAnnotation(intersections[0].point)
-			this.renderAnnotator()
+			// GONE this.renderAnnotator()
 		}
 	}
 
@@ -1168,7 +1042,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (activeLane.id === fromUID)
 			Annotator.deactivateFrontSideNeighbours()
 
-		this.renderAnnotator()
+		// GONE this.renderAnnotator()
 	}
 
 	/**
@@ -1223,7 +1097,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			inactive.setNeighborMode(NeighborLocation.FRONT)
 			inactive.addNeighbor(activeLane.uuid, NeighborLocation.BACK)
 			Annotator.deactivateFrontSideNeighbours()
-			this.renderAnnotator()
+			// GONE this.renderAnnotator()
 			return
 		}
 
@@ -1274,7 +1148,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			}
 		}
 
-		this.renderAnnotator()
+		// GONE this.renderAnnotator()
 	}
 
 	/**
@@ -3120,64 +2994,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.renderAnnotator()
 	}
 
-	// BOTH
-	private hidePointCloud = (): boolean => {
-		if (!this.uiState.isPointCloudVisible)
-			return false
-		this.decorations.forEach(d => d.visible = false)
-		this.pointCloudTileManager.getPointClouds().forEach(pc => this.scene.remove(pc))
-		if (this.pointCloudBoundingBox)
-			this.scene.remove(this.pointCloudBoundingBox)
-		this.uiState.isPointCloudVisible = false
-		return true
-	}
 
-	// BOTH
-	private showPointCloud = (): boolean => {
-		if (this.uiState.isPointCloudVisible)
-			return false
-		this.decorations.forEach(d => d.visible = true)
-		this.pointCloudTileManager.getPointClouds().forEach(pc => this.scene.add(pc))
-		if (this.pointCloudBoundingBox)
-			this.scene.add(this.pointCloudBoundingBox)
-		this.uiState.isPointCloudVisible = true
-		return true
-	}
-
-	private hideImageScreens = (): boolean => {
-		if (!this.uiState.isImageScreensVisible)
-			return false
-		this.imageManager.hideImageScreens()
-		this.uiState.isImageScreensVisible = false
-		return true
-	}
-
-	// BOTH
-	private showImageScreens = (): boolean => {
-		if (this.uiState.isImageScreensVisible)
-			return false
-		this.imageManager.showImageScreens()
-		this.uiState.isImageScreensVisible = true
-		return true
-	}
-
-	// BOTH
-	private hideAnnotations = (): boolean => {
-		if (!this.uiState.isAnnotationsVisible)
-			return false
-		this.annotationManager.hideAnnotations()
-		this.uiState.isAnnotationsVisible = false
-		return true
-	}
-
-	// BOTH
-	private showAnnotations = (): boolean => {
-		if (this.uiState.isAnnotationsVisible)
-			return false
-		this.annotationManager.showAnnotations()
-		this.uiState.isAnnotationsVisible = true
-		return true
-	}
 
 	// BEHOLDER ONLY
 	private loadCarModel(): Promise<void> {
@@ -3353,21 +3170,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 
-	// BOTH - statusWindowManager
-	private updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
-		// This is a hack to allow data with no coordinate reference system to pass through the UTM classes.
-		// Data in local coordinate systems tend to have small values for X (and Y and Z) which are invalid in UTM.
-		if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO fix this.
-			const positionLla = this.utmCoordinateSystem.utmVectorToLngLatAlt(positionUtm)
-			const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
 
-			// this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
-			new StatusWindowActions().setMessage(StatusKey.CURRENT_LOCATION_LLA, messageLla)
-		}
-		const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.utmCoordinateSystem.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
-		// this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
-		new StatusWindowActions().setMessage(StatusKey.CURRENT_LOCATION_UTM, messageUtm)
-	}
 
 	// BEHOLDER
 	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
