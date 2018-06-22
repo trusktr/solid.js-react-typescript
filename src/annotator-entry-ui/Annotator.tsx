@@ -2416,15 +2416,15 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     // }}
 
-    JOE CONTINUE HERE ON DOWN
-
 	// Hang on to a reference to TrajectoryPicker so we can call it later.
 	// ANNOTATOR ONLY
+    // TODO JOE Beholder also uses trajectories, to show the flythrough, so I think it can be shared
 	setOpenTrajectoryPickerFunction(theFunction: (cb: TrajectoryFileSelectedCallback) => void): void {
 		this.openTrajectoryPickerFunction = theFunction
 	}
 
 	// ANNOTATOR ONLY
+    // TODO JOE this looks like it can be converted to an event pattern
 	private openTrajectoryPicker = (): void => {
 		if (this.openTrajectoryPickerFunction)
 			this.openTrajectoryPickerFunction(this.trajectoryFileSelectedCallback)
@@ -2438,6 +2438,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
 				/>
                 <AnnotationManager />
+                {/* TODO JOE ref to the AnnotationManager*/}
                 <SceneManager />
 			</React.Fragment>
 		)
@@ -2457,6 +2458,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 
 
+    // TODO JOE beholder uses trajectories
 	private trajectoryFileSelectedCallback = (path: string): void => {
 		if (!this.uiState.isLiveMode) return
 
@@ -2492,6 +2494,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		$(domId).accordion('option', {active: false})
 	}
 
+    // TODO JOE this all will be controlled by React state + markup {{
+
+    // ANNOTATOR ONLY JOE
 	private resetAllAnnotationPropertiesMenuElements(): void {
 		this.resetBoundaryProp()
 		this.resetLaneProp()
@@ -2879,8 +2884,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('missing element lp_add_forward')
 	}
 
+    // }}
+
 	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
 	// BOTH
+    // TODO JOE move to SceneManager (maybe later CameraManager)
 	private toggleCameraType(): void {
 		let oldCamera: THREE.Camera
 		let newCamera: THREE.Camera
@@ -2918,6 +2926,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Toggle the visibility of data by cycling through the groups defined in layerGroups.
 	// ANNOTATOR ONLY
+    // TODO JOE move to LayerManager
 	private toggleLayerVisibility(): void {
 		this.uiState.layerGroupIndex++
 		if (!layerGroups[this.uiState.layerGroupIndex])
@@ -2953,6 +2962,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (updated)
 			this.renderAnnotator()
 	}
+
+    // TODO JOE these are LayerManager things
 
 	// BOTH
 	private hidePointCloud = (): boolean => {
@@ -3012,6 +3023,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.uiState.isAnnotationsVisible = true
 		return true
 	}
+
+    // }}
 
 	// BEHOLDER ONLY
 	private loadCarModel(): Promise<void> {
@@ -3161,6 +3174,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// }
 
 	// BOTH
+    // TODO JOE move to TileManager (for each tile layer)? Or have it in a single
+    // place for all tile layers, f.e. something like LayerManager?
 	private updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
 		if (this.aoiState.enabled)
 			this.aoiState.currentHeading = rotationThreeJs
@@ -3169,6 +3184,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// BEHOLDER
+    // TODO JOE I'm thinking that Kiosk will update the car, and the
+    // SceneManager should pick up the state change and re-render.
 	private updateCarWithPose(pose: Models.PoseMessage): void {
 		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
 		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
@@ -3183,8 +3200,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.updateCarPose(positionThreeJs, rotationThreeJs)
 	}
 
-	// BEHOLDER
 	componentWillReceiveProps(newProps) {
+    	// BEHOLDER
 		if(newProps.carPose && (newProps.carPose != this.props.carPose)) {
 			// console.log("Updating updateCarWithPose from lifecycle")
 			this.updateCarWithPose(newProps.carPose)
@@ -3236,12 +3253,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// BOTH
+    // TODO JOE move to AnnotationManager, on a separate layer?
 	private onSetOrigin = (): void => {
 		this.loadDecorations().then()
 	}
 
 	// Add some easter eggs to the scene if they are close enough.
 	// BOTH
+    // TODO JOE move to AnnotationManager, on a separate layer?
 	private loadDecorations(): Promise<void> {
 		return getDecorations()
 			.then(decorations => {
