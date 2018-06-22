@@ -70,6 +70,10 @@ interface PointCloudTileManagerConfig extends TileManagerConfig {
 // This handles loading and unloading point cloud data (for read only). Each SuperTile has a point cloud,
 // consolidated from its constituent Tiles, which when loaded is merged into a single data structure for
 // three.js rendering.
+//
+// TODO JOE, there's TileManager base class, but there probably needs to be a
+// higher-level "tile managers" manager that manages which tiles (AoIs) need to
+// load in each layer (in each TileManager).
 export class PointCloudTileManager extends TileManager {
 	protected readonly config: PointCloudTileManagerConfig
 	superTiles: OrderedMap<string, PointCloudSuperTile> // all super tiles which we are aware of
