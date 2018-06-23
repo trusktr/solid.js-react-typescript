@@ -597,7 +597,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				this.annotationManager,
 			)
 
-        // TODO JOE AnnotationManager needs a reference to AnnotationTileManager
+        // TODO REORG JOE AnnotationManager needs a reference to AnnotationTileManager
 
 		// Create GL Renderer
 		this.renderer = new THREE.WebGLRenderer({antialias: true})
@@ -624,7 +624,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
         this.renderer.domElement.addEventListener('mousemove', this.checkForImageScreenSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.clickImageScreenBox)
 
-        // TODO JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
+        // TODO REORG JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
         this.renderer.domElement.addEventListener('mouseup', this.checkForConflictOrDeviceSelection)
         this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
 		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
@@ -632,7 +632,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.renderer.domElement.addEventListener('mouseup', this.connectNeighbor)  // RYAN Annotator-specific
 		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
 
-        // TODO JOE: this is generic stuff, put this in a lib so any code can use the states.
+        // TODO REORG JOE: this is generic stuff, put this in a lib so any code can use the states.
 		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})  // RYAN Annotator-specific
 		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true}) // RYAN Annotator-specific
 		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed}) // RYAN Annotator-specific
@@ -1026,7 +1026,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// Do some house keeping after loading annotations.
 	private annotationLoadedSideEffects(): void {
 
-        // TODO JOE needs layerManager ref. Maybe LayerManager is a part of SceneManager?
+        // TODO REORG JOE needs layerManager ref. Maybe LayerManager is a part of SceneManager?
 		this.layerManager.setLayerVisibility([Layer.ANNOTATIONS])
 
         // TODO JOE belongs further down the call stack at the scene modification point.
@@ -1306,13 +1306,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE generic event state, can go somewhere for use by all.
+    // TODO REORG JOE generic event state, can go somewhere for use by all.
 	private setLastMousePosition = (event: MouseEvent | null): void => {
 		this.uiState.lastMousePosition = event
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE, generic, can go in a lib or utils
+    // TODO REORG JOE, generic, can go in a lib or utils
 	private getMouseCoordinates = (mousePosition: MousePosition): THREE.Vector2 => {
 		const mouse = new THREE.Vector2()
 		mouse.x = ( mousePosition.clientX / this.renderer.domElement.clientWidth ) * 2 - 1
@@ -1583,9 +1583,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// ANNOTATOR ONLY
     //
-    // TODO JOE move to AnnotationManager
+    // TODO REORG JOE move to AnnotationManager
     //
-    // TODO JOE instead of enabling/disabling autosave, just have auto-save
+    // TODO REORG JOE instead of enabling/disabling autosave, just have auto-save
     // configured not to save when unfocused unless there's changes.
 	private onFocus = (): void => {
 		this.annotationManager.enableAutoSave()
@@ -1599,7 +1599,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * Handle keyboard events
 	 */
 	// BOTH (moved) -- requires keyboard event registration now though
-    // TODO JOE split this up, each app will register/hook into key events that
+    // TODO REORG JOE split this up, each app will register/hook into key events that
     // are managed from shared lib (SceneManager?)
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
@@ -1652,7 +1652,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE move to shared lib
+    // TODO REORG JOE move some of this event state to shared lib, perhaps a
+    // KeyboardManager, and some of it is Annotation stuff.
 	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
 		if (event.repeat) {
 			// tslint:disable-line:no-empty
@@ -1812,20 +1813,20 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE move to AnnotationManager
+    // TODO REORG JOE move to AnnotationManager
 	private delayHideTransform = (): void => {
 		this.cancelHideTransform()
 		this.hideTransform()
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE move to AnnotationManager
+    // TODO REORG JOE move to AnnotationManager
 	private hideTransform = (): void => {
 		this.hideTransformControlTimer = window.setTimeout(this.cleanTransformControls, 1500)
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE move to AnnotationManager
+    // TODO REORG JOE move to AnnotationManager
 	private cancelHideTransform = (): void => {
 		if (this.hideTransformControlTimer) {
 			window.clearTimeout(this.hideTransformControlTimer)
@@ -1833,7 +1834,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE move to AnnotationManager
+    // TODO REORG JOE move to AnnotationManager
 	private cleanTransformControls = (): void => {
 		this.cancelHideTransform()
 		this.transformControls.detach()
@@ -1845,8 +1846,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * Create orbit controls which enable translation, rotation and zooming of the scene.
 	 */
 	// ANNOTATOR ONLY
-    // TODO JOE SceneManager or something related to it can have viewport modes,
-    // and would handle the camera.
+    // TODO REORG JOE SceneManager or something related to it can have viewport modes,
+    // and would handle the camera. For now let's move this to SceneManager, and
+    // let both apps control the position of the focus.
 	private initAnnotatorOrbitControls(): void {
 		this.annotatorOrbitControls = new OrbitControls(this.annotatorCamera, this.renderer.domElement)
 		this.annotatorOrbitControls.minDistance = 0.1
@@ -1909,7 +1911,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * Create Transform controls object. This allows for the translation of an object in the scene.
 	 */
 	// ANNOTATOR ONLY
-    // TODO JOE move to AnnotationManager
+    // TODO REORG JOE move to AnnotationManager
 	private initTransformControls(): void {
 		this.transformControls = new TransformControls(this.camera, this.renderer.domElement, false)
 		this.transformControls.addEventListener('change', this.renderAnnotator)
@@ -2022,7 +2024,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE remove?
+    // TODO REORG JOE remove?
 	private addFront(): void {
 		log.info("Adding connected annotation to the front")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
@@ -2032,7 +2034,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE remove?
+    // TODO REORG JOE remove?
 	private addLeftSame(): void {
 		log.info("Adding connected annotation to the left - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME)) {
@@ -2042,7 +2044,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE remove?
+    // TODO REORG JOE remove?
 	private addLeftReverse(): void {
 		log.info("Adding connected annotation to the left - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
@@ -2052,7 +2054,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE remove?
+    // TODO REORG JOE remove?
 	private addRightSame(): void {
 		log.info("Adding connected annotation to the right - same direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME)) {
@@ -2062,7 +2064,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE remove?
+    // TODO REORG JOE remove?
 	private addRightReverse(): void {
 		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
@@ -2072,6 +2074,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// ANNOTATOR ONLY
+    // TODO REORG JOE move to AnnotationManager
 	private reverseLaneDirection(): void {
 		log.info("Reverse lane direction.")
 		const {result, existLeftNeighbour, existRightNeighbour}: { result: boolean, existLeftNeighbour: boolean, existRightNeighbour: boolean }
@@ -2418,13 +2421,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Hang on to a reference to TrajectoryPicker so we can call it later.
 	// ANNOTATOR ONLY
-    // TODO JOE Beholder also uses trajectories, to show the flythrough, so I think it can be shared
+    // TODO REORG JOE remove trajectory picker stuff
 	setOpenTrajectoryPickerFunction(theFunction: (cb: TrajectoryFileSelectedCallback) => void): void {
 		this.openTrajectoryPickerFunction = theFunction
 	}
 
 	// ANNOTATOR ONLY
-    // TODO JOE this looks like it can be converted to an event pattern
+    // TODO REORG JOE remove trajectory picker stuff
 	private openTrajectoryPicker = (): void => {
 		if (this.openTrajectoryPickerFunction)
 			this.openTrajectoryPickerFunction(this.trajectoryFileSelectedCallback)
@@ -2435,6 +2438,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			<React.Fragment>
 				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
 				<TrajectoryPicker
+                    // TODO REORG JOE remove trajectory picker stuff
 					ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
 				/>
                 <AnnotationManager />
@@ -2459,6 +2463,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 
     // TODO JOE beholder uses trajectories
+    // TODO REORG JOE remove trajectory picker stuff
 	private trajectoryFileSelectedCallback = (path: string): void => {
 		if (!this.uiState.isLiveMode) return
 
@@ -2484,11 +2489,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			})
 	}
 
+    // ANNOTATOR ONLY JOE
 	private expandAccordion(domId: string): void {
 		if ( !this.props.uiMenuVisible ) return
 		$(domId).accordion('option', {active: 0})
 	}
 
+    // ANNOTATOR ONLY JOE
 	private collapseAccordion(domId: string): void {
 		if ( !this.props.uiMenuVisible ) return
 		$(domId).accordion('option', {active: false})
@@ -2888,7 +2895,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
 	// BOTH
-    // TODO JOE move to SceneManager (maybe later CameraManager)
+    // TODO REORG JOE move to SceneManager (maybe later CameraManager)
 	private toggleCameraType(): void {
 		let oldCamera: THREE.Camera
 		let newCamera: THREE.Camera
@@ -2926,7 +2933,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Toggle the visibility of data by cycling through the groups defined in layerGroups.
 	// ANNOTATOR ONLY
-    // TODO JOE move to LayerManager
+    // TODO REORG JOE move to LayerManager
 	private toggleLayerVisibility(): void {
 		this.uiState.layerGroupIndex++
 		if (!layerGroups[this.uiState.layerGroupIndex])
@@ -2963,7 +2970,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.renderAnnotator()
 	}
 
-    // TODO JOE these are LayerManager things
+    // TODO REORG JOE these are LayerManager/TileManager things
 
 	// BOTH
 	private hidePointCloud = (): boolean => {
@@ -3174,7 +3181,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// }
 
 	// BOTH
-    // TODO JOE move to TileManager (for each tile layer)? Or have it in a single
+    // TODO REORG JOE move to TileManager (for each tile layer)? Or have it in a single
     // place for all tile layers, f.e. something like LayerManager?
 	private updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
 		if (this.aoiState.enabled)
@@ -3253,14 +3260,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// BOTH
-    // TODO JOE move to AnnotationManager, on a separate layer?
+    // TODO REORG JOE move decorations to a separate layer
 	private onSetOrigin = (): void => {
 		this.loadDecorations().then()
 	}
 
 	// Add some easter eggs to the scene if they are close enough.
 	// BOTH
-    // TODO JOE move to AnnotationManager, on a separate layer?
+    // TODO REORG JOE move decorations to a separate layer
 	private loadDecorations(): Promise<void> {
 		return getDecorations()
 			.then(decorations => {
