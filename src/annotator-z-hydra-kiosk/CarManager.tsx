@@ -5,9 +5,18 @@ import * as React from "react"
 import * as THREE from "three";
 import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
 import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
+import {
+  convertToStandardCoordinateFrame, CoordinateFrameType,
+  cvtQuaternionToStandardCoordinateFrame
+} from "@/annotator-entry-ui/geometry/CoordinateFrame";
+import {PointCloud} from "three";
+import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
+import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
 
 export interface CarManagerProps {
 	sceneManager: SceneManager | null
+	pointCloudManager: PointCloudManager
+	statusWindow: StatusWindow
 }
 
 export interface CarManagerState {
@@ -17,7 +26,7 @@ export interface CarManagerState {
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
 
 	componentWillReceiveProps(newProps: CarManagerProps) {
-		if(newProps.sceneManager) {
+		if(newProps.sceneManager && newProps.pointCloudManager && (this.props.pointCloudManager === null || this.props.sceneManager === null)) {
 			this.loadCarModel()
 		}
 	}
@@ -69,7 +78,53 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		})
 	}
 
-	render() {
+
+
+
+
+
+
+  // BEHOLDER
+  // TODO JOE I'm thinking that Kiosk will update the car, and the
+  // SceneManager should pick up the state change and re-render.
+	updateCarWithPose(pose: Models.PoseMessage): void {
+    const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
+    const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
+    const positionThreeJs = this.utmCoordinateSystem.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+    const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
+    const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
+    const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
+    rotationThreeJs.normalize()
+
+    this.props.pointCloudManager.updateAoiHeading(rotationThreeJs)
+    this.props.statusWindow.updateCurrentLocationStatusMessage(standardPosition)
+    this.updateCarPose(positionThreeJs, rotationThreeJs)
+  }
+
+  private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
+		const carModel = this.state.carModel
+    carModel.position.set(position.x, position.y, position.z)
+    carModel.setRotationFromQuaternion(rotation)
+    // Bring the model close to the ground (approx height of the sensors)
+    const p = carModel.getWorldPosition()
+    carModel.position.set(p.x, p.y - 2, p.z)
+
+		this.setState({carModel})
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+  render() {
 		return null
 	}
 

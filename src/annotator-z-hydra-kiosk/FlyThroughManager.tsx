@@ -15,12 +15,18 @@ import * as Electron from "electron";
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 import { StatusKey } from "@/annotator-z-hydra-shared/src/models/StatusKey";
 import {getValue} from "typeguard";
+import {
+  convertToStandardCoordinateFrame, CoordinateFrameType,
+  cvtQuaternionToStandardCoordinateFrame
+} from "@/annotator-entry-ui/geometry/CoordinateFrame";
+import * as THREE from "three";
+import CarManager from "@/annotator-z-hydra-kiosk/CarManager";
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 
 export interface FlyThroughManagerProps {
-
+  carManager: CarManager
 }
 
 export interface FlyThroughManagerState {
@@ -179,12 +185,27 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     const pose = this.getCurrentFlyThroughTrajectory().poses[newFlyThroughState.currentPoseIndex]
     new StatusWindowActions().setMessage(StatusKey.FLY_THROUGH_POSE, `Pose: ${newFlyThroughState.currentPoseIndex + 1} of ${newFlyThroughState.endPoseIndex}`)
 
-    new RoadNetworkEditorActions().setCarPose(pose)
+    // new RoadNetworkEditorActions().setCarPose(pose)
+    this.props.carManager.updateCarWithPose(pose)
 
     const newValue = newFlyThroughState.currentPoseIndex + 1
     new FlyThroughActions().setCurrentPoseIndex(newValue)
     return true
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   loadFlyThroughTrajectories(paths: string[]): Promise<void> {
     if (!paths.length)

@@ -2505,66 +2505,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.setLayerVisibility(layerGroups[this.uiState.layerGroupIndex], true)
 	}
 
-	// Ensure that some layers of the model are visible. Optionally hide the other layers.
-	// BOTH
-	// MOVED TO LayerManager
-	private setLayerVisibility(show: Layer[], hideOthers: boolean = false): void {
-		let updated = 0
 
-		show.forEach(layer => {
-			if (this.layerToggle.has(layer))
-				// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
-				this.layerToggle.get(layer).show() && updated++
-			else
-				log.error(`missing visibility toggle for ${layer}, ${Layer[layer]}`)
-		})
-
-		if (hideOthers) {
-			const hide = lodash.difference(allLayers, show)
-			hide.forEach(layer => {
-				if (this.layerToggle.has(layer))
-					// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
-					this.layerToggle.get(layer).hide() && updated++
-				else
-					log.error(`missing visibility toggle for ${layer}, ${Layer[layer]}`)
-			})
-		}
-
-		if (updated)
-			this.renderAnnotator()
-	}
-
-
-
-    // }}
-
-	// BEHOLDER ONLY
-	private loadCarModel(): Promise<void> {
-		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
-			try {
-				const manager = new THREE.LoadingManager()
-				const loader = new THREE.OBJLoader(manager)
-				loader.load(carModelOBJ, (object: THREE.Object3D) => {
-					const boundingBox = new THREE.Box3().setFromObject(object)
-					const boxSize = boundingBox.getSize().toArray()
-					const modelLength = Math.max(...boxSize)
-					const carLength = 4.5 // approx in meters
-					const scaleFactor = carLength / modelLength
-					this.carModel = object
-					this.carModel.scale.setScalar(scaleFactor)
-					this.carModel.visible = false
-					this.carModel.traverse(child => {
-						if (child instanceof THREE.Mesh)
-							child.material = this.liveModeSettings.carModelMaterial
-					})
-					this.scene.add(object)
-					resolve()
-				})
-			} catch (err) {
-				reject(err)
-			}
-		})
-	}
 
 	// Move the camera and the car model through poses streamed from ZMQ.
 	// See also runFlyThrough().
@@ -2600,27 +2541,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.liveSubscribeSocket.subscribe("")
 	}
 
-	// BOTH (NOT MOVED) REPLACED WITH redux action .setUIMenuVisibility()
-	switchToMenu( menuId: string ): void {
-
-		this.hideAllMenus()
-		this.show( menuId )
-
-	}
-
-	// BOTH (not moved) REPLACED WITH redux action .setUIMenuVisibility()
-	private hideAllMenus(): void {
-		for ( const menu of Array.from( $('#menu .menu') ) ) {
-			menu.classList.add('hidden')
-		}
-	}
-
-	// BOTH (not moved) REPLACED WITH redux action .setUIMenuVisibility()
-	private show( selector: string ): void {
-		for ( const el of Array.from( $( selector ) ) ) {
-			el.classList.remove('hidden')
-		}
-	}
 
 	// Switch from interactive editing mode into a read-only, first-person view for displaying
 	// live or recorded vehicle trajectories.
@@ -2687,43 +2607,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 
 
-	// BEHOLDER
-    // TODO JOE I'm thinking that Kiosk will update the car, and the
-    // SceneManager should pick up the state change and re-render.
-	private updateCarWithPose(pose: Models.PoseMessage): void {
-		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
-		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
-		const positionThreeJs = this.utmCoordinateSystem.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
-		const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
-		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
-		const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
-		rotationThreeJs.normalize()
-
-		this.updateAoiHeading(rotationThreeJs)
-		this.updateCurrentLocationStatusMessage(standardPosition)
-		this.updateCarPose(positionThreeJs, rotationThreeJs)
-	}
-
-	componentWillReceiveProps(newProps) {
-    	// BEHOLDER
-		if(newProps.carPose && (newProps.carPose != this.props.carPose)) {
-			// console.log("Updating updateCarWithPose from lifecycle")
-			this.updateCarWithPose(newProps.carPose)
-		}
-
-	}
 
 
 
 
-	// BEHOLDER
-	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
-		this.carModel.position.set(position.x, position.y, position.z)
-		this.carModel.setRotationFromQuaternion(rotation)
-		// Bring the model close to the ground (approx height of the sensors)
-		const p = this.carModel.getWorldPosition()
-		this.carModel.position.set(p.x, p.y - 2, p.z)
-	}
 
 	// Print a message about how big our tiles are.
 	// RELATED TO ABOVE -- statusWindowManager
