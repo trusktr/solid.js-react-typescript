@@ -46,6 +46,7 @@ export interface SceneManagerState {
 	camera: THREE.Camera
 	perspectiveCamera: THREE.PerspectiveCamera
 	orthographicCamera: THREE.OrthographicCamera
+  flyThroughCamera: THREE.PerspectiveCamera
 	scene: THREE.Scene
 	compassRose: THREE.Object3D
 	renderer: THREE.WebGLRenderer
@@ -101,6 +102,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		const perspectiveCam = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
 		const orthographicCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
+    const flyThroughCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
+    flyThroughCamera.position.set(800, 400, 0)
 
 		const scene = new THREE.Scene()
 		let camera;
@@ -111,10 +114,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		else
 			camera = perspectiveCam
 
-		// @TODO handle flyThroughCamera (see below with addCamera)
-
-
-		// this.setOrthographicCameraDimensions(width, height) -- moved to bottom
+    this.setOrthographicCameraDimensions(width, height)
 
 		// Add some lights
 		scene.add(new THREE.AmbientLight(0xffffff))
@@ -175,8 +175,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		renderer.setSize(width, height)
 
 
-
-
 		// Add Listeners
 		window.addEventListener('resize', this.onWindowResize)
 		window.addEventListener('keydown', this.onKeyDown)
@@ -211,6 +209,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
       camera: camera,
       perspectiveCamera: perspectiveCam,
       orthographicCamera: orthographicCam,
+      flyThroughCamera: flyThroughCamera,
 
       scene: scene,
       compassRose: compassRose,
@@ -241,8 +240,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 			cameraState: {},
     }
-
-    this.setOrthographicCameraDimensions(this.props.width, this.props.height)
 
     // Initialize all control objects.
     const orbitControls = this.initOrbitControls()
