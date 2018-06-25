@@ -1944,7 +1944,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return (
 			<React.Fragment>
 				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
-                <AnnotationManager />
+                <AnnotationManager ref={this.getAnnotationManagerRef} />
                 {/* TODO JOE ref to the AnnotationManager*/}
                 <SceneManager />
 			</React.Fragment>
@@ -1961,6 +1961,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	componentWillUnmount(): void {
 		this.unmount()
 	}
+
+    getAnnotationManagerRef = (ref: AnnotationManager): void => {
+        this.annotationManager = ref
+    }
 
     // ANNOTATOR ONLY JOE
 	private expandAccordion(domId: string): void {
