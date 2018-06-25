@@ -16,6 +16,13 @@ import * as THREE from "three";
 import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
+import {
+  LocationServerStatusClient,
+  LocationServerStatusLevel
+} from "@/annotator-entry-ui/status/LocationServerStatusClient";
+import Logger from "@/util/log";
+
+const log = Logger(__filename)
 
 interface StatusWindowProps {
 	statusWindowState ?: StatusWindowState
@@ -24,7 +31,11 @@ interface StatusWindowProps {
   utmCoordinateSystem: UtmCoordinateSystem
 }
 
-interface IStatusWindowState {}
+interface IStatusWindowState {
+  locationServerStatusDisplayTimer: number
+  timeToDisplayHealthyStatusMs: number
+  locationServerStatusClient: LocationServerStatusClient
+}
 
 
 @typedConnect(createStructuredSelector({
@@ -34,6 +45,17 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
 	constructor(props: StatusWindowProps) {
 		super(props)
+
+    const locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
+
+		this.state = {
+      locationServerStatusDisplayTimer: 0,
+      timeToDisplayHealthyStatusMs: 10000,
+      locationServerStatusClient: locationServerStatusClient
+		}
+
+		locationServerStatusClient.connect()
+
 	}
 
 	updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
@@ -73,4 +95,58 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 			</div>
 		)
 	}
+
+
+
+
+  // Display a UI element to tell the user what is happening with the location server.
+  // Error messages persist, and success messages disappear after a time-out.
+  onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string)
+    => void = (level: LocationServerStatusLevel, serverStatus: string) => {
+
+    let message = 'Location status: '
+    switch (level) {
+      case LocationServerStatusLevel.INFO:
+        message += '<span class="statusOk">' + serverStatus + '</span>'
+        this.delayLocationServerStatus()
+        break
+      case LocationServerStatusLevel.WARNING:
+        message += '<span class="statusWarning">' + serverStatus + '</span>'
+        this.cancelHideLocationServerStatus()
+        break
+      case LocationServerStatusLevel.ERROR:
+        message += '<span class="statusError">' + serverStatus + '</span>'
+        this.cancelHideLocationServerStatus()
+        break
+      default:
+        log.error('unknown LocationServerStatusLevel ' + LocationServerStatusLevel.ERROR)
+    }
+    new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, message)
+  }
+
+  private delayLocationServerStatus = (): void => {
+    this.cancelHideLocationServerStatus()
+    this.hideLocationServerStatus()
+  }
+
+  private cancelHideLocationServerStatus = (): void => {
+    if (this.state.locationServerStatusDisplayTimer)
+      window.clearTimeout(this.state.locationServerStatusDisplayTimer)
+  }
+
+  private hideLocationServerStatus = (): void => {
+    const locationServerStatusDisplayTimer = window.setTimeout(() => {
+      new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, '')
+    }, this.state.timeToDisplayHealthyStatusMs)
+
+		this.setState({locationServerStatusDisplayTimer})
+  }
+
+
+
+
+
+
+
+
 }

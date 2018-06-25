@@ -23,6 +23,7 @@ import {getDecorations} from "@/annotator-entry-ui/Decorations";
 import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
 import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
 import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
+import {LocationServerStatusClient} from "@/annotator-entry-ui/status/LocationServerStatusClient";
 
 const log = Logger(__filename)
 
@@ -46,12 +47,16 @@ export interface SceneManagerState {
 	camera: THREE.Camera
 	perspectiveCamera: THREE.PerspectiveCamera
 	orthographicCamera: THREE.OrthographicCamera
+  flyThroughCamera: THREE.PerspectiveCamera
 	scene: THREE.Scene
 	compassRose: THREE.Object3D
 	renderer: THREE.WebGLRenderer
 	loop: AnimationLoop
 	cameraOffset: THREE.Vector3
 	orbitControls: THREE.OrbitControls | null
+  annotatorOrbitControls: THREE.OrbitControls
+  flyThroughOrbitControls: THREE.OrbitControls
+
 	orthoCameraHeight: number
 	cameraPosition2D: THREE.Vector2
 	cameraToSkyMaxDistance: number
@@ -101,6 +106,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		const perspectiveCam = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
 		const orthographicCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
+    const flyThroughCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
+    flyThroughCamera.position.set(800, 400, 0)
 
 		const scene = new THREE.Scene()
 		let camera;
@@ -111,10 +118,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		else
 			camera = perspectiveCam
 
-		// @TODO handle flyThroughCamera (see below with addCamera)
-
-
-		// this.setOrthographicCameraDimensions(width, height) -- moved to bottom
+    this.setOrthographicCameraDimensions(width, height)
 
 		// Add some lights
 		scene.add(new THREE.AmbientLight(0xffffff))
@@ -175,8 +179,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		renderer.setSize(width, height)
 
 
-
-
 		// Add Listeners
 		window.addEventListener('resize', this.onWindowResize)
 		window.addEventListener('keydown', this.onKeyDown)
@@ -211,6 +213,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
       camera: camera,
       perspectiveCamera: perspectiveCam,
       orthographicCamera: orthographicCam,
+      flyThroughCamera: flyThroughCamera,
 
       scene: scene,
       compassRose: compassRose,
@@ -240,9 +243,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			decorations: [],
 
 			cameraState: {},
-    }
 
-    this.setOrthographicCameraDimensions(this.props.width, this.props.height)
+    }
 
     // Initialize all control objects.
     const orbitControls = this.initOrbitControls()
@@ -276,6 +278,35 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	componentDidMount() {
 		this.mount()
+
+	}
+
+	activateReadOnlyViewingMode() {
+		const {scene, grid, axis, compassRose, annotatorOrbitControls, flyThroughOrbitControls} = this.state
+
+    this.state.layerManager!.setLayerVisibility([Layer.POINT_CLOUD.toString(), Layer.ANNOTATIONS.toString()], true)
+    // if (this.gui)
+    //   this.gui.close()
+    if (axis)
+      scene.remove(axis)
+    if (compassRose)
+      scene.remove(compassRose)
+    if (grid)
+      grid.visible = false
+
+    annotatorOrbitControls.enabled = false
+    flyThroughOrbitControls.enabled = true
+
+		this.setState({
+			scene: scene,
+			grid: grid,
+			axis: axis,
+			compassRose: compassRose,
+      flyThroughOrbitControls: flyThroughOrbitControls,
+      annotatorOrbitControls: annotatorOrbitControls
+		})
+
+		this.state.pointCloudManager!.hidePointCloudBoundingBox()
 
 	}
 

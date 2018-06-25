@@ -206,6 +206,15 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
 
 
+  hidePointCloudBoundingBox() {
+    const pointCloudBoundingBox = this.state.pointCloudBoundingBox
+    if(pointCloudBoundingBox) {
+      pointCloudBoundingBox.material.visible = false
+      this.setState({pointCloudBoundingBox})
+    } else {
+      log.warn("Unable to hide point cloud bounding box for fly through")
+    }
+  }
 
 
 
@@ -217,8 +226,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
 
 
-
-  private updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
+  updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
     if (this.state.aoiState.enabled) {
       const newHeading = rotationThreeJs
         ? new THREE.Vector3(-1, 0, 0).applyQuaternion(rotationThreeJs)

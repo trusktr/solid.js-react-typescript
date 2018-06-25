@@ -2418,163 +2418,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.setLayerVisibility(layerGroups[this.uiState.layerGroupIndex], true)
 	}
 
-	// Ensure that some layers of the model are visible. Optionally hide the other layers.
-	// BOTH
-	// MOVED TO LayerManager
-	private setLayerVisibility(show: Layer[], hideOthers: boolean = false): void {
-		let updated = 0
-
-		show.forEach(layer => {
-			if (this.layerToggle.has(layer))
-				// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
-				this.layerToggle.get(layer).show() && updated++
-			else
-				log.error(`missing visibility toggle for ${layer}, ${Layer[layer]}`)
-		})
-
-		if (hideOthers) {
-			const hide = lodash.difference(allLayers, show)
-			hide.forEach(layer => {
-				if (this.layerToggle.has(layer))
-					// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
-					this.layerToggle.get(layer).hide() && updated++
-				else
-					log.error(`missing visibility toggle for ${layer}, ${Layer[layer]}`)
-			})
-		}
-
-		if (updated)
-			this.renderAnnotator()
-	}
 
 
 
-    // }}
 
-	// BEHOLDER ONLY
-	private loadCarModel(): Promise<void> {
-		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
-			try {
-				const manager = new THREE.LoadingManager()
-				const loader = new THREE.OBJLoader(manager)
-				loader.load(carModelOBJ, (object: THREE.Object3D) => {
-					const boundingBox = new THREE.Box3().setFromObject(object)
-					const boxSize = boundingBox.getSize().toArray()
-					const modelLength = Math.max(...boxSize)
-					const carLength = 4.5 // approx in meters
-					const scaleFactor = carLength / modelLength
-					this.carModel = object
-					this.carModel.scale.setScalar(scaleFactor)
-					this.carModel.visible = false
-					this.carModel.traverse(child => {
-						if (child instanceof THREE.Mesh)
-							child.material = this.liveModeSettings.carModelMaterial
-					})
-					this.scene.add(object)
-					resolve()
-				})
-			} catch (err) {
-				reject(err)
-			}
-		})
-	}
 
-	// Move the camera and the car model through poses streamed from ZMQ.
-	// See also runFlyThrough().
-	// BEHOLDER
-	private initClient(): void {
-		if (this.liveSubscribeSocket) return
 
-		this.liveSubscribeSocket = zmq.socket('sub')
-
-		this.liveSubscribeSocket.on('message', (msg) => {
-			// if (!this.uiState.isLiveMode) return
-			// if (this.uiState.isLiveModePaused) return
-			if(!this.props.liveModeEnabled || !this.props.playModeEnabled) return
-
-			// RYAN UPDATED
-			// if (this.flyThroughState.enabled) return
-			if (this.props.flyThroughState && this.props.flyThroughState.enabled) return
-
-			const state = Models.InertialStateMessage.decode(msg)
-			if (
-				state.pose &&
-				state.pose.x != null && state.pose.y != null && state.pose.z != null &&
-				state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
-			) {
-				this.updateCarWithPose(state.pose as Models.PoseMessage)
-			} else
-				log.warn('got an InertialStateMessage without a pose')
-		})
-
-		const locationHost = config.get('location_server.host') || 'localhost'
-		const locationPort = config.get('location_server.port') || '5564'
-		this.liveSubscribeSocket.connect("tcp://" + locationHost + ":" + locationPort)
-		this.liveSubscribeSocket.subscribe("")
-	}
-
-	// BOTH (NOT MOVED) REPLACED WITH redux action .setUIMenuVisibility()
-	switchToMenu( menuId: string ): void {
-
-		this.hideAllMenus()
-		this.show( menuId )
-
-	}
-
-	// BOTH (not moved) REPLACED WITH redux action .setUIMenuVisibility()
-	private hideAllMenus(): void {
-		for ( const menu of Array.from( $('#menu .menu') ) ) {
-			menu.classList.add('hidden')
-		}
-	}
-
-	// BOTH (not moved) REPLACED WITH redux action .setUIMenuVisibility()
-	private show( selector: string ): void {
-		for ( const el of Array.from( $( selector ) ) ) {
-			el.classList.remove('hidden')
-		}
-	}
-
-	// Switch from interactive editing mode into a read-only, first-person view for displaying
-	// live or recorded vehicle trajectories.
-	// BEHOLDER!!!!!!!!
-	private listen(): boolean {
-		if (this.uiState.isLiveMode) return this.uiState.isLiveMode
-
-		log.info('Listening for messages...')
-		this.uiState.isLiveMode = true
-		this.setLayerVisibility([Layer.POINT_CLOUD, Layer.ANNOTATIONS], true)
-		if (this.gui)
-			this.gui.close()
-		if (this.axis)
-			this.scene.remove(this.axis)
-		if (this.compassRose)
-			this.scene.remove(this.compassRose)
-		if (this.grid)
-			this.grid.visible = false
-
-		this.annotatorOrbitControls.enabled = false
-		this.flyThroughOrbitControls.enabled = true
-
-		// The camera and the point cloud AOI track the car object, so add it to the scene
-		// regardless of whether it is visible in the scene.
-		this.carModel.add(this.camera) // follow/orbit around the car
-		if (this.liveModeSettings.displayCarModel)
-			this.carModel.visible = true
-
-		if (this.pointCloudBoundingBox)
-			this.pointCloudBoundingBox.material.visible = false
-
-		// Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
-		FlyThroughManager.startFlyThrough()
-		// this.startFlyThrough()
-		this.locationServerStatusClient.connect()
-		//this.resumeLiveMode()
-		this.initClient()
-
-		this.renderAnnotator()
-		return this.uiState.isLiveMode
-	}
 
 	// Show or hide the menu as requested.
 	// RYAN UPDATED (added by joe)
@@ -2600,43 +2449,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 
 
-	// BEHOLDER
-    // TODO JOE I'm thinking that Kiosk will update the car, and the
-    // SceneManager should pick up the state change and re-render.
-	private updateCarWithPose(pose: Models.PoseMessage): void {
-		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
-		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
-		const positionThreeJs = this.utmCoordinateSystem.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
-		const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
-		const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
-		const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
-		rotationThreeJs.normalize()
-
-		this.updateAoiHeading(rotationThreeJs)
-		this.updateCurrentLocationStatusMessage(standardPosition)
-		this.updateCarPose(positionThreeJs, rotationThreeJs)
-	}
-
-	componentWillReceiveProps(newProps) {
-    	// BEHOLDER
-		if(newProps.carPose && (newProps.carPose != this.props.carPose)) {
-			// console.log("Updating updateCarWithPose from lifecycle")
-			this.updateCarWithPose(newProps.carPose)
-		}
-
-	}
 
 
 
 
-	// BEHOLDER
-	private updateCarPose(position: THREE.Vector3, rotation: THREE.Quaternion): void {
-		this.carModel.position.set(position.x, position.y, position.z)
-		this.carModel.setRotationFromQuaternion(rotation)
-		// Bring the model close to the ground (approx height of the sensors)
-		const p = this.carModel.getWorldPosition()
-		this.carModel.position.set(p.x, p.y - 2, p.z)
-	}
 
 	// Print a message about how big our tiles are.
 	// RELATED TO ABOVE -- statusWindowManager
@@ -2654,6 +2470,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message2)
 		}
 	}
+
+
+
+
+
 
 	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
 	// and success messages disappear after a time-out.
@@ -2694,60 +2515,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
 
-	// Display a UI element to tell the user what is happening with the location server.
-	// Error messages persist,  and success messages disappear after a time-out.
-	// BEHOLDER - with status window
-	private onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string)
-			=> void = (level: LocationServerStatusLevel, serverStatus: string) => {
-		// If we aren't listening then we don't care
 
-		// RYAN UPDATED
-		// if (!this.uiState.isLiveMode) return
-		// if (this.flyThroughState.enabled) return
-		if (!this.props.liveModeEnabled || this.props.flyThroughState && this.props.flyThroughState.enabled) return
 
-		let message = 'Location status: '
-		switch (level) {
-			case LocationServerStatusLevel.INFO:
-				message += '<span class="statusOk">' + serverStatus + '</span>'
-				this.delayLocationServerStatus()
-				break
-			case LocationServerStatusLevel.WARNING:
-				message += '<span class="statusWarning">' + serverStatus + '</span>'
-				this.cancelHideLocationServerStatus()
-				break
-			case LocationServerStatusLevel.ERROR:
-				message += '<span class="statusError">' + serverStatus + '</span>'
-				this.cancelHideLocationServerStatus()
-				break
-			default:
-				log.error('unknown LocationServerStatusLevel ' + LocationServerStatusLevel.ERROR)
-		}
-		// RYAN UPDATED
-		new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, message)
-		// this.statusWindow.setMessage(statusKey.locationServer, message)
-	}
 
-	// BEHOLDER STATUS WINDOW
-	private delayLocationServerStatus = (): void => {
-		this.cancelHideLocationServerStatus()
-		this.hideLocationServerStatus()
-	}
 
-	// BEHOLDER STATUS WINDOW
-	private cancelHideLocationServerStatus = (): void => {
-		if (this.locationServerStatusDisplayTimer)
-			window.clearTimeout(this.locationServerStatusDisplayTimer)
-	}
 
-	// BEHOLDER STATUS WINDOW
-	private hideLocationServerStatus = (): void => {
-		this.locationServerStatusDisplayTimer = window.setTimeout(() => {
-			// RYAN UPDATED
-			// this.statusWindow.setMessage(statusKey.locationServer, '')
-			new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, '')
-		}, this.settings.timeToDisplayHealthyStatusMs)
-	}
 
 
 }
