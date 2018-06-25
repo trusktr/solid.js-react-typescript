@@ -118,14 +118,14 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 	render() {
 		console.log("RENDERING WITH STORE", this.props.sceneInitialized)
-		return <div style={{width: "100%", height: "100%"}}>
-			<SceneManager ref={this.getSceneManager} width={1000} height={1000} />
-			<CarManager ref={this.getCarManager} sceneManager={this.state.sceneManager}/>
+        return <div style={{width: "100%", height: "100%"}}>
+            <SceneManager ref={this.getSceneManager} width={1000} height={1000} />
+            <CarManager ref={this.getCarManager} sceneManager={this.state.sceneManager}/>
 
-			<FlyThroughManager ref={this.getFlyThroughManager} />
+            <FlyThroughManager ref={this.getFlyThroughManager} />
 
-      <KioskMenuView flyThroughManager={this.state.flyThroughManager}/>
-		</div>
+            <KioskMenuView flyThroughManager={this.state.flyThroughManager}/>
+        </div>
 	}
 
 }

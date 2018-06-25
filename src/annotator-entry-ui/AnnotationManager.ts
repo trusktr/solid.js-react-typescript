@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+import * as React from 'react'
 import config from '@/config'
 import {dateToString} from "@/util/dateToString"
 import * as Electron from 'electron'
@@ -34,6 +35,10 @@ import Logger from "@/util/log"
 import {tileIndexFromVector3} from "@/annotator-entry-ui/model/TileIndex"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
 
+import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import {createStructuredSelector} from "reselect";
+import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+
 const log = Logger(__filename)
 
 const dialog = Electron.remote.dialog
@@ -45,13 +50,6 @@ export enum OutputFormat {
 	LLA = 2,
 }
 
-/**
- * Get point in between at a specific distance
- */
-function getMarkerInBetween(marker1: THREE.Vector3, marker2: THREE.Vector3, atDistance: number): THREE.Vector3 {
-	return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
-}
-
 export interface AnnotationManagerJsonOutputInterface {
 	version: number
 	created: string
@@ -59,12 +57,36 @@ export interface AnnotationManagerJsonOutputInterface {
 	annotations: Array<AnnotationJsonOutputInterface>
 }
 
+interface IProps {
+
+    // Interactive allows annotations to be selected and edited; otherwise they
+    // can only be added or removed.
+	readonly isInteractiveMode: boolean
+
+	readonly scaleProvider: ScaleProvider
+	readonly utmCoordinateSystem: UtmCoordinateSystem
+	onAddAnnotationobject(object: THREE.Object3D): void
+	onRemoveAnnotation(object: THREE.Object3D): void
+	onChangeActiveAnnotation(active: Annotation): void
+
+}
+
+interface IState {
+
+}
+
 /**
  * The AnnotationManager is in charge of maintaining a set of annotations and all operations
  * to modify, add or delete them. It also keeps an index to the "active" annotation as well
  * as its markers. The "active" annotation is the only one that can be modified.
  */
-export class AnnotationManager {
+@typedConnect(createStructuredSelector({
+	liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
+	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
+
+	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
+}))
+export class AnnotationManager extends React.Component<IProps, IState> {
 	laneAnnotations: Array<Lane>
 	boundaryAnnotations: Array<Boundary>
 	trafficDeviceAnnotations: Array<TrafficDevice>
@@ -72,17 +94,10 @@ export class AnnotationManager {
 	connectionAnnotations: Array<Connection>
 	annotationObjects: Array<THREE.Object3D>
 	activeAnnotation: Annotation | null
-	bezierScaleFactor: number  // Used when creating connections
 	private metadataState: AnnotationState
+	bezierScaleFactor: number  // Used when creating connections
 
-	constructor(
-		private readonly isInteractiveMode: boolean, // Interactive allows annotations to be selected and edited; otherwise they can only be added or removed.
-		private readonly scaleProvider: ScaleProvider,
-		private readonly utmCoordinateSystem: UtmCoordinateSystem,
-		private onAddAnnotation: (object: THREE.Object3D) => void,
-		private onRemoveAnnotation: (object: THREE.Object3D) => void,
-		private onChangeActiveAnnotation: (active: Annotation) => void
-	) {
+	constructor( props: IProps ) {
 		this.laneAnnotations = []
 		this.boundaryAnnotations = []
 		this.trafficDeviceAnnotations = []
@@ -1396,6 +1411,526 @@ export class AnnotationManager {
 		return false
 	}
 
+
+    /// the rest is migrated from Annotator.tsx ////////////////////////////////
+
+	// Load tiles within a bounding box and add them to the scene.
+	// ANNOTATOR ONLY???
+	loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false): Promise<void> {
+		return this.annotationTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
+        // TODO JOE AnnotationTileManager needs ref to AnnotationTileManager
+			.then(loaded => {
+				if (loaded) this.annotationLoadedSideEffects()
+			})
+			.catch(err => this.handleTileManagerLoadError('Annotations', err))
+	}
+
+	/**
+	 * Load annotations from file. Add all annotations to the annotation manager
+	 * and to the scene.
+	 * Center the stage and the camera on the annotations model.
+	 */
+	loadAnnotations(fileName: string): Promise<void> {
+		log.info('Loading annotations from ' + fileName)
+		this.layerManager.setLayerVisibility([Layer.ANNOTATIONS])
+        // TODO JOE AnnotationManager needs ref to LayerManager
+		return this.loadAnnotationsFromFile(fileName)
+			.then(focalPoint => {
+				if (focalPoint)
+					this.sceneManager.setStageByVector(focalPoint)
+                    // TODO JOE AnnotationManager needs ref to SceneManager
+			})
+			.catch(err => {
+				log.error(err.message)
+				dialog.showErrorBox('Annotation Load Error', err.message)
+			})
+	}
+
+	/**
+	 * If the mouse was clicked while pressing the "a" key, drop an annotation marker.
+	 */
+	// ANNOTATOR ONLY
+	addAnnotationMarker = (event: MouseEvent): void => {
+		if (this.uiState.isMouseDragging) return
+		if (this.uiState.isConnectLeftNeighborKeyPressed ||
+			this.uiState.isConnectRightNeighborKeyPressed ||
+			this.uiState.isConnectFrontNeighborKeyPressed) return
+		if (!this.uiState.isAddMarkerKeyPressed) return
+		if (!this.activeAnnotation) return
+		if (!this.activeAnnotation.allowNewMarkers) return
+
+		const mouse = this.getMouseCoordinates(event)
+
+		// If the click intersects the first marker of a ring-shaped annotation, close the annotation and return.
+		if (this.activeAnnotation.markersFormRing()) {
+			this.raycasterMarker.setFromCamera(mouse, this.camera)
+			const markers = this.activeMarkers()
+			if (markers.length && this.raycasterMarker.intersectObject(markers[0]).length) {
+				if (this.completeActiveAnnotation())
+					this.unsetActiveAnnotation()
+				return
+			}
+		}
+
+		this.raycasterPlane.setFromCamera(mouse, this.camera)
+		let intersections: THREE.Intersection[] = []
+
+		// Find a 3D point where to place the new marker.
+		if (this.activeAnnotation.snapToGround)
+			intersections = this.intersectWithGround(this.raycasterPlane)
+		else {
+			// If this is part of a two-step interaction with the lightbox, handle that.
+			if (this.lightboxImageRays.length) {
+				intersections = this.intersectWithLightboxImageRay(this.raycasterPlane)
+				// On success, clean up the ray from the lightbox.
+				if (intersections.length)
+					this.onLightboxImageRay(null)
+			}
+			// Otherwise just find the closest point.
+			if (!intersections.length)
+				intersections = this.intersectWithPointCloud(this.raycasterPlane)
+		}
+
+		if (intersections.length) {
+			this.addMarkerToActiveAnnotation(intersections[0].point)
+
+            // TODO JOE render update should happen at the leafmost part of the
+            // stack where the update happens, somewhere in the above
+            // addMarkerToActiveAnnotation. This will prevent outside code from
+            // having to know when to update the scene.
+			// GONE this.renderAnnotator()
+		}
+	}
+
+	/**
+	 * If the mouse was clicked while pressing the "c" key, add new lane connection
+	 * between current active lane and the "clicked" lane
+	 */
+	// ANNOTATOR ONLY
+	addLaneConnection = (event: MouseEvent): void => {
+		if (!this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isMouseDragging) return
+		// reject connection if active annotation is not a lane
+		const activeLane = this.annotationManager.getActiveLaneAnnotation()
+		if (!activeLane) {
+			log.info("No lane annotation is active.")
+			return
+		}
+
+		// get clicked object
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+		if (intersects.length === 0) {
+			return
+		}
+		const object = intersects[0].object.parent
+
+		// check if clicked object is an inactive lane
+		const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+		if (!(inactive && inactive instanceof Lane)) {
+			log.warn(`Clicked object is not an inactive lane.`)
+			return
+		}
+
+		// find lane order based on distances between end points: active --> inactive lane or inactive --> active lane
+		const inactiveToActive = inactive.markers[inactive.markers.length - 1].position.distanceTo(activeLane.markers[0].position)
+		const activeToInactive = activeLane.markers[activeLane.markers.length - 1].position.distanceTo(inactive.markers[0].position)
+
+		const fromUID = activeToInactive < inactiveToActive ? activeLane.id : inactive.id
+		const toUID = activeToInactive < inactiveToActive ? inactive.id : activeLane.id
+
+		// add connection
+		if (!this.annotationManager.addRelation(fromUID, toUID, 'front')) {
+			log.warn(`Lane connection failed.`)
+			return
+		}
+
+		// update UI panel
+		if (activeLane.id === fromUID)
+			Annotator.deactivateFrontSideNeighbours()
+
+			// GONE this.renderAnnotator()
+	}
+
+	/**
+	 * If the mouse was clicked while pressing the "l"/"r"/"f" key, then
+	 * add new neighbor between current active lane and the "clicked" lane
+	 */
+		// ANNOTATOR ONLY
+	connectNeighbor = (event: MouseEvent): void => {
+		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
+		if (!this.uiState.isConnectLeftNeighborKeyPressed &&
+			!this.uiState.isConnectRightNeighborKeyPressed &&
+			!this.uiState.isConnectFrontNeighborKeyPressed) return
+		if (this.uiState.isMouseDragging) return
+
+		// reject neighbor if active annotation is not a lane
+		const activeLane = this.annotationManager.getActiveLaneAnnotation()
+		if (!activeLane) {
+			log.info("No lane annotation is active.")
+			return
+		}
+
+		// get clicked object
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+		if (intersects.length === 0) {
+			return
+		}
+		const object = intersects[0].object.parent
+
+		// check if clicked object is an inactive lane
+		const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+		if (!(inactive && inactive instanceof Lane)) {
+			log.warn(`Clicked object is not an inactive lane.`)
+			return
+		}
+
+		// Check if relation already exist.
+		// In the case this already exist, the relation is removed
+		if (activeLane.deleteNeighbor(inactive.uuid)) {
+			if (inactive.deleteNeighbor(activeLane.uuid))
+				inactive.makeInactive()
+			else
+				log.error('Non-reciprocal neighbor relation detected. This should never happen.')
+			return
+		}
+
+		// Check if the neighbor must be added to the front
+		if (this.uiState.isConnectFrontNeighborKeyPressed) {
+			activeLane.addNeighbor(inactive.uuid, NeighborLocation.FRONT)
+			inactive.setNeighborMode(NeighborLocation.FRONT)
+			inactive.addNeighbor(activeLane.uuid, NeighborLocation.BACK)
+			Annotator.deactivateFrontSideNeighbours()
+			// GONE this.renderAnnotator()
+			return
+		}
+
+		// otherwise, compute direction of the two lanes
+		const threshold: number = 4 // meters
+		let {index1: index11, index2: index21}: {index1: number, index2: number} =
+			getClosestPoints(activeLane.waypoints, inactive.waypoints, threshold)
+		if (index11 < 0 || index21 < 0) {
+			log.warn(`Clicked objects do not have a common segment.`)
+			return
+		}
+		// find active lane direction
+		let index12 = index11 + 1
+		if (index12 >= activeLane.waypoints.length) {
+			index12 = index11
+			index11 = index11 - 1
+		}
+		let pt1: THREE.Vector3 = activeLane.waypoints[index12].clone()
+		pt1.sub(activeLane.waypoints[index11])
+		// find inactive lane direction
+		let index22 = index21 + 1
+		if (index22 >= inactive.waypoints.length) {
+			index22 = index21
+			index21 = index21 - 1
+		}
+		let pt2: THREE.Vector3 = inactive.waypoints[index22].clone()
+		pt2.sub(inactive.waypoints[index21])
+
+		// add neighbor based on lane direction and selected side
+		const sameDirection: boolean = Math.abs(pt1.angleTo(pt2)) < (Math.PI / 2)
+		if (this.uiState.isConnectLeftNeighborKeyPressed) {
+			activeLane.addNeighbor(inactive.uuid, NeighborLocation.LEFT)
+			inactive.setNeighborMode(NeighborLocation.LEFT)
+			Annotator.deactivateLeftSideNeighbours()
+			if (sameDirection) {
+				inactive.addNeighbor(activeLane.uuid, NeighborLocation.RIGHT)
+			} else {
+				inactive.addNeighbor(activeLane.uuid, NeighborLocation.LEFT)
+			}
+		} else {
+			activeLane.addNeighbor(inactive.uuid, NeighborLocation.RIGHT)
+			inactive.setNeighborMode(NeighborLocation.RIGHT)
+			Annotator.deactivateRightSideNeighbours()
+			if (sameDirection) {
+				inactive.addNeighbor(activeLane.uuid, NeighborLocation.LEFT)
+			} else {
+				inactive.addNeighbor(activeLane.uuid, NeighborLocation.RIGHT)
+			}
+		}
+
+        // GONE this.renderAnnotator()
+	}
+
+	/**
+	 * If the mouse was clicked while pressing the "j" key, then join active
+	 * annotation with the clicked one, if they are of the same type
+	 */
+		// ANNOTATOR ONLY
+	joinAnnotations = (event: MouseEvent): void => {
+		if (this.uiState.isMouseDragging) return
+		if (!this.uiState.isJoinAnnotationKeyPressed) return
+
+		// get active annotation
+		let activeAnnotation = this.annotationManager.activeAnnotation
+		if (!activeAnnotation) {
+			log.info("No annotation is active.")
+			return
+		}
+
+		// get clicked object
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+		if (intersects.length === 0) {
+			return
+		}
+		const object = intersects[0].object.parent
+		let inactiveAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+		if (!inactiveAnnotation) {
+			log.info("No clicked annotation.")
+			return
+		}
+
+		// determine order based on distances between end points: active --> inactive lane or inactive --> active lane
+		const inactiveToActive = inactiveAnnotation.markers[inactiveAnnotation.markers.length - 1].position
+			.distanceTo(activeAnnotation.markers[0].position)
+		const activeToInactive = activeAnnotation.markers[activeAnnotation.markers.length - 1].position
+			.distanceTo(inactiveAnnotation.markers[0].position)
+		let annotation1 = activeAnnotation
+		let annotation2 = inactiveAnnotation
+		if (activeToInactive > inactiveToActive) {
+			annotation1 = inactiveAnnotation
+			annotation2 = activeAnnotation
+		}
+
+		// join annotations
+		if (!this.annotationManager.joinAnnotations(annotation1, annotation2))
+			return
+
+		// update UI panel
+		this.resetAllAnnotationPropertiesMenuElements()
+
+        // GONE this.renderAnnotator()
+	}
+
+	// ANNOTATOR ONLY
+	isAnnotationLocked(annotation: Annotation): boolean {
+		if (this.uiState.lockLanes && (annotation instanceof Lane || annotation instanceof Connection))
+			return true
+		else if (this.uiState.lockBoundaries && annotation instanceof Boundary)
+			return true
+		else if (this.uiState.lockTerritories && annotation instanceof Territory)
+			return true
+		else if (this.uiState.lockTrafficDevices && annotation instanceof TrafficDevice)
+			return true
+		return false
+	}
+
+	/**
+	 * Check if we clicked an annotation. If so, make it active for editing
+	 */
+		// ANNOTATOR ONLY
+	checkForAnnotationSelection = (event: MouseEvent): void => {
+		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseDragging) return
+		if (this.uiState.isControlKeyPressed) return
+		if (this.uiState.isAddMarkerKeyPressed) return
+		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isConnectLeftNeighborKeyPressed ||
+			this.uiState.isConnectRightNeighborKeyPressed ||
+			this.uiState.isConnectFrontNeighborKeyPressed) return
+		if (this.uiState.isAddConflictOrDeviceKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+
+		if (intersects.length > 0) {
+			const object = intersects[0].object.parent
+			const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+
+			// We clicked an inactive annotation, make it active
+			if (inactive) {
+				if (this.isAnnotationLocked(inactive))
+					return
+
+				this.cleanTransformControls()
+				this.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
+				this.annotationManager.setActiveAnnotation(inactive)
+				this.resetAllAnnotationPropertiesMenuElements()
+                // GONE this.renderAnnotator()
+			}
+		}
+	}
+
+	/**
+	 * Check if the mouse is on top of an editable lane marker. If so, attach the
+	 * marker to the transform control for editing.
+	 */
+		// ANNOTATOR ONLY
+	checkForActiveMarker = (event: MouseEvent): void => {
+		// If the mouse is down we might be dragging a marker so avoid
+		// picking another marker
+		if (this.uiState.isMouseButtonPressed) return
+		if (this.uiState.isControlKeyPressed) return
+		if (this.uiState.isAddMarkerKeyPressed) return
+		if (this.uiState.isAddConnectionKeyPressed) return
+		if (this.uiState.isConnectLeftNeighborKeyPressed ||
+			this.uiState.isConnectRightNeighborKeyPressed ||
+			this.uiState.isConnectFrontNeighborKeyPressed) return
+		if (this.uiState.isAddConflictOrDeviceKeyPressed) return
+		if (this.uiState.isJoinAnnotationKeyPressed) return
+
+		const markers = this.annotationManager.activeMarkers()
+		if (!markers) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterMarker.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterMarker.intersectObjects(markers)
+
+		if (intersects.length > 0) {
+			const marker = intersects[0].object as THREE.Mesh
+			if (this.hovered !== marker) {
+				this.cleanTransformControls()
+
+				let moveableMarkers: Array<THREE.Mesh>
+				if (this.uiState.numberKeyPressed === null) {
+					moveableMarkers = [marker]
+				} else {
+					// special case: 0 searches for all neighbors, so set distance to infinity
+					const distance = this.uiState.numberKeyPressed || Number.POSITIVE_INFINITY
+					const neighbors = this.annotationManager.neighboringMarkers(marker, distance)
+					this.annotationManager.highlightMarkers(neighbors)
+					neighbors.unshift(marker)
+					moveableMarkers = neighbors
+				}
+
+				this.renderer.domElement.style.cursor = 'pointer'
+				this.hovered = marker
+				// HOVER ON
+				this.transformControls.attach(moveableMarkers)
+				this.cancelHideTransform()
+                // GONE this.renderAnnotator()
+			}
+		} else {
+			if (this.hovered !== null) {
+				// HOVER OFF
+				this.renderer.domElement.style.cursor = 'auto'
+				this.hovered = null
+				this.delayHideTransform()
+                // GONE this.renderAnnotator()
+			}
+		}
+	}
+
+	/**
+	 * Check if we clicked a connection or device while pressing the add conflict/device key
+	 */
+		// ANNOTATOR ONLY
+	checkForConflictOrDeviceSelection = (event: MouseEvent): void => {
+		if (this.uiState.isLiveMode) return
+		if (this.uiState.isMouseDragging) return
+		if (!this.uiState.isAddConflictOrDeviceKeyPressed) return
+		log.info("checking for conflict selection")
+
+		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+		if (!srcAnnotation) return
+
+		const mouse = this.getMouseCoordinates(event)
+		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+
+		if (intersects.length > 0) {
+			const object = intersects[0].object.parent
+			const dstAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+
+			if (!dstAnnotation) return
+
+			// If we clicked a connection, add it to the set of conflicting connections
+			if (dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
+				const wasAdded = srcAnnotation.toggleConflictingConnection(dstAnnotation.uuid)
+				if (wasAdded) {
+					log.info("added conflict")
+					dstAnnotation.setConflictMode()
+				} else  {
+					log.info("removed conflict")
+					dstAnnotation.makeInactive()
+				}
+                // GONE this.renderAnnotator()
+				return
+			}
+
+			// If we clicked a traffic device, add it or remove it from the connection's set of associated devices.
+			if (dstAnnotation instanceof TrafficDevice) {
+				const wasAdded = srcAnnotation.toggleAssociatedDevice(dstAnnotation.uuid)
+				if (wasAdded) {
+					log.info("added traffic device")
+					dstAnnotation.setAssociatedMode(srcAnnotation.waypoints[0])
+
+					// Attempt to align the traffic device with the lane that leads to it.
+					if (!dstAnnotation.orientationIsSet()) {
+						const inboundLane = this.annotationManager.laneAnnotations.find(l => l.uuid === srcAnnotation.startLaneUuid)
+						if (inboundLane) {
+							const laneTrajectory = inboundLane.finalTrajectory()
+							if (laneTrajectory) {
+								// Look at a distant point which will leave the traffic device's face roughly perpendicular to the lane.
+								const aPointBackOnTheHorizon = laneTrajectory.at(-1000)
+								dstAnnotation.lookAt(aPointBackOnTheHorizon)
+							}
+						}
+					}
+				} else  {
+					log.info("removed traffic device")
+					dstAnnotation.makeInactive()
+				}
+                // GONE this.renderAnnotator()
+			}
+		}
+	}
+
+	onAddAnnotation = (object: THREE.Object3D): void => {
+		this.scene.add(object)
+	}
+
+	onRemoveAnnotation = (object: THREE.Object3D): void => {
+		this.scene.remove(object)
+	}
+
+	// Ensure that the current UiState is compatible with a new active annotation.
+	// ANNOTATOR ONLY
+	onChangeActiveAnnotation = (active: Annotation): void => {
+		if (this.uiState.isRotationModeActive && !active.isRotatable)
+			this.toggleTransformControlsRotationMode()
+	}
+
+	// ANNOTATOR ONLY
+	toggleTransformControlsRotationMode(): void {
+		this.uiState.isRotationModeActive = !this.uiState.isRotationModeActive
+		const mode = this.uiState.isRotationModeActive ? 'rotate' : 'translate'
+		this.transformControls.setMode(mode)
+	}
+
+	/**
+	 * Unselect whatever is selected in the UI:
+	 *  - an active control point
+	 *  - a selected annotation
+	 */
+	// ANNOTATOR ONLY
+	escapeSelection(): void {
+		if (this.transformControls.isAttached()) {
+			this.cleanTransformControls()
+		} else if (this.annotationManager.activeAnnotation) {
+			this.annotationManager.unsetActiveAnnotation()
+			this.deactivateAllAnnotationPropertiesMenus()
+			// GONE this.renderAnnotator()
+		}
+	}
+
+	// ANNOTATOR ONLY
+	cleanTransformControlsAndEscapeSelection(): void {
+		this.cleanTransformControls()
+		this.escapeSelection()
+	}
+
 }
 
 /**
@@ -1463,4 +1998,11 @@ export class AnnotationState {
 		return this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM)
 			.catch(error => log.warn('save annotations failed: ' + error.message))
 	}
+}
+
+/**
+ * Get point in between at a specific distance
+ */
+function getMarkerInBetween(marker1: THREE.Vector3, marker2: THREE.Vector3, atDistance: number): THREE.Vector3 {
+	return marker2.clone().sub(marker1).multiplyScalar(atDistance).add(marker1)
 }
