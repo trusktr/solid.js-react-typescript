@@ -1498,7 +1498,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
             // stack where the update happens, somewhere in the above
             // addMarkerToActiveAnnotation. This will prevent outside code from
             // having to know when to update the scene.
-			this.renderAnnotator()
+			// GONE this.renderAnnotator()
 		}
 	}
 
@@ -1550,7 +1550,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (activeLane.id === fromUID)
 			Annotator.deactivateFrontSideNeighbours()
 
-		this.renderAnnotator()
+			// GONE this.renderAnnotator()
 	}
 
 	/**
@@ -1605,7 +1605,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			inactive.setNeighborMode(NeighborLocation.FRONT)
 			inactive.addNeighbor(activeLane.uuid, NeighborLocation.BACK)
 			Annotator.deactivateFrontSideNeighbours()
-			this.renderAnnotator()
+			// GONE this.renderAnnotator()
 			return
 		}
 
@@ -1656,7 +1656,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 		}
 
-		this.renderAnnotator()
+        // GONE this.renderAnnotator()
 	}
 
 	/**
@@ -1708,7 +1708,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// update UI panel
 		this.resetAllAnnotationPropertiesMenuElements()
 
-		this.renderAnnotator()
+        // GONE this.renderAnnotator()
 	}
 
 	// ANNOTATOR ONLY
@@ -1757,7 +1757,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				this.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
 				this.annotationManager.setActiveAnnotation(inactive)
 				this.resetAllAnnotationPropertiesMenuElements()
-				this.renderAnnotator()
+                // GONE this.renderAnnotator()
 			}
 		}
 	}
@@ -1809,7 +1809,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				// HOVER ON
 				this.transformControls.attach(moveableMarkers)
 				this.cancelHideTransform()
-				this.renderAnnotator()
+                // GONE this.renderAnnotator()
 			}
 		} else {
 			if (this.hovered !== null) {
@@ -1817,7 +1817,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				this.renderer.domElement.style.cursor = 'auto'
 				this.hovered = null
 				this.delayHideTransform()
-				this.renderAnnotator()
+                // GONE this.renderAnnotator()
 			}
 		}
 	}
@@ -1855,7 +1855,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 					log.info("removed conflict")
 					dstAnnotation.makeInactive()
 				}
-				this.renderAnnotator()
+                // GONE this.renderAnnotator()
 				return
 			}
 
@@ -1882,7 +1882,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 					log.info("removed traffic device")
 					dstAnnotation.makeInactive()
 				}
-				this.renderAnnotator()
+                // GONE this.renderAnnotator()
 			}
 		}
 	}
@@ -1921,7 +1921,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		} else if (this.annotationManager.activeAnnotation) {
 			this.annotationManager.unsetActiveAnnotation()
 			this.deactivateAllAnnotationPropertiesMenus()
-			this.renderAnnotator()
+			// GONE this.renderAnnotator()
 		}
 	}
 

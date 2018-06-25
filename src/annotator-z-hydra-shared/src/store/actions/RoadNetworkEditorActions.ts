@@ -57,8 +57,10 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 			carPose: null,
 
 			cameraPreference: CameraType.PERSPECTIVE,
-			sceneInitialized: false
-
+			sceneInitialized: false,
+      isPointCloudVisible: true,
+      isImageScreensVisible: true,
+      isAnnotationsVisible: true,
 
 		}
 
@@ -140,5 +142,29 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 			...roadEditorState, sceneInitialized: isInitialized
 		})
 	}
+
+	@ActionReducer()
+	setIsAnnotationsVisible(isVisible:boolean) {
+	  log.info("Setting isAnnotationsVisible", isVisible)
+    return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, isAnnotationsVisible: isVisible
+    })
+  }
+
+  @ActionReducer()
+  setIsImageScreensVisible(isVisible:boolean) {
+    log.info("Setting isImageScreensVisible", isVisible)
+    return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, isImageScreensVisible: isVisible
+    })
+  }
+
+  @ActionReducer()
+  setIsPointCloudVisible(isVisible:boolean) {
+    log.info("Setting isPointCloudVisible", isVisible)
+    return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, isPointCloudVisible: isVisible
+    })
+  }
 
 }

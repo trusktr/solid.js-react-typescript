@@ -43,6 +43,29 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     this.state = {
       loop: loop,
     }
+
+
+
+    // ASK CLYDE - used to be part of loadUserData but took up the FlyThrough specific piece
+    if (config.get('fly_through.trajectory_path'))
+      log.warn('config option fly_through.trajectory_path is now a list: fly_through.trajectory_path.list')
+
+    let trajectoryResult: Promise<void>
+    const trajectoryPaths = config.get('fly_through.trajectory_path.list')
+    if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
+      trajectoryResult = pointCloudResult
+        .then(() => {
+          log.info('loading pre-configured trajectories')
+          return this.loadFlyThroughTrajectories(trajectoryPaths)
+        })
+    } else {
+      trajectoryResult = pointCloudResult
+    }
+
+
+
+
+
   }
 
   componentDidMount() {
