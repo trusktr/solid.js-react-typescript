@@ -23,6 +23,7 @@ import {getDecorations} from "@/annotator-entry-ui/Decorations";
 import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
 import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
 import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
+import {LocationServerStatusClient} from "@/annotator-entry-ui/status/LocationServerStatusClient";
 
 const log = Logger(__filename)
 
@@ -53,6 +54,9 @@ export interface SceneManagerState {
 	loop: AnimationLoop
 	cameraOffset: THREE.Vector3
 	orbitControls: THREE.OrbitControls | null
+  annotatorOrbitControls: THREE.OrbitControls
+  flyThroughOrbitControls: THREE.OrbitControls
+
 	orthoCameraHeight: number
 	cameraPosition2D: THREE.Vector2
 	cameraToSkyMaxDistance: number
@@ -239,6 +243,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			decorations: [],
 
 			cameraState: {},
+
     }
 
     // Initialize all control objects.
@@ -273,6 +278,35 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	componentDidMount() {
 		this.mount()
+
+	}
+
+	activateReadOnlyViewingMode() {
+		const {scene, grid, axis, compassRose, annotatorOrbitControls, flyThroughOrbitControls} = this.state
+
+    this.state.layerManager!.setLayerVisibility([Layer.POINT_CLOUD.toString(), Layer.ANNOTATIONS.toString()], true)
+    // if (this.gui)
+    //   this.gui.close()
+    if (axis)
+      scene.remove(axis)
+    if (compassRose)
+      scene.remove(compassRose)
+    if (grid)
+      grid.visible = false
+
+    annotatorOrbitControls.enabled = false
+    flyThroughOrbitControls.enabled = true
+
+		this.setState({
+			scene: scene,
+			grid: grid,
+			axis: axis,
+			compassRose: compassRose,
+      flyThroughOrbitControls: flyThroughOrbitControls,
+      annotatorOrbitControls: annotatorOrbitControls
+		})
+
+		this.state.pointCloudManager!.hidePointCloudBoundingBox()
 
 	}
 

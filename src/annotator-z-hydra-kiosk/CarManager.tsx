@@ -9,9 +9,11 @@ import {
   convertToStandardCoordinateFrame, CoordinateFrameType,
   cvtQuaternionToStandardCoordinateFrame
 } from "@/annotator-entry-ui/geometry/CoordinateFrame";
-import {PointCloud} from "three";
 import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
 import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
+import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import * as MapperProtos from '@mapperai/mapper-models'
+import Models = MapperProtos.mapper.models
 
 export interface CarManagerProps {
 	sceneManager: SceneManager | null
@@ -26,8 +28,8 @@ export interface CarManagerState {
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
 
 	componentWillReceiveProps(newProps: CarManagerProps) {
-		if(newProps.sceneManager && newProps.pointCloudManager && (this.props.pointCloudManager === null || this.props.sceneManager === null)) {
-			this.loadCarModel()
+		if(newProps.sceneManager && newProps.pointCloudManager && this.props.sceneManager === null) {
+			this.loadCarModel().then(() => new RoadNetworkEditorActions().setCarInitialized(true))
 		}
 	}
 
@@ -111,6 +113,12 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 
 		this.setState({carModel})
   }
+
+  makeCarVisible() {
+		const carModel = this.state.carModel
+		carModel.visible = true
+		this.setState({carModel})
+	}
 
 
 

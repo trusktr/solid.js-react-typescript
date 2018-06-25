@@ -1,7 +1,7 @@
 
 import * as React from "react"
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
-import {FlyThroughTrajectory} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
+import {FlyThroughState, FlyThroughTrajectory} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import FlyThroughActions from "@/annotator-z-hydra-kiosk/FlyThroughActions";
 import {ChildAnimationLoop} from 'animation-loop'
@@ -21,20 +21,32 @@ import {
 } from "@/annotator-entry-ui/geometry/CoordinateFrame";
 import * as THREE from "three";
 import CarManager from "@/annotator-z-hydra-kiosk/CarManager";
+import * as zmq from "zmq";
+import {Socket} from "zmq";
+import {createStructuredSelector} from "reselect";
+import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 
 export interface FlyThroughManagerProps {
   carManager: CarManager
+  liveModeEnabled ?: boolean
+  playModeEnabled ?: boolean
+  flyThroughState ?: FlyThroughState
 }
 
 export interface FlyThroughManagerState {
   loop: ChildAnimationLoop
+  liveSubscribeSocket: Socket | null
 }
 
 
-
+@typedConnect(createStructuredSelector({
+  liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
+  playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
+  flyThroughState: (state) => state.get(RoadEditorState.Key).flyThroughState,
+}))
 export default class FlyThroughManager extends React.Component<FlyThroughManagerProps, FlyThroughManagerState> {
 
   constructor(props) {
@@ -48,6 +60,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
     this.state = {
       loop: loop,
+      liveSubscribeSocket: null,
     }
 
 
@@ -192,6 +205,38 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     new FlyThroughActions().setCurrentPoseIndex(newValue)
     return true
   }
+
+  // Move the camera and the car model through poses streamed from ZMQ.
+  // See also runFlyThrough().
+  initClient(): void {
+    if (this.state.liveSubscribeSocket) return
+
+    const liveSubscribeSocket = zmq.socket('sub')
+
+    liveSubscribeSocket.on('message', (msg) => {
+      if(!this.props.liveModeEnabled || !this.props.playModeEnabled) return
+
+      if (this.props.flyThroughState && this.props.flyThroughState.enabled) return
+
+      const state = Models.InertialStateMessage.decode(msg)
+      if (
+        state.pose &&
+        state.pose.x != null && state.pose.y != null && state.pose.z != null &&
+        state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
+      ) {
+        this.props.carManager.updateCarWithPose(state.pose as Models.PoseMessage)
+      } else
+        log.warn('got an InertialStateMessage without a pose')
+    })
+
+    const locationHost = config.get('location_server.host') || 'localhost'
+    const locationPort = config.get('location_server.port') || '5564'
+    liveSubscribeSocket.connect("tcp://" + locationHost + ":" + locationPort)
+    liveSubscribeSocket.subscribe("")
+
+    this.setState({liveSubscribeSocket})
+  }
+
 
 
 

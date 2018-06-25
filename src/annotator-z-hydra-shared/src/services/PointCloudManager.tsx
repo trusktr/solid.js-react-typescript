@@ -206,7 +206,15 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
 
 
-
+  hidePointCloudBoundingBox() {
+    const pointCloudBoundingBox = this.state.pointCloudBoundingBox
+    if(pointCloudBoundingBox) {
+      pointCloudBoundingBox.material.visible = false
+      this.setState({pointCloudBoundingBox})
+    } else {
+      log.warn("Unable to hide point cloud bounding box for fly through")
+    }
+  }
 
 
 

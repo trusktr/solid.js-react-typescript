@@ -55,6 +55,7 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 			uiMenuVisible: config.get('startup.show_menu'),
 			shouldAnimate: false,
 			carPose: null,
+      isCarInitialized: false,
 
 			cameraPreference: CameraType.PERSPECTIVE,
 			sceneInitialized: false,
@@ -166,5 +167,13 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
       ...roadEditorState, isPointCloudVisible: isVisible
     })
   }
+
+  @ActionReducer()
+  setCarInitialized(isSetup:boolean) {
+    log.info("Setting isCarInitialized", isSetup)
+    return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, isCarInitialized: isSetup
+    })
+	}
 
 }

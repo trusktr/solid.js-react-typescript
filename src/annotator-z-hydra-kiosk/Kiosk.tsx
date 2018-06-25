@@ -7,35 +7,47 @@ import {createStructuredSelector} from "reselect";
 import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
 import KioskMenuView from "@/annotator-z-hydra-kiosk/KioskMenuView";
 import Logger from "@/util/log";
+import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
+import {
+  LocationServerStatusClient,
+  LocationServerStatusLevel
+} from "@/annotator-entry-ui/status/LocationServerStatusClient";
+import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
+import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 
 const log = Logger(__filename)
 
 export interface KioskProps {
   sceneInitialized ?: boolean
+  isCarInitialized ?: boolean
 }
 
 export interface KioskState {
 	sceneManager: SceneManager | null
 	carManager: CarManager | null
 	flyThroughManager: FlyThroughManager | null
+	layerManager: LayerManager | null
 	hasCalledSetup: boolean
+
 }
 
 
 @typedConnect(createStructuredSelector({
   sceneInitialized: (state) => state.get(RoadEditorState.Key).sceneInitialized,
+  isCarInitialized: (state) => state.get(RoadEditorState.Key).isCarInitialized,
 }))
 export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 	constructor(props) {
 		super(props)
 
-		this.state = {
+    this.state = {
 			sceneManager: null,
 			carManager: null,
 			flyThroughManager: null,
-			hasCalledSetup: false
-		}
+			layerManager: null,
+			hasCalledSetup: false,
+    }
 	}
 
 	componentWillReceiveProps(newProps) {
@@ -51,6 +63,15 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 			this.setState({flyThroughManager})
 		}
+
+
+		if(newProps.isCarInitialized && !this.props.isCarInitialized && !this.state.hasCalledSetup &&
+			this.state.sceneManager && this.state.layerManager && this.state.carManager && this.state.flyThroughManager
+		) {
+			// Once the car is setup, we need to call this.listen()
+			this.listen()
+		}
+
 	}
 
 	componentDidMount() {
@@ -74,7 +95,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
     if (this.state.hasCalledSetup) return
 
 		if(!this.state.carManager || !this.state.sceneManager) {
-
+			log.warn("Unable to finish calling listen() -- managers not initialized")
     	return
 		}
 
@@ -83,32 +104,24 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
       hasCalledSetup: true
 		})
 
-    this.setLayerVisibility([Layer.POINT_CLOUD, Layer.ANNOTATIONS], true)
-
-		this.state.sceneManager.removeAxisFromScene()
-		this.state.sceneManager.removeCompassFromScene()
-		this.state.sceneManager.hideGridVisibility()
-
-		this.state.sceneManager.enableOrbitControls()
-
-
+		this.state.sceneManager.activateReadOnlyViewingMode()
 
     // The camera and the point cloud AOI track the car object, so add it to the scene
     // regardless of whether it is visible in the scene.
 		// @TODO confirm this works as expected
 		this.state.carManager.addObjectToCar(this.state.sceneManager.getCamera()) // follow/orbit around the car
+		this.state.carManager.makeCarVisible()
 
 
+		if(this.state.flyThroughManager) {
+      // Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
+      this.state.flyThroughManager.startFlyThrough()
 
-    if (this.pointCloudBoundingBox)
-      this.pointCloudBoundingBox.material.visible = false
-
-    // Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
-    FlyThroughManager.startFlyThrough()
-    // this.startFlyThrough()
-    this.locationServerStatusClient.connect()
-    //this.resumeLiveMode()
-    this.initClient()
+      //this.resumeLiveMode()
+      this.state.flyThroughManager.initClient()
+		} else {
+    	log.error("Error in listen() - flyThroughManager expected, but not found")
+		}
 
     this.state.sceneManager.renderScene()
   }
@@ -120,6 +133,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		console.log("RENDERING WITH STORE", this.props.sceneInitialized)
         return <div style={{width: "100%", height: "100%"}}>
             <SceneManager ref={this.getSceneManager} width={1000} height={1000} />
+						<LayerManager ref={this.getLayerManager} sceneManager={} annotationManager={} pointCloudTileManager={} pointCloudManager={} imageManager={} onRerender={}/>
             <CarManager ref={this.getCarManager} sceneManager={this.state.sceneManager}/>
 
             <FlyThroughManager ref={this.getFlyThroughManager} />

@@ -2507,81 +2507,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 
 
-	// Move the camera and the car model through poses streamed from ZMQ.
-	// See also runFlyThrough().
-	// BEHOLDER
-	private initClient(): void {
-		if (this.liveSubscribeSocket) return
-
-		this.liveSubscribeSocket = zmq.socket('sub')
-
-		this.liveSubscribeSocket.on('message', (msg) => {
-			// if (!this.uiState.isLiveMode) return
-			// if (this.uiState.isLiveModePaused) return
-			if(!this.props.liveModeEnabled || !this.props.playModeEnabled) return
-
-			// RYAN UPDATED
-			// if (this.flyThroughState.enabled) return
-			if (this.props.flyThroughState && this.props.flyThroughState.enabled) return
-
-			const state = Models.InertialStateMessage.decode(msg)
-			if (
-				state.pose &&
-				state.pose.x != null && state.pose.y != null && state.pose.z != null &&
-				state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
-			) {
-				this.updateCarWithPose(state.pose as Models.PoseMessage)
-			} else
-				log.warn('got an InertialStateMessage without a pose')
-		})
-
-		const locationHost = config.get('location_server.host') || 'localhost'
-		const locationPort = config.get('location_server.port') || '5564'
-		this.liveSubscribeSocket.connect("tcp://" + locationHost + ":" + locationPort)
-		this.liveSubscribeSocket.subscribe("")
-	}
 
 
-	// Switch from interactive editing mode into a read-only, first-person view for displaying
-	// live or recorded vehicle trajectories.
-	// BEHOLDER!!!!!!!!
-	private listen(): boolean {
-		if (this.uiState.isLiveMode) return this.uiState.isLiveMode
 
-		log.info('Listening for messages...')
-		this.uiState.isLiveMode = true
-		this.setLayerVisibility([Layer.POINT_CLOUD, Layer.ANNOTATIONS], true)
-		if (this.gui)
-			this.gui.close()
-		if (this.axis)
-			this.scene.remove(this.axis)
-		if (this.compassRose)
-			this.scene.remove(this.compassRose)
-		if (this.grid)
-			this.grid.visible = false
 
-		this.annotatorOrbitControls.enabled = false
-		this.flyThroughOrbitControls.enabled = true
-
-		// The camera and the point cloud AOI track the car object, so add it to the scene
-		// regardless of whether it is visible in the scene.
-		this.carModel.add(this.camera) // follow/orbit around the car
-		if (this.liveModeSettings.displayCarModel)
-			this.carModel.visible = true
-
-		if (this.pointCloudBoundingBox)
-			this.pointCloudBoundingBox.material.visible = false
-
-		// Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
-		FlyThroughManager.startFlyThrough()
-		// this.startFlyThrough()
-		this.locationServerStatusClient.connect()
-		//this.resumeLiveMode()
-		this.initClient()
-
-		this.renderAnnotator()
-		return this.uiState.isLiveMode
-	}
 
 	// Show or hide the menu as requested.
 	// RYAN UPDATED (added by joe)
@@ -2629,6 +2558,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+
+
+
+
+
 	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
 	// and success messages disappear after a time-out.
 	// BOTH - STATUS WINDOW
@@ -2668,60 +2602,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}, this.settings.timeToDisplayHealthyStatusMs)
 	}
 
-	// Display a UI element to tell the user what is happening with the location server.
-	// Error messages persist,  and success messages disappear after a time-out.
-	// BEHOLDER - with status window
-	private onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string)
-			=> void = (level: LocationServerStatusLevel, serverStatus: string) => {
-		// If we aren't listening then we don't care
 
-		// RYAN UPDATED
-		// if (!this.uiState.isLiveMode) return
-		// if (this.flyThroughState.enabled) return
-		if (!this.props.liveModeEnabled || this.props.flyThroughState && this.props.flyThroughState.enabled) return
 
-		let message = 'Location status: '
-		switch (level) {
-			case LocationServerStatusLevel.INFO:
-				message += '<span class="statusOk">' + serverStatus + '</span>'
-				this.delayLocationServerStatus()
-				break
-			case LocationServerStatusLevel.WARNING:
-				message += '<span class="statusWarning">' + serverStatus + '</span>'
-				this.cancelHideLocationServerStatus()
-				break
-			case LocationServerStatusLevel.ERROR:
-				message += '<span class="statusError">' + serverStatus + '</span>'
-				this.cancelHideLocationServerStatus()
-				break
-			default:
-				log.error('unknown LocationServerStatusLevel ' + LocationServerStatusLevel.ERROR)
-		}
-		// RYAN UPDATED
-		new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, message)
-		// this.statusWindow.setMessage(statusKey.locationServer, message)
-	}
 
-	// BEHOLDER STATUS WINDOW
-	private delayLocationServerStatus = (): void => {
-		this.cancelHideLocationServerStatus()
-		this.hideLocationServerStatus()
-	}
 
-	// BEHOLDER STATUS WINDOW
-	private cancelHideLocationServerStatus = (): void => {
-		if (this.locationServerStatusDisplayTimer)
-			window.clearTimeout(this.locationServerStatusDisplayTimer)
-	}
 
-	// BEHOLDER STATUS WINDOW
-	private hideLocationServerStatus = (): void => {
-		this.locationServerStatusDisplayTimer = window.setTimeout(() => {
-			// RYAN UPDATED
-			// this.statusWindow.setMessage(statusKey.locationServer, '')
-			new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, '')
-		}, this.settings.timeToDisplayHealthyStatusMs)
-	}
 
 
 }

@@ -35,7 +35,7 @@ export default class RoadNetworkEditorState {
 	shouldAnimate: boolean
 
 	carPose: Models.PoseMessage
-
+  isCarInitialized: boolean
 
 
 
