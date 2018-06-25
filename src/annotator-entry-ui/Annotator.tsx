@@ -61,7 +61,6 @@ import * as React from "react";
 import RoadEditorState from "../annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
 import {typedConnect} from "../annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import TrajectoryPicker, {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
 import RoadNetworkEditorActions from "../annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 import FlyThroughActions from "../annotator-z-hydra-kiosk/FlyThroughActions";
 import StatusWindowState from "../annotator-z-hydra-shared/src/models/StatusWindowState";
@@ -71,7 +70,6 @@ import {FlyThroughState} from "../annotator-z-hydra-shared/src/models/FlyThrough
 import * as FlyThroughManager from "../annotator-z-hydra-kiosk/FlyThroughManagerNonReact";
 import { StatusKey } from "../annotator-z-hydra-shared/src/models/StatusKey";
 
-import {dataSetNameFromPath, TrajectoryDataSet} from "../util/Perception"
 import {TileServiceClient} from "./tile/TileServiceClient"
 import {PointCloudSuperTile} from "./tile/PointCloudSuperTile"
 import {AnnotationTileManager} from "./tile/AnnotationTileManager"
@@ -287,9 +285,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// private shouldAnimate: boolean
 	private updateOrbitControls: boolean
 	private root: HTMLElement
-	private openTrajectoryPickerFunction: ((cb: TrajectoryFileSelectedCallback) => void) | null
 	private sceneContainer: HTMLDivElement
-	private trajectoryPickerRef: TrajectoryPicker
 
 	constructor(props) {
 		super(props)
@@ -392,7 +388,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.onKeyUp,
 		)
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
-		this.openTrajectoryPickerFunction = null
 
 		// this.resetFlyThroughState()
 		new FlyThroughActions().resetFlyThroughState()
@@ -1564,29 +1559,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			.catch(err => log.warn('saveToKML failed: ' + err.message))
 	}
 
-	private loadTrajectoryFromOpenDialog(): Promise<void> {
-		const { promise, resolve, reject }: PromiseReturn<void, Error> = createPromise<void, Error>()
-
-		const options: Electron.OpenDialogOptions = {
-			message: 'Load Trajectory File',
-			properties: ['openFile'],
-			filters: [{name: 'md', extensions: ['md']}],
-		}
-
-		const handler = (paths: string[]): void => {
-			if (paths && paths.length)
-				FlyThroughManager.loadFlyThroughTrajectories([ paths[0] ])
-					.then(() => resolve())
-					.catch(err => reject(err))
-			else
-				reject(Error('no trajectory path selected'))
-		}
-
-		dialog.showOpenDialog(options, handler)
-
-		return promise
-	}
-
 	// ANNOTATOR ONLY
     // TODO REORG JOE remove?
 	private addFront(): void {
@@ -1910,15 +1882,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		else
 			log.warn('missing element tools_add_traffic_device')
 
-		const toolsLoadTrajectory = document.getElementById('tools_load_trajectory')
-		if (toolsLoadTrajectory)
-			toolsLoadTrajectory.addEventListener('click', () => {
-				this.loadTrajectoryFromOpenDialog()
-					.catch(err => log.warn('loadFromFile failed: ' + err.message))
-			})
-		else
-			log.warn('missing element tools_load_trajectory')
-
 		const toolsLoadImages = document.getElementById('tools_load_images')
 		if (toolsLoadImages)
 			toolsLoadImages.addEventListener('click', () => {
@@ -1973,38 +1936,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			liveAndRecordedToggleBtn.addEventListener('click', this.toggleLiveAndRecordedPlay)
 		else
 			log.warn('missing element live_recorded_playback_toggle')
-
-		const selectTrajectoryPlaybackFile = document.querySelector('#select_trajectory_playback_file')
-		if (selectTrajectoryPlaybackFile)
-			selectTrajectoryPlaybackFile.addEventListener('click', this.openTrajectoryPicker)
-		else
-			log.warn('missing element select_trajectory_playback_file')
 	}
 
     // }}
-
-	// Hang on to a reference to TrajectoryPicker so we can call it later.
-	// ANNOTATOR ONLY
-    // TODO REORG JOE remove trajectory picker stuff
-	setOpenTrajectoryPickerFunction(theFunction: (cb: TrajectoryFileSelectedCallback) => void): void {
-		this.openTrajectoryPickerFunction = theFunction
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE remove trajectory picker stuff
-	private openTrajectoryPicker = (): void => {
-		if (this.openTrajectoryPickerFunction)
-			this.openTrajectoryPickerFunction(this.trajectoryFileSelectedCallback)
-	}
 
 	render() {
 		return (
 			<React.Fragment>
 				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
-				<TrajectoryPicker
-                    // TODO REORG JOE remove trajectory picker stuff
-					ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
-				/>
                 <AnnotationManager />
                 {/* TODO JOE ref to the AnnotationManager*/}
                 <SceneManager />
@@ -2016,41 +1955,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	componentDidMount() {
 
 		this.mount()
-			.then(() => this.setOpenTrajectoryPickerFunction(this.trajectoryPickerRef.openModal))
 
 	}
 
 	componentWillUnmount(): void {
 		this.unmount()
-	}
-
-
-
-    // TODO JOE beholder uses trajectories
-    // TODO REORG JOE remove trajectory picker stuff
-	private trajectoryFileSelectedCallback = (path: string): void => {
-		if (!this.uiState.isLiveMode) return
-
-		FlyThroughManager.loadFlyThroughTrajectories([path])
-			.then(() => {
-				// Make sure that we are in flyThrough mode and that the animation is running.
-				if (this.props.flyThroughState && !this.props.flyThroughState.enabled) {
-					// this.toggleLiveAndRecordedPlay()
-					FlyThroughManager.toggleLiveAndRecordedPlay()
-				}
-
-				FlyThroughManager.startFlyThrough()
-				//this.startFlyThrough()
-
-				//if (this.uiState.isLiveModePaused)
-				if (!this.props.liveModeEnabled)
-					console.log("WANTING TO RESUME LIVE MODE")
-					// this.resumeLiveMode()
-			})
-			.catch(error => {
-				log.error(`loadFlyThroughTrajectories failed: ${error}`)
-				dialog.showErrorBox('Error loading trajectory', error.message)
-			})
 	}
 
     // ANNOTATOR ONLY JOE
