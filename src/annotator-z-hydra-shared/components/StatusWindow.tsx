@@ -167,7 +167,7 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
 		new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
 	}
-
+	
 	private delayHideTileServiceStatus = (): void => {
 		this.cancelHideTileServiceStatus()
 		this.hideTileServiceStatus()

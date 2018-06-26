@@ -778,7 +778,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	private onSetOrigin = (): void => {
 		this.loadDecorations().then()
 	}
-	
+
 
 	// Add some easter eggs to the scene if they are close enough.
 	private loadDecorations(): Promise<void> {
