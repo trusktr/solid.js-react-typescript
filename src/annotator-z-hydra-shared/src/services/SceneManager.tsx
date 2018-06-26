@@ -757,23 +757,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	}
 
-	/**
-	 * 	Display the compass rose just outside the bounding box of the point cloud.
-	 */
-	// @TODO RT-Tuesday -- move to PointCloudManager --> add SceneManager.updateCompassRosePosition()
-	setCompassRoseByPointCloud(): void {
-		if (!this.state.compassRose) return
-		const boundingBox = this.state.pointCloudTileManager.getLoadedObjectsBoundingBox()
-		if (!boundingBox) return
 
-		// Find the center of one of the sides of the bounding box. This is the side that is
-		// considered to be North given the current implementation of UtmInterface.utmToThreeJs().
-		const topPoint = boundingBox.getCenter().setZ(boundingBox.min.z)
-		const boundingBoxHeight = Math.abs(boundingBox.max.z - boundingBox.min.z)
-		const zOffset = boundingBoxHeight / 10
-
-		this.state.compassRose.position.set(topPoint.x, topPoint.y, topPoint.z - zOffset)
-	}
 
 	private onSetOrigin = (): void => {
 		this.loadDecorations().then()
@@ -807,6 +791,17 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.state.decorations.forEach(d => d.visible = false)
 		// @TODO @Joe (from ryan) should we render the scene again since the state isn't being update, just decorations?
 		// ?? -- [ryan added] this.renderScene()
+	}
+
+  updateCompassRosePosition(x, y, z) {
+    if (!this.state.compassRose){
+    	log.error("Unable to find compassRose")
+    	return
+		} else {
+    	const compassRose = this.state.compassRose
+      compassRose.position.set(x, y, z)
+			this.setState({compassRose})
+		}
 	}
 
 

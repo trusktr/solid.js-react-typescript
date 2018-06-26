@@ -123,7 +123,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     this.props.layerManager.setLayerVisibility([Layer.POINT_CLOUD.toString()])
 
     this.updatePointCloudBoundingBox()
-    this.props.sceneManager.setCompassRoseByPointCloud()
+    this.setCompassRoseByPointCloud()
     this.props.sceneManager.setStageByPointCloud(resetCamera)
     this.props.sceneManager.renderScene()
   }
@@ -182,27 +182,24 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     return pointCloudResult
   }
 
+  /**
+   * 	Display the compass rose just outside the bounding box of the point cloud.
+   */
+  setCompassRoseByPointCloud(): void {
+    const boundingBox = this.props.pointCloudTileManager.getLoadedObjectsBoundingBox()
+    if (!boundingBox) {
+      log.error("Attempting to set compassRose, unable to find bounding box")
+      return
+    }
 
+    // Find the center of one of the sides of the bounding box. This is the side that is
+    // considered to be North given the current implementation of UtmInterface.utmToThreeJs().
+    const topPoint = boundingBox.getCenter().setZ(boundingBox.min.z)
+    const boundingBoxHeight = Math.abs(boundingBox.max.z - boundingBox.min.z)
+    const zOffset = boundingBoxHeight / 10
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    this.props.sceneManager.updateCompassRosePosition(topPoint.x, topPoint.y, topPoint.z - zOffset)
+  }
 
 
 
@@ -215,16 +212,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       log.warn("Unable to hide point cloud bounding box for fly through")
     }
   }
-
-
-
-
-
-
-
-
-
-
 
   updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
     if (this.state.aoiState.enabled) {
