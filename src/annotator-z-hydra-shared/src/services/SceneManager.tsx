@@ -282,6 +282,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	}
 
+	// @TODO RT-Tuesday -- move to Annotated Scene Controller
 	activateReadOnlyViewingMode() {
 		const {scene, grid, axis, compassRose, annotatorOrbitControls, flyThroughOrbitControls} = this.state
 
@@ -382,9 +383,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const scene = this.state.scene
 		if(this.state.axis) {
 			scene.remove(this.state.axis)
-			this.setState({
-				scene: scene
-			})
 		}
 	}
 
@@ -392,16 +390,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const scene = this.state.scene
 		if(this.state.compassRose) {
 			scene.remove(this.state.compassRose)
-			this.setState({
-				scene: scene
-			})
 		}
 	}
 
 	hideGridVisibility() {
 		const grid = this.state.grid
 		grid.visible = false
-		this.setState({grid})
 	}
 
 	enableOrbitControls() {
@@ -412,7 +406,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		}
 
 		orbitControls.enabled = true
-		this.setState({orbitControls})
 	}
 
 
@@ -481,6 +474,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
+	// @TODO long term move to Camera Manager
 	private setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
 		const {camera, cameraOffset, orbitControls, plane, grid} = this.state
 
@@ -517,6 +511,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	/**
 	 * Set some point as the center of the visible world.
 	 */
+	// @TODO long term move to Camera Manager
 	private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true): void {
 		this.setStage(point.x, point.y, point.z, resetCamera)
 	}
@@ -524,6 +519,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	/**
 	 * Set the stage at the bottom center of TileManager's point cloud.
 	 */
+	// @TODO RT-Tuesday -- move to Annotated Scene Controller
+	// @TODO Annotated Scene Manager will then call the Camera Manager long term for this functionality
 	setStageByPointCloud(resetCamera: boolean): void {
 		const focalPoint = this.state.pointCloudTileManager.centerPoint()
 		if (focalPoint)
@@ -533,6 +530,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// The sky needs to be big enough that we don't bump into it but not so big that the camera can't see it.
 	// So make it pretty big, then move it around to keep it centered over the camera in the XZ plane. Sky radius
 	// and camera zoom settings, set elsewhere, should keep the camera from penetrating the shell in the Y dimension.
+	// @TODO Camera Manager will update sky position long term
 	updateSkyPosition = (): void => {
 		const {cameraPosition2D, skyPosition2D, cameraToSkyMaxDistance, sky, camera} = this.state
 
@@ -603,6 +601,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
+	// @TODO RT-Tuesday -- move to Annotated Scene Controller
 	registerKeyboardEvent(eventKeyCode:number, fn:any) {
 		const registeredKeyboardEvents = this.state.registeredKeyDownEvents
 
@@ -612,6 +611,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
+
 	registerDomEventElementEventListener(type:string, listener:any) {
 		const renderer = this.state.renderer
 
@@ -619,12 +619,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.setState({renderer: renderer})
 	}
 
+	// @TODO Camera Manager
 	adjustCameraXOffset(value:number) {
     const cameraOffset = this.state.cameraOffset
     cameraOffset.x += value
     this.setState({cameraOffset})
   }
 
+  // @TODO Camera Manager
   adjustCameraYOffset(value:number) {
     const cameraOffset = this.state.cameraOffset
     cameraOffset.y += value
@@ -634,6 +636,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	/**
 	 * Handle keyboard events
 	 */
+	// @TODO RT-Tuesday -- move to Annotated Scene Controller
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
 
@@ -649,6 +652,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// 	this.onKeyDownInteractiveMode(event)
 	}
 
+	// @TODO RT-Tuesday -- move to Annotated Scene Controller
 	private onKeyUp = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
 
@@ -659,6 +663,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	/**
 	 * Set the point cloud as the center of the visible world.
 	 */
+	// @TODO RT-Tuesday -- move to Annotated Scene Controller
+	// @TODO long term move orbit controls to Camera Manger
 	focusOnPointCloud(): void {
 		const center = this.state.pointCloudTileManager.centerPoint()
 		if(!this.state.orbitControls) {
@@ -679,6 +685,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	/**
 	 * 	Set the camera directly above the current target, looking down.
 	 */
+	// @TODO RT-Tuesday -- move to Annotated Scene Controller
+	// @TODO long term move orbit controls to Camera Manger
 	resetTiltAndCompass(): void {
 		if(!this.state.orbitControls) {
 			log.error("Orbit controls not set, unable to reset tilt and compass")
@@ -696,6 +704,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
+	// @TODO RT-Tuesday -- move to Annotated Scene Controller
+	// @TODO long term move orbit controls to Camera Manger
 	// Display some info in the UI about where the camera is pointed.
 	private displayCameraInfo = (): void => {
 		if (this.uiState.isLiveMode) return
@@ -750,6 +760,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	/**
 	 * 	Display the compass rose just outside the bounding box of the point cloud.
 	 */
+	// @TODO RT-Tuesday -- move to PointCloudManager --> add SceneManager.updateCompassRosePosition()
 	setCompassRoseByPointCloud(): void {
 		if (!this.state.compassRose) return
 		const boundingBox = this.state.pointCloudTileManager.getLoadedObjectsBoundingBox()
@@ -767,6 +778,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	private onSetOrigin = (): void => {
 		this.loadDecorations().then()
 	}
+	
 
 	// Add some easter eggs to the scene if they are close enough.
 	private loadDecorations(): Promise<void> {
@@ -786,7 +798,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			})
 		})
 	}
-
 	showDecorations() {
 		this.state.decorations.forEach(d => d.visible = true)
 		// @TODO @Joe/Ryan (see comment immediately below)
@@ -798,8 +809,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// ?? -- [ryan added] this.renderScene()
 	}
 
+
+
+
 	// Find the point in the scene that is most interesting to a human user.
 	// BOTH - used with AOI - AOI is now in PointCloudManager
+	// @TODO RT-Tuesday -- move to Annotated Scene Controller  -- apps denote some function of currentPointOfInterest that AnnotatedSceneManager can call
 	currentPointOfInterest(): THREE.Vector3 | null {
 		if (this.uiState.isLiveMode) {
 			// In live mode track the car, regardless of what the camera does.
@@ -822,6 +837,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
   // Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
+	// @TODO long term move to the camera manager
 	toggleCameraType(): void {
     let oldCamera: THREE.Camera
     let newCamera: THREE.Camera
@@ -842,8 +858,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
     // calculate zoom differently. It would be nice to convert one to the other here.
     newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
 
-		// used to be --> this.annotatorCamera = newCamera
-		this.setState({camera: newCamera})
+	// used to be --> this.annotatorCamera = newCamera
+	this.setState({camera: newCamera})
 
     this.onWindowResize()
 
@@ -859,7 +875,5 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		new RoadNetworkEditorActions().setCameraPreference(newType)
     this.renderScene()
   }
-
-
 
 }

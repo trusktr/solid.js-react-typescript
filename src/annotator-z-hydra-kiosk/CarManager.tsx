@@ -1,6 +1,3 @@
-
-
-
 import * as React from "react"
 import * as THREE from "three";
 import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
@@ -80,12 +77,6 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		})
 	}
 
-
-
-
-
-
-
   // BEHOLDER
   // TODO JOE I'm thinking that Kiosk will update the car, and the
   // SceneManager should pick up the state change and re-render.
@@ -119,18 +110,6 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		carModel.visible = true
 		this.setState({carModel})
 	}
-
-
-
-
-
-
-
-
-
-
-
-
 
   render() {
 		return null
