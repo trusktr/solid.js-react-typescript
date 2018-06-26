@@ -13,7 +13,6 @@ import {OrbitControls} from "@/annotator-entry-ui/controls/OrbitControls";
 import {getValue} from "typeguard";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import LayerManager, {Layer} from "@/annotator-z-hydra-shared/src/services/LayerManager";
 import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
 import LayerToggle from "@/annotator-z-hydra-shared/src/models/LayerToggle";
 import {PointCloudTileManager} from "@/annotator-entry-ui/tile/PointCloudTileManager";
@@ -33,12 +32,9 @@ export interface SceneManagerProps {
 	width: number
 	height: number
 	shouldAnimate ?: boolean
-	statusWindowState ?: StatusWindowState
 }
 
-export interface CameraState {
-	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
-}
+
 
 export interface SceneManagerState {
 	// width: number
@@ -70,23 +66,20 @@ export interface SceneManagerState {
 	registeredKeyDownEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
 	registeredKeyUpEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
 
-	layerManager: LayerManager | null
 	pointCloudManager: PointCloudManager | null
 	pointCloudTileManager: PointCloudTileManager
-	statusWindow: StatusWindow | null
+
 
 	scaleProvider: ScaleProvider
 	utmCoordinateSystem: UtmCoordinateSystem
 	maxDistanceToDecorations: number // meters
 
 	decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
-	cameraState: CameraState // isolating camera state incase we decide to migrate it to a Camera Manager down the road
 }
 
 
 @typedConnect(createStructuredSelector({
 	shouldAnimate: (state) => state.get(RoadEditorState.Key).shouldAnimate,
-	statusWindowState: (state) => state.get(RoadEditorState.Key).statusWindowState,
 }))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
@@ -235,16 +228,15 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			registeredKeyUpEvents: new Map<number, any>(),
 
 			orbitControls: null,
-			layerManager: null,
 			pointCloudManager: null,
 			pointCloudTileManager: pointCloudTileManager,
-			statusWindow: null,
+
 			scaleProvider: scaleProvider,
 			utmCoordinateSystem: utmCoordinateSystem,
 			maxDistanceToDecorations: 50000,
 			decorations: [],
 
-			cameraState: {},
+
 
 		}
 
@@ -271,7 +263,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
 
-
 		// @TODO - AnnotationManager needs to call loadUserData()
 
 		new RoadNetworkEditorActions().setSceneInitialized(true)
@@ -282,35 +273,19 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	}
 
-	// @TODO RT-Tuesday -- move to Annotated Scene Controller
-	activateReadOnlyViewingMode() {
-		const {scene, grid, axis, compassRose, annotatorOrbitControls, flyThroughOrbitControls} = this.state
+	setOrbitControlsTargetPoint(point:THREE.Vector3) {
+    if(!this.state.orbitControls) {
+      log.warn('[Migration ERROR] orbit controls are not initialized yet')
+      return
+    }
 
-		this.state.layerManager!.setLayerVisibility([Layer.POINT_CLOUD.toString(), Layer.ANNOTATIONS.toString()], true)
-		// if (this.gui)
-		//   this.gui.close()
-		if (axis)
-			scene.remove(axis)
-		if (compassRose)
-			scene.remove(compassRose)
-		if (grid)
-			grid.visible = false
-
-		annotatorOrbitControls.enabled = false
-		flyThroughOrbitControls.enabled = true
-
-		this.setState({
-			scene: scene,
-			grid: grid,
-			axis: axis,
-			compassRose: compassRose,
-			flyThroughOrbitControls: flyThroughOrbitControls,
-			annotatorOrbitControls: annotatorOrbitControls
-		})
-
-		this.state.pointCloudManager!.hidePointCloudBoundingBox()
-
+    const orbitControls = this.state.orbitControls
+		orbitControls.target.set(point.x, point.y, point.z)
+		orbitControls.update()
+		this.renderScene()
 	}
+
+
 
 	async mount(): Promise<void> {
 		this.sceneContainer.appendChild(this.state.renderer.domElement)
@@ -396,6 +371,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	hideGridVisibility() {
 		const grid = this.state.grid
 		grid.visible = false
+		this.setState({grid})
 	}
 
 	enableOrbitControls() {
@@ -660,27 +636,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		fn()
 	}
 
-	/**
-	 * Set the point cloud as the center of the visible world.
-	 */
-	// @TODO RT-Tuesday -- move to Annotated Scene Controller
-	// @TODO long term move orbit controls to Camera Manger
-	focusOnPointCloud(): void {
-		const center = this.state.pointCloudTileManager.centerPoint()
-		if(!this.state.orbitControls) {
-			log.warn('[Migration ERROR] orbit controls are not initialized yet')
-			return
-		}
 
-		if (center) {
-			this.state.orbitControls.target.set(center.x, center.y, center.z)
-			this.state.orbitControls.update()
-			this.renderScene()
-			this.displayCameraInfo()
-		} else {
-			log.warn('point cloud has not been initialized')
-		}
-	}
 
 	/**
 	 * 	Set the camera directly above the current target, looking down.
@@ -704,44 +660,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	// @TODO RT-Tuesday -- move to Annotated Scene Controller
-	// @TODO long term move orbit controls to Camera Manger
-	// Display some info in the UI about where the camera is pointed.
-	private displayCameraInfo = (): void => {
-		if (this.uiState.isLiveMode) return
-
-		// if (!this.statusWindow.isEnabled()) return
-		// [RYAN] updated
-		if( !getValue( () => this.props.statusWindowState && this.props.statusWindowState.enabled, false ) ) return
-
-		const currentPoint = this.currentPointOfInterest()
-		if (currentPoint) {
-			const oldPoint = this.state.cameraState.lastCameraCenterPoint
-			const newPoint = currentPoint.clone().round()
-			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
-			if (!samePoint) {
-				const cameraState = this.state.cameraState
-				cameraState.lastCameraCenterPoint = newPoint
-				this.setState({cameraState})
-
-
-				const utm = this.state.utmCoordinateSystem.threeJsToUtm(newPoint)
-				this.state.statusWindow!.updateCurrentLocationStatusMessage(utm)
-			}
-		}
-	}
-
-	getLayerManager = (layerManager:LayerManager) => {
-		this.setState({layerManager,})
-	}
-
 	getPointCloudManager = (pointCloudManager:PointCloudManager) => {
 		this.setState({pointCloudManager})
 	}
 
-	getStatusWindow = (statusWindow:StatusWindow) => {
-		this.setState({statusWindow})
-	}
 
 
 	render() {
@@ -749,9 +671,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			<React.Fragment>
 				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
 
-				<LayerManager ref={this.getLayerManager} onRerender={this.renderScene} />
 				<PointCloudManager ref={this.getPointCloudManager} sceneManager={this} pointCloudTileManager={} layerManager={this.state.layerManager} handleTileManagerLoadError={}/>
-				<StatusWindow ref={this.getStatusWindow} utmCoordinateSystem={this.state.utmCoordinateSystem}/>
 			</React.Fragment>
 		)
 
@@ -793,6 +713,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// ?? -- [ryan added] this.renderScene()
 	}
 
+
+
   updateCompassRosePosition(x, y, z) {
     if (!this.state.compassRose){
     	log.error("Unable to find compassRose")
@@ -801,33 +723,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
     	const compassRose = this.state.compassRose
       compassRose.position.set(x, y, z)
 			this.setState({compassRose})
-		}
-	}
-
-
-
-
-	// Find the point in the scene that is most interesting to a human user.
-	// BOTH - used with AOI - AOI is now in PointCloudManager
-	// @TODO RT-Tuesday -- move to Annotated Scene Controller  -- apps denote some function of currentPointOfInterest that AnnotatedSceneManager can call
-	currentPointOfInterest(): THREE.Vector3 | null {
-		if (this.uiState.isLiveMode) {
-			// In live mode track the car, regardless of what the camera does.
-			return this.carModel.position
-		} else {
-			// In interactive mode intersect the camera with the ground plane.
-			this.raycasterPlane.setFromCamera(cameraCenter, this.state.camera)
-
-			let intersections: THREE.Intersection[] = []
-			if (this.settings.estimateGroundPlane)
-				intersections = this.raycasterPlane.intersectObjects(this.allGroundPlanes)
-			if (!intersections.length)
-				intersections = this.raycasterPlane.intersectObject(this.state.plane)
-
-			if (intersections.length)
-				return intersections[0].point
-			else
-				return null
 		}
 	}
 

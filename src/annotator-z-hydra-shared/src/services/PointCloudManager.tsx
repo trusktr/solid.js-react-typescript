@@ -20,6 +20,7 @@ export interface PointCloudManagerProps {
   layerManager: LayerManager
   handleTileManagerLoadError: (err: Error) => void
   isPointCloudVisible ?: boolean
+  getCurrentPointOfInterest ?: () => THREE.Vector3 | null
 }
 
 export interface PointCloudManagerState {
@@ -236,7 +237,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     // TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
     if (this.props.pointCloudTileManager.isLoadingTiles) return
 
-    const currentPoint = this.props.sceneManager.currentPointOfInterest()
+    const currentPoint = this.props.getCurrentPointOfInterest()
     if (currentPoint) {
       const oldPoint = this.state.aoiState.focalPoint
       const newPoint = currentPoint.clone().round()
