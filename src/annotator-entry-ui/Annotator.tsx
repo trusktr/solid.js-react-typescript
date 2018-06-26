@@ -580,9 +580,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		window.addEventListener('focus', this.onFocus)  // RYAN Annotator-specific
 		window.addEventListener('blur', this.onBlur)  // RYAN Annotator-specific
 		window.addEventListener('beforeunload', this.onBeforeUnload) // RYAN Annotator-specific
-		window.addEventListener('resize', this.onWindowResize) // BOTH
-		window.addEventListener('keydown', this.onKeyDown) // split
-		window.addEventListener('keyup', this.onKeyUp) // split
+		// window.addEventListener('resize', this.onWindowResize) //
+		// window.addEventListener('keydown', this.onKeyDown) // split
+		// window.addEventListener('keyup', this.onKeyUp) // split
 
 		// Annotator-specific
         this.renderer.domElement.addEventListener('mousemove', this.setLastMousePosition)
@@ -768,14 +768,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 
-	// BOTH (moved)
-    // TODO JOE a better name is something like "shouldRender". The first call
-    // queues an animation frame, other calls between the first call and the
-    // animation frame are noops.
-	private renderAnnotator = (): void => {
-		// force a tick which causes renderer.render to be called
-		this.loop.forceTick()
-	}
+	// BOTH (moved) --> renderAnnotator is now renderScene
 
 	// Do some house keeping after loading annotations.
 	// @TODO @Joe please move this as well to AnnotationManager
@@ -839,6 +832,23 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// GONE this.renderAnnotator()
 		this.updateTileManagerStats()
 	}
+
+  // Print a message about how big our tiles are.
+  // RELATED TO ABOVE -- statusWindowManager
+  private updateTileManagerStats(): void {
+    if (!this.settings.enableTileManagerStats) return
+    // if (!this.statusWindow.isEnabled()) return
+    if (!this.props.uiMenuVisible) return
+
+    //RYAN UPDATED
+    const message = `Loaded ${this.pointCloudTileManager.superTiles.size} point tiles; ${this.pointCloudTileManager.objectCount()} points`
+    new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
+
+    if (this.settings.enableAnnotationTileManager) {
+      const message2 = `Loaded ${this.annotationTileManager.superTiles.size} annotation tiles; ${this.annotationTileManager.objectCount()} annotations`
+      new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message2)
+    }
+  }
 
 	// Construct a set of 2D planes, each of which approximates the ground plane within a tile.
 	// This assumes that each ground plane is locally flat and normal to gravity.
@@ -905,7 +915,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return mouse
 	}
 
-	// BOTH
     //
     // TODO JOE keep in Annotator app me thinks?
     //
@@ -1157,52 +1166,28 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Handle keyboard events
 	 */
-	// BOTH (moved) -- requires keyboard event registration now though
+	//  (moved) -- requires keyboard event registration now though
     // TODO REORG JOE split this up, each app will register/hook into key events that
     // are managed from shared lib (SceneManager?)
-	private onKeyDown = (event: KeyboardEvent): void => {
-		if (event.defaultPrevented) return
-		if (event.altKey) return
-		if (event.ctrlKey) return
-		if (event.metaKey) return
-
-		if (document.activeElement.tagName === 'INPUT')
-			this.onKeyDownInputElement(event)
-		else if (this.uiState.isLiveMode)
-			this.onKeyDownLiveMode(event)
-		else
-			this.onKeyDownInteractiveMode(event)
-	}
+	// private onKeyDown = (event: KeyboardEvent): void => {
+	// 	if (event.defaultPrevented) return
+	// 	if (event.altKey) return
+	// 	if (event.ctrlKey) return
+	// 	if (event.metaKey) return
+  //
+	// 	if (document.activeElement.tagName === 'INPUT')
+	// 		this.onKeyDownInputElement(event)
+	// 	else if (this.uiState.isLiveMode)
+	// 		this.onKeyDownLiveMode(event)
+	// 	else
+	// 		this.onKeyDownInteractiveMode(event)
+	// }
 
 	// ANNOTATOR ONLY
 	private onKeyDownInputElement = (event: KeyboardEvent): void => {
 		switch (event.key) {
 			case 'Escape': {
 				(event.target as HTMLInputElement).blur()
-				break
-			}
-			default:
-			// nothing to do here
-		}
-	}
-
-	// @TODO BEHOLDER -- beholder needs to register these with SceneManager
-	private onKeyDownLiveMode = (event: KeyboardEvent): void => {
-		switch (event.keyCode) {
-			case 37: { // left arrow
-				this.liveModeSettings.cameraOffset.x += this.liveModeSettings.cameraOffsetDelta
-				break
-			}
-			case 38: { // up arrow
-				this.liveModeSettings.cameraOffset.y += this.liveModeSettings.cameraOffsetDelta
-				break
-			}
-			case 39: { // right arrow
-				this.liveModeSettings.cameraOffset.x -= this.liveModeSettings.cameraOffsetDelta
-				break
-			}
-			case 40: { // down arrow
-				this.liveModeSettings.cameraOffset.y -= this.liveModeSettings.cameraOffsetDelta
 				break
 			}
 			default:
@@ -2370,43 +2355,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     // }}
 
-	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
-	// BOTH
-    // TODO REORG JOE move to SceneManager (maybe later CameraManager)
-	private toggleCameraType(): void {
-		let oldCamera: THREE.Camera
-		let newCamera: THREE.Camera
-		let newType: string
-		if (this.camera === this.annotatorPerspectiveCam) {
-			oldCamera = this.annotatorPerspectiveCam
-			newCamera = this.annotatorOrthoCam
-			newType = cameraTypeString.orthographic
-		} else {
-			oldCamera = this.annotatorOrthoCam
-			newCamera = this.annotatorPerspectiveCam
-			newType = cameraTypeString.perspective
-		}
 
-		// Copy over the camera position. When the next animate() runs, the new camera will point at the
-		// same target as the old camera, since the target is maintained by OrbitControls. That takes
-		// care of position and orientation, but not zoom. PerspectiveCamera and OrthographicCamera
-		// calculate zoom differently. It would be nice to convert one to the other here.
-		newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
-		this.annotatorCamera = newCamera
-
-		this.onWindowResize()
-
-		this.transformControls.setCamera(this.camera)
-		this.annotatorOrbitControls.setCamera(this.camera)
-		this.flyThroughOrbitControls.setCamera(this.camera)
-
-		// RYAN UPDATED
-		// this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
-		new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
-
-		this.storage.setItem(preferenceKey.cameraPreference, newType)
-		this.renderAnnotator()
-	}
 
 	// Toggle the visibility of data by cycling through the groups defined in layerGroups.
 	// ANNOTATOR ONLY
@@ -2417,13 +2366,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.uiState.layerGroupIndex = defaultLayerGroupIndex
 		this.setLayerVisibility(layerGroups[this.uiState.layerGroupIndex], true)
 	}
-
-
-
-
-
-
-
 
 	// Show or hide the menu as requested.
 	// RYAN UPDATED (added by joe)
@@ -2446,80 +2388,5 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// 	else
 	// 		log.warn('missing element menu')
 	// }
-
-
-
-
-
-
-
-
-	// Print a message about how big our tiles are.
-	// RELATED TO ABOVE -- statusWindowManager
-	private updateTileManagerStats(): void {
-		if (!this.settings.enableTileManagerStats) return
-		// if (!this.statusWindow.isEnabled()) return
-		if (!this.props.uiMenuVisible) return
-
-		//RYAN UPDATED
-		const message = `Loaded ${this.pointCloudTileManager.superTiles.size} point tiles; ${this.pointCloudTileManager.objectCount()} points`
-		new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
-
-		if (this.settings.enableAnnotationTileManager) {
-			const message2 = `Loaded ${this.annotationTileManager.superTiles.size} annotation tiles; ${this.annotationTileManager.objectCount()} annotations`
-			new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message2)
-		}
-	}
-
-
-
-
-
-
-	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
-	// and success messages disappear after a time-out.
-	// BOTH - STATUS WINDOW
-	private onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
-		let message = 'Tile server status: '
-		if (tileServiceStatus) {
-			message += '<span class="statusOk">Available</span>'
-			this.delayHideTileServiceStatus()
-		} else {
-			message += '<span class="statusError">Unavailable</span>'
-			this.cancelHideTileServiceStatus()
-		}
-		// RYAN UPDATED
-		// this.statusWindow.setMessage(statusKey.tileServer, message)
-		new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
-	}
-
-	// BOTH STATUS WINDOW
-	private delayHideTileServiceStatus = (): void => {
-		this.cancelHideTileServiceStatus()
-		this.hideTileServiceStatus()
-	}
-
-	// BOTH STATUS WINDOW
-	private cancelHideTileServiceStatus = (): void => {
-		if (this.serverStatusDisplayTimer)
-			window.clearTimeout(this.serverStatusDisplayTimer)
-	}
-
-	// BOTH STATUS WINDOW
-	private hideTileServiceStatus = (): void => {
-		this.serverStatusDisplayTimer = window.setTimeout(() => {
-
-			// RYAN UPDATED
-			new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, '')
-			// this.statusWindow.setMessage(statusKey.tileServer, '')
-		}, this.settings.timeToDisplayHealthyStatusMs)
-	}
-
-
-
-
-
-
-
 
 }

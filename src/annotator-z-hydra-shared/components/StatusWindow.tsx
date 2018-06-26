@@ -33,6 +33,7 @@ interface StatusWindowProps {
 
 interface IStatusWindowState {
     locationServerStatusDisplayTimer: number
+	serverStatusDisplayTimer: number
     timeToDisplayHealthyStatusMs: number
     locationServerStatusClient: LocationServerStatusClient
 }
@@ -50,6 +51,7 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
         this.state = {
             locationServerStatusDisplayTimer: 0,
+			serverStatusDisplayTimer: 0,
             timeToDisplayHealthyStatusMs: 10000,
             locationServerStatusClient: locationServerStatusClient
         }
@@ -98,6 +100,14 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
 
 
+	// TODO (Joe): To make things more re-usable, It would be nice if the
+	// following methods relating to specific types of messages would live
+	// outside of StatusWindow inside of the app code using the StatusWindow,
+	// and each app would tell StatusWindow when to show/hide messages. It'd be
+	// similar to a Toast widget (or SnackBar in material-ui), where it is not
+	// aware of what messages you give it from the outside, it only displays
+	// them.
+
 
     // Display a UI element to tell the user what is happening with the location server.
     // Error messages persist, and success messages disappear after a time-out.
@@ -124,6 +134,7 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
         new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, message)
     }
 
+
     private delayLocationServerStatus = (): void => {
         this.cancelHideLocationServerStatus()
         this.hideLocationServerStatus()
@@ -141,5 +152,38 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
         this.setState({locationServerStatusDisplayTimer})
     }
+
+	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
+	// and success messages disappear after a time-out.
+	onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
+		let message = 'Tile server status: '
+		if (tileServiceStatus) {
+			message += '<span class="statusOk">Available</span>'
+			this.delayHideTileServiceStatus()
+		} else {
+			message += '<span class="statusError">Unavailable</span>'
+			this.cancelHideTileServiceStatus()
+		}
+
+		new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
+	}
+
+	private delayHideTileServiceStatus = (): void => {
+		this.cancelHideTileServiceStatus()
+		this.hideTileServiceStatus()
+	}
+
+	private cancelHideTileServiceStatus = (): void => {
+		if (this.state.serverStatusDisplayTimer)
+		window.clearTimeout(this.state.serverStatusDisplayTimer)
+	}
+
+	private hideTileServiceStatus = (): void => {
+		const serverStatusDisplayTimer = window.setTimeout(() => {
+			new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, '')
+		}, this.state.timeToDisplayHealthyStatusMs)
+
+		this.setState({serverStatusDisplayTimer})
+	}
 
 }
