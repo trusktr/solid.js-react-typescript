@@ -48,6 +48,10 @@ import StatusWindowState from "../annotator-z-hydra-shared/src/models/StatusWind
 import StatusWindowActions from "../annotator-z-hydra-shared/StatusWindowActions";
 import {FlyThroughState} from "../annotator-z-hydra-shared/src/models/FlyThroughState";
 
+import AnnotatorMenuView from "./AnnotatorMenuView";
+import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
+import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
+
 import * as FlyThroughManager from "../annotator-z-hydra-kiosk/FlyThroughManagerNonReact";
 import { StatusKey } from "../annotator-z-hydra-shared/src/models/StatusKey";
 
@@ -199,7 +203,9 @@ interface AnnotatorProps {
 	carPose ?: Models.PoseMessage
 }
 
-interface AnnotatorState {}
+interface AnnotatorState {
+    sceneManager?
+}
 
 // state = getRoadNetworkEditorReduxStore().getState()
 @typedConnect(createStructuredSelector({
@@ -419,26 +425,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
-	async mount(): Promise<void> {
-		this.root = this.sceneContainer
-		if (!this.uiState.sceneInitialized) await this.initScene()
-		this.sceneContainer.appendChild(this.renderer.domElement)
-		this.createControlsGui()
-		this.makeStats()
-		// GONE this.startAnimation()
-	}
-
-	unmount(): void {
-		this.stopAnimation()
-		this.destroyStats()
-		this.destroyControlsGui()
-		this.renderer.domElement.remove()
-
-		// TODO:
-		//  - remove event listeners
-		//  - clean up child windows
-	}
-
 	exitApp(): void {
 		Electron.remote.getCurrentWindow().close()
 	}
@@ -451,77 +437,17 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		log.info(`Building scene`)
 
 		const [width, height]: Array<number> = this.getContainerSize()
+        //
+		// if (this.storage.getItem(preferenceKey.cameraPreference, cameraTypeString.perspective) === cameraTypeString.orthographic)
+		// 	this.annotatorCamera = this.annotatorOrthoCam
+		// else
+		// 	this.annotatorCamera = this.annotatorPerspectiveCam
 
-		this.annotatorPerspectiveCam = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		this.annotatorOrthoCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
-
-		// Create scene and camera
-		this.scene = new THREE.Scene()
-		if (this.storage.getItem(preferenceKey.cameraPreference, cameraTypeString.perspective) === cameraTypeString.orthographic)
-			this.annotatorCamera = this.annotatorOrthoCam
-		else
-			this.annotatorCamera = this.annotatorPerspectiveCam
-
-		this.flyThroughCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		this.flyThroughCamera.position.set(800, 400, 0)
-
-		this.setOrthographicCameraDimensions(width, height)
-
-		// Add some lights
-		this.scene.add(new THREE.AmbientLight(0xffffff))
-
-		// Draw the sky.
-		this.sky = Sky(this.settings.background, new THREE.Color(0xccccff), this.settings.skyRadius)
-		this.scene.add(this.sky)
-
-		// Add a "ground plane" to facilitate annotations
-		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
-		planeGeometry.rotateX(-Math.PI / 2)
-		const planeMaterial = new THREE.ShadowMaterial()
-		planeMaterial.visible = false
-		planeMaterial.side = THREE.DoubleSide // enable raycaster intersections from both sides
-		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
-		this.scene.add(this.plane)
-
-		// Add grid on top of the plane to visualize where the plane is.
-		// Add an axes helper to visualize the origin and orientation of the primary directions.
-		const axesHelperLength = parseFloat(config.get('annotator.axes_helper_length')) || 0
-		if (axesHelperLength > 0) {
-			const gridSize = parseFloat(config.get('annotator.grid_size')) || 200
-			const gridUnit = parseFloat(config.get('annotator.grid_unit')) || 10
-			const gridDivisions = gridSize / gridUnit
-
-			this.grid = new THREE.GridHelper( gridSize, gridDivisions, new THREE.Color('white'))
-			this.grid!.material.opacity = 0.25
-			this.grid!.material.transparent = true
-			this.scene.add(this.grid)
-
-			this.axis = AxesHelper(axesHelperLength)
-			this.scene.add(this.axis)
-		} else {
-			this.grid = null
-			this.axis = null
-		}
-
-		const compassRoseLength = parseFloat(config.get('annotator.compass_rose_length')) || 0
-		if (compassRoseLength > 0) {
-			this.compassRose = CompassRose(compassRoseLength)
-			this.compassRose.rotateX(Math.PI / -2)
-			this.scene.add(this.compassRose)
-		} else
-			this.compassRose = null
-
-		// All the annotations go here.
-		// @TODO Ryan/Joe to be added outside of initial scene (only annotator specific)
-		this.annotationManager = new AnnotationManager(
-			!this.uiState.isKioskMode,
-			this.scaleProvider,
-			this.utmCoordinateSystem,
-			this.onAddAnnotation,
-			this.onRemoveAnnotation,
-			this.onChangeActiveAnnotation
-		)
-        // replace with ref, pass props instead of constructor args
+		// this.annotationManager = new AnnotationManager(
+		// 	!this.uiState.isKioskMode,
+		// 	this.scaleProvider,
+		// 	this.utmCoordinateSystem,
+		// )
 
 		// remote, tiled data sources
 		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.onTileServiceStatusUpdate)
@@ -543,12 +469,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			)
 
         // TODO REORG JOE AnnotationManager needs a reference to AnnotationTileManager
-
-		// Create GL Renderer
-		this.renderer = new THREE.WebGLRenderer({antialias: true})
-		this.renderer.setClearColor(this.settings.background)
-		this.renderer.setPixelRatio(window.devicePixelRatio)
-		this.renderer.setSize(width, height)
 
 		// Initialize all control objects.
 		this.initAnnotatorOrbitControls()
@@ -1113,21 +1033,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.annotationManager.immediateAutoSave().then()
 	}
 
-
-	// Scale the ortho camera frustum along with window dimensions to preserve a 1:1
-	// proportion for model width:height.
-	// BOTH
-    // TODO JOE moved to SceneManager
-	// private setOrthographicCameraDimensions(width: number, height: number): void {
-	// 	const orthoWidth = this.settings.orthoCameraHeight * (width / height)
-	// 	const orthoHeight = this.settings.orthoCameraHeight
-	// 	this.annotatorOrthoCam.left = orthoWidth / -2
-	// 	this.annotatorOrthoCam.right = orthoWidth / 2
-	// 	this.annotatorOrthoCam.top = orthoHeight / 2
-	// 	this.annotatorOrthoCam.bottom = orthoHeight / -2
-	// 	this.annotatorOrthoCam.updateProjectionMatrix()
-	// }
-
 	// ANNOTATOR ONLY
     //
     // TODO REORG JOE move to AnnotationManager
@@ -1209,7 +1114,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					break
 				}
 				case 'b': {
-					this.onAddAnnotation(AnnotationType.BOUNDARY)
+					this.uiAddAnnotation(AnnotationType.BOUNDARY)
 					break
 				}
 				case 'C': {
@@ -1255,7 +1160,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					break
 				}
 				case 'n': {
-					this.onAddAnnotation(AnnotationType.LANE)
+					this.uiAddAnnotation(AnnotationType.LANE)
 					break
 				}
 				case 'q': {
@@ -1279,11 +1184,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					break
 				}
 				case 'T': {
-					this.onAddAnnotation(AnnotationType.TERRITORY)
+					this.uiAddAnnotation(AnnotationType.TERRITORY)
 					break
 				}
 				case 't': {
-					this.onAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
+					this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
 					break
 				}
 				case 'U': {
@@ -1477,13 +1382,16 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Create an annotation, add it to the scene, and activate (highlight) it.
 	// ANNOTATOR ONLY
-	private onAddAnnotation(annotationType: AnnotationType): void {
+	private uiAddAnnotation(annotationType: AnnotationType): void {
 		if (this.annotationManager.createAndAddAnnotation(annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
 			this.deactivateAllAnnotationPropertiesMenus(annotationType)
 			this.resetAllAnnotationPropertiesMenuElements()
 			this.hideTransform()
 		}
+        else {
+            throw new Error( 'unable to add annotation of type ' + AnnotationType[annotationType] )
+        }
 	}
 
 	// Save all annotation data.
@@ -1833,7 +1741,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const toolsAddLane = document.getElementById('tools_add_lane')
 		if (toolsAddLane)
 			toolsAddLane.addEventListener('click', () => {
-				this.onAddAnnotation(AnnotationType.LANE)
+				this.uiAddAnnotation(AnnotationType.LANE)
 			})
 		else
 			log.warn('missing element tools_add_lane')
@@ -1841,7 +1749,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const toolsAddTrafficDevice = document.getElementById('tools_add_traffic_device')
 		if (toolsAddTrafficDevice)
 			toolsAddTrafficDevice.addEventListener('click', () => {
-				this.onAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
+				this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
 			})
 		else
 			log.warn('missing element tools_add_traffic_device')
@@ -1905,29 +1813,73 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     // }}
 
 	render() {
+
+        const {
+            scaleProvider,
+            utmCoordinateSystem,
+            onAddAnnotation,
+            onRemoveAnnotation,
+            onChangeActiveAnnotation
+        } = this
+
 		return (
 			<React.Fragment>
-				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
-                <AnnotationManager ref={this.getAnnotationManagerRef} />
-                {/* TODO JOE ref to the AnnotationManager*/}
-                <SceneManager />
+
+                <AnnotationManager
+                    ref={this.getAnnotationManagerRef}
+        			isInteractiveMode={ !this.uiState.isKioskMode }
+                    layerManager={ this.state.layerManager }
+
+                    { ...{
+            			scaleProvider,
+            			utmCoordinateSystem,
+            			onAddAnnotation,
+            			onRemoveAnnotation,
+            			onChangeActiveAnnotation
+                    } }
+
+                />
+
+                <SceneManager ref={this.getSceneManagerRef} width={1000} height={1000} />
+                <LayerManager ref={this.getLayerManagerRef} sceneManager={ this.state.sceneManager } onRerender={ () => {} } />
+
+    			<AnnotatorMenuView />
+
 			</React.Fragment>
 		)
 
 	}
 
-	componentDidMount() {
-
-		this.mount()
-
+	async componentDidMount(): Promise<void> {
+		this.root = this.sceneContainer
+		if (!this.uiState.sceneInitialized) await this.initScene()
+		this.sceneContainer.appendChild(this.renderer.domElement)
+		this.createControlsGui()
+		this.makeStats()
+		// GONE this.startAnimation()
 	}
 
 	componentWillUnmount(): void {
-		this.unmount()
+		this.stopAnimation()
+		this.destroyStats()
+		this.destroyControlsGui()
+		this.renderer.domElement.remove()
+
+		// TODO:
+		//  - remove event listeners
+		//  - clean up child windows
 	}
 
     getAnnotationManagerRef = (ref: AnnotationManager): void => {
         this.annotationManager = ref
+    }
+
+    getSceneManagerRef = (sceneManager: SceneManager): void => {
+        this.setState({ sceneManager })
+    }
+
+    getLayerManagerRef = (layerManager: LayerManager): void => {
+        this.setState({ layerManager })
     }
 
     // ANNOTATOR ONLY JOE

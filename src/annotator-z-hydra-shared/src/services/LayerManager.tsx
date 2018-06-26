@@ -2,19 +2,11 @@ import * as React from "react"
 import LayerToggle from "@/annotator-z-hydra-shared/src/models/LayerToggle";
 import * as lodash from "lodash";
 import Logger from "@/util/log";
-import {AnnotationSuperTile} from "@/annotator-entry-ui/tile/AnnotationSuperTile";
-import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
-import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile";
 import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
-import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager";
-import {PointCloudTileManager} from "@/annotator-entry-ui/tile/PointCloudTileManager";
-import {ImageScreen} from "@/annotator-entry-ui/image/ImageScreen";
-import {ImageManager} from "@/annotator-entry-ui/image/ImageManager";
-import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
 
 const log = Logger(__filename)
 
@@ -27,14 +19,7 @@ export enum Layer {
 
 export interface LayerManagerProps {
   sceneManager: SceneManager
-  annotationManager: AnnotationManager
-  pointCloudTileManager: PointCloudTileManager
-  pointCloudManager: PointCloudManager
-  imageManager: ImageManager
   onRerender: () => void
-  isPointCloudVisible ?: boolean
-  isImageScreensVisible ?: boolean
-  isAnnotationsVisible ?: boolean
 }
 
 export interface LayerManagerState {

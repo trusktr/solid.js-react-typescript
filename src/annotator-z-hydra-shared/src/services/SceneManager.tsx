@@ -112,6 +112,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		flyThroughCamera.position.set(800, 400, 0)
 
 		const scene = new THREE.Scene()
+
 		let camera;
 
 		const cameraPreference = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).cameraPreference

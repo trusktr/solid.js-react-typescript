@@ -34,6 +34,7 @@ import * as CRS from "./CoordinateReferenceSystem"
 import Logger from "@/util/log"
 import {tileIndexFromVector3} from "@/annotator-entry-ui/model/TileIndex"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
+import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
 
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
@@ -61,14 +62,16 @@ interface IProps {
 
     // Interactive allows annotations to be selected and edited; otherwise they
     // can only be added or removed.
-	readonly isInteractiveMode: boolean
+	isInteractiveMode: boolean
 
-	readonly scaleProvider: ScaleProvider
-	readonly utmCoordinateSystem: UtmCoordinateSystem
-	onAddAnnotationobject(object: THREE.Object3D): void
-	onRemoveAnnotation(object: THREE.Object3D): void
-	onChangeActiveAnnotation(active: Annotation): void
+	scaleProvider: ScaleProvider
+	utmCoordinateSystem: UtmCoordinateSystem
 
+	// onAddAnnotation(object: THREE.Object3D): void
+	// onRemoveAnnotation(object: THREE.Object3D): void
+	// onChangeActiveAnnotation(active: Annotation): void
+
+    layerManager: LayerManager
 }
 
 interface IState {
@@ -223,7 +226,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// Set state.
 		similarAnnotations.push(annotation)
 		this.annotationObjects.push(annotation.renderingObject)
-		this.onAddAnnotation(annotation.renderingObject)
+		this.addAnnotation(annotation.renderingObject)
 		if (activate)
 			this.setActiveAnnotation(annotation)
 
@@ -630,7 +633,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			})
 		}
 
-		this.onChangeActiveAnnotation(this.activeAnnotation)
+		if (this.uiState.isRotationModeActive && !active.isRotatable)
+			this.toggleTransformControlsRotationMode()
+
 		return true
 	}
 
@@ -1255,7 +1260,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		// Add annotation to the scene
 		this.annotationObjects.push(connection.renderingObject)
-		this.onAddAnnotation(connection.renderingObject)
+		this.addAnnotation(connection.renderingObject)
 
 		connection.makeInactive()
 		connection.updateVisualization()
@@ -1283,7 +1288,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const eraseIndex = this.getAnnotationIndexFromUuid(similarAnnotations, annotation.uuid)
 		similarAnnotations.splice(eraseIndex, 1)
 		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
-		this.onRemoveAnnotation(annotation.renderingObject)
+		this.removeAnnotation(annotation.renderingObject)
 
 		return true
 	}
@@ -1887,19 +1892,12 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 	}
 
-	onAddAnnotation = (object: THREE.Object3D): void => {
+	addAnnotation = (object: THREE.Object3D): void => {
 		this.scene.add(object)
 	}
 
-	onRemoveAnnotation = (object: THREE.Object3D): void => {
+	removeAnnotation = (object: THREE.Object3D): void => {
 		this.scene.remove(object)
-	}
-
-	// Ensure that the current UiState is compatible with a new active annotation.
-	// ANNOTATOR ONLY
-	onChangeActiveAnnotation = (active: Annotation): void => {
-		if (this.uiState.isRotationModeActive && !active.isRotatable)
-			this.toggleTransformControlsRotationMode()
 	}
 
 	// ANNOTATOR ONLY
