@@ -176,4 +176,11 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
     })
 	}
 
+	setCameraPreference(preference:CameraType) {
+    log.info("Setting camera preference", preference)
+    return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, cameraPreference: preference
+    })
+	}
+
 }

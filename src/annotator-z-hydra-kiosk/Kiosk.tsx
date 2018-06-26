@@ -61,6 +61,9 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
       flyThroughManager.startLoop()
 
+			// Register key events
+			this.registerKeyDownEvents()
+
 			this.setState({flyThroughManager})
 		}
 
@@ -74,8 +77,22 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 	}
 
+	private registerKeyDownEvents() {
+		const LEFT_ARROW_KEY_CODE = 37
+		const UP_ARROW_KEY_CODE = 38
+		const RIGHT_ARROW_KEY_CODE = 39
+		const DOWN_ARROW_KEY_CODE = 40
+		const cameraOffsetDelta = 1
+
+    this.state.sceneManager!.registerKeyboardEvent(LEFT_ARROW_KEY_CODE, () => {this.state.sceneManager!.adjustCameraXOffset(cameraOffsetDelta)})
+		this.state.sceneManager!.registerKeyboardEvent(UP_ARROW_KEY_CODE, () => {this.state.sceneManager!.adjustCameraYOffset(cameraOffsetDelta)})
+		this.state.sceneManager!.registerKeyboardEvent(RIGHT_ARROW_KEY_CODE, () => {this.state.sceneManager!.adjustCameraXOffset(-1 * cameraOffsetDelta)})
+		this.state.sceneManager!.registerKeyboardEvent(DOWN_ARROW_KEY_CODE, () => {this.state.sceneManager!.adjustCameraYOffset(-1 * cameraOffsetDelta)})
+	}
+
 	componentDidMount() {
 		// this.listen()
+
 	}
 
 	getCarManager = (carManager:CarManager) => {

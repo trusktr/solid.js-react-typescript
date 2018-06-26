@@ -33,6 +33,7 @@ interface StatusWindowProps {
 
 interface IStatusWindowState {
   locationServerStatusDisplayTimer: number
+  serverStatusDisplayTimer: number
   timeToDisplayHealthyStatusMs: number
   locationServerStatusClient: LocationServerStatusClient
 }
@@ -49,6 +50,7 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
     const locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
 		this.state = {
+      serverStatusDisplayTimer: 0,
       locationServerStatusDisplayTimer: 0,
       timeToDisplayHealthyStatusMs: 10000,
       locationServerStatusClient: locationServerStatusClient
@@ -142,6 +144,43 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 		this.setState({locationServerStatusDisplayTimer})
   }
 
+
+
+
+
+
+  // Display a UI element to tell the user what is happening with tile server. Error messages persist,
+  // and success messages disappear after a time-out.
+  onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
+    let message = 'Tile server status: '
+    if (tileServiceStatus) {
+      message += '<span class="statusOk">Available</span>'
+      this.delayHideTileServiceStatus()
+    } else {
+      message += '<span class="statusError">Unavailable</span>'
+      this.cancelHideTileServiceStatus()
+    }
+
+    new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
+  }
+
+  private delayHideTileServiceStatus = (): void => {
+    this.cancelHideTileServiceStatus()
+    this.hideTileServiceStatus()
+  }
+
+  private cancelHideTileServiceStatus = (): void => {
+    if (this.state.serverStatusDisplayTimer)
+      window.clearTimeout(this.state.serverStatusDisplayTimer)
+  }
+
+  private hideTileServiceStatus = (): void => {
+    const serverStatusDisplayTimer = window.setTimeout(() => {
+      new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, '')
+    }, this.state.timeToDisplayHealthyStatusMs)
+
+    this.setState({serverStatusDisplayTimer})
+  }
 
 
 

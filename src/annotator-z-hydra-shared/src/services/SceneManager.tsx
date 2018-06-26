@@ -24,6 +24,8 @@ import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointClou
 import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
 import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
 import {LocationServerStatusClient} from "@/annotator-entry-ui/status/LocationServerStatusClient";
+import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
+import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 
 const log = Logger(__filename)
 
@@ -271,7 +273,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
 		// @TODO - AnnotationManager needs to call loadUserData()
-		// @TODO - Beholder needs to call this.listen()
 
 		new RoadNetworkEditorActions().setSceneInitialized(true)
 	}
@@ -602,10 +603,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
-	registerKeyboardEvent(event:KeyboardEvent, fn:any) {
+	registerKeyboardEvent(eventKeyCode:number, fn:any) {
 		const registeredKeyboardEvents = this.state.registeredKeyDownEvents
 
-		registeredKeyboardEvents.set(event.keyCode, fn)
+		registeredKeyboardEvents.set(eventKeyCode, fn)
 		this.setState({
 			registeredKeyDownEvents: registeredKeyboardEvents
 		})
@@ -618,10 +619,21 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.setState({renderer: renderer})
 	}
 
+	adjustCameraXOffset(value:number) {
+    const cameraOffset = this.state.cameraOffset
+    cameraOffset.x += value
+    this.setState({cameraOffset})
+  }
+
+  adjustCameraYOffset(value:number) {
+    const cameraOffset = this.state.cameraOffset
+    cameraOffset.y += value
+    this.setState({cameraOffset})
+  }
+
 	/**
 	 * Handle keyboard events
 	 */
-		// BOTH
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
 
@@ -808,6 +820,45 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
       else
         return null
     }
+  }
+
+  // Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
+	toggleCameraType(): void {
+    let oldCamera: THREE.Camera
+    let newCamera: THREE.Camera
+    let newType: CameraType
+    if (this.state.camera === this.state.perspectiveCamera) {
+      oldCamera = this.state.perspectiveCamera
+      newCamera = this.state.orthographicCamera
+      newType = CameraType.ORTHOGRAPHIC
+    } else {
+      oldCamera = this.state.orthographicCamera
+      newCamera = this.state.perspectiveCamera
+      newType = CameraType.PERSPECTIVE
+    }
+
+    // Copy over the camera position. When the next animate() runs, the new camera will point at the
+    // same target as the old camera, since the target is maintained by OrbitControls. That takes
+    // care of position and orientation, but not zoom. PerspectiveCamera and OrthographicCamera
+    // calculate zoom differently. It would be nice to convert one to the other here.
+    newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
+
+		// used to be --> this.annotatorCamera = newCamera
+		this.setState({camera: newCamera})
+
+    this.onWindowResize()
+
+    this.transformControls.setCamera(newCamera)
+    this.annotatorOrbitControls.setCamera(newCamera)
+    this.flyThroughOrbitControls.setCamera(newCamera)
+
+    // RYAN UPDATED
+    // this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
+    new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
+
+
+		new RoadNetworkEditorActions().setCameraPreference(newType)
+    this.renderScene()
   }
 
 
