@@ -11,6 +11,7 @@ import {isTupleOfNumbers} from "@/util/Validation";
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
+import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 
 const log = Logger(__filename)
 
@@ -20,6 +21,7 @@ export interface PointCloudManagerProps {
   layerManager: LayerManager
   handleTileManagerLoadError: (err: Error) => void
   isPointCloudVisible ?: boolean
+  getCurrentPointOfInterest ?: () => THREE.Vector3 | null
 }
 
 export interface PointCloudManagerState {
@@ -77,6 +79,38 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
   }
 
+  componentWillReceiveProps(newProps) {
+    if(newProps.isPointCloudVisible !== this.props.isPointCloudVisible) {
+      if(newProps.isPointCloudVisible) {
+        this.showPointCloud()
+      } else {
+        this.hidePointCloud()
+      }
+
+    }
+
+  }
+
+  private showPointCloud():void {
+    new RoadNetworkEditorActions().setIsDecorationsVisible(true)
+    this.props.pointCloudTileManager.getPointClouds().forEach(pc => this.props.sceneManager.addObjectToScene(pc))
+
+    const pointCloudBoundingBox = this.getPointCloudBoundingBox()
+    if (pointCloudBoundingBox)
+      this.props.sceneManager.addObjectToScene(pointCloudBoundingBox)
+  }
+
+  private hidePointCloud():void {
+    new RoadNetworkEditorActions().setIsDecorationsVisible(false)
+    this.props.pointCloudTileManager.getPointClouds().forEach(pc => this.props.sceneManager.removeObjectToScene(pc))
+
+    const pointCloudBoundingBox = this.getPointCloudBoundingBox()
+    if (pointCloudBoundingBox)
+      this.props.sceneManager.removeObjectToScene(pointCloudBoundingBox)
+  }
+
+
+
   // only called as a keyboard shortcut
   unloadPointCloudData(): void {
     if (this.props.pointCloudTileManager.unloadAllTiles()) {
@@ -113,6 +147,21 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     }
   }
 
+  /**
+   * Set the point cloud as the center of the visible world.
+   */
+  // Currently this function is only used on keyboard shortcuts
+  // @TODO long term move orbit controls to Camera Manger
+  focusOnPointCloud(): void {
+    const center = this.props.pointCloudTileManager.centerPoint()
+    if(!center) {
+      log.warn('point cloud has not been initialized')
+      return
+    }
+
+    new RoadNetworkEditorActions().setOrbitControlsTargetPoint(center)
+  }
+
   getPointCloudBoundingBox(): THREE.BoxHelper | null {
     return this.state.pointCloudBoundingBox
   }
@@ -123,8 +172,12 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     this.props.layerManager.setLayerVisibility([Layer.POINT_CLOUD.toString()])
 
     this.updatePointCloudBoundingBox()
-    this.props.sceneManager.setCompassRoseByPointCloud()
-    this.props.sceneManager.setStageByPointCloud(resetCamera)
+    this.setCompassRoseByPointCloud()
+
+    const focalPoint = this.props.pointCloudTileManager.centerPoint()
+    if (focalPoint)
+      this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z, resetCamera)
+
     this.props.sceneManager.renderScene()
   }
 
@@ -182,27 +235,24 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     return pointCloudResult
   }
 
+  /**
+   * 	Display the compass rose just outside the bounding box of the point cloud.
+   */
+  setCompassRoseByPointCloud(): void {
+    const boundingBox = this.props.pointCloudTileManager.getLoadedObjectsBoundingBox()
+    if (!boundingBox) {
+      log.error("Attempting to set compassRose, unable to find bounding box")
+      return
+    }
 
+    // Find the center of one of the sides of the bounding box. This is the side that is
+    // considered to be North given the current implementation of UtmInterface.utmToThreeJs().
+    const topPoint = boundingBox.getCenter().setZ(boundingBox.min.z)
+    const boundingBoxHeight = Math.abs(boundingBox.max.z - boundingBox.min.z)
+    const zOffset = boundingBoxHeight / 10
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    new RoadNetworkEditorActions().setCompassRosePosition(new THREE.Vector3(topPoint.x, topPoint.y, topPoint.z - zOffset))
+  }
 
 
 
@@ -215,16 +265,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       log.warn("Unable to hide point cloud bounding box for fly through")
     }
   }
-
-
-
-
-
-
-
-
-
-
 
   updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
     if (this.state.aoiState.enabled) {
@@ -249,7 +289,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     // TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
     if (this.props.pointCloudTileManager.isLoadingTiles) return
 
-    const currentPoint = this.props.sceneManager.currentPointOfInterest()
+    const currentPoint = this.props.getCurrentPointOfInterest()
     if (currentPoint) {
       const oldPoint = this.state.aoiState.focalPoint
       const newPoint = currentPoint.clone().round()

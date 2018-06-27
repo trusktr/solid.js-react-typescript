@@ -1,3 +1,4 @@
+import * as THREE from "three"
 import config from '@/config'
 import {ActionFactory, ActionMessage, ActionReducer} from "typedux"
 import RoadNetworkEditorState from "annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState"
@@ -59,10 +60,15 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 
 			cameraPreference: CameraType.PERSPECTIVE,
 			sceneInitialized: false,
+
+      compassRosePosition: new THREE.Vector3(0, 0, 0),
+
+			isDecorationsVisible: false,
       isPointCloudVisible: true,
       isImageScreensVisible: true,
       isAnnotationsVisible: true,
 
+      orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0)
 		}
 
 		return (__roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState(defaultState)
@@ -169,6 +175,14 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
   }
 
   @ActionReducer()
+  setIsDecorationsVisible(isVisible:boolean) {
+    log.info("Setting isDecorationsVisible", isVisible)
+    return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, isDecorationsVisible: isVisible
+    })
+  }
+
+  @ActionReducer()
   setCarInitialized(isSetup:boolean) {
     log.info("Setting isCarInitialized", isSetup)
     return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
@@ -176,10 +190,27 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
     })
 	}
 
+  @ActionReducer()
 	setCameraPreference(preference:CameraType) {
     log.info("Setting camera preference", preference)
     return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
       ...roadEditorState, cameraPreference: preference
+    })
+	}
+
+  @ActionReducer()
+	setCompassRosePosition(position:THREE.Vector3) {
+    log.info("Setting compass rose position", position)
+    return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, compassRosePosition: position
+    })
+	}
+
+	@ActionReducer()
+  setOrbitControlsTargetPoint(targetPoint:THREE.Vector3) {
+    log.info("Setting orbit controls target point", targetPoint)
+    return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, orbitControlsTargetPoint: targetPoint
     })
 	}
 

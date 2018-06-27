@@ -15,6 +15,10 @@ import {UtmCoordinateSystem} from "../UtmCoordinateSystem";
 import {AuroraCameraParameters} from "./CameraParameters"
 import config from '@/config'
 import Logger from "@/util/log"
+import * as React from "react";
+import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import {createStructuredSelector} from "reselect";
 
 const log = Logger(__filename)
 
@@ -27,9 +31,20 @@ interface ImageManagerSettings {
 	clickedRayLength: number // length in meters of a ray cast from a camera through an image screen
 }
 
+export interface IProps {
+  isImageScreensVisible:boolean
+}
+
+export interface IState {
+
+}
+
 // This tracks a set of images which can be displayed within the 3D scene as well as
 // a subset of images which are loaded in their own window for closer inspection.
-export class ImageManager {
+@typedConnect(createStructuredSelector({
+  isImageScreensVisible: (state) => state.get(RoadEditorState.Key).isImageScreensVisible,
+}))
+export class ImageManager extends React.Component<IProps, IState> {
 	private utmCoordinateSystem: UtmCoordinateSystem
 	private settings: ImageManagerSettings
 	private imageScreens: ImageScreen[]
@@ -44,13 +59,14 @@ export class ImageManager {
 	loadedImageDetails: OrderedSet<CalibratedImage>
 
 	constructor(
-		utmCoordinateSystem: UtmCoordinateSystem,
-		opacity: number,
-		renderAnnotator: () => void,
-		onImageScreenLoad: (imageScreen: ImageScreen) => void,
-		onLightboxImageRay: (ray: THREE.Line | null) => void,
-		onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void,
-		onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void,
+		props
+		// utmCoordinateSystem: UtmCoordinateSystem,
+		// opacity: number,
+		// renderAnnotator: () => void,
+		// onImageScreenLoad: (imageScreen: ImageScreen) => void,
+		// onLightboxImageRay: (ray: THREE.Line | null) => void,
+		// onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void,
+		// onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void,
 	) {
 		this.utmCoordinateSystem = utmCoordinateSystem
 		this.settings = {
@@ -71,6 +87,16 @@ export class ImageManager {
 		this.loadedImageDetails = OrderedSet()
 	}
 
+	componentWillReceiveProps(newProps) {
+    if(newProps.isImageScreensVisible !== this.props.isImageScreensVisible) {
+      if(newProps.isImageScreensVisible) {
+        this.showImageScreens()
+      } else {
+        this.hideImageScreens()
+      }
+    }
+	}
+
 	// Set opacity of all images.
 	setOpacity(opacity: number): boolean {
 		if (this.opacity === opacity)
@@ -82,11 +108,11 @@ export class ImageManager {
 		return true
 	}
 
-	showImageScreens(): void {
+	private showImageScreens(): void {
 		this.imageScreens.forEach(i => i.makeVisible())
 	}
 
-	hideImageScreens(): void {
+	private hideImageScreens(): void {
 		this.imageScreens.forEach(i => i.makeInvisible())
 	}
 
