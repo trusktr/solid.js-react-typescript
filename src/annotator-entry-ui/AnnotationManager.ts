@@ -1430,13 +1430,13 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 
-    /// the rest is migrated from Annotator.tsx ////////////////////////////////
+	/// the rest is migrated from Annotator.tsx ////////////////////////////////
 
 	// Load tiles within a bounding box and add them to the scene.
 	// ANNOTATOR ONLY???
 	loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false): Promise<void> {
 		return this.annotationTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
-        // TODO JOE AnnotationTileManager needs ref to AnnotationTileManager
+		// TODO JOE AnnotationTileManager needs ref to AnnotationTileManager
 			.then(loaded => {
 				if (loaded) this.annotationLoadedSideEffects()
 			})
@@ -1451,12 +1451,12 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	loadAnnotations(fileName: string): Promise<void> {
 		log.info('Loading annotations from ' + fileName)
 		this.layerManager.setLayerVisibility([Layer.ANNOTATIONS])
-        // TODO JOE AnnotationManager needs ref to LayerManager
+		// TODO JOE AnnotationManager needs ref to LayerManager
 		return this.loadAnnotationsFromFile(fileName)
 			.then(focalPoint => {
 				if (focalPoint)
 					this.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
-                    // TODO JOE AnnotationManager needs ref to SceneManager
+					// TODO JOE AnnotationManager needs ref to SceneManager
 			})
 			.catch(err => {
 				log.error(err.message)
@@ -1512,10 +1512,10 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (intersections.length) {
 			this.addMarkerToActiveAnnotation(intersections[0].point)
 
-            // TODO JOE render update should happen at the leafmost part of the
-            // stack where the update happens, somewhere in the above
-            // addMarkerToActiveAnnotation. This will prevent outside code from
-            // having to know when to update the scene.
+			// TODO JOE render update should happen at the leafmost part of the
+			// stack where the update happens, somewhere in the above
+			// addMarkerToActiveAnnotation. This will prevent outside code from
+			// having to know when to update the scene.
 			// GONE this.renderAnnotator()
 		}
 	}
@@ -1674,7 +1674,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 		}
 
-        // GONE this.renderAnnotator()
+		// GONE this.renderAnnotator()
 	}
 
 	/**
@@ -1726,7 +1726,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// update UI panel
 		this.resetAllAnnotationPropertiesMenuElements()
 
-        // GONE this.renderAnnotator()
+		// GONE this.renderAnnotator()
 	}
 
 	// ANNOTATOR ONLY
@@ -1775,7 +1775,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				this.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
 				this.annotationManager.setActiveAnnotation(inactive)
 				this.resetAllAnnotationPropertiesMenuElements()
-                // GONE this.renderAnnotator()
+				// GONE this.renderAnnotator()
 			}
 		}
 	}
@@ -1827,7 +1827,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				// HOVER ON
 				this.transformControls.attach(moveableMarkers)
 				this.cancelHideTransform()
-                // GONE this.renderAnnotator()
+				// GONE this.renderAnnotator()
 			}
 		} else {
 			if (this.hovered !== null) {
@@ -1835,7 +1835,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				this.renderer.domElement.style.cursor = 'auto'
 				this.hovered = null
 				this.delayHideTransform()
-                // GONE this.renderAnnotator()
+				// GONE this.renderAnnotator()
 			}
 		}
 	}
@@ -1873,7 +1873,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 					log.info("removed conflict")
 					dstAnnotation.makeInactive()
 				}
-                // GONE this.renderAnnotator()
+				// GONE this.renderAnnotator()
 				return
 			}
 
@@ -1900,7 +1900,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 					log.info("removed traffic device")
 					dstAnnotation.makeInactive()
 				}
-                // GONE this.renderAnnotator()
+				// GONE this.renderAnnotator()
 			}
 		}
 	}

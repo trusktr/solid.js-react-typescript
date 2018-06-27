@@ -11,92 +11,92 @@ const log = Logger(__filename)
 
 
 export enum Layer {
-  POINT_CLOUD,
-  IMAGE_SCREENS,
-  ANNOTATIONS,
+	POINT_CLOUD,
+	IMAGE_SCREENS,
+	ANNOTATIONS,
 }
 
 export interface LayerManagerProps {
-  onRenender: () => void
-  isPointCloudVisible ?: boolean
+	onRenender: () => void
+	isPointCloudVisible ?: boolean
 }
 
 export interface LayerManagerState {
-  layerToggles: Map<string, LayerToggle>
+	layerToggles: Map<string, LayerToggle>
 
 }
 
 @typedConnect(createStructuredSelector({
-  isPointCloudVisible: (state) => state.get(RoadEditorState.Key).isPointCloudVisible,
+	isPointCloudVisible: (state) => state.get(RoadEditorState.Key).isPointCloudVisible,
 
 }))
 export default class LayerManager extends React.Component<LayerManagerProps, LayerManagerState> {
 
-  constructor(props) {
-    super(props)
+	constructor(props) {
+		super(props)
 
-    const pointCloudLayerToggle = new LayerToggle({
-      show: () => {new RoadNetworkEditorActions().setIsPointCloudVisible(true)},
-      hide: () => {new RoadNetworkEditorActions().setIsPointCloudVisible(false)}
-    })
+		const pointCloudLayerToggle = new LayerToggle({
+			show: () => {new RoadNetworkEditorActions().setIsPointCloudVisible(true)},
+			hide: () => {new RoadNetworkEditorActions().setIsPointCloudVisible(false)}
+		})
 
-    const imageScreensLayerToggle = new LayerToggle({
-      show: () => {new RoadNetworkEditorActions().setIsImageScreensVisible(false)},
-      hide: () => {new RoadNetworkEditorActions().setIsImageScreensVisible(false)}
-    })
+		const imageScreensLayerToggle = new LayerToggle({
+			show: () => {new RoadNetworkEditorActions().setIsImageScreensVisible(false)},
+			hide: () => {new RoadNetworkEditorActions().setIsImageScreensVisible(false)}
+		})
 
-    const annotationLayerToggle = new LayerToggle({
-      show: () => {new RoadNetworkEditorActions().setIsAnnotationsVisible(true)},
-      hide: () => {new RoadNetworkEditorActions().setIsAnnotationsVisible(false)}
-    })
+		const annotationLayerToggle = new LayerToggle({
+			show: () => {new RoadNetworkEditorActions().setIsAnnotationsVisible(true)},
+			hide: () => {new RoadNetworkEditorActions().setIsAnnotationsVisible(false)}
+		})
 
-    this.state = {
-      layerToggles: new Map([
-        [Layer.POINT_CLOUD.toString(), pointCloudLayerToggle],
-        [Layer.IMAGE_SCREENS.toString(), imageScreensLayerToggle],
-        [Layer.ANNOTATIONS.toString(), annotationLayerToggle]
-      ])
-    }
-  }
+		this.state = {
+			layerToggles: new Map([
+				[Layer.POINT_CLOUD.toString(), pointCloudLayerToggle],
+				[Layer.IMAGE_SCREENS.toString(), imageScreensLayerToggle],
+				[Layer.ANNOTATIONS.toString(), annotationLayerToggle]
+			])
+		}
+	}
 
-  addLayerToggle(layerName:string, toggle:LayerToggle) {
-    const layerToggles = this.state.layerToggles
-    layerToggles.set(layerName, toggle)
-    this.setState({layerToggles})
-  }
+	addLayerToggle(layerName:string, toggle:LayerToggle) {
+		const layerToggles = this.state.layerToggles
+		layerToggles.set(layerName, toggle)
+		this.setState({layerToggles})
+	}
 
-  // Ensure that some layers of the model are visible. Optionally hide the other layers.
-  setLayerVisibility(layerKeysToShow: string[], hideOthers: boolean = false): void {
-    let updated = 0
+	// Ensure that some layers of the model are visible. Optionally hide the other layers.
+	setLayerVisibility(layerKeysToShow: string[], hideOthers: boolean = false): void {
+		let updated = 0
 
-    layerKeysToShow.forEach(key => {
-      if (this.state.layerToggles.has(key)) {
-        // tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
-        this.state.layerToggles.get(key)!.show()
-        updated++
-      }
-    else
-        log.error(`missing visibility toggle for ${key}`)
-    })
+		layerKeysToShow.forEach(key => {
+			if (this.state.layerToggles.has(key)) {
+				// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
+				this.state.layerToggles.get(key)!.show()
+				updated++
+			}
+			else
+			log.error(`missing visibility toggle for ${key}`)
+		})
 
-    if (hideOthers) {
-      const hide = lodash.difference(Array.from(this.state.layerToggles.keys()), layerKeysToShow)
-      hide.forEach(key => {
-        if (this.state.layerToggles.has(key)) {
-          // tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
-          this.state.layerToggles.get(key)!.hide()
-          updated++
-        }
-        else
-          log.error(`missing visibility toggle for ${key}`)
-      })
-    }
+		if (hideOthers) {
+			const hide = lodash.difference(Array.from(this.state.layerToggles.keys()), layerKeysToShow)
+			hide.forEach(key => {
+				if (this.state.layerToggles.has(key)) {
+					// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
+					this.state.layerToggles.get(key)!.hide()
+					updated++
+				}
+				else
+				log.error(`missing visibility toggle for ${key}`)
+			})
+		}
 
-    if (updated)
-      this.props.onRenender()
-  }
+		if (updated)
+		this.props.onRenender()
+	}
 
-  render() {
-    return null
-  }
+	render() {
+		return null
+	}
 }
