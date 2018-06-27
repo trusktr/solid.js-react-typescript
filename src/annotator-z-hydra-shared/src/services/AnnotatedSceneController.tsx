@@ -72,7 +72,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         <StatusWindow ref={this.getStatusWindow} utmCoordinateSystem={}/>
         <PointCloudManager ref={this.getPointCloudManager} sceneManager={} pointCloudTileManager={} layerManager={} handleTileManagerLoadError={} getCurrentPointOfInterest={this.currentPointOfInterest}/>
         <SceneManager ref={this.getSceneManager} width={1000} height={1000}/>
-        <LayerManager ref={this.getLayerManager} sceneManager={} annotationManager={} pointCloudTileManager={} pointCloudManager={} imageManager={} onRerender={}/>
+        <LayerManager ref={this.getLayerManager} sceneManager={this.state.sceneManager!} annotationManager={} pointCloudTileManager={} pointCloudManager={} imageManager={} onRerender={}/>
       </React.Fragment>
     )
 	}

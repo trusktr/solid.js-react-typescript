@@ -10,7 +10,6 @@ import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
-import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager";
 import {PointCloudTileManager} from "@/annotator-entry-ui/tile/PointCloudTileManager";
 import {ImageScreen} from "@/annotator-entry-ui/image/ImageScreen";
 import {ImageManager} from "@/annotator-entry-ui/image/ImageManager";
@@ -27,14 +26,11 @@ export enum Layer {
 
 export interface LayerManagerProps {
   sceneManager: SceneManager
-  annotationManager: AnnotationManager
   pointCloudTileManager: PointCloudTileManager
   pointCloudManager: PointCloudManager
   imageManager: ImageManager
   onRerender: () => void
   isPointCloudVisible ?: boolean
-  isImageScreensVisible ?: boolean
-  isAnnotationsVisible ?: boolean
 }
 
 export interface LayerManagerState {
@@ -44,8 +40,6 @@ export interface LayerManagerState {
 
 @typedConnect(createStructuredSelector({
   isPointCloudVisible: (state) => state.get(RoadEditorState.Key).isPointCloudVisible,
-  isImageScreensVisible: (state) => state.get(RoadEditorState.Key).isImageScreensVisible,
-  isAnnotationsVisible: (state) => state.get(RoadEditorState.Key).isAnnotationsVisible,
 
 }))
 export default class LayerManager extends React.Component<LayerManagerProps, LayerManagerState> {
@@ -54,8 +48,16 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
     super(props)
 
     const pointCloudLayerToggle = new LayerToggle({show: this.showPointCloud, hide: this.hidePointCloud})
-    const imageScreensLayerToggle = new LayerToggle({show: this.showImageScreens, hide: this.hideImageScreens})
-    const annotationLayerToggle = new LayerToggle({show: this.showAnnotations, hide: this.hideAnnotations})
+
+    const imageScreensLayerToggle = new LayerToggle({
+      show: () => {new RoadNetworkEditorActions().setIsImageScreensVisible(false)},
+      hide: () => {new RoadNetworkEditorActions().setIsImageScreensVisible(false)}
+    })
+
+    const annotationLayerToggle = new LayerToggle({
+      show: () => {new RoadNetworkEditorActions().setIsAnnotationsVisible(true)},
+      hide: () => {new RoadNetworkEditorActions().setIsAnnotationsVisible(false)}
+    })
 
     this.state = {
       layerToggles: new Map([
@@ -106,7 +108,7 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
   private hidePointCloud = (): boolean => {
     if (!this.props.isPointCloudVisible)
       return false
-    this.props.sceneManager.hideDecorations()
+    new RoadNetworkEditorActions().setIsDecorationsVisible(false)
     this.props.pointCloudTileManager.getPointClouds().forEach(pc => this.props.sceneManager.removeObjectToScene(pc))
 
     const pointCloudBoundingBox = this.props.pointCloudManager.getPointCloudBoundingBox()
@@ -119,7 +121,7 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
   private showPointCloud = (): boolean => {
     if (this.props.isPointCloudVisible)
       return false
-    this.props.sceneManager.showDecorations()
+    new RoadNetworkEditorActions().setIsDecorationsVisible(true)
     this.props.pointCloudTileManager.getPointClouds().forEach(pc => this.props.sceneManager.addObjectToScene(pc))
 
     const pointCloudBoundingBox = this.props.pointCloudManager.getPointCloudBoundingBox()
@@ -127,38 +129,6 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
       this.props.sceneManager.addObjectToScene(pointCloudBoundingBox)
 
     new RoadNetworkEditorActions().setIsPointCloudVisible(true)
-    return true
-  }
-
-  private hideImageScreens = (): boolean => {
-    if (!this.props.isImageScreensVisible)
-      return false
-    this.props.imageManager.hideImageScreens()
-    new RoadNetworkEditorActions().setIsImageScreensVisible(false)
-    return true
-  }
-
-  private showImageScreens = (): boolean => {
-    if (this.props.isImageScreensVisible)
-      return false
-    this.props.imageManager.showImageScreens()
-    new RoadNetworkEditorActions().setIsImageScreensVisible(true)
-    return true
-  }
-
-  private hideAnnotations = (): boolean => {
-    if (!this.props.isAnnotationsVisible)
-      return false
-    this.props.annotationManager.hideAnnotations()
-    new RoadNetworkEditorActions().setIsAnnotationsVisible(false)
-    return true
-  }
-
-  private showAnnotations = (): boolean => {
-    if (this.props.isAnnotationsVisible)
-      return false
-    this.props.annotationManager.showAnnotations()
-    new RoadNetworkEditorActions().setIsAnnotationsVisible(true)
     return true
   }
 

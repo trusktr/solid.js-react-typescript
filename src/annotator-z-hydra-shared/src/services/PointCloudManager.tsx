@@ -11,6 +11,7 @@ import {isTupleOfNumbers} from "@/util/Validation";
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
+import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 
 const log = Logger(__filename)
 
@@ -199,7 +200,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     const boundingBoxHeight = Math.abs(boundingBox.max.z - boundingBox.min.z)
     const zOffset = boundingBoxHeight / 10
 
-    this.props.sceneManager.updateCompassRosePosition(topPoint.x, topPoint.y, topPoint.z - zOffset)
+    new RoadNetworkEditorActions().setCompassRosePosition(new THREE.Vector3(topPoint.x, topPoint.y, topPoint.z - zOffset))
   }
 
 

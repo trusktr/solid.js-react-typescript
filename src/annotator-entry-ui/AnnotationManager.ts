@@ -68,7 +68,7 @@ interface IProps {
 	onAddAnnotationobject(object: THREE.Object3D): void
 	onRemoveAnnotation(object: THREE.Object3D): void
 	onChangeActiveAnnotation(active: Annotation): void
-
+  isAnnotationsVisible: boolean
 }
 
 interface IState {
@@ -85,6 +85,8 @@ interface IState {
 	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
 
 	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
+
+  isAnnotationsVisible: (state) => state.get(RoadEditorState.Key).isAnnotationsVisible,
 }))
 export class AnnotationManager extends React.Component<IProps, IState> {
 	laneAnnotations: Array<Lane>
@@ -107,6 +109,16 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.activeAnnotation = null
 		this.metadataState = new AnnotationState(this)
 		this.bezierScaleFactor = 6
+	}
+
+	componentWillReceiveProps(newProps) {
+		if(newProps.isAnnotationsVisible !== this.props.isAnnotationsVisible) {
+			if(newProps.isAnnotationsVisible) {
+				this.showAnnotations()
+			} else {
+				this.hideAnnotations()
+			}
+		}
 	}
 
 	/**
@@ -532,11 +544,11 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		return true
 	}
 
-	showAnnotations(): void {
+	private showAnnotations(): void {
 		this.allAnnotations().forEach(a => a.makeVisible())
 	}
 
-	hideAnnotations(): void {
+	private hideAnnotations(): void {
 		this.allAnnotations().forEach(a => a.makeInvisible())
 	}
 

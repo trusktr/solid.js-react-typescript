@@ -32,13 +32,13 @@ export interface SceneManagerProps {
 	width: number
 	height: number
 	shouldAnimate ?: boolean
+  compassRosePosition ?: THREE.Vector3
+  isDecorationsVisible ?: boolean
 }
 
 
 
 export interface SceneManagerState {
-	// width: number
-	// height: number
 	plane: THREE.Mesh
 	grid: THREE.GridHelper
 	axis: THREE.Object3D
@@ -80,6 +80,8 @@ export interface SceneManagerState {
 
 @typedConnect(createStructuredSelector({
 	shouldAnimate: (state) => state.get(RoadEditorState.Key).shouldAnimate,
+  compassRosePosition: (state) => state.get(RoadEditorState.Key).compassRosePosition,
+  isDecorationsVisible: (state) => state.get(RoadEditorState.Key).isDecorationsVisible,
 }))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
@@ -266,6 +268,21 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// @TODO - AnnotationManager needs to call loadUserData()
 
 		new RoadNetworkEditorActions().setSceneInitialized(true)
+	}
+
+	componentWillReceiveProps(newProps) {
+		if(newProps.compassRosePosition !== this.props.compassRosePosition) {
+			const position = newProps.compassRosePosition
+			this.setCompassRosePosition(position.x, position.y, position.z)
+		}
+
+		if(newProps.isDecorationsVisible !== this.props.isDecorationsVisible) {
+			if(newProps.isDecorationsVisible) {
+        this.showDecorations()
+			} else {
+        this.hideDecorations()
+			}
+		}
 	}
 
 	componentDidMount() {
@@ -702,12 +719,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			})
 		})
 	}
-	showDecorations() {
+	private showDecorations() {
 		this.state.decorations.forEach(d => d.visible = true)
 		// @TODO @Joe/Ryan (see comment immediately below)
 	}
 
-	hideDecorations() {
+	private hideDecorations() {
 		this.state.decorations.forEach(d => d.visible = false)
 		// @TODO @Joe (from ryan) should we render the scene again since the state isn't being update, just decorations?
 		// ?? -- [ryan added] this.renderScene()
@@ -715,7 +732,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
 
-  updateCompassRosePosition(x, y, z) {
+  private setCompassRosePosition(x, y, z) {
     if (!this.state.compassRose){
     	log.error("Unable to find compassRose")
     	return

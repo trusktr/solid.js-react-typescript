@@ -44,7 +44,13 @@ export default class RoadNetworkEditorState {
 
 	sceneInitialized: boolean
 
+
+
+
+	compassRosePosition: THREE.Vector3
+	isDecorationsVisible: boolean
   isPointCloudVisible: boolean
   isImageScreensVisible: boolean
   isAnnotationsVisible: boolean
+
 }
