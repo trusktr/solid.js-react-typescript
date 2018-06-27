@@ -72,7 +72,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         <StatusWindow ref={this.getStatusWindow} utmCoordinateSystem={}/>
         <PointCloudManager ref={this.getPointCloudManager} sceneManager={} pointCloudTileManager={} layerManager={} handleTileManagerLoadError={} getCurrentPointOfInterest={this.currentPointOfInterest}/>
         <SceneManager ref={this.getSceneManager} width={1000} height={1000}/>
-        <LayerManager ref={this.getLayerManager} sceneManager={this.state.sceneManager!} annotationManager={} pointCloudTileManager={} pointCloudManager={} imageManager={} onRerender={}/>
+        <LayerManager ref={this.getLayerManager} onRerender={}/>
       </React.Fragment>
     )
 	}
@@ -83,14 +83,11 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   // Currently this function is only used on keyboard shortcuts
   // @TODO long term move orbit controls to Camera Manger
   focusOnPointCloud(): void {
-    const center = this.state.pointCloudTileManager.centerPoint()
-    if(!center) {
-      log.warn('point cloud has not been initialized')
-    }
-
-    this.state.sceneManager!.setOrbitControlsTargetPoint(center)
+    this.state.pointCloudManager!.focusOnPointCloud()
     this.displayCameraInfo()
   }
+
+
 
   // @TODO long term move orbit controls to Camera Manger
   // Display some info in the UI about where the camera is pointed.

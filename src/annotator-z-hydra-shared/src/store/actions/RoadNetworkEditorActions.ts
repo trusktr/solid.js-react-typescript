@@ -67,6 +67,8 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
       isPointCloudVisible: true,
       isImageScreensVisible: true,
       isAnnotationsVisible: true,
+
+      orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0)
 		}
 
 		return (__roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState(defaultState)
@@ -203,4 +205,13 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
       ...roadEditorState, compassRosePosition: position
     })
 	}
+
+	@ActionReducer()
+  setOrbitControlsTargetPoint(targetPoint:THREE.Vector3) {
+    log.info("Setting orbit controls target point", targetPoint)
+    return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, orbitControlsTargetPoint: targetPoint
+    })
+	}
+
 }

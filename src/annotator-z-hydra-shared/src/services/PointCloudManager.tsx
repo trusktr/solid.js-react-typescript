@@ -79,6 +79,38 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
   }
 
+  componentWillReceiveProps(newProps) {
+    if(newProps.isPointCloudVisible !== this.props.isPointCloudVisible) {
+      if(newProps.isPointCloudVisible) {
+        this.showPointCloud()
+      } else {
+        this.hidePointCloud()
+      }
+
+    }
+
+  }
+
+  private showPointCloud():void {
+    new RoadNetworkEditorActions().setIsDecorationsVisible(true)
+    this.props.pointCloudTileManager.getPointClouds().forEach(pc => this.props.sceneManager.addObjectToScene(pc))
+
+    const pointCloudBoundingBox = this.getPointCloudBoundingBox()
+    if (pointCloudBoundingBox)
+      this.props.sceneManager.addObjectToScene(pointCloudBoundingBox)
+  }
+
+  private hidePointCloud():void {
+    new RoadNetworkEditorActions().setIsDecorationsVisible(false)
+    this.props.pointCloudTileManager.getPointClouds().forEach(pc => this.props.sceneManager.removeObjectToScene(pc))
+
+    const pointCloudBoundingBox = this.getPointCloudBoundingBox()
+    if (pointCloudBoundingBox)
+      this.props.sceneManager.removeObjectToScene(pointCloudBoundingBox)
+  }
+
+
+
   // only called as a keyboard shortcut
   unloadPointCloudData(): void {
     if (this.props.pointCloudTileManager.unloadAllTiles()) {
@@ -115,6 +147,21 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     }
   }
 
+  /**
+   * Set the point cloud as the center of the visible world.
+   */
+  // Currently this function is only used on keyboard shortcuts
+  // @TODO long term move orbit controls to Camera Manger
+  focusOnPointCloud(): void {
+    const center = this.props.pointCloudTileManager.centerPoint()
+    if(!center) {
+      log.warn('point cloud has not been initialized')
+      return
+    }
+
+    new RoadNetworkEditorActions().setOrbitControlsTargetPoint(center)
+  }
+
   getPointCloudBoundingBox(): THREE.BoxHelper | null {
     return this.state.pointCloudBoundingBox
   }
@@ -126,7 +173,11 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
     this.updatePointCloudBoundingBox()
     this.setCompassRoseByPointCloud()
-    this.props.sceneManager.setStageByPointCloud(resetCamera)
+
+    const focalPoint = this.props.pointCloudTileManager.centerPoint()
+    if (focalPoint)
+      this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z, resetCamera)
+
     this.props.sceneManager.renderScene()
   }
 

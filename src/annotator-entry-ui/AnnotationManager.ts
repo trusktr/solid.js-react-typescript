@@ -1449,7 +1449,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		return this.loadAnnotationsFromFile(fileName)
 			.then(focalPoint => {
 				if (focalPoint)
-					this.sceneManager.setStageByVector(focalPoint)
+					this.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
                     // TODO JOE AnnotationManager needs ref to SceneManager
 			})
 			.catch(err => {

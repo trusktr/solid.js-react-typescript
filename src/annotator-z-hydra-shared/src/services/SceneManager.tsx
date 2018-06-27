@@ -13,16 +13,10 @@ import {OrbitControls} from "@/annotator-entry-ui/controls/OrbitControls";
 import {getValue} from "typeguard";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
-import LayerToggle from "@/annotator-z-hydra-shared/src/models/LayerToggle";
-import {PointCloudTileManager} from "@/annotator-entry-ui/tile/PointCloudTileManager";
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider";
 import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
 import {getDecorations} from "@/annotator-entry-ui/Decorations";
 import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
-import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
-import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
-import {LocationServerStatusClient} from "@/annotator-entry-ui/status/LocationServerStatusClient";
 import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 
@@ -34,6 +28,7 @@ export interface SceneManagerProps {
 	shouldAnimate ?: boolean
   compassRosePosition ?: THREE.Vector3
   isDecorationsVisible ?: boolean
+  orbitControlsTargetPoint ?: THREE.Vector3
 }
 
 
@@ -67,8 +62,6 @@ export interface SceneManagerState {
 	registeredKeyUpEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
 
 	pointCloudManager: PointCloudManager | null
-	pointCloudTileManager: PointCloudTileManager
-
 
 	scaleProvider: ScaleProvider
 	utmCoordinateSystem: UtmCoordinateSystem
@@ -82,6 +75,7 @@ export interface SceneManagerState {
 	shouldAnimate: (state) => state.get(RoadEditorState.Key).shouldAnimate,
   compassRosePosition: (state) => state.get(RoadEditorState.Key).compassRosePosition,
   isDecorationsVisible: (state) => state.get(RoadEditorState.Key).isDecorationsVisible,
+  orbitControlsTargetPoint: (state) => state.get(RoadEditorState.Key).orbitControlsTargetPoint,
 }))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
@@ -195,13 +189,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		const scaleProvider = new ScaleProvider()
 		const utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
-		const pointCloudTileManager = new PointCloudTileManager(
-			scaleProvider,
-			utmCoordinateSystem,
-			this.onSuperTileLoad,
-			this.onSuperTileUnload,
-			tileServiceClient,
-		)
 
 		this.state = {
 			plane: plane,
@@ -231,7 +218,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 			orbitControls: null,
 			pointCloudManager: null,
-			pointCloudTileManager: pointCloudTileManager,
 
 			scaleProvider: scaleProvider,
 			utmCoordinateSystem: utmCoordinateSystem,
@@ -283,6 +269,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
         this.hideDecorations()
 			}
 		}
+
+		if(newProps.orbitControlsTargetPoint !== this.props.orbitControlsTargetPoint) {
+			this.updateOrbitControlsTargetPoint(newProps.orbitControlsTargetPoint)
+		}
 	}
 
 	componentDidMount() {
@@ -290,7 +280,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	}
 
-	setOrbitControlsTargetPoint(point:THREE.Vector3) {
+	updateOrbitControlsTargetPoint(point:THREE.Vector3) {
     if(!this.state.orbitControls) {
       log.warn('[Migration ERROR] orbit controls are not initialized yet')
       return
@@ -464,11 +454,17 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 
+
+
+
+
+
+
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
 	// @TODO long term move to Camera Manager
-	private setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
+	setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
 		const {camera, cameraOffset, orbitControls, plane, grid} = this.state
 
 		if(!orbitControls) {
@@ -501,24 +497,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
-	/**
-	 * Set some point as the center of the visible world.
-	 */
-	// @TODO long term move to Camera Manager
-	private setStageByVector(point: THREE.Vector3, resetCamera: boolean = true): void {
-		this.setStage(point.x, point.y, point.z, resetCamera)
-	}
 
-	/**
-	 * Set the stage at the bottom center of TileManager's point cloud.
-	 */
-	// @TODO RT-Tuesday -- move to Annotated Scene Controller
-	// @TODO Annotated Scene Manager will then call the Camera Manager long term for this functionality
-	setStageByPointCloud(resetCamera: boolean): void {
-		const focalPoint = this.state.pointCloudTileManager.centerPoint()
-		if (focalPoint)
-		this.setStageByVector(focalPoint, resetCamera)
-	}
+
+
+
+
+
+
+
 
 	// The sky needs to be big enough that we don't bump into it but not so big that the camera can't see it.
 	// So make it pretty big, then move it around to keep it centered over the camera in the XZ plane. Sky radius
@@ -677,18 +663,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	getPointCloudManager = (pointCloudManager:PointCloudManager) => {
-		this.setState({pointCloudManager})
-	}
-
-
-
 	render() {
 		return (
 			<React.Fragment>
 				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
-
-				<PointCloudManager ref={this.getPointCloudManager} sceneManager={this} pointCloudTileManager={} layerManager={this.state.layerManager} handleTileManagerLoadError={}/>
 			</React.Fragment>
 		)
 

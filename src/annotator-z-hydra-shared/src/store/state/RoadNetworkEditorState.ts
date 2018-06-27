@@ -53,4 +53,5 @@ export default class RoadNetworkEditorState {
   isImageScreensVisible: boolean
   isAnnotationsVisible: boolean
 
+  orbitControlsTargetPoint: THREE.Vector3
 }
