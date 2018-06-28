@@ -15,9 +15,9 @@ function numberToString(n: number): string {
 }
 
 export class Scale3D {
-	xSize: number
-	ySize: number
-	zSize: number
+	readonly xSize: number
+	readonly ySize: number
+	readonly zSize: number
 	private cachedString: string | null
 
 	constructor(scales: [number, number, number]) {
@@ -59,6 +59,10 @@ export class Scale3D {
 
 	toVector(): THREE.Vector3 {
 		return new THREE.Vector3(this.xSize, this.ySize, this.zSize)
+	}
+
+	get volume(): number {
+		return this.xSize * this.ySize * this.zSize
 	}
 }
 
