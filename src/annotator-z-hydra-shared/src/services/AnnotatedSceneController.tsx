@@ -10,6 +10,7 @@ import Logger from "@/util/log";
 import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
 import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
 import {Layer, default as LayerManager} from "@/annotator-z-hydra-shared/src/services/LayerManager";
+import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
 
 const log = Logger(__filename)
 
@@ -28,6 +29,7 @@ export interface IAnnotatedSceneControllerState {
   pointCloudManager: PointCloudManager | null
   sceneManager: SceneManager | null
   layerManager: LayerManager | null
+  utmCoordinateSystem: UtmCoordinateSystem
 }
 
 
@@ -39,6 +41,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	constructor(props) {
 		super(props)
 
+    const utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
+
     this.state = {
       cameraState: {
         lastCameraCenterPoint: null,
@@ -47,6 +51,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       pointCloudManager: null,
       sceneManager: null,
       layerManager: null,
+      utmCoordinateSystem: utmCoordinateSystem,
     }
 	}
 
@@ -69,13 +74,17 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	render() {
 		return (
 		  <React.Fragment>
-        <StatusWindow ref={this.getStatusWindow} utmCoordinateSystem={}/>
+        <StatusWindow ref={this.getStatusWindow} utmCoordinateSystem={this.state.utmCoordinateSystem}/>
         <PointCloudManager ref={this.getPointCloudManager} sceneManager={} pointCloudTileManager={} layerManager={} handleTileManagerLoadError={} getCurrentPointOfInterest={this.currentPointOfInterest}/>
         <SceneManager ref={this.getSceneManager} width={1000} height={1000}/>
         <LayerManager ref={this.getLayerManager} onRerender={}/>
       </React.Fragment>
     )
 	}
+
+  private onSetOrigin = (): void => {
+    this.state.sceneManager!.loadDecorations().then()
+  }
 
   /**
    * Set the point cloud as the center of the visible world.
@@ -131,5 +140,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
     this.state.pointCloudManager!.hidePointCloudBoundingBox()
   }
+
+
 
 }

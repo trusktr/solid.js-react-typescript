@@ -21,7 +21,7 @@ export interface PointCloudManagerProps {
   layerManager: LayerManager
   handleTileManagerLoadError: (err: Error) => void
   isPointCloudVisible ?: boolean
-  getCurrentPointOfInterest ?: () => THREE.Vector3 | null
+  getCurrentPointOfInterest: () => THREE.Vector3 | null
 }
 
 export interface PointCloudManagerState {

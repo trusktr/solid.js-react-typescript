@@ -8,12 +8,7 @@ import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
 import KioskMenuView from "@/annotator-z-hydra-kiosk/KioskMenuView";
 import Logger from "@/util/log";
 import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
-import {
-  LocationServerStatusClient,
-  LocationServerStatusLevel
-} from "@/annotator-entry-ui/status/LocationServerStatusClient";
-import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
-import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
+import AnnotatedSceneController from "@/annotator-z-hydra-shared/src/services/AnnotatedSceneController";
 
 const log = Logger(__filename)
 
@@ -23,7 +18,7 @@ export interface KioskProps {
 }
 
 export interface KioskState {
-	sceneManager: SceneManager | null
+  annotatedSceneController: AnnotatedSceneController | null
 	carManager: CarManager | null
 	flyThroughManager: FlyThroughManager | null
 	layerManager: LayerManager | null
@@ -42,7 +37,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		super(props)
 
     this.state = {
-			sceneManager: null,
+      annotatedSceneController: null,
 			carManager: null,
 			flyThroughManager: null,
 			layerManager: null,
@@ -99,8 +94,8 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		this.setState({carManager,})
 	}
 
-	getSceneManager = (sceneManager:SceneManager) => {
-		this.setState({sceneManager,})
+	getAnnotatedSceneController = (annotatedSceneController:AnnotatedSceneController) => {
+		this.setState({annotatedSceneController,})
 	}
 
   getFlyThroughManager = (flyThroughManager:FlyThroughManager) => {
@@ -121,7 +116,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
       hasCalledSetup: true
 		})
 
-		this.state.sceneManager.activateReadOnlyViewingMode()
+		this.state.annotatedSceneController.activateReadOnlyViewingMode()
 
     // The camera and the point cloud AOI track the car object, so add it to the scene
     // regardless of whether it is visible in the scene.
@@ -149,8 +144,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	render() {
 		console.log("RENDERING WITH STORE", this.props.sceneInitialized)
         return <div style={{width: "100%", height: "100%"}}>
-            <SceneManager ref={this.getSceneManager} width={1000} height={1000} />
-						<LayerManager ref={this.getLayerManager} sceneManager={} annotationManager={} pointCloudTileManager={} pointCloudManager={} imageManager={} onRerender={}/>
+            <AnnotatedSceneController ref={this.getSceneManager} width={1000} height={1000} />
             <CarManager ref={this.getCarManager} sceneManager={this.state.sceneManager}/>
 
             <FlyThroughManager ref={this.getFlyThroughManager} />

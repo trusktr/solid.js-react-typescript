@@ -674,13 +674,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
 
-	private onSetOrigin = (): void => {
-		this.loadDecorations().then()
-	}
+
 
 
 	// Add some easter eggs to the scene if they are close enough.
-	private loadDecorations(): Promise<void> {
+	loadDecorations(): Promise<void> {
 		return getDecorations().then(decorations => {
 			decorations.forEach(decoration => {
 				const position = this.state.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
