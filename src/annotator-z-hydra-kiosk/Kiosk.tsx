@@ -144,6 +144,111 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
   }
 
 
+    // TODO JOE WEDNESDAY {{{
+    // get this kiosk-specific trajectory picker stuff working
+
+    // import TrajectoryPicker, {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
+    // import {dataSetNameFromPath, TrajectoryDataSet} from "../util/Perception"
+    //
+    // private openTrajectoryPickerFunction: ((cb: TrajectoryFileSelectedCallback) => void) | null
+    // private sceneContainer: HTMLDivElement
+    // private trajectoryPickerRef: TrajectoryPicker
+    //
+    // constructor() {
+    //     this.openTrajectoryPickerFunction = null
+    // }
+    //
+    // private loadTrajectoryFromOpenDialog(): Promise<void> {
+    //     const { promise, resolve, reject }: PromiseReturn<void, Error> = createPromise<void, Error>()
+    //
+    //     const options: Electron.OpenDialogOptions = {
+    //         message: 'Load Trajectory File',
+    //         properties: ['openFile'],
+    //         filters: [{name: 'md', extensions: ['md']}],
+    //     }
+    //
+    //     const handler = (paths: string[]): void => {
+    //         if (paths && paths.length)
+    //         FlyThroughManager.loadFlyThroughTrajectories([ paths[0] ])
+    //         .then(() => resolve())
+    //         .catch(err => reject(err))
+    //         else
+    //         reject(Error('no trajectory path selected'))
+    //     }
+    //
+    //     dialog.showOpenDialog(options, handler)
+    //
+    //     return promise
+    // }
+    //
+    //     // TODO JOE WEDNESDAY on click #tools_load_trajectory run loadTrajectoryFromOpenDialog
+    //    const toolsLoadTrajectory = document.getElementById('tools_load_trajectory')
+    //    if (toolsLoadTrajectory)
+    //            toolsLoadTrajectory.addEventListener('click', () => {
+    //                    this.loadTrajectoryFromOpenDialog()
+    //                            .catch(err => log.warn('loadFromFile failed: ' + err.message))
+    //            })
+    //    else
+    //            log.warn('missing element tools_load_trajectory')
+    //
+    //     // TODO JOE WEDNESDAY on click #select_trajectory_playback_file run openTrajectoryPicker
+    //    const selectTrajectoryPlaybackFile = document.querySelector('#select_trajectory_playback_file')
+    //    if (selectTrajectoryPlaybackFile)
+    //            selectTrajectoryPlaybackFile.addEventListener('click', this.openTrajectoryPicker)
+    //    else
+    //            log.warn('missing element select_trajectory_playback_file')
+    //
+    // // Hang on to a reference to TrajectoryPicker so we can call it later.
+    // setOpenTrajectoryPickerFunction(theFunction: (cb: TrajectoryFileSelectedCallback) => void): void {
+    //    this.openTrajectoryPickerFunction = theFunction
+    // }
+    //
+    // // ANNOTATOR ONLY
+    // // TODO REORG JOE remove trajectory picker stuff
+    // private openTrajectoryPicker = (): void => {
+    //    if (this.openTrajectoryPickerFunction)
+    //        this.openTrajectoryPickerFunction(this.trajectoryFileSelectedCallback)
+    // }
+    //
+    //    <TrajectoryPicker
+    //         // TODO REORG JOE remove trajectory picker stuff
+    //        ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
+    //    />
+    //
+    //
+    //    // this was called in componentDidMount
+    //    this.mount()
+    //        .then(() => this.setOpenTrajectoryPickerFunction(this.trajectoryPickerRef.openModal))
+    //
+    // // TODO JOE beholder uses trajectories
+    // // TODO REORG JOE remove trajectory picker stuff
+    // private trajectoryFileSelectedCallback = (path: string): void => {
+    //    if (!this.uiState.isLiveMode) return
+    //
+    //    FlyThroughManager.loadFlyThroughTrajectories([path])
+    //        .then(() => {
+    //                // Make sure that we are in flyThrough mode and that the animation is running.
+    //                if (this.props.flyThroughState && !this.props.flyThroughState.enabled) {
+    //                        // this.toggleLiveAndRecordedPlay()
+    //                        FlyThroughManager.toggleLiveAndRecordedPlay()
+    //                }
+    //
+    //                FlyThroughManager.startFlyThrough()
+    //                //this.startFlyThrough()
+    //
+    //                //if (this.uiState.isLiveModePaused)
+    //                if (!this.props.liveModeEnabled)
+    //                        console.log("WANTING TO RESUME LIVE MODE")
+    //                        // this.resumeLiveMode()
+    //        })
+    //        .catch(error => {
+    //                log.error(`loadFlyThroughTrajectories failed: ${error}`)
+    //                dialog.showErrorBox('Error loading trajectory', error.message)
+    //        })
+    // }
+
+    // }}}
+
 
 
 	render() {
