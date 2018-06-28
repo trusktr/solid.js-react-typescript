@@ -106,9 +106,8 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 		// todo
 	}
 
-	// TODO JOE WEDNESDAY
 	getLayerNames(): Array<string> {
-		return [ '' ]
+		return Array.from(this.state.layerToggles.keys())
 	}
 
 	render() {
