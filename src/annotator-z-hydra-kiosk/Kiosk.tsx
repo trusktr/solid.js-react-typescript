@@ -17,6 +17,15 @@ import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions"
 
 const log = Logger(__filename)
 
+// TODO JOE WEDNESDAY moved from Annotator.tsx
+interface LiveModeSettings {
+	displayCarModel: boolean
+	carModelMaterial: THREE.Material
+	cameraOffset: THREE.Vector3
+	cameraOffsetDelta: number
+	// flyThroughIntervalSecs: number
+}
+
 export interface KioskProps {
   sceneInitialized ?: boolean
   isCarInitialized ?: boolean

@@ -35,6 +35,8 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 	constructor(props) {
 		super(props)
 
+		// TODO JOE WEDNESDAY the toggles will be passed in by AnnotatedSceneController
+
 		const pointCloudLayerToggle = new LayerToggle({
 			show: () => {new RoadNetworkEditorActions().setIsPointCloudVisible(true)},
 			hide: () => {new RoadNetworkEditorActions().setIsPointCloudVisible(false)}
@@ -94,6 +96,19 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 
 		if (updated)
 		this.props.onRenender()
+	}
+
+	// TODO JOE WEDNESDAY toggle visibility of a specific layer by name/id
+	// This will replace the `h` key of Annotator to cycle between layers (point
+	// cloud, annotations, or both)
+	toggleLayerVisibility( layer: string ): void {
+		console.log( layer )
+		// todo
+	}
+
+	// TODO JOE WEDNESDAY
+	getLayerNames(): Array<string> {
+		return [ '' ]
 	}
 
 	render() {

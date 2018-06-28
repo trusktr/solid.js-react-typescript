@@ -44,6 +44,24 @@ const log = Logger(__filename)
 
 const dialog = Electron.remote.dialog
 
+// TODO JOE WEDNESDAY moved from Annotator.tsx
+interface AnnotatorSettings {
+	background: THREE.Color
+	cameraOffset: THREE.Vector3
+	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
+	defaultAnimationFrameIntervalMs: number | false
+	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
+	estimateGroundPlane: boolean
+	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
+	enableAnnotationTileManager: boolean
+	enableTileManagerStats: boolean
+	pointCloudBboxColor: THREE.Color
+	timeToDisplayHealthyStatusMs: number
+	maxDistanceToDecorations: number // meters
+	skyRadius: number
+	cameraToSkyMaxDistance: number
+}
+
 // tslint:disable:no-string-literal
 
 export enum OutputFormat {

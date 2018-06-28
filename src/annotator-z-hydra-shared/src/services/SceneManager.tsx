@@ -758,7 +758,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
     new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
 
 
-		new RoadNetworkEditorActions().setCameraPreference(newType)
+	// TODO JOE WEDNESDAY save camera state in LocalStorage and reload it next time the app starts
+	// enum cameraTypes = {
+	// 	orthographic: 'orthographic',
+	// 	perspective: 'perspective',
+	// }
+	// f.e. this.storage.getItem('cameraPreference', cameraTypes.perspective)
+	new RoadNetworkEditorActions().setCameraPreference(newType)
     this.renderScene()
   }
 

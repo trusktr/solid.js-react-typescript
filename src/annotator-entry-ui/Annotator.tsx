@@ -152,7 +152,6 @@ interface LiveModeSettings {
 
 interface UiState {
 	sceneInitialized: boolean
-	layerGroupIndex: number
 	lockBoundaries: boolean
 	lockLanes: boolean
 	lockTerritories: boolean
@@ -263,7 +262,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	//private flyThroughState: FlyThroughState
 	private liveModeSettings: LiveModeSettings
 	private locationServerStatusClient: LocationServerStatusClient
-	private layerToggle: Map<Layer, Toggle>
 	private gui: DatGui | null
 	private loop: AnimationLoop
 	// private flyThroughLoop: AnimationLoop
@@ -392,13 +390,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			cameraOffsetDelta: 1,
 			// flyThroughIntervalSecs: flyThroughInterval,
 		}
-
-		// RYAN - move to "AppGeneral"
-		this.layerToggle = Map([
-			[Layer.POINT_CLOUD, {show: this.showPointCloud, hide: this.hidePointCloud}],
-			[Layer.IMAGE_SCREENS, {show: this.showImageScreens, hide: this.hideImageScreens}],
-			[Layer.ANNOTATIONS, {show: this.showAnnotations, hide: this.hideAnnotations}],
-		])
 
 		const watchForRebuilds: boolean = config.get('startup.watch_for_rebuilds.enable') || false
 		if (watchForRebuilds) {
@@ -2297,27 +2288,5 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.uiState.layerGroupIndex = defaultLayerGroupIndex
 		this.setLayerVisibility(layerGroups[this.uiState.layerGroupIndex], true)
 	}
-
-	// Show or hide the menu as requested.
-	// RYAN UPDATED (added by joe)
-	// private displayMenu(visibility: MenuVisibility): void {
-	// 	const menu = document.getElementById('menu')
-	// 	if (menu)
-	// 		switch (visibility) {
-	// 			case MenuVisibility.HIDE:
-	// 				menu.style.visibility = 'hidden'
-	// 				break
-	// 			case MenuVisibility.SHOW:
-	// 				menu.style.visibility = 'visible'
-	// 				break
-	// 			case MenuVisibility.TOGGLE:
-	// 				menu.style.visibility = menu.style.visibility === 'hidden' ? 'visible' : 'hidden'
-	// 				break
-	// 			default:
-	// 				log.warn(`unhandled visibility option ${visibility} in displayMenu()`)
-	// 		}
-	// 	else
-	// 		log.warn('missing element menu')
-	// }
 
 }
