@@ -64,65 +64,38 @@ interface AnnotatorState {}
 	carPose: (state) => state.get(RoadEditorState.Key).carPose,
 }))
 export default class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
-	private storage: LocalStorage // persistent state for UI settings
 	private uiState: UiState
 	// private statusWindow: StatusWindowController // a place to print status messages
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
-	private annotatorPerspectiveCam: THREE.PerspectiveCamera
-	private annotatorOrthoCam: THREE.OrthographicCamera
 	private annotatorCamera: THREE.Camera
 	private flyThroughCamera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
-	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
-	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
-	private sky: THREE.Object3D // makes it easier to tell up from down
-	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
-	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
 	private scaleProvider: ScaleProvider
 	private utmCoordinateSystem: UtmCoordinateSystem
 	private pointCloudTileManager: PointCloudTileManager
 	private annotationTileManager: AnnotationTileManager
 	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
-	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
-	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
-	private compassRose: THREE.Object3D | null // indicates the direction of North
 	private stats: Stats
-	private annotatorOrbitControls: THREE.OrbitControls
-	private flyThroughOrbitControls: THREE.OrbitControls
 	private transformControls: any // controller for translating an object within the scene
-	private hideTransformControlTimer: number
-	private serverStatusDisplayTimer: number
-	private locationServerStatusDisplayTimer: number
 	private annotationManager: AnnotationManager
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
 	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
-	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
-	private liveSubscribeSocket: Socket
-	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
-	//private flyThroughState: FlyThroughState
-	private liveModeSettings: LiveModeSettings
-	private locationServerStatusClient: LocationServerStatusClient
 	private gui: DatGui | null
 	private loop: AnimationLoop
-	// private flyThroughLoop: AnimationLoop
-	// private shouldAnimate: boolean
-	private updateOrbitControls: boolean
 	private root: HTMLElement
-	private sceneContainer: HTMLDivElement
 
 	constructor(props) {
 		super(props)
-		this.storage = new LocalStorage()
 
+		// replaced by Redux state
 		// this.shouldAnimate = false
-		this.updateOrbitControls = false
 
 		if (!isNullOrUndefined(config.get('output.trajectory.csv.path')))
 			log.warn('Config option output.trajectory.csv.path has been removed.')
@@ -266,141 +239,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		Electron.remote.getCurrentWindow().close()
 	}
 
-
-	private makeStats(): void {
-
-		if (!config.get('startup.show_stats_module')) return
-
-		// Create stats widget to display frequency of rendering
-		this.stats = new Stats()
-		this.stats.dom.style.top = 'initial' // disable existing setting
-		this.stats.dom.style.bottom = '50px' // above Mapper logo
-		this.stats.dom.style.left = '13px'
-		this.root.appendChild(this.stats.dom)
-
-	}
-
-	private destroyStats(): void {
-		if (!config.get('startup.show_stats_module')) return
-		this.stats.dom.remove()
-	}
-
 	private get camera(): THREE.Camera {
 		if (this.uiState.isLiveMode) return this.flyThroughCamera
 		return this.annotatorCamera
-	}
-
-	// Create a UI widget to adjust application settings on the fly.
-    // JOE, this is Annotator app-specific
-	createControlsGui(): void {
-		// Add panel to change the settings
-		if (!isNullOrUndefined(config.get('startup.show_color_picker')))
-			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
-
-		if (!config.get('startup.show_control_panel')) {
-			this.gui = null
-			return
-		}
-
-		const gui = this.gui = new DatGui({
-			hideable: false,
-			closeOnTop: true,
-		} as GUIParams)
-		gui.domElement.className = 'threeJs_gui'
-
-		gui.domElement.setAttribute('style', `
-			width: 245px;
-			position: absolute;
-			top: 13px;
-			left: 13px;
-			right: initial;
-			bottom: initial;
-			background: rgba(0,0,0,0.5);
-			padding: 10px;
-		`)
-
-		const closeButton = gui.domElement.querySelector('.close-button')
-
-		closeButton!.setAttribute('style', `
-			padding-bottom: 5px;
-			cursor: pointer;
-		`)
-
-		gui.addColor(this.settings, 'background').name('Background').onChange((value: string) => {
-			this.renderer.setClearColor(new THREE.Color(value))
-			// this.renderAnnotator()
-		})
-
-		gui.add(this.uiState, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
-			if (this.imageManager.setOpacity(value))
-				// this.renderAnnotator()
-		})
-
-		const folderLock = gui.addFolder('Lock')
-		folderLock.add(this.uiState, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
-			if (value && this.annotationManager.getActiveBoundaryAnnotation())
-				this.cleanTransformControlsAndEscapeSelection()
-		})
-		folderLock.add(this.uiState, 'lockLanes').name('Lanes').onChange((value: boolean) => {
-			if (value && (this.annotationManager.getActiveLaneAnnotation() || this.annotationManager.getActiveConnectionAnnotation()))
-				this.cleanTransformControlsAndEscapeSelection()
-		})
-		folderLock.add(this.uiState, 'lockTerritories').name('Territories').onChange((value: boolean) => {
-			if (value && this.annotationManager.getActiveTerritoryAnnotation())
-				this.cleanTransformControlsAndEscapeSelection()
-		})
-		folderLock.add(this.uiState, 'lockTrafficDevices').name('Traffic Devices').onChange((value: boolean) => {
-			if (value && (this.annotationManager.getActiveTrafficDeviceAnnotation()))
-				this.cleanTransformControlsAndEscapeSelection()
-		})
-		folderLock.open()
-
-		const folderConnection = gui.addFolder('Connection params')
-		folderConnection.add(this.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
-		folderConnection.open()
-	}
-
-	private destroyControlsGui(): void {
-		if (!config.get('startup.show_control_panel')) return
-		if (this.gui) this.gui.destroy()
-	}
-
-
-
-
-	// SHARED
-	private stopAnimation(): void {
-		// this.shouldAnimate = false
-		new RoadNetworkEditorActions().setShouldAnimate(false)
-	}
-
-
-
-	// Annotator only
-	private animate(): void {
-		this.transformControls.update()
-	}
-
-	pauseEverything(): void {
-		this.loop.pause()
-	}
-
-	resumeEverything(): void {
-		this.loop.start()
-	}
-
-
-	// BOTH (moved) --> renderAnnotator is now renderScene
-
-	// Do some house keeping after loading annotations.
-	// @TODO @Joe please move this as well to AnnotationManager
-	private annotationLoadedSideEffects(): void {
-
-        // TODO REORG JOE needs layerManager ref. Maybe LayerManager is a part of SceneManager?
-		this.layerManager.setLayerVisibility([Layer.ANNOTATIONS])
-
-        // TODO JOE belongs further down the call stack at the scene modification point.
-		// this.renderAnnotator()
 	}
 
 	// When TileManager loads a super tile, update Annotator's parallel data structure.
@@ -747,209 +588,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// this.renderAnnotator()
 	}
 
-	/*
-	 * Make a best effort to save annotations before exiting. There is no guarantee the
-	 * promise will complete, but it seems to work in practice.
-	 */
-	// ANNOTATOR ONLY
-	private onBeforeUnload: (e: BeforeUnloadEvent) => void = (_: BeforeUnloadEvent) => {
-		this.annotationManager.immediateAutoSave().then()
-	}
-
-	// ANNOTATOR ONLY
-    //
-    // TODO REORG JOE move to AnnotationManager
-    //
-    // TODO REORG JOE instead of enabling/disabling autosave, just have auto-save
-    // configured not to save when unfocused unless there's changes.
-	private onFocus = (): void => {
-		this.annotationManager.enableAutoSave()
-	}
-	private onBlur = (): void => {
-		this.setLastMousePosition(null)
-		this.annotationManager.disableAutoSave()
-	}
-
-	/**
-	 * Handle keyboard events
-	 */
-	//  (moved) -- requires keyboard event registration now though
-    // TODO REORG JOE split this up, each app will register/hook into key events that
-    // are managed from shared lib (SceneManager?)
-	// private onKeyDown = (event: KeyboardEvent): void => {
-	// 	if (event.defaultPrevented) return
-	// 	if (event.altKey) return
-	// 	if (event.ctrlKey) return
-	// 	if (event.metaKey) return
-  //
-	// 	if (document.activeElement.tagName === 'INPUT')
-	// 		this.onKeyDownInputElement(event)
-	// 	else if (this.uiState.isLiveMode)
-	// 		this.onKeyDownLiveMode(event)
-	// 	else
-	// 		this.onKeyDownInteractiveMode(event)
-	// }
-
-	// ANNOTATOR ONLY
-	private onKeyDownInputElement = (event: KeyboardEvent): void => {
-		switch (event.key) {
-			case 'Escape': {
-				(event.target as HTMLInputElement).blur()
-				break
-			}
-			default:
-			// nothing to do here
-		}
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE move some of this event state to shared lib, perhaps a
-    // KeyboardManager, and some of it is Annotation stuff.
-	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
-		if (event.repeat) {
-			// tslint:disable-line:no-empty
-		} else if (event.keyCode >= 48 && event.keyCode <= 57) { // digits 0 to 9
-			this.uiState.numberKeyPressed = parseInt(event.key, 10)
-		} else {
-			switch (event.key) {
-				case 'Backspace': {
-					this.onDeleteActiveAnnotation()
-					break
-				}
-				case 'Control': {
-					this.uiState.isControlKeyPressed = true
-					break
-				}
-				case 'Escape': {
-					this.escapeSelection()
-					break
-				}
-				case 'Shift': {
-					this.onShiftKeyDown()
-					break
-				}
-				case 'A': {
-					this.deleteAllAnnotations()
-					break
-				}
-				case 'a': {
-					this.uiState.isAddMarkerKeyPressed = true
-					break
-				}
-				case 'b': {
-					this.onAddAnnotation(AnnotationType.BOUNDARY)
-					break
-				}
-				case 'C': {
-					this.focusOnPointCloud()
-					break
-				}
-				case 'c': {
-					this.uiState.isAddConnectionKeyPressed = true
-					break
-				}
-				case 'd': {
-					log.info("Deleting last marker")
-					if (this.annotationManager.deleteLastMarker())
-						this.hideTransform()
-					break
-				}
-				case 'F': {
-					this.reverseLaneDirection()
-					break
-				}
-				case 'f': {
-					this.uiState.isConnectFrontNeighborKeyPressed = true
-					break
-				}
-				case 'h': {
-					this.toggleLayerVisibility()
-					break
-				}
-				case 'j': {
-					this.uiState.isJoinAnnotationKeyPressed = true
-					break
-				}
-				case 'l': {
-					this.uiState.isConnectLeftNeighborKeyPressed = true
-					break
-				}
-				case 'm': {
-					this.saveWaypointsKml().then()
-					break
-				}
-				case 'N': {
-					this.exportAnnotationsTiles(OutputFormat.UTM).then()
-					break
-				}
-				case 'n': {
-					this.onAddAnnotation(AnnotationType.LANE)
-					break
-				}
-				case 'q': {
-					this.uiState.isAddConflictOrDeviceKeyPressed = true
-					break
-				}
-				case 'r': {
-					this.uiState.isConnectRightNeighborKeyPressed = true
-					break
-				}
-				case 'S': {
-					this.saveToFile(OutputFormat.LLA).then()
-					break
-				}
-				case 's': {
-					this.saveToFile(OutputFormat.UTM).then()
-					break
-				}
-				case 'R': {
-					this.resetTiltAndCompass()
-					break
-				}
-				case 'T': {
-					this.onAddAnnotation(AnnotationType.TERRITORY)
-					break
-				}
-				case 't': {
-					this.onAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
-					break
-				}
-				case 'U': {
-					this.unloadPointCloudData() // @TODO moved to PointCloudManager
-					break
-				}
-				case 'V': {
-					this.toggleCameraType()
-					break
-				}
-				case 'X': {
-					if (this.annotationManager.activeAnnotation && this.annotationManager.activeAnnotation.isRotatable)
-						this.toggleTransformControlsRotationMode()
-					break
-				}
-				default:
-				// nothing to see here
-			}
-		}
-	}
-
-	// ANNOTATOR ONLY
-	private onKeyUp = (event: KeyboardEvent): void => {
-		if (event.defaultPrevented) return
-
-        // TODO remove left/right/front/back neighbor stuff
-		this.uiState.isControlKeyPressed = false
-		this.uiState.isAddMarkerKeyPressed = false
-		this.uiState.isAddConnectionKeyPressed = false
-		this.uiState.isConnectLeftNeighborKeyPressed = false
-		this.uiState.isConnectRightNeighborKeyPressed = false
-		this.uiState.isConnectFrontNeighborKeyPressed = false
-		this.uiState.isAddConflictOrDeviceKeyPressed = false
-		this.uiState.isJoinAnnotationKeyPressed = false
-		this.uiState.numberKeyPressed = null
-		this.onShiftKeyUp()
-	}
-
 	// ANNOTATOR ONLY
 	private onShiftKeyDown = (): void => {
 		this.uiState.isShiftKeyPressed = true
@@ -961,101 +599,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private onShiftKeyUp = (): void => {
 		this.uiState.isShiftKeyPressed = false
 		this.unHighlightImageScreenBox()
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE move to AnnotationManager
-	private delayHideTransform = (): void => {
-		this.cancelHideTransform()
-		this.hideTransform()
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE move to AnnotationManager
-	private hideTransform = (): void => {
-		this.hideTransformControlTimer = window.setTimeout(this.cleanTransformControls, 1500)
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE move to AnnotationManager
-	private cancelHideTransform = (): void => {
-		if (this.hideTransformControlTimer) {
-			window.clearTimeout(this.hideTransformControlTimer)
-		}
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE move to AnnotationManager
-	private cleanTransformControls = (): void => {
-		this.cancelHideTransform()
-		this.transformControls.detach()
-		this.annotationManager.unhighlightMarkers()
-		// this.renderAnnotator()
-	}
-
-	/**
-	 * Create orbit controls which enable translation, rotation and zooming of the scene.
-	 */
-	// ANNOTATOR ONLY
-    // TODO REORG JOE SceneManager or something related to it can have viewport modes,
-    // and would handle the camera. For now let's move this to SceneManager, and
-    // let both apps control the position of the focus.
-	private initAnnotatorOrbitControls(): void {
-		this.annotatorOrbitControls = new OrbitControls(this.annotatorCamera, this.renderer.domElement)
-		this.annotatorOrbitControls.minDistance = 0.1
-		this.annotatorOrbitControls.maxDistance = 5000
-		this.annotatorOrbitControls.keyPanSpeed = 100
-
-		// Add listeners.
-
-		this.annotatorOrbitControls.addEventListener('change', this.updateSkyPosition) // @TODO moved to SceneManager
-
-		// Update some UI if the camera panned -- that is it moved in relation to the model.
-		this.annotatorOrbitControls.addEventListener('pan', this.displayCameraInfo)
-
-		// If we are controlling the scene don't hide any transform object.
-		this.annotatorOrbitControls.addEventListener('start', this.cancelHideTransform)
-
-		// After the scene transformation is over start the timer to hide the transform object.
-		this.annotatorOrbitControls.addEventListener('end', this.delayHideTransform)
-
-		this.annotatorOrbitControls.addEventListener('start', () => {
-			this.updateOrbitControls = true
-			this.loop.addAnimationFn(() => this.updateOrbitControls)
-		})
-
-		this.annotatorOrbitControls.addEventListener('end', () => {
-			this.updateOrbitControls = false
-		})
-	}
-
-	// BEHOLDER
-	private initFlyThroughOrbitControls(): void {
-		this.flyThroughOrbitControls = new OrbitControls(this.flyThroughCamera, this.renderer.domElement)
-		this.flyThroughOrbitControls.enabled = false
-		this.flyThroughOrbitControls.minDistance = 10
-		this.flyThroughOrbitControls.maxDistance = 5000
-		this.flyThroughOrbitControls.minPolarAngle = 0
-		this.flyThroughOrbitControls.maxPolarAngle = Math.PI / 2
-		this.flyThroughOrbitControls.keyPanSpeed = 100
-		this.flyThroughOrbitControls.enablePan = false
-
-		this.flyThroughOrbitControls.addEventListener('change', this.updateSkyPosition) // @TODO moved to SceneManager
-
-		this.flyThroughOrbitControls.addEventListener('start', () => {
-			this.updateOrbitControls = true
-			this.loop.addAnimationFn(() => this.updateOrbitControls)
-		})
-
-		this.flyThroughOrbitControls.addEventListener('end', () => {
-			this.updateOrbitControls = false
-		})
-	}
-
-	// OBSOLETE :)
-	private get orbitControls(): THREE.OrbitControls {
-		if (this.uiState.isLiveMode) return this.flyThroughOrbitControls
-		else return this.annotatorOrbitControls
 	}
 
 	/**
@@ -1139,77 +682,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		log.info(`Saving waypoints KML to ${basePath}`)
 		return this.annotationManager.saveToKML(basePath)
 			.catch(err => log.warn('saveToKML failed: ' + err.message))
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE remove?
-	private addFront(): void {
-		log.info("Adding connected annotation to the front")
-		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
-			Annotator.deactivateFrontSideNeighbours()
-		}
-		// this.renderAnnotator()
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE remove?
-	private addLeftSame(): void {
-		log.info("Adding connected annotation to the left - same direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME)) {
-			Annotator.deactivateLeftSideNeighbours()
-		}
-		// this.renderAnnotator()
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE remove?
-	private addLeftReverse(): void {
-		log.info("Adding connected annotation to the left - reverse direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
-			Annotator.deactivateLeftSideNeighbours()
-		}
-		// this.renderAnnotator()
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE remove?
-	private addRightSame(): void {
-		log.info("Adding connected annotation to the right - same direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME)) {
-			Annotator.deactivateRightSideNeighbours()
-		}
-		// this.renderAnnotator()
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE remove?
-	private addRightReverse(): void {
-		log.info("Adding connected annotation to the right - reverse direction")
-		if (this.annotationManager.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
-			Annotator.deactivateRightSideNeighbours()
-		}
-		// this.renderAnnotator()
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE move to AnnotationManager
-	private reverseLaneDirection(): void {
-		log.info("Reverse lane direction.")
-		const {result, existLeftNeighbour, existRightNeighbour}: { result: boolean, existLeftNeighbour: boolean, existRightNeighbour: boolean }
-			= this.annotationManager.reverseLaneDirection()
-		if (result) {
-			if (existLeftNeighbour) {
-				Annotator.deactivateLeftSideNeighbours()
-			} else {
-				Annotator.activateLeftSideNeighbours()
-			}
-			if (existRightNeighbour) {
-				Annotator.deactivateRightSideNeighbours()
-			} else {
-				Annotator.activateRightSideNeighbours()
-			}
-			// this.renderAnnotator()
-		}
 	}
 
 }

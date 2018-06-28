@@ -50,7 +50,7 @@ export interface TileManagerConfig {
 // which serve as a local cache for chunks of tile data.
 // All objects are stored with reference to UTM origin and offset, but using the local coordinate
 // system which has different axes.
-export abstract class TileManager {
+export abstract class TileManager extends Observable {
 	protected config: TileManagerConfig
 	private storage: LocalStorage // persistent state for UI settings
 	protected coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin // todo ?

@@ -29,6 +29,7 @@ export interface SceneManagerProps {
   compassRosePosition ?: THREE.Vector3
   isDecorationsVisible ?: boolean
   orbitControlsTargetPoint ?: THREE.Vector3
+	utmCoordinateSystem: UtmCoordinateSystem
 }
 
 
@@ -64,7 +65,6 @@ export interface SceneManagerState {
 	pointCloudManager: PointCloudManager | null
 
 	scaleProvider: ScaleProvider
-	utmCoordinateSystem: UtmCoordinateSystem
 	maxDistanceToDecorations: number // meters
 
 	decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
@@ -189,8 +189,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		loop.interval = animationFps === 'device' ? false : 1 / (animationFps || 10)
 
 		const scaleProvider = new ScaleProvider()
-		const utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
 
+		// TODO JOE THURSDAY get from props
+		// const utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
+
+		// TODO JOE THURSDAY anything that doesn't need to change we can
+		// take out of state and keep as instance variables. F.e. loop, scene,
+		// renderer, etc
 		this.state = {
 			plane: plane,
 			grid: grid,
@@ -221,7 +226,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			pointCloudManager: null,
 
 			scaleProvider: scaleProvider,
-			utmCoordinateSystem: utmCoordinateSystem,
+			// utmCoordinateSystem: utmCoordinateSystem, JOE moved to props
 			maxDistanceToDecorations: 50000,
 			decorations: [],
 
@@ -277,8 +282,17 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	componentDidMount() {
-		this.mount()
+		this.sceneContainer.appendChild(this.state.renderer.domElement)
+		this.startAnimation()
 
+		this.prop.utmCoordinateSystem.on( 'originUpdated', () => {
+			this.loadDecorations()
+		} )
+	}
+
+	componentWillUnmount() {
+		this.stopAnimation()
+		this.state.renderer.domElement.remove()
 	}
 
 	updateOrbitControlsTargetPoint(point:THREE.Vector3) {
@@ -293,17 +307,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-
-
-	async mount(): Promise<void> {
-		this.sceneContainer.appendChild(this.state.renderer.domElement)
-
-		// @TODO (annotator only)
-		// this.createControlsGui()
-
-		// this.makeStats()
-		this.startAnimation()
-	}
+	// NOTE JOE THURSDAY at the moment shoudlAnimate is only used here, so
+	// perhaps we don't need Redux for this? And apps can call methods on
+	// AnnotatedSceneController which ultimately call these methods?
+	//
+	// {{{
 
 	// SHARED
 	private startAnimation(): void {
@@ -328,6 +336,43 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
+	// JOE THURSDAY moved from Annotator
+	private stopAnimation(): void {
+		// this.shouldAnimate = false
+		new RoadNetworkEditorActions().setShouldAnimate(false)
+	}
+
+	// }}}
+
+	// JOE THURSDAY maybe instead of proxying, we let app code (f.e. Annotator,
+	// Kiosk, and AnnotatedSceneController) get a ref to the loop to call these
+	// methods.
+	//
+	// Maybe AnnotatedSceneController exposes either the loop reference, or
+	// proxy methods, for apps to use.
+	//
+	// {{{
+
+	addAnimationFn( fn ) {
+		this.state.loop.addAnimationFn( fn )
+	}
+
+	removeAnimationFn( fn ) {
+		this.state.loop.removeAnimationFn( fn )
+	}
+
+	pauseEverything(): void {
+		this.state.loop.pause()
+	}
+
+	resumeEverything(): void {
+		this.state.loop.start()
+	}
+
+	// }}}
+
+	// TODO JOE THURSDAY longer term, we can create the loop on init logic (f.e.
+	// constructor), then just use the loop when needed.
 	private startAoiUpdates(): void {
 		const loop = this.state.loop
 
@@ -543,6 +588,25 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		orbitControls.addEventListener('change', this.updateSkyPosition)
 
+		// TODO JOE THURSDAY We could emit a cameraUpdate event (f.e. using my
+		// Observable class), and pass camera info to listeners. Then listeners
+		// can (f.e. maybe AnnotatedSceneController) can decide to update things
+		// (f.e. the camera info StatusWindow message)
+		// Search for displayCameraInfo to find code that was previously
+		// updating the status message.
+		//orbitControls.addEventListener('pan', this.emit( 'cameraUpdate', { ... camera info ... } ))
+
+		// TODO JOE THURSDAY Obsolete, we won't clear transform controls on
+		// camera move, but, we'll clear them only on interaction events with
+		// the content of the scene. At the moment, this is only on escape key
+		// press.
+		//
+		// If we are controlling the scene cancel the timeout that hides any transform control
+		//orbitControls.addEventListener('start', this.cancelHideTransform)
+		//
+		// After the scene transformation is over start the timer to hide the transform object.
+		//this.annotatorOrbitControls.addEventListener('end', this.delayHideTransform)
+
 		const fn = () => {}
 
 		orbitControls.addEventListener('start', () => {
@@ -682,7 +746,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	loadDecorations(): Promise<void> {
 		return getDecorations().then(decorations => {
 			decorations.forEach(decoration => {
-				const position = this.state.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
+				const position = this.prop.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
 				const distanceFromOrigin = position.length()
 				if (distanceFromOrigin < this.state.maxDistanceToDecorations) {
 					// Don't worry about rotation. The object is just floating in space.
