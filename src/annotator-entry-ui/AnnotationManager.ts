@@ -34,6 +34,7 @@ import * as CRS from "./CoordinateReferenceSystem"
 import Logger from "@/util/log"
 import {tileIndexFromVector3} from "@/annotator-entry-ui/model/TileIndex"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
+import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
 
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
@@ -42,6 +43,24 @@ import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetw
 const log = Logger(__filename)
 
 const dialog = Electron.remote.dialog
+
+// TODO JOE WEDNESDAY moved from Annotator.tsx
+interface AnnotatorSettings {
+	background: THREE.Color
+	cameraOffset: THREE.Vector3
+	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
+	defaultAnimationFrameIntervalMs: number | false
+	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
+	estimateGroundPlane: boolean
+	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
+	enableAnnotationTileManager: boolean
+	enableTileManagerStats: boolean
+	pointCloudBboxColor: THREE.Color
+	timeToDisplayHealthyStatusMs: number
+	maxDistanceToDecorations: number // meters
+	skyRadius: number
+	cameraToSkyMaxDistance: number
+}
 
 // tslint:disable:no-string-literal
 
@@ -61,14 +80,17 @@ interface IProps {
 
     // Interactive allows annotations to be selected and edited; otherwise they
     // can only be added or removed.
-	readonly isInteractiveMode: boolean
+	isInteractiveMode: boolean
 
-	readonly scaleProvider: ScaleProvider
-	readonly utmCoordinateSystem: UtmCoordinateSystem
-	onAddAnnotationobject(object: THREE.Object3D): void
-	onRemoveAnnotation(object: THREE.Object3D): void
-	onChangeActiveAnnotation(active: Annotation): void
-  isAnnotationsVisible: boolean
+	scaleProvider: ScaleProvider
+	utmCoordinateSystem: UtmCoordinateSystem
+
+	// onAddAnnotation(object: THREE.Object3D): void
+	// onRemoveAnnotation(object: THREE.Object3D): void
+	// onChangeActiveAnnotation(active: Annotation): void
+
+    layerManager: LayerManager
+	isAnnotationsVisible: boolean
 }
 
 interface IState {
@@ -86,7 +108,7 @@ interface IState {
 
 	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
 
-  isAnnotationsVisible: (state) => state.get(RoadEditorState.Key).isAnnotationsVisible,
+	isAnnotationsVisible: (state) => state.get(RoadEditorState.Key).isAnnotationsVisible,
 }))
 export class AnnotationManager extends React.Component<IProps, IState> {
 	laneAnnotations: Array<Lane>
@@ -235,7 +257,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// Set state.
 		similarAnnotations.push(annotation)
 		this.annotationObjects.push(annotation.renderingObject)
-		this.onAddAnnotation(annotation.renderingObject)
+		this.addAnnotation(annotation.renderingObject)
 		if (activate)
 			this.setActiveAnnotation(annotation)
 
@@ -642,7 +664,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			})
 		}
 
-		this.onChangeActiveAnnotation(this.activeAnnotation)
+		if (this.uiState.isRotationModeActive && !active.isRotatable)
+			this.toggleTransformControlsRotationMode()
+
 		return true
 	}
 
@@ -1267,7 +1291,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		// Add annotation to the scene
 		this.annotationObjects.push(connection.renderingObject)
-		this.onAddAnnotation(connection.renderingObject)
+		this.addAnnotation(connection.renderingObject)
 
 		connection.makeInactive()
 		connection.updateVisualization()
@@ -1295,7 +1319,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const eraseIndex = this.getAnnotationIndexFromUuid(similarAnnotations, annotation.uuid)
 		similarAnnotations.splice(eraseIndex, 1)
 		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
-		this.onRemoveAnnotation(annotation.renderingObject)
+		this.removeAnnotation(annotation.renderingObject)
 
 		return true
 	}
@@ -1424,13 +1448,13 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 
-    /// the rest is migrated from Annotator.tsx ////////////////////////////////
+	/// the rest is migrated from Annotator.tsx ////////////////////////////////
 
 	// Load tiles within a bounding box and add them to the scene.
 	// ANNOTATOR ONLY???
 	loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false): Promise<void> {
 		return this.annotationTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
-        // TODO JOE AnnotationTileManager needs ref to AnnotationTileManager
+		// TODO JOE AnnotationTileManager needs ref to AnnotationTileManager
 			.then(loaded => {
 				if (loaded) this.annotationLoadedSideEffects()
 			})
@@ -1445,12 +1469,12 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	loadAnnotations(fileName: string): Promise<void> {
 		log.info('Loading annotations from ' + fileName)
 		this.layerManager.setLayerVisibility([Layer.ANNOTATIONS])
-        // TODO JOE AnnotationManager needs ref to LayerManager
+		// TODO JOE AnnotationManager needs ref to LayerManager
 		return this.loadAnnotationsFromFile(fileName)
 			.then(focalPoint => {
 				if (focalPoint)
 					this.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
-                    // TODO JOE AnnotationManager needs ref to SceneManager
+					// TODO JOE AnnotationManager needs ref to SceneManager
 			})
 			.catch(err => {
 				log.error(err.message)
@@ -1506,10 +1530,10 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (intersections.length) {
 			this.addMarkerToActiveAnnotation(intersections[0].point)
 
-            // TODO JOE render update should happen at the leafmost part of the
-            // stack where the update happens, somewhere in the above
-            // addMarkerToActiveAnnotation. This will prevent outside code from
-            // having to know when to update the scene.
+			// TODO JOE render update should happen at the leafmost part of the
+			// stack where the update happens, somewhere in the above
+			// addMarkerToActiveAnnotation. This will prevent outside code from
+			// having to know when to update the scene.
 			// GONE this.renderAnnotator()
 		}
 	}
@@ -1668,7 +1692,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 		}
 
-        // GONE this.renderAnnotator()
+		// GONE this.renderAnnotator()
 	}
 
 	/**
@@ -1720,7 +1744,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// update UI panel
 		this.resetAllAnnotationPropertiesMenuElements()
 
-        // GONE this.renderAnnotator()
+		// GONE this.renderAnnotator()
 	}
 
 	// ANNOTATOR ONLY
@@ -1769,7 +1793,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				this.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
 				this.annotationManager.setActiveAnnotation(inactive)
 				this.resetAllAnnotationPropertiesMenuElements()
-                // GONE this.renderAnnotator()
+				// GONE this.renderAnnotator()
 			}
 		}
 	}
@@ -1821,7 +1845,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				// HOVER ON
 				this.transformControls.attach(moveableMarkers)
 				this.cancelHideTransform()
-                // GONE this.renderAnnotator()
+				// GONE this.renderAnnotator()
 			}
 		} else {
 			if (this.hovered !== null) {
@@ -1829,7 +1853,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				this.renderer.domElement.style.cursor = 'auto'
 				this.hovered = null
 				this.delayHideTransform()
-                // GONE this.renderAnnotator()
+				// GONE this.renderAnnotator()
 			}
 		}
 	}
@@ -1867,7 +1891,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 					log.info("removed conflict")
 					dstAnnotation.makeInactive()
 				}
-                // GONE this.renderAnnotator()
+				// GONE this.renderAnnotator()
 				return
 			}
 
@@ -1894,24 +1918,17 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 					log.info("removed traffic device")
 					dstAnnotation.makeInactive()
 				}
-                // GONE this.renderAnnotator()
+				// GONE this.renderAnnotator()
 			}
 		}
 	}
 
-	onAddAnnotation = (object: THREE.Object3D): void => {
+	addAnnotation = (object: THREE.Object3D): void => {
 		this.scene.add(object)
 	}
 
-	onRemoveAnnotation = (object: THREE.Object3D): void => {
+	removeAnnotation = (object: THREE.Object3D): void => {
 		this.scene.remove(object)
-	}
-
-	// Ensure that the current UiState is compatible with a new active annotation.
-	// ANNOTATOR ONLY
-	onChangeActiveAnnotation = (active: Annotation): void => {
-		if (this.uiState.isRotationModeActive && !active.isRotatable)
-			this.toggleTransformControlsRotationMode()
 	}
 
 	// ANNOTATOR ONLY

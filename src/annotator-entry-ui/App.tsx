@@ -11,7 +11,6 @@ import Kiosk from 'annotator-z-hydra-kiosk/Kiosk'
 import './style.scss'
 import Logger from '@/util/log'
 import config from "@/config";
-import AnnotatorMenuView from "annotator-entry-ui/AnnotatorMenuView";
 // import KioskMenuView from "annotator-z-hydra-kiosk/KioskMenuView";
 import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
@@ -47,14 +46,6 @@ export default class App extends React.Component<AppProps, AppState> {
 		super(props)
 	}
 
-	MenuComponent() {
-		if (config.get('startup.kiosk_mode')) {
-			return <div>Temp Menu</div>  // <KioskMenuView />
-		} else {
-			return <AnnotatorMenuView />
-		}
-	}
-
 	private makeOnStatusWindowClick = () => () => {
 		log.info("Testing click to toggle Status Window")
 		new StatusWindowActions().toggleEnabled()
@@ -67,7 +58,6 @@ export default class App extends React.Component<AppProps, AppState> {
 
 	render(): JSX.Element {
 		log.info("IN RENDER", config.get('startup.kiosk_mode'))
-		// const MenuComponent = this.MenuComponent()
 		// const {uiMenuVisible} = this.props
 
 		return <React.Fragment>
@@ -96,9 +86,6 @@ export default class App extends React.Component<AppProps, AppState> {
 				<button id="status_window_control_btn" className="menu_btn" onClick={this.makeOnStatusWindowClick()}> &#x2139; </button>
 				<button id="menu_control_btn" className="menu_btn" onClick={this.makeOnMenuClick()}> &#9776; </button>
 			</div>
-
-			{/*<Menu />*/}
-			{/*{uiMenuVisible && MenuComponent}*/}
 
 		</React.Fragment>
 	}

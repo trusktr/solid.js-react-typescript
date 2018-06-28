@@ -9,13 +9,12 @@ import './style.scss'
 import Help from 'annotator-entry-ui/components/Help'
 import initUIControl from '@/annotator-control-ui/UIControl'
 
-interface KioskViewProps {}
+interface IProps {}
+interface IState {}
 
-interface KioskViewState {}
+export default class AnnotatorMenuView extends React.Component<IProps, IState> {
 
-export default class AnnotatorMenuView extends React.Component<KioskViewProps, KioskViewState> {
-
-	constructor(props: KioskViewProps) {
+	constructor(props: IProps) {
 		super(props)
 	}
 
