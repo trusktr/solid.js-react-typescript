@@ -221,52 +221,28 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private uiState: UiState
 	// private statusWindow: StatusWindowController // a place to print status messages
 	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
-	private annotatorPerspectiveCam: THREE.PerspectiveCamera
-	private annotatorOrthoCam: THREE.OrthographicCamera
 	private annotatorCamera: THREE.Camera
 	private flyThroughCamera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
 	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
-	private raycasterMarker: THREE.Raycaster // used to compute which marker is active for editing
-	private raycasterAnnotation: THREE.Raycaster // used to highlight annotations for selection
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
-	private sky: THREE.Object3D // makes it easier to tell up from down
-	private carModel: THREE.Object3D // displayed during live mode, moving along a trajectory
-	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
 	private scaleProvider: ScaleProvider
 	private utmCoordinateSystem: UtmCoordinateSystem
 	private pointCloudTileManager: PointCloudTileManager
 	private annotationTileManager: AnnotationTileManager
 	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
-	private grid: THREE.GridHelper | null // visible grid attached to the reference plane
-	private axis: THREE.Object3D | null // highlights the origin and primary axes of the three.js coordinate system
-	private compassRose: THREE.Object3D | null // indicates the direction of North
 	private stats: Stats
-	private annotatorOrbitControls: THREE.OrbitControls
-	private flyThroughOrbitControls: THREE.OrbitControls
 	private transformControls: any // controller for translating an object within the scene
-	private hideTransformControlTimer: number
-	private serverStatusDisplayTimer: number
-	private locationServerStatusDisplayTimer: number
 	private annotationManager: AnnotationManager
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
 	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
-	private pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
-	private liveSubscribeSocket: Socket
-	private hovered: THREE.Object3D | null // a lane vertex which the user is interacting with
 	private settings: AnnotatorSettings
-	//private flyThroughState: FlyThroughState
-	private liveModeSettings: LiveModeSettings
-	private locationServerStatusClient: LocationServerStatusClient
 	private gui: DatGui | null
 	private loop: AnimationLoop
-	// private flyThroughLoop: AnimationLoop
-	// private shouldAnimate: boolean
-	private updateOrbitControls: boolean
 	private root: HTMLElement
 	private sceneContainer: HTMLDivElement
 
@@ -275,7 +251,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.storage = new LocalStorage()
 
 		// this.shouldAnimate = false
-		this.updateOrbitControls = false
 
 		if (!isNullOrUndefined(config.get('output.trajectory.csv.path')))
 			log.warn('Config option output.trajectory.csv.path has been removed.')
@@ -428,17 +403,17 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		log.info(`Building scene`)
 
 		const [width, height]: Array<number> = this.getContainerSize()
-        //
-		// if (this.storage.getItem(preferenceKey.cameraPreference, cameraTypeString.perspective) === cameraTypeString.orthographic)
-		// 	this.annotatorCamera = this.annotatorOrthoCam
-		// else
-		// 	this.annotatorCamera = this.annotatorPerspectiveCam
 
-		// this.annotationManager = new AnnotationManager(
-		// 	!this.uiState.isKioskMode,
-		// 	this.scaleProvider,
-		// 	this.utmCoordinateSystem,
-		// )
+		if (this.storage.getItem(preferenceKey.cameraPreference, cameraTypeString.perspective) === cameraTypeString.orthographic)
+			this.annotatorCamera = this.annotatorOrthoCam
+		else
+			this.annotatorCamera = this.annotatorPerspectiveCam
+
+		this.annotationManager = new AnnotationManager(
+			!this.uiState.isKioskMode,
+			this.scaleProvider,
+			this.utmCoordinateSystem,
+		)
 
 		// remote, tiled data sources
 		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.onTileServiceStatusUpdate)
@@ -535,24 +510,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			})
 	}
 
-	private makeStats(): void {
-
-		if (!config.get('startup.show_stats_module')) return
-
-		// Create stats widget to display frequency of rendering
-		this.stats = new Stats()
-		this.stats.dom.style.top = 'initial' // disable existing setting
-		this.stats.dom.style.bottom = '50px' // above Mapper logo
-		this.stats.dom.style.left = '13px'
-		this.root.appendChild(this.stats.dom)
-
-	}
-
-	private destroyStats(): void {
-		if (!config.get('startup.show_stats_module')) return
-		this.stats.dom.remove()
-	}
-
 	private get camera(): THREE.Camera {
 		if (this.uiState.isLiveMode) return this.flyThroughCamera
 		return this.annotatorCamera
@@ -631,44 +588,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private destroyControlsGui(): void {
 		if (!config.get('startup.show_control_panel')) return
 		if (this.gui) this.gui.destroy()
-	}
-
-
-
-
-	// SHARED
-	private stopAnimation(): void {
-		// this.shouldAnimate = false
-		new RoadNetworkEditorActions().setShouldAnimate(false)
-	}
-
-
-
-	// Annotator only
-	private animate(): void {
-		this.transformControls.update()
-	}
-
-	pauseEverything(): void {
-		this.loop.pause()
-	}
-
-	resumeEverything(): void {
-		this.loop.start()
-	}
-
-
-	// BOTH (moved) --> renderAnnotator is now renderScene
-
-	// Do some house keeping after loading annotations.
-	// @TODO @Joe please move this as well to AnnotationManager
-	private annotationLoadedSideEffects(): void {
-
-        // TODO REORG JOE needs layerManager ref. Maybe LayerManager is a part of SceneManager?
-		this.layerManager.setLayerVisibility([Layer.ANNOTATIONS])
-
-        // TODO JOE belongs further down the call stack at the scene modification point.
-		// this.renderAnnotator()
 	}
 
 	// When TileManager loads a super tile, update Annotator's parallel data structure.
@@ -1015,6 +934,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// this.renderAnnotator()
 	}
 
+	// ANNOTATOR ONLY, because Kiosk doesn't save annotation editing work
+	//  {{{
+
 	/*
 	 * Make a best effort to save annotations before exiting. There is no guarantee the
 	 * promise will complete, but it seems to work in practice.
@@ -1024,9 +946,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.annotationManager.immediateAutoSave().then()
 	}
 
-	// ANNOTATOR ONLY
-    //
-    // TODO REORG JOE move to AnnotationManager
+    // TODO REORG JOE move to AnnotationManager?
     //
     // TODO REORG JOE instead of enabling/disabling autosave, just have auto-save
     // configured not to save when unfocused unless there's changes.
@@ -1037,6 +957,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.setLastMousePosition(null)
 		this.annotationManager.disableAutoSave()
 	}
+
+	// }}}
 
 	/**
 	 * Handle keyboard events
@@ -1229,101 +1151,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private onShiftKeyUp = (): void => {
 		this.uiState.isShiftKeyPressed = false
 		this.unHighlightImageScreenBox()
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE move to AnnotationManager
-	private delayHideTransform = (): void => {
-		this.cancelHideTransform()
-		this.hideTransform()
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE move to AnnotationManager
-	private hideTransform = (): void => {
-		this.hideTransformControlTimer = window.setTimeout(this.cleanTransformControls, 1500)
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE move to AnnotationManager
-	private cancelHideTransform = (): void => {
-		if (this.hideTransformControlTimer) {
-			window.clearTimeout(this.hideTransformControlTimer)
-		}
-	}
-
-	// ANNOTATOR ONLY
-    // TODO REORG JOE move to AnnotationManager
-	private cleanTransformControls = (): void => {
-		this.cancelHideTransform()
-		this.transformControls.detach()
-		this.annotationManager.unhighlightMarkers()
-		// this.renderAnnotator()
-	}
-
-	/**
-	 * Create orbit controls which enable translation, rotation and zooming of the scene.
-	 */
-	// ANNOTATOR ONLY
-    // TODO REORG JOE SceneManager or something related to it can have viewport modes,
-    // and would handle the camera. For now let's move this to SceneManager, and
-    // let both apps control the position of the focus.
-	private initAnnotatorOrbitControls(): void {
-		this.annotatorOrbitControls = new OrbitControls(this.annotatorCamera, this.renderer.domElement)
-		this.annotatorOrbitControls.minDistance = 0.1
-		this.annotatorOrbitControls.maxDistance = 5000
-		this.annotatorOrbitControls.keyPanSpeed = 100
-
-		// Add listeners.
-
-		this.annotatorOrbitControls.addEventListener('change', this.updateSkyPosition) // @TODO moved to SceneManager
-
-		// Update some UI if the camera panned -- that is it moved in relation to the model.
-		this.annotatorOrbitControls.addEventListener('pan', this.displayCameraInfo)
-
-		// If we are controlling the scene don't hide any transform object.
-		this.annotatorOrbitControls.addEventListener('start', this.cancelHideTransform)
-
-		// After the scene transformation is over start the timer to hide the transform object.
-		this.annotatorOrbitControls.addEventListener('end', this.delayHideTransform)
-
-		this.annotatorOrbitControls.addEventListener('start', () => {
-			this.updateOrbitControls = true
-			this.loop.addAnimationFn(() => this.updateOrbitControls)
-		})
-
-		this.annotatorOrbitControls.addEventListener('end', () => {
-			this.updateOrbitControls = false
-		})
-	}
-
-	// BEHOLDER
-	private initFlyThroughOrbitControls(): void {
-		this.flyThroughOrbitControls = new OrbitControls(this.flyThroughCamera, this.renderer.domElement)
-		this.flyThroughOrbitControls.enabled = false
-		this.flyThroughOrbitControls.minDistance = 10
-		this.flyThroughOrbitControls.maxDistance = 5000
-		this.flyThroughOrbitControls.minPolarAngle = 0
-		this.flyThroughOrbitControls.maxPolarAngle = Math.PI / 2
-		this.flyThroughOrbitControls.keyPanSpeed = 100
-		this.flyThroughOrbitControls.enablePan = false
-
-		this.flyThroughOrbitControls.addEventListener('change', this.updateSkyPosition) // @TODO moved to SceneManager
-
-		this.flyThroughOrbitControls.addEventListener('start', () => {
-			this.updateOrbitControls = true
-			this.loop.addAnimationFn(() => this.updateOrbitControls)
-		})
-
-		this.flyThroughOrbitControls.addEventListener('end', () => {
-			this.updateOrbitControls = false
-		})
-	}
-
-	// OBSOLETE :)
-	private get orbitControls(): THREE.OrbitControls {
-		if (this.uiState.isLiveMode) return this.flyThroughOrbitControls
-		else return this.annotatorOrbitControls
 	}
 
 	/**
@@ -1841,20 +1668,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	}
 
-	async componentDidMount(): Promise<void> {
-		this.root = this.sceneContainer
-		if (!this.uiState.sceneInitialized) await this.initScene()
-		this.sceneContainer.appendChild(this.renderer.domElement)
+	componentDidMount(): void {
 		this.createControlsGui()
-		this.makeStats()
-		// GONE this.startAnimation()
 	}
 
 	componentWillUnmount(): void {
-		this.stopAnimation()
-		this.destroyStats()
 		this.destroyControlsGui()
-		this.renderer.domElement.remove()
 
 		// TODO:
 		//  - remove event listeners

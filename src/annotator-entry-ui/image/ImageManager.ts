@@ -44,7 +44,7 @@ export interface IState {
 @typedConnect(createStructuredSelector({
   isImageScreensVisible: (state) => state.get(RoadEditorState.Key).isImageScreensVisible,
 }))
-export class ImageManager extends React.Component<IProps, IState> {
+export class ImageManager extends Observable.mixin( React.Component<IProps, IState> ) {
 	private utmCoordinateSystem: UtmCoordinateSystem
 	private settings: ImageManagerSettings
 	private imageScreens: ImageScreen[]

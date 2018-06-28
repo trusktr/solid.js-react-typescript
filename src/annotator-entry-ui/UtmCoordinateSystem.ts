@@ -6,13 +6,14 @@
 import * as THREE from 'three'
 import {isNull} from "util"
 import * as utmConverter from 'utm'
+import Observable from '....'
 
 /**
  * UtmCoordinateSystem has two states: it has a zone or not. Zone can be set one time.
  * The 3D origin of the zone is defined by the UTM standard. We apply a local
  * offset to that origin to all point data, for the benefit of three.js.
  */
-export class UtmCoordinateSystem {
+export class UtmCoordinateSystem extends Observable {
 	private readonly defaultUtmZoneNumber: number = 18 // Washington, DC
 	private readonly defaultUtmZoneNorthernHemisphere: boolean = true // Washington, DC
 	private zoneAsString: string
@@ -29,6 +30,8 @@ export class UtmCoordinateSystem {
 		this.utmZoneNumber = 0
 		this.utmZoneNorthernHemisphere = false
 		this.offset = new THREE.Vector3(0, 0, 0)
+
+		// replace with event
 		this.onSetOrigin = onSetOrigin
 	}
 
@@ -85,8 +88,9 @@ export class UtmCoordinateSystem {
 				this.utmZoneNumber = this.defaultUtmZoneNumber
 				this.utmZoneNorthernHemisphere = this.defaultUtmZoneNorthernHemisphere
 			}
-			if (!isNull(this.onSetOrigin))
-				this.onSetOrigin()
+			// if (!isNull(this.onSetOrigin))
+			// 	this.onSetOrigin()
+			this.emit( 'originUpdated', { x, y, z } )
 			return true
 		}
 	}

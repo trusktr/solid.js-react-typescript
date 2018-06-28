@@ -1461,6 +1461,43 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			.catch(err => this.handleTileManagerLoadError('Annotations', err))
 	}
 
+	// Do some house keeping after loading annotations.
+	// @TODO @Joe please move this as well to AnnotationManager
+	private annotationLoadedSideEffects(): void {
+
+        // TODO REORG JOE needs layerManager ref. Maybe LayerManager is a part of SceneManager?
+		this.layerManager.setLayerVisibility([Layer.ANNOTATIONS])
+
+        // TODO JOE belongs further down the call stack at the scene modification point.
+		// this.renderAnnotator()
+	}
+
+	private makeStats(): void {
+
+		if (!config.get('startup.show_stats_module')) return
+
+		// Create stats widget to display frequency of rendering
+		this.stats = new Stats()
+		this.stats.dom.style.top = 'initial' // disable existing setting
+		this.stats.dom.style.bottom = '50px' // above Mapper logo
+		this.stats.dom.style.left = '13px'
+		this.root.appendChild(this.stats.dom)
+
+	}
+
+	private destroyStats(): void {
+		if (!config.get('startup.show_stats_module')) return
+		this.stats.dom.remove()
+	}
+
+	componentDidMount() {
+		this.makeStats()
+	}
+
+	componentWillUnmount(): void {
+		this.destroyStats()
+	}
+
 	/**
 	 * Load annotations from file. Add all annotations to the annotation manager
 	 * and to the scene.
@@ -1856,6 +1893,44 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				// GONE this.renderAnnotator()
 			}
 		}
+	}
+
+	// ANNOTATOR ONLY
+    // TODO REORG JOE move to AnnotationManager
+	private delayHideTransform = (): void => {
+		this.cancelHideTransform()
+		this.hideTransform()
+	}
+
+	// ANNOTATOR ONLY
+    // TODO REORG JOE move to AnnotationManager
+	private hideTransform = (): void => {
+		this.hideTransformControlTimer = window.setTimeout(this.cleanTransformControls, 1500)
+	}
+
+	// ANNOTATOR ONLY
+    // TODO REORG JOE move to AnnotationManager
+	private cancelHideTransform = (): void => {
+		if (this.hideTransformControlTimer) {
+			window.clearTimeout(this.hideTransformControlTimer)
+		}
+	}
+
+	// ANNOTATOR ONLY
+    // TODO REORG JOE move to AnnotationManager
+	private cleanTransformControls = (): void => {
+		this.cancelHideTransform()
+		this.transformControls.detach()
+		this.annotationManager.unhighlightMarkers()
+		// this.renderAnnotator()
+	}
+
+	// TODO JOE THURSDAY this needs to hook into the animation loop
+	// TODO JOE THURSDAY possibly longer term unless it is simple, we don't need
+	// to continuously update transform controls, we should update them only on
+	// user interaction, on created/removed/hovered.
+	private animate(): void {
+		this.transformControls.update()
 	}
 
 	/**
