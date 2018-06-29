@@ -3,28 +3,18 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as React from "react"
 import * as THREE from 'three'
-import {isNull} from "util"
+// import {isNull} from "util"
 import * as utmConverter from 'utm'
 import {EventEmitter} from "events";
 import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
-
-
-export interface UtmCoordinateSystemProps {
-	eventEmitter: EventEmitter
-}
-
-export interface UtmCoordinateSystemState {
-
-}
 
 /**
  * UtmCoordinateSystem has two states: it has a zone or not. Zone can be set one time.
  * The 3D origin of the zone is defined by the UTM standard. We apply a local
  * offset to that origin to all point data, for the benefit of three.js.
  */
-export class UtmCoordinateSystem extends React.Component<UtmCoordinateSystemProps, UtmCoordinateSystemState> {
+export class UtmCoordinateSystem {
 	private readonly defaultUtmZoneNumber: number = 18 // Washington, DC
 	private readonly defaultUtmZoneNorthernHemisphere: boolean = true // Washington, DC
 	private zoneAsString: string
@@ -36,8 +26,8 @@ export class UtmCoordinateSystem extends React.Component<UtmCoordinateSystemProp
 	offset: THREE.Vector3
 	// private onSetOrigin: (() => void) | null
 
-	constructor(props) {
-		super(props)
+	constructor( private channel: EventEmitter ) {
+
 		this.zoneAsString = ''
 		this.utmZoneNumber = 0
 		this.utmZoneNorthernHemisphere = false
@@ -102,7 +92,7 @@ export class UtmCoordinateSystem extends React.Component<UtmCoordinateSystemProp
 			}
 			// if (!isNull(this.onSetOrigin))
 			// 	this.onSetOrigin()
-			this.props.eventEmitter.emit(EventName.ORIGIN_UPDATE.toString())
+			this.channel.emit(EventName.ORIGIN_UPDATE.toString())
 			return true
 		}
 	}

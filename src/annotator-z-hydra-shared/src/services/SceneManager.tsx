@@ -27,9 +27,9 @@ export interface SceneManagerProps {
 	width: number
 	height: number
 	shouldAnimate ?: boolean
-  compassRosePosition ?: THREE.Vector3
-  isDecorationsVisible ?: boolean
-  orbitControlsTargetPoint ?: THREE.Vector3
+	compassRosePosition ?: THREE.Vector3
+	isDecorationsVisible ?: boolean
+	orbitControlsTargetPoint ?: THREE.Vector3
 	utmCoordinateSystem: UtmCoordinateSystem
   eventEmitter: EventEmitter
 }
@@ -75,9 +75,9 @@ export interface SceneManagerState {
 
 @typedConnect(createStructuredSelector({
 	shouldAnimate: (state) => state.get(RoadEditorState.Key).shouldAnimate,
-  compassRosePosition: (state) => state.get(RoadEditorState.Key).compassRosePosition,
-  isDecorationsVisible: (state) => state.get(RoadEditorState.Key).isDecorationsVisible,
-  orbitControlsTargetPoint: (state) => state.get(RoadEditorState.Key).orbitControlsTargetPoint,
+	compassRosePosition: (state) => state.get(RoadEditorState.Key).compassRosePosition,
+	isDecorationsVisible: (state) => state.get(RoadEditorState.Key).isDecorationsVisible,
+	orbitControlsTargetPoint: (state) => state.get(RoadEditorState.Key).orbitControlsTargetPoint,
 }))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
@@ -457,7 +457,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
-	// @TODO to be used by annotator and flythrough to register cameras
+	// @TODO to be used by annotator and kiosk to register cameras
 	// Example: this.flyThroughCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
 	// Example: this.flyThroughCamera.position.set(800, 400, 0)
 	// addCamera(camera:THREE.Camera, key:string) {
@@ -498,13 +498,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
-
-
-
-
-
-
-
 	/**
 	 * Move all visible elements into position, centered on a coordinate.
 	 */
@@ -541,15 +534,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			orbitControls: orbitControls
 		})
 	}
-
-
-
-
-
-
-
-
-
 
 	// The sky needs to be big enough that we don't bump into it but not so big that the camera can't see it.
 	// So make it pretty big, then move it around to keep it centered over the camera in the XZ plane. Sky radius
@@ -619,7 +603,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		return orbitControls
 	}
 
-
 	private getContainerSize = (): Array<number> => {
 		return getValue(() => [this.props.width, this.props.height], [0, 0])
 	}
@@ -644,16 +627,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		})
 	}
 
-	// @TODO RT-Tuesday -- move to Annotated Scene Controller
-	registerKeyboardEvent(eventKeyCode:number, fn:any) {
-		const registeredKeyboardEvents = this.state.registeredKeyDownEvents
-
-		registeredKeyboardEvents.set(eventKeyCode, fn)
-		this.setState({
-			registeredKeyDownEvents: registeredKeyboardEvents
-		})
-	}
-
 
 	registerDomEventElementEventListener(type:string, listener:any) {
 		const renderer = this.state.renderer
@@ -664,67 +637,16 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// @TODO Camera Manager
 	adjustCameraXOffset(value:number) {
-    const cameraOffset = this.state.cameraOffset
-    cameraOffset.x += value
-    this.setState({cameraOffset})
-  }
-
-  // @TODO Camera Manager
-  adjustCameraYOffset(value:number) {
-    const cameraOffset = this.state.cameraOffset
-    cameraOffset.y += value
-    this.setState({cameraOffset})
-  }
-
-	/**
-	 * Handle keyboard events
-	 */
-	// @TODO RT-Tuesday -- move to Annotated Scene Controller
-	private onKeyDown = (event: KeyboardEvent): void => {
-		if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
-
-		const fn = getValue(() => this.state.registeredKeyDownEvents.get(event.keyCode), () => {})
-		fn()
-
-		// REFERENCE OLD CODE BELOW
-		// if (document.activeElement.tagName === 'INPUT')
-		// 	this.onKeyDownInputElement(event)
-		// else if (this.uiState.isLiveMode)
-		// 	this.onKeyDownLiveMode(event)
-		// else
-		// 	this.onKeyDownInteractiveMode(event)
+		const cameraOffset = this.state.cameraOffset
+		cameraOffset.x += value
+		this.setState({cameraOffset})
 	}
 
-	// @TODO RT-Tuesday -- move to Annotated Scene Controller
-	private onKeyUp = (event: KeyboardEvent): void => {
-		if (event.defaultPrevented) return
-
-		const fn = getValue(() => this.state.registeredKeyUpEvents.get(event.keyCode), () => {})
-		fn()
-	}
-
-
-
-	/**
-	 * 	Set the camera directly above the current target, looking down.
-	 */
-	// @TODO RT-Tuesday -- move to Annotated Scene Controller
-	// @TODO long term move orbit controls to Camera Manger
-	resetTiltAndCompass(): void {
-		if(!this.state.orbitControls) {
-			log.error("Orbit controls not set, unable to reset tilt and compass")
-			return
-		}
-
-		const distanceCameraToTarget = this.state.camera.position.distanceTo(this.state.orbitControls.target)
-		const camera = this.state.camera
-		camera.position.x = this.state.orbitControls.target.x
-		camera.position.y = this.state.orbitControls.target.y + distanceCameraToTarget
-		camera.position.z = this.state.orbitControls.target.z
-		this.setState({camera})
-
-		this.state.orbitControls.update()
-		this.renderScene()
+	// @TODO Camera Manager
+	adjustCameraYOffset(value:number) {
+		const cameraOffset = this.state.cameraOffset
+		cameraOffset.y += value
+		this.setState({cameraOffset})
 	}
 
 	render() {
@@ -736,14 +658,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	}
 
-
-
-
-
-
 	// Add some easter eggs to the scene if they are close enough.
 	loadDecorations(): Promise<void> {
 		return getDecorations().then(decorations => {
+
 			decorations.forEach(decoration => {
 				const position = this.props.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
 				const distanceFromOrigin = position.length()
@@ -753,10 +671,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 					const decorations = this.state.decorations
 					decorations.push(decoration)
-					this.setState({decorations})
 					this.addObjectToScene(decoration)
 				}
 			})
+
+			// NOTE JOE a single setState call outside the above loop, to avoid extra re-rendering
+			this.setState({decorations: this.state.decorations})
+
 		})
 	}
 	private showDecorations() {
@@ -772,61 +693,65 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
 
-  private setCompassRosePosition(x, y, z) {
-    if (!this.state.compassRose){
-    	log.error("Unable to find compassRose")
-    	return
+	private setCompassRosePosition(x, y, z) {
+		if (!this.state.compassRose){
+			log.error("Unable to find compassRose")
+			return
 		} else {
-    	const compassRose = this.state.compassRose
-      compassRose.position.set(x, y, z)
+			const compassRose = this.state.compassRose
+			compassRose.position.set(x, y, z)
 			this.setState({compassRose})
 		}
 	}
 
-  // Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
+	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
 	// @TODO long term move to the camera manager
 	toggleCameraType(): void {
-    let oldCamera: THREE.Camera
-    let newCamera: THREE.Camera
-    let newType: CameraType
-    if (this.state.camera === this.state.perspectiveCamera) {
-      oldCamera = this.state.perspectiveCamera
-      newCamera = this.state.orthographicCamera
-      newType = CameraType.ORTHOGRAPHIC
-    } else {
-      oldCamera = this.state.orthographicCamera
-      newCamera = this.state.perspectiveCamera
-      newType = CameraType.PERSPECTIVE
-    }
+		let oldCamera: THREE.Camera
+		let newCamera: THREE.Camera
+		let newType: CameraType
+		if (this.state.camera === this.state.perspectiveCamera) {
+			oldCamera = this.state.perspectiveCamera
+			newCamera = this.state.orthographicCamera
+			newType = CameraType.ORTHOGRAPHIC
+		} else {
+			oldCamera = this.state.orthographicCamera
+			newCamera = this.state.perspectiveCamera
+			newType = CameraType.PERSPECTIVE
+		}
 
-    // Copy over the camera position. When the next animate() runs, the new camera will point at the
-    // same target as the old camera, since the target is maintained by OrbitControls. That takes
-    // care of position and orientation, but not zoom. PerspectiveCamera and OrthographicCamera
-    // calculate zoom differently. It would be nice to convert one to the other here.
-    newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
+		// Copy over the camera position. When the next animate() runs, the new camera will point at the
+		// same target as the old camera, since the target is maintained by OrbitControls. That takes
+		// care of position and orientation, but not zoom. PerspectiveCamera and OrthographicCamera
+		// calculate zoom differently. It would be nice to convert one to the other here.
+		newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
 
-	// used to be --> this.annotatorCamera = newCamera
-	this.setState({camera: newCamera})
+		// used to be --> this.annotatorCamera = newCamera
+		this.setState({camera: newCamera})
 
-    this.onWindowResize()
+		this.onWindowResize()
 
-    this.transformControls.setCamera(newCamera)
-    this.annotatorOrbitControls.setCamera(newCamera)
-    this.flyThroughOrbitControls.setCamera(newCamera)
+		this.transformControls.setCamera(newCamera)
+		this.annotatorOrbitControls.setCamera(newCamera)
+		this.flyThroughOrbitControls.setCamera(newCamera)
 
-    // RYAN UPDATED
-    // this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
-    new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
+		// RYAN UPDATED
+		// this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
+		new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
 
 
-	// TODO JOE WEDNESDAY save camera state in LocalStorage and reload it next time the app starts
-	// enum cameraTypes = {
-	// 	orthographic: 'orthographic',
-	// 	perspective: 'perspective',
-	// }
-	// f.e. this.storage.getItem('cameraPreference', cameraTypes.perspective)
-	new RoadNetworkEditorActions().setCameraPreference(newType)
-    this.renderScene()
-  }
+		// TODO JOE WEDNESDAY save camera state in a LocalStorage instance and
+		// reload it next time the app starts
+		//
+		// enum cameraTypes = {
+		// 	orthographic: 'orthographic',
+		// 	perspective: 'perspective',
+		// }
+		//
+		// this.storage.getItem('cameraPreference', cameraTypes.perspective)
+		//
+		new RoadNetworkEditorActions().setCameraPreference(newType)
+		this.renderScene()
+	}
 
 }

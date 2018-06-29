@@ -15,10 +15,6 @@ import {UtmCoordinateSystem} from "../UtmCoordinateSystem";
 import {AuroraCameraParameters} from "./CameraParameters"
 import config from '@/config'
 import Logger from "@/util/log"
-import * as React from "react";
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
-import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
-import {createStructuredSelector} from "reselect";
 import {EventEmitter} from "events";
 import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
 
@@ -33,23 +29,9 @@ interface ImageManagerSettings {
 	clickedRayLength: number // length in meters of a ray cast from a camera through an image screen
 }
 
-export interface IProps {
-  isImageScreensVisible ?:boolean
-	utmCoordinateSystem:UtmCoordinateSystem
-	onRenderScene: () => void
-  eventEmitter: EventEmitter
-}
-
-export interface IState {
-
-}
-
 // This tracks a set of images which can be displayed within the 3D scene as well as
 // a subset of images which are loaded in their own window for closer inspection.
-@typedConnect(createStructuredSelector({
-  isImageScreensVisible: (state) => state.get(RoadEditorState.Key).isImageScreensVisible,
-}))
-export class ImageManager extends React.Component<IProps, IState> {
+export class ImageManager {
 	private settings: ImageManagerSettings
 	private imageScreens: ImageScreen[]
 	imageScreenMeshes: THREE.Mesh[]
@@ -60,11 +42,13 @@ export class ImageManager extends React.Component<IProps, IState> {
 	loadedImageDetails: OrderedSet<CalibratedImage>
 
 	constructor(
-		props
+        private utmCoordinateSystem: UtmCoordinateSystem,
+        private channel: EventEmitter,
 		// onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void,
 		// onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void,
 	) {
-		super(props)
+
+
 		this.settings = {
 			imageScreenWidth: config.get('image_manager.image_screen.width'),
 			imageScreenHeight: config.get('image_manager.image_screen.height'),
@@ -80,16 +64,6 @@ export class ImageManager extends React.Component<IProps, IState> {
 		this.loadedImageDetails = OrderedSet()
 	}
 
-	componentWillReceiveProps(newProps) {
-    if(newProps.isImageScreensVisible !== this.props.isImageScreensVisible) {
-      if(newProps.isImageScreensVisible) {
-        this.showImageScreens()
-      } else {
-        this.hideImageScreens()
-      }
-    }
-	}
-
 	// Set opacity of all images.
 	setOpacity(opacity: number): boolean {
 		if (this.opacity === opacity)
@@ -101,11 +75,11 @@ export class ImageManager extends React.Component<IProps, IState> {
 		return true
 	}
 
-	private showImageScreens(): void {
+	showImageScreens(): void {
 		this.imageScreens.forEach(i => i.makeVisible())
 	}
 
-	private hideImageScreens(): void {
+	hideImageScreens(): void {
 		this.imageScreens.forEach(i => i.makeInvisible())
 	}
 
@@ -133,7 +107,7 @@ export class ImageManager extends React.Component<IProps, IState> {
 
 	// Load an image and its metadata.
 	private loadImageFromPath(path: string): Promise<void> {
-		return readImageMetadataFile(path, this.props.utmCoordinateSystem)
+		return readImageMetadataFile(path, this.utmCoordinateSystem)
 			.then(cameraParameters => {
 				this.setUpScreen({
 					path: path,
@@ -163,7 +137,7 @@ export class ImageManager extends React.Component<IProps, IState> {
 		// RYAN THURSDAY - callback not needed -- thought being that an event is emitted and Annotator app can execute this method
 		// this.onImageScreenLoad(screen)
 		// @TODO have annotator app listen on this event
-		this.props.eventEmitter.emit(EventName.IMAGE_SCREEN_LOAD_UPDATE.toString(), screen)
+		this.channel.emit(EventName.IMAGE_SCREEN_LOAD_UPDATE.toString(), screen)
 	}
 
 	// When an image object is selected for closer inspection, push it over to the Lightbox for full-size, 2D display.
@@ -189,7 +163,7 @@ export class ImageManager extends React.Component<IProps, IState> {
 		// RYAN THURSDAY
 		// @TODO annotator app needs to listen on LIGHT_BOX_IMAGE_RAY_UPDATE
 		// this.onLightboxImageRay(null)
-		this.props.eventEmitter.emit(EventName.LIGHT_BOX_IMAGE_RAY_UPDATE.toString(), null)
+		this.channel.emit(EventName.LIGHT_BOX_IMAGE_RAY_UPDATE.toString(), null)
 		let updated = 0
 		this.loadedImageDetails.forEach(i => i!.imageScreen.setHighlight(false) && updated++)
 		this.loadedImageDetails = OrderedSet()
@@ -228,7 +202,7 @@ export class ImageManager extends React.Component<IProps, IState> {
 
 					// RYAN THURSDAY update to eventEmitter
 					// this.onLightboxImageRay(ray)
-					this.props.eventEmitter.emit(EventName.LIGHT_BOX_IMAGE_RAY_UPDATE.toString(), ray)
+					this.channel.emit(EventName.LIGHT_BOX_IMAGE_RAY_UPDATE.toString(), ray)
 				} else {
 					log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)
 				}

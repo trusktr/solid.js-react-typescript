@@ -123,6 +123,11 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     }
   }
 
+    // TODO JOE is this better in PointCloudManager
+	private intersectWithPointCloud(raycaster: THREE.Raycaster): THREE.Intersection[] {
+		return raycaster.intersectObjects(this.pointCloudTileManager.getPointClouds())
+	}
+
   /**
    * 	Draw a box around the data. Useful for debugging.
    */
@@ -366,7 +371,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   }
 
   render() {
-    return null
+	  return (
+	  )
   }
 }
-

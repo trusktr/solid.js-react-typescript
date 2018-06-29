@@ -70,4 +70,9 @@ export class AnnotationTileManager extends TileManager {
 		else
 			return Promise.reject(Error('unknown tileInstance.layerId: ' + tileInstance.layerId))
 	}
+
+    protected updateTileManagerStats(): void {
+        if ( !this.settings.enableAnnotationTileManager ) return
+		super.updateTileManagerStats()
+	}
 }

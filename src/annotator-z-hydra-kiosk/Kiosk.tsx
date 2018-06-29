@@ -1,6 +1,5 @@
 import * as React from 'react'
 import CarManager from "@/annotator-z-hydra-kiosk/CarManager";
-import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
@@ -9,6 +8,7 @@ import KioskMenuView from "@/annotator-z-hydra-kiosk/KioskMenuView";
 import Logger from "@/util/log";
 import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
 import AnnotatedSceneController from "@/annotator-z-hydra-shared/src/services/AnnotatedSceneController";
+import * as watch from 'watch'
 
 const log = Logger(__filename)
 
@@ -45,13 +45,59 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	constructor(props) {
 		super(props)
 
-    this.state = {
-      annotatedSceneController: null,
+		this.state = {
+			annotatedSceneController: null,
 			carManager: null,
 			flyThroughManager: null,
 			layerManager: null,
 			hasCalledSetup: false,
-    }
+		}
+
+		const watchForRebuilds: boolean = config.get('startup.watch_for_rebuilds.enable') || false
+		if (watchForRebuilds) {
+			// Watch for rebuilds and exit if we get rebuilt.
+			// This relies on a script or something else to restart after we exit
+			const self = this
+			watch.createMonitor(
+				'/tmp',
+				{
+					filter: function (f: string): boolean {
+						return f === '/tmp/visualizer-rebuilt.flag'
+					}
+				},
+				function (monitor: any): void {
+					monitor.on("created", function (): void {
+						log.info("Rebuilt flag file created, exiting app")
+						self.exitApp()
+					})
+					monitor.on("changed", function (): void {
+						log.info("Rebuilt flag file modified, exiting app")
+						self.exitApp()
+					})
+				})
+		}
+
+		this.liveModeSettings = {
+			displayCarModel: !!config.get('live_mode.display_car_model'),
+			carModelMaterial: new THREE.MeshPhongMaterial({
+				color: 0x002233,
+				specular: 0x222222,
+				shininess: 0,
+			}),
+			cameraOffset: new THREE.Vector3(30, 10, 0),
+			cameraOffsetDelta: 1,
+			// flyThroughIntervalSecs: flyThroughInterval,
+		}
+
+		// this.resetFlyThroughState()
+		new FlyThroughActions().resetFlyThroughState()
+
+		if (config.get('fly_through.render.fps'))
+			log.warn('config option fly_through.render.fps has been renamed to fly_through.animation.fps')
+	}
+
+	exitApp(): void {
+		Electron.remote.getCurrentWindow().close()
 	}
 
 	componentWillReceiveProps(newProps) {
@@ -146,6 +192,16 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
     this.state.sceneManager.renderScene()
   }
+
+	private onKeyDown = (event: KeyboardEvent): void => {
+		if (event.defaultPrevented) return
+		if (event.altKey) return
+		if (event.ctrlKey) return
+		if (event.metaKey) return
+
+		// NOTE JOE who knows where onKeyDownLiveMode went?
+		this.onKeyDownLiveMode(event)
+	}
 
 
     // TODO JOE WEDNESDAY {{{
