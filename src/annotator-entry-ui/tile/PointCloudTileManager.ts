@@ -24,6 +24,7 @@ import Logger from "@/util/log"
 import {TileManager, TileManagerConfig} from "@/annotator-entry-ui/tile/TileManager"
 import {OrderedMap} from "immutable"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
+import {EventEmitter} from "events";
 
 const log = Logger(__filename)
 
@@ -82,15 +83,17 @@ export class PointCloudTileManager extends TileManager {
 	constructor(
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
-		onSuperTileLoad: (superTile: SuperTile) => void,
-		onSuperTileUnload: (superTile: SuperTile) => void,
+		eventEmitter: EventEmitter,
+		// onSuperTileLoad: (superTile: SuperTile) => void,
+		// onSuperTileUnload: (superTile: SuperTile) => void,
 		tileServiceClient: TileServiceClient,
 	) {
 		super(
 			scaleProvider,
 			utmCoordinateSystem,
-			onSuperTileLoad,
-			onSuperTileUnload,
+      eventEmitter,
+			// onSuperTileLoad,
+			// onSuperTileUnload,
 			tileServiceClient,
 		)
 		if (config.get('tile_manager.tile_message_format'))

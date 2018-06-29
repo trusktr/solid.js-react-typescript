@@ -17,21 +17,24 @@ import {AnnotationTileContents} from "@/annotator-entry-ui/model/TileContents"
 import {AnnotationUtmTile} from "@/annotator-entry-ui/tile/AnnotationUtmTile"
 import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
+import {EventEmitter} from "events";
 
 export class AnnotationTileManager extends TileManager {
 	constructor(
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
-		onSuperTileLoad: (superTile: SuperTile) => void,
-		onSuperTileUnload: (superTile: SuperTile) => void,
+		eventEmitter: EventEmitter,
+		// onSuperTileLoad: (superTile: SuperTile) => void,
+		// onSuperTileUnload: (superTile: SuperTile) => void,
 		tileServiceClient: TileServiceClient,
 		private annotationManager: AnnotationManager,
 	) {
 		super(
 			scaleProvider,
 			utmCoordinateSystem,
-			onSuperTileLoad,
-			onSuperTileUnload,
+			eventEmitter,
+			// onSuperTileLoad,
+			// onSuperTileUnload,
 			tileServiceClient,
 		)
 		this.config = {

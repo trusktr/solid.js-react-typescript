@@ -16,6 +16,8 @@ import {ImageManager} from "@/annotator-entry-ui/image/ImageManager";
 import {PointCloudTileManager} from "@/annotator-entry-ui/tile/PointCloudTileManager";
 import {TileServiceClient} from "@annotator-entry-ui/tile/TileServiceClient"
 import {ScaleProvider} from "@annotator-entry-ui/tile/ScaleProvider"
+import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
+import {AnnotationTileManager} from "@/annotator-entry-ui/tile/AnnotationTileManager";
 
 const log = Logger(__filename)
 
@@ -24,8 +26,8 @@ export interface CameraState {
 }
 
 export interface IAnnotatedSceneControllerProps {
-  statusWindowState ?: StatusWindowState
   onPointOfInterestCall: any
+	statusWindowState ?: StatusWindowState
 }
 
 export interface IAnnotatedSceneControllerState {
@@ -66,24 +68,30 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 		// ^ utmCoordinateSystem doesn't need to be a React component because it
 		// isn't hooked to Redux.
 
+		// Add events to listen on for tile loading/unloading
+    this.channel.on( EventName.SUPER_TILE_LOAD.toString(), (superTile) => {
+      this.onSuperTileLoad(superTile)
+    })
+
+    this.channel.on( EventName.SUPER_TILE_UNLOAD.toString(), (superTile) => {
+      this.onSuperTileUnload(superTile)
+    })
+
 		// TODO JOE THURSDAY if not creating it here, pass pointCloudTileManager as a prop
 		this.scaleProvider = new ScaleProvider()
 		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.onTileServiceStatusUpdate)
 		this.pointCloudTileManager = new PointCloudTileManager(
 			this.scaleProvider,
 			this.utmCoordinateSystem,
+			this.channel,
 			tileServiceClient,
-
-			// TODO JOE THURSDAY replace with events
-			// this.onSuperTileLoad,
-			// this.onSuperTileUnload,
-
 		)
 
 		if (this.settings.enableAnnotationTileManager) {
 			this.annotationTileManager = new AnnotationTileManager(
 				this.scaleProvider,
 				this.utmCoordinateSystem,
+				this.channel,
 				tileServiceClient,
 
 				// TODO FIXME JOE AnnotationManager is passed into
@@ -94,11 +102,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 				// should split AnnotationManager into two, and name one of them
 				// something like AnnotationLayer or something.
 				this.annotationManager,
-
-				// TODO JOE THURSDAY replace with events
-				// this.onSuperTileLoad,
-				// this.onSuperTileUnload,
-
 			)
 		}
 	}

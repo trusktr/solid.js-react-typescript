@@ -19,6 +19,8 @@ import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "../model/RangeSearch"
 import {TileInstance} from "../model/TileInstance"
 import Logger from "@/util/log"
+import {EventEmitter} from "events";
+import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
 
 const log = Logger(__filename)
 
@@ -50,7 +52,7 @@ export interface TileManagerConfig {
 // which serve as a local cache for chunks of tile data.
 // All objects are stored with reference to UTM origin and offset, but using the local coordinate
 // system which has different axes.
-export abstract class TileManager extends Observable {
+export abstract class TileManager {
 	protected config: TileManagerConfig
 	private storage: LocalStorage // persistent state for UI settings
 	protected coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin // todo ?
@@ -68,8 +70,9 @@ export abstract class TileManager extends Observable {
 	constructor(
 		scaleProvider: ScaleProvider,
 		protected utmCoordinateSystem: UtmCoordinateSystem,
-		private onSuperTileLoad: (superTile: SuperTile) => void,
-		private onSuperTileUnload: (superTile: SuperTile) => void,
+    private eventEmitter: EventEmitter,
+		// private onSuperTileLoad: (superTile: SuperTile) => void,
+		// private onSuperTileUnload: (superTile: SuperTile) => void,
 		protected tileServiceClient: TileServiceClient,
 	) {
 		this.storage = new LocalStorage()
@@ -288,14 +291,18 @@ export abstract class TileManager extends Observable {
 					if (success) {
 						this.loadedObjectsBoundingBox = null
 						this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.add(superTile.key()))
-						this.onSuperTileLoad(superTile)
+
+						this.eventEmitter.emit(EventName.SUPER_TILE_LOAD.toString(), superTile)
+						// this.onSuperTileLoad(superTile)
 					}
 					return success
 				})
 	}
 
 	private unloadSuperTile(superTile: SuperTile): boolean {
-		this.onSuperTileUnload(superTile)
+		// this.onSuperTileUnload(superTile)
+    this.eventEmitter.emit(EventName.SUPER_TILE_UNLOAD.toString(), superTile)
+
 		this.superTiles = this.superTiles.remove(superTile.key())
 		this.loadedObjectsBoundingBox = null
 		this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.remove(superTile.key()))
