@@ -12,15 +12,37 @@ import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager
 import {Layer, default as LayerManager} from "@/annotator-z-hydra-shared/src/services/LayerManager";
 import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
 import {EventEmitter} from "events"
-import {ImageManager} from "@/annotator-entry-ui/image/ImageManager";
 import {PointCloudTileManager} from "@/annotator-entry-ui/tile/PointCloudTileManager";
 import {TileServiceClient} from "@annotator-entry-ui/tile/TileServiceClient"
 import {ScaleProvider} from "@annotator-entry-ui/tile/ScaleProvider"
+import * as OBJLoader from 'three-obj-loader'
+import {isTupleOfNumbers} from "@/util/Validation";
+import config from "@/config";
 
 const log = Logger(__filename)
 
+OBJLoader(THREE)
+
 export interface CameraState {
   lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
+}
+
+// TODO JOE WEDNESDAY moved from Annotator.tsx
+interface AnnotatorSettings {
+	background: THREE.Color
+	cameraOffset: THREE.Vector3
+	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
+	defaultAnimationFrameIntervalMs: number | false
+	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
+	estimateGroundPlane: boolean
+	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
+	enableAnnotationTileManager: boolean
+	enableTileManagerStats: boolean
+	pointCloudBboxColor: THREE.Color
+	timeToDisplayHealthyStatusMs: number
+	maxDistanceToDecorations: number // meters
+	skyRadius: number
+	cameraToSkyMaxDistance: number
 }
 
 export interface IAnnotatedSceneControllerProps {
@@ -49,6 +71,18 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 	constructor(props) {
 		super(props)
+
+		this.settings = {
+			estimateGroundPlane: !!config['annotator.add_points_to_estimated_ground_plane'],
+			tileGroundPlaneScale: 1.05,
+			enableAnnotationTileManager: false,
+			enableTileManagerStats: !!config['tile_manager.stats_display.enable'],
+			pointCloudBboxColor: new THREE.Color(0xff0000),
+			timeToDisplayHealthyStatusMs: 10000,
+			maxDistanceToDecorations: 50000,
+			skyRadius: 8000,
+			cameraToSkyMaxDistance: 0,
+		}
 
 		this.state = {
 			cameraState: {
@@ -136,8 +170,33 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	componentDidMount() {
 		this.makeStats()
 
+		// TODO JOE FRIDAY
+		// if ( interaction is enabled ) {
+
+	        this.props.sceneManager.renderer.domElement.addEventListener('mousemove', this.annotationManager.checkForActiveMarker)
+
+	        // TODO REORG JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
+	        this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.checkForConflictOrDeviceSelection)
+	        this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.checkForAnnotationSelection)
+			this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.addAnnotationMarker)
+			this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.addLaneConnection)   // RYAN Annotator-specific
+			this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.connectNeighbor)  // RYAN Annotator-specific
+			this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.joinAnnotations)
+
+		// }
+
+		if ( config['startup.camera_offset'] ) {
+			const cameraOffset: [ number, number, number ] = config['startup.camera_offset']
+
+			if (isTupleOfNumbers(cameraOffset, 3)) {
+				this.props.sceneManager.setCameraOffset( cameraOffset )
+			} else if (cameraOffset) {
+				log.warn(`invalid startup.camera_offset config: ${cameraOffset}`)
+			}
+		}
+
 		// TODO JOE THURSDAY perhaps LayerManager can listen to all TileManager
-		// layers, and emit a generic layerSupertilesLoad event
+		// layers, and emit a generic layerSupertilesLoad event {{{
 		this.props.layerManager.on( 'layerSupertilesLoad', () => {
 			for (const supertile of supertiles) {
 				this.onSuperTileLoad( supertile )
@@ -158,6 +217,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			}
 			this.updateTileManagerStats()
 		} )
+
+		// }}}
 	}
 
 	componentWillUnmount() {
@@ -225,7 +286,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 	private makeStats(): void {
 
-		if (!config.get('startup.show_stats_module')) return
+		if (!config['startup.show_stats_module']) return
 
 		// Create stats widget to display frequency of rendering
 		this.stats = new Stats()
@@ -237,7 +298,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	}
 
 	private destroyStats(): void {
-		if (!config.get('startup.show_stats_module')) return
+		if (!config['startup.show_stats_module']) return
 		this.stats.dom.remove()
 	}
 

@@ -63,17 +63,17 @@ export class TileServiceClient {
 		this.serverStatus = null
 		this.pingInFlight = false
 		this.onTileServiceStatusUpdate = onTileServiceStatusUpdate
-		this.healthCheckInterval = config.get('tile_client.service.health_check.interval.seconds') * 1000
+		this.healthCheckInterval = config['tile_client.service.health_check.interval.seconds'] * 1000
 
 		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO config: UTM_10N (and make the server aware of UTM zones)
-		if (config.get('tile_client.tile_scale'))
+		if (config['tile_client.tile_scale'])
 			log.warn('Config option tile_client.tile_scale is deprecated. Use tile_manager.utm_tile_scale.')
 		const scale = scale3DToSpatialTileScale(scaleProvider.utmTileScale)
 		if (isNullOrUndefined(scale))
 			throw Error(`invalid utmTileScale: ${scaleProvider.utmTileScale}`)
 		this.scale = scale
-		const tileServiceHost = config.get('tile_client.service.host') || 'localhost'
-		const tileServicePort = config.get('tile_client.service.port') || '50051'
+		const tileServiceHost = config['tile_client.service.host'] || 'localhost'
+		const tileServicePort = config['tile_client.service.port'] || '50051'
 		this.tileServiceAddress = tileServiceHost + ':' + tileServicePort
 		this.client = null
 	}

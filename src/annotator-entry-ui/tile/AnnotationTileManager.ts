@@ -36,9 +36,9 @@ export class AnnotationTileManager extends TileManager {
 		)
 		this.config = {
 			layerId: 'anot1', // a layer which contains miniature annotator JSON files
-			initialSuperTilesToLoad: parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4,
-			maximumSuperTilesToLoad: parseInt(config.get('tile_manager.maximum_super_tiles_to_load'), 10) || 10000,
-			maximumObjectsToLoad: parseInt(config.get('tile_manager.maximum_annotations_to_load'), 10) || 1000,
+			initialSuperTilesToLoad: parseInt(config['tile_manager.initial_super_tiles_to_load'], 10) || 4,
+			maximumSuperTilesToLoad: parseInt(config['tile_manager.maximum_super_tiles_to_load'], 10) || 10000,
+			maximumObjectsToLoad: parseInt(config['tile_manager.maximum_annotations_to_load'], 10) || 1000,
 		}
 	}
 

@@ -53,7 +53,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			hasCalledSetup: false,
 		}
 
-		const watchForRebuilds: boolean = config.get('startup.watch_for_rebuilds.enable') || false
+		const watchForRebuilds: boolean = config['startup.watch_for_rebuilds.enable'] || false
 		if (watchForRebuilds) {
 			// Watch for rebuilds and exit if we get rebuilt.
 			// This relies on a script or something else to restart after we exit
@@ -78,7 +78,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		}
 
 		this.liveModeSettings = {
-			displayCarModel: !!config.get('live_mode.display_car_model'),
+			displayCarModel: !!config['live_mode.display_car_model'],
 			carModelMaterial: new THREE.MeshPhongMaterial({
 				color: 0x002233,
 				specular: 0x222222,
@@ -92,7 +92,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		// this.resetFlyThroughState()
 		new FlyThroughActions().resetFlyThroughState()
 
-		if (config.get('fly_through.render.fps'))
+		if (config['fly_through.render.fps'])
 			log.warn('config option fly_through.render.fps has been renamed to fly_through.animation.fps')
 	}
 
@@ -122,6 +122,8 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			this.state.sceneManager && this.state.layerManager && this.state.carManager && this.state.flyThroughManager
 		) {
 			// Once the car is setup, we need to call this.listen()
+			// TODO JOE FRIDAY the user data needs to be loaded (FlyThroughManager.loadUserData)
+			// before this runs.
 			this.listen()
 		}
 

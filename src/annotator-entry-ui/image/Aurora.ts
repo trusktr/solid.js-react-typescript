@@ -11,7 +11,7 @@ import config from '@/config'
 
 // Convenience functions for Aurora data
 
-const screenDistanceFromOrigin: number = parseFloat(config.get('image_manager.image.distance_from_camera')) || 1.0
+const screenDistanceFromOrigin: number = parseFloat(config['image_manager.image.distance_from_camera']) || 1.0
 
 interface AuroraImageMetadata {
 	'tileId': string

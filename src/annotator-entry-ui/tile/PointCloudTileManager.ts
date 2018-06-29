@@ -93,15 +93,15 @@ export class PointCloudTileManager extends TileManager {
 			onSuperTileUnload,
 			tileServiceClient,
 		)
-		if (config.get('tile_manager.tile_message_format'))
+		if (config['tile_manager.tile_message_format'])
 			log.warn('config option tile_manager.tile_message_format has been removed.')
 		this.config = {
 			layerId: 'base1', // a layer which contains instances of `BaseGeometryTileMessage`
-			pointsSize: parseFloat(config.get('annotator.point_render_size')) || 1,
-			initialSuperTilesToLoad: parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4,
-			maximumSuperTilesToLoad: parseInt(config.get('tile_manager.maximum_super_tiles_to_load'), 10) || 10000,
-			maximumObjectsToLoad: parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000,
-			samplingStep: parseInt(config.get('tile_manager.sampling_step'), 10) || 5,
+			pointsSize: parseFloat(config['annotator.point_render_size']) || 1,
+			initialSuperTilesToLoad: parseInt(config['tile_manager.initial_super_tiles_to_load'], 10) || 4,
+			maximumSuperTilesToLoad: parseInt(config['tile_manager.maximum_super_tiles_to_load'], 10) || 10000,
+			maximumObjectsToLoad: parseInt(config['tile_manager.maximum_points_to_load'], 10) || 100000,
+			samplingStep: parseInt(config['tile_manager.sampling_step'], 10) || 5,
 		}
 		this.pointsMaterial = new THREE.PointsMaterial({
 			size: this.config.pointsSize,

@@ -22,7 +22,7 @@ const log = Logger(__filename)
 
 const
   loop = new ChildAnimationLoop,
-  flyThroughFps = config.get('fly_through.animation.fps'),
+  flyThroughFps = config['fly_through.animation.fps'],
   flyThroughInterval = flyThroughFps === 'device' ? 0 : 1 / (flyThroughFps || 10)
 
 loop.interval = flyThroughInterval

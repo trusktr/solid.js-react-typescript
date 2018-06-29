@@ -49,11 +49,11 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
 			},
 
 			statusWindowState: {
-				enabled: !!config.get('startup.show_status_panel'),
+				enabled: !!config['startup.show_status_panel'],
 				messages: new Map<string, string>()
 			},
 
-			uiMenuVisible: config.get('startup.show_menu'),
+			uiMenuVisible: config['startup.show_menu'],
 			shouldAnimate: false,
 			carPose: null,
       isCarInitialized: false,

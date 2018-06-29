@@ -45,24 +45,6 @@ const log = Logger(__filename)
 
 const dialog = Electron.remote.dialog
 
-// TODO JOE WEDNESDAY moved from Annotator.tsx
-interface AnnotatorSettings {
-	background: THREE.Color
-	cameraOffset: THREE.Vector3
-	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
-	defaultAnimationFrameIntervalMs: number | false
-	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
-	estimateGroundPlane: boolean
-	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
-	enableAnnotationTileManager: boolean
-	enableTileManagerStats: boolean
-	pointCloudBboxColor: THREE.Color
-	timeToDisplayHealthyStatusMs: number
-	maxDistanceToDecorations: number // meters
-	skyRadius: number
-	cameraToSkyMaxDistance: number
-}
-
 // tslint:disable:no-string-literal
 
 export enum OutputFormat {
@@ -795,7 +777,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (!annotations.length)
 			return Promise.reject(Error('failed to save empty set of annotations'))
 
-		if (!this.utmCoordinateSystem.hasOrigin && !config.get('output.annotations.debug.allow_annotations_without_utm_origin'))
+		if (!this.utmCoordinateSystem.hasOrigin && !config['output.annotations.debug.allow_annotations_without_utm_origin'])
 			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
 
 		const self = this
@@ -814,7 +796,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (!annotations.length)
 			return Promise.reject(Error('failed to save empty set of annotations'))
 
-		if (!this.utmCoordinateSystem.hasOrigin && !config.get('output.annotations.debug.allow_annotations_without_utm_origin'))
+		if (!this.utmCoordinateSystem.hasOrigin && !config['output.annotations.debug.allow_annotations_without_utm_origin'])
 			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
 
 		if (format !== OutputFormat.UTM)
@@ -1989,8 +1971,8 @@ export class AnnotationState {
 		this.annotationManager = annotationManager
 		this.isDirty = false
 		this.autoSaveEnabled = false
-		this.autoSaveDirectory = config.get('output.annotations.autosave.directory.path')
-		const autoSaveEventInterval = config.get('output.annotations.autosave.interval.seconds') * 1000
+		this.autoSaveDirectory = config['output.annotations.autosave.directory.path']
+		const autoSaveEventInterval = config['output.annotations.autosave.interval.seconds'] * 1000
 		if (this.annotationManager && this.autoSaveDirectory && autoSaveEventInterval) {
 			setInterval((): void => {
 				if (self.doPeriodicSave()) self.saveAnnotations().then()

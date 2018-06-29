@@ -5,7 +5,7 @@
 
 import config from '@/config'
 
-const applicationDirectory = config.get('preferences.directory') || 'mapper-annotator'
+const applicationDirectory = config['preferences.directory'] || 'mapper-annotator'
 const windowStateDirectory = 'window-state'
 
 // Build a partial path to a preferences file.

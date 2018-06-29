@@ -50,14 +50,14 @@ export class ImageManager {
 
 
 		this.settings = {
-			imageScreenWidth: config.get('image_manager.image_screen.width'),
-			imageScreenHeight: config.get('image_manager.image_screen.height'),
-			visibleWireframe: config.get('image_manager.image.wireframe.visible'),
+			imageScreenWidth: config['image_manager.image_screen.width'],
+			imageScreenHeight: config['image_manager.image_screen.height'],
+			visibleWireframe: config['image_manager.image.wireframe.visible'],
 			clickedRayLength: 100,
 		}
 		this.imageScreens = []
 		this.imageScreenMeshes = []
-		this.opacity = parseFloat(config.get('image_manager.image.opacity')) || 0.5
+		this.opacity = parseFloat(config['image_manager.image.opacity']) || 0.5
 		this.onKeyDown = onKeyDown
 		this.onKeyUp = onKeyUp
 		this.lightboxWindow = null
