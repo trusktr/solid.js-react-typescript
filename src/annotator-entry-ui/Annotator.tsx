@@ -1345,10 +1345,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			// this.onKeyDown,
 			// this.onKeyUp,
 		)
-
-
-		// TODO typedux to react to opacity
-		this.imageManager.setOpacity( this.uiState.imageScreenOpacity )
 	}
 
 	componentWillUnmount(): void {
