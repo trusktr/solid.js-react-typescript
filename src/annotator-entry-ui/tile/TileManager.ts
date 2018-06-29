@@ -19,8 +19,7 @@ import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "../model/RangeSearch"
 import {TileInstance} from "../model/TileInstance"
 import Logger from "@/util/log"
-import {EventEmitter} from "events";
-import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
+import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 
 const log = Logger(__filename)
 
@@ -56,6 +55,7 @@ export abstract class TileManager {
 	protected config: TileManagerConfig
 	private storage: LocalStorage // persistent state for UI settings
 	protected coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin // todo ?
+	setPointCloud: (superTiles:OrderedMap<string, SuperTile>) => void
 	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
 	// Keys to super tiles which have objects loaded in memory. It is ordered so that it works as a least-recently-used
 	// cache when it comes time to unload excess super tiles.
@@ -70,9 +70,6 @@ export abstract class TileManager {
 	constructor(
 		scaleProvider: ScaleProvider,
 		protected utmCoordinateSystem: UtmCoordinateSystem,
-    private eventEmitter: EventEmitter,
-		// private onSuperTileLoad: (superTile: SuperTile) => void,
-		// private onSuperTileUnload: (superTile: SuperTile) => void,
 		protected tileServiceClient: TileServiceClient,
 	) {
 		this.storage = new LocalStorage()
@@ -142,8 +139,10 @@ export abstract class TileManager {
 
 	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
 		const key = utmIndex.toString()
-		if (!this.superTiles.has(key))
-			this.superTiles = this.superTiles.set(key, this.constructSuperTile(utmIndex, coordinateFrame, this.utmCoordinateSystem))
+		if (!this.superTiles.has(key)) {
+      this.superTiles = this.superTiles.set(key, this.constructSuperTile(utmIndex, coordinateFrame, this.utmCoordinateSystem))
+			this.setPointCloud(this.superTiles)
+    }
 		return this.superTiles.get(key)
 	}
 
@@ -291,19 +290,14 @@ export abstract class TileManager {
 					if (success) {
 						this.loadedObjectsBoundingBox = null
 						this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.add(superTile.key()))
-
-						this.eventEmitter.emit(EventName.SUPER_TILE_LOAD.toString(), superTile)
-						// this.onSuperTileLoad(superTile)
 					}
 					return success
 				})
 	}
 
 	private unloadSuperTile(superTile: SuperTile): boolean {
-		// this.onSuperTileUnload(superTile)
-    this.eventEmitter.emit(EventName.SUPER_TILE_UNLOAD.toString(), superTile)
-
 		this.superTiles = this.superTiles.remove(superTile.key())
+    this.setPointCloud(this.superTiles)
 		this.loadedObjectsBoundingBox = null
 		this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.remove(superTile.key()))
 		return true

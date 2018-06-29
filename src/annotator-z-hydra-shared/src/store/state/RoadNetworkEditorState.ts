@@ -4,6 +4,8 @@ import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindo
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import {CameraType} from "@/annotator-z-hydra-shared/src/models/CameraType";
+import {OrderedMap} from "immutable";
+import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
 
 export default class RoadNetworkEditorState {
 
@@ -54,4 +56,7 @@ export default class RoadNetworkEditorState {
   isAnnotationsVisible: boolean
 
   orbitControlsTargetPoint: THREE.Vector3
+
+	pointCloudSuperTiles: OrderedMap<string, SuperTile>
+	annotationSuperTiles: OrderedMap<string, SuperTile>
 }

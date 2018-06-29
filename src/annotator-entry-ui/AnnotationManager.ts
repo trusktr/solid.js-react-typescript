@@ -40,6 +40,9 @@ import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
+import {OrderedMap} from "immutable";
+import {AnnotationSuperTile} from "@/annotator-entry-ui/tile/AnnotationSuperTile";
 
 const log = Logger(__filename)
 
@@ -92,6 +95,7 @@ interface IProps {
 
     layerManager: LayerManager
 	isAnnotationsVisible: boolean
+  annotationSuperTiles ?: OrderedMap<string, SuperTile>
 }
 
 interface IState {
@@ -110,6 +114,7 @@ interface IState {
 	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
 
 	isAnnotationsVisible: (state) => state.get(RoadEditorState.Key).isAnnotationsVisible,
+	annotationSuperTiles: (state) => state.get(RoadEditorState.Key).annotationSuperTiles,
 }))
 export class AnnotationManager extends React.Component<IProps, IState> {
 	laneAnnotations: Array<Lane>
@@ -142,6 +147,16 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				this.hideAnnotations()
 			}
 		}
+
+    if(newProps.superTiles !== this.props.annotationSuperTiles && this.props.annotationSuperTiles && newProps.superTiles) {
+      const existingSuperTileIds = this.props.annotationSuperTiles.keySeq().toArray()
+      const newSuperTileIds = newProps.superTiles.keySeq().toArray()
+      const tilesToAdd = newSuperTileIds.filter(superTile => existingSuperTileIds.indexOf(superTile) < 0)
+      const tilesToRemove = existingSuperTileIds.filter(superTile => newSuperTileIds.indexOf(superTile) < 0)
+
+      tilesToAdd.forEach(tileId => this.addSuperTileAnnotations(newProps.superTiles!.get(tileId)))
+      tilesToRemove.forEach(tileId => this.removeSuperTileAnnotations(newProps.superTiles!.get(tileId)))
+    }
 	}
 
 	/**
@@ -236,6 +251,25 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return result
 		else
 			return this.addAnnotation(annotation, activate)
+	}
+
+	addSuperTileAnnotations(superTile:AnnotationSuperTile) {
+    if (superTile instanceof AnnotationSuperTile) {
+      if (superTile.annotations)
+        superTile.annotations.forEach(a => this.addAnnotation(a))
+      else
+        log.error('addSuperTileAnnotations() got a super tile with no annotations')
+    } else {
+      log.error('unknown superTile on addSuperTileAnnotations')
+		}
+	}
+
+	removeSuperTileAnnotations(superTile:AnnotationSuperTile) {
+    if (superTile instanceof AnnotationSuperTile) {
+      superTile.annotations.forEach(a => this.deleteAnnotation(a))
+    } else {
+      log.error('unknown superTile on removeSuperTileAnnotations')
+		}
 	}
 
 	addAnnotation(

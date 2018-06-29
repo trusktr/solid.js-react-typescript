@@ -20,6 +20,9 @@ import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointClou
 import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import {EventEmitter} from "events";
+import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile";
+import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
+import {OrderedMap} from "immutable";
 
 const log = Logger(__filename)
 
@@ -30,6 +33,7 @@ export interface SceneManagerProps {
 	compassRosePosition ?: THREE.Vector3
 	isDecorationsVisible ?: boolean
 	orbitControlsTargetPoint ?: THREE.Vector3
+  pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
 	utmCoordinateSystem: UtmCoordinateSystem
   eventEmitter: EventEmitter
 }
@@ -78,6 +82,7 @@ export interface SceneManagerState {
 	compassRosePosition: (state) => state.get(RoadEditorState.Key).compassRosePosition,
 	isDecorationsVisible: (state) => state.get(RoadEditorState.Key).isDecorationsVisible,
 	orbitControlsTargetPoint: (state) => state.get(RoadEditorState.Key).orbitControlsTargetPoint,
+	pointCloudSuperTiles: (state) => state.get(RoadEditorState.Key).pointCloudSuperTiles,
 }))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
@@ -264,7 +269,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		new RoadNetworkEditorActions().setSceneInitialized(true)
 	}
 
-	componentWillReceiveProps(newProps) {
+	componentWillReceiveProps(newProps:SceneManagerProps) {
 		if(newProps.compassRosePosition !== this.props.compassRosePosition) {
 			const position = newProps.compassRosePosition
 			this.setCompassRosePosition(position.x, position.y, position.z)
@@ -280,6 +285,16 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		if(newProps.orbitControlsTargetPoint !== this.props.orbitControlsTargetPoint) {
 			this.updateOrbitControlsTargetPoint(newProps.orbitControlsTargetPoint)
+		}
+
+		if(newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles && this.props.pointCloudSuperTiles && newProps.pointCloudSuperTiles) {
+			const existingSuperTileIds = this.props.pointCloudSuperTiles.keySeq().toArray()
+			const newSuperTileIds = newProps.pointCloudSuperTiles.keySeq().toArray()
+			const tilesToAdd = newSuperTileIds.filter(superTile => existingSuperTileIds.indexOf(superTile) < 0)
+			const tilesToRemove = existingSuperTileIds.filter(superTile => newSuperTileIds.indexOf(superTile) < 0)
+
+			tilesToAdd.forEach(tileId => this.addSuperTile(newProps.pointCloudSuperTiles!.get(tileId)))
+      tilesToRemove.forEach(tileId => this.removeSuperTile(newProps.pointCloudSuperTiles!.get(tileId)))
 		}
 	}
 
@@ -657,6 +672,24 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		)
 
 	}
+
+	addSuperTile(superTile: SuperTile) {
+    if (superTile instanceof PointCloudSuperTile) {
+      if (superTile.pointCloud)
+        this.state.scene.add(superTile.pointCloud)
+      else
+        log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
+    }
+	}
+
+  removeSuperTile(superTile: SuperTile) {
+		if (superTile instanceof PointCloudSuperTile) {
+      if (superTile.pointCloud)
+        this.state.scene.remove(superTile.pointCloud)
+      else
+        log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
+    }
+  }
 
 	// Add some easter eggs to the scene if they are close enough.
 	loadDecorations(): Promise<void> {

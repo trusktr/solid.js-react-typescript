@@ -1,6 +1,7 @@
 import * as React from "react"
 import {getValue} from "typeguard";
 import * as THREE from "three";
+import {sprintf} from 'sprintf-js'
 import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
@@ -22,6 +23,8 @@ import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions"
 import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
 import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
 import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile";
+import {OrderedMap} from "immutable";
+import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager";
 
 const log = Logger(__filename)
 
@@ -52,6 +55,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 	private scaleProvider: ScaleProvider
 	private pointCloudTileManager: PointCloudManager
+	private annotationManager: AnnotationManager
 	private channel: EventEmitter
 
 	constructor(props) {
@@ -74,22 +78,12 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 		// ^ utmCoordinateSystem doesn't need to be a React component because it
 		// isn't hooked to Redux.
 
-		// Add events to listen on for tile loading/unloading
-    this.channel.on( EventName.SUPER_TILE_LOAD.toString(), (superTile) => {
-      this.onSuperTileLoad(superTile)
-    })
-
-    this.channel.on( EventName.SUPER_TILE_UNLOAD.toString(), (superTile) => {
-      this.onSuperTileUnload(superTile)
-    })
-
 		// TODO JOE THURSDAY if not creating it here, pass pointCloudTileManager as a prop
 		this.scaleProvider = new ScaleProvider()
 		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel)
 		this.pointCloudTileManager = new PointCloudTileManager(
 			this.scaleProvider,
 			this.utmCoordinateSystem,
-			this.channel,
 			tileServiceClient,
 		)
 
@@ -97,7 +91,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			this.annotationTileManager = new AnnotationTileManager(
 				this.scaleProvider,
 				this.utmCoordinateSystem,
-				this.channel,
 				tileServiceClient,
 
 				// TODO FIXME JOE AnnotationManager is passed into
@@ -129,93 +122,11 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 	componentDidMount() {
 		this.makeStats()
-
-		// TODO JOE THURSDAY perhaps LayerManager can listen to all TileManager
-		// layers, and emit a generic layerSupertilesLoad event
-		this.props.layerManager.on( 'layerSupertilesLoad', () => {
-			for (const supertile of supertiles) {
-				this.onSuperTileLoad( supertile )
-			}
-			this.updateTileManagerStats()
-		} )
-
-		// or perhaps, loops through each TileManager here and listen to each one.
-
-		// Another idea, maybe TileManager has a static `.on` method to listen to loading of any super tile genericaly
-
-		// Channels could be a nice solution for this, so that all TileManagers
-		// just trigger the event on a single channel.
-
-		this.props.layerManager.on( 'layerSupertilesUnload', () => {
-			for (const supertile of supertiles) {
-				this.onSuperTileUnload( supertile )
-			}
-			this.updateTileManagerStats()
-		} )
 	}
 
 	componentWillUnmount() {
 		this.destroyStats()
 	}
-
-    // TODO JOE, TileManager should coordinate with SceneManager to add tiles to
-    // the scene, and this should be simple and only call loadTileGroundPlanes
-    // which is annotator-app-specific.
-	onSuperTileLoad: (superTile: SuperTile) => void = (superTile: SuperTile) => {
-		if (superTile instanceof PointCloudSuperTile) {
-
-			if (superTile.pointCloud)
-                // TODO TileManager should coordinate this directly with SceneManager
-                this.props.sceneManager.add(superTile.pointCloud)
-			else
-				log.error('onSuperTileLoad() got a super tile with no point cloud')
-		} else if (superTile instanceof AnnotationSuperTile) {
-			if (superTile.annotations)
-                // TODO JOE, AnnotationManager should coordinate this with SceneManager
-				superTile.annotations.forEach(a => this.annotationManager.addAnnotation(a))
-			else
-				log.error('onSuperTileLoad() got a super tile with no annotations')
-		} else {
-			log.error('unknown superTile')
-		}
-	}
-
-	// When TileManager unloads a super tile, update Annotator's parallel data structure.
-    // BOTH
-	private onSuperTileUnload: (superTile: SuperTile) => void = (superTile: SuperTile) => {
-		if (superTile instanceof PointCloudSuperTile) {
-
-			if (superTile.pointCloud)
-                // TODO JOE, TileManager coordinate this with SceneManager
-				this.scene.remove(superTile.pointCloud)
-			else
-				log.error('onSuperTileUnload() got a super tile with no point cloud')
-		} else if (superTile instanceof AnnotationSuperTile) {
-            // TODO JOE, AnnotationManager can coordinate this with SceneManager, and redux state can notify Annotation app if needed.
-			superTile.annotations.forEach(a => this.annotationManager.deleteAnnotation(a))
-		} else {
-			log.error('unknown superTile')
-		}
-	}
-
-    // Print a message about how big our tiles are.
-    // RELATED TO ABOVE -- statusWindowManager
-    protected updateTileManagerStats(): void {
-        if (!this.settings.enableTileManagerStats) return
-        // if (!this.statusWindow.isEnabled()) return
-        if (!this.props.uiMenuVisible) return
-
-        //RYAN UPDATED
-        const message = `Loaded ${this.pointCloudTileManager.superTiles.size} point tiles; ${this.pointCloudTileManager.objectCount()} points`
-
-		// TODO JOE for each TileManager instance
-        new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
-
-        // TODO JOE THURSDAY I think we should register messages with StatusWindow
-        // rather than hard coding them in a StatusKey enum.
-        //
-        //new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message2)
-    }
 
 	private makeStats(): void {
 
