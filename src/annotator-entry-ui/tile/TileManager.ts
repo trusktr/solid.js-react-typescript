@@ -292,6 +292,7 @@ export abstract class TileManager {
 						this.loadedObjectsBoundingBox = null
 						this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.add(superTile.key()))
 
+						// RYAN added
 						this.eventEmitter.emit(EventName.SUPER_TILE_LOAD.toString(), superTile)
 						// this.onSuperTileLoad(superTile)
 					}
@@ -300,6 +301,7 @@ export abstract class TileManager {
 	}
 
 	private unloadSuperTile(superTile: SuperTile): boolean {
+		// RYAN added
 		// this.onSuperTileUnload(superTile)
     this.eventEmitter.emit(EventName.SUPER_TILE_UNLOAD.toString(), superTile)
 
