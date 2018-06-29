@@ -18,6 +18,10 @@ import {TileServiceClient} from "@annotator-entry-ui/tile/TileServiceClient"
 import {ScaleProvider} from "@annotator-entry-ui/tile/ScaleProvider"
 import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
 import {AnnotationTileManager} from "@/annotator-entry-ui/tile/AnnotationTileManager";
+import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
+import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
+import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
+import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile";
 
 const log = Logger(__filename)
 
@@ -36,6 +40,7 @@ export interface IAnnotatedSceneControllerState {
   pointCloudManager: PointCloudManager | null
   sceneManager: SceneManager | null
   layerManager: LayerManager | null
+  registeredKeyDownEvents: Map<number, any>
 }
 
 
@@ -60,6 +65,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			pointCloudManager: null,
 			sceneManager: null,
 			layerManager: null,
+			registeredKeyDownEvents: new Map<number, any>()
 		}
 
 		// These don't need to be state, because these references don't change
@@ -79,7 +85,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 		// TODO JOE THURSDAY if not creating it here, pass pointCloudTileManager as a prop
 		this.scaleProvider = new ScaleProvider()
-		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.onTileServiceStatusUpdate)
+		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel)
 		this.pointCloudTileManager = new PointCloudTileManager(
 			this.scaleProvider,
 			this.utmCoordinateSystem,
@@ -104,21 +110,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 				this.annotationManager,
 			)
 		}
-	}
-
-	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
-	// and success messages disappear after a time-out.
-	onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
-		let message = 'Tile server status: '
-		if (tileServiceStatus) {
-			message += '<span class="statusOk">Available</span>'
-			this.delayHideTileServiceStatus()
-		} else {
-			message += '<span class="statusError">Unavailable</span>'
-			this.cancelHideTileServiceStatus()
-		}
-
-		new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
 	}
 
     updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
@@ -271,7 +262,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.setState({cameraState})
 
         const utm = this.utmCoordinateSystem.threeJsToUtm(newPoint)
-        this.state.statusWindow!.updateCurrentLocationStatusMessage(utm)
+        this.updateCurrentLocationStatusMessage(utm)
       }
     }
   }
@@ -302,21 +293,15 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	 */
 	// @TODO long term move orbit controls to Camera Manger
 	resetTiltAndCompass(): void {
-		if(!this.state.orbitControls) {
-			log.error("Orbit controls not set, unable to reset tilt and compass")
-			return
+		if(this.state.sceneManager) {
+      this.state.sceneManager.resetTiltAndCompass()
+		} else {
+			log.error("Unable to reset tilt and compass - sceneManager not instantiated")
 		}
+  }
 
-		const distanceCameraToTarget = this.state.camera.position.distanceTo(this.state.orbitControls.target)
-		const camera = this.state.camera
-		camera.position.x = this.state.orbitControls.target.x
-		camera.position.y = this.state.orbitControls.target.y + distanceCameraToTarget
-		camera.position.z = this.state.orbitControls.target.z
-		this.setState({camera})
 
-		this.state.orbitControls.update()
-		this.renderScene()
-	}
+
 
 	registerKeyboardEvent(eventKeyCode:number, fn:any) {
 		const registeredKeyboardEvents = this.state.registeredKeyDownEvents

@@ -23,6 +23,8 @@ import {TileInstance} from "../model/TileInstance"
 import {scale3DToSpatialTileScale, spatialTileScaleToScale3D} from "./ScaleUtil"
 import Logger from "@/util/log"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
+import {EventEmitter} from "events";
+import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
 
 const log = Logger(__filename)
 
@@ -51,18 +53,21 @@ export class TileServiceClient {
 	private scale: SpatialTileScale
 	private tileServiceAddress: string
 	private client: GrpcClient | null
-	private onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void
+	private eventEmitter: EventEmitter
+	// private onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void
 	private serverStatus: boolean | null // null == untested; true == available; false == unavailable
 	private pingInFlight: boolean // semaphore for pingServer()
 	private healthCheckInterval: number // configuration for pinging the server
 
 	constructor(
 		scaleProvider: ScaleProvider,
-		onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
+		eventEmitter: EventEmitter,
+		// onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
 	) {
 		this.serverStatus = null
 		this.pingInFlight = false
-		this.onTileServiceStatusUpdate = onTileServiceStatusUpdate
+		this.eventEmitter = eventEmitter
+		// this.onTileServiceStatusUpdate = onTileServiceStatusUpdate
 		this.healthCheckInterval = config.get('tile_client.service.health_check.interval.seconds') * 1000
 
 		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO config: UTM_10N (and make the server aware of UTM zones)
@@ -127,7 +132,8 @@ export class TileServiceClient {
 	private setServerStatus(newStatus: boolean): void {
 		if (this.serverStatus === null || this.serverStatus !== newStatus) {
 			this.serverStatus = newStatus
-			this.onTileServiceStatusUpdate(newStatus)
+			this.eventEmitter.emit(EventName.TILE_SERVICE_STATUS_UPDATE.toString(), newStatus)
+			// this.onTileServiceStatusUpdate(newStatus)
 		}
 	}
 

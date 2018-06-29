@@ -691,6 +691,23 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// ?? -- [ryan added] this.renderScene()
 	}
 
+  resetTiltAndCompass(): void {
+    if(!this.state.orbitControls) {
+      log.error("Orbit controls not set, unable to reset tilt and compass")
+      return
+    }
+
+    const distanceCameraToTarget = this.state.camera.position.distanceTo(this.state.orbitControls.target)
+    const camera = this.state.camera
+    camera.position.x = this.state.orbitControls.target.x
+    camera.position.y = this.state.orbitControls.target.y + distanceCameraToTarget
+    camera.position.z = this.state.orbitControls.target.z
+    this.setState({camera})
+
+    this.state.orbitControls.update()
+    this.renderScene()
+  }
+
 
 
 	private setCompassRosePosition(x, y, z) {
