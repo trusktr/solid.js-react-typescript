@@ -3,17 +3,28 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+import * as React from "react"
 import * as THREE from 'three'
 import {isNull} from "util"
 import * as utmConverter from 'utm'
-import Observable from '....'
+import {EventEmitter} from "events";
+import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
+
+
+export interface UtmCoordinateSystemProps {
+	eventEmitter: EventEmitter
+}
+
+export interface UtmCoordinateSystemState {
+
+}
 
 /**
  * UtmCoordinateSystem has two states: it has a zone or not. Zone can be set one time.
  * The 3D origin of the zone is defined by the UTM standard. We apply a local
  * offset to that origin to all point data, for the benefit of three.js.
  */
-export class UtmCoordinateSystem extends Observable {
+export class UtmCoordinateSystem extends React.Component<UtmCoordinateSystemProps, UtmCoordinateSystemState> {
 	private readonly defaultUtmZoneNumber: number = 18 // Washington, DC
 	private readonly defaultUtmZoneNorthernHemisphere: boolean = true // Washington, DC
 	private zoneAsString: string
@@ -23,16 +34,17 @@ export class UtmCoordinateSystem extends Observable {
 	// this is an offset from UTM origin for display purposes:
 	// three.js rendering breaks down on coordinates with high absolute value
 	offset: THREE.Vector3
-	private onSetOrigin: (() => void) | null
+	// private onSetOrigin: (() => void) | null
 
-	constructor(onSetOrigin: (() => void) | null = null) {
+	constructor(props) {
+		super(props)
 		this.zoneAsString = ''
 		this.utmZoneNumber = 0
 		this.utmZoneNorthernHemisphere = false
 		this.offset = new THREE.Vector3(0, 0, 0)
 
 		// replace with event
-		this.onSetOrigin = onSetOrigin
+		// this.onSetOrigin = onSetOrigin
 	}
 
 	static isValidUtmZone(num: number, northernHemisphere: boolean): boolean {
@@ -90,7 +102,7 @@ export class UtmCoordinateSystem extends Observable {
 			}
 			// if (!isNull(this.onSetOrigin))
 			// 	this.onSetOrigin()
-			this.emit( 'originUpdated', { x, y, z } )
+			this.props.eventEmitter.emit(EventName.ORIGIN_UPDATE.toString())
 			return true
 		}
 	}

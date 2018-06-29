@@ -18,7 +18,6 @@ export enum Layer {
 
 export interface LayerManagerProps {
 	onRenender: () => void
-	isPointCloudVisible ?: boolean
 }
 
 export interface LayerManagerState {
@@ -26,10 +25,6 @@ export interface LayerManagerState {
 
 }
 
-@typedConnect(createStructuredSelector({
-	isPointCloudVisible: (state) => state.get(RoadEditorState.Key).isPointCloudVisible,
-
-}))
 export default class LayerManager extends React.Component<LayerManagerProps, LayerManagerState> {
 
 	constructor(props) {
@@ -95,7 +90,7 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 		}
 
 		if (updated)
-		this.props.onRenender()
+			this.props.onRenender()
 	}
 
 	// TODO JOE WEDNESDAY toggle visibility of a specific layer by name/id

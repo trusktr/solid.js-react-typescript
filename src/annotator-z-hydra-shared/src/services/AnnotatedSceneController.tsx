@@ -10,6 +10,9 @@ import Logger from "@/util/log";
 import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
 import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
 import {Layer, default as LayerManager} from "@/annotator-z-hydra-shared/src/services/LayerManager";
+import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
+import {EventEmitter} from "events"
+import {ImageManager} from "@/annotator-entry-ui/image/ImageManager";
 
 const log = Logger(__filename)
 
@@ -28,6 +31,8 @@ export interface IAnnotatedSceneControllerState {
   pointCloudManager: PointCloudManager | null
   sceneManager: SceneManager | null
   layerManager: LayerManager | null
+  utmCoordinateSystem: UtmCoordinateSystem | null
+  eventEmitter: EventEmitter
 }
 
 
@@ -39,6 +44,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	constructor(props) {
 		super(props)
 
+    const eventEmitter = new EventEmitter()
     this.state = {
       cameraState: {
         lastCameraCenterPoint: null,
@@ -47,6 +53,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       pointCloudManager: null,
       sceneManager: null,
       layerManager: null,
+      utmCoordinateSystem: null,
+      eventEmitter: eventEmitter
     }
 	}
 
@@ -66,13 +74,22 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     this.setState({layerManager})
   }
 
+  getUTMCoordinateSystem = (utmCoordinateSystem:UtmCoordinateSystem) => {
+	  this.setState({utmCoordinateSystem})
+  }
+
 	render() {
+
+	  const onRenderCallBack = this.state.sceneManager ? this.state.sceneManager.renderScene : () => {}
+
 		return (
 		  <React.Fragment>
-        <StatusWindow ref={this.getStatusWindow} utmCoordinateSystem={}/>
-        <PointCloudManager ref={this.getPointCloudManager} sceneManager={} pointCloudTileManager={} layerManager={} handleTileManagerLoadError={} getCurrentPointOfInterest={this.currentPointOfInterest}/>
-        <SceneManager ref={this.getSceneManager} width={1000} height={1000}/>
-        <LayerManager ref={this.getLayerManager} onRerender={}/>
+        <UtmCoordinateSystem ref={this.getUTMCoordinateSystem} eventEmitter={this.state.eventEmitter}/>
+        <StatusWindow ref={this.getStatusWindow} utmCoordinateSystem={this.state.utmCoordinateSystem}/>
+        <PointCloudManager ref={this.getPointCloudManager} utmCoordinateSystem={this.state.utmCoordinateSystem} sceneManager={} pointCloudTileManager={} layerManager={} handleTileManagerLoadError={} getCurrentPointOfInterest={this.currentPointOfInterest}/>
+        <SceneManager ref={this.getSceneManager} width={1000} height={1000} utmCoordinateSystem={this.state.utmCoordinateSystem} eventEmitter={this.state.eventEmitter}/>
+        <LayerManager ref={this.getLayerManager} onRenender={onRenderCallBack} eventEmitter={this.state.eventEmitter} />
+        <ImageManager utmCoordinateSystem={this.state.utmCoordinateSystem} onRenderScene={onRenderCallBack} eventEmitter={this.state.eventEmitter}/>
       </React.Fragment>
     )
 	}
@@ -85,10 +102,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   focusOnPointCloud(): void {
     this.state.pointCloudManager!.focusOnPointCloud()
     this.displayCameraInfo()
-  }
-
-  private onSetOrigin = (): void => {
-	  this.state.sceneManager!.loadDecorations()
   }
 
   // @TODO long term move orbit controls to Camera Manger

@@ -19,6 +19,7 @@ import {getDecorations} from "@/annotator-entry-ui/Decorations";
 import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
 import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
+import {EventEmitter} from "events";
 
 const log = Logger(__filename)
 
@@ -30,6 +31,7 @@ export interface SceneManagerProps {
   isDecorationsVisible ?: boolean
   orbitControlsTargetPoint ?: THREE.Vector3
 	utmCoordinateSystem: UtmCoordinateSystem
+  eventEmitter: EventEmitter
 }
 
 
@@ -190,8 +192,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		const scaleProvider = new ScaleProvider()
 
-		// TODO JOE THURSDAY get from props
-		// const utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
+    this.props.eventEmitter.on( 'originUpdated', () => {
+      this.loadDecorations()
+    })
 
 		// TODO JOE THURSDAY anything that doesn't need to change we can
 		// take out of state and keep as instance variables. F.e. loop, scene,
@@ -226,7 +229,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			pointCloudManager: null,
 
 			scaleProvider: scaleProvider,
-			// utmCoordinateSystem: utmCoordinateSystem, JOE moved to props
 			maxDistanceToDecorations: 50000,
 			decorations: [],
 
@@ -285,9 +287,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.sceneContainer.appendChild(this.state.renderer.domElement)
 		this.startAnimation()
 
-		this.prop.utmCoordinateSystem.on( 'originUpdated', () => {
-			this.loadDecorations()
-		} )
 	}
 
 	componentWillUnmount() {
@@ -746,7 +745,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	loadDecorations(): Promise<void> {
 		return getDecorations().then(decorations => {
 			decorations.forEach(decoration => {
-				const position = this.prop.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
+				const position = this.props.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
 				const distanceFromOrigin = position.length()
 				if (distanceFromOrigin < this.state.maxDistanceToDecorations) {
 					// Don't worry about rotation. The object is just floating in space.

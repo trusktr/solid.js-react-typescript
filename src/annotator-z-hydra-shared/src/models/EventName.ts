@@ -1,0 +1,8 @@
+
+
+export enum EventName {
+  LIGHT_BOX_IMAGE_RAY_UPDATE,
+  IMAGE_SCREEN_LOAD_UPDATE,
+  ORIGIN_UPDATE
+
+}

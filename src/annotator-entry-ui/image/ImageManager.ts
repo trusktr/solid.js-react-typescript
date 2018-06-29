@@ -19,6 +19,8 @@ import * as React from "react";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
 import {createStructuredSelector} from "reselect";
+import {EventEmitter} from "events";
+import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
 
 const log = Logger(__filename)
 
@@ -32,7 +34,10 @@ interface ImageManagerSettings {
 }
 
 export interface IProps {
-  isImageScreensVisible:boolean
+  isImageScreensVisible ?:boolean
+	utmCoordinateSystem:UtmCoordinateSystem
+	onRenderScene: () => void
+  eventEmitter: EventEmitter
 }
 
 export interface IState {
@@ -44,15 +49,11 @@ export interface IState {
 @typedConnect(createStructuredSelector({
   isImageScreensVisible: (state) => state.get(RoadEditorState.Key).isImageScreensVisible,
 }))
-export class ImageManager extends Observable.mixin( React.Component<IProps, IState> ) {
-	private utmCoordinateSystem: UtmCoordinateSystem
+export class ImageManager extends React.Component<IProps, IState> {
 	private settings: ImageManagerSettings
 	private imageScreens: ImageScreen[]
 	imageScreenMeshes: THREE.Mesh[]
 	private opacity: number
-	private renderAnnotator: () => void
-	private onImageScreenLoad: (imageScreen: ImageScreen) => void
-	private onLightboxImageRay: (ray: THREE.Line | null) => void
 	private onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void
 	private onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void
 	private lightboxWindow: LightboxWindowManager | null // pop full-size 2D images into their own window
@@ -60,15 +61,10 @@ export class ImageManager extends Observable.mixin( React.Component<IProps, ISta
 
 	constructor(
 		props
-		// utmCoordinateSystem: UtmCoordinateSystem,
-		// opacity: number,
-		// renderAnnotator: () => void,
-		// onImageScreenLoad: (imageScreen: ImageScreen) => void,
-		// onLightboxImageRay: (ray: THREE.Line | null) => void,
 		// onKeyDown: (event: IpcMessages.KeyboardEventHighlights) => void,
 		// onKeyUp: (event: IpcMessages.KeyboardEventHighlights) => void,
 	) {
-		this.utmCoordinateSystem = utmCoordinateSystem
+		super(props)
 		this.settings = {
 			imageScreenWidth: config.get('image_manager.image_screen.width'),
 			imageScreenHeight: config.get('image_manager.image_screen.height'),
@@ -77,10 +73,7 @@ export class ImageManager extends Observable.mixin( React.Component<IProps, ISta
 		}
 		this.imageScreens = []
 		this.imageScreenMeshes = []
-		this.opacity = opacity
-		this.renderAnnotator = renderAnnotator
-		this.onImageScreenLoad = onImageScreenLoad
-		this.onLightboxImageRay = onLightboxImageRay
+		this.opacity = parseFloat(config.get('image_manager.image.opacity')) || 0.5
 		this.onKeyDown = onKeyDown
 		this.onKeyUp = onKeyUp
 		this.lightboxWindow = null
@@ -140,7 +133,7 @@ export class ImageManager extends Observable.mixin( React.Component<IProps, ISta
 
 	// Load an image and its metadata.
 	private loadImageFromPath(path: string): Promise<void> {
-		return readImageMetadataFile(path, this.utmCoordinateSystem)
+		return readImageMetadataFile(path, this.props.utmCoordinateSystem)
 			.then(cameraParameters => {
 				this.setUpScreen({
 					path: path,
@@ -166,7 +159,11 @@ export class ImageManager extends Observable.mixin( React.Component<IProps, ISta
 		screen.imageMesh.userData = calibratedImage // makes it easier to pass the object through the Annotator UI and back
 		this.imageScreens.push(screen)
 		this.imageScreenMeshes.push(screen.imageMesh)
-		this.onImageScreenLoad(screen)
+
+		// RYAN THURSDAY - callback not needed -- thought being that an event is emitted and Annotator app can execute this method
+		// this.onImageScreenLoad(screen)
+		// @TODO have annotator app listen on this event
+		this.props.eventEmitter.emit(EventName.IMAGE_SCREEN_LOAD_UPDATE.toString(), screen)
 	}
 
 	// When an image object is selected for closer inspection, push it over to the Lightbox for full-size, 2D display.
@@ -189,12 +186,15 @@ export class ImageManager extends Observable.mixin( React.Component<IProps, ISta
 	}
 
 	private onLightboxWindowClose = (): void => {
-		this.onLightboxImageRay(null)
+		// RYAN THURSDAY
+		// @TODO annotator app needs to listen on LIGHT_BOX_IMAGE_RAY_UPDATE
+		// this.onLightboxImageRay(null)
+		this.props.eventEmitter.emit(EventName.LIGHT_BOX_IMAGE_RAY_UPDATE.toString(), null)
 		let updated = 0
 		this.loadedImageDetails.forEach(i => i!.imageScreen.setHighlight(false) && updated++)
 		this.loadedImageDetails = OrderedSet()
 		if (updated)
-			this.renderAnnotator()
+			this.props.onRenderScene()
 	}
 
 	private toLightboxStateMessage(): IpcMessages.LightboxState {
@@ -215,7 +215,7 @@ export class ImageManager extends Observable.mixin( React.Component<IProps, ISta
 			.filter(i => i!.imageScreen.uuid === state.uuid)
 			.forEach(i => i!.imageScreen.setHighlight(state.active) && updated++)
 		if (updated)
-			this.renderAnnotator()
+      this.props.onRenderScene()
 	}
 
 	private onImageClick = (click: IpcMessages.ImageClick): void => {
@@ -225,7 +225,10 @@ export class ImageManager extends Observable.mixin( React.Component<IProps, ISta
 				const parameters = i!.parameters
 				if (parameters instanceof AuroraCameraParameters) {
 					const ray = parameters.imageCoordinatesToRay(click.ratioX, click.ratioY, this.settings.clickedRayLength)
-					this.onLightboxImageRay(ray)
+
+					// RYAN THURSDAY update to eventEmitter
+					// this.onLightboxImageRay(ray)
+					this.props.eventEmitter.emit(EventName.LIGHT_BOX_IMAGE_RAY_UPDATE.toString(), ray)
 				} else {
 					log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)
 				}

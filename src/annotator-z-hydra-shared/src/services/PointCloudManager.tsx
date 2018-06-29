@@ -12,6 +12,7 @@ import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetw
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
 import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
 
 const log = Logger(__filename)
 
@@ -20,8 +21,9 @@ export interface PointCloudManagerProps {
   pointCloudTileManager: PointCloudTileManager
   layerManager: LayerManager
   handleTileManagerLoadError: (err: Error) => void
-  isPointCloudVisible ?: boolean
   getCurrentPointOfInterest: () => THREE.Vector3 | null
+  isPointCloudVisible ?: boolean
+  utmCoordinateSystem: UtmCoordinateSystem
 }
 
 export interface PointCloudManagerState {
@@ -349,8 +351,8 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
       const utmSearches = threeJsSearches.map(threeJs => {
         return {
-          minPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
-          maxPoint: this.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
+          minPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
+          maxPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
         }
       })
 

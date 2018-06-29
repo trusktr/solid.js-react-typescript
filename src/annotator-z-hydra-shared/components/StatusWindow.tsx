@@ -33,7 +33,7 @@ interface StatusWindowProps {
 
 interface IStatusWindowState {
     locationServerStatusDisplayTimer: number
-	serverStatusDisplayTimer: number
+	  serverStatusDisplayTimer: number
     timeToDisplayHealthyStatusMs: number
     locationServerStatusClient: LocationServerStatusClient
 }
