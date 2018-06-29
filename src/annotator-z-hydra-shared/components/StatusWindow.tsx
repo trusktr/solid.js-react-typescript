@@ -153,21 +153,6 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
         this.setState({locationServerStatusDisplayTimer})
     }
 
-	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
-	// and success messages disappear after a time-out.
-	onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
-		let message = 'Tile server status: '
-		if (tileServiceStatus) {
-			message += '<span class="statusOk">Available</span>'
-			this.delayHideTileServiceStatus()
-		} else {
-			message += '<span class="statusError">Unavailable</span>'
-			this.cancelHideTileServiceStatus()
-		}
-
-		new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
-	}
-
 	private delayHideTileServiceStatus = (): void => {
 		this.cancelHideTileServiceStatus()
 		this.hideTileServiceStatus()
