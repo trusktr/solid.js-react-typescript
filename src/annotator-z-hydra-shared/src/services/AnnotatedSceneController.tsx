@@ -1,6 +1,7 @@
 import * as React from "react"
 import {getValue} from "typeguard";
 import * as THREE from "three";
+import {sprintf} from 'sprintf-js'
 import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
@@ -18,6 +19,10 @@ import {ScaleProvider} from "@annotator-entry-ui/tile/ScaleProvider"
 import * as OBJLoader from 'three-obj-loader'
 import {isTupleOfNumbers} from "@/util/Validation";
 import config from "@/config";
+import {AnnotationTileManager} from "@/annotator-entry-ui/tile/AnnotationTileManager";
+import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
+import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
+import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager";
 
 const log = Logger(__filename)
 
@@ -46,8 +51,8 @@ interface AnnotatorSettings {
 }
 
 export interface IAnnotatedSceneControllerProps {
-  statusWindowState ?: StatusWindowState
   onPointOfInterestCall: any
+	statusWindowState ?: StatusWindowState
 }
 
 export interface IAnnotatedSceneControllerState {
@@ -56,6 +61,7 @@ export interface IAnnotatedSceneControllerState {
   pointCloudManager: PointCloudManager | null
   sceneManager: SceneManager | null
   layerManager: LayerManager | null
+  registeredKeyDownEvents: Map<number, any>
 }
 
 
@@ -67,6 +73,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 	private scaleProvider: ScaleProvider
 	private pointCloudTileManager: PointCloudManager
+	private annotationManager: AnnotationManager
 	private channel: EventEmitter
 
 	constructor(props) {
@@ -92,6 +99,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			pointCloudManager: null,
 			sceneManager: null,
 			layerManager: null,
+			registeredKeyDownEvents: new Map<number, any>()
 		}
 
 		// These don't need to be state, because these references don't change
@@ -102,16 +110,11 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 		// TODO JOE THURSDAY if not creating it here, pass pointCloudTileManager as a prop
 		this.scaleProvider = new ScaleProvider()
-		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.onTileServiceStatusUpdate)
+		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel)
 		this.pointCloudTileManager = new PointCloudTileManager(
 			this.scaleProvider,
 			this.utmCoordinateSystem,
 			tileServiceClient,
-
-			// TODO JOE THURSDAY replace with events
-			// this.onSuperTileLoad,
-			// this.onSuperTileUnload,
-
 		)
 
 		if (this.settings.enableAnnotationTileManager) {
@@ -128,28 +131,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 				// should split AnnotationManager into two, and name one of them
 				// something like AnnotationLayer or something.
 				this.annotationManager,
-
-				// TODO JOE THURSDAY replace with events
-				// this.onSuperTileLoad,
-				// this.onSuperTileUnload,
-
 			)
 		}
-	}
-
-	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
-	// and success messages disappear after a time-out.
-	onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
-		let message = 'Tile server status: '
-		if (tileServiceStatus) {
-			message += '<span class="statusOk">Available</span>'
-			this.delayHideTileServiceStatus()
-		} else {
-			message += '<span class="statusError">Unavailable</span>'
-			this.cancelHideTileServiceStatus()
-		}
-
-		new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
 	}
 
     updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
@@ -225,65 +208,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 		this.destroyStats()
 	}
 
-    // TODO JOE, TileManager should coordinate with SceneManager to add tiles to
-    // the scene, and this should be simple and only call loadTileGroundPlanes
-    // which is annotator-app-specific.
-	onSuperTileLoad: (superTile: SuperTile) => void = (superTile: SuperTile) => {
-		if (superTile instanceof PointCloudSuperTile) {
-
-			if (superTile.pointCloud)
-                // TODO TileManager should coordinate this directly with SceneManager
-                this.props.sceneManager.add(superTile.pointCloud)
-			else
-				log.error('onSuperTileLoad() got a super tile with no point cloud')
-		} else if (superTile instanceof AnnotationSuperTile) {
-			if (superTile.annotations)
-                // TODO JOE, AnnotationManager should coordinate this with SceneManager
-				superTile.annotations.forEach(a => this.annotationManager.addAnnotation(a))
-			else
-				log.error('onSuperTileLoad() got a super tile with no annotations')
-		} else {
-			log.error('unknown superTile')
-		}
-	}
-
-	// When TileManager unloads a super tile, update Annotator's parallel data structure.
-    // BOTH
-	private onSuperTileUnload: (superTile: SuperTile) => void = (superTile: SuperTile) => {
-		if (superTile instanceof PointCloudSuperTile) {
-
-			if (superTile.pointCloud)
-                // TODO JOE, TileManager coordinate this with SceneManager
-				this.scene.remove(superTile.pointCloud)
-			else
-				log.error('onSuperTileUnload() got a super tile with no point cloud')
-		} else if (superTile instanceof AnnotationSuperTile) {
-            // TODO JOE, AnnotationManager can coordinate this with SceneManager, and redux state can notify Annotation app if needed.
-			superTile.annotations.forEach(a => this.annotationManager.deleteAnnotation(a))
-		} else {
-			log.error('unknown superTile')
-		}
-	}
-
-    // Print a message about how big our tiles are.
-    // RELATED TO ABOVE -- statusWindowManager
-    protected updateTileManagerStats(): void {
-        if (!this.settings.enableTileManagerStats) return
-        // if (!this.statusWindow.isEnabled()) return
-        if (!this.props.uiMenuVisible) return
-
-        //RYAN UPDATED
-        const message = `Loaded ${this.pointCloudTileManager.superTiles.size} point tiles; ${this.pointCloudTileManager.objectCount()} points`
-
-		// TODO JOE for each TileManager instance
-        new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
-
-        // TODO JOE THURSDAY I think we should register messages with StatusWindow
-        // rather than hard coding them in a StatusKey enum.
-        //
-        //new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message2)
-    }
-
 	private makeStats(): void {
 
 		if (!config['startup.show_stats_module']) return
@@ -329,7 +253,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.setState({cameraState})
 
         const utm = this.utmCoordinateSystem.threeJsToUtm(newPoint)
-        this.state.statusWindow!.updateCurrentLocationStatusMessage(utm)
+        this.updateCurrentLocationStatusMessage(utm)
       }
     }
   }
@@ -360,21 +284,15 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	 */
 	// @TODO long term move orbit controls to Camera Manger
 	resetTiltAndCompass(): void {
-		if(!this.state.orbitControls) {
-			log.error("Orbit controls not set, unable to reset tilt and compass")
-			return
+		if(this.state.sceneManager) {
+      this.state.sceneManager.resetTiltAndCompass()
+		} else {
+			log.error("Unable to reset tilt and compass - sceneManager not instantiated")
 		}
+  }
 
-		const distanceCameraToTarget = this.state.camera.position.distanceTo(this.state.orbitControls.target)
-		const camera = this.state.camera
-		camera.position.x = this.state.orbitControls.target.x
-		camera.position.y = this.state.orbitControls.target.y + distanceCameraToTarget
-		camera.position.z = this.state.orbitControls.target.z
-		this.setState({camera})
 
-		this.state.orbitControls.update()
-		this.renderScene()
-	}
+
 
 	registerKeyboardEvent(eventKeyCode:number, fn:any) {
 		const registeredKeyboardEvents = this.state.registeredKeyDownEvents

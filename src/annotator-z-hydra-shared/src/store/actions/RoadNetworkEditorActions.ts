@@ -7,6 +7,10 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import Logger from "@/util/log";
 import {CameraType} from "@/annotator-z-hydra-shared/src/models/CameraType";
+import {OrderedMap} from "immutable";
+import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
+import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
+import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
 
 const log = Logger(__filename)
 
@@ -68,7 +72,9 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
       isImageScreensVisible: true,
       isAnnotationsVisible: true,
 
-      orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0)
+      orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0),
+      annotationSuperTiles: OrderedMap<string, SuperTile>(),
+      pointCloudSuperTiles: OrderedMap<string, SuperTile>()
 		}
 
 		return (__roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState(defaultState)
@@ -213,5 +219,35 @@ export default class RoadNetworkEditorActions extends ActionFactory<RoadNetworkE
       ...roadEditorState, orbitControlsTargetPoint: targetPoint
     })
 	}
+
+	@ActionReducer()
+	setPointCloudSuperTiles(superTiles:OrderedMap<string, SuperTile>) {
+    log.info("Setting point cloud super tiles.  Number of tiles", superTiles.size)
+
+    let points = 0
+    superTiles.forEach(st => points += st!.objectCount)
+
+    const message = `Loaded ${superTiles.size} point tiles; ${points} points`
+    new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
+
+		return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, pointCloudSuperTiles: superTiles
+    })
+	}
+
+  @ActionReducer()
+  setAnnotationSuperTiles(superTiles:OrderedMap<string, SuperTile>) {
+    log.info("Setting annotation super tiles.  Number of tiles", superTiles.size)
+
+    let annotations = 0
+    superTiles.forEach(st => annotations += st!.objectCount)
+
+    const message = `Loaded ${superTiles.size} annotation tiles; ${annotations} annotations`
+    new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
+
+    return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
+      ...roadEditorState, annotationSuperTiles: superTiles
+    })
+  }
 
 }

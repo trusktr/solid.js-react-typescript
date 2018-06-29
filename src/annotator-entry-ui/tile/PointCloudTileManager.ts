@@ -24,6 +24,7 @@ import Logger from "@/util/log"
 import {TileManager, TileManagerConfig} from "@/annotator-entry-ui/tile/TileManager"
 import {OrderedMap} from "immutable"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
+import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 
 const log = Logger(__filename)
 
@@ -82,15 +83,11 @@ export class PointCloudTileManager extends TileManager {
 	constructor(
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
-		onSuperTileLoad: (superTile: SuperTile) => void,
-		onSuperTileUnload: (superTile: SuperTile) => void,
 		tileServiceClient: TileServiceClient,
 	) {
 		super(
 			scaleProvider,
 			utmCoordinateSystem,
-			onSuperTileLoad,
-			onSuperTileUnload,
 			tileServiceClient,
 		)
 		if (config['tile_manager.tile_message_format'])
@@ -108,6 +105,8 @@ export class PointCloudTileManager extends TileManager {
 			sizeAttenuation: false,
 			vertexColors: THREE.VertexColors,
 		})
+
+		this.setPointCloud = (superTiles:OrderedMap<string, SuperTile>) => {new RoadNetworkEditorActions().setPointCloudSuperTiles(superTiles)}
 	}
 
 	protected constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile {

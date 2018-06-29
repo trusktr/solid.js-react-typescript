@@ -19,6 +19,8 @@ import {
     LocationServerStatusLevel
 } from "@/annotator-entry-ui/status/LocationServerStatusClient";
 import Logger from "@/util/log";
+import {EventEmitter} from "events";
+import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
 
 const log = Logger(__filename)
 
@@ -27,6 +29,7 @@ interface StatusWindowProps {
     liveModeEnabled ?: boolean
     playModeEnabled ?: boolean
     utmCoordinateSystem: UtmCoordinateSystem
+    eventEmitter: EventEmitter
 }
 
 interface IStatusWindowState {
@@ -47,9 +50,13 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
         const locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
+        this.props.eventEmitter.on(EventName.TILE_SERVICE_STATUS_UPDATE.toString(), (status) => {
+            this.onTileServiceStatusUpdate(status)
+        })
+
         this.state = {
             locationServerStatusDisplayTimer: 0,
-			serverStatusDisplayTimer: 0,
+			      serverStatusDisplayTimer: 0,
             timeToDisplayHealthyStatusMs: 10000,
             locationServerStatusClient: locationServerStatusClient
         }
@@ -135,6 +142,21 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
         this.setState({locationServerStatusDisplayTimer})
     }
+
+  // Display a UI element to tell the user what is happening with tile server. Error messages persist,
+  // and success messages disappear after a time-out.
+  onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
+    let message = 'Tile server status: '
+    if (tileServiceStatus) {
+      message += '<span class="statusOk">Available</span>'
+      this.delayHideTileServiceStatus()
+    } else {
+      message += '<span class="statusError">Unavailable</span>'
+      this.cancelHideTileServiceStatus()
+    }
+
+    new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
+  }
 
 	private delayHideTileServiceStatus = (): void => {
 		this.cancelHideTileServiceStatus()
