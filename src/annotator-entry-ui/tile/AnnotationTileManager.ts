@@ -17,32 +17,29 @@ import {AnnotationTileContents} from "@/annotator-entry-ui/model/TileContents"
 import {AnnotationUtmTile} from "@/annotator-entry-ui/tile/AnnotationUtmTile"
 import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
-import {EventEmitter} from "events";
+import {OrderedMap} from "immutable";
+import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 
 export class AnnotationTileManager extends TileManager {
 	constructor(
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
-		eventEmitter: EventEmitter,
-		// onSuperTileLoad: (superTile: SuperTile) => void,
-		// onSuperTileUnload: (superTile: SuperTile) => void,
 		tileServiceClient: TileServiceClient,
 		private annotationManager: AnnotationManager,
 	) {
 		super(
 			scaleProvider,
 			utmCoordinateSystem,
-			eventEmitter,
-			// onSuperTileLoad,
-			// onSuperTileUnload,
 			tileServiceClient,
 		)
 		this.config = {
 			layerId: 'anot1', // a layer which contains miniature annotator JSON files
-			initialSuperTilesToLoad: parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4,
-			maximumSuperTilesToLoad: parseInt(config.get('tile_manager.maximum_super_tiles_to_load'), 10) || 10000,
-			maximumObjectsToLoad: parseInt(config.get('tile_manager.maximum_annotations_to_load'), 10) || 1000,
+			initialSuperTilesToLoad: parseInt(config['tile_manager.initial_super_tiles_to_load'], 10) || 4,
+			maximumSuperTilesToLoad: parseInt(config['tile_manager.maximum_super_tiles_to_load'], 10) || 10000,
+			maximumObjectsToLoad: parseInt(config['tile_manager.maximum_annotations_to_load'], 10) || 1000,
 		}
+
+    this.setPointCloud = (superTiles:OrderedMap<string, SuperTile>) => {new RoadNetworkEditorActions().setAnnotationSuperTiles(superTiles)}
 	}
 
 	protected constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile {

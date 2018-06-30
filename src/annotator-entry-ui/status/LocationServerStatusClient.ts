@@ -31,10 +31,10 @@ export class LocationServerStatusClient {
 		this.serverStatus = null
 		this.reqInFlight = false
 		this.onStatusUpdate = onStatusUpdate
-		this.statusCheckInterval = (config.get('location_server.status.health_check.interval.seconds') || 5) * 1000
+		this.statusCheckInterval = (config['location_server.status.health_check.interval.seconds'] || 5) * 1000
 
-		const locationServerStatusHost = config.get('location_server.host') || 'localhost'
-		const locationServerStatusPort = config.get('location_server.status.port') || '26600'
+		const locationServerStatusHost = config['location_server.host'] || 'localhost'
+		const locationServerStatusPort = config['location_server.status.port'] || '26600'
 		this.locationServerStatusAddress = "tcp://" + locationServerStatusHost + ':' + locationServerStatusPort
 		this.locationServerStatusTarget = Models.SystemModule.kSystemModuleMapCap
 		this.statusClient = null

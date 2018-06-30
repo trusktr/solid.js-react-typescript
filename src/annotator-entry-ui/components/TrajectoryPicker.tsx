@@ -48,9 +48,9 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 	constructor(props: TrajectoryPickerProps) {
 		super(props)
 		this.onTrajectoryFileSelected = null
-		this.processedTrajectoriesDir = config.get('fly_through.trajectory_picker.processed_trajectories_dir')
-		this.unprocessedTrajectoriesDir = config.get('fly_through.trajectory_picker.unprocessed_trajectories_dir')
-		this.localizerPath = config.get('perception.offline_localizer_path')
+		this.processedTrajectoriesDir = config['fly_through.trajectory_picker.processed_trajectories_dir']
+		this.unprocessedTrajectoriesDir = config['fly_through.trajectory_picker.unprocessed_trajectories_dir']
+		this.localizerPath = config['perception.offline_localizer_path']
 		this.clearProcessingCheckTimer()
 
 		this.state = {

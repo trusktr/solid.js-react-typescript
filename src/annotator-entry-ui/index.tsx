@@ -2,6 +2,15 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
+//
+// import config, { configReady } from '../config'
+//
+// async function main() {
+// 	await configReady()
+// 	console.log( 'got config ?????', config )
+// }
+//
+// main()
 
 import { configReady, getMeta } from '../config'
 import * as $ from 'jquery'
@@ -65,16 +74,3 @@ export async function start() {
 }
 export async function stop() {}
 export const component = App
-
-
-// https://webpack.js.org/api/hot-module-replacement/
-// TODO hot replacement isn't enabled or working at the moment
-// tslint:disable-next-line:no-any
-// const hotReplacement = (module as any).hot
-// if (hotReplacement) {
-// 	hotReplacement.accept()
-// 	hotReplacement.dispose(cleanup)
-// }
-// function cleanup(): void {
-// 	ReactDOM.unmountComponentAtNode( root )
-// }

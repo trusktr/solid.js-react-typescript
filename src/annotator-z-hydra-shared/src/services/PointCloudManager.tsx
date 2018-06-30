@@ -54,10 +54,10 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
     this.state = {
       pointCloudBoundingBox: null,
-      shouldDrawBoundingBox: !!config.get('annotator.draw_bounding_box'),
+      shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],
       pointCloudBboxColor: new THREE.Color(0xff0000),
       aoiState: {
-        enabled: !!config.get('annotator.area_of_interest.enable'),
+        enabled: !!config['annotator.area_of_interest.enable'],
         focalPoint: null,
         boundingBoxes: [],
         currentHeading: null,
@@ -68,7 +68,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       }
     }
 
-    const aoiSize: [number, number, number] = config.get('annotator.area_of_interest.size')
+    const aoiSize: [number, number, number] = config['annotator.area_of_interest.size']
     if (isTupleOfNumbers(aoiSize, 3)) {
       this.state.aoiState.fullSize = new THREE.Vector3().fromArray(aoiSize)
       this.state.aoiState.halfSize = this.state.aoiState.fullSize.clone().divideScalar(2)
@@ -214,15 +214,17 @@ export default class PointCloudManager extends React.Component<PointCloudManager
    * 	Load up any data which configuration has asked for on start-up.
    */
   private loadUserData(): Promise<void> {
-    const annotationsPath = config.get('startup.annotations_path')
+
+	// TODO JOE FRIDAY duplicate code, see FlyThroughManager. Don't want to call it twice.
+    const annotationsPath = config['startup.annotations_path']
     let annotationsResult: Promise<void>
     if (annotationsPath) {
-      annotationsResult = this.loadAnnotations(annotationsPath)
+      annotationsResult = this.annotationManager.loadAnnotations(annotationsPath)
     } else {
       annotationsResult = Promise.resolve()
     }
 
-    const pointCloudBbox: [number, number, number, number, number, number] = config.get('startup.point_cloud_bounding_box')
+    const pointCloudBbox: [number, number, number, number, number, number] = config['startup.point_cloud_bounding_box']
     let pointCloudResult: Promise<void>
     if (pointCloudBbox) {
       pointCloudResult = annotationsResult
@@ -234,9 +236,9 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       pointCloudResult = annotationsResult
     }
 
-    if (config.get('startup.point_cloud_directory'))
+    if (config['startup.point_cloud_directory'])
       log.warn('config option startup.point_cloud_directory has been removed.')
-    if (config.get('live_mode.trajectory_path'))
+    if (config['live_mode.trajectory_path'])
       log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
 
     return pointCloudResult

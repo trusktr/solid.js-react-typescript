@@ -1,6 +1,7 @@
 import * as React from "react"
 import {getValue} from "typeguard";
 import * as THREE from "three";
+import {sprintf} from 'sprintf-js'
 import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
@@ -12,21 +13,41 @@ import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager
 import {Layer, default as LayerManager} from "@/annotator-z-hydra-shared/src/services/LayerManager";
 import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
 import {EventEmitter} from "events"
-import {ImageManager} from "@/annotator-entry-ui/image/ImageManager";
 import {PointCloudTileManager} from "@/annotator-entry-ui/tile/PointCloudTileManager";
 import {TileServiceClient} from "@annotator-entry-ui/tile/TileServiceClient"
 import {ScaleProvider} from "@annotator-entry-ui/tile/ScaleProvider"
-import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
+import * as OBJLoader from 'three-obj-loader'
+import {isTupleOfNumbers} from "@/util/Validation";
+import config from "@/config";
 import {AnnotationTileManager} from "@/annotator-entry-ui/tile/AnnotationTileManager";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
-import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
-import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile";
+import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager";
 
 const log = Logger(__filename)
 
+OBJLoader(THREE)
+
 export interface CameraState {
   lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
+}
+
+// TODO JOE WEDNESDAY moved from Annotator.tsx
+interface AnnotatorSettings {
+	background: THREE.Color
+	cameraOffset: THREE.Vector3
+	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
+	defaultAnimationFrameIntervalMs: number | false
+	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
+	estimateGroundPlane: boolean
+	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
+	enableAnnotationTileManager: boolean
+	enableTileManagerStats: boolean
+	pointCloudBboxColor: THREE.Color
+	timeToDisplayHealthyStatusMs: number
+	maxDistanceToDecorations: number // meters
+	skyRadius: number
+	cameraToSkyMaxDistance: number
 }
 
 export interface IAnnotatedSceneControllerProps {
@@ -52,10 +73,23 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 	private scaleProvider: ScaleProvider
 	private pointCloudTileManager: PointCloudManager
+	private annotationManager: AnnotationManager
 	private channel: EventEmitter
 
 	constructor(props) {
 		super(props)
+
+		this.settings = {
+			estimateGroundPlane: !!config['annotator.add_points_to_estimated_ground_plane'],
+			tileGroundPlaneScale: 1.05,
+			enableAnnotationTileManager: false,
+			enableTileManagerStats: !!config['tile_manager.stats_display.enable'],
+			pointCloudBboxColor: new THREE.Color(0xff0000),
+			timeToDisplayHealthyStatusMs: 10000,
+			maxDistanceToDecorations: 50000,
+			skyRadius: 8000,
+			cameraToSkyMaxDistance: 0,
+		}
 
 		this.state = {
 			cameraState: {
@@ -74,22 +108,12 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 		// ^ utmCoordinateSystem doesn't need to be a React component because it
 		// isn't hooked to Redux.
 
-		// Add events to listen on for tile loading/unloading
-    this.channel.on( EventName.SUPER_TILE_LOAD.toString(), (superTile) => {
-      this.onSuperTileLoad(superTile)
-    })
-
-    this.channel.on( EventName.SUPER_TILE_UNLOAD.toString(), (superTile) => {
-      this.onSuperTileUnload(superTile)
-    })
-
 		// TODO JOE THURSDAY if not creating it here, pass pointCloudTileManager as a prop
 		this.scaleProvider = new ScaleProvider()
 		const tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel)
 		this.pointCloudTileManager = new PointCloudTileManager(
 			this.scaleProvider,
 			this.utmCoordinateSystem,
-			this.channel,
 			tileServiceClient,
 		)
 
@@ -97,7 +121,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			this.annotationTileManager = new AnnotationTileManager(
 				this.scaleProvider,
 				this.utmCoordinateSystem,
-				this.channel,
 				tileServiceClient,
 
 				// TODO FIXME JOE AnnotationManager is passed into
@@ -130,8 +153,33 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	componentDidMount() {
 		this.makeStats()
 
+		// TODO JOE FRIDAY
+		// if ( interaction is enabled ) {
+
+	        this.props.sceneManager.renderer.domElement.addEventListener('mousemove', this.annotationManager.checkForActiveMarker)
+
+	        // TODO REORG JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
+	        this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.checkForConflictOrDeviceSelection)
+	        this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.checkForAnnotationSelection)
+			this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.addAnnotationMarker)
+			this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.addLaneConnection)   // RYAN Annotator-specific
+			this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.connectNeighbor)  // RYAN Annotator-specific
+			this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.joinAnnotations)
+
+		// }
+
+		if ( config['startup.camera_offset'] ) {
+			const cameraOffset: [ number, number, number ] = config['startup.camera_offset']
+
+			if (isTupleOfNumbers(cameraOffset, 3)) {
+				this.props.sceneManager.setCameraOffset( cameraOffset )
+			} else if (cameraOffset) {
+				log.warn(`invalid startup.camera_offset config: ${cameraOffset}`)
+			}
+		}
+
 		// TODO JOE THURSDAY perhaps LayerManager can listen to all TileManager
-		// layers, and emit a generic layerSupertilesLoad event
+		// layers, and emit a generic layerSupertilesLoad event {{{
 		this.props.layerManager.on( 'layerSupertilesLoad', () => {
 			for (const supertile of supertiles) {
 				this.onSuperTileLoad( supertile )
@@ -152,74 +200,17 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			}
 			this.updateTileManagerStats()
 		} )
+
+		// }}}
 	}
 
 	componentWillUnmount() {
 		this.destroyStats()
 	}
 
-    // TODO JOE, TileManager should coordinate with SceneManager to add tiles to
-    // the scene, and this should be simple and only call loadTileGroundPlanes
-    // which is annotator-app-specific.
-	onSuperTileLoad: (superTile: SuperTile) => void = (superTile: SuperTile) => {
-		if (superTile instanceof PointCloudSuperTile) {
-
-			if (superTile.pointCloud)
-                // TODO TileManager should coordinate this directly with SceneManager
-                this.props.sceneManager.add(superTile.pointCloud)
-			else
-				log.error('onSuperTileLoad() got a super tile with no point cloud')
-		} else if (superTile instanceof AnnotationSuperTile) {
-			if (superTile.annotations)
-                // TODO JOE, AnnotationManager should coordinate this with SceneManager
-				superTile.annotations.forEach(a => this.annotationManager.addAnnotation(a))
-			else
-				log.error('onSuperTileLoad() got a super tile with no annotations')
-		} else {
-			log.error('unknown superTile')
-		}
-	}
-
-	// When TileManager unloads a super tile, update Annotator's parallel data structure.
-    // BOTH
-	private onSuperTileUnload: (superTile: SuperTile) => void = (superTile: SuperTile) => {
-		if (superTile instanceof PointCloudSuperTile) {
-
-			if (superTile.pointCloud)
-                // TODO JOE, TileManager coordinate this with SceneManager
-				this.scene.remove(superTile.pointCloud)
-			else
-				log.error('onSuperTileUnload() got a super tile with no point cloud')
-		} else if (superTile instanceof AnnotationSuperTile) {
-            // TODO JOE, AnnotationManager can coordinate this with SceneManager, and redux state can notify Annotation app if needed.
-			superTile.annotations.forEach(a => this.annotationManager.deleteAnnotation(a))
-		} else {
-			log.error('unknown superTile')
-		}
-	}
-
-    // Print a message about how big our tiles are.
-    // RELATED TO ABOVE -- statusWindowManager
-    protected updateTileManagerStats(): void {
-        if (!this.settings.enableTileManagerStats) return
-        // if (!this.statusWindow.isEnabled()) return
-        if (!this.props.uiMenuVisible) return
-
-        //RYAN UPDATED
-        const message = `Loaded ${this.pointCloudTileManager.superTiles.size} point tiles; ${this.pointCloudTileManager.objectCount()} points`
-
-		// TODO JOE for each TileManager instance
-        new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
-
-        // TODO JOE THURSDAY I think we should register messages with StatusWindow
-        // rather than hard coding them in a StatusKey enum.
-        //
-        //new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message2)
-    }
-
 	private makeStats(): void {
 
-		if (!config.get('startup.show_stats_module')) return
+		if (!config['startup.show_stats_module']) return
 
 		// Create stats widget to display frequency of rendering
 		this.stats = new Stats()
@@ -231,7 +222,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	}
 
 	private destroyStats(): void {
-		if (!config.get('startup.show_stats_module')) return
+		if (!config['startup.show_stats_module']) return
 		this.stats.dom.remove()
 	}
 
@@ -271,6 +262,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   // Find the point in the scene that is most interesting to a human user.
   currentPointOfInterest(): THREE.Vector3 | null {
     // @TODO JOE/RYAN - apps must pass a function as a prop to AnnotatedSceneController
+	// JOE FRIDAY - maybe we can avoid callbacks. If we can't hook into outter
+	// app's redux state, maybe we can just expose an EventEmitter for apps to
+	// listen to?
     return this.props.onPointOfInterestCall()
   }
 

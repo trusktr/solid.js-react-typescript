@@ -8,7 +8,9 @@ import * as fs from 'fs'
 import * as Electron from 'electron'
 import createPromise from '@/util/createPromise'
 
-export default nconf
+const config = {}
+
+export default config
 
 // see https://github.com/jprichardson/is-electron-renderer
 function detectRenderer() {
@@ -147,7 +149,9 @@ async function setupConfig() {
 
 	})
 
-	resolveConfig( nconf )
+	Object.assign( config, nconf.get() )
+
+	resolveConfig( config )
 
 }
 

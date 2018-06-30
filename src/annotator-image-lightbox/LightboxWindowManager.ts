@@ -46,8 +46,8 @@ export class LightboxWindowManager {
 		this.onKeyUp = onKeyUp
 		this.onClose = onClose
 		this.settings = {
-			backgroundColor: config.get('startup.background_color') || '#000',
-			openDevTools: !!config.get('startup.show_dev_tools'),
+			backgroundColor: config['startup.background_color'] || '#000',
+			openDevTools: !!config['startup.show_dev_tools'],
 		}
 		this.loadingWindow = false
 		this.window = null

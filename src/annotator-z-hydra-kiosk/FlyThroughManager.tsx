@@ -53,7 +53,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     super(props)
 
     const loop = new ChildAnimationLoop
-    const flyThroughFps = config.get('fly_through.animation.fps')
+    const flyThroughFps = config['fly_through.animation.fps']
     const flyThroughInterval = flyThroughFps === 'device' ? 0 : 1 / (flyThroughFps || 10)
 
     loop.interval = flyThroughInterval
@@ -63,28 +63,40 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
       liveSubscribeSocket: null,
     }
 
+    // ASK CLYDE - used to be part of loadUserData, but this is the FlyThrough
+    // specific piece. The other part is in PointCloudManager
+	this.loadUserData()
 
+  }
 
-    // ASK CLYDE - used to be part of loadUserData but took up the FlyThrough specific piece
-    if (config.get('fly_through.trajectory_path'))
+  // NOTE JOE FRIDAY this logic used to fire after loading point cloud data, which is now moved to PointCloudManager.
+  // TODO JOE FRIDAY This needes to load user data before Kiosk.listen() to start fly through.
+  loadUserData() {
+    if (config['fly_through.trajectory_path'])
       log.warn('config option fly_through.trajectory_path is now a list: fly_through.trajectory_path.list')
 
+	// TODO JOE FRIDAY duplicate code, see PointCloudManager. Don't want to call it twice.
+    let annotationsResult: Promise<void>
+    const annotationsPath = config['startup.annotations_path']
+    if (annotationsPath) {
+      annotationsResult = this.annotationManager.loadAnnotations(annotationsPath)
+    } else {
+      annotationsResult = Promise.resolve()
+    }
+
     let trajectoryResult: Promise<void>
-    const trajectoryPaths = config.get('fly_through.trajectory_path.list')
+    const trajectoryPaths = config['fly_through.trajectory_path.list']
     if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
-      trajectoryResult = pointCloudResult
+      trajectoryResult = annotationsResult
         .then(() => {
           log.info('loading pre-configured trajectories')
           return this.loadFlyThroughTrajectories(trajectoryPaths)
         })
     } else {
-      trajectoryResult = pointCloudResult
+      trajectoryResult = annotationsResult
     }
 
-
-
-
-
+	return trajectoryResult
   }
 
   componentDidMount() {
@@ -229,8 +241,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         log.warn('got an InertialStateMessage without a pose')
     })
 
-    const locationHost = config.get('location_server.host') || 'localhost'
-    const locationPort = config.get('location_server.port') || '5564'
+    const locationHost = config['location_server.host'] || 'localhost'
+    const locationPort = config['location_server.port'] || '5564'
     liveSubscribeSocket.connect("tcp://" + locationHost + ":" + locationPort)
     liveSubscribeSocket.subscribe("")
 
@@ -371,9 +383,3 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   	return null
 	}
 }
-
-
-
-
-
-

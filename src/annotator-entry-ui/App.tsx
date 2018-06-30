@@ -57,12 +57,12 @@ export default class App extends React.Component<AppProps, AppState> {
 	}
 
 	render(): JSX.Element {
-		log.info("IN RENDER", config.get('startup.kiosk_mode'))
+		log.info("IN RENDER", config['startup.kiosk_mode'])
 		// const {uiMenuVisible} = this.props
 
 		return <React.Fragment>
 
-			{ config.get('startup.kiosk_mode') ?
+			{ config['startup.kiosk_mode'] ?
 				<Kiosk />
 			:
 				<Annotator />

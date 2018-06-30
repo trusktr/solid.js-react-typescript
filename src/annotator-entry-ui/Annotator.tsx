@@ -11,9 +11,7 @@ import MousePosition from '../util/MousePosition'
 import mousePositionToGLSpace from '../util/mousePositionToGLSpace'
 import {Map} from 'immutable'
 import {AnimationLoop} from 'animation-loop'
-import LocalStorage from "./state/LocalStorage"
 import {GUI as DatGui, GUIParams} from 'dat.gui'
-import {isTupleOfNumbers} from "../util/Validation"
 import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
 import {PointCloudTileManager} from './tile/PointCloudTileManager'
 import {AnnotationType} from './annotations/AnnotationType'
@@ -29,7 +27,6 @@ import {ImageManager} from "./image/ImageManager"
 import {ImageScreen} from "./image/ImageScreen"
 import {CalibratedImage} from "./image/CalibratedImage"
 import * as Stats from 'stats.js'
-import * as OBJLoader from 'three-obj-loader'
 
 import * as React from "react";
 import RoadEditorState from "../annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
@@ -40,10 +37,6 @@ import StatusWindowState from "../annotator-z-hydra-shared/src/models/StatusWind
 import {FlyThroughState} from "../annotator-z-hydra-shared/src/models/FlyThroughState";
 
 import AnnotatorMenuView from "./AnnotatorMenuView";
-import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
-import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
-
-import * as FlyThroughManager from "../annotator-z-hydra-kiosk/FlyThroughManagerNonReact";
 
 import {dateToString} from "../util/dateToString"
 import {scale3DToSpatialTileScale, spatialTileScaleToString} from "./tile/ScaleUtil"
@@ -52,24 +45,8 @@ import {ScaleProvider} from "./tile/ScaleProvider"
 const dialog = Electron.remote.dialog
 
 // electronUnhandled()
-OBJLoader(THREE)
 
 const log = Logger(__filename)
-
-const preferenceKey = {
-	cameraPreference: 'cameraPreference',
-}
-
-const cameraTypeString = {
-	orthographic: 'orthographic',
-	perspective: 'perspective',
-}
-
-// enum MenuVisibility {
-// 	HIDE = 0,
-// 	SHOW,
-// 	TOGGLE
-// }
 
 // Various types of objects which can be displayed in the three.js scene.
 enum Layer {
@@ -100,19 +77,7 @@ const layerGroups: Layer[][] = [
 
 const defaultLayerGroupIndex = 0
 
-// Something that toggles on and off, and reports the result.
-interface Toggle {
-	show: () => boolean,
-	hide: () => boolean,
-}
-
 interface AnnotatorSettings {
-	background: THREE.Color
-	cameraOffset: THREE.Vector3
-	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
-	defaultAnimationFrameIntervalMs: number | false
-	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
-	estimateGroundPlane: boolean
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	enableAnnotationTileManager: boolean
 	enableTileManagerStats: boolean
@@ -124,7 +89,6 @@ interface AnnotatorSettings {
 }
 
 interface UiState {
-	sceneInitialized: boolean
 	lockBoundaries: boolean
 	lockLanes: boolean
 	lockTerritories: boolean
@@ -168,7 +132,6 @@ interface AnnotatorProps {
 	playModeEnabled ?: boolean
 	statusWindowState ?: StatusWindowState
 	uiMenuVisible ?: boolean
-	shouldAnimate ?: boolean
 	flyThroughState ?: FlyThroughState
 	carPose ?: Models.PoseMessage
 	isImageScreensVisible ?:boolean
@@ -185,15 +148,12 @@ interface AnnotatorState {
 	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
 	statusWindowState: (state) => state.get(RoadEditorState.Key).statusWindowState,
 	flyThroughState: (state) => state.get(RoadEditorState.Key).flyThroughState,
-	shouldAnimate: (state) => state.get(RoadEditorState.Key).shouldAnimate,
 	carPose: (state) => state.get(RoadEditorState.Key).carPose,
 	isImageScreensVisible: (state) => state.get(RoadEditorState.Key).isImageScreensVisible,
 }))
 export default class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
-	private storage: LocalStorage // persistent state for UI settings
 	private uiState: UiState
 	// private statusWindow: StatusWindowController // a place to print status messages
-	private scene: THREE.Scene // where objects are rendered in the UI; shared with AnnotationManager
 	private annotatorCamera: THREE.Camera
 	private flyThroughCamera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
@@ -219,28 +179,18 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	constructor(props) {
 		super(props)
-		this.storage = new LocalStorage()
 
-		// this.shouldAnimate = false
-
-		if (!isNullOrUndefined(config.get('output.trajectory.csv.path')))
+		if (!isNullOrUndefined(config['output.trajectory.csv.path']))
 			log.warn('Config option output.trajectory.csv.path has been removed.')
-		if (!isNullOrUndefined(config.get('annotator.generate_voxels_on_point_load')))
+		if (!isNullOrUndefined(config['annotator.generate_voxels_on_point_load']))
 			log.warn('Config option annotator.generate_voxels_on_point_load has been removed.')
-		if (config.get('startup.animation.fps'))
+		if (config['startup.animation.fps'])
 			log.warn('Config option startup.animation.fps has been removed. Use startup.render.fps.')
-		const animationFps = config.get('startup.render.fps')
 
 		this.settings = {
-			background: new THREE.Color(config.get('startup.background_color') || '#082839'),
-			cameraOffset: new THREE.Vector3(0, 400, 200),
-			orthoCameraHeight: 100, // enough to view ~1 city block of data
-			defaultAnimationFrameIntervalMs: animationFps === 'device' ? false : 1 / (animationFps || 10),
-			animationFrameIntervalSecs: 0,
-			estimateGroundPlane: !!config.get('annotator.add_points_to_estimated_ground_plane'),
 			tileGroundPlaneScale: 1.05,
 			enableAnnotationTileManager: false,
-			enableTileManagerStats: !!config.get('tile_manager.stats_display.enable'),
+			enableTileManagerStats: !!config['tile_manager.stats_display.enable'],
 			pointCloudBboxColor: new THREE.Color(0xff0000),
 			timeToDisplayHealthyStatusMs: 10000,
 			maxDistanceToDecorations: 50000,
@@ -248,16 +198,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			cameraToSkyMaxDistance: 0,
 		}
 		this.settings.cameraToSkyMaxDistance = this.settings.skyRadius * 0.05
-		const cameraOffset: [number, number, number] = config.get('startup.camera_offset')
-		if (isTupleOfNumbers(cameraOffset, 3)) {
-			this.settings.cameraOffset = new THREE.Vector3().fromArray(cameraOffset)
-		} else if (cameraOffset) {
-			log.warn(`invalid startup.camera_offset config: ${cameraOffset}`)
-		}
 
-		this.settings.animationFrameIntervalSecs = this.settings.defaultAnimationFrameIntervalMs
 		this.uiState = {
-			sceneInitialized: false,
 			layerGroupIndex: defaultLayerGroupIndex,
 			lockBoundaries: false,
 			lockLanes: false,
@@ -282,15 +224,18 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			numberKeyPressed: null,
 			isLiveMode: false,
 			isLiveModePaused: true,
-			isKioskMode: !!config.get('startup.kiosk_mode'),
-			imageScreenOpacity: parseFloat(config.get('image_manager.image.opacity')) || 0.5,
+			isKioskMode: !!config['startup.kiosk_mode'],
+			imageScreenOpacity: parseFloat(config['image_manager.image.opacity']) || 0.5,
 			lastPointCloudLoadedErrorModalMs: 0,
 			lastCameraCenterPoint: null,
 			skyPosition2D: new THREE.Vector2(),
 			cameraPosition2D: new THREE.Vector2(),
 		}
 
-		// AnnotationTileManager will load and unload annotations without warning, which isn't helpful in interactive mode, so:
+		// AnnotationTileManager is, for now, only for Kiosk mode
+		// TODO JOE FRIDAY move AnnotationTileManager out of
+		// AnnotatedSceneController, into Kiosk app (and remove this from
+		// Annotator)
 		this.settings.enableAnnotationTileManager = this.uiState.isKioskMode
 
 		// this.statusWindow = new StatusWindowController()
@@ -312,99 +257,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 	}
 
-	/**
-	 * Create the 3D Scene and add some basic objects. It also initializes
-	 * several event listeners.
-	 */
-	private initScene(): Promise<void> {
-		// log.info(`Building scene`)
-		//
-		// const [width, height]: Array<number> = this.getContainerSize()
-		//
-		// if (this.storage.getItem(preferenceKey.cameraPreference, cameraTypeString.perspective) === cameraTypeString.orthographic)
-		// 	this.annotatorCamera = this.annotatorOrthoCam
-		// else
-		// 	this.annotatorCamera = this.annotatorPerspectiveCam
-
-        // TODO REORG JOE AnnotationManager needs a reference to AnnotationTileManager
-
-		// Add listeners
-		window.addEventListener('focus', this.onFocus)  // RYAN Annotator-specific
-		window.addEventListener('blur', this.onBlur)  // RYAN Annotator-specific
-		window.addEventListener('beforeunload', this.onBeforeUnload) // RYAN Annotator-specific
-		// window.addEventListener('resize', this.onWindowResize) //
-		// window.addEventListener('keydown', this.onKeyDown) // split
-		// window.addEventListener('keyup', this.onKeyUp) // split
-
-		// Annotator-specific
-        this.renderer.domElement.addEventListener('mousemove', this.setLastMousePosition)
-        this.renderer.domElement.addEventListener('mousemove', this.checkForActiveMarker)
-        this.renderer.domElement.addEventListener('mousemove', this.checkForImageScreenSelection)
-		this.renderer.domElement.addEventListener('mouseup', this.clickImageScreenBox)
-
-        // TODO REORG JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
-        this.renderer.domElement.addEventListener('mouseup', this.checkForConflictOrDeviceSelection)
-        this.renderer.domElement.addEventListener('mouseup', this.checkForAnnotationSelection)
-		this.renderer.domElement.addEventListener('mouseup', this.addAnnotationMarker)
-		this.renderer.domElement.addEventListener('mouseup', this.addLaneConnection)   // RYAN Annotator-specific
-		this.renderer.domElement.addEventListener('mouseup', this.connectNeighbor)  // RYAN Annotator-specific
-		this.renderer.domElement.addEventListener('mouseup', this.joinAnnotations)
-
-        // TODO REORG JOE: this is generic stuff, put this in a lib so any code can use the states.
-		this.renderer.domElement.addEventListener('mouseup', () => {this.uiState.isMouseButtonPressed = false})  // RYAN Annotator-specific
-		this.renderer.domElement.addEventListener('mousedown', () => {this.uiState.isMouseButtonPressed = true}) // RYAN Annotator-specific
-		this.renderer.domElement.addEventListener('mousemove', () => {this.uiState.isMouseDragging = this.uiState.isMouseButtonPressed}) // RYAN Annotator-specific
-
-		// Bind events
-		this.bind()
-		// if ( this.props.uiMenuVisible ) this.deactivateAllAnnotationPropertiesMenus()
-
-		// Create the hamburger menu and display (open) it as requested.
-		const startupMenu = this.uiState.isKioskMode ? '#liveModeMenu' : '#annotationMenu'
-		this.switchToMenu(startupMenu)
-
-
-		// RYAN UPDATED
-		// this.displayMenu(config.get('startup.show_menu') ? MenuVisibility.SHOW : MenuVisibility.HIDE)
-		// @TODO this action shouldn't be needed because the default state is based on config.get('startup.show_menu') directly
-		new RoadNetworkEditorActions().setUIMenuVisibility(config.get('startup.show_menu'))
-
-		this.loop = new AnimationLoop
-		this.loop.interval = this.settings.animationFrameIntervalSecs
-
-		// Point the camera at some reasonable default location.
-		// this.setStage(0, 0, 0)
-
-		// starts tracking time, but GPU use is still at 0% at this moment
-		// because there are no animation functions added to the loop yet.
-		this.loop.start()
-
-		this.loop.addBaseFn( () => {
-			if (this.stats) this.stats.update()
-			this.renderer.render(this.scene, this.camera)
-		})
-
-		this.loop.addChildLoop( FlyThroughManager.getAnimationLoop() )
-
-		FlyThroughManager.startLoop()
-
-		return this.loadCarModel()
-			.then(() => this.loadUserData())
-			.then(() => {
-				if (this.uiState.isKioskMode)
-					this.listen()
-				this.uiState.sceneInitialized = true
-			})
-	}
-
 	// Create a UI widget to adjust application settings on the fly.
     // JOE, this is Annotator app-specific
 	createControlsGui(): void {
 		// Add panel to change the settings
-		if (!isNullOrUndefined(config.get('startup.show_color_picker')))
+		if (!isNullOrUndefined(config['startup.show_color_picker']))
 			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
 
-		if (!config.get('startup.show_control_panel')) {
+		if (!config['startup.show_control_panel']) {
 			this.gui = null
 			return
 		}
@@ -468,31 +328,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	private destroyControlsGui(): void {
-		if (!config.get('startup.show_control_panel')) return
+		if (!config['startup.show_control_panel']) return
 		if (this.gui) this.gui.destroy()
 	}
 
     // TODO REORG JOE generic event state, can go somewhere for use by all.
 	private setLastMousePosition = (event: MouseEvent | null): void => {
 		this.uiState.lastMousePosition = event
-	}
-
-    //
-    // TODO JOE keep in Annotator app me thinks?
-    //
-    // TODO JOE Maybe ground tiles can be in
-    // their own tile layer, and they are added/removed based on super tiles.
-	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
-		let intersections: THREE.Intersection[]
-		if (this.settings.estimateGroundPlane || !this.pointCloudTileManager.objectCount()) {
-			if (this.allGroundPlanes.length)
-				intersections = raycaster.intersectObjects(this.allGroundPlanes)
-			else
-				intersections = raycaster.intersectObject(this.plane)
-		} else {
-			intersections = raycaster.intersectObjects(this.pointCloudTileManager.getPointClouds())
-		}
-		return intersections
 	}
 
 	// When ImageManager loads an image, add it to the scene.
@@ -848,7 +690,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.uiState.isAddConflictOrDeviceKeyPressed = false
 		this.uiState.isJoinAnnotationKeyPressed = false
 
-		this.onShiftKeyUp()
+		if ( event.shiftKey ) this.onShiftKeyUp()
 	}
 
 	/**
@@ -915,7 +757,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// Save all annotation data.
 	private saveToFile(format: OutputFormat): Promise<void> {
 		// Attempt to insert a string representing the coordinate system format into the requested path, then save.
-		const basePath = config.get('output.annotations.json.path')
+		const basePath = config['output.annotations.json.path']
 		const i = basePath.indexOf('.json')
 		const formattedPath = i >= 0
 			? basePath.slice(0, i) + '-' + OutputFormat[format] + basePath.slice(i, basePath.length)
@@ -926,7 +768,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	private exportAnnotationsTiles(format: OutputFormat): Promise<void> {
-		const basePath = config.get('output.annotations.tiles_dir')
+		const basePath = config['output.annotations.tiles_dir']
 		const scale = scale3DToSpatialTileScale(this.scaleProvider.utmTileScale)
 		if (isNullOrUndefined(scale))
 			return Promise.reject(Error(`1can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
@@ -941,7 +783,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Save lane waypoints only.
 	private saveWaypointsKml(): Promise<void> {
-		const basePath = config.get('output.annotations.kml.path')
+		const basePath = config['output.annotations.kml.path']
 		log.info(`Saving waypoints KML to ${basePath}`)
 		return this.annotationManager.saveToKML(basePath)
 			.catch(err => log.warn('saveToKML failed: ' + err.message))
@@ -1345,6 +1187,21 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			// this.onKeyDown,
 			// this.onKeyUp,
 		)
+
+		window.addEventListener('focus', this.onFocus)  // RYAN Annotator-specific
+		window.addEventListener('blur', this.onBlur)  // RYAN Annotator-specific
+		window.addEventListener('beforeunload', this.onBeforeUnload) // RYAN Annotator-specific
+
+		window.addEventListener('keydown', this.onKeyDown)
+		window.addEventListener('keyup', this.onKeyUp)
+
+        document.addEventListener('mousemove', this.setLastMousePosition)
+        document.addEventListener('mousemove', this.checkForImageScreenSelection)
+		document.addEventListener('mouseup', this.clickImageScreenBox)
+
+		// Bind ui events
+		this.bind()
+		// if ( this.props.uiMenuVisible ) this.deactivateAllAnnotationPropertiesMenus()
 	}
 
 	componentWillUnmount(): void {
@@ -1749,15 +1606,17 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     // }}
 
-
-
 	// Toggle the visibility of data by cycling through the groups defined in layerGroups.
-    // TODO REORG JOE move to LayerManager
 	private toggleLayerVisibility(): void {
 		this.uiState.layerGroupIndex++
 		if (!layerGroups[this.uiState.layerGroupIndex])
 			this.uiState.layerGroupIndex = defaultLayerGroupIndex
-		this.setLayerVisibility(layerGroups[this.uiState.layerGroupIndex], true)
+
+		// TODO JOE FRIDAY The Annotator UI would like to have button for
+		// toggling layer visibility, hence the reference to layerManager here.
+		// Should AnnotatedSceneController expose layerManager as a public
+		// property?
+		this.annotatedScene.layerManager.setLayerVisibility(layerGroups[this.uiState.layerGroupIndex], true)
 	}
 
 }

@@ -20,6 +20,9 @@ import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointClou
 import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import {EventEmitter} from "events";
+import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile";
+import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
+import {OrderedMap} from "immutable";
 
 const log = Logger(__filename)
 
@@ -30,6 +33,7 @@ export interface SceneManagerProps {
 	compassRosePosition ?: THREE.Vector3
 	isDecorationsVisible ?: boolean
 	orbitControlsTargetPoint ?: THREE.Vector3
+  pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
 	utmCoordinateSystem: UtmCoordinateSystem
   eventEmitter: EventEmitter
 }
@@ -78,6 +82,7 @@ export interface SceneManagerState {
 	compassRosePosition: (state) => state.get(RoadEditorState.Key).compassRosePosition,
 	isDecorationsVisible: (state) => state.get(RoadEditorState.Key).isDecorationsVisible,
 	orbitControlsTargetPoint: (state) => state.get(RoadEditorState.Key).orbitControlsTargetPoint,
+	pointCloudSuperTiles: (state) => state.get(RoadEditorState.Key).pointCloudSuperTiles,
 }))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
@@ -91,7 +96,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		// Settings for component state
 		const orthoCameraHeight = 100 // enough to view ~1 city block of data
-		const cameraOffset = new THREE.Vector3(30, 10, 0)
+
+		const cameraOffset = new THREE.Vector3(0, 400, 200)
+
 		const skyRadius = 8000
 		const cameraToSkyMaxDistance = skyRadius * 0.05
 		const skyPosition2D = new THREE.Vector2()
@@ -118,7 +125,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		scene.add(new THREE.AmbientLight(0xffffff))
 
 		// Draw the sky.
-		const background = new THREE.Color(config.get('startup.background_color') || '#082839')
+		const background = new THREE.Color(config['startup.background_color'] || '#082839')
 		const sky = Sky(background, new THREE.Color(0xccccff), skyRadius)
 		scene.add(sky)
 
@@ -135,12 +142,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		// Add grid on top of the plane to visualize where the plane is.
 		// Add an axes helper to visualize the origin and orientation of the primary directions.
-		const axesHelperLength = parseFloat(config.get('annotator.axes_helper_length')) || 0
+		const axesHelperLength = parseFloat(config['annotator.axes_helper_length']) || 0
 		let grid;
 		let axis;
 		if (axesHelperLength > 0) {
-			const gridSize = parseFloat(config.get('annotator.grid_size')) || 200
-			const gridUnit = parseFloat(config.get('annotator.grid_unit')) || 10
+			const gridSize = parseFloat(config['annotator.grid_size']) || 200
+			const gridUnit = parseFloat(config['annotator.grid_unit']) || 10
 			const gridDivisions = gridSize / gridUnit
 
 			grid = new THREE.GridHelper(gridSize, gridDivisions, new THREE.Color('white'))
@@ -155,7 +162,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			axis = null
 		}
 
-		const compassRoseLength = parseFloat(config.get('annotator.compass_rose_length')) || 0
+		const compassRoseLength = parseFloat(config['annotator.compass_rose_length']) || 0
 		let compassRose;
 		if (compassRoseLength > 0) {
 			compassRose = CompassRose(compassRoseLength)
@@ -180,21 +187,15 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		// @TODO (Annotator-only) Add renderer domElement event listeners using 'registerDomEventElementEventListener' below
 
-		// @TODO (Annotator-only) Bind events
-
-		// @TODO Create the hamburger menu and display (open) it as requested.
-
-		new RoadNetworkEditorActions().setUIMenuVisibility(config.get('startup.show_menu'))
-
 		const loop = new AnimationLoop
-		const animationFps = config.get('startup.renderScene.fps')
+		const animationFps = config['startup.render.fps']
 		loop.interval = animationFps === 'device' ? false : 1 / (animationFps || 10)
 
 		const scaleProvider = new ScaleProvider()
 
-    this.props.eventEmitter.on( 'originUpdated', () => {
-      this.loadDecorations()
-    })
+		this.props.eventEmitter.on( 'originUpdated', () => {
+			this.loadDecorations()
+		})
 
 		// TODO JOE THURSDAY anything that doesn't need to change we can
 		// take out of state and keep as instance variables. F.e. loop, scene,
@@ -255,16 +256,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			renderer.render(scene, camera)
 		})
 
-
-
-
-
-		// @TODO - AnnotationManager needs to call loadUserData()
-
 		new RoadNetworkEditorActions().setSceneInitialized(true)
 	}
 
-	componentWillReceiveProps(newProps) {
+	componentWillReceiveProps(newProps:SceneManagerProps) {
 		if(newProps.compassRosePosition !== this.props.compassRosePosition) {
 			const position = newProps.compassRosePosition
 			this.setCompassRosePosition(position.x, position.y, position.z)
@@ -280,6 +275,16 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		if(newProps.orbitControlsTargetPoint !== this.props.orbitControlsTargetPoint) {
 			this.updateOrbitControlsTargetPoint(newProps.orbitControlsTargetPoint)
+		}
+
+		if(newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles && this.props.pointCloudSuperTiles && newProps.pointCloudSuperTiles) {
+			const existingSuperTileIds = this.props.pointCloudSuperTiles.keySeq().toArray()
+			const newSuperTileIds = newProps.pointCloudSuperTiles.keySeq().toArray()
+			const tilesToAdd = newSuperTileIds.filter(superTile => existingSuperTileIds.indexOf(superTile) < 0)
+			const tilesToRemove = existingSuperTileIds.filter(superTile => newSuperTileIds.indexOf(superTile) < 0)
+
+			tilesToAdd.forEach(tileId => this.addSuperTile(newProps.pointCloudSuperTiles!.get(tileId)))
+      tilesToRemove.forEach(tileId => this.removeSuperTile(newProps.pointCloudSuperTiles!.get(tileId)))
 		}
 	}
 
@@ -447,9 +452,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.state.loop.addChildLoop( childLoop )
 	}
 
-	// @TODO FlyThroughManager.startLoop()
-
-
 	// @TODO Annotator and Beholder must call this function on setup (register orbitControls)
 	setOrbitControls(controls: THREE.OrbitControls) {
 		this.setState({
@@ -607,6 +609,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		return getValue(() => [this.props.width, this.props.height], [0, 0])
 	}
 
+	// TODO JOE FRIDAY Resize on parent resize, not window.
+	// The Annotated Scene may not always be full size of the winow, it might be
+	// anywhere on the page, so instead we need to listen to the size of the
+	// scene's parent container. For example, on the mapper.ai public website,
+	// the scene might be a rectangle inside the page, not the whole window.
+	// We can use ResizeObserver for this.
 	private onWindowResize = (): void => {
 		const [width, height]: Array<number> = this.getContainerSize()
 		const {camera, renderer} = this.state
@@ -649,6 +657,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.setState({cameraOffset})
 	}
 
+	// JOE FRIDAY, called from AnnotatedSceneController
+	setCameraOffset( offset: [ number, number, number ] ): void {
+		this.setState( { cameraOffset: new THREE.Vector3().fromArray( offset ) } )
+	}
+
 	render() {
 		return (
 			<React.Fragment>
@@ -657,6 +670,24 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		)
 
 	}
+
+	addSuperTile(superTile: SuperTile) {
+    if (superTile instanceof PointCloudSuperTile) {
+      if (superTile.pointCloud)
+        this.state.scene.add(superTile.pointCloud)
+      else
+        log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
+    }
+	}
+
+  removeSuperTile(superTile: SuperTile) {
+		if (superTile instanceof PointCloudSuperTile) {
+      if (superTile.pointCloud)
+        this.state.scene.remove(superTile.pointCloud)
+      else
+        log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
+    }
+  }
 
 	// Add some easter eggs to the scene if they are close enough.
 	loadDecorations(): Promise<void> {
