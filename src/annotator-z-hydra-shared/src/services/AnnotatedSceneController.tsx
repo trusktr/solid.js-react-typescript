@@ -262,6 +262,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   // Find the point in the scene that is most interesting to a human user.
   currentPointOfInterest(): THREE.Vector3 | null {
     // @TODO JOE/RYAN - apps must pass a function as a prop to AnnotatedSceneController
+	// JOE FRIDAY - maybe we can avoid callbacks. If we can't hook into outter
+	// app's redux state, maybe we can just expose an EventEmitter for apps to
+	// listen to?
     return this.props.onPointOfInterestCall()
   }
 
