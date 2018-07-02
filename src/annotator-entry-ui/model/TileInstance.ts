@@ -6,17 +6,10 @@
 import {TileIndex} from "./TileIndex"
 
 export class TileInstance {
-	tileIndex: TileIndex
-	layerId: LayerId
-	url: string
 
 	constructor(
-		tileIndex: TileIndex,
-		layerId: LayerId,
-		url: string
-	) {
-		this.tileIndex = tileIndex
-		this.layerId = layerId
-		this.url = url
-	}
+		public tileIndex: TileIndex,
+		public layerId: string,
+		public url: string
+	) { }
 }

@@ -69,7 +69,7 @@ export class Scale3D {
 // This defines the size of one tile in cartesian space.
 // Tiles are constructed orthogonal to the three spacial dimensions.
 // All dimensions are expressed in meters.
-export function coordToIndex(coord: number, size: number): TileIndexDimension {
+export function coordToIndex(coord: number, size: number): number {
 	const floor = Math.floor(coord / size)
 	if (!isFinite(floor) || size < 0)
 		throw Error(`out-of-bounds arguments in coordToIndex(${coord}, ${size})`)
@@ -78,7 +78,7 @@ export function coordToIndex(coord: number, size: number): TileIndexDimension {
 		: floor
 }
 
-export function indexToCoord(index: TileIndexDimension, size: number): number {
+export function indexToCoord(index: number, size: number): number {
 	return index * size
 }
 
