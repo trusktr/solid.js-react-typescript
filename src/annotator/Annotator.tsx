@@ -153,7 +153,6 @@ interface AnnotatorState {
 }))
 export default class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 	private uiState: UiState
-	// private statusWindow: StatusWindowController // a place to print status messages
 	private annotatorCamera: THREE.Camera
 	private flyThroughCamera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
@@ -238,7 +237,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// Annotator)
 		this.settings.enableAnnotationTileManager = this.uiState.isKioskMode
 
-		// this.statusWindow = new StatusWindowController()
 		this.hovered = null
 		this.raycasterPlane = new THREE.Raycaster()
 		this.raycasterPlane.params.Points!.threshold = 0.1
