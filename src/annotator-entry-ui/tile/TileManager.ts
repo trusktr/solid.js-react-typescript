@@ -19,7 +19,6 @@ import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "../model/RangeSearch"
 import {TileInstance} from "../model/TileInstance"
 import Logger from "@/util/log"
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 
 const log = Logger(__filename)
 

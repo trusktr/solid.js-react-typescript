@@ -1,17 +1,17 @@
 
 import UIMessage from "annotator-z-hydra-shared/src/models/UIMessage"
-import RoadNetworkEditorState from "annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState"
-import RoadNetworkEditorActions from "annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions"
+import AnnotatedSceneState from "annotator-z-hydra-shared/src/store/state/AnnotatedSceneState"
+import AnnotatedSceneActions from "AnnotatedSceneActions.ts"
 
 
 function expireMessages() {
   const
-    msgs = getRoadNetworkEditorStoreState().get(RoadNetworkEditorState.Key).messages as Array<UIMessage>,
+    msgs = getAnnotatedSceneStoreState().get(AnnotatedSceneState.Key).messages as Array<UIMessage>,
     now = Date.now()
 
   msgs.forEach(msg => {
     if (now > msg.expiresAt) {
-      new RoadNetworkEditorActions().removeMessage(msg.id)
+      new AnnotatedSceneActions().removeMessage(msg.id)
     }
   })
 }

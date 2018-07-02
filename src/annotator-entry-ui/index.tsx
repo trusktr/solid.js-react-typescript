@@ -55,7 +55,7 @@ export async function start() {
 
 			ReactDOM.render(
 				<AppContainer>
-					<Provider store={getRoadNetworkEditorReduxStore()}>
+					<Provider store={getAnnotatedSceneReduxStore()}>
 						<App />
 					</Provider>
 				</AppContainer>,

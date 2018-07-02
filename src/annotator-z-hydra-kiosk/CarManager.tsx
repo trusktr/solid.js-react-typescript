@@ -8,7 +8,7 @@ import {
 } from "@/annotator-entry-ui/geometry/CoordinateFrame";
 import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
 import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import AnnotatedSceneActions from "@/annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions.ts"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 
@@ -26,7 +26,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 
 	componentWillReceiveProps(newProps: CarManagerProps) {
 		if(newProps.sceneManager && newProps.pointCloudManager && this.props.sceneManager === null) {
-			this.loadCarModel().then(() => new RoadNetworkEditorActions().setCarInitialized(true))
+			this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
 		}
 	}
 

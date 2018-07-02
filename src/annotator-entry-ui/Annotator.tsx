@@ -29,10 +29,10 @@ import {CalibratedImage} from "./image/CalibratedImage"
 import * as Stats from 'stats.js'
 
 import * as React from "react";
-import RoadEditorState from "../annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import AnnotatedSceneState from "../annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 import {typedConnect} from "../annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import RoadNetworkEditorActions from "../annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import AnnotatedSceneActions from "../annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions";
 import StatusWindowState from "../annotator-z-hydra-shared/src/models/StatusWindowState";
 import {FlyThroughState} from "../annotator-z-hydra-shared/src/models/FlyThroughState";
 
@@ -141,15 +141,15 @@ interface AnnotatorState {
     sceneManager?
 }
 
-// state = getRoadNetworkEditorReduxStore().getState()
+// state = getAnnotatedSceneReduxStore().getState()
 @typedConnect(createStructuredSelector({
-	liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
-	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
-	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
-	statusWindowState: (state) => state.get(RoadEditorState.Key).statusWindowState,
-	flyThroughState: (state) => state.get(RoadEditorState.Key).flyThroughState,
-	carPose: (state) => state.get(RoadEditorState.Key).carPose,
-	isImageScreensVisible: (state) => state.get(RoadEditorState.Key).isImageScreensVisible,
+	liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
+	playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
+	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
+	statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,
+	flyThroughState: (state) => state.get(AnnotatedSceneState.Key).flyThroughState,
+	carPose: (state) => state.get(AnnotatedSceneState.Key).carPose,
+	isImageScreensVisible: (state) => state.get(AnnotatedSceneState.Key).isImageScreensVisible,
 }))
 export default class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 	private uiState: UiState
@@ -1069,7 +1069,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				log.info("Menu icon clicked. Close/Open menu bar.")
 
 				// RYAN UPDATED
-				new RoadNetworkEditorActions().toggleUIMenuVisible()
+				new AnnotatedSceneActions().toggleUIMenuVisible()
 				// this.displayMenu(MenuVisibility.TOGGLE)
 			})
 		else

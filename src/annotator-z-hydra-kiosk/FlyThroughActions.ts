@@ -1,5 +1,5 @@
 import {ActionFactory, ActionMessage, ActionReducer} from "typedux";
-import RoadNetworkEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 
 
 
@@ -9,10 +9,10 @@ import {FlyThroughState, FlyThroughTrajectory} from "@/annotator-z-hydra-shared/
 const log = Logger(__filename)
 
 
-export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorState, ActionMessage<RoadNetworkEditorState>> {
+export default class FlyThroughActions extends ActionFactory<AnnotatedSceneState, ActionMessage<AnnotatedSceneState>> {
 
 	constructor() {
-		super(RoadNetworkEditorState)
+		super(AnnotatedSceneState)
 	}
 
 	/**
@@ -20,14 +20,14 @@ export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorSt
 	 * @returns {string}
 	 */
 	leaf(): string {
-		return RoadNetworkEditorState.Key
+		return AnnotatedSceneState.Key
 	}
 
 	@ActionReducer()
 	resetFlyThroughState() {
 		log.info("Resetting fly through state")
-		return (roadEditorState: RoadNetworkEditorState) => new RoadNetworkEditorState({
-			...roadEditorState, flyThroughState: {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, flyThroughState: {
 				enabled: true,
 				trajectories: [],
 				currentTrajectoryIndex: 0,
@@ -41,12 +41,12 @@ export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorSt
 	@ActionReducer()
 	setCurrentTrajectoryIndex(value:number) {
 		log.info("Setting current trajectory index on FlyThroughState")
-		return (roadEditorState: RoadNetworkEditorState) => {
-			const flyThroughState = new FlyThroughState({...roadEditorState.flyThroughState})
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const flyThroughState = new FlyThroughState({...annotatedSceneState.flyThroughState})
 
 			flyThroughState.currentTrajectoryIndex = value
-			return new RoadNetworkEditorState({
-				...roadEditorState, flyThroughState: flyThroughState
+			return new AnnotatedSceneState({
+				...annotatedSceneState, flyThroughState: flyThroughState
 			})
 		}
 	}
@@ -54,12 +54,12 @@ export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorSt
 	@ActionReducer()
 	setCurrentPoseIndex(value:number) {
 		// log.info("Setting current pose index on FlyThroughState", value)
-		return (roadEditorState: RoadNetworkEditorState) => {
-			const flyThroughState = new FlyThroughState({...roadEditorState.flyThroughState})
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const flyThroughState = new FlyThroughState({...annotatedSceneState.flyThroughState})
 
 			flyThroughState.currentPoseIndex = value
-			return new RoadNetworkEditorState({
-				...roadEditorState, flyThroughState: flyThroughState
+			return new AnnotatedSceneState({
+				...annotatedSceneState, flyThroughState: flyThroughState
 			})
 		}
 	}
@@ -67,12 +67,12 @@ export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorSt
 	@ActionReducer()
 	setEndPoseIndex(value:number) {
 		log.info("Setting end pose index on FlyThroughState")
-		return (roadEditorState: RoadNetworkEditorState) => {
-			const flyThroughState = new FlyThroughState({...roadEditorState.flyThroughState})
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const flyThroughState = new FlyThroughState({...annotatedSceneState.flyThroughState})
 
 			flyThroughState.endPoseIndex = value
-			return new RoadNetworkEditorState({
-				...roadEditorState, flyThroughState: flyThroughState
+			return new AnnotatedSceneState({
+				...annotatedSceneState, flyThroughState: flyThroughState
 			})
 		}
 	}
@@ -80,12 +80,12 @@ export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorSt
 	@ActionReducer()
 	setEnable(isEnabled:boolean) {
 		log.info("Setting enable on FlyThroughState")
-		return (roadEditorState: RoadNetworkEditorState) => {
-			const flyThroughState = new FlyThroughState({...roadEditorState.flyThroughState})
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const flyThroughState = new FlyThroughState({...annotatedSceneState.flyThroughState})
 
 			flyThroughState.enabled = isEnabled
-			return new RoadNetworkEditorState({
-				...roadEditorState, flyThroughState: flyThroughState
+			return new AnnotatedSceneState({
+				...annotatedSceneState, flyThroughState: flyThroughState
 			})
 		}
 	}
@@ -93,12 +93,12 @@ export default class FlyThroughActions extends ActionFactory<RoadNetworkEditorSt
 	@ActionReducer()
 	setTrajectories(trajectories:FlyThroughTrajectory[]) {
 		log.info("Setting trajectories on FlyThroughState")
-		return (roadEditorState: RoadNetworkEditorState) => {
-			const flyThroughState = new FlyThroughState({...roadEditorState.flyThroughState})
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const flyThroughState = new FlyThroughState({...annotatedSceneState.flyThroughState})
 
 			flyThroughState.trajectories = trajectories
-			return new RoadNetworkEditorState({
-				...roadEditorState, flyThroughState: flyThroughState
+			return new AnnotatedSceneState({
+				...annotatedSceneState, flyThroughState: flyThroughState
 			})
 		}
 	}

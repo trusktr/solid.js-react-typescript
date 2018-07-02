@@ -7,9 +7,9 @@ import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import '@/annotator-entry-ui/style.scss'
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
-import RoadEditorState from "annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState"
+import AnnotatedSceneState from "annotator-z-hydra-shared/src/store/state/AnnotatedSceneState"
 import {createStructuredSelector} from "reselect"
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
 import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
 
 
@@ -23,8 +23,8 @@ interface KioskViewState {}
 
 
 @typedConnect(createStructuredSelector({
-	liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
-	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
+	liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
+	playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
 }))
 export default class KioskMenuView extends React.Component<KioskViewProps, KioskViewState> {
 
@@ -41,7 +41,7 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 	private makeOnPlayModeClick = () => () => {
 		console.log("Clicked onPlayMode")
-		new RoadNetworkEditorActions().togglePlayMode()
+		new AnnotatedSceneActions().togglePlayMode()
 		const flyThroughManager = this.props.flyThroughManager
     flyThroughManager && flyThroughManager.toggleLiveModePlay()
 
@@ -50,7 +50,7 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 	private makeOnLiveModeClick = () => () => {
 		console.log("Clicked onLiveMode")
-		new RoadNetworkEditorActions().toggleLiveMode()
+		new AnnotatedSceneActions().toggleLiveMode()
     const flyThroughManager = this.props.flyThroughManager
     flyThroughManager && flyThroughManager.toggleLiveAndRecordedPlay()
 	}

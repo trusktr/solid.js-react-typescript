@@ -24,7 +24,7 @@ import Logger from "@/util/log"
 import {TileManager, TileManagerConfig} from "@/annotator-entry-ui/tile/TileManager"
 import {OrderedMap} from "immutable"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
 
 const log = Logger(__filename)
 
@@ -106,7 +106,7 @@ export class PointCloudTileManager extends TileManager {
 			vertexColors: THREE.VertexColors,
 		})
 
-		this.setPointCloud = (superTiles:OrderedMap<string, SuperTile>) => {new RoadNetworkEditorActions().setPointCloudSuperTiles(superTiles)}
+		this.setPointCloud = (superTiles:OrderedMap<string, SuperTile>) => {new AnnotatedSceneActions().setPointCloudSuperTiles(superTiles)}
 	}
 
 	protected constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile {

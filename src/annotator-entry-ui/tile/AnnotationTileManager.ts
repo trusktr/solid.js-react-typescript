@@ -18,7 +18,7 @@ import {AnnotationUtmTile} from "@/annotator-entry-ui/tile/AnnotationUtmTile"
 import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
 import {OrderedMap} from "immutable";
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
 
 export class AnnotationTileManager extends TileManager {
 	constructor(
@@ -39,7 +39,7 @@ export class AnnotationTileManager extends TileManager {
 			maximumObjectsToLoad: parseInt(config['tile_manager.maximum_annotations_to_load'], 10) || 1000,
 		}
 
-    this.setPointCloud = (superTiles:OrderedMap<string, SuperTile>) => {new RoadNetworkEditorActions().setAnnotationSuperTiles(superTiles)}
+    this.setPointCloud = (superTiles:OrderedMap<string, SuperTile>) => {new AnnotatedSceneActions().setAnnotationSuperTiles(superTiles)}
 	}
 
 	protected constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile {

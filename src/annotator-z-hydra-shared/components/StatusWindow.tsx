@@ -7,7 +7,7 @@ import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import '@/annotator-entry-ui/style.scss'
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
-import RoadEditorState from "annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState"
+import AnnotatedSceneState from "annotator-z-hydra-shared/src/store/state/AnnotatedSceneState"
 import {createStructuredSelector} from "reselect"
 import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState"
 import {getValue} from "typeguard";
@@ -41,7 +41,7 @@ interface IStatusWindowState {
 
 
 @typedConnect(createStructuredSelector({
-    statusWindowState: (state) => state.get(RoadEditorState.Key).statusWindowState,
+    statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,
 }))
 export default class StatusWindow extends React.Component<StatusWindowProps, IStatusWindowState> {
 

@@ -1,1 +1,3 @@
-export * from "./RoadNetworkEditorReducer"
+import {AnnotatedSceneReducer} from "AnnotatedSceneReducer.ts";
+
+export * from "./AnnotatedSceneReducer"

@@ -7,17 +7,17 @@ import {CameraType} from "@/annotator-z-hydra-shared/src/models/CameraType";
 import {OrderedMap} from "immutable";
 import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
 
-export default class RoadNetworkEditorState {
+export default class AnnotatedSceneState {
 
-	static Key = 'RoadNetworkEditorState'
+	static Key = 'AnnotatedSceneState'
 
 	/**
 	 * Create state from JS (method required to comply with by IStateConstructor on the reducer)
 	 * @param o
-	 * @returns {RoadNetworkEditorState}
+	 * @returns {AnnotatedSceneState}
 	 */
-	static fromJS(o: any = {}): RoadNetworkEditorState {
-		return new RoadNetworkEditorState(o)
+	static fromJS(o: any = {}): AnnotatedSceneState {
+		return new AnnotatedSceneState(o)
 	}
 
 	constructor(o: any = {}) {
@@ -45,9 +45,6 @@ export default class RoadNetworkEditorState {
 	cameraPreference: CameraType
 
 	sceneInitialized: boolean
-
-
-
 
 	compassRosePosition: THREE.Vector3
 	isDecorationsVisible: boolean

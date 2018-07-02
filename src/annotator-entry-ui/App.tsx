@@ -13,12 +13,12 @@ import Logger from '@/util/log'
 import config from "@/config";
 // import KioskMenuView from "annotator-z-hydra-kiosk/KioskMenuView";
 import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
-import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
 import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
 
 
 const log = Logger(__filename)
@@ -32,10 +32,10 @@ interface AppProps {
 interface AppState {}
 
 @typedConnect(createStructuredSelector({
-	liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
-	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
+	liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
+	playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
 
-	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
+	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
 }))
 export default class App extends React.Component<AppProps, AppState> {
 	// private sceneContainer: HTMLElement | null
@@ -53,7 +53,7 @@ export default class App extends React.Component<AppProps, AppState> {
 
 	private makeOnMenuClick = () => () => {
 		log.info("Testing click to toggle UI Menu")
-		new RoadNetworkEditorActions().toggleUIMenuVisible()
+		new AnnotatedSceneActions().toggleUIMenuVisible()
 	}
 
 	render(): JSX.Element {

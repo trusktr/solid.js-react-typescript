@@ -39,7 +39,7 @@ import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
 
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
 import {OrderedMap} from "immutable";
 import {AnnotationSuperTile} from "@/annotator-entry-ui/tile/AnnotationSuperTile";
@@ -90,13 +90,13 @@ interface IState {
  * as its markers. The "active" annotation is the only one that can be modified.
  */
 @typedConnect(createStructuredSelector({
-	liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
-	playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
+	liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
+	playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
 
-	uiMenuVisible: (state) => state.get(RoadEditorState.Key).uiMenuVisible,
+	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
 
-	isAnnotationsVisible: (state) => state.get(RoadEditorState.Key).isAnnotationsVisible,
-	annotationSuperTiles: (state) => state.get(RoadEditorState.Key).annotationSuperTiles,
+	isAnnotationsVisible: (state) => state.get(AnnotatedSceneState.Key).isAnnotationsVisible,
+	annotationSuperTiles: (state) => state.get(AnnotatedSceneState.Key).annotationSuperTiles,
 }))
 export class AnnotationManager extends React.Component<IProps, IState> {
 	laneAnnotations: Array<Lane>

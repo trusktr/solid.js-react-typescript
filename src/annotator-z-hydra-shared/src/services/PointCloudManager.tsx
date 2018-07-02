@@ -8,10 +8,10 @@ import LayerManager, {Layer} from "@/annotator-z-hydra-shared/src/services/Layer
 import {RangeSearch} from "@/annotator-entry-ui/model/RangeSearch";
 import {CoordinateFrameType} from "@/annotator-entry-ui/geometry/CoordinateFrame";
 import {isTupleOfNumbers} from "@/util/Validation";
-import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
 import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
 
 const log = Logger(__filename)
@@ -45,7 +45,7 @@ interface AoiState {
 }
 
 @typedConnect(createStructuredSelector({
-  isPointCloudVisible: (state) => state.get(RoadEditorState.Key).isPointCloudVisible,
+  isPointCloudVisible: (state) => state.get(AnnotatedSceneState.Key).isPointCloudVisible,
 }))
 export default class PointCloudManager extends React.Component<PointCloudManagerProps, PointCloudManagerState> {
 
@@ -94,7 +94,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   }
 
   private showPointCloud():void {
-    new RoadNetworkEditorActions().setIsDecorationsVisible(true)
+    new AnnotatedSceneActions().setIsDecorationsVisible(true)
     this.props.pointCloudTileManager.getPointClouds().forEach(pc => this.props.sceneManager.addObjectToScene(pc))
 
     const pointCloudBoundingBox = this.getPointCloudBoundingBox()
@@ -103,7 +103,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   }
 
   private hidePointCloud():void {
-    new RoadNetworkEditorActions().setIsDecorationsVisible(false)
+    new AnnotatedSceneActions().setIsDecorationsVisible(false)
     this.props.pointCloudTileManager.getPointClouds().forEach(pc => this.props.sceneManager.removeObjectToScene(pc))
 
     const pointCloudBoundingBox = this.getPointCloudBoundingBox()
@@ -166,7 +166,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       return
     }
 
-    new RoadNetworkEditorActions().setOrbitControlsTargetPoint(center)
+    new AnnotatedSceneActions().setOrbitControlsTargetPoint(center)
   }
 
   getPointCloudBoundingBox(): THREE.BoxHelper | null {
@@ -260,7 +260,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     const boundingBoxHeight = Math.abs(boundingBox.max.z - boundingBox.min.z)
     const zOffset = boundingBoxHeight / 10
 
-    new RoadNetworkEditorActions().setCompassRosePosition(new THREE.Vector3(topPoint.x, topPoint.y, topPoint.z - zOffset))
+    new AnnotatedSceneActions().setCompassRosePosition(new THREE.Vector3(topPoint.x, topPoint.y, topPoint.z - zOffset))
   }
 
 

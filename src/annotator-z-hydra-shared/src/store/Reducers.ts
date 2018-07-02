@@ -37,5 +37,5 @@ function filterReducers(modules):DefaultLeafReducer<any, any>[] {
  * Update the store with the new/updated reducers
  */
 export function updateReducers() {
-  getRoadNetworkEditorStore().replaceReducers(...loadReducers())
+  getAnnotatedSceneStore().replaceReducers(...loadReducers())
 }

@@ -32,7 +32,7 @@ function hmrReducerSetup(){
  * Get the ObservableStore
  * @returns {ObservableStore<any>}
  */
-export function getRoadNetworkEditorStore():ObservableStore<any> {
+export function getAnnotatedSceneStore():ObservableStore<any> {
   return store
 }
 
@@ -40,8 +40,8 @@ export function getRoadNetworkEditorStore():ObservableStore<any> {
  * Retrieve redux store from the regular ObservableStore
  * @returns {Store<Map<string, any>>}
  */
-export function getRoadNetworkEditorReduxStore():ReduxStore<Map<string, any>> {
-  return getRoadNetworkEditorStore() && getRoadNetworkEditorStore().getReduxStore()
+export function getAnnotatedSceneReduxStore():ReduxStore<Map<string, any>> {
+  return getAnnotatedSceneStore() && getAnnotatedSceneStore().getReduxStore()
 }
 
 /**
@@ -49,8 +49,8 @@ export function getRoadNetworkEditorReduxStore():ReduxStore<Map<string, any>> {
  *
  * @returns {Map<string,any>}
  */
-export function getRoadNetworkEditorStoreState():IMMap<string,any> {
-  return getRoadNetworkEditorStore() ? getRoadNetworkEditorStore().getState() : IMMap()
+export function getAnnotatedSceneStoreState():IMMap<string,any> {
+  return getAnnotatedSceneStore() ? getAnnotatedSceneStore().getState() : IMMap()
 }
 
 
@@ -102,16 +102,16 @@ function onError(err:Error, reducer?:ILeafReducer<any, any>) {
 
 // TODO: let's avoid globals
 _.assign(global, {
-  getRoadNetworkEditorReduxStore: getRoadNetworkEditorReduxStore,
-  getRoadNetworkEditorStore: getRoadNetworkEditorStore,
-  getRoadNetworkEditorStoreState: getRoadNetworkEditorStoreState,
+  getAnnotatedSceneReduxStore: getAnnotatedSceneReduxStore,
+  getAnnotatedSceneStore: getAnnotatedSceneStore,
+  getAnnotatedSceneStoreState: getAnnotatedSceneStoreState,
 })
 
 console.log("DONE WITH ASSIGNING STORE GLOBALS")
 
 declare global {
-  function getRoadNetworkEditorReduxStore():ReduxStore<Map<string, any>>
-  function getRoadNetworkEditorStore():ObservableStore<any>
-  function getRoadNetworkEditorStoreState():IMMap<string,any>
+  function getAnnotatedSceneReduxStore():ReduxStore<Map<string, any>>
+  function getAnnotatedSceneStore():ObservableStore<any>
+  function getAnnotatedSceneStoreState():IMMap<string,any>
 
 }

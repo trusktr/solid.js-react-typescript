@@ -1,13 +1,13 @@
 import * as THREE from "three";
 import * as React from "react"
 import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
-import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 import {CameraType} from "@/annotator-z-hydra-shared/src/models/CameraType";
 import {Sky} from "@/annotator-entry-ui/controls/Sky";
 import config from "@/config";
 import {AxesHelper} from "@/annotator-entry-ui/controls/AxesHelper";
 import {CompassRose} from "@/annotator-entry-ui/controls/CompassRose";
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import AnnotatedSceneActions from "@/annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions.ts";
 import Logger from "@/util/log";
 import {OrbitControls} from "@/annotator-entry-ui/controls/OrbitControls";
 import {getValue} from "typeguard";
@@ -75,11 +75,11 @@ export interface SceneManagerState {
 
 
 @typedConnect(createStructuredSelector({
-	shouldAnimate: (state) => state.get(RoadEditorState.Key).shouldAnimate,
-	compassRosePosition: (state) => state.get(RoadEditorState.Key).compassRosePosition,
-	isDecorationsVisible: (state) => state.get(RoadEditorState.Key).isDecorationsVisible,
-	orbitControlsTargetPoint: (state) => state.get(RoadEditorState.Key).orbitControlsTargetPoint,
-	pointCloudSuperTiles: (state) => state.get(RoadEditorState.Key).pointCloudSuperTiles,
+	shouldAnimate: (state) => state.get(AnnotatedSceneState.Key).shouldAnimate,
+	compassRosePosition: (state) => state.get(AnnotatedSceneState.Key).compassRosePosition,
+	isDecorationsVisible: (state) => state.get(AnnotatedSceneState.Key).isDecorationsVisible,
+	orbitControlsTargetPoint: (state) => state.get(AnnotatedSceneState.Key).orbitControlsTargetPoint,
+	pointCloudSuperTiles: (state) => state.get(AnnotatedSceneState.Key).pointCloudSuperTiles,
 }))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
@@ -110,7 +110,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		let camera;
 
-		const cameraPreference = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).cameraPreference
+		const cameraPreference = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).cameraPreference
 		if (cameraPreference === CameraType.ORTHOGRAPHIC)
 			camera = orthographicCam
 		else
@@ -250,7 +250,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			renderer.render(scene, camera)
 		})
 
-		new RoadNetworkEditorActions().setSceneInitialized(true)
+		new AnnotatedSceneActions().setSceneInitialized(true)
 	}
 
 	componentWillReceiveProps(newProps:SceneManagerProps) {
@@ -313,7 +313,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// SHARED
 	private startAnimation(): void {
-		new RoadNetworkEditorActions().setShouldAnimate(true)
+		new AnnotatedSceneActions().setShouldAnimate(true)
 
 		// this.shouldAnimate = true
 		this.startAoiUpdates()
@@ -337,7 +337,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// JOE THURSDAY moved from Annotator
 	private stopAnimation(): void {
 		// this.shouldAnimate = false
-		new RoadNetworkEditorActions().setShouldAnimate(false)
+		new AnnotatedSceneActions().setShouldAnimate(false)
 	}
 
 	// }}}
@@ -792,7 +792,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		//
 		// this.storage.getItem('cameraPreference', cameraTypes.perspective)
 		//
-		new RoadNetworkEditorActions().setCameraPreference(newType)
+		new AnnotatedSceneActions().setCameraPreference(newType)
 		this.renderScene()
 	}
 

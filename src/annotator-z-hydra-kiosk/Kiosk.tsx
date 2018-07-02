@@ -1,6 +1,6 @@
 import * as React from 'react'
 import CarManager from "@/annotator-z-hydra-kiosk/CarManager";
-import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
 import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
@@ -37,8 +37,8 @@ export interface KioskState {
 
 
 @typedConnect(createStructuredSelector({
-  sceneInitialized: (state) => state.get(RoadEditorState.Key).sceneInitialized,
-  isCarInitialized: (state) => state.get(RoadEditorState.Key).isCarInitialized,
+  sceneInitialized: (state) => state.get(AnnotatedSceneState.Key).sceneInitialized,
+  isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
 }))
 export default class Kiosk extends React.Component<KioskProps, KioskState> {
 

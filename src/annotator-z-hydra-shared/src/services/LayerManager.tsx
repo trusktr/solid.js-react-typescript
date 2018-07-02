@@ -4,8 +4,8 @@ import * as lodash from "lodash";
 import Logger from "@/util/log";
 import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
-import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
+import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
+import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
 
 const log = Logger(__filename)
 
@@ -33,18 +33,18 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 		// TODO JOE WEDNESDAY the toggles will be passed in by AnnotatedSceneController
 
 		const pointCloudLayerToggle = new LayerToggle({
-			show: () => {new RoadNetworkEditorActions().setIsPointCloudVisible(true)},
-			hide: () => {new RoadNetworkEditorActions().setIsPointCloudVisible(false)}
+			show: () => {new AnnotatedSceneActions().setIsPointCloudVisible(true)},
+			hide: () => {new AnnotatedSceneActions().setIsPointCloudVisible(false)}
 		})
 
 		const imageScreensLayerToggle = new LayerToggle({
-			show: () => {new RoadNetworkEditorActions().setIsImageScreensVisible(false)},
-			hide: () => {new RoadNetworkEditorActions().setIsImageScreensVisible(false)}
+			show: () => {new AnnotatedSceneActions().setIsImageScreensVisible(false)},
+			hide: () => {new AnnotatedSceneActions().setIsImageScreensVisible(false)}
 		})
 
 		const annotationLayerToggle = new LayerToggle({
-			show: () => {new RoadNetworkEditorActions().setIsAnnotationsVisible(true)},
-			hide: () => {new RoadNetworkEditorActions().setIsAnnotationsVisible(false)}
+			show: () => {new AnnotatedSceneActions().setIsAnnotationsVisible(true)},
+			hide: () => {new AnnotatedSceneActions().setIsAnnotationsVisible(false)}
 		})
 
 		this.state = {

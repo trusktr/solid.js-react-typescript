@@ -1,6 +1,6 @@
 
 import * as React from "react"
-import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 import {FlyThroughState, FlyThroughTrajectory} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import FlyThroughActions from "@/annotator-z-hydra-kiosk/FlyThroughActions";
@@ -12,14 +12,8 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import Logger from "@/util/log";
 import * as Electron from "electron";
-import RoadNetworkEditorActions from "@/annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions";
 import { StatusKey } from "@/annotator-z-hydra-shared/src/models/StatusKey";
 import {getValue} from "typeguard";
-import {
-  convertToStandardCoordinateFrame, CoordinateFrameType,
-  cvtQuaternionToStandardCoordinateFrame
-} from "@/annotator-entry-ui/geometry/CoordinateFrame";
-import * as THREE from "three";
 import CarManager from "@/annotator-z-hydra-kiosk/CarManager";
 import * as zmq from "zmq";
 import {Socket} from "zmq";
@@ -43,9 +37,9 @@ export interface FlyThroughManagerState {
 
 
 @typedConnect(createStructuredSelector({
-  liveModeEnabled: (state) => state.get(RoadEditorState.Key).liveModeEnabled,
-  playModeEnabled: (state) => state.get(RoadEditorState.Key).playModeEnabled,
-  flyThroughState: (state) => state.get(RoadEditorState.Key).flyThroughState,
+  liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
+  playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
+  flyThroughState: (state) => state.get(AnnotatedSceneState.Key).flyThroughState,
 }))
 export default class FlyThroughManager extends React.Component<FlyThroughManagerProps, FlyThroughManagerState> {
 
@@ -107,7 +101,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   async init() {
     try {
       log.info('Setting up FlyThroughManager')
-      getRoadNetworkEditorStore().observe([RoadEditorState.Key,'playModeEnabled'], (newValue:Boolean, __oldValue:Boolean, __observer) => {
+      getAnnotatedSceneStore().observe([AnnotatedSceneState.Key,'playModeEnabled'], (newValue:Boolean, __oldValue:Boolean, __observer) => {
         log.info("playModeEnabled changed, new value is", newValue)
 
         if(newValue)
@@ -123,7 +117,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   }
 
   getCurrentFlyThroughTrajectory(): FlyThroughTrajectory {
-    const flyThroughState = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).flyThroughState
+    const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
     return flyThroughState.trajectories[flyThroughState.currentTrajectoryIndex]
   }
 
@@ -134,7 +128,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
   // Display some info about what flyThrough mode is doing now.
   private setFlyThroughMessage(): void {
-    const flyThroughState = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).flyThroughState
+    const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
     const currentFlyThroughTrajectory = this.getCurrentFlyThroughTrajectory()
 
     let message: string
@@ -173,7 +167,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   }
 
   private flyThroughAnimation(): boolean {
-    const shouldAnimate = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).shouldAnimate
+    const shouldAnimate = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).shouldAnimate
     if(!shouldAnimate)
       return false
     return this.runFlyThrough()
@@ -185,8 +179,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
    */
   private runFlyThrough(): boolean {
     // console.log("Inside runFlyThrough")
-    const liveModeEnabled = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).liveModeEnabled
-    const flyThroughState = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).flyThroughState
+    const liveModeEnabled = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).liveModeEnabled
+    const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
 
     if (!liveModeEnabled || !flyThroughState || !getValue(() => flyThroughState.enabled, false)) {
       console.log("Returning early from within runFlyThrough")
@@ -197,7 +191,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
       // Reset pose index
       new FlyThroughActions().setCurrentPoseIndex(0)
       // Update the current trajectory index
-      const updatedFlyThroughState = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).flyThroughState
+      const updatedFlyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
       if(updatedFlyThroughState.currentTrajectoryIndex >= updatedFlyThroughState.trajectories.length - 1){
         // Reset it
         new FlyThroughActions().setCurrentTrajectoryIndex(0)
@@ -206,11 +200,11 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
       }
       this.setFlyThroughMessage()
     }
-    const newFlyThroughState = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).flyThroughState
+    const newFlyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
     const pose = this.getCurrentFlyThroughTrajectory().poses[newFlyThroughState.currentPoseIndex]
     new StatusWindowActions().setMessage(StatusKey.FLY_THROUGH_POSE, `Pose: ${newFlyThroughState.currentPoseIndex + 1} of ${newFlyThroughState.endPoseIndex}`)
 
-    // new RoadNetworkEditorActions().setCarPose(pose)
+    // new AnnotatedSceneActions().setCarPose(pose)
     this.props.carManager.updateCarWithPose(pose)
 
     const newValue = newFlyThroughState.currentPoseIndex + 1
@@ -318,8 +312,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 	// Side effect: if the animation is paused, start playing.
 	// RYAN - when someone clicks between LIVE AND RECORDED
   toggleLiveAndRecordedPlay() {
-    const flyThroughState = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).flyThroughState
-    const liveModeEnabled = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).liveModeEnabled
+    const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
+    const liveModeEnabled = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).liveModeEnabled
 
 
 
@@ -352,8 +346,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 	// data or pre-recorded "fly-through" data.
 	// PAUSE AND PLAY BUTTON
   toggleLiveModePlay() {
-    const flyThroughState = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).flyThroughState
-    const playModeEnabled = getRoadNetworkEditorStore().getState().get(RoadEditorState.Key).playModeEnabled
+    const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
+    const playModeEnabled = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).playModeEnabled
     // @TODO comment back in
     // if (!this.props.liveModeEnabled) {
     // 	console.log("Early return live mode disabled")

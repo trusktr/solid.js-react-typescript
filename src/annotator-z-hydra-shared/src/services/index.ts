@@ -15,15 +15,15 @@ export function loadServices() {
  * Load offline data for initial state
  */
 function loadInitialState() {
-  const RoadNetworkEditorActions = require("annotator-z-hydra-shared/src/store/actions/RoadNetworkEditorActions").default
-  new RoadNetworkEditorActions().loadAppState()
+  const AnnotatedSceneActions = require("annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions").default
+  new AnnotatedSceneActions().loadAppState()
 }
 
 export async function loadStore() {
   console.log("Starting to load store")
-  const roadEditorStore = require("annotator-z-hydra-shared/src/store/AppStore")
+  const annotatedSceneStore = require("annotator-z-hydra-shared/src/store/AppStore")
   try {
-    roadEditorStore.loadAndInitStore()
+    annotatedSceneStore.loadAndInitStore()
 
     // Update state with data persisted offline
     loadInitialState()

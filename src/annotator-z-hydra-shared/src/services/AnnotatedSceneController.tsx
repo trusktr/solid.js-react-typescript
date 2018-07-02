@@ -4,7 +4,7 @@ import * as THREE from "three";
 import {sprintf} from 'sprintf-js'
 import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
-import RoadEditorState from "@/annotator-z-hydra-shared/src/store/state/RoadNetworkEditorState";
+import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
 import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
 import Logger from "@/util/log";
@@ -67,7 +67,7 @@ export interface IAnnotatedSceneControllerState {
 
 
 @typedConnect(createStructuredSelector({
-  statusWindowState: (state) => state.get(RoadEditorState.Key).statusWindowState,
+  statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,
 }))
 export default class AnnotatedSceneController extends React.Component<IAnnotatedSceneControllerProps, IAnnotatedSceneControllerState> {
 	public utmCoordinateSystem: UtmCoordinateSystem
