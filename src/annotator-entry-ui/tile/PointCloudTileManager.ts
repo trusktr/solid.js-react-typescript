@@ -29,42 +29,10 @@ const log = Logger(__filename)
 
 const nullContents = new PointCloudTileContents([], [])
 
-const sampleData = (contents: PointCloudTileContents, step: number): Array<Array<number>> => {
-	if (step <= 0) {
-		log.error("Can't sample data. Step should be > 0.")
-		return []
-	}
-	if (!contents.points) {
-		log.error("tile message is missing points")
-		return []
-	}
-	if (!contents.colors) {
-		log.error("tile message is missing colors")
-		return []
-	}
-
-	if (step === 1)
-		return [contents.points, contents.colors]
-
-	const sampledPoints: Array<number> = []
-	const sampledColors: Array<number> = []
-	const stride = step * threeDStepSize
-
-	for (let i = 0; i < contents.points.length; i += stride) {
-		// Assuming the utm points are: easting, northing, altitude
-		sampledPoints.push(contents.points[i])
-		sampledPoints.push(contents.points[i + 1])
-		sampledPoints.push(contents.points[i + 2])
-		sampledColors.push(contents.colors[i])
-		sampledColors.push(contents.colors[i + 1])
-		sampledColors.push(contents.colors[i + 2])
-	}
-	return [sampledPoints, sampledColors]
-}
-
 interface PointCloudTileManagerConfig extends TileManagerConfig {
 	pointsSize: number,
 	samplingStep: number,
+	maxPointsDensity: number,
 }
 
 // This handles loading and unloading point cloud data (for read only). Each SuperTile has a point cloud,
@@ -97,8 +65,11 @@ export class PointCloudTileManager extends TileManager {
 			initialSuperTilesToLoad: parseInt(config.get('tile_manager.initial_super_tiles_to_load'), 10) || 4,
 			maximumSuperTilesToLoad: parseInt(config.get('tile_manager.maximum_super_tiles_to_load'), 10) || 10000,
 			maximumObjectsToLoad: parseInt(config.get('tile_manager.maximum_points_to_load'), 10) || 100000,
-			samplingStep: parseInt(config.get('tile_manager.sampling_step'), 10) || 5,
+			samplingStep: parseInt(config.get('tile_manager.sampling_step'), 10) || 1,
+			maxPointsDensity: parseInt(config.get('tile_manager.maximum_point_density'), 10) || 0,
 		}
+		if (this.config.samplingStep <= 0)
+			throw Error(`Bad config 'tile_manager.sampling_step' = ${this.config.samplingStep}. Step should be > 0.`)
 		this.pointsMaterial = new THREE.PointsMaterial({
 			size: this.config.pointsSize,
 			sizeAttenuation: false,
@@ -166,11 +137,54 @@ export class PointCloudTileManager extends TileManager {
 					} else if (!this.checkCoordinateSystem(msg, coordinateFrame)) {
 						throw Error('checkCoordinateSystem failed on: ' + tileInstance.url)
 					} else {
-						const [sampledPoints, sampledColors]: Array<Array<number>> = sampleData(msg.contents, this.config.samplingStep)
+						const [sampledPoints, sampledColors]: Array<Array<number>> = this.sampleData(msg.contents, tileInstance.tileIndex.scale.volume)
 						const positions = this.rawDataToPositions(sampledPoints, coordinateFrame)
 						return new PointCloudTileContents(positions, sampledColors)
 					}
 				})
+	}
+
+	// Some point clouds are too dense to be useful. Thin them out and discard excess points. Better late than never.
+	private sampleData(contents: PointCloudTileContents, tileVolume: number): Array<Array<number>> {
+		if (!contents.points) {
+			log.error("tile message is missing points")
+			return [[], []]
+		}
+		if (!contents.colors) {
+			log.error("tile message is missing colors")
+			return [[], []]
+		}
+
+		// Take the more restrictive of two config settings. One is a linear sampling rate. The other
+		// is a variable sampling rate based on the local density of each tile.
+		let samplingStep = this.config.samplingStep
+		if (this.config.maxPointsDensity > 0) {
+			const pointCount = contents.points.length / threeDStepSize
+			const pointDensity = pointCount / tileVolume
+			if (pointDensity > this.config.maxPointsDensity) {
+				const densitySamplingStep = Math.ceil(pointDensity / this.config.maxPointsDensity)
+				if (densitySamplingStep > samplingStep)
+					samplingStep = densitySamplingStep
+			}
+		}
+
+		if (samplingStep <= 1)
+			return [contents.points, contents.colors]
+
+		const sampledPoints: Array<number> = []
+		const sampledColors: Array<number> = []
+		const stride = samplingStep * threeDStepSize
+
+		for (let i = 0; i < contents.points.length; i += stride) {
+			// Assuming the utm points are: easting, northing, altitude
+			sampledPoints.push(contents.points[i])
+			sampledPoints.push(contents.points[i + 1])
+			sampledPoints.push(contents.points[i + 2])
+			sampledColors.push(contents.colors[i])
+			sampledColors.push(contents.colors[i + 1])
+			sampledColors.push(contents.colors[i + 2])
+		}
+		return [sampledPoints, sampledColors]
 	}
 
 	// Transform protobuf data to the correct coordinate frame and instantiate a tile.
