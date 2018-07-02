@@ -11,7 +11,7 @@ import {isTupleOfNumbers} from "@/util/Validation";
 import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
+import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
 import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
 
 const log = Logger(__filename)
@@ -21,7 +21,6 @@ export interface PointCloudManagerProps {
   pointCloudTileManager: PointCloudTileManager
   layerManager: LayerManager
   handleTileManagerLoadError: (err: Error) => void
-  getCurrentPointOfInterest: () => THREE.Vector3 | null
   isPointCloudVisible ?: boolean
   utmCoordinateSystem: UtmCoordinateSystem
 }
@@ -30,18 +29,6 @@ export interface PointCloudManagerState {
   pointCloudBoundingBox: THREE.BoxHelper | null // just a box drawn around the point cloud
   shouldDrawBoundingBox: boolean
   pointCloudBboxColor: THREE.Color
-  aoiState: AoiState
-}
-
-// Area of Interest: where to load point clouds
-interface AoiState {
-  enabled: boolean // enable auto-loading points around the AOI
-  focalPoint: THREE.Vector3 | null, // cached value for the center of the AOI
-  boundingBoxes: THREE.BoxHelper[] // boxes drawn around the current area of interest
-  currentHeading: THREE.Vector3 | null // in fly-through mode: where the vehicle is heading
-  bBoxColor: THREE.Color
-  fullSize: THREE.Vector3 // the dimensions of an AOI box, which will be constructed around a center point
-  halfSize: THREE.Vector3 // half the dimensions of an AOI box
 }
 
 @typedConnect(createStructuredSelector({
@@ -56,24 +43,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       pointCloudBoundingBox: null,
       shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],
       pointCloudBboxColor: new THREE.Color(0xff0000),
-      aoiState: {
-        enabled: !!config['annotator.area_of_interest.enable'],
-        focalPoint: null,
-        boundingBoxes: [],
-        currentHeading: null,
-        bBoxColor: new THREE.Color(0x00ff00),
-
-        fullSize: new THREE.Vector3(30, 30, 30),
-        halfSize: new THREE.Vector3(15, 15, 15),
-      }
-    }
-
-    const aoiSize: [number, number, number] = config['annotator.area_of_interest.size']
-    if (isTupleOfNumbers(aoiSize, 3)) {
-      this.state.aoiState.fullSize = new THREE.Vector3().fromArray(aoiSize)
-      this.state.aoiState.halfSize = this.state.aoiState.fullSize.clone().divideScalar(2)
-    } else if (aoiSize) {
-      log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)
     }
 
     // used to be called after the CarModel was setup
@@ -95,12 +64,14 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   }
 
   private showPointCloud():void {
+	  // TODO JOE MONDAY 7/2/18 maybe we can make a more generic
+	  // `setLayerVisible( 'decorations', true )` type of action?
     new AnnotatedSceneActions().setIsDecorationsVisible(true)
     this.props.pointCloudTileManager.getPointClouds().forEach(pc => new AnnotatedSceneActions.addObjectToScene(pc))
 
     const pointCloudBoundingBox = this.getPointCloudBoundingBox()
     if (pointCloudBoundingBox)
-      new AnnotatedSceneActions.addObjectToScene(pointCloudBoundingBox)
+      new AnnotatedSceneActions().addObjectToScene(pointCloudBoundingBox)
   }
 
   private hidePointCloud():void {
@@ -109,7 +80,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
     const pointCloudBoundingBox = this.getPointCloudBoundingBox()
     if (pointCloudBoundingBox)
-      new AnnotatedSceneActions.removeObjectToScene(pointCloudBoundingBox)
+      new AnnotatedSceneActions().removeObjectToScene(pointCloudBoundingBox)
   }
 
 
@@ -124,9 +95,8 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     }
   }
 
-    // TODO JOE is this better in PointCloudManager
 	private intersectWithPointCloud(raycaster: THREE.Raycaster): THREE.Intersection[] {
-		return raycaster.intersectObjects(this.pointCloudTileManager.getPointClouds())
+		return raycaster.intersectObjects(this.props.pointCloudTileManager.getPointClouds())
 	}
 
   /**
@@ -180,6 +150,9 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     this.props.layerManager.setLayerVisibility([Layer.POINT_CLOUD.toString()])
 
     this.updatePointCloudBoundingBox()
+
+	// TODO JOE MONDAY 7/2/18 move compas rose stuff outside here (in a separate
+	// layer) and have it listen for point cloud load events.
     this.setCompassRoseByPointCloud()
 
     const focalPoint = this.props.pointCloudTileManager.centerPoint()
@@ -207,9 +180,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       return this.loadPointCloudDataFromMapServer([{minPoint: p1, maxPoint: p2}])
     }
   }
-
-
-
 
   /**
    * 	Load up any data which configuration has asked for on start-up.
@@ -245,27 +215,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     return pointCloudResult
   }
 
-  /**
-   * 	Display the compass rose just outside the bounding box of the point cloud.
-   */
-  setCompassRoseByPointCloud(): void {
-    const boundingBox = this.props.pointCloudTileManager.getLoadedObjectsBoundingBox()
-    if (!boundingBox) {
-      log.error("Attempting to set compassRose, unable to find bounding box")
-      return
-    }
-
-    // Find the center of one of the sides of the bounding box. This is the side that is
-    // considered to be North given the current implementation of UtmInterface.utmToThreeJs().
-    const topPoint = boundingBox.getCenter().setZ(boundingBox.min.z)
-    const boundingBoxHeight = Math.abs(boundingBox.max.z - boundingBox.min.z)
-    const zOffset = boundingBoxHeight / 10
-
-    new AnnotatedSceneActions().setCompassRosePosition(new THREE.Vector3(topPoint.x, topPoint.y, topPoint.z - zOffset))
-  }
-
-
-
   hidePointCloudBoundingBox() {
     const pointCloudBoundingBox = this.state.pointCloudBoundingBox
     if(pointCloudBoundingBox) {
@@ -276,108 +225,30 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     }
   }
 
-  updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
-    if (this.state.aoiState.enabled) {
-      const newHeading = rotationThreeJs
-        ? new THREE.Vector3(-1, 0, 0).applyQuaternion(rotationThreeJs)
-        : null
-      const aoiState = this.state.aoiState
-      aoiState.currentHeading = newHeading
-      this.setState({aoiState})
-    }
-  }
+	/**
+	 * 	Display the compass rose just outside the bounding box of the point cloud.
+	 */
+	setCompassRoseByPointCloud(): void {
+		const boundingBox = this.props.pointCloudTileManager.getLoadedObjectsBoundingBox()
+		if (!boundingBox) {
+			log.error("Attempting to set compassRose, unable to find bounding box")
+			return
+		}
 
+		// Find the center of one of the sides of the bounding box. This is the side that is
+		// considered to be North given the current implementation of UtmInterface.utmToThreeJs().
+		const topPoint = boundingBox.getCenter().setZ(boundingBox.min.z)
+		const boundingBoxHeight = Math.abs(boundingBox.max.z - boundingBox.min.z)
+		const zOffset = boundingBoxHeight / 10
 
-  // Set the area of interest for loading point clouds.
-  updatePointCloudAoi(): void {
-    if (!this.state.aoiState.enabled) return
-    // The only use of Control at the moment is to enable model rotation in OrbitControls. Updating AOI is useful
-    // mainly while panning across the model. Disable it during rotation for better rendering performance.
-    if (this.uiState.isControlKeyPressed) return
-    // Don't update AOI and load tiles if the point cloud is not visible.
-    if (!this.props.isPointCloudVisible) return
-    // TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
-    if (this.props.pointCloudTileManager.isLoadingTiles) return
-
-    const currentPoint = this.props.getCurrentPointOfInterest()
-    if (currentPoint) {
-      const oldPoint = this.state.aoiState.focalPoint
-      const newPoint = currentPoint.clone().round()
-      const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
-      if (!samePoint) {
-        const aoiState = this.state.aoiState
-        aoiState.focalPoint = newPoint
-        this.setState({aoiState})
-        this.updatePointCloudAoiBoundingBox(aoiState.focalPoint)
-      }
-    } else {
-      if (this.state.aoiState.focalPoint !== null) {
-        const aoiState = this.state.aoiState
-        aoiState.focalPoint = null
-        this.setState({aoiState})
-        this.updatePointCloudAoiBoundingBox(aoiState.focalPoint)
-      }
-    }
-  }
-
-  // Create a bounding box around the current AOI and optionally display it.
-  // Then load the points in and around the AOI. If we have a current heading,
-  // extend the AOI with another bounding box in the direction of motion.
-  private updatePointCloudAoiBoundingBox(focalPoint: THREE.Vector3 | null): void {
-    if (this.state.shouldDrawBoundingBox) {
-      const aoiState = this.state.aoiState
-      aoiState.boundingBoxes.forEach(bbox => this.props.sceneManager.removeObjectToScene(bbox))
-      aoiState.boundingBoxes = []
-      this.setState({aoiState})
-    }
-
-    if (focalPoint) {
-      const threeJsSearches: RangeSearch[] = [{
-        minPoint: focalPoint.clone().sub(this.state.aoiState.halfSize),
-        maxPoint: focalPoint.clone().add(this.state.aoiState.halfSize),
-      }]
-
-      // What could be better than one AOI, but two? Add another one so we see more of what's in front.
-      if (this.state.aoiState.currentHeading) {
-        const extendedFocalPoint = focalPoint.clone()
-          .add(this.state.aoiState.fullSize.clone().multiply(this.state.aoiState.currentHeading))
-        threeJsSearches.push({
-          minPoint: extendedFocalPoint.clone().sub(this.state.aoiState.halfSize),
-          maxPoint: extendedFocalPoint.clone().add(this.state.aoiState.halfSize),
-        })
-      }
-
-      if (this.state.shouldDrawBoundingBox) {
-        threeJsSearches.forEach(search => {
-          const geom = new THREE.Geometry()
-          geom.vertices.push(search.minPoint, search.maxPoint)
-          const bbox = new THREE.BoxHelper(new THREE.Points(geom), this.state.aoiState.bBoxColor)
-          this.state.aoiState.boundingBoxes.push(bbox)
-          new AnnotatedSceneActions.addObjectToScene(bbox)
-        })
-      }
-
-      const utmSearches = threeJsSearches.map(threeJs => {
-        return {
-          minPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
-          maxPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
-        }
-      })
-
-      this.loadPointCloudDataFromMapServer(utmSearches, true, false)
-        .catch(err => {log.warn(err.message)})
-
-      if (this.settings.enableAnnotationTileManager)
-        this.loadAnnotationDataFromMapServer(utmSearches, true)
-          .catch(err => {log.warn(err.message)})
-    }
-  }
+		new AnnotatedSceneActions().setCompassRosePosition(new THREE.Vector3(topPoint.x, topPoint.y, topPoint.z - zOffset))
+	}
 
   render() {
 	  return (
-	    <React.Fragment>
+		  <React.Fragment>
 
-      </React.Fragment>
+		  </React.Fragment>
 	  )
   }
 }
