@@ -1470,8 +1470,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	// Load tiles within a bounding box and add them to the scene.
 	// ANNOTATOR ONLY???
 	loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false): Promise<void> {
+		// TODO JOE AnnotationManager needs ref to AnnotationTileManager
 		return this.annotationTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
-		// TODO JOE AnnotationTileManager needs ref to AnnotationTileManager
 			.then(loaded => {
 				if (loaded) this.annotationLoadedSideEffects()
 			})
