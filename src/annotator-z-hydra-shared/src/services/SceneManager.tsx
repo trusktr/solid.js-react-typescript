@@ -296,14 +296,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
     const scene = this.state.scene
     newSceneObjects.forEach(object => {
       if(!existingSceneObjects.has(object)) {
-        // Not found let's add it to the scene
+        // Not found in the existing objects, let's ADD it to the scene
         scene.add(object)
       }
     })
 
     existingSceneObjects.forEach(object => {
       if(!newSceneObjects.has(object)) {
-        // Not found let's in the new objects, let's remove it
+        // Not found in the new objects, let's REMOVE it
         scene.remove(object)
       }
     })
