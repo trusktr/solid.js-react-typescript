@@ -14,14 +14,14 @@ const defaultSeparator = "," // for generating serializable ID strings
 // must be managed separately.
 export class TileIndex {
 	scale: Scale3D
-	xIndex: TileIndexDimension
-	yIndex: TileIndexDimension
-	zIndex: TileIndexDimension
+	xIndex: number
+	yIndex: number
+	zIndex: number
 	origin: THREE.Vector3
 	boundingBox: THREE.Box3
 	private cachedString: string | null
 
-	constructor(scale: Scale3D, xIndex: TileIndexDimension, yIndex: TileIndexDimension, zIndex: TileIndexDimension) {
+	constructor(scale: Scale3D, xIndex: number, yIndex: number, zIndex: number) {
 		this.scale = scale
 		this.xIndex = xIndex
 		this.yIndex = yIndex
@@ -60,7 +60,7 @@ export class TileIndex {
 			&& this.scale.equals(that.scale)
 	}
 
-	copy(xIndex: TileIndexDimension, yIndex: TileIndexDimension, zIndex: TileIndexDimension): TileIndex {
+	copy(xIndex: number, yIndex: number, zIndex: number): TileIndex {
 		return new TileIndex(this.scale, xIndex, yIndex, zIndex)
 	}
 }

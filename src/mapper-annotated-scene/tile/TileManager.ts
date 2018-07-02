@@ -35,7 +35,7 @@ function makeTileMessageForCurrentUtmZone(origin: THREE.Vector3): TileMessage {
 }
 
 export interface TileManagerConfig {
-	layerId: LayerId, // Each TileManager gets all its data from a single layer of tiles.
+	layerId: string, // Each TileManager gets all its data from a single layer of tiles.
 	initialSuperTilesToLoad: number, // preload some super tiles; initially we don't know how many objects they will contain
 	maximumSuperTilesToLoad: number, // sanity check so we don't load lots of very sparse or empty super tiles
 	maximumObjectsToLoad: number, // after loading super tiles we can trim them back by count of their contents (either points or annotations)
