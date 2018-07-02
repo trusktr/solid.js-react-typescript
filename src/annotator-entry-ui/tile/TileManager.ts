@@ -24,11 +24,6 @@ const log = Logger(__filename)
 
 export class BusyError extends Error {}
 
-export interface TileMetadata {
-	name: string // file name
-	index: THREE.Vector3 // scaled address in 3D space
-}
-
 // An empty shell used for initializing TileManager's origin.
 function makeTileMessageForCurrentUtmZone(origin: THREE.Vector3): TileMessage {
 	return {
