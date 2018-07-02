@@ -61,7 +61,8 @@ export interface IAnnotatedSceneControllerState {
   pointCloudManager: PointCloudManager | null
   sceneManager: SceneManager | null
   layerManager: LayerManager | null
-  registeredKeyDownEvents: Map<number, any>
+  registeredKeyDownEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
+  registeredKeyUpEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
 }
 
 
@@ -99,7 +100,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			pointCloudManager: null,
 			sceneManager: null,
 			layerManager: null,
-			registeredKeyDownEvents: new Map<number, any>()
+      registeredKeyDownEvents: new Map<number, any>(),
+      registeredKeyUpEvents: new Map<number, any>(),
 		}
 
 		// These don't need to be state, because these references don't change
@@ -297,7 +299,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 
 
-	registerKeyboardEvent(eventKeyCode:number, fn:any) {
+	registerKeyboardDownEvent(eventKeyCode:number, fn:any) {
 		const registeredKeyboardEvents = this.state.registeredKeyDownEvents
 
 		registeredKeyboardEvents.set(eventKeyCode, fn)
@@ -305,6 +307,10 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			registeredKeyDownEvents: registeredKeyboardEvents
 		})
 	}
+
+  registerKeyboardUpEvent(eventKeyCode:number, fn:any) {
+    // @TODO Ryan - see where keyboard up events are used
+  }
 
 	/**
 	 * Handle keyboard events

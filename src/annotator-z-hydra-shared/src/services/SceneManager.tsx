@@ -65,9 +65,6 @@ export interface SceneManagerState {
 	skyPosition2D: THREE.Vector2
 	updateOrbitControls: boolean
 
-	registeredKeyDownEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
-	registeredKeyUpEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
-
 	pointCloudManager: PointCloudManager | null
 
 	scaleProvider: ScaleProvider
@@ -223,9 +220,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			skyPosition2D: skyPosition2D,
 			updateOrbitControls: updateOrbitControls,
 
-			registeredKeyDownEvents: new Map<number, any>(),
-			registeredKeyUpEvents: new Map<number, any>(),
-
 			orbitControls: null,
 			pointCloudManager: null,
 
@@ -260,7 +254,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	componentWillReceiveProps(newProps:SceneManagerProps) {
-		if(newProps.compassRosePosition !== this.props.compassRosePosition) {
+		if(newProps.compassRosePosition && newProps.compassRosePosition !== this.props.compassRosePosition) {
 			const position = newProps.compassRosePosition
 			this.setCompassRosePosition(position.x, position.y, position.z)
 		}
