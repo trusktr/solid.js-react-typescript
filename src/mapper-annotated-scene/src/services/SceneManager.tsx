@@ -68,7 +68,6 @@ export interface SceneManagerState {
 
 	pointCloudManager: PointCloudManager | null
 
-	scaleProvider: ScaleProvider
 	maxDistanceToDecorations: number // meters
 
 	decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
@@ -181,8 +180,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		// Add Listeners
 		window.addEventListener('resize', this.onWindowResize)
-		window.addEventListener('keydown', this.onKeyDown)
-		window.addEventListener('keyup', this.onKeyUp)
+
 
 		// @TODO (Annotator-only) Add renderer domElement event listeners using 'registerDomEventElementEventListener' below
 
@@ -190,7 +188,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const animationFps = config['startup.render.fps']
 		loop.interval = animationFps === 'device' ? false : 1 / (animationFps || 10)
 
-		const scaleProvider = new ScaleProvider()
 
 		this.props.eventEmitter.on( 'originUpdated', () => {
 			this.loadDecorations()
@@ -225,7 +222,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			orbitControls: null,
 			pointCloudManager: null,
 
-			scaleProvider: scaleProvider,
 			maxDistanceToDecorations: 50000,
 			decorations: [],
 

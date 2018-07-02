@@ -137,6 +137,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.annotationManager,
       )
     }
+
+    window.addEventListener('keydown', this.onKeyDown)
+    window.addEventListener('keyup', this.onKeyUp)
   }
 
   updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {

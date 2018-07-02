@@ -77,6 +77,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     }
 
     // used to be called after the CarModel was setup
+    // @TODO consider removing -- this is called in Kiosk too
     this.loadUserData()
 
   }
@@ -374,6 +375,9 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
   render() {
 	  return (
+	    <React.Fragment>
+
+      </React.Fragment>
 	  )
   }
 }
