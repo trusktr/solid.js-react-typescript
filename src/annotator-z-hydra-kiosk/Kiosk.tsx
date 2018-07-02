@@ -101,12 +101,12 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	}
 
 	componentWillReceiveProps(newProps) {
-		if(newProps.sceneInitialized && !this.props.sceneInitialized && this.state.sceneManager && this.state.flyThroughManager) {
+		if(newProps.sceneInitialized && !this.props.sceneInitialized && this.state.annotatedSceneController && this.state.flyThroughManager) {
 			// this is the transition from the Scene not being setup to when it is
 			// Since it's setup now let's setup the fly through manager
       const flyThroughManager = this.state.flyThroughManager
       // flyThroughManager.init() -- called on componentDidMount within FlyThroughManager
-			const sceneManager = this.state.sceneManager
+			const sceneManager = this.state.annotatedSceneController
 			sceneManager.addChildLoop(flyThroughManager.getAnimationLoop())
 
       flyThroughManager.startLoop()
@@ -136,10 +136,10 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		const DOWN_ARROW_KEY_CODE = 40
 		const cameraOffsetDelta = 1
 
-    this.state.sceneManager!.registerKeyboardDownEvent(LEFT_ARROW_KEY_CODE, () => {this.state.sceneManager!.adjustCameraXOffset(cameraOffsetDelta)})
-		this.state.sceneManager!.registerKeyboardDownEvent(UP_ARROW_KEY_CODE, () => {this.state.sceneManager!.adjustCameraYOffset(cameraOffsetDelta)})
-		this.state.sceneManager!.registerKeyboardDownEvent(RIGHT_ARROW_KEY_CODE, () => {this.state.sceneManager!.adjustCameraXOffset(-1 * cameraOffsetDelta)})
-		this.state.sceneManager!.registerKeyboardDownEvent(DOWN_ARROW_KEY_CODE, () => {this.state.sceneManager!.adjustCameraYOffset(-1 * cameraOffsetDelta)})
+    this.state.annotatedSceneController!.registerKeyboardDownEvent(LEFT_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraXOffset(cameraOffsetDelta)})
+		this.state.annotatedSceneController!.registerKeyboardDownEvent(UP_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraYOffset(cameraOffsetDelta)})
+		this.state.annotatedSceneController!.registerKeyboardDownEvent(RIGHT_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraXOffset(-1 * cameraOffsetDelta)})
+		this.state.annotatedSceneController!.registerKeyboardDownEvent(DOWN_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraYOffset(-1 * cameraOffsetDelta)})
 	}
 
 	componentDidMount() {
@@ -163,7 +163,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
   private listen() {
     if (this.state.hasCalledSetup) return
 
-		if(!this.state.carManager || !this.state.sceneManager) {
+		if(!this.state.carManager || !this.state.annotatedSceneController || !this.state.annotatedSceneController.state.sceneManager) {
 			log.warn("Unable to finish calling listen() -- managers not initialized")
     	return
 		}
@@ -173,12 +173,12 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
       hasCalledSetup: true
 		})
 
-		this.state.annotatedSceneController.activateReadOnlyViewingMode()
+		this.state.annotatedSceneController!.activateReadOnlyViewingMode()
 
     // The camera and the point cloud AOI track the car object, so add it to the scene
     // regardless of whether it is visible in the scene.
 		// @TODO confirm this works as expected
-		this.state.carManager.addObjectToCar(this.state.sceneManager.getCamera()) // follow/orbit around the car
+		this.state.carManager.addObjectToCar(this.state.annotatedSceneController.state.sceneManager.getCamera()) // follow/orbit around the car
 		this.state.carManager.makeCarVisible()
 
 
@@ -192,7 +192,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
     	log.error("Error in listen() - flyThroughManager expected, but not found")
 		}
 
-    this.state.sceneManager.renderScene()
+    this.state.annotatedSceneController!.renderScene()
   }
 
 	private onKeyDown = (event: KeyboardEvent): void => {
@@ -312,14 +312,21 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
     // }}}
 
 
+  getCarManagerRef = (carManager: CarManager): void => {
+    this.setState({ carManager })
+  }
+
+  getFlyThroughManagerRef = (flyThroughManager: FlyThroughManager): void => {
+    this.setState({ flyThroughManager })
+  }
 
 	render() {
 		console.log("RENDERING WITH STORE", this.props.sceneInitialized)
         return <div style={{width: "100%", height: "100%"}}>
             <AnnotatedSceneController ref={this.getSceneManager} width={1000} height={1000} />
-            <CarManager ref={this.getCarManager} sceneManager={this.state.sceneManager}/>
+            <CarManager ref={this.getCarManager} annotatedScene={this.state.annotatedSceneController}/>
 
-            <FlyThroughManager ref={this.getFlyThroughManager} />
+            <FlyThroughManager ref={this.getFlyThroughManagerRef} carManager={this.state.carManager!} />
 
             <KioskMenuView flyThroughManager={this.state.flyThroughManager}/>
         </div>

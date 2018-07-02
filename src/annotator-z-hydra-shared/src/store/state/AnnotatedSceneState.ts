@@ -56,4 +56,6 @@ export default class AnnotatedSceneState {
 
 	pointCloudSuperTiles: OrderedMap<string, SuperTile>
 	annotationSuperTiles: OrderedMap<string, SuperTile>
+
+	sceneObjects: Set<THREE.Object3D>
 }

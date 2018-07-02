@@ -95,20 +95,20 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
   private showPointCloud():void {
     new AnnotatedSceneActions().setIsDecorationsVisible(true)
-    this.props.pointCloudTileManager.getPointClouds().forEach(pc => this.props.sceneManager.addObjectToScene(pc))
+    this.props.pointCloudTileManager.getPointClouds().forEach(pc => new AnnotatedSceneActions.addObjectToScene(pc))
 
     const pointCloudBoundingBox = this.getPointCloudBoundingBox()
     if (pointCloudBoundingBox)
-      this.props.sceneManager.addObjectToScene(pointCloudBoundingBox)
+      new AnnotatedSceneActions.addObjectToScene(pointCloudBoundingBox)
   }
 
   private hidePointCloud():void {
     new AnnotatedSceneActions().setIsDecorationsVisible(false)
-    this.props.pointCloudTileManager.getPointClouds().forEach(pc => this.props.sceneManager.removeObjectToScene(pc))
+    this.props.pointCloudTileManager.getPointClouds().forEach(pc => new AnnotatedSceneActions.removeObjectToScene(pc))
 
     const pointCloudBoundingBox = this.getPointCloudBoundingBox()
     if (pointCloudBoundingBox)
-      this.props.sceneManager.removeObjectToScene(pointCloudBoundingBox)
+      new AnnotatedSceneActions.removeObjectToScene(pointCloudBoundingBox)
   }
 
 
@@ -117,7 +117,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   unloadPointCloudData(): void {
     if (this.props.pointCloudTileManager.unloadAllTiles()) {
       if (this.state.pointCloudBoundingBox)
-        this.props.sceneManager.removeObjectToScene(this.state.pointCloudBoundingBox)
+        new AnnotatedSceneActions.removeObjectToScene(this.state.pointCloudBoundingBox)
     } else {
       log.warn('unloadPointCloudData failed')
     }
@@ -134,7 +134,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   updatePointCloudBoundingBox(): void {
     if (this.state.shouldDrawBoundingBox) {
       if (this.state.pointCloudBoundingBox) {
-        this.props.sceneManager.removeObjectToScene(this.state.pointCloudBoundingBox)
+        new AnnotatedSceneActions.removeObjectToScene(this.state.pointCloudBoundingBox)
         this.setState({
           pointCloudBoundingBox: null
         })
@@ -149,7 +149,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
         const pointCloudBoundingBox = new THREE.BoxHelper(bbox as any, this.state.pointCloudBboxColor)
         this.setState({pointCloudBoundingBox: pointCloudBoundingBox})
-        this.props.sceneManager.addObjectToScene(pointCloudBoundingBox)
+        new AnnotatedSceneActions.addObjectToScene(pointCloudBoundingBox)
       }
     }
   }
@@ -352,7 +352,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
           geom.vertices.push(search.minPoint, search.maxPoint)
           const bbox = new THREE.BoxHelper(new THREE.Points(geom), this.state.aoiState.bBoxColor)
           this.state.aoiState.boundingBoxes.push(bbox)
-          this.props.sceneManager.addObjectToScene(bbox)
+          new AnnotatedSceneActions.addObjectToScene(bbox)
         })
       }
 

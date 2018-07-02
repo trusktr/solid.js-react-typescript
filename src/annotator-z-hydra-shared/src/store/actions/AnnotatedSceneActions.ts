@@ -74,7 +74,9 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
       orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0),
       annotationSuperTiles: OrderedMap<string, SuperTile>(),
-      pointCloudSuperTiles: OrderedMap<string, SuperTile>()
+      pointCloudSuperTiles: OrderedMap<string, SuperTile>(),
+
+			sceneObjects: new Set<THREE.Object3D>()
 		}
 
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
@@ -248,6 +250,30 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, annotationSuperTiles: superTiles
     })
+  }
+
+  @ActionReducer()
+	addObjectToScene(object:THREE.Object3D) {
+    log.info("Adding object to scene")
+    return (annotatedSceneState: AnnotatedSceneState) => {
+      const sceneObjects = getAnnotatedSceneStoreState().get(AnnotatedSceneState.Key).sceneObjects as Set<THREE.Object3D>
+			sceneObjects.add(object)
+    	new AnnotatedSceneState({
+        ...annotatedSceneState, sceneObjects: sceneObjects
+      })
+    }
+	}
+
+  @ActionReducer()
+  removeObjectToScene(object:THREE.Object3D) {
+    log.info("Removing object from scene")
+    return (annotatedSceneState: AnnotatedSceneState) => {
+      const sceneObjects = getAnnotatedSceneStoreState().get(AnnotatedSceneState.Key).sceneObjects as Set<THREE.Object3D>
+      sceneObjects.delete(object)
+      new AnnotatedSceneState({
+        ...annotatedSceneState, sceneObjects: sceneObjects
+      })
+    }
   }
 
 }

@@ -36,6 +36,7 @@ export interface SceneManagerProps {
   pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
 	utmCoordinateSystem: UtmCoordinateSystem
   eventEmitter: EventEmitter
+  sceneObjects ?: Set<THREE.Object3D>
 }
 
 
@@ -80,6 +81,7 @@ export interface SceneManagerState {
 	isDecorationsVisible: (state) => state.get(AnnotatedSceneState.Key).isDecorationsVisible,
 	orbitControlsTargetPoint: (state) => state.get(AnnotatedSceneState.Key).orbitControlsTargetPoint,
 	pointCloudSuperTiles: (state) => state.get(AnnotatedSceneState.Key).pointCloudSuperTiles,
+	sceneObjects: (state) => state.get(AnnotatedSceneState.Key).sceneObjects,
 }))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
@@ -280,6 +282,31 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			tilesToAdd.forEach(tileId => this.addSuperTile(newProps.pointCloudSuperTiles!.get(tileId)))
       tilesToRemove.forEach(tileId => this.removeSuperTile(newProps.pointCloudSuperTiles!.get(tileId)))
 		}
+
+		// Handle adding and removing scene objects
+		if(newProps.sceneObjects != this.props.sceneObjects) {
+			const newSceneObjects = newProps.sceneObjects!
+			const existingSceneObjects = this.props.sceneObjects!
+      this.updateSceneObjects(newSceneObjects, existingSceneObjects)
+		}
+
+	}
+
+	private updateSceneObjects(newSceneObjects:Set<THREE.Object3D>, existingSceneObjects:Set<THREE.Object3D>) {
+    const scene = this.state.scene
+    newSceneObjects.forEach(object => {
+      if(!existingSceneObjects.has(object)) {
+        // Not found let's add it to the scene
+        scene.add(object)
+      }
+    })
+
+    existingSceneObjects.forEach(object => {
+      if(!newSceneObjects.has(object)) {
+        // Not found let's in the new objects, let's remove it
+        scene.remove(object)
+      }
+    })
 	}
 
 	componentDidMount() {
@@ -386,22 +413,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		this.setState({
 			loop: loop
-		})
-	}
-
-	addObjectToScene(object:any) {
-		const scene = this.state.scene
-		scene.add(object)
-		this.setState({
-			scene: scene
-		})
-	}
-
-	removeObjectToScene(object:any) {
-		const scene = this.state.scene
-		scene.remove(object)
-		this.setState({
-			scene: scene
 		})
 	}
 
@@ -696,7 +707,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 					const decorations = this.state.decorations
 					decorations.push(decoration)
-					this.addObjectToScene(decoration)
+					new AnnotatedSceneActions().addObjectToScene(decoration)
 				}
 			})
 

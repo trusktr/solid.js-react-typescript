@@ -2,6 +2,7 @@ import * as React from "react"
 import {getValue} from "typeguard";
 import * as THREE from "three";
 import {sprintf} from 'sprintf-js'
+import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
 import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
 import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
@@ -23,6 +24,7 @@ import {AnnotationTileManager} from "@/annotator-entry-ui/tile/AnnotationTileMan
 import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
 import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
 import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager";
+import AnnotatedSceneActions from "@/annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions";
 
 const log = Logger(__filename)
 
@@ -295,6 +297,34 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			log.error("Unable to reset tilt and compass - sceneManager not instantiated")
 		}
   }
+
+  addObjectToScene(object:THREE.Object3D) {
+		new AnnotatedSceneActions().addObjectToScene(object)
+  }
+
+  removeObjectFromScene(object:THREE.Object3D) {
+		new AnnotatedSceneActions().removeObjectToScene(object)
+	}
+
+	renderScene() {
+		return this.state.sceneManager!.renderScene()
+	}
+
+  adjustCameraXOffset(value:number) {
+		this.state.sceneManager!.adjustCameraXOffset(value)
+	}
+
+  adjustCameraYOffset(value:number) {
+    this.state.sceneManager!.adjustCameraYOffset(value)
+  }
+
+  addChildLoop(childLoop: ChildAnimationLoop) {
+		this.state.sceneManager!.addChildLoop(childLoop)
+  }
+
+
+
+
 
 
 

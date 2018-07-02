@@ -1,7 +1,6 @@
 import * as React from "react"
 import * as THREE from "three";
 import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
-import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
 import {
   convertToStandardCoordinateFrame, CoordinateFrameType,
   cvtQuaternionToStandardCoordinateFrame
@@ -11,9 +10,10 @@ import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
 import AnnotatedSceneActions from "@/annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions.ts"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
+import AnnotatedSceneController from "@/annotator-z-hydra-shared/src/services/AnnotatedSceneController";
 
 export interface CarManagerProps {
-	sceneManager: SceneManager | null
+  annotatedScene: AnnotatedSceneController | null
 	pointCloudManager: PointCloudManager
 	statusWindow: StatusWindow
 }
@@ -25,7 +25,7 @@ export interface CarManagerState {
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
 
 	componentWillReceiveProps(newProps: CarManagerProps) {
-		if(newProps.sceneManager && newProps.pointCloudManager && this.props.sceneManager === null) {
+		if(newProps.annotatedScene && newProps.pointCloudManager && this.props.annotatedScene === null) {
 			this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
 		}
 	}
@@ -67,8 +67,8 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 					})
 
 					this.setState({carModel})
-					const sceneManager = this.props.sceneManager
-					sceneManager && sceneManager.addObjectToScene(object)
+					const annotatedScene = this.props.annotatedScene
+          annotatedScene && annotatedScene.addObjectToScene(object)
 					resolve()
 				})
 			} catch (err) {
@@ -83,14 +83,14 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 	updateCarWithPose(pose: Models.PoseMessage): void {
     const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
     const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
-    const positionThreeJs = this.utmCoordinateSystem.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+    const positionThreeJs = this.props.annotatedScene!.utmCoordinateSystem.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
     const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
     const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
     const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
     rotationThreeJs.normalize()
 
     this.props.pointCloudManager.updateAoiHeading(rotationThreeJs)
-    this.props.statusWindow.updateCurrentLocationStatusMessage(standardPosition)
+    this.props.annotatedScene!.updateCurrentLocationStatusMessage(standardPosition)
     this.updateCarPose(positionThreeJs, rotationThreeJs)
   }
 
