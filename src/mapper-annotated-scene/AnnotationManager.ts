@@ -35,11 +35,11 @@ import * as CRS from "./CoordinateReferenceSystem"
 import Logger from "@/util/log"
 import {tileIndexFromVector3} from "@/annotator-entry-ui/model/TileIndex"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
-import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
+import LayerManager from "@/mapper-annotated-scene/src/services/LayerManager";
 
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
 import {OrderedMap} from "immutable";
 import {AnnotationSuperTile} from "@/annotator-entry-ui/tile/AnnotationSuperTile";

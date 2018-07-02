@@ -45,9 +45,9 @@ export class LocationServerStatusClient {
 		if (this.statusClient)
 			return
 
-		log.info('Connecting to location server status provider at', this.locationServerStatusAddress)
+		log.info('Connecting to location server clients provider at', this.locationServerStatusAddress)
 		const self = this
-		// For anything but "connect", we aren't getting status from the
+		// For anything but "connect", we aren't getting clients from the
 		// location server.
 		const sock = this.statusClient = zmq.socket('req')
 		sock.on("connect_delay", () => {self.handleMonitorEvent()})

@@ -1,13 +1,13 @@
 import * as React from 'react'
-import CarManager from "@/annotator-z-hydra-kiosk/CarManager";
-import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import CarManager from "@/kiosk/components/CarManager";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
-import KioskMenuView from "@/annotator-z-hydra-kiosk/KioskMenuView";
+import FlyThroughManager from "@/kiosk/components/FlyThroughManager";
+import KioskMenuView from "@/kiosk/components/KioskMenuView";
 import Logger from "@/util/log";
-import LayerManager from "@/annotator-z-hydra-shared/src/services/LayerManager";
-import AnnotatedSceneController from "@/annotator-z-hydra-shared/src/services/AnnotatedSceneController";
+import LayerManager from "@/mapper-annotated-scene/src/services/LayerManager";
+import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
 import * as watch from 'watch'
 
 const log = Logger(__filename)

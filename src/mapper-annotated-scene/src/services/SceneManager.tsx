@@ -583,7 +583,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// can (f.e. maybe AnnotatedSceneController) can decide to update things
 		// (f.e. the camera info StatusWindow message)
 		// Search for displayCameraInfo to find code that was previously
-		// updating the status message.
+		// updating the clients message.
 		//orbitControls.addEventListener('pan', this.emit( 'cameraUpdate', { ... camera info ... } ))
 
 		// TODO JOE THURSDAY Obsolete, we won't clear transform controls on

@@ -22,7 +22,7 @@ import {isNullOrUndefined} from "util"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
-import {LocationServerStatusClient} from "./status/LocationServerStatusClient"
+import {LocationServerStatusClient} from "./clients/LocationServerStatusClient"
 import {ImageManager} from "./image/ImageManager"
 import {ImageScreen} from "./image/ImageScreen"
 import {CalibratedImage} from "./image/CalibratedImage"

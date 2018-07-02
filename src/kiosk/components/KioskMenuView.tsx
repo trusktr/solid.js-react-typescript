@@ -6,11 +6,11 @@
 import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import '@/annotator-entry-ui/style.scss'
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
-import AnnotatedSceneState from "annotator-z-hydra-shared/src/store/state/AnnotatedSceneState"
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import AnnotatedSceneState from "mapper-annotated-scene/src/store/state/AnnotatedSceneState"
 import {createStructuredSelector} from "reselect"
-import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
-import FlyThroughManager from "@/annotator-z-hydra-kiosk/FlyThroughManager";
+import AnnotatedSceneActions from "mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
+import FlyThroughManager from "@/kiosk/components/FlyThroughManager";
 
 
 interface KioskViewProps {

@@ -49,7 +49,7 @@ export default class StatusWindowActions extends ActionFactory<AnnotatedSceneSta
 
 	@ActionReducer()
 	setMessage(key:string, message:string) {
-		// log.info("Setting new status window message", {key:key, message:message})
+		// log.info("Setting new clients window message", {key:key, message:message})
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			const statusWindowState = new StatusWindowState({...annotatedSceneState.statusWindowState})
 			statusWindowState.messages.set(key, message)

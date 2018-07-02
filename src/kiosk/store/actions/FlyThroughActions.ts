@@ -1,10 +1,7 @@
 import {ActionFactory, ActionMessage, ActionReducer} from "typedux";
-import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
-
-
-
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
+import {FlyThroughState, FlyThroughTrajectory} from "@/mapper-annotated-scene/src/models/FlyThroughState";
 import Logger from "@/util/log";
-import {FlyThroughState, FlyThroughTrajectory} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
 
 const log = Logger(__filename)
 

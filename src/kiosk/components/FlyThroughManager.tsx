@@ -1,9 +1,9 @@
 
 import * as React from "react"
-import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
-import {FlyThroughState, FlyThroughTrajectory} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
-import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
-import FlyThroughActions from "@/annotator-z-hydra-kiosk/FlyThroughActions";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
+import {FlyThroughState, FlyThroughTrajectory} from "@/mapper-annotated-scene/src/models/FlyThroughState";
+import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
+import FlyThroughActions from "@/kiosk/store/actions/FlyThroughActions";
 import {ChildAnimationLoop} from 'animation-loop'
 import config from "@/config";
 import * as AsyncFile from "async-file";
@@ -12,13 +12,13 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import Logger from "@/util/log";
 import * as Electron from "electron";
-import { StatusKey } from "@/annotator-z-hydra-shared/src/models/StatusKey";
+import { StatusKey } from "@/mapper-annotated-scene/src/models/StatusKey";
 import {getValue} from "typeguard";
-import CarManager from "@/annotator-z-hydra-kiosk/CarManager";
+import CarManager from "@/kiosk/components/CarManager";
 import * as zmq from "zmq";
 import {Socket} from "zmq";
 import {createStructuredSelector} from "reselect";
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)

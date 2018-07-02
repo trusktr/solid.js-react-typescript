@@ -1,16 +1,16 @@
 import * as React from "react"
 import * as THREE from "three";
-import * as carModelOBJ from 'assets/models/BMW_X5_4.obj'
+import * as carModelOBJ from 'annotator-assets/models/BMW_X5_4.obj'
 import {
   convertToStandardCoordinateFrame, CoordinateFrameType,
   cvtQuaternionToStandardCoordinateFrame
-} from "@/annotator-entry-ui/geometry/CoordinateFrame";
-import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
-import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
-import AnnotatedSceneActions from "@/annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions.ts"
+} from "@/mapper-annotated-scene/geometry/CoordinateFrame";
+import PointCloudManager from "@/mapper-annotated-scene/src/services/PointCloudManager";
+import StatusWindow from "@/mapper-annotated-scene/components/StatusWindow";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
-import AnnotatedSceneController from "@/annotator-z-hydra-shared/src/services/AnnotatedSceneController";
+import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
 
 export interface CarManagerProps {
   annotatedScene: AnnotatedSceneController | null

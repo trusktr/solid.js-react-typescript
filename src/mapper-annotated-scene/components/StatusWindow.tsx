@@ -17,7 +17,7 @@ import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
 import {
     LocationServerStatusClient,
     LocationServerStatusLevel
-} from "@/annotator-entry-ui/status/LocationServerStatusClient";
+} from "@/annotator-entry-ui/clients/LocationServerStatusClient";
 import Logger from "@/util/log";
 import {EventEmitter} from "events";
 import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
@@ -104,7 +104,7 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
     onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string) => void =
         (level: LocationServerStatusLevel, serverStatus: string) => {
 
-        let message = 'Location status: '
+        let message = 'Location clients: '
         switch (level) {
             case LocationServerStatusLevel.INFO:
             message += '<span class="statusOk">' + serverStatus + '</span>'
@@ -146,7 +146,7 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
   // Display a UI element to tell the user what is happening with tile server. Error messages persist,
   // and success messages disappear after a time-out.
   onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
-    let message = 'Tile server status: '
+    let message = 'Tile server clients: '
     if (tileServiceStatus) {
       message += '<span class="statusOk">Available</span>'
       this.delayHideTileServiceStatus()
