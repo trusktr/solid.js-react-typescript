@@ -1,9 +1,8 @@
 import * as React from "react"
-import LayerToggle from "@/annotator-z-hydra-shared/src/models/LayerToggle";
+import LayerToggle from "@/mapper-annotated-scene/src/models/LayerToggle";
 import * as lodash from "lodash";
 import Logger from "@/util/log";
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
-import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 
 const log = Logger(__filename)
 
