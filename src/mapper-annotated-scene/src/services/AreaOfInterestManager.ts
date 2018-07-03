@@ -145,7 +145,7 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 
 			// TODO JOE MONDAY 7/2 for each tile manager, tell them to load their tile data for the new AoI. {{{
 
-				this.loadPointCloudDataFromMapServer(utmSearches, true, false)
+				this.loadPointCloudDataFromMapServer(utmSearches, true)
 					.catch(err => {log.warn(err.message)})
 
 				// TODO JOE MONDAY 7/2/18 annotation tiles are coupled to point cloud
