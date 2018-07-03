@@ -61,6 +61,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			shouldAnimate: false,
 			carPose: null,
       isCarInitialized: false,
+      isKioskUserDataLoaded: false,
 
 			cameraPreference: CameraType.PERSPECTIVE,
 			sceneInitialized: false,
@@ -198,6 +199,14 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
       ...annotatedSceneState, isCarInitialized: isSetup
     })
 	}
+
+  @ActionReducer()
+	setIsKioskUserDataLoaded(isLoaded:boolean) {
+    log.info("Setting isKioskUserDataLoaded", isLoaded)
+    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+      ...annotatedSceneState, isKioskUserDataLoaded: isLoaded
+    })
+  }
 
   @ActionReducer()
 	setCameraPreference(preference:CameraType) {

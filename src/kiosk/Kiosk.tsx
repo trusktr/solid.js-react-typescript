@@ -6,7 +6,6 @@ import {createStructuredSelector} from "reselect";
 import FlyThroughManager from "@/kiosk/components/FlyThroughManager";
 import KioskMenuView from "@/kiosk/components/KioskMenuView";
 import Logger from "@/util/log";
-import LayerManager from "@/mapper-annotated-scene/src/services/LayerManager";
 import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
 import * as watch from 'watch'
 
@@ -30,7 +29,6 @@ export interface KioskState {
   annotatedSceneController: AnnotatedSceneController | null
 	carManager: CarManager | null
 	flyThroughManager: FlyThroughManager | null
-	layerManager: LayerManager | null
 	hasCalledSetup: boolean
 
 }
@@ -49,7 +47,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			annotatedSceneController: null,
 			carManager: null,
 			flyThroughManager: null,
-			layerManager: null,
 			hasCalledSetup: false,
 		}
 
@@ -118,12 +115,11 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		}
 
 
-		if(newProps.isCarInitialized && !this.props.isCarInitialized && !this.state.hasCalledSetup &&
-			this.state.sceneManager && this.state.layerManager && this.state.carManager && this.state.flyThroughManager
+		if(newProps.isCarInitialized && newProps.isKioskUserDataLoaded && !this.state.hasCalledSetup &&
+			this.state.annotatedSceneController && this.state.carManager && this.state.flyThroughManager
 		) {
-			// Once the car is setup, we need to call this.listen()
-			// TODO JOE FRIDAY the user data needs to be loaded (FlyThroughManager.loadUserData)
-			// before this runs.
+			// At this point the car model has been loaded and user data has also been loaded, we're ready for listen()
+			// this only gets called once because then state.hasCalledSetup is set to True
 			this.listen()
 		}
 

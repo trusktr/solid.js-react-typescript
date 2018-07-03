@@ -19,6 +19,7 @@ import * as zmq from "zmq";
 import {Socket} from "zmq";
 import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -28,6 +29,8 @@ export interface FlyThroughManagerProps {
   liveModeEnabled ?: boolean
   playModeEnabled ?: boolean
   flyThroughState ?: FlyThroughState
+  isCarInitialized ?: boolean
+  isKioskUserDataLoaded ?: boolean
 }
 
 export interface FlyThroughManagerState {
@@ -40,6 +43,8 @@ export interface FlyThroughManagerState {
   liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
   playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
   flyThroughState: (state) => state.get(AnnotatedSceneState.Key).flyThroughState,
+  isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
+  isKioskUserDataLoaded: (state) => state.get(AnnotatedSceneState.Key).isKioskUserDataLoaded,
 }))
 export default class FlyThroughManager extends React.Component<FlyThroughManagerProps, FlyThroughManagerState> {
 
@@ -56,42 +61,96 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
       loop: loop,
       liveSubscribeSocket: null,
     }
-
-    // ASK CLYDE - used to be part of loadUserData, but this is the FlyThrough
-    // specific piece. The other part is in PointCloudManager
-	this.loadUserData()
-
   }
 
-  // NOTE JOE FRIDAY this logic used to fire after loading point cloud data, which is now moved to PointCloudManager.
-  // TODO JOE FRIDAY This needes to load user data before Kiosk.listen() to start fly through.
-  loadUserData() {
-    if (config['fly_through.trajectory_path'])
-      log.warn('config option fly_through.trajectory_path is now a list: fly_through.trajectory_path.list')
+  componentWillReceiveProps(newProps) {
+    if(newProps.isCarInitialized && !newProps.isKioskUserDataLoaded) {
+      // The car is setup but we haven't loaded the user data and trajectories - let's do that now
+      this.loadUserData()
+    }
+  }
 
-	// TODO JOE FRIDAY duplicate code, see PointCloudManager. Don't want to call it twice.
+  /**
+   * 	Load up any data which configuration has asked for on start-up.
+   * 	Note: This function is called after the car has been instantiated AND after PointCloudManager and AnnotatedScene are setup
+   */
+  private loadUserData(): Promise<void> {
+    const annotationsPath = config.get('startup.annotations_path')
     let annotationsResult: Promise<void>
-    const annotationsPath = config['startup.annotations_path']
     if (annotationsPath) {
-      annotationsResult = this.annotationManager.loadAnnotations(annotationsPath)
+      annotationsResult = this.loadAnnotations(annotationsPath)
     } else {
       annotationsResult = Promise.resolve()
     }
 
+    const pointCloudBbox: [number, number, number, number, number, number] = config.get('startup.point_cloud_bounding_box')
+    let pointCloudResult: Promise<void>
+    if (pointCloudBbox) {
+      pointCloudResult = annotationsResult
+        .then(() => {
+          log.info('loading pre-configured bounding box ' + pointCloudBbox)
+          return this.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
+        })
+    } else {
+      pointCloudResult = annotationsResult
+    }
+
+    if (config.get('startup.point_cloud_directory'))
+      log.warn('config option startup.point_cloud_directory has been removed.')
+    if (config.get('live_mode.trajectory_path'))
+      log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
+    if (config.get('fly_through.trajectory_path'))
+      log.warn('config option fly_through.trajectory_path is now a list: fly_through.trajectory_path.list')
+
     let trajectoryResult: Promise<void>
-    const trajectoryPaths = config['fly_through.trajectory_path.list']
+    const trajectoryPaths = config.get('fly_through.trajectory_path.list')
     if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
-      trajectoryResult = annotationsResult
+      trajectoryResult = pointCloudResult
         .then(() => {
           log.info('loading pre-configured trajectories')
           return this.loadFlyThroughTrajectories(trajectoryPaths)
         })
     } else {
-      trajectoryResult = annotationsResult
+      trajectoryResult = pointCloudResult
     }
 
-	return trajectoryResult
+    new AnnotatedSceneActions().setIsKioskUserDataLoaded(true)
+    return trajectoryResult
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   componentDidMount() {
     this.init()
