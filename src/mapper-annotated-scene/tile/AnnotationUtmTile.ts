@@ -3,9 +3,9 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {UtmTile} from "@/annotator-entry-ui/tile/UtmTile"
-import {AnnotationTileContents} from "@/annotator-entry-ui/model/TileContents"
-import {TileIndex} from "@/annotator-entry-ui/model/TileIndex"
+import {UtmTile} from "@/mapper-annotated-scene/tile/UtmTile"
+import {AnnotationTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
+import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
 
 export class AnnotationUtmTile extends UtmTile {
 	private contents: AnnotationTileContents | null

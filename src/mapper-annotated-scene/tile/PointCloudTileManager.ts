@@ -9,22 +9,22 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import {threeDStepSize} from "./Constant"
 import {baseGeometryTileMessageToTileMessage} from "./Conversion"
-import {PointCloudTileContents} from "@/annotator-entry-ui/model/TileContents"
-import {TileMessage} from "@/annotator-entry-ui/model/TileMessage"
+import {PointCloudTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
+import {TileMessage} from "@/mapper-annotated-scene/tile-model/TileMessage"
 import {UtmTile} from "./UtmTile"
 import {SuperTile} from "./SuperTile"
 import {PointCloudUtmTile} from "./PointCloudUtmTile"
 import {PointCloudSuperTile} from "./PointCloudSuperTile"
 import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
-import {TileIndex} from "../model/TileIndex"
+import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
 import {TileServiceClient} from "./TileServiceClient"
-import {TileInstance} from "../model/TileInstance"
+import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
 import Logger from "@/util/log"
-import {TileManager, TileManagerConfig} from "@/annotator-entry-ui/tile/TileManager"
+import {TileManager, TileManagerConfig} from "@/mapper-annotated-scene/tile/TileManager"
 import {OrderedMap} from "immutable"
-import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
-import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
+import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
 
 const log = Logger(__filename)
 

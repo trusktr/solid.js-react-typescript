@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {Annotation} from "@/annotator-entry-ui/annotations/AnnotationBase"
+import {Annotation} from "@/mapper-annotated-scene/annotations/AnnotationBase"
 
 export interface TileContents {}
 

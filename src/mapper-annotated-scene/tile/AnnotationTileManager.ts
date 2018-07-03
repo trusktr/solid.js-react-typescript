@@ -3,20 +3,20 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {TileManager} from "@/annotator-entry-ui/tile/TileManager"
-import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem"
-import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile"
-import {TileServiceClient} from "@/annotator-entry-ui/tile/TileServiceClient"
+import {TileManager} from "@/mapper-annotated-scene/tile/TileManager"
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
+import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile"
+import {TileServiceClient} from "@/mapper-annotated-scene/tile/TileServiceClient"
 import config from "@/config"
-import {CoordinateFrameType} from "@/annotator-entry-ui/geometry/CoordinateFrame"
-import {TileIndex} from "@/annotator-entry-ui/model/TileIndex"
-import {AnnotationSuperTile} from "@/annotator-entry-ui/tile/AnnotationSuperTile"
-import {UtmTile} from "@/annotator-entry-ui/tile/UtmTile"
-import {TileInstance} from "@/annotator-entry-ui/model/TileInstance"
-import {AnnotationTileContents} from "@/annotator-entry-ui/model/TileContents"
-import {AnnotationUtmTile} from "@/annotator-entry-ui/tile/AnnotationUtmTile"
-import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager"
-import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
+import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateFrame"
+import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
+import {AnnotationSuperTile} from "@/mapper-annotated-scene/tile/AnnotationSuperTile"
+import {UtmTile} from "@/mapper-annotated-scene/tile/UtmTile"
+import {TileInstance} from "@/mapper-annotated-scene/model/TileInstance"
+import {AnnotationTileContents} from "@/mapper-annotated-scene/model/TileContents"
+import {AnnotationUtmTile} from "@/mapper-annotated-scene/tile/AnnotationUtmTile"
+import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager"
+import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import {OrderedMap} from "immutable";
 import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
 

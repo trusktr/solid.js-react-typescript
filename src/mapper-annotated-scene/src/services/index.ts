@@ -15,13 +15,13 @@ export function loadServices() {
  * Load offline data for initial state
  */
 function loadInitialState() {
-  const AnnotatedSceneActions = require("annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions").default
+  const AnnotatedSceneActions = require("mapper-annotated-scene/src/store/actions/AnnotatedSceneActions").default
   new AnnotatedSceneActions().loadAppState()
 }
 
 export async function loadStore() {
   console.log("Starting to load store")
-  const annotatedSceneStore = require("annotator-z-hydra-shared/src/store/AppStore")
+  const annotatedSceneStore = require("mapper-annotated-scene/src/store/AppStore")
   try {
     annotatedSceneStore.loadAndInitStore()
 

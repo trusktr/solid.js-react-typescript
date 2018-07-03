@@ -4,27 +4,27 @@ import * as THREE from "three";
 import {sprintf} from 'sprintf-js'
 import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
 import {createStructuredSelector} from "reselect";
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
-import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
-import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
-import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
+import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
+import StatusWindow from "@/mapper-annotated-scene/components/StatusWindow";
 import Logger from "@/util/log";
-import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
-import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
-import {Layer, default as LayerManager} from "@/annotator-z-hydra-shared/src/services/LayerManager";
-import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
+import PointCloudManager from "@/mapper-annotated-scene/src/services/PointCloudManager";
+import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
+import {Layer, default as LayerManager} from "@/mapper-annotated-scene/src/services/LayerManager";
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import {EventEmitter} from "events"
-import {PointCloudTileManager} from "@/annotator-entry-ui/tile/PointCloudTileManager";
-import {TileServiceClient} from "@annotator-entry-ui/tile/TileServiceClient"
-import {ScaleProvider} from "@annotator-entry-ui/tile/ScaleProvider"
+import {PointCloudTileManager} from "@/mapper-annotated-scene/tile/PointCloudTileManager";
+import {TileServiceClient} from "@/mapper-annotated-scene/tile/TileServiceClient"
+import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import * as OBJLoader from 'three-obj-loader'
 import {isTupleOfNumbers} from "@/util/Validation";
 import config from "@/config";
-import {AnnotationTileManager} from "@/annotator-entry-ui/tile/AnnotationTileManager";
-import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
-import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
-import {AnnotationManager} from "@/annotator-entry-ui/AnnotationManager";
-import AnnotatedSceneActions from "@/annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions";
+import {AnnotationTileManager} from "@/mapper-annotated-scene/tile/AnnotationTileManager";
+import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
+import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
+import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 
 const log = Logger(__filename)
 

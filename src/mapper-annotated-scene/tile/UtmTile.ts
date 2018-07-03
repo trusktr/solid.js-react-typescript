@@ -4,8 +4,8 @@
  */
 
 import {Scale3D} from "../geometry/Scale3D"
-import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
-import {TileContents} from "@/annotator-entry-ui/model/TileContents"
+import {TileIndex, tileIndexFromVector3} from "@/mapper-annotated-scene/tile-model/TileIndex"
+import {TileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
 
 /*
  * A collection of arbitrary data from a rectangular volume of UTM space.

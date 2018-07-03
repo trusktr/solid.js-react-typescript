@@ -8,8 +8,8 @@ import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {isNullOrUndefined} from "util"
 import {spatialTileScaleEnumToScaleVector} from "./ScaleUtil"
-import {PointCloudTileContents} from "@/annotator-entry-ui/model/TileContents"
-import {TileMessage} from "@/annotator-entry-ui/model/TileMessage"
+import {PointCloudTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
+import {TileMessage} from "@/mapper-annotated-scene/tile-model/TileMessage"
 
 export function baseGeometryTileMessageToTileMessage(msg: Models.BaseGeometryTileMessage): TileMessage {
 	const spatialIndex = msg.spatialIndex

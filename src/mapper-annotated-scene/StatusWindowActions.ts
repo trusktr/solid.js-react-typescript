@@ -1,10 +1,10 @@
 import {ActionFactory, ActionMessage, ActionReducer} from "typedux";
-import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 
 
 
 import Logger from "@/util/log";
-import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
+import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
 
 const log = Logger(__filename)
 

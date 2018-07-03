@@ -7,7 +7,7 @@ import * as THREE from 'three'
 // import {isNull} from "util"
 import * as utmConverter from 'utm'
 import {EventEmitter} from "events";
-import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
+import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
 
 /**
  * UtmCoordinateSystem has two states: it has a zone or not. Zone can be set one time.

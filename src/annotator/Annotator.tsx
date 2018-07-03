@@ -29,12 +29,12 @@ import {CalibratedImage} from "./image/CalibratedImage"
 import * as Stats from 'stats.js'
 
 import * as React from "react";
-import AnnotatedSceneState from "../annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
-import {typedConnect} from "../annotator-z-hydra-shared/src/styles/Themed";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import AnnotatedSceneActions from "../annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions";
-import StatusWindowState from "../annotator-z-hydra-shared/src/models/StatusWindowState";
-import {FlyThroughState} from "../annotator-z-hydra-shared/src/models/FlyThroughState";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
+import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
+import {FlyThroughState} from "@/mapper-annotated-scene/src/models/FlyThroughState";
 
 import AnnotatorMenuView from "./AnnotatorMenuView";
 

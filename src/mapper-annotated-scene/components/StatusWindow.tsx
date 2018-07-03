@@ -5,22 +5,22 @@
 
 import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
-import '@/annotator-entry-ui/style.scss'
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
-import AnnotatedSceneState from "annotator-z-hydra-shared/src/store/state/AnnotatedSceneState"
+import '@/mapper-annotated-scene/style.scss'
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState"
 import {createStructuredSelector} from "reselect"
-import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState"
+import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState"
 import {getValue} from "typeguard";
-import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
-import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
-import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
+import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
+import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import {
     LocationServerStatusClient,
     LocationServerStatusLevel
-} from "@/annotator-entry-ui/clients/LocationServerStatusClient";
+} from "@/kiosk/clients/LocationServerStatusClient";
 import Logger from "@/util/log";
 import {EventEmitter} from "events";
-import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
+import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
 
 const log = Logger(__filename)
 

@@ -16,7 +16,7 @@ import {AuroraCameraParameters} from "./CameraParameters"
 import config from '@/config'
 import Logger from "@/util/log"
 import {EventEmitter} from "events";
-import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
+import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
 
 const log = Logger(__filename)
 

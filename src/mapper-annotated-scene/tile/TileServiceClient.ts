@@ -24,7 +24,7 @@ import {scale3DToSpatialTileScale, spatialTileScaleToScale3D} from "./ScaleUtil"
 import Logger from "@/util/log"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
 import {EventEmitter} from "events";
-import {EventName} from "@/annotator-z-hydra-shared/src/models/EventName";
+import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
 
 const log = Logger(__filename)
 

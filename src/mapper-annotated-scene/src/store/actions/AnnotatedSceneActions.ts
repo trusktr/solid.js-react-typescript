@@ -1,16 +1,16 @@
 import * as THREE from "three"
 import config from '@/config'
 import {ActionFactory, ActionMessage, ActionReducer} from "typedux"
-import AnnotatedSceneState from "annotator-z-hydra-shared/src/store/state/AnnotatedSceneState"
-import UIMessage from "annotator-z-hydra-shared/src/models/UIMessage"
+import AnnotatedSceneState from "mapper-annotated-scene/src/store/state/AnnotatedSceneState"
+import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import Logger from "@/util/log";
-import {CameraType} from "@/annotator-z-hydra-shared/src/models/CameraType";
+import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
 import {OrderedMap} from "immutable";
-import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
-import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
-import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
+import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
+import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
+import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 
 const log = Logger(__filename)
 

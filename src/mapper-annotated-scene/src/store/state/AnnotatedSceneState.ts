@@ -1,11 +1,11 @@
-import UIMessage from "annotator-z-hydra-shared/src/models/UIMessage"
-import {FlyThroughState} from "@/annotator-z-hydra-shared/src/models/FlyThroughState";
-import StatusWindowState from "@/annotator-z-hydra-shared/src/models/StatusWindowState";
+import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
+import {FlyThroughState} from "@/mapper-annotated-scene/src/models/FlyThroughState";
+import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
-import {CameraType} from "@/annotator-z-hydra-shared/src/models/CameraType";
+import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
 import {OrderedMap} from "immutable";
-import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
+import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 
 export default class AnnotatedSceneState {
 

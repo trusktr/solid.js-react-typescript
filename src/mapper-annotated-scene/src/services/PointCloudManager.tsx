@@ -1,18 +1,18 @@
 import * as React from "react"
 import * as THREE from "three";
-import {PointCloudTileManager} from "@/annotator-entry-ui/tile/PointCloudTileManager";
-import {SceneManager} from "@/annotator-z-hydra-shared/src/services/SceneManager";
+import {PointCloudTileManager} from "@/mapper-annotated-scene/tile/PointCloudTileManager";
+import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
 import Logger from "@/util/log";
 import config from "@/config";
-import LayerManager, {Layer} from "@/annotator-z-hydra-shared/src/services/LayerManager";
-import {RangeSearch} from "@/annotator-entry-ui/model/RangeSearch";
-import {CoordinateFrameType} from "@/annotator-entry-ui/geometry/CoordinateFrame";
+import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerManager";
+import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
+import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateFrame";
 import {isTupleOfNumbers} from "@/util/Validation";
-import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
 import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
-import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 
 const log = Logger(__filename)
 

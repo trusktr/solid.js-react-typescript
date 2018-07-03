@@ -5,20 +5,19 @@
 
 import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
-import Annotator from 'annotator-entry-ui/Annotator'
-import Kiosk from 'annotator-z-hydra-kiosk/Kiosk'
-// import Menu from './components/Menu'
 import './style.scss'
 import Logger from '@/util/log'
 import config from "@/config";
-// import KioskMenuView from "annotator-z-hydra-kiosk/KioskMenuView";
+// import KioskMenuView from "mapper-annotated-scene/KioskMenuView";
 import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
-import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import StatusWindow from "@/annotator-z-hydra-shared/components/StatusWindow";
-import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
-import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
+import StatusWindow from "@/mapper-annotated-scene/components/StatusWindow";
+import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
+import Kiosk from "@/kiosk/Kiosk";
+import Annotator from "@/annotator/Annotator";
 
 
 const log = Logger(__filename)

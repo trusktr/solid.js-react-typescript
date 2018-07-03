@@ -1,7 +1,7 @@
 
-import UIMessage from "annotator-z-hydra-shared/src/models/UIMessage"
-import AnnotatedSceneState from "annotator-z-hydra-shared/src/store/state/AnnotatedSceneState"
-import AnnotatedSceneActions from "AnnotatedSceneActions.ts"
+import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
+import AnnotatedSceneState from "mapper-annotated-scene/src/store/state/AnnotatedSceneState"
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts"
 
 
 function expireMessages() {

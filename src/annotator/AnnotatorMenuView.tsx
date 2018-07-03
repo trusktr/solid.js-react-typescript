@@ -6,8 +6,8 @@
 import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
 import './style.scss'
-import Help from 'annotator-entry-ui/components/Help'
-import initUIControl from '@/annotator-control-ui/UIControl'
+import initUIControl from "@/annotator/annotator-control-ui/UIControl";
+import Help from "@/annotator/components/Help";
 
 interface IProps {}
 interface IState {}
