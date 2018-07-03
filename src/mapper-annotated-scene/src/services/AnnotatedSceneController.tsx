@@ -75,8 +75,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   public utmCoordinateSystem: UtmCoordinateSystem
 
   private scaleProvider: ScaleProvider
-  private pointCloudTileManager: PointCloudManager
-  annotationManager: AnnotationManager
+  private pointCloudTileManager: PointCloudTileManager
+  private annotationTileManager: AnnotationTileManager
+  annotationManager: AnnotationManager // public because apps like Kiosk need access to it (e.g., to load user data and trajectories)
   private channel: EventEmitter
 
   constructor(props) {
@@ -154,20 +155,23 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   }
 
   componentDidMount() {
-    this.makeStats()
+    if(!this.state.sceneManager) {
+      log.error("[Migration Error] SceneManager is not setup")
+      return
+    }
 
     // TODO JOE FRIDAY
     // if ( interaction is enabled ) {
 
-    this.props.sceneManager.renderer.domElement.addEventListener('mousemove', this.annotationManager.checkForActiveMarker)
+    this.state.sceneManager.state.renderer.domElement.addEventListener('mousemove', this.annotationManager.checkForActiveMarker)
 
     // TODO REORG JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
-    this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.checkForConflictOrDeviceSelection)
-    this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.checkForAnnotationSelection)
-    this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.addAnnotationMarker)
-    this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.addLaneConnection)   // RYAN Annotator-specific
-    this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.connectNeighbor)  // RYAN Annotator-specific
-    this.props.sceneManager.renderer.domElement.addEventListener('mouseup', this.annotationManager.joinAnnotations)
+    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.checkForConflictOrDeviceSelection)
+    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.checkForAnnotationSelection)
+    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.addAnnotationMarker)
+    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.addLaneConnection)   // RYAN Annotator-specific
+    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.connectNeighbor)  // RYAN Annotator-specific
+    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.joinAnnotationsEventHandler)
 
     // }
 
@@ -175,7 +179,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       const cameraOffset: [number, number, number] = config['startup.camera_offset']
 
       if (isTupleOfNumbers(cameraOffset, 3)) {
-        this.props.sceneManager.setCameraOffset(cameraOffset)
+        this.state.sceneManager.setCameraOffset(cameraOffset)
       } else if (cameraOffset) {
         log.warn(`invalid startup.camera_offset config: ${cameraOffset}`)
       }
@@ -205,28 +209,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     })
 
     // }}}
-  }
-
-  componentWillUnmount() {
-    this.destroyStats()
-  }
-
-  private makeStats(): void {
-
-    if (!config['startup.show_stats_module']) return
-
-    // Create stats widget to display frequency of rendering
-    this.stats = new Stats()
-    this.stats.dom.style.top = 'initial' // disable existing setting
-    this.stats.dom.style.bottom = '50px' // above Mapper logo
-    this.stats.dom.style.left = '13px'
-    this.root.appendChild(this.stats.dom)
-
-  }
-
-  private destroyStats(): void {
-    if (!config['startup.show_stats_module']) return
-    this.stats.dom.remove()
   }
 
   /**

@@ -1886,7 +1886,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * If the mouse was clicked while pressing the "j" key, then join active
 	 * annotation with the clicked one, if they are of the same type
 	 */
-	joinAnnotations = (event: MouseEvent): void => {
+	joinAnnotationsEventHandler = (event: MouseEvent): void => {
 		if (this.uiState.isMouseDragging) return
 		if (!this.uiState.isJoinAnnotationKeyPressed) return
 
@@ -1924,7 +1924,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		// join annotations
-		if (!this.annotationManager.joinAnnotations(annotation1, annotation2))
+		if (!this.joinAnnotations(annotation1, annotation2))
 			return
 
 		// update UI panel

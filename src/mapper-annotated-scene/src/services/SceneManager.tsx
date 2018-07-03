@@ -22,6 +22,7 @@ import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuper
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {OrderedMap} from "immutable";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
+import * as Stats from 'stats.js'
 
 const log = Logger(__filename)
 
@@ -68,6 +69,7 @@ export interface SceneManagerState {
 	maxDistanceToDecorations: number // meters
 
 	decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
+	stats: Stats
 }
 
 
@@ -223,7 +225,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 			maxDistanceToDecorations: 50000,
 			decorations: [],
-
+			stats: new Stats(),
 
 
 		}
@@ -304,6 +306,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	componentDidMount() {
+		this.makeStats()
 		this.sceneContainer.appendChild(this.state.renderer.domElement)
 		this.startAnimation()
 
@@ -311,8 +314,29 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	componentWillUnmount() {
 		this.stopAnimation()
+    this.destroyStats()
 		this.state.renderer.domElement.remove()
+
 	}
+
+  private makeStats(): void {
+    if (!config['startup.show_stats_module']) return
+
+    // Create stats widget to display frequency of rendering
+    const stats = this.state.stats
+    stats.dom.style.top = 'initial' // disable existing setting
+    stats.dom.style.bottom = '50px' // above Mapper logo
+    stats.dom.style.left = '13px'
+    this.sceneContainer.appendChild(stats.dom)
+		this.setState({stats})
+
+  }
+
+  private destroyStats(): void {
+    if (!config['startup.show_stats_module']) return
+    this.state.stats.dom.remove()
+  }
+
 
   /**
 	 * updateOrbitControlsTargetPoint is called via componentWillReceiveProps.
