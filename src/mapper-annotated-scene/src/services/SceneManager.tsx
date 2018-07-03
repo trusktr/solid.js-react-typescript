@@ -582,17 +582,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// updating the clients message.
 		//orbitControls.addEventListener('pan', this.emit( 'cameraUpdate', { ... camera info ... } ))
 
-		// TODO JOE THURSDAY Obsolete, we won't clear transform controls on
-		// camera move, but, we'll clear them only on interaction events with
-		// the content of the scene. At the moment, this is only on escape key
-		// press.
-		//
-		// If we are controlling the scene cancel the timeout that hides any transform control
-		//orbitControls.addEventListener('start', this.cancelHideTransform)
-		//
-		// After the scene transformation is over start the timer to hide the transform object.
-		//this.annotatorOrbitControls.addEventListener('end', this.delayHideTransform)
-
 		const fn = () => {}
 
 		orbitControls.addEventListener('start', () => {
