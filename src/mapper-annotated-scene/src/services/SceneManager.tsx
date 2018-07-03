@@ -1,34 +1,34 @@
 import * as THREE from "three";
 import * as React from "react"
 import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
-import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
-import {CameraType} from "@/annotator-z-hydra-shared/src/models/CameraType";
-import {Sky} from "@/annotator-entry-ui/controls/Sky";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
+import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
+import {Sky} from "@/mapper-annotated-scene/src/services/controls/Sky";
 import config from "@/config";
-import {AxesHelper} from "@/annotator-entry-ui/controls/AxesHelper";
-import {CompassRose} from "@/annotator-entry-ui/controls/CompassRose";
-import AnnotatedSceneActions from "@/annotator-z-hydra-shared/src/store/actions/AnnotatedSceneActions.ts";
+import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper";
+import {CompassRose} from "@/mapper-annotated-scene/src/services/controls/CompassRose";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
 import Logger from "@/util/log";
-import {OrbitControls} from "@/annotator-entry-ui/controls/OrbitControls";
+import {OrbitControls} from "@/mapper-annotated-scene/src/services/controls/OrbitControls";
 import {getValue} from "typeguard";
-import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
-import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider";
-import {UtmCoordinateSystem} from "@/annotator-entry-ui/UtmCoordinateSystem";
-import {getDecorations} from "@/annotator-entry-ui/Decorations";
-import PointCloudManager from "@/annotator-z-hydra-shared/src/services/PointCloudManager";
-import {StatusKey} from "@/annotator-z-hydra-shared/src/models/StatusKey";
-import StatusWindowActions from "@/annotator-z-hydra-shared/StatusWindowActions";
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
+import {getDecorations} from "@/mapper-annotated-scene/Decorations";
+import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
+import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
 import {EventEmitter} from "events";
-import {PointCloudSuperTile} from "@/annotator-entry-ui/tile/PointCloudSuperTile";
-import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
+import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
+import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {OrderedMap} from "immutable";
+import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 
 const log = Logger(__filename)
 
 export interface SceneManagerProps {
 	width: number
 	height: number
+	areaOfInterestManager: AreaOfInterestManager | null
 	shouldAnimate ?: boolean
 	compassRosePosition ?: THREE.Vector3
 	isDecorationsVisible ?: boolean
@@ -56,7 +56,6 @@ export interface SceneManagerState {
 	loop: AnimationLoop
 	cameraOffset: THREE.Vector3
 	orbitControls: THREE.OrbitControls
-  transformControls: THREE.Object3D
 
 	orthoCameraHeight: number
 	cameraPosition2D: THREE.Vector2
@@ -65,8 +64,6 @@ export interface SceneManagerState {
 	sky: THREE.Object3D
 	skyPosition2D: THREE.Vector2
 	updateOrbitControls: boolean
-
-	pointCloudManager: PointCloudManager | null
 
 	maxDistanceToDecorations: number // meters
 
@@ -194,7 +191,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.loadDecorations()
 		})
 
-    const transformControls = this.initTransformControls()
 		const orbitControls = this.initOrbitControls()
 
 		// TODO JOE THURSDAY anything that doesn't need to change we can
@@ -223,9 +219,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			skyPosition2D: skyPosition2D,
 			updateOrbitControls: updateOrbitControls,
 
-      transformControls: transformControls,
 			orbitControls: orbitControls,
-			pointCloudManager: null,
 
 			maxDistanceToDecorations: 50000,
 			decorations: [],
@@ -233,13 +227,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
 		}
-
-		// Initialize all control objects.
-		const orbitControls = this.initOrbitControls()
-
-		this.setState({orbitControls})
-
-
 
 		// Point the camera at some reasonable default location.
 		this.setStage(0, 0, 0)
@@ -270,7 +257,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			}
 		}
 
-		if(newProps.orbitControlsTargetPoint !== this.props.orbitControlsTargetPoint) {
+		if(newProps.orbitControlsTargetPoint && newProps.orbitControlsTargetPoint !== this.props.orbitControlsTargetPoint) {
 			this.updateOrbitControlsTargetPoint(newProps.orbitControlsTargetPoint)
 		}
 
@@ -327,6 +314,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.state.renderer.domElement.remove()
 	}
 
+  /**
+	 * updateOrbitControlsTargetPoint is called via componentWillReceiveProps.
+	 * Specifically AnnotatedSceneController.focusOnPointCloud -> PointCloudManager.focusOnPointCloud -> Redux Action
+   * @param {Vector3} point
+   */
 	updateOrbitControlsTargetPoint(point:THREE.Vector3) {
     if(!this.state.orbitControls) {
       log.warn('[Migration ERROR] orbit controls are not initialized yet')
@@ -410,17 +402,17 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		loop.addAnimationFn(() => {
 			if ( !this.props.shouldAnimate ) return false
-			if (!this.state.pointCloudManager) {
-				log.error( "[ERROR] pointCloudManager does not exist when it's expected!!")
+			if (!this.props.areaOfInterestManager) {
+				log.error( "[ERROR] areaOfInterestManager does not exist when it's expected!!")
 				return
 			}
-			this.state.pointCloudManager.updatePointCloudAoi()
+			this.props.areaOfInterestManager.updatePointCloudAoi()
 			return true
 		})
 
-		this.setState({
-			loop: loop
-		})
+		// this.setState({
+		// 	loop: loop
+		// })
 	}
 
 	removeAxisFromScene() {
@@ -585,25 +577,27 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		orbitControls.addEventListener('change', this.updateSkyPosition)
 
-		// TODO JOE THURSDAY We could emit a cameraUpdate event (f.e. using my
-		// Observable class), and pass camera info to listeners. Then listeners
-		// can (f.e. maybe AnnotatedSceneController) can decide to update things
-		// (f.e. the camera info StatusWindow message)
-		// Search for displayCameraInfo to find code that was previously
-		// updating the clients message.
-		orbitControls.addEventListener('pan', this.emit( 'cameraUpdate', { ... camera info ... } ))
-
-		const fn = () => {}
-
-		orbitControls.addEventListener('start', () => {
-			this.state.loop.addAnimationFn(fn)
-		})
-
-		orbitControls.addEventListener('end', () => {
-			this.state.loop.removeAnimationFn(fn)
-		})
-
 		return orbitControls
+	}
+
+  /**
+	 * To be used by external apps that want to register an orbit control event listener.
+	 * For example, Annotator needs the 'pan' event
+   * @param {string} type
+   * @param {() => void} callback
+   */
+	addOrbitControlEventListener(type:string, callback:()=>void) {
+		// @TODO Annotator needs to register a 'pan' event
+		const orbitControls = this.state.orbitControls
+		orbitControls.addEventListener(type, callback)
+
+    // TODO JOE THURSDAY We could emit a cameraUpdate event (f.e. using my
+    // Observable class), and pass camera info to listeners. Then listeners
+    // can (f.e. maybe AnnotatedSceneController) can decide to update things
+    // (f.e. the camera info StatusWindow message)
+    // Search for displayCameraInfo to find code that was previously
+    // updating the clients message.
+    // orbitControls.addEventListener('pan', this.displayCameraInfo)
 	}
 
 	private getContainerSize = (): Array<number> => {
