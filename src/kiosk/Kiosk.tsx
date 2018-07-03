@@ -1,4 +1,6 @@
 import * as React from 'react'
+import * as THREE from 'three'
+import config from "@/config";
 import CarManager from "@/kiosk/components/CarManager";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
@@ -8,6 +10,7 @@ import KioskMenuView from "@/kiosk/components/KioskMenuView";
 import Logger from "@/util/log";
 import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
 import * as watch from 'watch'
+import FlyThroughActions from "@/kiosk/store/actions/FlyThroughActions";
 
 const log = Logger(__filename)
 
@@ -322,7 +325,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
             <AnnotatedSceneController ref={this.getSceneManager} width={1000} height={1000} />
             <CarManager ref={this.getCarManager} annotatedScene={this.state.annotatedSceneController}/>
 
-            <FlyThroughManager ref={this.getFlyThroughManagerRef} carManager={this.state.carManager!} />
+            <FlyThroughManager ref={this.getFlyThroughManagerRef} carManager={this.state.carManager!} annotatedSceneController={this.state.annotatedSceneController} />
 
             <KioskMenuView flyThroughManager={this.state.flyThroughManager}/>
         </div>

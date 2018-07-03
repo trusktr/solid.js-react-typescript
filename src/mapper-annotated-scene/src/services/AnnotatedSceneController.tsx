@@ -76,7 +76,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
   private scaleProvider: ScaleProvider
   private pointCloudTileManager: PointCloudManager
-  private annotationManager: AnnotationManager
+  annotationManager: AnnotationManager
   private channel: EventEmitter
 
   constructor(props) {

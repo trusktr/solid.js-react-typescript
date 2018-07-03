@@ -20,12 +20,14 @@ import {Socket} from "zmq";
 import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
+import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 
 export interface FlyThroughManagerProps {
   carManager: CarManager
+  annotatedSceneController: AnnotatedSceneController | null
   liveModeEnabled ?: boolean
   playModeEnabled ?: boolean
   flyThroughState ?: FlyThroughState
@@ -75,35 +77,40 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
    * 	Note: This function is called after the car has been instantiated AND after PointCloudManager and AnnotatedScene are setup
    */
   private loadUserData(): Promise<void> {
-    const annotationsPath = config.get('startup.annotations_path')
+    if(!this.props.annotatedSceneController) {
+      log.error("annotatedSceneController not setup, unable to loadUserData")
+      return Promise.resolve()
+    }
+
+    const annotationsPath = config['startup.annotations_path']
     let annotationsResult: Promise<void>
     if (annotationsPath) {
-      annotationsResult = this.loadAnnotations(annotationsPath)
+      annotationsResult = this.props.annotatedSceneController.annotationManager.loadAnnotations(annotationsPath)
     } else {
       annotationsResult = Promise.resolve()
     }
 
-    const pointCloudBbox: [number, number, number, number, number, number] = config.get('startup.point_cloud_bounding_box')
+    const pointCloudBbox: [number, number, number, number, number, number] = config['startup.point_cloud_bounding_box']
     let pointCloudResult: Promise<void>
     if (pointCloudBbox) {
       pointCloudResult = annotationsResult
         .then(() => {
           log.info('loading pre-configured bounding box ' + pointCloudBbox)
-          return this.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
+          return this.props.annotatedSceneController!.state.pointCloudManager.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
         })
     } else {
       pointCloudResult = annotationsResult
     }
 
-    if (config.get('startup.point_cloud_directory'))
+    if (config['startup.point_cloud_directory'])
       log.warn('config option startup.point_cloud_directory has been removed.')
-    if (config.get('live_mode.trajectory_path'))
+    if (config['live_mode.trajectory_path'])
       log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
-    if (config.get('fly_through.trajectory_path'))
+    if (config['fly_through.trajectory_path'])
       log.warn('config option fly_through.trajectory_path is now a list: fly_through.trajectory_path.list')
 
     let trajectoryResult: Promise<void>
-    const trajectoryPaths = config.get('fly_through.trajectory_path.list')
+    const trajectoryPaths = config['fly_through.trajectory_path.list']
     if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
       trajectoryResult = pointCloudResult
         .then(() => {
