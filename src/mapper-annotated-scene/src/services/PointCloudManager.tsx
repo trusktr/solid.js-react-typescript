@@ -44,11 +44,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],
       pointCloudBboxColor: new THREE.Color(0xff0000),
     }
-
-    // used to be called after the CarModel was setup
-    // @TODO consider removing -- this is called in Kiosk too
-    this.loadUserData()
-
   }
 
   componentWillReceiveProps(newProps) {
@@ -179,40 +174,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       const p2 = new THREE.Vector3(bbox[3], bbox[4], bbox[5])
       return this.loadPointCloudDataFromMapServer([{minPoint: p1, maxPoint: p2}])
     }
-  }
-
-  /**
-   * 	Load up any data which configuration has asked for on start-up.
-   */
-  private loadUserData(): Promise<void> {
-
-	// TODO JOE FRIDAY duplicate code, see FlyThroughManager. Don't want to call it twice.
-    const annotationsPath = config['startup.annotations_path']
-    let annotationsResult: Promise<void>
-    if (annotationsPath) {
-      annotationsResult = this.annotationManager.loadAnnotations(annotationsPath)
-    } else {
-      annotationsResult = Promise.resolve()
-    }
-
-    const pointCloudBbox: [number, number, number, number, number, number] = config['startup.point_cloud_bounding_box']
-    let pointCloudResult: Promise<void>
-    if (pointCloudBbox) {
-      pointCloudResult = annotationsResult
-        .then(() => {
-          log.info('loading pre-configured bounding box ' + pointCloudBbox)
-          return this.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
-        })
-    } else {
-      pointCloudResult = annotationsResult
-    }
-
-    if (config['startup.point_cloud_directory'])
-      log.warn('config option startup.point_cloud_directory has been removed.')
-    if (config['live_mode.trajectory_path'])
-      log.warn('config option live_mode.trajectory_path has been renamed to fly_through.trajectory_path')
-
-    return pointCloudResult
   }
 
   hidePointCloudBoundingBox() {
