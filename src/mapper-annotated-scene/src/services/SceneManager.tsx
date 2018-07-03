@@ -54,9 +54,8 @@ export interface SceneManagerState {
 	renderer: THREE.WebGLRenderer
 	loop: AnimationLoop
 	cameraOffset: THREE.Vector3
-	orbitControls: THREE.OrbitControls | null
-	annotatorOrbitControls: THREE.OrbitControls
-	flyThroughOrbitControls: THREE.OrbitControls
+	orbitControls: THREE.OrbitControls
+  transformControls: THREE.Object3D
 
 	orthoCameraHeight: number
 	cameraPosition2D: THREE.Vector2
@@ -193,6 +192,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.loadDecorations()
 		})
 
+    const transformControls = this.initTransformControls()
+		const orbitControls = this.initOrbitControls()
+
 		// TODO JOE THURSDAY anything that doesn't need to change we can
 		// take out of state and keep as instance variables. F.e. loop, scene,
 		// renderer, etc
@@ -219,7 +221,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			skyPosition2D: skyPosition2D,
 			updateOrbitControls: updateOrbitControls,
 
-			orbitControls: null,
+      transformControls: transformControls,
+			orbitControls: orbitControls,
 			pointCloudManager: null,
 
 			maxDistanceToDecorations: 50000,
@@ -580,7 +583,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// (f.e. the camera info StatusWindow message)
 		// Search for displayCameraInfo to find code that was previously
 		// updating the clients message.
-		//orbitControls.addEventListener('pan', this.emit( 'cameraUpdate', { ... camera info ... } ))
+		orbitControls.addEventListener('pan', this.emit( 'cameraUpdate', { ... camera info ... } ))
 
 		const fn = () => {}
 
@@ -769,9 +772,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		this.onWindowResize()
 
-		this.transformControls.setCamera(newCamera)
-		this.annotatorOrbitControls.setCamera(newCamera)
-		this.flyThroughOrbitControls.setCamera(newCamera)
+
+    const orbitControls = this.state.orbitControls
+    orbitControls.setCamera(newCamera)
+    this.setState({orbitControls})
 
 		// RYAN UPDATED
 		// this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
