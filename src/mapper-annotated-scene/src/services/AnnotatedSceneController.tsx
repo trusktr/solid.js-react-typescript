@@ -88,10 +88,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       enableAnnotationTileManager: false,
       enableTileManagerStats: !!config['tile_manager.stats_display.enable'],
       pointCloudBboxColor: new THREE.Color(0xff0000),
-      timeToDisplayHealthyStatusMs: 10000,
-      maxDistanceToDecorations: 50000,
-      skyRadius: 8000,
-      cameraToSkyMaxDistance: 0,
     }
 
     this.state = {
@@ -428,13 +424,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
           eventEmitter={this.channel}
         />
 
-        <LayerManager
-          ref={this.getLayerManagerRef}
-
-					// TODO JOE THURSDAY Looks like we can replace this with a message on a channel (eventEmitter) that
-					// makes SceneManager re-render, so we can avoid stringing callbacks.
-          onRenender={onRenderCallBack}
-        />
+        <LayerManager ref={this.getLayerManagerRef} />
 
         <AnnotationManager
           ref={this.getAnnotationManagerRef}

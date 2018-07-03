@@ -2,9 +2,7 @@ import * as React from "react"
 import LayerToggle from "@/annotator-z-hydra-shared/src/models/LayerToggle";
 import * as lodash from "lodash";
 import Logger from "@/util/log";
-import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/annotator-z-hydra-shared/src/styles/Themed";
-import AnnotatedSceneState from "@/annotator-z-hydra-shared/src/store/state/AnnotatedSceneState";
 import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
 
 const log = Logger(__filename)
@@ -16,9 +14,7 @@ export enum Layer {
 	ANNOTATIONS,
 }
 
-export interface LayerManagerProps {
-	onRenender: () => void
-}
+export interface LayerManagerProps {}
 
 export interface LayerManagerState {
 	layerToggles: Map<string, LayerToggle>
@@ -64,16 +60,13 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 
 	// Ensure that some layers of the model are visible. Optionally hide the other layers.
 	setLayerVisibility(layerKeysToShow: string[], hideOthers: boolean = false): void {
-		let updated = 0
-
 		layerKeysToShow.forEach(key => {
 			if (this.state.layerToggles.has(key)) {
 				// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
 				this.state.layerToggles.get(key)!.show()
-				updated++
 			}
 			else
-			log.error(`missing visibility toggle for ${key}`)
+				log.error(`missing visibility toggle for ${key}`)
 		})
 
 		if (hideOthers) {
@@ -82,15 +75,13 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 				if (this.state.layerToggles.has(key)) {
 					// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
 					this.state.layerToggles.get(key)!.hide()
-					updated++
 				}
 				else
-				log.error(`missing visibility toggle for ${key}`)
+					log.error(`missing visibility toggle for ${key}`)
 			})
 		}
 
-		if (updated)
-			this.props.onRenender()
+		new AnnotatedSceneActions().setVisibleLayers(layerKeysToShow)
 	}
 
 	// TODO JOE WEDNESDAY toggle visibility of a specific layer by name/id

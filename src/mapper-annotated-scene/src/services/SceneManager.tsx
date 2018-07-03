@@ -37,6 +37,7 @@ export interface SceneManagerProps {
 	utmCoordinateSystem: UtmCoordinateSystem
   eventEmitter: EventEmitter
   sceneObjects ?: Set<THREE.Object3D>
+  visibleLayers ?: string[]
 }
 
 
@@ -80,6 +81,7 @@ export interface SceneManagerState {
 	orbitControlsTargetPoint: (state) => state.get(AnnotatedSceneState.Key).orbitControlsTargetPoint,
 	pointCloudSuperTiles: (state) => state.get(AnnotatedSceneState.Key).pointCloudSuperTiles,
 	sceneObjects: (state) => state.get(AnnotatedSceneState.Key).sceneObjects,
+  visibleLayers: (state) => state.get(AnnotatedSceneState.Key).visibleLayers,
 }))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
@@ -288,6 +290,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			const existingSceneObjects = this.props.sceneObjects!
       this.updateSceneObjects(newSceneObjects, existingSceneObjects)
 		}
+
+		// If the LayerManager modifies the visible layers, we should rerender
+		if(newProps.visibleLayers != this.props.visibleLayers) {
+			this.renderScene()
+		}
+
 
 	}
 

@@ -58,4 +58,6 @@ export default class AnnotatedSceneState {
 	annotationSuperTiles: OrderedMap<string, SuperTile>
 
 	sceneObjects: Set<THREE.Object3D>
+
+	visibleLayers: string[]
 }

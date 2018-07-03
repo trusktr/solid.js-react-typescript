@@ -76,7 +76,8 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
       annotationSuperTiles: OrderedMap<string, SuperTile>(),
       pointCloudSuperTiles: OrderedMap<string, SuperTile>(),
 
-			sceneObjects: new Set<THREE.Object3D>()
+			sceneObjects: new Set<THREE.Object3D>(),
+			visibleLayers: []
 		}
 
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
@@ -275,5 +276,13 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
       })
     }
   }
+
+  @ActionReducer()
+	setVisibleLayers(visibleLayers:string[]) {
+    log.info("Setting visible layers", visibleLayers)
+    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+      ...annotatedSceneState, visibleLayers: visibleLayers
+    })
+	}
 
 }

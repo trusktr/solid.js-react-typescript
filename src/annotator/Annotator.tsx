@@ -186,6 +186,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (config['startup.animation.fps'])
 			log.warn('Config option startup.animation.fps has been removed. Use startup.render.fps.')
 
+		// @TODO (Ryan) -- Joe should we remove things like 'skyRadius' and 'cameraToSkyMaxDistance' if they aren't being used
 		this.settings = {
 			tileGroundPlaneScale: 1.05,
 			enableAnnotationTileManager: false,
