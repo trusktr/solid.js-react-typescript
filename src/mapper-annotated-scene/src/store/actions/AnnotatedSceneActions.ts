@@ -266,7 +266,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	}
 
   @ActionReducer()
-  removeObjectToScene(object:THREE.Object3D) {
+  removeObjectFromScene(object:THREE.Object3D) {
     log.info("Removing object from scene")
     return (annotatedSceneState: AnnotatedSceneState) => {
       const sceneObjects = getAnnotatedSceneStoreState().get(AnnotatedSceneState.Key).sceneObjects as Set<THREE.Object3D>

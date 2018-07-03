@@ -106,7 +106,7 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 	// extend the AOI with another bounding box in the direction of motion.
 	private updatePointCloudAoiBoundingBox(focalPoint: THREE.Vector3 | null): void {
 		if (this.state.shouldDrawBoundingBox) {
-			this.state.boundingBoxes.forEach(bbox => this.props.sceneManager.removeObjectToScene(bbox))
+			this.state.boundingBoxes.forEach(bbox => this.props.sceneManager.removeObjectFromScene(bbox))
 			this.setState({boundingBoxes: []})
 		}
 

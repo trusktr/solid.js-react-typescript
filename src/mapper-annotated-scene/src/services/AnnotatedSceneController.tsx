@@ -302,7 +302,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   }
 
   removeObjectFromScene(object: THREE.Object3D) {
-    new AnnotatedSceneActions().removeObjectToScene(object)
+    new AnnotatedSceneActions().removeObjectFromScene(object)
   }
 
   renderScene() {

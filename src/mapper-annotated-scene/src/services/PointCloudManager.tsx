@@ -67,7 +67,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	  // TODO JOE MONDAY 7/2/18 maybe we can make a more generic
 	  // `setLayerVisible( 'decorations', true )` type of action?
     new AnnotatedSceneActions().setIsDecorationsVisible(true)
-    this.props.pointCloudTileManager.getPointClouds().forEach(pc => new AnnotatedSceneActions.addObjectToScene(pc))
+    this.props.pointCloudTileManager.getPointClouds().forEach(pc => new AnnotatedSceneActions().addObjectToScene(pc))
 
     const pointCloudBoundingBox = this.getPointCloudBoundingBox()
     if (pointCloudBoundingBox)
@@ -76,11 +76,11 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
   private hidePointCloud():void {
     new AnnotatedSceneActions().setIsDecorationsVisible(false)
-    this.props.pointCloudTileManager.getPointClouds().forEach(pc => new AnnotatedSceneActions.removeObjectToScene(pc))
+    this.props.pointCloudTileManager.getPointClouds().forEach(pc => new AnnotatedSceneActions().removeObjectFromScene(pc))
 
     const pointCloudBoundingBox = this.getPointCloudBoundingBox()
     if (pointCloudBoundingBox)
-      new AnnotatedSceneActions().removeObjectToScene(pointCloudBoundingBox)
+      new AnnotatedSceneActions().removeObjectFromScene(pointCloudBoundingBox)
   }
 
 
@@ -89,7 +89,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   unloadPointCloudData(): void {
     if (this.props.pointCloudTileManager.unloadAllTiles()) {
       if (this.state.pointCloudBoundingBox)
-        new AnnotatedSceneActions.removeObjectToScene(this.state.pointCloudBoundingBox)
+        new AnnotatedSceneActions().removeObjectFromScene(this.state.pointCloudBoundingBox)
     } else {
       log.warn('unloadPointCloudData failed')
     }
@@ -105,7 +105,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   updatePointCloudBoundingBox(): void {
     if (this.state.shouldDrawBoundingBox) {
       if (this.state.pointCloudBoundingBox) {
-        new AnnotatedSceneActions.removeObjectToScene(this.state.pointCloudBoundingBox)
+        new AnnotatedSceneActions().removeObjectFromScene(this.state.pointCloudBoundingBox)
         this.setState({
           pointCloudBoundingBox: null
         })
@@ -120,7 +120,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
         const pointCloudBoundingBox = new THREE.BoxHelper(bbox as any, this.state.pointCloudBboxColor)
         this.setState({pointCloudBoundingBox: pointCloudBoundingBox})
-        new AnnotatedSceneActions.addObjectToScene(pointCloudBoundingBox)
+        new AnnotatedSceneActions().addObjectToScene(pointCloudBoundingBox)
       }
     }
   }
