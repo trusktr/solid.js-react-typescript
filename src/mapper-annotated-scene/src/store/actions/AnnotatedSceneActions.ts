@@ -78,7 +78,8 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
       pointCloudSuperTiles: OrderedMap<string, SuperTile>(),
 
 			sceneObjects: new Set<THREE.Object3D>(),
-			visibleLayers: []
+			visibleLayers: [],
+      isAnnotationTileManagerEnabled: false, // by default, do not include the AnnotationTileManager -- it's only needed for the Kiosk app
 		}
 
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
@@ -291,6 +292,14 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     log.info("Setting visible layers", visibleLayers)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, visibleLayers: visibleLayers
+    })
+	}
+
+	@ActionReducer()
+  setIsAnnotationTileManagerEnabled(isEnabled:boolean) {
+    log.info("Setting isAnnotationTileManagerEnabled", isEnabled)
+    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+      ...annotatedSceneState, isAnnotationTileManagerEnabled: isEnabled
     })
 	}
 

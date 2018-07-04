@@ -236,6 +236,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// TODO JOE FRIDAY move AnnotationTileManager out of
 		// AnnotatedSceneController, into Kiosk app (and remove this from
 		// Annotator)
+		// @TODO (comment from Ryan 7/3): @Joe thoughts on leaving the AnnotationTileManager in the Shared Lib and only enabling it for Kiosk?  That's what I'm currently doing -- let's chat when you look at this
 		this.settings.enableAnnotationTileManager = this.uiState.isKioskMode
 
 		this.hovered = null

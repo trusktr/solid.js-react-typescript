@@ -43,7 +43,6 @@ interface AnnotatorSettings {
 	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
 	estimateGroundPlane: boolean
 	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
-	enableAnnotationTileManager: boolean
 	enableTileManagerStats: boolean
 	pointCloudBboxColor: THREE.Color
 	timeToDisplayHealthyStatusMs: number
@@ -54,6 +53,7 @@ interface AnnotatorSettings {
 
 export interface IAnnotatedSceneControllerProps {
   onPointOfInterestCall: any
+  enableAnnotationTileManager: boolean // this should be true for Kiosk and false for Annotator
 	statusWindowState ?: StatusWindowState
 }
 
@@ -76,7 +76,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
   private scaleProvider: ScaleProvider
   private pointCloudTileManager: PointCloudTileManager
-  private annotationTileManager: AnnotationTileManager
+  private annotationTileManager: AnnotationTileManager | null
   annotationManager: AnnotationManager // public because apps like Kiosk need access to it (e.g., to load user data and trajectories)
   private channel: EventEmitter
 
@@ -86,7 +86,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     this.settings = {
       estimateGroundPlane: !!config['annotator.add_points_to_estimated_ground_plane'],
       tileGroundPlaneScale: 1.05,
-      enableAnnotationTileManager: false,
       enableTileManagerStats: !!config['tile_manager.stats_display.enable'],
       pointCloudBboxColor: new THREE.Color(0xff0000),
     }
@@ -108,6 +107,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     this.utmCoordinateSystem = new UtmCoordinateSystem(this.channel)
     // ^ utmCoordinateSystem doesn't need to be a React component because it
     // isn't hooked to Redux.
+    this.annotationTileManager = null // this will be set if props.enableAnnotationTileManager is true
 
     // TODO JOE THURSDAY if not creating it here, pass pointCloudTileManager as a prop
     this.scaleProvider = new ScaleProvider()
@@ -118,7 +118,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       tileServiceClient,
     )
 
-    if (this.settings.enableAnnotationTileManager) {
+    if (this.props.enableAnnotationTileManager) {
       this.annotationTileManager = new AnnotationTileManager(
         this.scaleProvider,
         this.utmCoordinateSystem,
@@ -133,6 +133,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         // something like AnnotationLayer or something.
         this.annotationManager,
       )
+      new AnnotatedSceneActions().setIsAnnotationTileManagerEnabled(true)
     }
 
     window.addEventListener('keydown', this.onKeyDown)
