@@ -314,7 +314,12 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   }
 
   registerKeyboardUpEvent(eventKeyCode: number, fn: any) {
-    // @TODO Ryan - see where keyboard up events are used
+    const registeredKeyboardEvents = this.state.registeredKeyUpEvents
+
+    registeredKeyboardEvents.set(eventKeyCode, fn)
+    this.setState({
+      registeredKeyUpEvents: registeredKeyboardEvents
+    })
   }
 
   /**
@@ -386,7 +391,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       <React.Fragment>
 
         {/* NOTE JOE THURSDAY StatusWindow doesn't need UtmCoordinateSystem at all, it is only concerned with messages */}
-        <StatusWindow ref={this.getStatusWindowRef}/>
+        <StatusWindow ref={this.getStatusWindowRef} utmCoordinateSystem={this.utmCoordinateSystem} eventEmitter={this.channel}/>
 
         <PointCloudManager
           ref={this.getPointCloudManagerRef}
