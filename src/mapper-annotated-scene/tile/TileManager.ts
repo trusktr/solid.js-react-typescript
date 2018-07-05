@@ -5,19 +5,19 @@
 
 import {OrderedMap, OrderedSet} from 'immutable'
 import * as THREE from 'three'
-import {TileMessage} from "@/annotator-entry-ui/model/TileMessage"
-import {NullTileContents} from "@/annotator-entry-ui/model/TileContents"
+import {TileMessage} from "@/mapper-annotated-scene/tile-model/TileMessage"
+import {NullTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
 import {SuperTile} from "./SuperTile"
 import {UtmTile} from "./UtmTile"
 import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
 import {Scale3D} from "../geometry/Scale3D"
-import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
-import {TileIndex, tileIndexFromVector3} from "../model/TileIndex"
-import LocalStorage from "../state/LocalStorage"
+import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
+import {TileIndex, tileIndexFromVector3} from "@/mapper-annotated-scene/tile-model/TileIndex"
+import LocalStorage from "@/mapper-annotated-scene/LocalStorage"
 import {TileServiceClient} from "./TileServiceClient"
-import {RangeSearch} from "../model/RangeSearch"
-import {TileInstance} from "../model/TileInstance"
+import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch"
+import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
 import Logger from "@/util/log"
 
 const log = Logger(__filename)
