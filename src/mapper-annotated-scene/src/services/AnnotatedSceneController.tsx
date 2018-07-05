@@ -23,7 +23,7 @@ import config from "@/config";
 import {AnnotationTileManager} from "@/mapper-annotated-scene/tile/AnnotationTileManager";
 import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
-import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager";
+import {AnnotationManager} from "AnnotationManager.tsx";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 
@@ -102,6 +102,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       layerManager: null,
       registeredKeyDownEvents: new Map<number, any>(),
       registeredKeyUpEvents: new Map<number, any>(),
+      areaOfInterestManager: null,
     }
 
     // These don't need to be state, because these references don't change

@@ -22,27 +22,27 @@ import {
 	Lane, NeighborDirection, NeighborLocation
 } from './annotations/Lane'
 import * as AnnotationFactory from "./annotations/AnnotationFactory"
-import {TrafficDevice} from 'annotator-entry-ui/annotations/TrafficDevice'
+import {TrafficDevice} from '@/mapper-annotated-scene/annotations/TrafficDevice'
 import {Territory} from "./annotations/Territory"
-import {Connection} from 'annotator-entry-ui/annotations/Connection'
-import {Boundary} from 'annotator-entry-ui/annotations/Boundary'
+import {Connection} from 'mapper-annotated-scene/annotations/Connection'
+import {Boundary} from 'mapper-annotated-scene/annotations/Boundary'
 import {SimpleKML} from '../util/KmlUtils'
-import * as EM from 'annotator-entry-ui/ErrorMessages'
+import * as EM from 'mapper-annotated-scene/ErrorMessages'
 import * as AsyncFile from 'async-file'
 import * as mkdirp from 'mkdirp'
 import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
 import * as CRS from "./CoordinateReferenceSystem"
 import Logger from "@/util/log"
-import {tileIndexFromVector3} from "@/annotator-entry-ui/model/TileIndex"
-import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
+import {tileIndexFromVector3} from "@/mapper-annotated-scene/tile-model/TileIndex"
+import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import LayerManager from "@/mapper-annotated-scene/src/services/LayerManager";
 
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
-import {SuperTile} from "@/annotator-entry-ui/tile/SuperTile";
+import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {OrderedMap} from "immutable";
-import {AnnotationSuperTile} from "@/annotator-entry-ui/tile/AnnotationSuperTile";
+import {AnnotationSuperTile} from "@/mapper-annotated-scene/tile/AnnotationSuperTile";
 
 const log = Logger(__filename)
 
@@ -75,9 +75,23 @@ interface IProps {
 	// onRemoveAnnotation(object: THREE.Object3D): void
 	// onChangeActiveAnnotation(active: Annotation): void
 
-    layerManager: LayerManager
+	layerManager: LayerManager
 	isAnnotationsVisible: boolean
   annotationSuperTiles ?: OrderedMap<string, SuperTile>
+
+	// Replacing uiState in the short term
+  isMouseDragging ?: boolean
+  isRotationModeActive ?: boolean
+  isConnectLeftNeighborKeyPressed ?: boolean
+  isConnectRightNeighborKeyPressed ?: boolean
+  isConnectFrontNeighborKeyPressed ?: boolean
+  isAddMarkerKeyPressed ?: boolean
+  isLiveMode ?: boolean
+  isAddConnectionKeyPressed ?: boolean
+  isJoinAnnotationKeyPressed ?: boolean
+  isControlKeyPressed ?: boolean
+  isAddConflictOrDeviceKeyPressed ?: boolean
+  isMouseButtonPressed ?: boolean
 }
 
 interface IState {
@@ -97,6 +111,21 @@ interface IState {
 
 	isAnnotationsVisible: (state) => state.get(AnnotatedSceneState.Key).isAnnotationsVisible,
 	annotationSuperTiles: (state) => state.get(AnnotatedSceneState.Key).annotationSuperTiles,
+
+  isMouseDragging: (state) => state.get(AnnotatedSceneState.Key).isMouseDragging,
+  isRotationModeActive: (state) => state.get(AnnotatedSceneState.Key).isRotationModeActive,
+  isConnectLeftNeighborKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isConnectLeftNeighborKeyPressed,
+  isConnectRightNeighborKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isConnectRightNeighborKeyPressed,
+  isConnectFrontNeighborKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isConnectFrontNeighborKeyPressed,
+  isAddMarkerKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isAddMarkerKeyPressed,
+
+
+  isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
+  isAddConnectionKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isAddConnectionKeyPressed,
+  isJoinAnnotationKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isJoinAnnotationKeyPressed,
+  isControlKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isControlKeyPressed,
+  isAddConflictOrDeviceKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isAddConflictOrDeviceKeyPressed,
+  isMouseButtonPressed: (state) => state.get(AnnotatedSceneState.Key).isMouseButtonPressed,
 }))
 export class AnnotationManager extends React.Component<IProps, IState> {
 	laneAnnotations: Array<Lane>
@@ -110,6 +139,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	bezierScaleFactor: number  // Used when creating connections
 
 	constructor( props: IProps ) {
+		super(props)
 		this.laneAnnotations = []
 		this.boundaryAnnotations = []
 		this.trafficDeviceAnnotations = []
@@ -139,6 +169,14 @@ export class AnnotationManager extends React.Component<IProps, IState> {
       tilesToAdd.forEach(tileId => this.addSuperTileAnnotations(newProps.superTiles!.get(tileId)))
       tilesToRemove.forEach(tileId => this.removeSuperTileAnnotations(newProps.superTiles!.get(tileId)))
     }
+	}
+
+	render() {
+		return (
+			<React.Fragment>
+
+			</React.Fragment>
+		)
 	}
 
 	/**
@@ -681,7 +719,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			})
 		}
 
-		if (this.uiState.isRotationModeActive && !active.isRotatable)
+		if (this.props.isRotationModeActive && !active.isRotatable)
 			this.toggleTransformControlsRotationMode()
 
 		return true
@@ -1515,13 +1553,14 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 */
 	// ANNOTATOR ONLY
 	addAnnotationMarker = (event: MouseEvent): void => {
-		if (this.uiState.isMouseDragging) return
-		if (this.uiState.isConnectLeftNeighborKeyPressed ||
-			this.uiState.isConnectRightNeighborKeyPressed ||
-			this.uiState.isConnectFrontNeighborKeyPressed) return
-		if (!this.uiState.isAddMarkerKeyPressed) return
-		if (!this.activeAnnotation) return
-		if (!this.activeAnnotation.allowNewMarkers) return
+		const {isMouseDragging, isConnectLeftNeighborKeyPressed, isConnectRightNeighborKeyPressed,
+			isConnectFrontNeighborKeyPressed, isAddMarkerKeyPressed} = this.props
+
+		if(isMouseDragging || isConnectLeftNeighborKeyPressed || isConnectRightNeighborKeyPressed ||
+			isConnectFrontNeighborKeyPressed || isAddMarkerKeyPressed ||
+			!this.activeAnnotation || !this.activeAnnotation.allowNewMarkers) {
+			return
+		}
 
 		const mouse = mousePositionToGLSpace(event)
 
@@ -1572,8 +1611,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 */
 	// ANNOTATOR ONLY
 	addLaneConnection = (event: MouseEvent): void => {
-		if (!this.uiState.isAddConnectionKeyPressed) return
-		if (this.uiState.isMouseDragging) return
+		if (!this.props.isAddConnectionKeyPressed || this.props.isMouseDragging) return
 		// reject connection if active annotation is not a lane
 		const activeLane = this.annotationManager.getActiveLaneAnnotation()
 		if (!activeLane) {
@@ -1622,12 +1660,16 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * add new neighbor between current active lane and the "clicked" lane
 	 */
 	connectNeighbor = (event: MouseEvent): void => {
-		if (this.uiState.isAddConnectionKeyPressed) return
-		if (this.uiState.isJoinAnnotationKeyPressed) return
-		if (!this.uiState.isConnectLeftNeighborKeyPressed &&
-			!this.uiState.isConnectRightNeighborKeyPressed &&
-			!this.uiState.isConnectFrontNeighborKeyPressed) return
-		if (this.uiState.isMouseDragging) return
+		const {isAddConnectionKeyPressed, isJoinAnnotationKeyPressed, isConnectLeftNeighborKeyPressed,
+			isConnectRightNeighborKeyPressed, isConnectFrontNeighborKeyPressed, isMouseDragging} = this.props
+
+		if(isAddConnectionKeyPressed || isJoinAnnotationKeyPressed || isMouseDragging) {
+			return
+		}
+
+    if (!isConnectLeftNeighborKeyPressed &&
+      !isConnectRightNeighborKeyPressed &&
+      !isConnectFrontNeighborKeyPressed) return
 
 		// reject neighbor if active annotation is not a lane
 		const activeLane = this.annotationManager.getActiveLaneAnnotation()
@@ -1663,7 +1705,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		// Check if the neighbor must be added to the front
-		if (this.uiState.isConnectFrontNeighborKeyPressed) {
+		if (this.props.isConnectFrontNeighborKeyPressed) {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.FRONT)
 			inactive.setNeighborMode(NeighborLocation.FRONT)
 			inactive.addNeighbor(activeLane.uuid, NeighborLocation.BACK)
@@ -1699,7 +1741,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		// add neighbor based on lane direction and selected side
 		const sameDirection: boolean = Math.abs(pt1.angleTo(pt2)) < (Math.PI / 2)
-		if (this.uiState.isConnectLeftNeighborKeyPressed) {
+		if (this.props.isConnectLeftNeighborKeyPressed) {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.LEFT)
 			inactive.setNeighborMode(NeighborLocation.LEFT)
 			Annotator.deactivateLeftSideNeighbours()
@@ -1726,16 +1768,15 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * Check if we clicked an annotation. If so, make it active for editing
 	 */
 	checkForAnnotationSelection = (event: MouseEvent): void => {
-		if (this.uiState.isLiveMode) return
-		if (this.uiState.isMouseDragging) return
-		if (this.uiState.isControlKeyPressed) return
-		if (this.uiState.isAddMarkerKeyPressed) return
-		if (this.uiState.isAddConnectionKeyPressed) return
-		if (this.uiState.isConnectLeftNeighborKeyPressed ||
-			this.uiState.isConnectRightNeighborKeyPressed ||
-			this.uiState.isConnectFrontNeighborKeyPressed) return
-		if (this.uiState.isAddConflictOrDeviceKeyPressed) return
-		if (this.uiState.isJoinAnnotationKeyPressed) return
+		const {isLiveMode, isMouseDragging, isControlKeyPressed, isAddMarkerKeyPressed, isAddConnectionKeyPressed,
+      isConnectLeftNeighborKeyPressed, isConnectRightNeighborKeyPressed, isConnectFrontNeighborKeyPressed,
+      isAddConflictOrDeviceKeyPressed, isJoinAnnotationKeyPressed} = this.props
+
+		if(isLiveMode || isMouseDragging || isControlKeyPressed || isAddMarkerKeyPressed || isAddConnectionKeyPressed ||
+      isConnectLeftNeighborKeyPressed || isConnectRightNeighborKeyPressed || isConnectFrontNeighborKeyPressed ||
+			isAddConflictOrDeviceKeyPressed || isJoinAnnotationKeyPressed) {
+			return
+		}
 
 		const mouse = mousePositionToGLSpace(event)
 		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
@@ -1764,17 +1805,17 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * marker to the transform control for editing.
 	 */
 	checkForActiveMarker = (event: MouseEvent): void => {
+    const {isControlKeyPressed, isAddMarkerKeyPressed, isAddConnectionKeyPressed,
+      isConnectLeftNeighborKeyPressed, isConnectRightNeighborKeyPressed, isConnectFrontNeighborKeyPressed,
+      isAddConflictOrDeviceKeyPressed, isJoinAnnotationKeyPressed, isMouseButtonPressed} = this.props
+
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
-		if (this.uiState.isMouseButtonPressed) return
-		if (this.uiState.isControlKeyPressed) return
-		if (this.uiState.isAddMarkerKeyPressed) return
-		if (this.uiState.isAddConnectionKeyPressed) return
-		if (this.uiState.isConnectLeftNeighborKeyPressed ||
-			this.uiState.isConnectRightNeighborKeyPressed ||
-			this.uiState.isConnectFrontNeighborKeyPressed) return
-		if (this.uiState.isAddConflictOrDeviceKeyPressed) return
-		if (this.uiState.isJoinAnnotationKeyPressed) return
+		if(isMouseButtonPressed || isControlKeyPressed || isAddMarkerKeyPressed || isAddConnectionKeyPressed ||
+      isConnectLeftNeighborKeyPressed || isConnectRightNeighborKeyPressed || isConnectFrontNeighborKeyPressed ||
+      isAddConflictOrDeviceKeyPressed || isJoinAnnotationKeyPressed) {
+    	return
+		}
 
 		const markers = this.annotationManager.activeMarkers()
 		if (!markers) return
@@ -1822,9 +1863,11 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * Check if we clicked a connection or device while pressing the add conflict/device key
 	 */
 	checkForConflictOrDeviceSelection = (event: MouseEvent): void => {
-		if (this.uiState.isLiveMode) return
-		if (this.uiState.isMouseDragging) return
-		if (!this.uiState.isAddConflictOrDeviceKeyPressed) return
+		const {isLiveMode, isMouseDragging, isAddConflictOrDeviceKeyPressed} = this.props
+
+		if(isLiveMode || isMouseDragging || !isAddConflictOrDeviceKeyPressed) {
+			return
+		}
 		log.info("checking for conflict selection")
 
 		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
@@ -1887,8 +1930,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * annotation with the clicked one, if they are of the same type
 	 */
 	joinAnnotationsEventHandler = (event: MouseEvent): void => {
-		if (this.uiState.isMouseDragging) return
-		if (!this.uiState.isJoinAnnotationKeyPressed) return
+		if (this.props.isMouseDragging || !this.props.isJoinAnnotationKeyPressed) return
 
 		// get active annotation
 		let activeAnnotation = this.annotationManager.activeAnnotation

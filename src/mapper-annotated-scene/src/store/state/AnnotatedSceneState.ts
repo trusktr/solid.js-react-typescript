@@ -62,4 +62,19 @@ export default class AnnotatedSceneState {
 
 	visibleLayers: string[]
   isAnnotationTileManagerEnabled: boolean
+
+
+	// Ported from uiState
+  isMouseDragging: boolean
+  isRotationModeActive: boolean
+  isConnectLeftNeighborKeyPressed: boolean
+  isConnectRightNeighborKeyPressed: boolean
+  isConnectFrontNeighborKeyPressed: boolean
+  isAddMarkerKeyPressed: boolean
+  isLiveMode: boolean
+  isAddConnectionKeyPressed: boolean
+  isJoinAnnotationKeyPressed: boolean
+  isControlKeyPressed: boolean
+  isAddConflictOrDeviceKeyPressed: boolean
+  isMouseButtonPressed: boolean
 }

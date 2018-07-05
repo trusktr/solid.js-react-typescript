@@ -80,6 +80,19 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			sceneObjects: new Set<THREE.Object3D>(),
 			visibleLayers: [],
       isAnnotationTileManagerEnabled: false, // by default, do not include the AnnotationTileManager -- it's only needed for the Kiosk app
+
+      isMouseDragging: false,
+      isRotationModeActive: false,
+      isConnectLeftNeighborKeyPressed: false,
+      isConnectRightNeighborKeyPressed: false,
+      isConnectFrontNeighborKeyPressed: false,
+      isAddMarkerKeyPressed: false,
+      isLiveMode: false,
+      isAddConnectionKeyPressed: false,
+      isJoinAnnotationKeyPressed: false,
+      isControlKeyPressed: false,
+      isAddConflictOrDeviceKeyPressed: false,
+      isMouseButtonPressed: false,
 		}
 
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
