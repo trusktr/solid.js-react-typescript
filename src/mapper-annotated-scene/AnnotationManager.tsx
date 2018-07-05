@@ -35,7 +35,7 @@ import * as CRS from "./CoordinateReferenceSystem"
 import Logger from "@/util/log"
 import {tileIndexFromVector3} from "@/mapper-annotated-scene/tile-model/TileIndex"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
-import LayerManager from "@/mapper-annotated-scene/src/services/LayerManager";
+import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerManager";
 
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import {createStructuredSelector} from "reselect";
@@ -43,6 +43,10 @@ import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/Annota
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {OrderedMap} from "immutable";
 import {AnnotationSuperTile} from "@/mapper-annotated-scene/tile/AnnotationSuperTile";
+import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
+import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateFrame";
+import PointCloudManager from "@/mapper-annotated-scene/src/services/PointCloudManager";
+import Annotator from "@/annotator/Annotator";
 
 const log = Logger(__filename)
 
@@ -70,6 +74,7 @@ interface IProps {
 
 	scaleProvider: ScaleProvider
 	utmCoordinateSystem: UtmCoordinateSystem
+  pointCloudManager: PointCloudManager
 
 	// onAddAnnotation(object: THREE.Object3D): void
 	// onRemoveAnnotation(object: THREE.Object3D): void
@@ -849,7 +854,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (!annotations.length)
 			return Promise.reject(Error('failed to save empty set of annotations'))
 
-		if (!this.utmCoordinateSystem.hasOrigin && !config['output.annotations.debug.allow_annotations_without_utm_origin'])
+		if (!this.props.utmCoordinateSystem.hasOrigin && !config['output.annotations.debug.allow_annotations_without_utm_origin'])
 			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
 
 		const self = this
@@ -868,7 +873,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (!annotations.length)
 			return Promise.reject(Error('failed to save empty set of annotations'))
 
-		if (!this.utmCoordinateSystem.hasOrigin && !config['output.annotations.debug.allow_annotations_without_utm_origin'])
+		if (!this.props.utmCoordinateSystem.hasOrigin && !config['output.annotations.debug.allow_annotations_without_utm_origin'])
 			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
 
 		if (format !== OutputFormat.UTM)
@@ -882,8 +887,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const groups: Map<string, Set<Annotation>> = new Map()
 		annotations.forEach(annotation => {
 			annotation.markers.forEach(marker => {
-				const utmPosition = this.utmCoordinateSystem.threeJsToUtm(marker.position)
-				const key = tileIndexFromVector3(this.scaleProvider.utmTileScale, utmPosition).toString('_')
+				const utmPosition = this.props.utmCoordinateSystem.threeJsToUtm(marker.position)
+				const key = tileIndexFromVector3(this.props.scaleProvider.utmTileScale, utmPosition).toString('_')
 				const existing = groups.get(key)
 				if (existing)
 					groups.set(key, existing.add(annotation))
@@ -962,7 +967,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const geopoints: Array<THREE.Vector3> =
 			lodash.flatten(
 				this.laneAnnotations.map(lane =>
-					lane.waypoints.map(p => this.utmCoordinateSystem.threeJsToLngLatAlt(p))
+					lane.waypoints.map(p => this.props.utmCoordinateSystem.threeJsToLngLatAlt(p))
 				)
 			)
 
@@ -992,7 +997,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (!this.checkCoordinateSystem(data)) {
 			const params = data['coordinateReferenceSystem']['parameters']
 			const zoneId = `${params['utmZoneNumber']}${params['utmZoneNorthernHemisphere']}`
-			throw Error(`UTM Zone for new annotations (${zoneId}) does not match existing zone in ${this.utmCoordinateSystem}`)
+			throw Error(`UTM Zone for new annotations (${zoneId}) does not match existing zone in ${this.props.utmCoordinateSystem}`)
 		}
 		this.convertCoordinates(data)
 
@@ -1380,17 +1385,17 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	private threeJsToUtmJsonObject(): (p: THREE.Vector3) => UtmJson {
-		const self = this
+		const {utmCoordinateSystem} = this.props
 		return function (p: THREE.Vector3): UtmJson {
-			const utm = self.utmCoordinateSystem.threeJsToUtm(p)
+			const utm = utmCoordinateSystem.threeJsToUtm(p)
 			return {'E': utm.x, 'N': utm.y, 'alt': utm.z}
 		}
 	}
 
 	private threeJsToLlaJsonObject(): (p: THREE.Vector3) => LlaJson {
-		const self = this
+    const {utmCoordinateSystem} = this.props
 		return function (p: THREE.Vector3): LlaJson {
-			const lngLatAlt = self.utmCoordinateSystem.threeJsToLngLatAlt(p)
+			const lngLatAlt = utmCoordinateSystem.threeJsToLngLatAlt(p)
 			return {'lng': lngLatAlt.x, 'lat': lngLatAlt.y, 'alt': lngLatAlt.z}
 		}
 	}
@@ -1401,7 +1406,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	private checkCoordinateSystem(data: Object): boolean {
 		const crs = data['coordinateReferenceSystem']
 		if (crs['coordinateSystem'] !== 'UTM') return false
-		if (crs['datum'] !== this.utmCoordinateSystem.datum) return false
+		if (crs['datum'] !== this.props.utmCoordinateSystem.datum) return false
 		if (isNullOrUndefined(crs['parameters']['utmZoneNumber']))
 			return false
 		const num = crs['parameters']['utmZoneNumber']
@@ -1410,7 +1415,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const northernHemisphere = !!crs['parameters']['utmZoneNorthernHemisphere']
 
 		if (!data['annotations'])
-			return !this.utmCoordinateSystem.hasOrigin || this.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
+			return !this.props.utmCoordinateSystem.hasOrigin || this.props.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
 
 		// generate an arbitrary offset for internal use, given the first point in the data set
 		let first: THREE.Vector3 | null = null
@@ -1424,10 +1429,10 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 		}
 		if (!first)
-			return !this.utmCoordinateSystem.hasOrigin || this.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
+			return !this.props.utmCoordinateSystem.hasOrigin || this.props.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
 
-		return this.utmCoordinateSystem.setOrigin(num, northernHemisphere, first) ||
-			this.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
+		return this.props.utmCoordinateSystem.setOrigin(num, northernHemisphere, first) ||
+			this.props.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
 	}
 
 	/**
@@ -1438,7 +1443,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			if (annotation['markers']) {
 				for (let i = 0; i < annotation['markers'].length; i++) {
 					const pos = annotation['markers'][i] as UtmJson
-					annotation['markers'][i] = this.utmCoordinateSystem.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
+					annotation['markers'][i] = this.props.utmCoordinateSystem.utmToThreeJs(pos['E'], pos['N'], pos['alt'])
 				}
 			}
 		})
@@ -1591,7 +1596,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 			// Otherwise just find the closest point.
 			if (!intersections.length)
-				intersections = this.pointCloudManager.intersectWithPointCloud(this.raycasterPlane)
+				intersections = this.props.pointCloudManager.intersectWithPointCloud(this.raycasterPlane)
 		}
 
 		if (intersections.length) {
@@ -1613,7 +1618,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	addLaneConnection = (event: MouseEvent): void => {
 		if (!this.props.isAddConnectionKeyPressed || this.props.isMouseDragging) return
 		// reject connection if active annotation is not a lane
-		const activeLane = this.annotationManager.getActiveLaneAnnotation()
+		const activeLane = this.getActiveLaneAnnotation()
 		if (!activeLane) {
 			log.info("No lane annotation is active.")
 			return
@@ -1629,7 +1634,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const object = intersects[0].object.parent
 
 		// check if clicked object is an inactive lane
-		const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+		const inactive = this.checkForInactiveAnnotation(object as THREE.Object3D)
 		if (!(inactive && inactive instanceof Lane)) {
 			log.warn(`Clicked object is not an inactive lane.`)
 			return
@@ -1643,7 +1648,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const toUID = activeToInactive < inactiveToActive ? inactive.id : activeLane.id
 
 		// add connection
-		if (!this.annotationManager.addRelation(fromUID, toUID, 'front')) {
+		if (!this.addRelation(fromUID, toUID, 'front')) {
 			log.warn(`Lane connection failed.`)
 			return
 		}
@@ -1672,7 +1677,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
       !isConnectFrontNeighborKeyPressed) return
 
 		// reject neighbor if active annotation is not a lane
-		const activeLane = this.annotationManager.getActiveLaneAnnotation()
+		const activeLane = this.getActiveLaneAnnotation()
 		if (!activeLane) {
 			log.info("No lane annotation is active.")
 			return
@@ -1681,14 +1686,14 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// get clicked object
 		const mouse = mousePositionToGLSpace(event)
 		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
-		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
+		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationObjects, true)
 		if (intersects.length === 0) {
 			return
 		}
 		const object = intersects[0].object.parent
 
 		// check if clicked object is an inactive lane
-		const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+		const inactive = this.checkForInactiveAnnotation(object as THREE.Object3D)
 		if (!(inactive && inactive instanceof Lane)) {
 			log.warn(`Clicked object is not an inactive lane.`)
 			return
@@ -1784,7 +1789,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		if (intersects.length > 0) {
 			const object = intersects[0].object.parent
-			const inactive = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+			const inactive = this.checkForInactiveAnnotation(object as THREE.Object3D)
 
 			// We clicked an inactive annotation, make it active
 			if (inactive) {
@@ -1793,7 +1798,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 				this.cleanTransformControls()
 				this.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
-				this.annotationManager.setActiveAnnotation(inactive)
+				this.setActiveAnnotation(inactive)
 				this.resetAllAnnotationPropertiesMenuElements()
 				// GONE this.renderAnnotator()
 			}
@@ -1835,8 +1840,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				} else {
 					// special case: 0 searches for all neighbors, so set distance to infinity
 					const distance = this.uiState.numberKeyPressed || Number.POSITIVE_INFINITY
-					const neighbors = this.annotationManager.neighboringMarkers(marker, distance)
-					this.annotationManager.highlightMarkers(neighbors)
+					const neighbors = this.neighboringMarkers(marker, distance)
+					this.highlightMarkers(neighbors)
 					neighbors.unshift(marker)
 					moveableMarkers = neighbors
 				}
@@ -1870,7 +1875,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 		log.info("checking for conflict selection")
 
-		const srcAnnotation = this.annotationManager.getActiveConnectionAnnotation()
+		const srcAnnotation = this.getActiveConnectionAnnotation()
 		if (!srcAnnotation) return
 
 		const mouse = mousePositionToGLSpace(event)
@@ -1879,7 +1884,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		if (intersects.length > 0) {
 			const object = intersects[0].object.parent
-			const dstAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+			const dstAnnotation = this.checkForInactiveAnnotation(object as THREE.Object3D)
 
 			if (!dstAnnotation) return
 
@@ -1906,7 +1911,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 					// Attempt to align the traffic device with the lane that leads to it.
 					if (!dstAnnotation.orientationIsSet()) {
-						const inboundLane = this.annotationManager.laneAnnotations.find(l => l.uuid === srcAnnotation.startLaneUuid)
+						const inboundLane = this.laneAnnotations.find(l => l.uuid === srcAnnotation.startLaneUuid)
 						if (inboundLane) {
 							const laneTrajectory = inboundLane.finalTrajectory()
 							if (laneTrajectory) {
@@ -1933,7 +1938,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (this.props.isMouseDragging || !this.props.isJoinAnnotationKeyPressed) return
 
 		// get active annotation
-		let activeAnnotation = this.annotationManager.activeAnnotation
+		let activeAnnotation = this.activeAnnotation
 		if (!activeAnnotation) {
 			log.info("No annotation is active.")
 			return
@@ -1947,7 +1952,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return
 		}
 		const object = intersects[0].object.parent
-		let inactiveAnnotation = this.annotationManager.checkForInactiveAnnotation(object as THREE.Object3D)
+		let inactiveAnnotation = this.checkForInactiveAnnotation(object as THREE.Object3D)
 		if (!inactiveAnnotation) {
 			log.info("No clicked annotation.")
 			return
@@ -2005,7 +2010,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	private cleanTransformControls = (): void => {
 		this.cancelHideTransform()
 		this.transformControls.detach()
-		this.annotationManager.unhighlightMarkers()
+		this.unhighlightMarkers()
 		// this.renderAnnotator()
 	}
 

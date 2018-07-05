@@ -15,7 +15,7 @@ import {UtmTile} from "@/mapper-annotated-scene/tile/UtmTile"
 import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
 import {AnnotationTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
 import {AnnotationUtmTile} from "@/mapper-annotated-scene/tile/AnnotationUtmTile"
-import {AnnotationManager} from "AnnotationManager.tsx"
+import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager.tsx"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import {OrderedMap} from "immutable";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
