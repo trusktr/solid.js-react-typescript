@@ -135,7 +135,7 @@ export abstract class TileManager {
 		const key = utmIndex.toString()
 		if (!this.superTiles.has(key)) {
       this.superTiles = this.superTiles.set(key, this.constructSuperTile(utmIndex, coordinateFrame, this.utmCoordinateSystem))
-			this.setPointCloud(this.superTiles)
+			this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
     }
 		return this.superTiles.get(key)
 	}
@@ -284,6 +284,8 @@ export abstract class TileManager {
 					if (success) {
 						this.loadedObjectsBoundingBox = null
 						this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.add(superTile.key()))
+            this.superTiles = this.superTiles.set(superTile.key(), superTile)
+            this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
 					}
 					return success
 				})
@@ -291,7 +293,7 @@ export abstract class TileManager {
 
 	private unloadSuperTile(superTile: SuperTile): boolean {
 		this.superTiles = this.superTiles.remove(superTile.key())
-    this.setPointCloud(this.superTiles)
+    this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
 		this.loadedObjectsBoundingBox = null
 		this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.remove(superTile.key()))
 		return true

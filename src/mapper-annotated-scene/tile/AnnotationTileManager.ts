@@ -12,13 +12,13 @@ import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateF
 import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
 import {AnnotationSuperTile} from "@/mapper-annotated-scene/tile/AnnotationSuperTile"
 import {UtmTile} from "@/mapper-annotated-scene/tile/UtmTile"
-import {TileInstance} from "@/mapper-annotated-scene/model/TileInstance"
-import {AnnotationTileContents} from "@/mapper-annotated-scene/model/TileContents"
+import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
+import {AnnotationTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
 import {AnnotationUtmTile} from "@/mapper-annotated-scene/tile/AnnotationUtmTile"
 import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import {OrderedMap} from "immutable";
-import AnnotatedSceneActions from "AnnotatedSceneActions.ts";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
 
 export class AnnotationTileManager extends TileManager {
 	constructor(
@@ -69,10 +69,5 @@ export class AnnotationTileManager extends TileManager {
 				.then(buffer => JSON.parse(String.fromCharCode.apply(null, buffer)))
 		else
 			return Promise.reject(Error('unknown tileInstance.layerId: ' + tileInstance.layerId))
-	}
-
-    protected updateTileManagerStats(): void {
-        if ( !this.settings.enableAnnotationTileManager ) return
-		super.updateTileManagerStats()
 	}
 }

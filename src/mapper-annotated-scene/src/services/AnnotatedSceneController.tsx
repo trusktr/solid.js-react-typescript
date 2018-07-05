@@ -25,6 +25,7 @@ import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
+import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 
 const log = Logger(__filename)
 
@@ -61,6 +62,7 @@ export interface IAnnotatedSceneControllerState {
   cameraState: CameraState // isolating camera state incase we decide to migrate it to a Camera Manager down the road
   statusWindow: StatusWindow | null
   pointCloudManager: PointCloudManager | null
+  areaOfInterestManager: AreaOfInterestManager | null
   sceneManager: SceneManager | null
   layerManager: LayerManager | null
   registeredKeyDownEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
@@ -378,6 +380,10 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     this.setState({layerManager})
   }
 
+  getAreaOfInterestManager = (areaOfInterestManager:AreaOfInterestManager): void => {
+    this.setState({areaOfInterestManager})
+  }
+
   render() {
 
     const {
@@ -394,25 +400,31 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         {/* NOTE JOE THURSDAY StatusWindow doesn't need UtmCoordinateSystem at all, it is only concerned with messages */}
         <StatusWindow ref={this.getStatusWindowRef} utmCoordinateSystem={this.utmCoordinateSystem} eventEmitter={this.channel}/>
 
-        <PointCloudManager
-          ref={this.getPointCloudManagerRef}
-          utmCoordinateSystem={this.utmCoordinateSystem}
-          sceneManager={}
-          pointCloudTileManager={}
-          layerManager={}
-          handleTileManagerLoadError={}
-          getCurrentPointOfInterest={this.currentPointOfInterest}
-        />
-
         <SceneManager
           ref={this.getSceneManagerRef}
           width={1000}
           height={1000}
           utmCoordinateSystem={this.utmCoordinateSystem}
           eventEmitter={this.channel}
+          areaOfInterestManager={this.state.areaOfInterestManager}
         />
 
+
+
+        <AreaOfInterestManager ref={this.getAreaOfInterestManager} getCurrentPointOfInterest={this.currentPointOfInterest}/>
+
+
+
         <LayerManager ref={this.getLayerManagerRef} />
+
+        <PointCloudManager
+          ref={this.getPointCloudManagerRef}
+          utmCoordinateSystem={this.utmCoordinateSystem}
+          sceneManager={this.state.sceneManager!}
+          pointCloudTileManager={}
+          layerManager={this.state.layerManager!}
+          handleTileManagerLoadError={}
+        />
 
         <AnnotationManager
           ref={this.getAnnotationManagerRef}

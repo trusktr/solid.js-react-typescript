@@ -23,6 +23,7 @@ import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {OrderedMap} from "immutable";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 import * as Stats from 'stats.js'
+import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
 
 const log = Logger(__filename)
 
@@ -188,8 +189,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const animationFps = config['startup.render.fps']
 		loop.interval = animationFps === 'device' ? false : 1 / (animationFps || 10)
 
-
-		this.props.eventEmitter.on( 'originUpdated', () => {
+		this.props.eventEmitter.on(EventName.ORIGIN_UPDATE.toString(), () => {
+			// Triggered by UTMCoordinateSystem.setOrigin
 			this.loadDecorations()
 		})
 
