@@ -10,6 +10,7 @@ import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowS
 import StatusWindow from "@/mapper-annotated-scene/components/StatusWindow";
 import Logger from "@/util/log";
 import PointCloudManager from "@/mapper-annotated-scene/src/services/PointCloudManager";
+import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
 import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
 import {Layer, default as LayerManager} from "@/mapper-annotated-scene/src/services/LayerManager";
 import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
@@ -64,6 +65,7 @@ export interface IAnnotatedSceneControllerState {
   statusWindow: StatusWindow | null
   pointCloudManager: PointCloudManager | null
   areaOfInterestManager: AreaOfInterestManager | null
+  groundPlaneManager: GroundPlaneManager | null
   sceneManager: SceneManager | null
   layerManager: LayerManager | null
   registeredKeyDownEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
@@ -368,6 +370,10 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     this.setState({areaOfInterestManager})
   }
 
+  getGroundPlaneManagerRef = (groundPlaneManager: GroundPlaneManager): void => {
+    this.setState({groundPlaneManager})
+  }
+
   render() {
 
     const {
@@ -390,8 +396,11 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
         <SceneManager
           ref={this.getSceneManagerRef}
+
+		  // TODO JOE this will resize based on container size using window.ResizeObserver.
           width={1000}
           height={1000}
+
           utmCoordinateSystem={this.utmCoordinateSystem}
           eventEmitter={this.channel}
           areaOfInterestManager={this.state.areaOfInterestManager}
@@ -418,6 +427,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
           ref={this.getAnnotationManagerRef}
           isInteractiveMode={!this.uiState.isKioskMode}
           layerManager={this.state.layerManager}
+		  groundPlaneManager={this.state.groundPlaneManager}
 
           {...{
             scaleProvider,
@@ -431,6 +441,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
           }}
 
         />
+
+		<GroundPlaneManager ref={this.getGroundPlaneManagerRef} />
 
       </React.Fragment>
     )

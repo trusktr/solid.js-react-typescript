@@ -70,6 +70,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			// camera: ???,
 			pointOfInterest: new THREE.Vector3(0, 0, 0),
 			areaOfInterest: [{minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1 ,1 ,1)}, {minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1 ,1 ,1)}],
+			rendererSize: { width: 1, height: 1 },
 
 			sceneInitialized: false,
 
@@ -255,6 +256,13 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	setAreaOfInterest( areaOfInterest: RangeSearch[] ) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, areaOfInterest: areaOfInterest
+		})
+	}
+
+	@ActionReducer()
+	setRendererSize( rendererSize: { width: number, height: number } ) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, rendererSize: rendererSize
 		})
 	}
 

@@ -38,6 +38,7 @@ import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerManager";
 
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import toProps from '@util/toProps'
 import {createStructuredSelector} from "reselect";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
@@ -99,6 +100,8 @@ interface IProps {
   isMouseButtonPressed ?: boolean
 
   areaOfInterest ?: RangeSearch[]
+  rendererSize?: { width: number, height: number }
+  camera?: THREE.Camera
 }
 
 interface IState {
@@ -110,27 +113,29 @@ interface IState {
  * to modify, add or delete them. It also keeps an index to the "active" annotation as well
  * as its markers. The "active" annotation is the only one that can be modified.
  */
-@typedConnect(createStructuredSelector({
-	isAnnotationsVisible: (state) => state.get(AnnotatedSceneState.Key).isAnnotationsVisible,
-	annotationSuperTiles: (state) => state.get(AnnotatedSceneState.Key).annotationSuperTiles,
+@typedConnect(toProps(
+	'isAnnotationsVisible',
+	'annotationSuperTiles',
 
-  isMouseDragging: (state) => state.get(AnnotatedSceneState.Key).isMouseDragging,
-  isRotationModeActive: (state) => state.get(AnnotatedSceneState.Key).isRotationModeActive,
-  isConnectLeftNeighborKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isConnectLeftNeighborKeyPressed,
-  isConnectRightNeighborKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isConnectRightNeighborKeyPressed,
-  isConnectFrontNeighborKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isConnectFrontNeighborKeyPressed,
-  isAddMarkerKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isAddMarkerKeyPressed,
+	'isMouseDragging',
+	'isRotationModeActive',
+	'isConnectLeftNeighborKeyPressed',
+	'isConnectRightNeighborKeyPressed',
+	'isConnectFrontNeighborKeyPressed',
+	'isAddMarkerKeyPressed',
 
 
-  isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
-  isAddConnectionKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isAddConnectionKeyPressed,
-  isJoinAnnotationKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isJoinAnnotationKeyPressed,
-  isControlKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isControlKeyPressed,
-  isAddConflictOrDeviceKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isAddConflictOrDeviceKeyPressed,
-  isMouseButtonPressed: (state) => state.get(AnnotatedSceneState.Key).isMouseButtonPressed,
+	'isLiveMode',
+	'isAddConnectionKeyPressed',
+	'isJoinAnnotationKeyPressed',
+	'isControlKeyPressed',
+	'isAddConflictOrDeviceKeyPressed',
+	'isMouseButtonPressed',
 
-  areaOfInterest: (state) => state.get(AnnotatedSceneState.Key).areaOfInterest,
-}))
+	'areaOfInterest',
+	'rendererSize',
+	'camera',
+))
 export class AnnotationManager extends React.Component<IProps, IState> {
 	laneAnnotations: Array<Lane>
 	boundaryAnnotations: Array<Boundary>
@@ -141,6 +146,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	activeAnnotation: Annotation | null
 	private metadataState: AnnotationState
 	bezierScaleFactor: number  // Used when creating connections
+	private raycasterPlane: THREE.Raycaster
+	private raycasterMarker: THREE.Raycaster
+	private raycasterAnnotation: THREE.Raycaster
 
 	constructor( props: IProps ) {
 		super(props)
@@ -153,6 +161,10 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.activeAnnotation = null
 		this.metadataState = new AnnotationState(this)
 		this.bezierScaleFactor = 6
+		this.raycasterPlane = new THREE.Raycaster()
+		this.raycasterPlane.params.Points!.threshold = 0.1
+		this.raycasterMarker = new THREE.Raycaster()
+		this.raycasterAnnotation = new THREE.Raycaster()
 	}
 
 	componentWillReceiveProps(newProps) {
@@ -1576,11 +1588,11 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return
 		}
 
-		const mouse = mousePositionToGLSpace(event)
+		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
 
 		// If the click intersects the first marker of a ring-shaped annotation, close the annotation and return.
 		if (this.activeAnnotation.markersFormRing()) {
-			this.raycasterMarker.setFromCamera(mouse, this.camera)
+			this.raycasterMarker.setFromCamera(mouse, this.props.camera!)
 			const markers = this.activeMarkers()
 			if (markers.length && this.raycasterMarker.intersectObject(markers[0]).length) {
 				if (this.completeActiveAnnotation())
@@ -1589,12 +1601,12 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 		}
 
-		this.raycasterPlane.setFromCamera(mouse, this.camera)
+		this.raycasterPlane.setFromCamera(mouse, this.props.camera!)
 		let intersections: THREE.Intersection[] = []
 
 		// Find a 3D point where to place the new marker.
 		if (this.activeAnnotation.snapToGround)
-			intersections = this.intersectWithGround(this.raycasterPlane)
+			intersections = this.props.groundPlaneManager.intersectWithGround()
 		else {
 			// If this is part of a two-step interaction with the lightbox, handle that.
 			if (this.lightboxImageRays.length) {
@@ -1634,8 +1646,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		// get clicked object
-		const mouse = mousePositionToGLSpace(event)
-		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+		this.raycasterAnnotation.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
 		if (intersects.length === 0) {
 			return
@@ -1693,8 +1705,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		// get clicked object
-		const mouse = mousePositionToGLSpace(event)
-		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+		this.raycasterAnnotation.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationObjects, true)
 		if (intersects.length === 0) {
 			return
@@ -1792,8 +1804,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return
 		}
 
-		const mouse = mousePositionToGLSpace(event)
-		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+		this.raycasterAnnotation.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
 
 		if (intersects.length > 0) {
@@ -1834,8 +1846,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const markers = this.annotationManager.activeMarkers()
 		if (!markers) return
 
-		const mouse = mousePositionToGLSpace(event)
-		this.raycasterMarker.setFromCamera(mouse, this.camera)
+		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+		this.raycasterMarker.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterMarker.intersectObjects(markers)
 
 		if (intersects.length > 0) {
@@ -1887,8 +1899,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const srcAnnotation = this.getActiveConnectionAnnotation()
 		if (!srcAnnotation) return
 
-		const mouse = mousePositionToGLSpace(event)
-		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+		this.raycasterAnnotation.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
 
 		if (intersects.length > 0) {
@@ -1954,8 +1966,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		// get clicked object
-		const mouse = mousePositionToGLSpace(event)
-		this.raycasterAnnotation.setFromCamera(mouse, this.camera)
+		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+		this.raycasterAnnotation.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationManager.annotationObjects, true)
 		if (intersects.length === 0) {
 			return

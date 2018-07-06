@@ -1,9 +1,11 @@
 import * as React from "react"
-import toProps from '@/util/toProps'
+import * as THREE from 'three'
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import toProps from '@/util/toProps'
+import {OrderedMap, Map} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
-import {OrderedMap} from "immutable";
 import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
+import config from '@/config'
 
 export interface IGroundPlaneManagerProps {
   pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
@@ -14,9 +16,26 @@ export interface IGroundPlaneManagerState {
 }
 
 @typedConnect(toProps(
-  'pointCloudSuperTiles',
+	'pointCloudSuperTiles',
 ))
-export default class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGroundPlaneManagerState> {
+export default
+class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGroundPlaneManagerState> {
+	private raycaster: THREE.Raycaster
+	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
+	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
+	private estimateGroundPlane: boolean
+
+	constructor(props) {
+		super(props)
+
+		this.raycaster = new THREE.Raycaster
+		this.raycaster.params.Points!.threshold = 0.1
+
+		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
+
+		this.allGroundPlanes = []
+		this.superTileGroundPlanes = Map()
+	}
 
 	// TODO JOR THURSDAY
 	// - register a ground plane layer with LayerManager
@@ -41,7 +60,7 @@ export default class GroundPlaneManager extends React.Component<IGroundPlaneMana
 	}
 
 	private loadTileGroundPlanes(superTile: PointCloudSuperTile): void {
-		if (!this.settings.estimateGroundPlane) return
+		if (!this.estimateGroundPlane) return
 		if (!superTile.pointCloud) return
 		if (this.superTileGroundPlanes.has(superTile.key())) return
 
@@ -87,28 +106,52 @@ export default class GroundPlaneManager extends React.Component<IGroundPlaneMana
 
     // TODO JOE ground tiles can be in their own tile layer, and they are
     // added/removed based load/unload events from point cloud tile layer
-	private intersectWithGround(raycaster: THREE.Raycaster): THREE.Intersection[] {
+	private intersectWithGround(): THREE.Intersection[] {
 		let intersections: THREE.Intersection[]
-		if (this.settings.estimateGroundPlane || !this.pointCloudTileManager.objectCount()) {
+
+		// TODO JOE we need this.props.mousePosition
+		this.raycaster.setFromCamera(this.props.mousePosition, this.props.camera)
+
+		if (this.estimateGroundPlane || !this.pointCloudTileCount()) {
 			if (this.allGroundPlanes.length)
-				intersections = raycaster.intersectObjects(this.allGroundPlanes)
+				intersections = this.raycaster.intersectObjects(this.allGroundPlanes)
 			else
-				intersections = raycaster.intersectObject(this.plane)
+				intersections = this.raycaster.intersectObject(this.plane)
 		} else {
-			intersections = raycaster.intersectObjects(this.pointCloudTileManager.getPointClouds())
+			intersections = this.raycaster.intersectObjects(this.pointCloudTileManager.getPointClouds())
 		}
+
 		return intersections
 	}
 
+	pointCloudTileCount() {
+		let count = 0
+
+		if (!this.props.pointCloudSuperTiles) return count
+
+		this.props.pointCloudSuperTiles.forEach( superTile => {
+			count += superTile.objectCount()
+		})
+
+		return count
+	}
+
 	componentDidMount() {
-		// JOE THURSDAY add/remove ground planes when point cloud tiles load/unload
+
+		// TODO JOE THURSDAY add/remove ground planes when point cloud tiles are updated
 		this.props.pointCloudTileManager.on( 'supertileLoad', ({ superTile }) => {
 			this.loadTileGroundPlanes(superTile)
 		} )
-
 		this.props.pointCloudTileManager.on( 'supertileUnload', ({ superTile }) => {
 			this.unloadTileGroundPlanes(superTile)
 		} )
+
+	}
+
+	componentDidUpdate(oldProps) {
+		if (oldProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles) {
+
+		}
 	}
 
 }

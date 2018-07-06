@@ -38,7 +38,7 @@ interface IAoiState {
 ))
 export default
 class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
-	private raycaster: THREE.Raycaster // used to compute where the waypoints will be dropped
+	private raycaster: THREE.Raycaster
 
 	constructor(props) {
 		super(props)
@@ -136,6 +136,10 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 
 	// Find the point in the scene that is most interesting to a human user.
     private getDefaultPointOfInterest(): THREE.Vector3 | null {
+
+		// wait until there's a camera
+		if (!this.props.camera) return new THREE.Vector3(0, 0, 0)
+
         // In interactive mode intersect the camera with the ground plane.
         this.raycaster.setFromCamera(cameraCenter, this.props.camera)
 
@@ -156,7 +160,9 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 	// extend the AOI with another bounding box in the direction of motion.
 	private updatePointCloudAoiBoundingBox(aoiFocalPoint: THREE.Vector3 | null): void {
 		if (this.state.shouldDrawBoundingBox) {
-			this.state.boundingBoxes.forEach(bbox => this.props.sceneManager.removeObjectFromScene(bbox))
+			this.state.boundingBoxes.forEach(bbox => {
+				new AnnotatedSceneActions().removeObjectFromScene(bbox)
+			})
 			this.setState({boundingBoxes: []})
 		}
 

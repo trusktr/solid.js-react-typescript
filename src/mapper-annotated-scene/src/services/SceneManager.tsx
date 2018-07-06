@@ -12,7 +12,7 @@ import Logger from "@/util/log";
 import {OrbitControls} from "@/mapper-annotated-scene/src/services/controls/OrbitControls";
 import {getValue} from "typeguard";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
-import {createStructuredSelector} from "reselect";
+import toProps from '@/util/toProps'
 import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import {getDecorations} from "@/mapper-annotated-scene/Decorations";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
@@ -74,15 +74,15 @@ export interface SceneManagerState {
 }
 
 
-@typedConnect(createStructuredSelector({
-	shouldAnimate: (state) => state.get(AnnotatedSceneState.Key).shouldAnimate,
-	compassRosePosition: (state) => state.get(AnnotatedSceneState.Key).compassRosePosition,
-	isDecorationsVisible: (state) => state.get(AnnotatedSceneState.Key).isDecorationsVisible,
-	orbitControlsTargetPoint: (state) => state.get(AnnotatedSceneState.Key).orbitControlsTargetPoint,
-	pointCloudSuperTiles: (state) => state.get(AnnotatedSceneState.Key).pointCloudSuperTiles,
-	sceneObjects: (state) => state.get(AnnotatedSceneState.Key).sceneObjects,
-  visibleLayers: (state) => state.get(AnnotatedSceneState.Key).visibleLayers,
-}))
+@typedConnect(toProps(
+	'shouldAnimate',
+	'compassRosePosition',
+	'isDecorationsVisible',
+	'orbitControlsTargetPoint',
+	'pointCloudSuperTiles',
+	'sceneObjects',
+	'visibleLayers',
+))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
 	private sceneContainer: HTMLDivElement
@@ -637,14 +637,16 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		return getValue(() => [this.props.width, this.props.height], [0, 0])
 	}
 
-	// TODO JOE FRIDAY Resize on parent resize, not window.
+	// TODO JOE FRIDAY Resize on resize of parent element.
 	// The Annotated Scene may not always be full size of the winow, it might be
 	// anywhere on the page, so instead we need to listen to the size of the
 	// scene's parent container. For example, on the mapper.ai public website,
 	// the scene might be a rectangle inside the page, not the whole window.
 	// We can use ResizeObserver for this.
 	private onWindowResize = (): void => {
+
 		const [width, height]: Array<number> = this.getContainerSize()
+
 		const {camera, renderer} = this.state
 
 		if ( camera instanceof THREE.PerspectiveCamera ) {
@@ -655,6 +657,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		}
 
 		renderer.setSize(width, height)
+		new AnnotatedSceneActions().setRendererSize({ width, height })
 		this.renderScene()
 
 		this.setState({

@@ -9,7 +9,6 @@ import * as Electron from 'electron'
 // import * as electronUnhandled from 'electron-unhandled'
 import MousePosition from '../util/MousePosition'
 import mousePositionToGLSpace from '../util/mousePositionToGLSpace'
-import {Map} from 'immutable'
 import {AnimationLoop} from 'animation-loop'
 import {GUI as DatGui, GUIParams} from 'dat.gui'
 import {UtmCoordinateSystem} from "./UtmCoordinateSystem"
@@ -152,7 +151,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private annotatorCamera: THREE.Camera
 	private flyThroughCamera: THREE.Camera
 	private renderer: THREE.WebGLRenderer
-	private raycasterPlane: THREE.Raycaster // used to compute where the waypoints will be dropped
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
 	private scaleProvider: ScaleProvider
 	private utmCoordinateSystem: UtmCoordinateSystem
@@ -162,8 +160,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private stats: Stats
 	private transformControls: any // controller for translating an object within the scene
 	private annotationManager: AnnotationManager
-	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
-	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
@@ -236,16 +232,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.settings.enableAnnotationTileManager = this.uiState.isKioskMode
 
 		this.hovered = null
-		this.raycasterPlane = new THREE.Raycaster()
-		this.raycasterPlane.params.Points!.threshold = 0.1
-		this.raycasterMarker = new THREE.Raycaster()
 		this.decorations = []
-		this.raycasterAnnotation = new THREE.Raycaster()
 		this.raycasterImageScreen = new THREE.Raycaster()
         this.scaleProvider = new ScaleProvider()
 		this.utmCoordinateSystem = new UtmCoordinateSystem(this.onSetOrigin)
-		this.superTileGroundPlanes = Map()
-		this.allGroundPlanes = []
 		this.pointCloudBoundingBox = null
 		this.highlightedImageScreenBox = null
 		this.highlightedLightboxImage = null
@@ -1159,7 +1149,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			<React.Fragment>
 	            <AnnotatedSceneController ref={this.getAnnotatedSceneRef} width={1000} height={1000} />
     			<AnnotatorMenuView />
-				<GroundPlaneManager />
 			</React.Fragment>
 		)
 
