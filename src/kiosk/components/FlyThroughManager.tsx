@@ -96,7 +96,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
       pointCloudResult = annotationsResult
         .then(() => {
           log.info('loading pre-configured bounding box ' + pointCloudBbox)
-          return this.props.annotatedSceneController!.state.pointCloudManager.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
+          return this.props.annotatedSceneController!.state.pointCloudManager!.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
         })
     } else {
       pointCloudResult = annotationsResult

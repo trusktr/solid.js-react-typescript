@@ -26,7 +26,6 @@ const log = Logger(__filename)
 
 interface StatusWindowProps {
     statusWindowState ?: StatusWindowState
-    liveModeEnabled ?: boolean
     playModeEnabled ?: boolean
     utmCoordinateSystem: UtmCoordinateSystem
     eventEmitter: EventEmitter

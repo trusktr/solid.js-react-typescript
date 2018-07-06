@@ -128,8 +128,6 @@ interface UiState {
  * and modify the annotations.
  */
 interface AnnotatorProps {
-	liveModeEnabled ?: boolean
-	playModeEnabled ?: boolean
 	statusWindowState ?: StatusWindowState
 	uiMenuVisible ?: boolean
 	flyThroughState ?: FlyThroughState
@@ -143,8 +141,6 @@ interface AnnotatorState {
 
 // state = getAnnotatedSceneReduxStore().getState()
 @typedConnect(createStructuredSelector({
-	liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
-	playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
 	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
 	statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,
 	flyThroughState: (state) => state.get(AnnotatedSceneState.Key).flyThroughState,

@@ -109,11 +109,6 @@ interface IState {
  * as its markers. The "active" annotation is the only one that can be modified.
  */
 @typedConnect(createStructuredSelector({
-	liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
-	playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
-
-	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
-
 	isAnnotationsVisible: (state) => state.get(AnnotatedSceneState.Key).isAnnotationsVisible,
 	annotationSuperTiles: (state) => state.get(AnnotatedSceneState.Key).annotationSuperTiles,
 

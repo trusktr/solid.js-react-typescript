@@ -23,17 +23,12 @@ import Annotator from "@/annotator/Annotator";
 const log = Logger(__filename)
 
 interface AppProps {
-	liveModeEnabled ?: boolean
-	playModeEnabled ?: boolean
 	uiMenuVisible ?: boolean
 }
 
 interface AppState {}
 
 @typedConnect(createStructuredSelector({
-	liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
-	playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
-
 	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
 }))
 export default class App extends React.Component<AppProps, AppState> {
