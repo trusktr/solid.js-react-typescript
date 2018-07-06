@@ -190,15 +190,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         log.warn(`invalid startup.camera_offset config: ${cameraOffset}`)
       }
     }
-
-
-    this.props.layerManager.on('layerSupertilesUnload', () => {
-      for (const supertile of supertiles) {
-        this.onSuperTileUnload(supertile)
-      }
-      this.updateTileManagerStats()
-    })
-
   }
 
   componentDidUpdate() {
