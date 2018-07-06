@@ -53,9 +53,10 @@ interface AnnotatorSettings {
 }
 
 export interface IAnnotatedSceneControllerProps {
-  onPointOfInterestCall: any
+  onPointOfInterestCall?: () => THREE.Vector3
   enableAnnotationTileManager: boolean // this should be true for Kiosk and false for Annotator
 	statusWindowState ?: StatusWindowState
+	pointOfInterest?: THREE.Vector3
 }
 
 export interface IAnnotatedSceneControllerState {
@@ -72,6 +73,7 @@ export interface IAnnotatedSceneControllerState {
 
 @typedConnect(createStructuredSelector({
   statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,
+  pointOfInterest: (state) => state.get(AnnotatedSceneState.Key).pointOfInterest,
 }))
 export default class AnnotatedSceneController extends React.Component<IAnnotatedSceneControllerProps, IAnnotatedSceneControllerState> {
   public utmCoordinateSystem: UtmCoordinateSystem
@@ -215,6 +217,10 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     // }}}
   }
 
+  componentDidUpdate() {
+	  this.displayCameraInfo()
+  }
+
   /**
    * Set the point cloud as the center of the visible world.
    */
@@ -231,7 +237,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
     if (!getValue(() => this.props.statusWindowState && this.props.statusWindowState.enabled, false)) return
 
-    const currentPoint = this.currentPointOfInterest()
+    // const currentPoint = this.currentPointOfInterest()
+	const currentPoint = this.props.pointOfInterest
+
     if (currentPoint) {
       const oldPoint = this.state.cameraState.lastCameraCenterPoint
       const newPoint = currentPoint.clone().round()
@@ -247,15 +255,15 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
   }
 
-
-  // Find the point in the scene that is most interesting to a human user.
-  currentPointOfInterest(): THREE.Vector3 | null {
-    // @TODO JOE/RYAN - apps must pass a function as a prop to AnnotatedSceneController
-    // JOE FRIDAY - maybe we can avoid callbacks. If we can't hook into outter
-    // app's redux state, maybe we can just expose an EventEmitter for apps to
-    // listen to?
-    return this.props.onPointOfInterestCall()
-  }
+  //
+  // // Find the point in the scene that is most interesting to a human user.
+  // currentPointOfInterest(): THREE.Vector3 | null {
+  //   // @TODO JOE/RYAN - apps must pass a function as a prop to AnnotatedSceneController
+  //   // JOE FRIDAY - maybe we can avoid callbacks. If we can't hook into outter
+  //   // app's redux state, maybe we can just expose an EventEmitter for apps to
+  //   // listen to?
+  //   return this.props.onPointOfInterestCall()
+  // }
 
   activateReadOnlyViewingMode() {
     this.state.layerManager!.setLayerVisibility([Layer.POINT_CLOUD.toString(), Layer.ANNOTATIONS.toString()], true)
@@ -381,7 +389,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     this.setState({layerManager})
   }
 
-  getAreaOfInterestManager = (areaOfInterestManager:AreaOfInterestManager): void => {
+  getAreaOfInterestManagerRef = (areaOfInterestManager:AreaOfInterestManager): void => {
     this.setState({areaOfInterestManager})
   }
 
@@ -398,8 +406,12 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     return (
       <React.Fragment>
 
-        {/* NOTE JOE THURSDAY StatusWindow doesn't need UtmCoordinateSystem at all, it is only concerned with messages */}
-        <StatusWindow ref={this.getStatusWindowRef} utmCoordinateSystem={this.utmCoordinateSystem} eventEmitter={this.channel}/>
+        {/* TODO JOE THURSDAY StatusWindow doesn't need UtmCoordinateSystem, it is only concerned with messages */}
+        <StatusWindow
+			ref={this.getStatusWindowRef}
+			utmCoordinateSystem={this.utmCoordinateSystem}
+			eventEmitter={this.channel}
+		/>
 
         <SceneManager
           ref={this.getSceneManagerRef}
@@ -410,11 +422,11 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
           areaOfInterestManager={this.state.areaOfInterestManager}
         />
 
-
-
-        <AreaOfInterestManager ref={this.getAreaOfInterestManager} getCurrentPointOfInterest={this.currentPointOfInterest}/>
-
-
+        <AreaOfInterestManager
+			ref={this.getAreaOfInterestManagerRef}
+			getPointOfInterest={this.props.onPointOfInterestCall}
+			utmCoordinateSystem={this.utmCoordinateSystem}
+		/>
 
         <LayerManager ref={this.getLayerManagerRef} />
 

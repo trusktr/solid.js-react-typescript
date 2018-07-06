@@ -8,20 +8,23 @@ import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerMa
 import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
 import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateFrame";
 import {isTupleOfNumbers} from "@/util/Validation";
-import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
-import {createStructuredSelector} from "reselect";
+import toProps from '@/util/toProps'
 import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
 import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 
 const log = Logger(__filename)
 
 export interface PointCloudManagerProps {
+
+	// redux props
+	isPointCloudVisible ?: boolean
+	areaOfInterest?: RangeSearch[]
+
   sceneManager: SceneManager
   pointCloudTileManager: PointCloudTileManager
   layerManager: LayerManager
   handleTileManagerLoadError: (err: Error) => void
-  isPointCloudVisible ?: boolean
   utmCoordinateSystem: UtmCoordinateSystem
 }
 
@@ -31,9 +34,10 @@ export interface PointCloudManagerState {
   pointCloudBboxColor: THREE.Color
 }
 
-@typedConnect(createStructuredSelector({
-  isPointCloudVisible: (state) => state.get(AnnotatedSceneState.Key).isPointCloudVisible,
-}))
+@typedConnect(toProps(
+	'isPointCloudVisible',
+	'areaOfInterest',
+))
 export default class PointCloudManager extends React.Component<PointCloudManagerProps, PointCloudManagerState> {
 
   constructor(props) {
@@ -206,11 +210,20 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 		new AnnotatedSceneActions().setCompassRosePosition(new THREE.Vector3(topPoint.x, topPoint.y, topPoint.z - zOffset))
 	}
 
-  render() {
-	  return (
-		  <React.Fragment>
+	render() {
+		return (
+			<React.Fragment>
 
-		  </React.Fragment>
-	  )
-  }
+			</React.Fragment>
+		)
+	}
+
+	componentDidUpdate(previousProps: PointCloudManagerProps) {
+		if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
+			if (this.props.areaOfInterest) {
+				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true )
+					.catch(err => {log.warn(err.message)})
+			}
+		}
+	}
 }

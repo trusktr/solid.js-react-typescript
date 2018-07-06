@@ -307,6 +307,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	componentDidMount() {
+		new AnnotatedSceneActions().setCamera(this.state.camera)
+
 		this.makeStats()
 		this.sceneContainer.appendChild(this.state.renderer.domElement)
 		this.startAnimation()
@@ -431,7 +433,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 				log.error( "[ERROR] areaOfInterestManager does not exist when it's expected!!")
 				return
 			}
+
+			// NOTE JOE longer term: Inversely, AreaOfInterestManager could instead hook into
+			// the animation loop rather than SceneManager knowing which
+			// managers need to be hooked in.
 			this.props.areaOfInterestManager.updatePointCloudAoi()
+
 			return true
 		})
 
@@ -564,6 +571,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			grid: grid,
 			orbitControls: orbitControls
 		})
+		new AnnotatedSceneActions().setCamera(this.state.camera)
 	}
 
 	// The sky needs to be big enough that we don't bump into it but not so big that the camera can't see it.
@@ -653,6 +661,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			camera: camera,
 			renderer: renderer
 		})
+		new AnnotatedSceneActions().setCamera(this.state.camera)
 	}
 
 
@@ -754,6 +763,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
     camera.position.y = this.state.orbitControls.target.y + distanceCameraToTarget
     camera.position.z = this.state.orbitControls.target.z
     this.setState({camera})
+	new AnnotatedSceneActions().setCamera(this.state.camera)
 
     this.state.orbitControls.update()
     this.renderScene()
@@ -796,6 +806,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		// used to be --> this.annotatorCamera = newCamera
 		this.setState({camera: newCamera})
+		new AnnotatedSceneActions().setCamera(this.state.camera)
 
 		this.onWindowResize()
 

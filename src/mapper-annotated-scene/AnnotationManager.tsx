@@ -97,6 +97,8 @@ interface IProps {
   isControlKeyPressed ?: boolean
   isAddConflictOrDeviceKeyPressed ?: boolean
   isMouseButtonPressed ?: boolean
+
+  areaOfInterest ?: RangeSearch[]
 }
 
 interface IState {
@@ -126,6 +128,8 @@ interface IState {
   isControlKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isControlKeyPressed,
   isAddConflictOrDeviceKeyPressed: (state) => state.get(AnnotatedSceneState.Key).isAddConflictOrDeviceKeyPressed,
   isMouseButtonPressed: (state) => state.get(AnnotatedSceneState.Key).isMouseButtonPressed,
+
+  areaOfInterest: (state) => state.get(AnnotatedSceneState.Key).areaOfInterest,
 }))
 export class AnnotationManager extends React.Component<IProps, IState> {
 	laneAnnotations: Array<Lane>
@@ -169,6 +173,15 @@ export class AnnotationManager extends React.Component<IProps, IState> {
       tilesToAdd.forEach(tileId => this.addSuperTileAnnotations(newProps.superTiles!.get(tileId)))
       tilesToRemove.forEach(tileId => this.removeSuperTileAnnotations(newProps.superTiles!.get(tileId)))
     }
+	}
+
+	componentDidUpdate(previousProps: IProps) {
+		if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
+			if (this.props.areaOfInterest) {
+				this.loadAnnotationDataFromMapServer( this.props.areaOfInterest, true )
+					.catch(err => {log.warn(err.message)})
+			}
+		}
 	}
 
 	render() {

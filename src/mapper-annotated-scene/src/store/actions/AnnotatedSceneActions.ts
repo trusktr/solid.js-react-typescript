@@ -11,6 +11,7 @@ import {OrderedMap} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
+import {RangeSearch} from "../../../tile-model/RangeSearch";
 
 const log = Logger(__filename)
 
@@ -60,39 +61,45 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			uiMenuVisible: config['startup.show_menu'],
 			shouldAnimate: false,
 			carPose: null,
-      isCarInitialized: false,
-      isKioskUserDataLoaded: false,
+			isCarInitialized: false,
+			isKioskUserDataLoaded: false,
 
 			cameraPreference: CameraType.PERSPECTIVE,
+
+			// TODO JOE FRIDAY 7/6 what to do if there is no default, like with the camera?
+			// camera: ???,
+			pointOfInterest: new THREE.Vector3(0, 0, 0),
+			areaOfInterest: [{minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1 ,1 ,1)}, {minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1 ,1 ,1)}],
+
 			sceneInitialized: false,
 
-      compassRosePosition: new THREE.Vector3(0, 0, 0),
+			compassRosePosition: new THREE.Vector3(0, 0, 0),
 
 			isDecorationsVisible: false,
-      isPointCloudVisible: true,
-      isImageScreensVisible: true,
-      isAnnotationsVisible: true,
+			isPointCloudVisible: true,
+			isImageScreensVisible: true,
+			isAnnotationsVisible: true,
 
-      orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0),
-      annotationSuperTiles: OrderedMap<string, SuperTile>(),
-      pointCloudSuperTiles: OrderedMap<string, SuperTile>(),
+			orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0),
+			annotationSuperTiles: OrderedMap<string, SuperTile>(),
+			pointCloudSuperTiles: OrderedMap<string, SuperTile>(),
 
 			sceneObjects: new Set<THREE.Object3D>(),
 			visibleLayers: [],
-      isAnnotationTileManagerEnabled: false, // by default, do not include the AnnotationTileManager -- it's only needed for the Kiosk app
+			isAnnotationTileManagerEnabled: false, // by default, do not include the AnnotationTileManager -- it's only needed for the Kiosk app
 
-      isMouseDragging: false,
-      isRotationModeActive: false,
-      isConnectLeftNeighborKeyPressed: false,
-      isConnectRightNeighborKeyPressed: false,
-      isConnectFrontNeighborKeyPressed: false,
-      isAddMarkerKeyPressed: false,
-      isLiveMode: false,
-      isAddConnectionKeyPressed: false,
-      isJoinAnnotationKeyPressed: false,
-      isControlKeyPressed: false,
-      isAddConflictOrDeviceKeyPressed: false,
-      isMouseButtonPressed: false,
+			isMouseDragging: false,
+			isRotationModeActive: false,
+			isConnectLeftNeighborKeyPressed: false,
+			isConnectRightNeighborKeyPressed: false,
+			isConnectFrontNeighborKeyPressed: false,
+			isAddMarkerKeyPressed: false,
+			isLiveMode: false,
+			isAddConnectionKeyPressed: false,
+			isJoinAnnotationKeyPressed: false,
+			isControlKeyPressed: false,
+			isAddConflictOrDeviceKeyPressed: false,
+			isMouseButtonPressed: false,
 		}
 
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
@@ -228,6 +235,27 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, cameraPreference: preference
     })
+	}
+
+	@ActionReducer()
+	setCamera( camera: THREE.Camera ) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, camera: camera
+		})
+	}
+
+	@ActionReducer()
+	setPointOfInterest( pointOfInterest: THREE.Vector3 | null ) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, pointOfInterest: pointOfInterest
+		})
+	}
+
+	@ActionReducer()
+	setAreaOfInterest( areaOfInterest: RangeSearch[] ) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, areaOfInterest: areaOfInterest
+		})
 	}
 
   @ActionReducer()

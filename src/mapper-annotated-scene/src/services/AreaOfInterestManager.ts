@@ -5,18 +5,25 @@ import {isTupleOfNumbers} from "@/util/Validation";
 import Logger from "@/util/log";
 import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
 import {RangeSearch} from "../../tile-model/RangeSearch";
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import toProps from '@/util/toProps'
 
 const log = Logger(__filename)
 
+type AreaOfInterest = RangeSearch[]
+
 interface IAoiProps {
-	// JOE MONDAY 7/2 moved from PointCloudManager
-	getCurrentPointOfInterest: () => THREE.Vector3 | null
+	getPointOfInterest?: () => THREE.Vector3
+	utmCoordinateSystem: UtmCoordinateSystem
+	camera?: THREE.Camera
 }
 
 // Area of Interest: where to load point clouds
 interface IAoiState {
 	enabled: boolean // enable auto-loading points around the AOI
-	focalPoint: THREE.Vector3 | null, // cached value for the center of the AOI
+	aoiFocalPoint: THREE.Vector3 | null, // cached value for the center of the AOI
+	pointOfInterest?: THREE.Vector3
 	boundingBoxes: THREE.BoxHelper[] // boxes drawn around the current area of interest
 	currentHeading: THREE.Vector3 | null // in fly-through mode: where the vehicle is heading
 	bBoxColor: THREE.Color
@@ -25,15 +32,20 @@ interface IAoiState {
 	shouldDrawBoundingBox: boolean
 }
 
+@typedConnect(toProps(
+	'pointOfInterest',
+	'camera',
+))
 export default
 class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
+	private raycaster: THREE.Raycaster // used to compute where the waypoints will be dropped
 
 	constructor(props) {
 		super(props)
 
-		const _state = {
+		const state = {
 			enabled: !!config['annotator.area_of_interest.enable'],
-			focalPoint: null,
+			aoiFocalPoint: null,
 			boundingBoxes: [],
 			currentHeading: null,
 			bBoxColor: new THREE.Color(0x00ff00),
@@ -49,8 +61,8 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 
 		if (isTupleOfNumbers(aoiSize, 3)) {
 
-			_state.fullSize = new THREE.Vector3().fromArray(aoiSize)
-			_state.halfSize = _state.fullSize.clone().divideScalar(2)
+			state.fullSize = new THREE.Vector3().fromArray(aoiSize)
+			state.halfSize = state.fullSize.clone().divideScalar(2)
 
 		} else if (aoiSize) {
 
@@ -58,7 +70,10 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 
 		}
 
-		this.state = _state
+		this.state = state
+
+		this.raycaster = new THREE.Raycaster()
+		this.raycaster.params.Points!.threshold = 0.1
 	}
 
 	updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
@@ -82,52 +97,87 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 		// TODO JOE MONDAY 7/2 if any tiles of any layer are loading, not just point cloud tiles
 		if (this.props.pointCloudTileManager.isLoadingTiles) return
 
-		// TODO JOE MONDAY 7/2 replace with a variable from Redux. We can use componentDidUpdate to trigger updatePointCloudAoi
-		const currentPoint = this.props.getCurrentPointOfInterest()
+		const currentPoint = this.getPointOfInterest()
 
 		if (currentPoint) {
-			const oldPoint = this.state.focalPoint
+			const oldPoint = this.state.aoiFocalPoint
 			const newPoint = currentPoint.clone().round()
 			const samePoint = oldPoint && oldPoint.x === newPoint.x && oldPoint.y === newPoint.y && oldPoint.z === newPoint.z
+
 			if (!samePoint) {
-				this.setState({focalPoint: newPoint})
-				this.updatePointCloudAoiBoundingBox(this.state.focalPoint)
+				this.setState({aoiFocalPoint: newPoint})
+				new AnnotatedSceneActions().setPointOfInterest( this.state.aoiFocalPoint )
+				this.updatePointCloudAoiBoundingBox(this.state.aoiFocalPoint)
 			}
+
 		} else {
-			if (this.state.focalPoint !== null) {
-				this.setState({focalPoint: null})
-				this.updatePointCloudAoiBoundingBox(this.state.focalPoint)
+			if (this.state.aoiFocalPoint !== null) {
+				this.setState({aoiFocalPoint: null})
+				new AnnotatedSceneActions().setPointOfInterest( this.state.aoiFocalPoint )
+				this.updatePointCloudAoiBoundingBox(this.state.aoiFocalPoint)
 			}
 		}
 	}
 
+	private getPointOfInterest(): THREE.Vector3 | null {
+        if ( this.props.getPointOfInterest ) {
+
+			return this.props.getPointOfInterest()
+
+			// TODO Kiosk needs to pass the above callback in.
+            // return this.carModel.position
+
+        } else {
+
+			return this.getDefaultPointOfInterest()
+
+		}
+	}
+
+	// Find the point in the scene that is most interesting to a human user.
+    private getDefaultPointOfInterest(): THREE.Vector3 | null {
+        // In interactive mode intersect the camera with the ground plane.
+        this.raycaster.setFromCamera(cameraCenter, this.props.camera)
+
+        let intersections: THREE.Intersection[] = []
+        if (this.settings.estimateGroundPlane)
+            intersections = this.raycaster.intersectObjects(this.allGroundPlanes)
+        if (!intersections.length)
+            intersections = this.raycaster.intersectObject(this.plane)
+
+        if (intersections.length)
+            return intersections[0].point
+        else
+            return null
+    }
+
 	// Create a bounding box around the current AOI and optionally display it.
 	// Then load the points in and around the AOI. If we have a current heading,
 	// extend the AOI with another bounding box in the direction of motion.
-	private updatePointCloudAoiBoundingBox(focalPoint: THREE.Vector3 | null): void {
+	private updatePointCloudAoiBoundingBox(aoiFocalPoint: THREE.Vector3 | null): void {
 		if (this.state.shouldDrawBoundingBox) {
 			this.state.boundingBoxes.forEach(bbox => this.props.sceneManager.removeObjectFromScene(bbox))
 			this.setState({boundingBoxes: []})
 		}
 
-		if (focalPoint) {
-			const threeJsSearches: RangeSearch[] = [{
-				minPoint: focalPoint.clone().sub(this.state.halfSize),
-				maxPoint: focalPoint.clone().add(this.state.halfSize),
+		if (aoiFocalPoint) {
+			const threeJsAOI: RangeSearch[] = [{
+				minPoint: aoiFocalPoint.clone().sub(this.state.halfSize),
+				maxPoint: aoiFocalPoint.clone().add(this.state.halfSize),
 			}]
 
 			// What could be better than one AOI, but two? Add another one so we see more of what's in front.
 			if (this.state.currentHeading) {
-				const extendedFocalPoint = focalPoint.clone()
+				const extendedFocalPoint = aoiFocalPoint.clone()
 					.add(this.state.fullSize.clone().multiply(this.state.currentHeading))
-				threeJsSearches.push({
+				threeJsAOI.push({
 					minPoint: extendedFocalPoint.clone().sub(this.state.halfSize),
 					maxPoint: extendedFocalPoint.clone().add(this.state.halfSize),
 				})
 			}
 
 			if (this.state.shouldDrawBoundingBox) {
-				threeJsSearches.forEach(search => {
+				threeJsAOI.forEach(search => {
 					const geom = new THREE.Geometry()
 					geom.vertices.push(search.minPoint, search.maxPoint)
 					const bbox = new THREE.BoxHelper(new THREE.Points(geom), this.state.bBoxColor)
@@ -136,28 +186,14 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 				})
 			}
 
-			const utmSearches = threeJsSearches.map(threeJs => {
+			const utmAOI = threeJsAOI.map(threeJs => {
 				return {
 					minPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
 					maxPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
 				}
 			})
 
-			// TODO JOE MONDAY 7/2 for each tile manager, tell them to load their tile data for the new AoI. {{{
-
-				this.loadPointCloudDataFromMapServer(utmSearches, true)
-					.catch(err => {log.warn(err.message)})
-
-				// TODO JOE MONDAY 7/2/18 annotation tiles are coupled to point cloud
-				// tiles here, relying on based on the
-				// point cloud Aoi. We should probably take out the Aoi from point cloud
-				// manager and move to a common place so that all managers can
-				// use it
-				if (this.settings.enableAnnotationTileManager)
-				this.loadAnnotationDataFromMapServer(utmSearches, true)
-					.catch(err => {log.warn(err.message)})
-
-			// }}}
+			new AnnotatedSceneActions().setAreaOfInterest( utmAOI )
 		}
 	}
 
