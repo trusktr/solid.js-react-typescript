@@ -1,6 +1,22 @@
+import * as React from "react"
+import toProps from '@/util/toProps'
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
+import {OrderedMap} from "immutable";
+import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
 
-export default
-class GroundPlaneManager extends React.Component<{}, {}> {
+export interface IGroundPlaneManagerProps {
+  pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
+}
+
+export interface IGroundPlaneManagerState {
+
+}
+
+@typedConnect(toProps(
+  'pointCloudSuperTiles',
+))
+export default class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGroundPlaneManagerState> {
 
 	// TODO JOR THURSDAY
 	// - register a ground plane layer with LayerManager
@@ -10,6 +26,20 @@ class GroundPlaneManager extends React.Component<{}, {}> {
 	// This assumes that the ground planes in neighboring tiles are close enough that the discrete
 	// jumps between them won't matter much.
 	// ??????
+
+	componentWillReceiveProps(newProps:IGroundPlaneManagerProps) {
+    if(this.props.pointCloudSuperTiles && newProps.pointCloudSuperTiles &&
+			newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles) {
+      const existingSuperTileIds = this.props.pointCloudSuperTiles.keySeq().toArray()
+      const newSuperTileIds = newProps.pointCloudSuperTiles.keySeq().toArray()
+      const tilesToAdd = newSuperTileIds.filter(superTile => existingSuperTileIds.indexOf(superTile) < 0)
+      const tilesToRemove = existingSuperTileIds.filter(superTile => newSuperTileIds.indexOf(superTile) < 0)
+
+      tilesToAdd.forEach(tileId => this.loadTileGroundPlanes(newProps.pointCloudSuperTiles!.get(tileId)))
+      tilesToRemove.forEach(tileId => this.unloadTileGroundPlanes(newProps.pointCloudSuperTiles!.get(tileId)))
+    }
+	}
+
 	private loadTileGroundPlanes(superTile: PointCloudSuperTile): void {
 		if (!this.settings.estimateGroundPlane) return
 		if (!superTile.pointCloud) return

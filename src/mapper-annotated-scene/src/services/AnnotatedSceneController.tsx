@@ -191,21 +191,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       }
     }
 
-    // TODO JOE THURSDAY perhaps LayerManager can listen to all TileManager
-    // layers, and emit a generic layerSupertilesLoad event {{{
-    this.props.layerManager.on('layerSupertilesLoad', () => {
-      for (const supertile of supertiles) {
-        this.onSuperTileLoad(supertile)
-      }
-      this.updateTileManagerStats()
-    })
-
-    // or perhaps, loops through each TileManager here and listen to each one.
-
-    // Another idea, maybe TileManager has a static `.on` method to listen to loading of any super tile genericaly
-
-    // Channels could be a nice solution for this, so that all TileManagers
-    // just trigger the event on a single channel.
 
     this.props.layerManager.on('layerSupertilesUnload', () => {
       for (const supertile of supertiles) {
@@ -214,7 +199,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       this.updateTileManagerStats()
     })
 
-    // }}}
   }
 
   componentDidUpdate() {

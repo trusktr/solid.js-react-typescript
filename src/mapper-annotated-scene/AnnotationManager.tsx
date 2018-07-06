@@ -164,7 +164,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 		}
 
-    if(newProps.superTiles !== this.props.annotationSuperTiles && this.props.annotationSuperTiles && newProps.superTiles) {
+    if(this.props.annotationSuperTiles && newProps.superTiles &&
+			newProps.annotationSuperTiles !== this.props.annotationSuperTiles) {
       const existingSuperTileIds = this.props.annotationSuperTiles.keySeq().toArray()
       const newSuperTileIds = newProps.superTiles.keySeq().toArray()
       const tilesToAdd = newSuperTileIds.filter(superTile => existingSuperTileIds.indexOf(superTile) < 0)

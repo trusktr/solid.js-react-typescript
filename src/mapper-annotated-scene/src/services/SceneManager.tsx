@@ -702,8 +702,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	addSuperTile(superTile: SuperTile) {
     if (superTile instanceof PointCloudSuperTile) {
-      if (superTile.pointCloud)
+      if (superTile.pointCloud) {
         this.state.scene.add(superTile.pointCloud)
+        this.renderScene() // can potentially remove but added it just in case
+			}
       else
         log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
     }
@@ -711,8 +713,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
   removeSuperTile(superTile: SuperTile) {
 		if (superTile instanceof PointCloudSuperTile) {
-      if (superTile.pointCloud)
+      if (superTile.pointCloud) {
         this.state.scene.remove(superTile.pointCloud)
+        this.renderScene() // can potentially remove but added it just in case
+			}
       else
         log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
     }
