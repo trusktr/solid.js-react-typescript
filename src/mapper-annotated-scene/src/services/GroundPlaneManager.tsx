@@ -2,6 +2,7 @@ import * as React from "react"
 import * as THREE from 'three'
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import toProps from '@/util/toProps'
+import getOrderedMapValueDiff from '../util/getOrderedMapValueDiff'
 import {OrderedMap, Map} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
@@ -46,17 +47,34 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 	// jumps between them won't matter much.
 	// ??????
 
-	componentWillReceiveProps(newProps:IGroundPlaneManagerProps) {
-    if(this.props.pointCloudSuperTiles && newProps.pointCloudSuperTiles &&
-			newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles) {
-      const existingSuperTileIds = this.props.pointCloudSuperTiles.keySeq().toArray()
-      const newSuperTileIds = newProps.pointCloudSuperTiles.keySeq().toArray()
-      const tilesToAdd = newSuperTileIds.filter(superTile => existingSuperTileIds.indexOf(superTile) < 0)
-      const tilesToRemove = existingSuperTileIds.filter(superTile => newSuperTileIds.indexOf(superTile) < 0)
+	componentDidUpdate(oldProps: IGroundPlaneManagerProps) {
+		const oldPointCloudSuperTiles = oldProps.pointCloudSuperTiles
+		const newPointCloudSuperTiles = this.props.pointCloudSuperTiles
 
-      tilesToAdd.forEach(tileId => this.loadTileGroundPlanes(newProps.pointCloudSuperTiles!.get(tileId)))
-      tilesToRemove.forEach(tileId => this.unloadTileGroundPlanes(newProps.pointCloudSuperTiles!.get(tileId)))
-    }
+		if ( oldPointCloudSuperTiles !== newPointCloudSuperTiles ) {
+			const { added, removed } = getOrderedMapValueDiff( oldPointCloudSuperTiles, newPointCloudSuperTiles )
+
+			added && added.forEach(tile => this.loadTileGroundPlanes(tile))
+			removed && removed.forEach(tile => this.unloadTileGroundPlanes(tile))
+		}
+	}
+
+	getSuperTileDiff( oldSuperTiles, newSuperTiles ) {
+		let added
+		let removed
+
+		if (!oldSuperTiles && newSuperTiles) {
+			added = newSuperTiles
+		}
+		else if (oldSuperTiles && !newSuperTiles) {
+			removed = oldSuperTiles
+		}
+		else {
+			added = newSuperTiles.filter(superTile => !oldSuperTiles.includes(superTile))
+			removed = oldSuperTiles.filter(superTile => !newSuperTiles.includes(superTile))
+		}
+
+		return { added, removed }
 	}
 
 	private loadTileGroundPlanes(superTile: PointCloudSuperTile): void {
@@ -134,24 +152,6 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 		})
 
 		return count
-	}
-
-	componentDidMount() {
-
-		// TODO JOE THURSDAY add/remove ground planes when point cloud tiles are updated
-		this.props.pointCloudTileManager.on( 'supertileLoad', ({ superTile }) => {
-			this.loadTileGroundPlanes(superTile)
-		} )
-		this.props.pointCloudTileManager.on( 'supertileUnload', ({ superTile }) => {
-			this.unloadTileGroundPlanes(superTile)
-		} )
-
-	}
-
-	componentDidUpdate(oldProps) {
-		if (oldProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles) {
-
-		}
 	}
 
 }
