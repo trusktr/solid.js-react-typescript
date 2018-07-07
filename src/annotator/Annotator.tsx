@@ -77,7 +77,6 @@ const layerGroups: Layer[][] = [
 const defaultLayerGroupIndex = 0
 
 interface AnnotatorSettings {
-	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	enableAnnotationTileManager: boolean
 	enableTileManagerStats: boolean
 	pointCloudBboxColor: THREE.Color
@@ -180,7 +179,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		// @TODO (Ryan) -- Joe should we remove things like 'skyRadius' and 'cameraToSkyMaxDistance' if they aren't being used
 		this.settings = {
-			tileGroundPlaneScale: 1.05,
 			enableAnnotationTileManager: false,
 			enableTileManagerStats: !!config['tile_manager.stats_display.enable'],
 			pointCloudBboxColor: new THREE.Color(0xff0000),

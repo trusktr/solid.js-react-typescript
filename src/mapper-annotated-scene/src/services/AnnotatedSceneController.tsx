@@ -44,7 +44,6 @@ interface AnnotatorSettings {
 	defaultAnimationFrameIntervalMs: number | false
 	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
 	estimateGroundPlane: boolean
-	tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	enableTileManagerStats: boolean
 	pointCloudBboxColor: THREE.Color
 	timeToDisplayHealthyStatusMs: number
@@ -91,7 +90,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
     this.settings = {
       estimateGroundPlane: !!config['annotator.add_points_to_estimated_ground_plane'],
-      tileGroundPlaneScale: 1.05,
       enableTileManagerStats: !!config['tile_manager.stats_display.enable'],
       pointCloudBboxColor: new THREE.Color(0xff0000),
     }
@@ -410,6 +408,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			ref={this.getAreaOfInterestManagerRef}
 			getPointOfInterest={this.props.onPointOfInterestCall}
 			utmCoordinateSystem={this.utmCoordinateSystem}
+			groundPlaneManager={this.state.groundPlaneManager}
+			sceneManager={this.state.sceneManager}
 		/>
 
         <LayerManager ref={this.getLayerManagerRef} />
@@ -442,7 +442,11 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
         />
 
-		<GroundPlaneManager ref={this.getGroundPlaneManagerRef} />
+		<GroundPlaneManager
+			ref={this.getGroundPlaneManagerRef}
+			utmCoordinateSystem={this.utmCoordinateSystem}
+			sceneManager={this.state.sceneManager!}
+		/>
 
       </React.Fragment>
     )

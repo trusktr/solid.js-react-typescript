@@ -24,6 +24,7 @@ import {OrderedMap} from "immutable";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 import * as Stats from 'stats.js'
 import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
+import getOrderedMapValueDiff from '../util/getOrderedMapValueDiff'
 
 const log = Logger(__filename)
 
@@ -35,11 +36,12 @@ export interface SceneManagerProps {
 	compassRosePosition ?: THREE.Vector3
 	isDecorationsVisible ?: boolean
 	orbitControlsTargetPoint ?: THREE.Vector3
-  pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
+	pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
 	utmCoordinateSystem: UtmCoordinateSystem
-  eventEmitter: EventEmitter
-  sceneObjects ?: Set<THREE.Object3D>
-  visibleLayers ?: string[]
+	eventEmitter: EventEmitter
+	sceneObjects ?: Set<THREE.Object3D>
+	visibleLayers ?: string[]
+	cameraPreference?: CameraType
 }
 
 
@@ -82,6 +84,7 @@ export interface SceneManagerState {
 	'pointCloudSuperTiles',
 	'sceneObjects',
 	'visibleLayers',
+	'cameraPreference',
 ))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 
@@ -112,8 +115,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		let camera;
 
-		const cameraPreference = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).cameraPreference
-		if (cameraPreference === CameraType.ORTHOGRAPHIC)
+		// TODO JOE if this doesn't work in the constructor, move it to componentDidUpdate()
+		if (props.cameraPreference === CameraType.ORTHOGRAPHIC)
 			camera = orthographicCam
 		else
 			camera = perspectiveCam
@@ -264,14 +267,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.updateOrbitControlsTargetPoint(newProps.orbitControlsTargetPoint)
 		}
 
-		if(newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles && this.props.pointCloudSuperTiles && newProps.pointCloudSuperTiles) {
-			const existingSuperTileIds = this.props.pointCloudSuperTiles.keySeq().toArray()
-			const newSuperTileIds = newProps.pointCloudSuperTiles.keySeq().toArray()
-			const tilesToAdd = newSuperTileIds.filter(superTile => existingSuperTileIds.indexOf(superTile) < 0)
-			const tilesToRemove = existingSuperTileIds.filter(superTile => newSuperTileIds.indexOf(superTile) < 0)
+		if(newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles) {
+			const { added, removed } = getOrderedMapValueDiff( this.props.pointCloudSuperTiles, newProps.pointCloudSuperTiles )
 
-			tilesToAdd.forEach(tileId => this.addSuperTile(newProps.pointCloudSuperTiles!.get(tileId)))
-      tilesToRemove.forEach(tileId => this.removeSuperTile(newProps.pointCloudSuperTiles!.get(tileId)))
+			added && added.forEach(tile => this.addSuperTile(tile!))
+			removed && removed.forEach(tile => this.removeSuperTile(tile!))
 		}
 
 		// Handle adding and removing scene objects
@@ -320,6 +320,15 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
     this.destroyStats()
 		this.state.renderer.domElement.remove()
 
+	}
+
+	onMouseMove = (event): void => {
+		// TODO JOE do we have to make a `new AnnotatedSceneActions` every time? Or
+		// can we just use a singleton?
+		new AnnotatedSceneActions().setMousePosition( {
+			x: event.clientX - event.target.offsetLeft,
+			y: event.clientY - event.target.offsetTop,
+		} )
 	}
 
   private makeStats(): void {
@@ -610,6 +619,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		orbitControls.addEventListener('change', this.updateSkyPosition)
 
+		orbitControls.addEventListener('start', () => {
+			new AnnotatedSceneActions().cameraIsOrbiting( true )
+		})
+		orbitControls.addEventListener('end', () => {
+			new AnnotatedSceneActions().cameraIsOrbiting( false )
+		})
+
 		return orbitControls
 	}
 
@@ -697,33 +713,35 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	render() {
 		return (
 			<React.Fragment>
-				<div className="scene-container" ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
+				<div className="scene-container" onMouseMove={this.onMouseMove} ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
 			</React.Fragment>
 		)
 
 	}
 
 	addSuperTile(superTile: SuperTile) {
-    if (superTile instanceof PointCloudSuperTile) {
-      if (superTile.pointCloud) {
-        this.state.scene.add(superTile.pointCloud)
-        this.renderScene() // can potentially remove but added it just in case
+		if (superTile instanceof PointCloudSuperTile) {
+			const st = superTile as PointCloudSuperTile
+			if (st.pointCloud) {
+				this.state.scene.add(st.pointCloud)
+				this.renderScene() // can potentially remove but added it just in case
 			}
-      else
-        log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
-    }
+			else
+			log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
+		}
 	}
 
-  removeSuperTile(superTile: SuperTile) {
+	removeSuperTile(superTile: SuperTile) {
 		if (superTile instanceof PointCloudSuperTile) {
-      if (superTile.pointCloud) {
-        this.state.scene.remove(superTile.pointCloud)
-        this.renderScene() // can potentially remove but added it just in case
+			const st = superTile as PointCloudSuperTile
+			if (st.pointCloud) {
+				this.state.scene.remove(st.pointCloud)
+				this.renderScene() // can potentially remove but added it just in case
 			}
-      else
-        log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
-    }
-  }
+			else
+			log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
+		}
+	}
 
 	// Add some easter eggs to the scene if they are close enough.
 	loadDecorations(): Promise<void> {
@@ -819,7 +837,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
     const orbitControls = this.state.orbitControls
-    orbitControls.setCamera(newCamera)
+	// tslint:disable-next-line:no-any
+    ;(orbitControls as any).setCamera(newCamera)
     this.setState({orbitControls})
 
 		// RYAN UPDATED

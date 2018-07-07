@@ -12,9 +12,11 @@ import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 import {RangeSearch} from "../../../tile-model/RangeSearch";
+import {TileManager} from '../../../tile/TileManager'
 
 const log = Logger(__filename)
 
+const loadingTileManagers = new Set<TileManager>()
 
 export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneState, ActionMessage<AnnotatedSceneState>> {
 
@@ -231,38 +233,68 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
   }
 
   @ActionReducer()
-	setCameraPreference(preference:CameraType) {
-    log.info("Setting camera preference", preference)
+	setCameraPreference(cameraPreference:CameraType) {
+    log.info("Setting camera preference", cameraPreference)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, cameraPreference: preference
+      ...annotatedSceneState, cameraPreference
     })
 	}
 
 	@ActionReducer()
 	setCamera( camera: THREE.Camera ) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, camera: camera
+			...annotatedSceneState, camera
 		})
 	}
 
 	@ActionReducer()
 	setPointOfInterest( pointOfInterest: THREE.Vector3 | null ) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, pointOfInterest: pointOfInterest
+			...annotatedSceneState, pointOfInterest
 		})
 	}
 
 	@ActionReducer()
 	setAreaOfInterest( areaOfInterest: RangeSearch[] ) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, areaOfInterest: areaOfInterest
+			...annotatedSceneState, areaOfInterest
 		})
 	}
 
 	@ActionReducer()
 	setRendererSize( rendererSize: { width: number, height: number } ) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, rendererSize: rendererSize
+			...annotatedSceneState, rendererSize
+		})
+	}
+
+	@ActionReducer()
+	cameraIsOrbiting( isOrbiting: boolean ) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isOrbiting
+		})
+	}
+
+	@ActionReducer()
+	addLoadingTileManager( tileManager: TileManager ) {
+		loadingTileManagers.add( tileManager )
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, tilesAreLoading: loadingTileManagers.size ? true : false
+		})
+	}
+
+	@ActionReducer()
+	removeLoadingTileManager( tileManager: TileManager ) {
+		loadingTileManagers.delete( tileManager )
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, tilesAreLoading: loadingTileManagers.size ? true : false
+		})
+	}
+
+	@ActionReducer()
+	setMousePosition( mousePosition: { x: number, y: number } ) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, mousePosition
 		})
 	}
 
@@ -319,7 +351,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
       const sceneObjects = getAnnotatedSceneStoreState().get(AnnotatedSceneState.Key).sceneObjects as Set<THREE.Object3D>
 			sceneObjects.add(object)
     	new AnnotatedSceneState({
-        ...annotatedSceneState, sceneObjects: sceneObjects
+        ...annotatedSceneState, sceneObjects
       })
     }
 	}

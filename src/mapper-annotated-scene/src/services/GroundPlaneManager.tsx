@@ -1,5 +1,6 @@
 import * as React from "react"
 import * as THREE from 'three'
+import * as lodash from 'lodash'
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import toProps from '@/util/toProps'
 import getOrderedMapValueDiff from '../util/getOrderedMapValueDiff'
@@ -7,9 +8,17 @@ import {OrderedMap, Map} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
 import config from '@/config'
+import {isNull} from "util"
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
+import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
+import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
 
 export interface IGroundPlaneManagerProps {
   pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
+  utmCoordinateSystem: UtmCoordinateSystem
+  camera?: THREE.Camera
+  mousePosition?: { x: number, y: number }
+  sceneManager: SceneManager | null
 }
 
 export interface IGroundPlaneManagerState {
@@ -18,13 +27,16 @@ export interface IGroundPlaneManagerState {
 
 @typedConnect(toProps(
 	'pointCloudSuperTiles',
+	'camera',
+	'mousePosition'
 ))
 export default
 class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGroundPlaneManagerState> {
+	allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private raycaster: THREE.Raycaster
-	private allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
 	private estimateGroundPlane: boolean
+	private tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 
 	constructor(props) {
 		super(props)
@@ -36,6 +48,8 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 
 		this.allGroundPlanes = []
 		this.superTileGroundPlanes = Map()
+
+		this.tileGroundPlaneScale = 1.05
 	}
 
 	// TODO JOR THURSDAY
@@ -91,14 +105,14 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 				const zSize = tile.index.scale.zSize
 
 				const geometry = new THREE.PlaneGeometry(
-					xSize * this.settings.tileGroundPlaneScale,
-					zSize * this.settings.tileGroundPlaneScale
+					xSize * this.tileGroundPlaneScale,
+					zSize * this.tileGroundPlaneScale
 				)
 				geometry.rotateX(-Math.PI / 2)
 
 				const material = new THREE.ShadowMaterial()
 				const plane = new THREE.Mesh(geometry, material)
-				const origin = this.utmCoordinateSystem.utmVectorToThreeJs(tile.index.origin)
+				const origin = this.props.utmCoordinateSystem.utmVectorToThreeJs(tile.index.origin)
 				plane.position.x = origin.x + xSize / 2
 				plane.position.y = y
 				plane.position.z = origin.z - zSize / 2
@@ -109,7 +123,7 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 
 		this.superTileGroundPlanes = this.superTileGroundPlanes.set(superTile.key(), groundPlanes)
 		this.allGroundPlanes = this.allGroundPlanes.concat(groundPlanes)
-		groundPlanes.forEach(plane => this.scene.add(plane))
+		groundPlanes.forEach(plane => new AnnotatedSceneActions().addObjectToScene(plane))
 	}
 
 	private unloadTileGroundPlanes(superTile: PointCloudSuperTile): void {
@@ -119,13 +133,14 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 
 		this.superTileGroundPlanes = this.superTileGroundPlanes.remove(superTile.key())
 		this.allGroundPlanes = lodash.flatten(this.superTileGroundPlanes.valueSeq().toArray())
-		groundPlanes.forEach(plane => this.scene.remove(plane))
+		groundPlanes.forEach(plane => new AnnotatedSceneActions().removeObjectFromScene(plane))
 	}
 
-    // TODO JOE ground tiles can be in their own tile layer, and they are
-    // added/removed based load/unload events from point cloud tile layer
 	private intersectWithGround(): THREE.Intersection[] {
-		let intersections: THREE.Intersection[]
+		let intersections: THREE.Intersection[] = []
+
+		if (!this.props.camera || !this.props.mousePosition || !this.props.sceneManager)
+			return intersections
 
 		// TODO JOE we need this.props.mousePosition
 		this.raycaster.setFromCamera(this.props.mousePosition, this.props.camera)
@@ -134,12 +149,18 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 			if (this.allGroundPlanes.length)
 				intersections = this.raycaster.intersectObjects(this.allGroundPlanes)
 			else
-				intersections = this.raycaster.intersectObject(this.plane)
+				intersections = this.raycaster.intersectObject(this.props.sceneManager.state.plane)
 		} else {
-			intersections = this.raycaster.intersectObjects(this.pointCloudTileManager.getPointClouds())
+			intersections = this.raycaster.intersectObjects(this.getPointClouds().valueSeq().toArray())
 		}
 
 		return intersections
+	}
+
+	getPointClouds(): OrderedMap<string, THREE.Points> {
+		return this.props.pointCloudSuperTiles!.map<THREE.Points>(superTile => {
+			return (superTile as PointCloudSuperTile).pointCloud!
+		}) as OrderedMap<string, THREE.Points>
 	}
 
 	pointCloudTileCount() {
@@ -148,7 +169,7 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 		if (!this.props.pointCloudSuperTiles) return count
 
 		this.props.pointCloudSuperTiles.forEach( superTile => {
-			count += superTile.objectCount()
+			count += superTile!.objectCount
 		})
 
 		return count

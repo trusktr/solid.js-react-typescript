@@ -7,6 +7,8 @@ import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
 import {RangeSearch} from "../../tile-model/RangeSearch";
 import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
+import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager"
 import toProps from '@/util/toProps'
 
 const log = Logger(__filename)
@@ -16,7 +18,11 @@ type AreaOfInterest = RangeSearch[]
 interface IAoiProps {
 	getPointOfInterest?: () => THREE.Vector3
 	utmCoordinateSystem: UtmCoordinateSystem
+	groundPlaneManager: GroundPlaneManager | null
+	sceneManager: SceneManager | null
 	camera?: THREE.Camera
+	cameraIsOrbiting?: boolean
+	tilesAreLoading?: boolean
 }
 
 // Area of Interest: where to load point clouds
@@ -35,10 +41,13 @@ interface IAoiState {
 @typedConnect(toProps(
 	'pointOfInterest',
 	'camera',
+	'cameraIsOrbiting',
+	'tilesAreLoading',
 ))
 export default
 class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 	private raycaster: THREE.Raycaster
+	private estimateGroundPlane: boolean
 
 	constructor(props) {
 		super(props)
@@ -74,6 +83,8 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 
 		this.raycaster = new THREE.Raycaster()
 		this.raycaster.params.Points!.threshold = 0.1
+
+		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
 	}
 
 	updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
@@ -90,12 +101,13 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 	updatePointCloudAoi(): void {
 		if (!this.state.enabled) return
 
-		// TODO JOE MONDAY 7/2 get cameraIsOrbiting from redux
+		// avoid while the camera is orbiting because the rotation can cause
+		// unnecessary movement of the AoI. TODO JOE This will be removed in
+		// https://github.com/Signafy/mapper-annotator/pull/202
 		if (this.props.cameraIsOrbiting) return
 
 		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
-		// TODO JOE MONDAY 7/2 if any tiles of any layer are loading, not just point cloud tiles
-		if (this.props.pointCloudTileManager.isLoadingTiles) return
+		if (this.props.tilesAreLoading) return
 
 		const currentPoint = this.getPointOfInterest()
 
@@ -138,16 +150,20 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
     private getDefaultPointOfInterest(): THREE.Vector3 | null {
 
 		// wait until there's a camera
-		if (!this.props.camera) return new THREE.Vector3(0, 0, 0)
+		if (!this.props.camera || !this.props.sceneManager) return null
+
+		const middleOfTheViewport = new THREE.Vector2(0, 0)
 
         // In interactive mode intersect the camera with the ground plane.
-        this.raycaster.setFromCamera(cameraCenter, this.props.camera)
+        this.raycaster.setFromCamera(middleOfTheViewport, this.props.camera)
 
         let intersections: THREE.Intersection[] = []
-        if (this.settings.estimateGroundPlane)
-            intersections = this.raycaster.intersectObjects(this.allGroundPlanes)
+
+        if (this.estimateGroundPlane && this.props.groundPlaneManager)
+            intersections = this.raycaster.intersectObjects(this.props.groundPlaneManager.allGroundPlanes)
+
         if (!intersections.length)
-            intersections = this.raycaster.intersectObject(this.plane)
+            intersections = this.raycaster.intersectObject(this.props.sceneManager.state.plane) // TODO FIXME bad access of state
 
         if (intersections.length)
             return intersections[0].point

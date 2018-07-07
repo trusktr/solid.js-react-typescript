@@ -18,6 +18,7 @@ import LocalStorage from "@/mapper-annotated-scene/LocalStorage"
 import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch"
 import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
+import AnnotatedSceneActions from "../src/store/actions/AnnotatedSceneActions";
 import Logger from "@/util/log"
 
 const log = Logger(__filename)
@@ -168,7 +169,10 @@ export abstract class TileManager {
 	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects: boolean = false): Promise<boolean> {
 		if (this.isLoadingTiles)
 			return Promise.reject(new BusyError('busy loading tiles'))
+
 		this._isLoadingTiles = true
+		new AnnotatedSceneActions().addLoadingTileManager( this )
+
 		return this.resetIsLoadingTiles(
 			this.loadFromMapServerImpl(searches, coordinateFrame, loadAllObjects)
 		)
@@ -182,10 +186,12 @@ export abstract class TileManager {
 		return tileLoadedResult
 			.then(loaded => {
 				this._isLoadingTiles = false
+				new AnnotatedSceneActions().removeLoadingTileManager( this )
 				return loaded
 			})
 			.catch(err => {
 				this._isLoadingTiles = false
+				new AnnotatedSceneActions().removeLoadingTileManager( this )
 				throw err
 			})
 	}
