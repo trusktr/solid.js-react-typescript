@@ -3,10 +3,10 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {channel} from "../electron-ipc/Channel"
-import * as IpcMessages from "../electron-ipc/Messages"
-import {toKeyboardEventHighlights} from "../electron-ipc/Serializaton"
-import WindowCommunicator from '../util/WindowCommunicator'
+import {channel} from "electron-ipc/Channel"
+import * as IpcMessages from "electron-ipc/Messages"
+import {toKeyboardEventHighlights} from "electron-ipc/Serializaton"
+import WindowCommunicator from 'util/WindowCommunicator'
 import Logger from "@/util/log"
 
 const log = Logger(__filename)

@@ -6,23 +6,23 @@
 import config from '@/config'
 import {isNullOrUndefined} from "util"
 import * as grpc from 'grpc'
-import {TileServiceClient as GrpcClient} from '../../grpc-compiled-protos/TileService_grpc_pb'
+import {TileServiceClient as GrpcClient} from '@/mapper-annotated-scene/grpc-compiled-protos/TileService_grpc_pb'
 import {
 	GetTilesRequest, GetTilesResponse,
 	PingRequest, RangeSearchMessage, SearchTilesRequest,
 	SearchTilesResponse
-} from "../../grpc-compiled-protos/TileService_pb"
+} from "@/mapper-annotated-scene/grpc-compiled-protos/TileService_pb"
 import {
 	GeographicPoint3DMessage, SpatialReferenceSystemIdentifier, SpatialTileIndexMessage,
 	SpatialTileScale
-} from "../../grpc-compiled-protos/CoordinateReferenceSystem_pb"
-import {TileRangeSearch} from "../model/TileRangeSearch"
-import {RangeSearch} from "../model/RangeSearch"
-import {TileIndex} from "../model/TileIndex"
-import {TileInstance} from "../model/TileInstance"
+} from "@/mapper-annotated-scene/grpc-compiled-protos/CoordinateReferenceSystem_pb"
+import {TileRangeSearch} from "@/mapper-annotated-scene/tile-model/TileRangeSearch"
+import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch"
+import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
+import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
 import {scale3DToSpatialTileScale, spatialTileScaleToScale3D} from "./ScaleUtil"
 import Logger from "@/util/log"
-import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
+import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import {EventEmitter} from "events";
 import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
 

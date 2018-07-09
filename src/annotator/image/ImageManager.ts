@@ -8,10 +8,10 @@ import * as THREE from 'three'
 import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
 import {CalibratedImage} from './CalibratedImage'
-import {LightboxWindowManager} from "../../annotator-image-lightbox/LightboxWindowManager"
-import * as IpcMessages from "../../electron-ipc/Messages"
+import {LightboxWindowManager} from "../annotator-image-lightbox/LightboxWindowManager"
+import * as IpcMessages from "electron-ipc/Messages"
 import {readImageMetadataFile} from "./Aurora"
-import {UtmCoordinateSystem} from "../UtmCoordinateSystem";
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import {AuroraCameraParameters} from "./CameraParameters"
 import config from '@/config'
 import Logger from "@/util/log"
