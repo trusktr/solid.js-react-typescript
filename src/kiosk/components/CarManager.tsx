@@ -9,9 +9,13 @@ import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/An
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
+import {createStructuredSelector} from "reselect";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 
 export interface CarManagerProps {
-  annotatedScene: AnnotatedSceneController | null
+  annotatedScene: AnnotatedSceneController
+  isCarInitialized ?: boolean
 }
 
 export interface CarManagerState {
@@ -19,10 +23,14 @@ export interface CarManagerState {
   rotationQuaternion: THREE.Quaternion
 }
 
+@typedConnect(createStructuredSelector({
+  isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
+}))
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
 
 	componentWillReceiveProps(newProps: CarManagerProps) {
-		if(newProps.annotatedScene && this.props.annotatedScene === null) {
+		if(newProps.annotatedScene && !this.props.isCarInitialized) {
+			// Only execute this once -- hence the check against isCarInitialized
 			this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
 		}
 	}
@@ -70,7 +78,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 
 					this.setState({carModel})
 					const annotatedScene = this.props.annotatedScene
-          annotatedScene && annotatedScene.addObjectToScene(object)
+          annotatedScene.addObjectToScene(object)
 					resolve()
 				})
 			} catch (err) {
@@ -85,7 +93,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 	updateCarWithPose(pose: Models.PoseMessage): void {
     const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
     const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
-    const positionThreeJs = this.props.annotatedScene!.utmCoordinateSystem.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
+    const positionThreeJs = this.props.annotatedScene.utmCoordinateSystem.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)
     const inputRotation = new THREE.Quaternion(pose.q0, pose.q1, pose.q2, pose.q3)
     const standardRotation = cvtQuaternionToStandardCoordinateFrame(inputRotation, CoordinateFrameType.STANDARD)
     const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
@@ -95,7 +103,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		this.setState({rotationQuaternion: rotationThreeJs})
     // OLD --> this.props.areaOfInterestManager.updateAoiHeading(rotationThreeJs)
 
-		this.props.annotatedScene!.updateCurrentLocationStatusMessage(standardPosition)
+		this.props.annotatedScene.updateCurrentLocationStatusMessage(standardPosition)
     this.updateCarPose(positionThreeJs, rotationThreeJs)
   }
 
