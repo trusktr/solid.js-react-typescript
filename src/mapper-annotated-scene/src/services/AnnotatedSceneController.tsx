@@ -170,7 +170,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
   setAnnotatedSceneController() {
     console.log("RT-DEBUG ASC componentDidMount --> setAnnotatedSceneController")
-    if(!this.state.sceneManager) {
+    if(!this.state.sceneManager || !this.state.sceneManager.state.renderer) {
       log.error("[Migration Error] SceneManager is not setup")
       return
     }

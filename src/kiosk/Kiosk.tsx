@@ -94,13 +94,11 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			this.registerKeyDownEvents()
 
 			this.setState({flyThroughManager})
-		}
 
-    if(newProps.sceneInitialized && !this.props.sceneInitialized) {
-			// setup other items after scene is initialized
-			// 1) Update the camera offset for kiosk specifically
-			const cameraOffset = new THREE.Vector3(30, 10, 0)
-			this.state.annotatedSceneController!.setCameraOffsetVector(cameraOffset)
+      // setup other items after scene is initialized
+      // 1) Update the camera offset for kiosk specifically
+      const cameraOffset = new THREE.Vector3(30, 10, 0)
+      this.state.annotatedSceneController.setCameraOffsetVector(cameraOffset)
 		}
 
 		if(newProps.isCarInitialized && newProps.isKioskUserDataLoaded && !this.state.hasCalledSetup &&
