@@ -6,7 +6,7 @@
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import {Scale3D} from "../geometry/Scale3D"
-import {SpatialTileScale} from "../../grpc-compiled-protos/CoordinateReferenceSystem_pb"
+import {SpatialTileScale} from "@/mapper-annotated-scene/grpc-compiled-protos/CoordinateReferenceSystem_pb"
 import * as THREE from "three"
 
 // tslint:disable:variable-name

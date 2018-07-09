@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {configToScale3D, Scale3D} from "@/annotator-entry-ui/geometry/Scale3D"
+import {configToScale3D, Scale3D} from "@/mapper-annotated-scene/geometry/Scale3D"
 
 // The spatial scale should be set once for the entire application.
 export class ScaleProvider {

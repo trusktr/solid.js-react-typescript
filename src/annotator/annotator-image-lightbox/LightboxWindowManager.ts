@@ -7,13 +7,13 @@ import * as Url from 'url'
 import * as Path from 'path'
 import * as Electron from 'electron'
 // import {BrowserWindowConstructorOptions} from 'electron'
-import {windowStateKeeperOptions} from '../util/WindowStateKeeperOptions'
-import {channel} from "../electron-ipc/Channel"
-import * as IpcMessages from "../electron-ipc/Messages"
+import {windowStateKeeperOptions} from 'util/WindowStateKeeperOptions'
+import {channel} from "electron-ipc/Channel"
+import * as IpcMessages from "electron-ipc/Messages"
 import config, { getMeta } from '@/config'
 import windowStateKeeper = require('electron-window-state')
-import WindowCommunicator from '../util/WindowCommunicator'
-import createPromise, { Resolve } from '../util/createPromise'
+import WindowCommunicator from 'util/WindowCommunicator'
+import createPromise, { Resolve } from 'util/createPromise'
 
 interface LightboxWindowManagerSettings {
 	backgroundColor: string

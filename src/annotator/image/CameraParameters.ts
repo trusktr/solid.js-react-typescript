@@ -4,8 +4,8 @@
  */
 
 import * as THREE from 'three'
-import {UtmCoordinateSystem} from "../UtmCoordinateSystem";
-import {lineGeometry} from "../geometry/ThreeHelpers"
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
+import {lineGeometry} from "@/mapper-annotated-scene/geometry/ThreeHelpers"
 
 // Mapping between a real-world camera and an image displayed as a 3D object
 
