@@ -54,10 +54,11 @@ interface AnnotatorSettings {
 }
 
 export interface IAnnotatedSceneControllerProps {
-  onPointOfInterestCall?: () => THREE.Vector3
+  onPointOfInterestCall ?: () => THREE.Vector3
+  onCurrentRotation ?: () => THREE.Quaternion
   enableAnnotationTileManager: boolean // this should be true for Kiosk and false for Annotator
 	statusWindowState ?: StatusWindowState
-	pointOfInterest?: THREE.Vector3
+	pointOfInterest ?: THREE.Vector3
 }
 
 export interface IAnnotatedSceneControllerState {
@@ -231,16 +232,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
   }
 
-  //
-  // // Find the point in the scene that is most interesting to a human user.
-  // currentPointOfInterest(): THREE.Vector3 | null {
-  //   // @TODO JOE/RYAN - apps must pass a function as a prop to AnnotatedSceneController
-  //   // JOE FRIDAY - maybe we can avoid callbacks. If we can't hook into outter
-  //   // app's redux state, maybe we can just expose an EventEmitter for apps to
-  //   // listen to?
-  //   return this.props.onPointOfInterestCall()
-  // }
-
   activateReadOnlyViewingMode() {
     this.state.layerManager!.setLayerVisibility([Layer.POINT_CLOUD.toString(), Layer.ANNOTATIONS.toString()], true)
 
@@ -410,11 +401,12 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         />
 
         <AreaOfInterestManager
-			ref={this.getAreaOfInterestManagerRef}
-			getPointOfInterest={this.props.onPointOfInterestCall}
-			utmCoordinateSystem={this.utmCoordinateSystem}
-			groundPlaneManager={this.state.groundPlaneManager}
-			sceneManager={this.state.sceneManager}
+          ref={this.getAreaOfInterestManagerRef}
+          getPointOfInterest={this.props.onPointOfInterestCall}
+          getCurrentRotation={this.props.onCurrentRotation}
+          utmCoordinateSystem={this.utmCoordinateSystem}
+          groundPlaneManager={this.state.groundPlaneManager}
+          sceneManager={this.state.sceneManager}
 		/>
 
         <LayerManager ref={this.getLayerManagerRef} />

@@ -5,27 +5,24 @@ import {
   convertToStandardCoordinateFrame, CoordinateFrameType,
   cvtQuaternionToStandardCoordinateFrame
 } from "@/mapper-annotated-scene/geometry/CoordinateFrame";
-import StatusWindow from "@/mapper-annotated-scene/components/StatusWindow";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
-import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 
 export interface CarManagerProps {
   annotatedScene: AnnotatedSceneController | null
-  areaOfInterestManager: AreaOfInterestManager
-	statusWindow: StatusWindow
 }
 
 export interface CarManagerState {
 	carModel: THREE.Object3D
+  rotationQuaternion: THREE.Quaternion
 }
 
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
 
 	componentWillReceiveProps(newProps: CarManagerProps) {
-		if(newProps.annotatedScene && newProps.areaOfInterestManager && this.props.annotatedScene === null) {
+		if(newProps.annotatedScene && this.props.annotatedScene === null) {
 			this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
 		}
 	}
@@ -34,6 +31,17 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		const carModel = this.state.carModel
 		carModel.add(object)
 		this.setState({carModel})
+	}
+
+	// Used by AreaOfInterestManager in updatePointCloudAoi as part of getPointOfInterest()
+	getCarModelPosition(): THREE.Vector3 {
+		return this.state.carModel.position
+	}
+
+	// quaternion is set from
+	// Used by AreaOfInterestManager to set AOIHeading
+	getCarModelRotation(): THREE.Quaternion {
+		return this.state.rotationQuaternion
 	}
 
 
@@ -83,8 +91,11 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
     const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
     rotationThreeJs.normalize()
 
-    this.props.areaOfInterestManager.updateAoiHeading(rotationThreeJs)
-    this.props.annotatedScene!.updateCurrentLocationStatusMessage(standardPosition)
+		// Used by areaOfInterestManager to passively update  updateAoiHeading
+		this.setState({rotationQuaternion: rotationThreeJs})
+    // OLD --> this.props.areaOfInterestManager.updateAoiHeading(rotationThreeJs)
+
+		this.props.annotatedScene!.updateCurrentLocationStatusMessage(standardPosition)
     this.updateCarPose(positionThreeJs, rotationThreeJs)
   }
 

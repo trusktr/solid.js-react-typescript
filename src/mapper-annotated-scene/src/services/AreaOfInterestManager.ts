@@ -10,6 +10,10 @@ import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
 import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager"
 import toProps from '@/util/toProps'
+import {
+  convertToStandardCoordinateFrame, CoordinateFrameType,
+  cvtQuaternionToStandardCoordinateFrame
+} from "@/mapper-annotated-scene/geometry/CoordinateFrame";
 
 const log = Logger(__filename)
 
@@ -17,6 +21,7 @@ type AreaOfInterest = RangeSearch[]
 
 interface IAoiProps {
 	getPointOfInterest?: () => THREE.Vector3
+  getCurrentRotation: () => THREE.Quaternion
 	utmCoordinateSystem: UtmCoordinateSystem
 	groundPlaneManager: GroundPlaneManager | null
 	sceneManager: SceneManager | null
@@ -87,7 +92,9 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
 	}
 
-	updateAoiHeading(rotationThreeJs: THREE.Quaternion | null): void {
+	updateAoiHeading(): void {
+		const rotationThreeJs = this.props.getCurrentRotation()
+
 		if (this.state.enabled) {
 			const newHeading = rotationThreeJs
 				? new THREE.Vector3(-1, 0, 0).applyQuaternion(rotationThreeJs)
