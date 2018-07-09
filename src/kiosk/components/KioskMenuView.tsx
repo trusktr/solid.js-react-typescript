@@ -16,7 +16,7 @@ import FlyThroughManager from "@/kiosk/components/FlyThroughManager";
 interface KioskViewProps {
 	liveModeEnabled ?: boolean
 	playModeEnabled ?: boolean
-	flyThroughManager: FlyThroughManager | null
+	flyThroughManager: FlyThroughManager
 }
 
 interface KioskViewState {}
@@ -32,18 +32,12 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 		super(props)
 	}
 
-	componentWillReceiveProps(newProps) {
-		if(!this.props.flyThroughManager && newProps.flyThroughManager) {
-			// we now have a fly through manager
-		}
-	}
-
 
 	private makeOnPlayModeClick = () => () => {
 		console.log("Clicked onPlayMode")
 		new AnnotatedSceneActions().togglePlayMode()
 		const flyThroughManager = this.props.flyThroughManager
-    flyThroughManager && flyThroughManager.toggleLiveModePlay()
+    flyThroughManager.toggleLiveModePlay()
 
 
 	}
@@ -52,7 +46,7 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 		console.log("Clicked onLiveMode")
 		new AnnotatedSceneActions().toggleLiveMode()
     const flyThroughManager = this.props.flyThroughManager
-    flyThroughManager && flyThroughManager.toggleLiveAndRecordedPlay()
+    flyThroughManager.toggleLiveAndRecordedPlay()
 	}
 
 	private makeOnSelectDataSetClick = () => () => {

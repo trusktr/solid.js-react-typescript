@@ -291,14 +291,28 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 	render() {
 		console.log("RENDERING WITH STORE", this.props.sceneInitialized)
-        return <div style={{width: "100%", height: "100%"}}>
-            <AnnotatedSceneController ref={this.getSceneManager} width={1000} height={1000} />
-            <CarManager ref={this.getCarManagerRef} annotatedScene={this.state.annotatedSceneController} areaOfInterestManager={this.state.annotatedSceneController.state.areaOfInterestManager}/>
 
-            <FlyThroughManager ref={this.getFlyThroughManagerRef} carManager={this.state.carManager!} annotatedSceneController={this.state.annotatedSceneController} />
 
-            <KioskMenuView flyThroughManager={this.state.flyThroughManager}/>
-        </div>
+		// CarManager will not be setup the first time through
+		let onPointOfInterestCall = () => {return new THREE.Vector3(0,0,0)}
+    let onCurrentRotation = () => {return new THREE.Quaternion()}
+		if(this.state.carManager) {
+      onPointOfInterestCall = () => {return this.state.carManager!.getCarModelPosition()}
+      onCurrentRotation = () => {return this.state.carManager!.getCarModelRotation()}
+		}
+
+
+		return (<div style={{width: "100%", height: "100%"}}>
+				<AnnotatedSceneController enableAnnotationTileManager={true} onPointOfInterestCall={onPointOfInterestCall} onCurrentRotation={onCurrentRotation} />
+
+				{this.state.annotatedSceneController &&
+					<CarManager ref={this.getCarManagerRef} annotatedScene={this.state.annotatedSceneController}/> }
+
+      	{this.state.annotatedSceneController && this.state.carManager &&
+					<FlyThroughManager ref={this.getFlyThroughManagerRef} carManager={this.state.carManager!} annotatedSceneController={this.state.annotatedSceneController} />}
+
+				{this.state.flyThroughManager && <KioskMenuView flyThroughManager={this.state.flyThroughManager}/>}
+		</div>)
 	}
 
 }

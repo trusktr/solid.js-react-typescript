@@ -448,6 +448,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			// managers need to be hooked in.
 			this.props.areaOfInterestManager.updatePointCloudAoi()
 
+			// Ryan added 7/9
+			this.props.areaOfInterestManager.updateAoiHeading()
+
 			return true
 		})
 

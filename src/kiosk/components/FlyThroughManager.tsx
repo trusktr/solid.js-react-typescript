@@ -28,7 +28,7 @@ const log = Logger(__filename)
 
 export interface FlyThroughManagerProps {
   carManager: CarManager
-  annotatedSceneController: AnnotatedSceneController | null
+  annotatedSceneController: AnnotatedSceneController
   liveModeEnabled ?: boolean
   playModeEnabled ?: boolean
   flyThroughState ?: FlyThroughState
@@ -97,7 +97,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
       pointCloudResult = annotationsResult
         .then(() => {
           log.info('loading pre-configured bounding box ' + pointCloudBbox)
-          return this.props.annotatedSceneController!.state.pointCloudManager!.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
+          return this.props.annotatedSceneController.state.pointCloudManager!.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
         })
     } else {
       pointCloudResult = annotationsResult
