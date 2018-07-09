@@ -17,7 +17,7 @@ type AreaOfInterest = RangeSearch[]
 
 interface IAoiProps {
 	getPointOfInterest?: () => THREE.Vector3
-  getCurrentRotation: () => THREE.Quaternion
+	getCurrentRotation?: () => THREE.Quaternion
 	utmCoordinateSystem: UtmCoordinateSystem
 	groundPlaneManager: GroundPlaneManager | null
 	sceneManager: SceneManager | null
@@ -87,7 +87,9 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 	}
 
 	updateAoiHeading(): void {
-		const rotationThreeJs = this.props.getCurrentRotation()
+
+		// TODO TMP only called for Kiosk app. Maybe fix with detecting camera movement direction
+		const rotationThreeJs = this.props.getCurrentRotation!()
 
 		if (this.state.enabled) {
 			const newHeading = rotationThreeJs
