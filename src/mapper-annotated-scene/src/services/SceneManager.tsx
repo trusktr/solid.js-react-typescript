@@ -42,6 +42,7 @@ export interface SceneManagerProps {
 	sceneObjects ?: Set<THREE.Object3D>
 	visibleLayers ?: string[]
 	cameraPreference?: CameraType
+	container: HTMLDivElement
 }
 
 
@@ -87,8 +88,6 @@ export interface SceneManagerState {
 	'cameraPreference',
 ))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
-
-	private sceneContainer: HTMLDivElement
 
 	constructor(props) {
 		super(props)
@@ -286,6 +285,15 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.renderScene()
 		}
 
+		console.log(" @@@ RT-DEBUG SceneManager componentDidUpdate")
+		debugger
+		if (newProps.container && !this.props.container) {
+			console.log(" @@@ RT-DEBUG got the container")
+			this.makeStats()
+			newProps.container.appendChild(this.state.renderer.domElement)
+			this.startAnimation()
+		}
+
 
 	}
 
@@ -308,32 +316,20 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	componentDidMount() {
 		console.log("RT-DEBUG SceneManager componentDidMount")
-    const [width, height]: Array<number> = this.getContainerSize()
+		const [width, height]: Array<number> = this.getContainerSize()
 
-    this.createOrthographicCameraDimensions(width, height)
+		this.createOrthographicCameraDimensions(width, height)
 
 		new AnnotatedSceneActions().setCamera(this.state.camera)
 
-		this.makeStats()
-		this.sceneContainer.appendChild(this.state.renderer.domElement)
-		this.startAnimation()
 
 	}
 
 	componentWillUnmount() {
 		this.stopAnimation()
-    this.destroyStats()
+		this.destroyStats()
 		this.state.renderer.domElement.remove()
 
-	}
-
-	onMouseMove = (event): void => {
-		// TODO JOE do we have to make a `new AnnotatedSceneActions` every time? Or
-		// can we just use a singleton?
-		new AnnotatedSceneActions().setMousePosition( {
-			x: event.clientX - event.target.offsetLeft,
-			y: event.clientY - event.target.offsetTop,
-		} )
 	}
 
   private makeStats(): void {
@@ -344,7 +340,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
     stats.dom.style.top = 'initial' // disable existing setting
     stats.dom.style.bottom = '50px' // above Mapper logo
     stats.dom.style.left = '13px'
-    this.sceneContainer.appendChild(stats.dom)
+    this.props.container.appendChild(stats.dom)
 		this.setState({stats})
 
   }
@@ -704,13 +700,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	render() {
-		console.log("RT-DEBUG SceneManager render")
-		return (
-			<React.Fragment>
-				<div className="scene-container" onMouseMove={this.onMouseMove} ref={(el): HTMLDivElement => this.sceneContainer = el!}/>
-			</React.Fragment>
-		)
-
+		console.log("RT-DEBUG SceneManager render ------ null")
+		return null
 	}
 
 	addSuperTile(superTile: SuperTile) {

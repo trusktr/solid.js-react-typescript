@@ -79,6 +79,7 @@ export interface IAnnotatedSceneControllerState {
   layerManager: LayerManager | null
   registeredKeyDownEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
   registeredKeyUpEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
+  container?: HTMLDivElement
 }
 
 
@@ -384,9 +385,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     console.log("RT-DEBUG ASC getSceneManagerRef", sceneManager)
     if(sceneManager) {
       console.log("RT-DEBUG setting sceneManager with value")
-	  setTimeout(() => {
-	      this.setState({sceneManager})
-	  }, 1000)
+      this.setState({sceneManager})
     }
 
   }
@@ -411,6 +410,19 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     this.setState({groundPlaneManager})
   }
 
+	getContainerRef = (container: HTMLDivElement | null): void => {
+		container && this.setState({ container })
+	}
+
+	onMouseMove = (event): void => {
+		// TODO JOE do we have to make a `new AnnotatedSceneActions` every time? Or
+		// can we just use a singleton?
+		new AnnotatedSceneActions().setMousePosition( {
+			x: event.clientX - event.target.offsetLeft,
+			y: event.clientY - event.target.offsetTop,
+		} )
+	}
+
   componentWillUnmount() {
 	  console.log(' &&&&&&&&&&&&&&&& JOE_DEBUG AnnotatedSceneController componentWillUnmount')
   }
@@ -432,7 +444,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
     console.log(" ******************* RT-DEBUG Starting ASC render()")
     return (
-      <React.Fragment>
+	  <div ref={this.getContainerRef} className="scene-container" onMouseMove={this.onMouseMove}>
 
         {/* TODO JOE THURSDAY StatusWindow doesn't need UtmCoordinateSystem, it is only concerned with messages */}
         <StatusWindow
@@ -441,17 +453,22 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			eventEmitter={this.channel}
 		/>
 
-        <SceneManager
-          ref={this.getSceneManagerRef}
+		{ this.state.container &&
+			<SceneManager
+	          ref={this.getSceneManagerRef}
 
-		  // TODO JOE this will resize based on container size using window.ResizeObserver.
-          width={1000}
-          height={1000}
+			  // TODO JOE this will resize based on container size using window.ResizeObserver.
+	          width={1000}
+	          height={1000}
 
-          utmCoordinateSystem={this.utmCoordinateSystem}
-          eventEmitter={this.channel}
-          areaOfInterestManager={this.state.areaOfInterestManager}
-        />
+	          utmCoordinateSystem={this.utmCoordinateSystem}
+	          eventEmitter={this.channel}
+	          areaOfInterestManager={this.state.areaOfInterestManager}
+
+			  container={this.state.container}
+	        />
+		}
+
 
         <AreaOfInterestManager
           ref={this.getAreaOfInterestManagerRef}
@@ -504,7 +521,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			sceneManager={this.state.sceneManager!}
 		/>
 
-      </React.Fragment>
+      </div>
     )
   }
 }
