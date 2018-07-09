@@ -33,11 +33,11 @@ module.exports = patchConfig({
 
 	entry: Object.assign(
 		{
-		    'annotator-entry-ui': './annotator-entry-ui/index',
-		    'annotator-image-lightbox': './annotator-image-lightbox/index',
+		    'annotator-entry-ui': './annotator/index',
+		    'annotator-image-lightbox': './annotator/annotator-image-lightbox/index',
 		},
 		!isSaffron ? {
-		    'annotator-entry-main': './annotator-entry-main/MainEntry',
+		    'annotator-entry-main': './annotator/annotator-entry-main/MainEntry',
 		} : {}
 	),
 
