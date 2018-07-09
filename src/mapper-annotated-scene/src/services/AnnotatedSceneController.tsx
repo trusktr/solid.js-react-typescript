@@ -202,8 +202,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   }
 
   componentDidUpdate(_, prevState, __) {
-    console.log("RT-DEBUG componentDidUpdate")
-    if(!prevState.sceneManager && this.state.sceneManager) {
+    console.log(" ------------------ RT-DEBUG componentDidUpdate")
+    if(prevState.sceneManager !== this.state.sceneManager) {
       console.log("RT-DEBUG ASC finally have sceneManager")
       this.setAnnotatedSceneController()
     }
@@ -384,7 +384,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     console.log("RT-DEBUG ASC getSceneManagerRef", sceneManager)
     if(sceneManager) {
       console.log("RT-DEBUG setting sceneManager with value")
-      this.setState({sceneManager})
+	  setTimeout(() => {
+	      this.setState({sceneManager})
+	  }, 1000)
     }
 
   }
@@ -409,6 +411,10 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     this.setState({groundPlaneManager})
   }
 
+  componentWillUnmount() {
+	  console.log(' &&&&&&&&&&&&&&&& JOE_DEBUG AnnotatedSceneController componentWillUnmount')
+  }
+
   render() {
 
     const {
@@ -424,7 +430,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     // TODO JOE THURSDAY see onRenender below
     // const onRenderCallBack = this.state.sceneManager ? this.state.sceneManager.renderScene : () => {}
 
-    console.log("RT-DEBUG Starting ASC render()")
+    console.log(" ******************* RT-DEBUG Starting ASC render()")
     return (
       <React.Fragment>
 
