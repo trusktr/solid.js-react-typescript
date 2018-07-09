@@ -99,19 +99,3 @@ export function loadAndInitStore():ObservableStore<any>{
 function onError(err:Error, reducer?:ILeafReducer<any, any>) {
   log.error("Reducer error occurred", reducer, err, err.stack)
 }
-
-// TODO: let's avoid globals
-_.assign(global, {
-  getAnnotatedSceneReduxStore: getAnnotatedSceneReduxStore,
-  getAnnotatedSceneStore: getAnnotatedSceneStore,
-  getAnnotatedSceneStoreState: getAnnotatedSceneStoreState,
-})
-
-console.log("DONE WITH ASSIGNING STORE GLOBALS")
-
-declare global {
-  function getAnnotatedSceneReduxStore():ReduxStore<Map<string, any>>
-  function getAnnotatedSceneStore():ObservableStore<any>
-  function getAnnotatedSceneStoreState():IMMap<string,any>
-
-}

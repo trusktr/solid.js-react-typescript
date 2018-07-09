@@ -1,5 +1,6 @@
 import * as _ from "lodash"
 import {DefaultLeafReducer, ILeafReducer} from "typedux"
+import {getAnnotatedSceneStore} from '@/mapper-annotated-scene/src/store/AppStore'
 
 /**
  * Load all the reducers from store/reducer
