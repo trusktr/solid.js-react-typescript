@@ -5,16 +5,16 @@ import {
   convertToStandardCoordinateFrame, CoordinateFrameType,
   cvtQuaternionToStandardCoordinateFrame
 } from "@/mapper-annotated-scene/geometry/CoordinateFrame";
-import PointCloudManager from "@/mapper-annotated-scene/src/services/PointCloudManager";
 import StatusWindow from "@/mapper-annotated-scene/components/StatusWindow";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
+import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 
 export interface CarManagerProps {
   annotatedScene: AnnotatedSceneController | null
-	pointCloudManager: PointCloudManager
+  areaOfInterestManager: AreaOfInterestManager
 	statusWindow: StatusWindow
 }
 
@@ -25,7 +25,7 @@ export interface CarManagerState {
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
 
 	componentWillReceiveProps(newProps: CarManagerProps) {
-		if(newProps.annotatedScene && newProps.pointCloudManager && this.props.annotatedScene === null) {
+		if(newProps.annotatedScene && newProps.areaOfInterestManager && this.props.annotatedScene === null) {
 			this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
 		}
 	}
@@ -34,12 +34,6 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		const carModel = this.state.carModel
 		carModel.add(object)
 		this.setState({carModel})
-	}
-
-	setCarVisibility(visible:boolean) {
-		const carModel = this.state.carModel
-		carModel.visible = visible
-    this.setState({carModel})
 	}
 
 
@@ -89,7 +83,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
     const rotationThreeJs = new THREE.Quaternion(standardRotation.y, standardRotation.z, standardRotation.x, standardRotation.w)
     rotationThreeJs.normalize()
 
-    this.props.pointCloudManager.updateAoiHeading(rotationThreeJs)
+    this.props.areaOfInterestManager.updateAoiHeading(rotationThreeJs)
     this.props.annotatedScene!.updateCurrentLocationStatusMessage(standardPosition)
     this.updateCarPose(positionThreeJs, rotationThreeJs)
   }

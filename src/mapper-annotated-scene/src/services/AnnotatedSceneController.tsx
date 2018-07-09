@@ -27,6 +27,7 @@ import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 import {AnnotationManager} from "AnnotationManager.tsx";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
+import {Vector3} from "three";
 
 const log = Logger(__filename)
 
@@ -264,6 +265,10 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     } else {
       log.error("Unable to reset tilt and compass - sceneManager not instantiated")
     }
+  }
+
+  setCameraOffsetVector(offset: THREE.Vector3): void {
+    this.state.sceneManager!.setCameraOffsetVector(offset)
   }
 
   addObjectToScene(object: THREE.Object3D) {

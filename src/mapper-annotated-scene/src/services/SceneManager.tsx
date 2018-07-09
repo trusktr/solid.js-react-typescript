@@ -456,6 +456,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// })
 	}
 
+  setCameraOffsetVector(offset:THREE.Vector3) {
+		this.setState({cameraOffset: offset})
+	}
+
 	removeAxisFromScene() {
 		const scene = this.state.scene
 		if(this.state.axis) {

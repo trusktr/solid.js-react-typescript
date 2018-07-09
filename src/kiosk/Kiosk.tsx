@@ -14,14 +14,6 @@ import FlyThroughActions from "@/kiosk/store/actions/FlyThroughActions";
 
 const log = Logger(__filename)
 
-// TODO JOE WEDNESDAY moved from Annotator.tsx
-interface LiveModeSettings {
-	displayCarModel: boolean
-	carModelMaterial: THREE.Material
-	cameraOffset: THREE.Vector3
-	cameraOffsetDelta: number
-	// flyThroughIntervalSecs: number
-}
 
 export interface KioskProps {
   sceneInitialized ?: boolean
@@ -77,19 +69,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 				})
 		}
 
-		this.liveModeSettings = {
-			displayCarModel: !!config['live_mode.display_car_model'],
-			carModelMaterial: new THREE.MeshPhongMaterial({
-				color: 0x002233,
-				specular: 0x222222,
-				shininess: 0,
-			}),
-			cameraOffset: new THREE.Vector3(30, 10, 0),
-			cameraOffsetDelta: 1,
-			// flyThroughIntervalSecs: flyThroughInterval,
-		}
-
-		// this.resetFlyThroughState()
 		new FlyThroughActions().resetFlyThroughState()
 
 		if (config['fly_through.render.fps'])
@@ -117,6 +96,12 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			this.setState({flyThroughManager})
 		}
 
+    if(newProps.sceneInitialized && !this.props.sceneInitialized) {
+			// setup other items after scene is initialized
+			// 1) Update the camera offset for kiosk specifically
+			const cameraOffset = new THREE.Vector3(30, 10, 0)
+			this.state.annotatedSceneController!.setCameraOffsetVector(cameraOffset)
+		}
 
 		if(newProps.isCarInitialized && newProps.isKioskUserDataLoaded && !this.state.hasCalledSetup &&
 			this.state.annotatedSceneController && this.state.carManager && this.state.flyThroughManager
@@ -139,11 +124,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		this.state.annotatedSceneController!.registerKeyboardDownEvent(UP_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraYOffset(cameraOffsetDelta)})
 		this.state.annotatedSceneController!.registerKeyboardDownEvent(RIGHT_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraXOffset(-1 * cameraOffsetDelta)})
 		this.state.annotatedSceneController!.registerKeyboardDownEvent(DOWN_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraYOffset(-1 * cameraOffsetDelta)})
-	}
-
-	componentDidMount() {
-		// this.listen()
-
 	}
 
 	getCarManager = (carManager:CarManager) => {
@@ -193,16 +173,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
     this.state.annotatedSceneController!.renderScene()
   }
-
-	private onKeyDown = (event: KeyboardEvent): void => {
-		if (event.defaultPrevented) return
-		if (event.altKey) return
-		if (event.ctrlKey) return
-		if (event.metaKey) return
-
-		// NOTE JOE who knows where onKeyDownLiveMode went?
-		this.onKeyDownLiveMode(event)
-	}
 
 
     // TODO JOE WEDNESDAY {{{
@@ -323,7 +293,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		console.log("RENDERING WITH STORE", this.props.sceneInitialized)
         return <div style={{width: "100%", height: "100%"}}>
             <AnnotatedSceneController ref={this.getSceneManager} width={1000} height={1000} />
-            <CarManager ref={this.getCarManager} annotatedScene={this.state.annotatedSceneController}/>
+            <CarManager ref={this.getCarManagerRef} annotatedScene={this.state.annotatedSceneController} areaOfInterestManager={this.state.annotatedSceneController.state.areaOfInterestManager}/>
 
             <FlyThroughManager ref={this.getFlyThroughManagerRef} carManager={this.state.carManager!} annotatedSceneController={this.state.annotatedSceneController} />
 
