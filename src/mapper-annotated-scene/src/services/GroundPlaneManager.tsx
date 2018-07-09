@@ -175,4 +175,8 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 		return count
 	}
 
+	render() {
+		return null
+	}
+
 }

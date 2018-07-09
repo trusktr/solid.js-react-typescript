@@ -222,4 +222,8 @@ class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 		}
 	}
 
+	render() {
+		return null
+	}
+
 }

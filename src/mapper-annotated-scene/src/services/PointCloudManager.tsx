@@ -211,11 +211,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	}
 
 	render() {
-		return (
-			<React.Fragment>
-
-			</React.Fragment>
-		)
+		return null
 	}
 
 	componentDidUpdate(previousProps: PointCloudManagerProps) {

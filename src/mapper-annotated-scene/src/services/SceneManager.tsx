@@ -92,7 +92,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	constructor(props) {
 		super(props)
-		log.info("Building scene in SceneManager")
+		log.info("RT-DEBUG SceneManager constructor")
 		const {width, height} = this.props
 
 
@@ -120,8 +120,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			camera = orthographicCam
 		else
 			camera = perspectiveCam
-
-		this.setOrthographicCameraDimensions(width, height)
 
 		// Add some lights
 		scene.add(new THREE.AmbientLight(0xffffff))
@@ -197,42 +195,44 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.loadDecorations()
 		})
 
-		const orbitControls = this.initOrbitControls()
+    // TODO JOE THURSDAY anything that doesn't need to change we can
+    // take out of state and keep as instance variables. F.e. loop, scene,
+    // renderer, etc
+    const state = {
+      plane: plane,
+      grid: grid,
+      axis: axis,
+      camera: camera,
+      perspectiveCamera: perspectiveCam,
+      orthographicCamera: orthographicCam,
+      flyThroughCamera: flyThroughCamera,
 
-		// TODO JOE THURSDAY anything that doesn't need to change we can
-		// take out of state and keep as instance variables. F.e. loop, scene,
-		// renderer, etc
-		this.state = {
-			plane: plane,
-			grid: grid,
-			axis: axis,
-			camera: camera,
-			perspectiveCamera: perspectiveCam,
-			orthographicCamera: orthographicCam,
-			flyThroughCamera: flyThroughCamera,
+      scene: scene,
+      compassRose: compassRose,
+      renderer: renderer,
+      loop: loop,
+      cameraOffset: cameraOffset,
+      orthoCameraHeight: orthoCameraHeight,
 
-			scene: scene,
-			compassRose: compassRose,
-			renderer: renderer,
-			loop: loop,
-			cameraOffset: cameraOffset,
-			orthoCameraHeight: orthoCameraHeight,
+      cameraPosition2D: new THREE.Vector2(),
+      cameraToSkyMaxDistance: cameraToSkyMaxDistance,
 
-			cameraPosition2D: new THREE.Vector2(),
-			cameraToSkyMaxDistance: cameraToSkyMaxDistance,
+      sky: sky,
+      skyPosition2D: skyPosition2D,
+      updateOrbitControls: updateOrbitControls,
 
-			sky: sky,
-			skyPosition2D: skyPosition2D,
-			updateOrbitControls: updateOrbitControls,
+      orbitControls: this.initOrbitControls(camera, renderer),
 
-			orbitControls: orbitControls,
-
-			maxDistanceToDecorations: 50000,
-			decorations: [],
-			stats: new Stats(),
+      maxDistanceToDecorations: 50000,
+      decorations: [],
+      stats: new Stats(),
 
 
-		}
+    }
+
+		this.state = state
+
+    this.createOrthographicCameraDimensions(width, height)
 
 		// Point the camera at some reasonable default location.
 		this.setStage(0, 0, 0)
@@ -307,6 +307,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	componentDidMount() {
+		console.log("RT-DEBUG SceneManager componentDidMount")
+    const [width, height]: Array<number> = this.getContainerSize()
+
+    this.createOrthographicCameraDimensions(width, height)
+
 		new AnnotatedSceneActions().setCamera(this.state.camera)
 
 		this.makeStats()
@@ -536,7 +541,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// Scale the ortho camera frustum along with window dimensions to preserve a 1:1
 	// proportion for model width:height.
-	private setOrthographicCameraDimensions(width: number, height: number): void {
+	private createOrthographicCameraDimensions(width: number, height: number): void {
 		const orthoWidth = this.state.orthoCameraHeight * (width / height)
 		const orthoHeight = this.state.orthoCameraHeight
 
@@ -546,10 +551,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		orthographicCamera.top = orthoHeight / 2
 		orthographicCamera.bottom = orthoHeight / -2
 		orthographicCamera.updateProjectionMatrix()
-
-		this.setState({
-			orthographicCamera: orthographicCamera
-		})
 	}
 
 	/**
@@ -563,7 +564,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			log.info("Unable to set SceneManager stage, orbitControls not found")
 			return
 		}
-
 
 		plane.geometry.center()
 		plane.geometry.translate(x, y, z)
@@ -580,13 +580,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.renderScene()
 		}
 
-		// Update state with new values
-		this.setState({
-			camera: camera,
-			plane: plane,
-			grid: grid,
-			orbitControls: orbitControls
-		})
 		new AnnotatedSceneActions().setCamera(this.state.camera)
 	}
 
@@ -605,17 +598,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			sky.position.setZ(cameraPosition2D.y)
 			skyPosition2D.set(sky.position.x, sky.position.z)
 		}
-
-		this.setState({
-			cameraPosition2D: cameraPosition2D,
-			skyPosition2D: skyPosition2D,
-			cameraToSkyMaxDistance: cameraToSkyMaxDistance,
-			sky: sky,
-		})
 	}
 
-	private initOrbitControls() {
-		const orbitControls = new OrbitControls(this.state.camera, this.state.renderer.domElement)
+	private initOrbitControls(camera:THREE.Camera, renderer:THREE.WebGLRenderer) {
+		const orbitControls = new OrbitControls(camera, renderer.domElement)
 		orbitControls.enabled = false
 		orbitControls.minDistance = 10
 		orbitControls.maxDistance = 5000
@@ -676,7 +662,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			camera.aspect = width / height
 			camera.updateProjectionMatrix()
 		} else {
-			this.setOrthographicCameraDimensions(width, height)
+			this.createOrthographicCameraDimensions(width, height)
 		}
 
 		renderer.setSize(width, height)
@@ -718,6 +704,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	render() {
+		console.log("RT-DEBUG SceneManager render")
 		return (
 			<React.Fragment>
 				<div className="scene-container" onMouseMove={this.onMouseMove} ref={(el): HTMLDivElement => this.sceneContainer = el!}/>

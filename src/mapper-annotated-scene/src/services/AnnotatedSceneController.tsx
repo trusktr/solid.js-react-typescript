@@ -168,7 +168,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     new StatusWindowActions().setMessage(StatusKey.CURRENT_LOCATION_UTM, messageUtm)
   }
 
-  componentDidMount() {
+  setAnnotatedSceneController() {
+    console.log("RT-DEBUG ASC componentDidMount --> setAnnotatedSceneController")
     if(!this.state.sceneManager) {
       log.error("[Migration Error] SceneManager is not setup")
       return
@@ -200,7 +201,13 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(_, prevState, __) {
+    console.log("RT-DEBUG componentDidUpdate")
+    if(!prevState.sceneManager && this.state.sceneManager) {
+      console.log("RT-DEBUG ASC finally have sceneManager")
+      this.setAnnotatedSceneController()
+    }
+
 	  this.displayCameraInfo()
   }
 
@@ -374,7 +381,12 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   }
 
   getSceneManagerRef = (sceneManager: SceneManager): void => {
-    this.setState({sceneManager})
+    console.log("RT-DEBUG ASC getSceneManagerRef", sceneManager)
+    if(sceneManager) {
+      console.log("RT-DEBUG setting sceneManager with value")
+      this.setState({sceneManager})
+    }
+
   }
 
   getStatusWindowRef = (statusWindow: StatusWindow) => {
@@ -412,6 +424,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     // TODO JOE THURSDAY see onRenender below
     // const onRenderCallBack = this.state.sceneManager ? this.state.sceneManager.renderScene : () => {}
 
+    console.log("RT-DEBUG Starting ASC render()")
     return (
       <React.Fragment>
 

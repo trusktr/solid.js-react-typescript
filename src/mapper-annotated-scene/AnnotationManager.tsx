@@ -211,11 +211,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	render() {
-		return (
-			<React.Fragment>
-
-			</React.Fragment>
-		)
+		return null
 	}
 
 	/**
