@@ -1,3 +1,4 @@
+import * as Electron from 'electron'
 import * as React from "react"
 import {getValue} from "typeguard";
 import * as THREE from "three";
