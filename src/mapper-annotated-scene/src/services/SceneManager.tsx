@@ -695,8 +695,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	render() {
-		console.log("RT-DEBUG SceneManager render -- do nothing")
-		console.log("this.props.container", this.props.container)
 		return null
 	}
 

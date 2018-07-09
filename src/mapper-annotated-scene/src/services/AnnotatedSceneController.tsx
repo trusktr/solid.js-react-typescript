@@ -171,23 +171,19 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
   setAnnotatedSceneController() {
     console.log("RT-DEBUG ASC componentDidMount --> setAnnotatedSceneController")
-    if(!this.state.sceneManager || !this.state.sceneManager.state.renderer) {
-      log.error("[Migration Error] SceneManager is not setup")
-      return
-    }
 
     // TODO JOE FRIDAY
     // if ( interaction is enabled ) {
 
-    this.state.sceneManager.state.renderer.domElement.addEventListener('mousemove', this.annotationManager.checkForActiveMarker)
+    this.state.container!.addEventListener('mousemove', this.annotationManager.checkForActiveMarker)
 
     // TODO REORG JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
-    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.checkForConflictOrDeviceSelection)
-    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.checkForAnnotationSelection)
-    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.addAnnotationMarker)
-    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.addLaneConnection)   // RYAN Annotator-specific
-    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.connectNeighbor)  // RYAN Annotator-specific
-    this.state.sceneManager.state.renderer.domElement.addEventListener('mouseup', this.annotationManager.joinAnnotationsEventHandler)
+    this.state.container!.addEventListener('mouseup', this.annotationManager.checkForConflictOrDeviceSelection)
+    this.state.container!.addEventListener('mouseup', this.annotationManager.checkForAnnotationSelection)
+    this.state.container!.addEventListener('mouseup', this.annotationManager.addAnnotationMarker)
+    this.state.container!.addEventListener('mouseup', this.annotationManager.addLaneConnection)   // RYAN Annotator-specific
+    this.state.container!.addEventListener('mouseup', this.annotationManager.connectNeighbor)  // RYAN Annotator-specific
+    this.state.container!.addEventListener('mouseup', this.annotationManager.joinAnnotationsEventHandler)
 
     // }
 
@@ -195,7 +191,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       const cameraOffset: [number, number, number] = config['startup.camera_offset']
 
       if (isTupleOfNumbers(cameraOffset, 3)) {
-        this.state.sceneManager.setCameraOffset(cameraOffset)
+        this.state.sceneManager!.setCameraOffset(cameraOffset)
       } else if (cameraOffset) {
         log.warn(`invalid startup.camera_offset config: ${cameraOffset}`)
       }
@@ -204,7 +200,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
   componentDidUpdate(_, prevState, __) {
     console.log(" ------------------ RT-DEBUG componentDidUpdate")
-    if(prevState.sceneManager !== this.state.sceneManager) {
+    if(prevState.sceneManager !== this.state.sceneManager && !prevState.container && this.state.container) {
       console.log("RT-DEBUG ASC finally have sceneManager")
       this.setAnnotatedSceneController()
     }
