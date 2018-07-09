@@ -83,7 +83,7 @@ export function indexToCoord(index: number, size: number): number {
 }
 
 export function configToScale3D(key: string): Scale3D {
-	const tileScaleConfig: [number, number, number] = config.get(key) || [10, 10, 10]
+	const tileScaleConfig: [number, number, number] = config[key] || [10, 10, 10]
 	if (!isTupleOfNumbers(tileScaleConfig, 3))
 		throw Error(`invalid ${key} configuration '${tileScaleConfig}'`)
 	return new Scale3D(tileScaleConfig)
