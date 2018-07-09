@@ -249,6 +249,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	componentWillReceiveProps(newProps:SceneManagerProps) {
+		console.log("SceneManager starting componentWillReceiveProps")
 		if(newProps.compassRosePosition && newProps.compassRosePosition !== this.props.compassRosePosition) {
 			const position = newProps.compassRosePosition
 			this.setCompassRosePosition(position.x, position.y, position.z)
@@ -285,15 +286,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.renderScene()
 		}
 
-		console.log(" @@@ RT-DEBUG SceneManager componentDidUpdate")
-		debugger
-		if (newProps.container && !this.props.container) {
-			console.log(" @@@ RT-DEBUG got the container")
-			this.makeStats()
-			newProps.container.appendChild(this.state.renderer.domElement)
-			this.startAnimation()
-		}
-
 
 	}
 
@@ -323,6 +315,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		new AnnotatedSceneActions().setCamera(this.state.camera)
 
 
+    this.makeStats()
+    this.props.container.appendChild(this.state.renderer.domElement)
+    this.startAnimation()
 	}
 
 	componentWillUnmount() {
@@ -700,7 +695,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	render() {
-		console.log("RT-DEBUG SceneManager render ------ null")
+		console.log("RT-DEBUG SceneManager render -- do nothing")
+		console.log("this.props.container", this.props.container)
 		return null
 	}
 
