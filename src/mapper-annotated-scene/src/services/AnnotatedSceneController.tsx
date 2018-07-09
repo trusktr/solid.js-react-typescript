@@ -54,10 +54,11 @@ interface AnnotatorSettings {
 }
 
 export interface IAnnotatedSceneControllerProps {
-  onPointOfInterestCall?: () => THREE.Vector3
-  enableAnnotationTileManager: boolean // this should be true for Kiosk and false for Annotator
+	onPointOfInterestCall?: () => THREE.Vector3
+	enableAnnotationTileManager?: boolean // this should be true for Kiosk and false for Annotator
 	statusWindowState ?: StatusWindowState
 	pointOfInterest?: THREE.Vector3
+	getAnnotationManagerRef?: (ref: AnnotationManager) => void
 }
 
 export interface IAnnotatedSceneControllerState {
@@ -351,6 +352,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
   getAnnotationManagerRef = (ref: AnnotationManager): void => {
     this.annotationManager = ref
+	this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef( ref )
   }
 
   getSceneManagerRef = (sceneManager: SceneManager): void => {
