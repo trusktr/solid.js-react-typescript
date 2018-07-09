@@ -305,11 +305,13 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		return (<div style={{width: "100%", height: "100%"}}>
 				<AnnotatedSceneController enableAnnotationTileManager={true} onPointOfInterestCall={onPointOfInterestCall} onCurrentRotation={onCurrentRotation} />
 
-				{this.state.annotatedSceneController && <CarManager ref={this.getCarManagerRef} annotatedScene={this.state.annotatedSceneController}/> }
+				{this.state.annotatedSceneController &&
+					<CarManager ref={this.getCarManagerRef} annotatedScene={this.state.annotatedSceneController}/> }
 
-				<FlyThroughManager ref={this.getFlyThroughManagerRef} carManager={this.state.carManager!} annotatedSceneController={this.state.annotatedSceneController} />
+      	{this.state.annotatedSceneController && this.state.carManager &&
+					<FlyThroughManager ref={this.getFlyThroughManagerRef} carManager={this.state.carManager!} annotatedSceneController={this.state.annotatedSceneController} />}
 
-				<KioskMenuView flyThroughManager={this.state.flyThroughManager}/>
+				{this.state.flyThroughManager && <KioskMenuView flyThroughManager={this.state.flyThroughManager}/>}
 		</div>)
 	}
 
