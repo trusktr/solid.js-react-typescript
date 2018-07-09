@@ -12,22 +12,6 @@ import Logger from "@/util/log";
 const log = Logger(__filename)// Create the global store as an ObservableStore (from typedux) which implements Redux store under the hood
 let store:ObservableStore<any> = getHot(module, "store") as any
 
-let hmrReady = false
-
-/**
- * Setup HMR for the store and reducers
- * HMR is made available through Webpack
- */
-function hmrReducerSetup(){
-  if(module.hot && !hmrReady) {
-    hmrReady = true
-    // When ./Reducers is updated, fire off updateReducers
-    module.hot.accept(["./Reducers"], updateReducers)
-  }
-}
-
-
-
 /**
  * Get the ObservableStore
  * @returns {ObservableStore<any>}
@@ -70,8 +54,6 @@ function initStore():ObservableStore<any> {
     undefined,
     null,
   )
-
-  hmrReducerSetup()
 
   newObservableStore.rootReducer.onError = onError
 
