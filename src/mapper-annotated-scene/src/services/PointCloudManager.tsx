@@ -24,7 +24,7 @@ export interface PointCloudManagerProps {
   sceneManager: SceneManager
   pointCloudTileManager: PointCloudTileManager
   layerManager: LayerManager
-  handleTileManagerLoadError: (err: Error) => void
+  handleTileManagerLoadError: (msg: string, err: Error) => void // TODO JOE do we need this?
   utmCoordinateSystem: UtmCoordinateSystem
 }
 
@@ -165,14 +165,14 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = false): Promise<void> {
     return this.props.pointCloudTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
       .then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
-      .catch(err => this.props.handleTileManagerLoadError(err))
+      .catch(err => this.props.handleTileManagerLoadError('Point Cloud', err))
   }
 
   // Load tiles within a bounding box and add them to the scene.
   // Currently called from FlyThroughManager
   loadPointCloudDataFromConfigBoundingBox(bbox: number[]): Promise<void> {
     if (!isTupleOfNumbers(bbox, 6)) {
-      this.props.handleTileManagerLoadError(Error('invalid point cloud bounding box config'))
+      this.props.handleTileManagerLoadError('Point Cloud', Error('invalid point cloud bounding box config'))
       return Promise.resolve()
     } else {
       const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])

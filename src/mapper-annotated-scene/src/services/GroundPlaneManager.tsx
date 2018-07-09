@@ -68,8 +68,8 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 		if ( oldPointCloudSuperTiles !== newPointCloudSuperTiles ) {
 			const { added, removed } = getOrderedMapValueDiff( oldPointCloudSuperTiles, newPointCloudSuperTiles )
 
-			added && added.forEach(tile => this.loadTileGroundPlanes(tile))
-			removed && removed.forEach(tile => this.unloadTileGroundPlanes(tile))
+			added && added.forEach(tile => this.loadTileGroundPlanes(tile as PointCloudSuperTile))
+			removed && removed.forEach(tile => this.unloadTileGroundPlanes(tile as PointCloudSuperTile))
 		}
 	}
 
@@ -136,7 +136,7 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 		groundPlanes.forEach(plane => new AnnotatedSceneActions().removeObjectFromScene(plane))
 	}
 
-	private intersectWithGround(): THREE.Intersection[] {
+	intersectWithGround(): THREE.Intersection[] {
 		let intersections: THREE.Intersection[] = []
 
 		if (!this.props.camera || !this.props.mousePosition || !this.props.sceneManager)

@@ -28,10 +28,13 @@ import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 import {Vector3} from "three";
+import {BusyError} from "@/mapper-annotated-scene/tile/TileManager"
 
 const log = Logger(__filename)
 
 OBJLoader(THREE)
+
+const dialog = Electron.remote.dialog
 
 export interface CameraState {
   lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
@@ -44,9 +47,7 @@ interface AnnotatorSettings {
 	orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
 	defaultAnimationFrameIntervalMs: number | false
 	animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
-	estimateGroundPlane: boolean
 	enableTileManagerStats: boolean
-	pointCloudBboxColor: THREE.Color
 	timeToDisplayHealthyStatusMs: number
 	maxDistanceToDecorations: number // meters
 	skyRadius: number
@@ -59,6 +60,11 @@ export interface IAnnotatedSceneControllerProps {
 	statusWindowState ?: StatusWindowState
 	pointOfInterest?: THREE.Vector3
 	getAnnotationManagerRef?: (ref: AnnotationManager) => void
+
+	lockBoundaries?: boolean
+	lockTerritories?: boolean
+	lockLanes?: boolean
+	lockTrafficDevices?: boolean
 }
 
 export interface IAnnotatedSceneControllerState {
@@ -90,11 +96,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   constructor(props) {
     super(props)
 
-    this.settings = {
-      estimateGroundPlane: !!config['annotator.add_points_to_estimated_ground_plane'],
-      enableTileManagerStats: !!config['tile_manager.stats_display.enable'],
-      pointCloudBboxColor: new THREE.Color(0xff0000),
-    }
+	// TODO not used currently
+	// enableTileManagerStats: !!config['tile_manager.stats_display.enable'],
 
     this.state = {
       cameraState: {
@@ -104,6 +107,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
       pointCloudManager: null,
       sceneManager: null,
       layerManager: null,
+      groundPlaneManager: null,
       registeredKeyDownEvents: new Map<number, any>(),
       registeredKeyUpEvents: new Map<number, any>(),
       areaOfInterestManager: null,
@@ -350,6 +354,28 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
   }
 
+  private handleTileManagerLoadError = (dataType: string, err: Error): void => {
+	  if (err instanceof BusyError) {
+		  log.info(err.message)
+
+	  // TODO TMP this was checking isKioskMode
+	  } else if (this.props.enableAnnotationTileManager) {
+		  log.warn(err.message)
+
+	  } else {
+		  console.error(dataType, err)
+		  // TODO TMP
+		  // const now = new Date().getTime()
+		  // if (now - this.uiState.lastPointCloudLoadedErrorModalMs < this.settings.timeBetweenErrorDialogsMs) {
+			//   log.warn(err.message)
+		  // } else {
+			//   log.error(err.message)
+			//   dialog.showErrorBox(`${dataType} Load Error`, err.message)
+			//   this.uiState.lastPointCloudLoadedErrorModalMs = now
+		  // }
+	  }
+  }
+
   getAnnotationManagerRef = (ref: AnnotationManager): void => {
     this.annotationManager = ref
 	this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef( ref )
@@ -384,7 +410,12 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     const {
       scaleProvider,
       utmCoordinateSystem,
+	  annotationTileManager,
+	  handleTileManagerLoadError,
     } = this
+
+	const {layerManager, pointCloudManager, groundPlaneManager, sceneManager} = this.state
+	const {lockBoundaries, lockTerritories, lockTrafficDevices, lockLanes} = this.props
 
     // TODO JOE THURSDAY see onRenender below
     // const onRenderCallBack = this.state.sceneManager ? this.state.sceneManager.renderScene : () => {}
@@ -425,25 +456,31 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
           ref={this.getPointCloudManagerRef}
           utmCoordinateSystem={this.utmCoordinateSystem}
           sceneManager={this.state.sceneManager!}
-          pointCloudTileManager={}
+          pointCloudTileManager={this.pointCloudTileManager}
           layerManager={this.state.layerManager!}
-          handleTileManagerLoadError={}
+          handleTileManagerLoadError={this.handleTileManagerLoadError}
         />
 
         <AnnotationManager
           ref={this.getAnnotationManagerRef}
-          isInteractiveMode={!this.uiState.isKioskMode}
-          layerManager={this.state.layerManager}
-		  groundPlaneManager={this.state.groundPlaneManager}
 
           {...{
             scaleProvider,
             utmCoordinateSystem,
+			handleTileManagerLoadError,
 
-            // TODO JOE THURSDAY replace with events
-            onAddAnnotation,
-            onRemoveAnnotation,
-            onChangeActiveAnnotation
+			layerManager,
+			pointCloudManager,
+			groundPlaneManager,
+			annotationTileManager,
+			sceneManager,
+
+			// TODO we can handle this better, revisit with Ryan. Currently we
+			// forward props from the app through her to AnnotationManager
+			lockBoundaries,
+			lockTerritories,
+			lockLanes,
+			lockTrafficDevices,
 
           }}
 

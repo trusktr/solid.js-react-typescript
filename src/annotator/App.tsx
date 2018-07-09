@@ -71,11 +71,6 @@ export default class App extends React.Component<AppProps, AppState> {
 				/>
 			</div>
 
-			{/* RYAN @TODO REPLACE WITH REACT COMP */}
-			{/*<div id="status_window" />*/}
-			<StatusWindow />
-
-
 			<div id="menu_control">
 				<button id="status_window_control_btn" className="menu_btn" onClick={this.makeOnStatusWindowClick()}> &#x2139; </button>
 				<button id="menu_control_btn" className="menu_btn" onClick={this.makeOnMenuClick()}> &#9776; </button>

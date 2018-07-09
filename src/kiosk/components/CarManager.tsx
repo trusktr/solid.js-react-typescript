@@ -1,6 +1,6 @@
 import * as React from "react"
 import * as THREE from "three";
-import * as carModelOBJ from 'annotator-assets/models/BMW_X5_4.obj'
+import * as carModelOBJ from '@/annotator-assets/models/BMW_X5_4.obj'
 import {
   convertToStandardCoordinateFrame, CoordinateFrameType,
   cvtQuaternionToStandardCoordinateFrame

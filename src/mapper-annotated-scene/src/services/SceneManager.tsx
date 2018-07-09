@@ -456,7 +456,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// })
 	}
 
-  setCameraOffsetVector(offset:THREE.Vector3) {
+	setCameraOffsetVector(offset:THREE.Vector3) {
 		this.setState({cameraOffset: offset})
 	}
 

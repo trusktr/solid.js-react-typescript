@@ -29,7 +29,6 @@ interface IAoiProps {
 interface IAoiState {
 	enabled: boolean // enable auto-loading points around the AOI
 	aoiFocalPoint: THREE.Vector3 | null, // cached value for the center of the AOI
-	pointOfInterest?: THREE.Vector3
 	boundingBoxes: THREE.BoxHelper[] // boxes drawn around the current area of interest
 	currentHeading: THREE.Vector3 | null // in fly-through mode: where the vehicle is heading
 	bBoxColor: THREE.Color
@@ -39,7 +38,6 @@ interface IAoiState {
 }
 
 @typedConnect(toProps(
-	'pointOfInterest',
 	'camera',
 	'cameraIsOrbiting',
 	'tilesAreLoading',
