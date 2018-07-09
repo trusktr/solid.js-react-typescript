@@ -19,7 +19,9 @@ import * as ReactDOM from 'react-dom'
 import { AppContainer } from "react-hot-loader"
 import App from './App'
 import * as packageDotJson from '../../package.json'
+import {getAnnotatedSceneReduxStore} from '@/mapper-annotated-scene/src/store/AppStore'
 
+// This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {
 	jQuery: $,
 	$: $

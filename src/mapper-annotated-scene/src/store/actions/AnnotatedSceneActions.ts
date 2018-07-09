@@ -13,6 +13,7 @@ import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 import {RangeSearch} from "../../../tile-model/RangeSearch";
 import {TileManager} from '../../../tile/TileManager'
+import {getAnnotatedSceneStoreState} from '@/mapper-annotated-scene/src/store/AppStore'
 
 const log = Logger(__filename)
 

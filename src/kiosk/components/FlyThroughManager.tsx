@@ -21,6 +21,7 @@ import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
+import {getAnnotatedSceneStore} from '@/mapper-annotated-scene/src/store/AppStore'
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)

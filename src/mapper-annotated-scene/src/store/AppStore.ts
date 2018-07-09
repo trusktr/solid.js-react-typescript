@@ -12,22 +12,6 @@ import Logger from "@/util/log";
 const log = Logger(__filename)// Create the global store as an ObservableStore (from typedux) which implements Redux store under the hood
 let store:ObservableStore<any> = getHot(module, "store") as any
 
-let hmrReady = false
-
-/**
- * Setup HMR for the store and reducers
- * HMR is made available through Webpack
- */
-function hmrReducerSetup(){
-  if(module.hot && !hmrReady) {
-    hmrReady = true
-    // When ./Reducers is updated, fire off updateReducers
-    module.hot.accept(["./Reducers"], updateReducers)
-  }
-}
-
-
-
 /**
  * Get the ObservableStore
  * @returns {ObservableStore<any>}
@@ -71,8 +55,6 @@ function initStore():ObservableStore<any> {
     null,
   )
 
-  hmrReducerSetup()
-
   newObservableStore.rootReducer.onError = onError
 
   // Set the global store defined above
@@ -98,20 +80,4 @@ export function loadAndInitStore():ObservableStore<any>{
  */
 function onError(err:Error, reducer?:ILeafReducer<any, any>) {
   log.error("Reducer error occurred", reducer, err, err.stack)
-}
-
-// TODO: let's avoid globals
-_.assign(global, {
-  getAnnotatedSceneReduxStore: getAnnotatedSceneReduxStore,
-  getAnnotatedSceneStore: getAnnotatedSceneStore,
-  getAnnotatedSceneStoreState: getAnnotatedSceneStoreState,
-})
-
-console.log("DONE WITH ASSIGNING STORE GLOBALS")
-
-declare global {
-  function getAnnotatedSceneReduxStore():ReduxStore<Map<string, any>>
-  function getAnnotatedSceneStore():ObservableStore<any>
-  function getAnnotatedSceneStoreState():IMMap<string,any>
-
 }

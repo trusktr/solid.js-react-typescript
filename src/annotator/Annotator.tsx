@@ -137,7 +137,6 @@ interface AnnotatorState {
     sceneManager?
 }
 
-// state = getAnnotatedSceneReduxStore().getState()
 @typedConnect(createStructuredSelector({
 	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
 	statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,

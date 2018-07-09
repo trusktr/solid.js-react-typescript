@@ -2,6 +2,7 @@
 import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
 import AnnotatedSceneState from "mapper-annotated-scene/src/store/state/AnnotatedSceneState"
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts"
+import {getAnnotatedSceneStoreState} from '@/mapper-annotated-scene/src/store/AppStore'
 
 
 function expireMessages() {
