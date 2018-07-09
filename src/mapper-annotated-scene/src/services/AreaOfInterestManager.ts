@@ -10,10 +10,6 @@ import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
 import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager"
 import toProps from '@/util/toProps'
-import {
-  convertToStandardCoordinateFrame, CoordinateFrameType,
-  cvtQuaternionToStandardCoordinateFrame
-} from "@/mapper-annotated-scene/geometry/CoordinateFrame";
 
 const log = Logger(__filename)
 
