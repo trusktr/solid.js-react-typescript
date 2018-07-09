@@ -5,7 +5,7 @@
 
 import {BrowserWindow, BrowserWindowConstructorOptions} from 'electron'
 import {isNullOrUndefined} from "util"
-import {windowStateKeeperOptions} from "../util/WindowStateKeeperOptions"
+import {windowStateKeeperOptions} from "../../util/WindowStateKeeperOptions"
 import windowStateKeeper = require('electron-window-state')
 import config from '@/config'
 

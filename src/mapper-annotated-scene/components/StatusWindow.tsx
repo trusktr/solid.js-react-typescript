@@ -5,7 +5,7 @@
 
 import * as React from 'react'
 import '!!css-loader!jquery-ui-dist/jquery-ui.css'
-import '@/mapper-annotated-scene/style.scss'
+import '@/annotator/style.scss'
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState"
 import {createStructuredSelector} from "reselect"
