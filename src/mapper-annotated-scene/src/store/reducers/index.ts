@@ -1,3 +1,3 @@
-import {AnnotatedSceneReducer} from "AnnotatedSceneReducer.ts";
+// import {AnnotatedSceneReducer} from "./AnnotatedSceneReducer";
 
 export * from "./AnnotatedSceneReducer"
