@@ -116,6 +116,8 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		this.setState({rotationQuaternion: rotationThreeJs})
     // OLD --> this.props.areaOfInterestManager.updateAoiHeading(rotationThreeJs)
 
+    console.log("RT - test location 1 -- standardPosition", standardPosition)
+    console.log("RT - test location 1 -- inputPosition", inputPosition)
 		this.props.annotatedScene.updateCurrentLocationStatusMessage(standardPosition)
     this.updateCarPose(positionThreeJs, rotationThreeJs)
   }

@@ -30,6 +30,7 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 	constructor(props: KioskViewProps) {
 		super(props)
+		console.log("INSIDE KioskMenuView constructor")
 	}
 
 
@@ -56,6 +57,7 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 
 	render(): JSX.Element {
+		console.log("Inside render of KioskMenuView")
 		const {liveModeEnabled, playModeEnabled} = this.props
 		const liveModeLabel = liveModeEnabled ? 'Recorded2' : 'Live2'
 		const playModelLabel = playModeEnabled ? 'Pause2' : 'Play2'

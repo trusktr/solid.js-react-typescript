@@ -45,6 +45,7 @@ export class LocationServerStatusClient {
 		if (this.statusClient)
 			return
 
+		console.log('Connecting to location server clients provider at', this.locationServerStatusAddress)
 		log.info('Connecting to location server clients provider at', this.locationServerStatusAddress)
 		const self = this
 		// For anything but "connect", we aren't getting clients from the

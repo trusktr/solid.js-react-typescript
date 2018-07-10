@@ -157,6 +157,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   }
 
   updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
+    console.log("RT - test location 3")
     // This is a hack to allow data with no coordinate reference system to pass through the UTM classes.
     // Data in local coordinate systems tend to have small values for X (and Y and Z) which are invalid in UTM.
     if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO fix this.
@@ -227,7 +228,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     if (!getValue(() => this.props.statusWindowState && this.props.statusWindowState.enabled, false)) return
 
     // const currentPoint = this.currentPointOfInterest()
-	const currentPoint = this.props.pointOfInterest
+	  const currentPoint = this.props.pointOfInterest
 
     if (currentPoint) {
       const oldPoint = this.state.cameraState.lastCameraCenterPoint
@@ -239,6 +240,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.setState({cameraState})
 
         const utm = this.utmCoordinateSystem.threeJsToUtm(newPoint)
+        console.log("RT - test location 2")
         this.updateCurrentLocationStatusMessage(utm)
       }
     }

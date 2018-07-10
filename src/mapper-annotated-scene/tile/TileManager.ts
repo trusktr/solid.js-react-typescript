@@ -345,10 +345,8 @@ export abstract class TileManager {
       console.log("RT123 getLoadedObjectsBoundingBox 3 inside")
 			let bbox = new THREE.Box3()
       console.log("RT123 bbox before", bbox)
-			console.log("RT123 bbox superTiles", this.superTiles)
 			this.superTiles.forEach(st => {
 				const newBbox = st!.getContentsBoundingBox()
-				console.log("NEW BOX", newBbox)
 				if (newBbox && newBbox.min.x !== null && newBbox.min.x !== Infinity) {
           console.log("RT BBOX UNION")
           bbox = bbox.union(newBbox)

@@ -177,6 +177,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     } else {
       const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])
       const p2 = new THREE.Vector3(bbox[3], bbox[4], bbox[5])
+      console.log("RT Loading point cloud data from BB")
       return this.loadPointCloudDataFromMapServer([{minPoint: p1, maxPoint: p2}])
     }
   }
@@ -218,6 +219,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	componentDidUpdate(previousProps: PointCloudManagerProps) {
 		if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
 			if (this.props.areaOfInterest) {
+        console.log("RT Loading point cloud data from PointCloudManager.componentDidUpdate")
 				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true )
 					.catch(err => {log.warn(err.message)})
 			}
