@@ -4,7 +4,7 @@ import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowS
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
-import {OrderedMap} from "immutable";
+import {OrderedMap, Set} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
 import {TileManager} from "@/mapper-annotated-scene/tile/TileManager";

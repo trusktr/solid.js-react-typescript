@@ -24,6 +24,7 @@ import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfI
 import * as Stats from 'stats.js'
 import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
 import getOrderedMapValueDiff from '../util/getOrderedMapValueDiff'
+import {Set} from 'immutable'
 
 const log = Logger(__filename)
 
@@ -290,16 +291,16 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	private updateSceneObjects(newSceneObjects:Set<THREE.Object3D>, existingSceneObjects:Set<THREE.Object3D>) {
 		const scene = this.state.scene
 		newSceneObjects.forEach(object => {
-			if(!existingSceneObjects.has(object)) {
+			if(!existingSceneObjects.has(object!)) {
 				// Not found in the existing objects, let's ADD it to the scene
-				scene.add(object)
+				scene.add(object!)
 			}
 		})
 
 		existingSceneObjects.forEach(object => {
-			if(!newSceneObjects.has(object)) {
+			if(!newSceneObjects.has(object!)) {
 				// Not found in the new objects, let's REMOVE it
-				scene.remove(object)
+				scene.remove(object!)
 			}
 		})
 	}

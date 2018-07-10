@@ -14,6 +14,7 @@ import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 import {RangeSearch} from "../../../tile-model/RangeSearch";
 import {TileManager} from '../../../tile/TileManager'
 import {getAnnotatedSceneStoreState} from '@/mapper-annotated-scene/src/store/AppStore'
+import {Set} from "immutable";
 
 const log = Logger(__filename)
 
@@ -84,7 +85,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			annotationSuperTiles: OrderedMap<string, SuperTile>(),
 			pointCloudSuperTiles: OrderedMap<string, SuperTile>(),
 
-			sceneObjects: new Set<THREE.Object3D>(),
+			sceneObjects: Set<THREE.Object3D>(),
 			visibleLayers: [],
 			isAnnotationTileManagerEnabled: false, // by default, do not include the AnnotationTileManager -- it's only needed for the Kiosk app
 
@@ -101,10 +102,10 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			isAddConflictOrDeviceKeyPressed: false,
 			isMouseButtonPressed: false,
 
-      cameraIsOrbiting: false,
-      camera: null,
-      isOrbiting: false,
-      loadingTileManagers: new Set<TileManager>(),
+			cameraIsOrbiting: false,
+			camera: null,
+			isOrbiting: false,
+			loadingTileManagers: Set<TileManager>(),
 		}
 
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
@@ -282,22 +283,20 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	addLoadingTileManager( tileManager: TileManager ) {
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			const loadingTileManagers = annotatedSceneState.loadingTileManagers
-      loadingTileManagers.add(tileManager)
 			return new AnnotatedSceneState({
-        ...annotatedSceneState, loadingTileManagers: loadingTileManagers
-      })
-    }
+				...annotatedSceneState, loadingTileManagers: loadingTileManagers.add(tileManager)
+			})
+		}
 	}
 
 	@ActionReducer()
 	removeLoadingTileManager( tileManager: TileManager ) {
 		return (annotatedSceneState: AnnotatedSceneState) => {
-      const loadingTileManagers = annotatedSceneState.loadingTileManagers
-      loadingTileManagers.delete(tileManager)
+			const loadingTileManagers = annotatedSceneState.loadingTileManagers
 			return new AnnotatedSceneState({
-        ...annotatedSceneState, loadingTileManagers: loadingTileManagers
-      })
-    }
+				...annotatedSceneState, loadingTileManagers: loadingTileManagers.delete(tileManager)
+			})
+		}
 	}
 
 	@ActionReducer()
@@ -353,29 +352,27 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     })
   }
 
-  @ActionReducer()
+	@ActionReducer()
 	addObjectToScene(object:THREE.Object3D) {
-    log.info("Adding object to scene", object)
-    return (annotatedSceneState: AnnotatedSceneState) => {
-      const sceneObjects = annotatedSceneState.sceneObjects
-			sceneObjects.add(object)
-    	return new AnnotatedSceneState({
-        ...annotatedSceneState, sceneObjects
-      })
-    }
+		log.info("Adding object to scene", object)
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const sceneObjects = annotatedSceneState.sceneObjects
+			return new AnnotatedSceneState({
+				...annotatedSceneState, sceneObjects: sceneObjects.add(object)
+			})
+		}
 	}
 
-  @ActionReducer()
-  removeObjectFromScene(object:THREE.Object3D) {
-    log.info("Removing object from scene")
-    return (annotatedSceneState: AnnotatedSceneState) => {
-      const sceneObjects = annotatedSceneState.sceneObjects
-      sceneObjects.delete(object)
-      return new AnnotatedSceneState({
-        ...annotatedSceneState, sceneObjects: sceneObjects
-      })
-    }
-  }
+	@ActionReducer()
+	removeObjectFromScene(object:THREE.Object3D) {
+		log.info("Removing object from scene")
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const sceneObjects = annotatedSceneState.sceneObjects
+			return new AnnotatedSceneState({
+				...annotatedSceneState, sceneObjects: sceneObjects.delete(object)
+			})
+		}
+	}
 
   @ActionReducer()
 	setVisibleLayers(visibleLayers:string[]) {

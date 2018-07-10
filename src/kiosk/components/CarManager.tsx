@@ -71,13 +71,12 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 			try {
 				const manager = new THREE.LoadingManager()
 				const loader = new THREE.OBJLoader(manager)
-				loader.load(carModelOBJ, (object: THREE.Object3D) => {
-					const boundingBox = new THREE.Box3().setFromObject(object)
+				loader.load(carModelOBJ, (carModel: THREE.Object3D) => {
+					const boundingBox = new THREE.Box3().setFromObject(carModel)
 					const boxSize = boundingBox.getSize().toArray()
 					const modelLength = Math.max(...boxSize)
 					const carLength = 4.5 // approx in meters
 					const scaleFactor = carLength / modelLength
-					const carModel = object
 					carModel.scale.setScalar(scaleFactor)
 					carModel.visible = false
 					carModel.traverse(child => {
@@ -91,7 +90,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 
 					this.setState({carModel})
 					console.log("RT-DEBUG about to add car to scene")
-					new AnnotatedSceneActions().addObjectToScene( object )
+					new AnnotatedSceneActions().addObjectToScene( carModel )
 					resolve()
 				})
 			} catch (err) {
