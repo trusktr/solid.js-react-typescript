@@ -12,6 +12,7 @@
 //
 // main()
 
+import './disable-logger'
 import { configReady, getMeta } from '../config'
 import * as $ from 'jquery'
 import * as React from 'react'
