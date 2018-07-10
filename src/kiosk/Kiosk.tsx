@@ -269,15 +269,15 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 
 	getCarManagerRef = (ref: any): void => {
-		this.setState({ carManager: ref.getWrappedInstance() as CarManager })
+		ref && this.setState({ carManager: ref.getWrappedInstance() as CarManager })
 	}
 
 	getFlyThroughManagerRef = (ref: any): void => {
-		this.setState({ flyThroughManager: ref.getWrappedInstance() as FlyThroughManager })
+		ref && this.setState({ flyThroughManager: ref.getWrappedInstance() as FlyThroughManager })
 	}
 
 	getAnnotatedSceneControllerRef = (ref: any): void => {
-		this.setState({ annotatedSceneController: ref.getWrappedInstance() as AnnotatedSceneController })
+		ref && this.setState({ annotatedSceneController: ref.getWrappedInstance() as AnnotatedSceneController })
 	}
 
 	render() {
