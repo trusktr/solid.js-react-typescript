@@ -59,7 +59,6 @@ export interface SceneManagerState {
 	renderer: THREE.WebGLRenderer
 	loop: AnimationLoop
 	cameraOffset: THREE.Vector3
-	orbitControls: THREE.OrbitControls
 
 	orthoCameraHeight: number
 	cameraPosition2D: THREE.Vector2
@@ -87,6 +86,7 @@ export interface SceneManagerState {
 	'cameraPreference',
 ))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
+	private orbitControls: THREE.OrbitControls
 
 	constructor(props) {
 		super(props)
@@ -193,44 +193,45 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.loadDecorations()
 		})
 
-    // TODO JOE THURSDAY anything that doesn't need to change we can
-    // take out of state and keep as instance variables. F.e. loop, scene,
-    // renderer, etc
-    const state = {
-      plane: plane,
-      grid: grid,
-      axis: axis,
-      camera: camera,
-      perspectiveCamera: perspectiveCam,
-      orthographicCamera: orthographicCam,
-      flyThroughCamera: flyThroughCamera,
 
-      scene: scene,
-      compassRose: compassRose,
-      renderer: renderer,
-      loop: loop,
-      cameraOffset: cameraOffset,
-      orthoCameraHeight: orthoCameraHeight,
+		this.orbitControls = this.initOrbitControls(camera, renderer)
 
-      cameraPosition2D: new THREE.Vector2(),
-      cameraToSkyMaxDistance: cameraToSkyMaxDistance,
+		// TODO JOE THURSDAY anything that doesn't need to change we can
+		// take out of state and keep as instance variables. F.e. loop, scene,
+		// renderer, etc
+		const state = {
+			plane: plane,
+			grid: grid,
+			axis: axis,
+			camera: camera,
+			perspectiveCamera: perspectiveCam,
+			orthographicCamera: orthographicCam,
+			flyThroughCamera: flyThroughCamera,
 
-      sky: sky,
-      skyPosition2D: skyPosition2D,
-      updateOrbitControls: updateOrbitControls,
+			scene: scene,
+			compassRose: compassRose,
+			renderer: renderer,
+			loop: loop,
+			cameraOffset: cameraOffset,
+			orthoCameraHeight: orthoCameraHeight,
 
-      orbitControls: this.initOrbitControls(camera, renderer),
+			cameraPosition2D: new THREE.Vector2(),
+			cameraToSkyMaxDistance: cameraToSkyMaxDistance,
 
-      maxDistanceToDecorations: 50000,
-      decorations: [],
-      stats: new Stats(),
+			sky: sky,
+			skyPosition2D: skyPosition2D,
+			updateOrbitControls: updateOrbitControls,
+
+			maxDistanceToDecorations: 50000,
+			decorations: [],
+			stats: new Stats(),
 
 
-    }
+		}
 
 		this.state = state
 
-    this.createOrthographicCameraDimensions(width, height)
+		this.createOrthographicCameraDimensions(width, height)
 
 		// Point the camera at some reasonable default location.
 		this.setStage(0, 0, 0)
@@ -255,9 +256,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		if(newProps.isDecorationsVisible !== this.props.isDecorationsVisible) {
 			if(newProps.isDecorationsVisible) {
-        this.showDecorations()
+				this.showDecorations()
 			} else {
-        this.hideDecorations()
+				this.hideDecorations()
 			}
 		}
 
@@ -276,7 +277,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		if(newProps.sceneObjects != this.props.sceneObjects) {
 			const newSceneObjects = newProps.sceneObjects!
 			const existingSceneObjects = this.props.sceneObjects!
-      this.updateSceneObjects(newSceneObjects, existingSceneObjects)
+			this.updateSceneObjects(newSceneObjects, existingSceneObjects)
 		}
 
 		// If the LayerManager modifies the visible layers, we should rerender
@@ -284,24 +285,23 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.renderScene()
 		}
 
-
 	}
 
 	private updateSceneObjects(newSceneObjects:Set<THREE.Object3D>, existingSceneObjects:Set<THREE.Object3D>) {
-    const scene = this.state.scene
-    newSceneObjects.forEach(object => {
-      if(!existingSceneObjects.has(object)) {
-        // Not found in the existing objects, let's ADD it to the scene
-        scene.add(object)
-      }
-    })
+		const scene = this.state.scene
+		newSceneObjects.forEach(object => {
+			if(!existingSceneObjects.has(object)) {
+				// Not found in the existing objects, let's ADD it to the scene
+				scene.add(object)
+			}
+		})
 
-    existingSceneObjects.forEach(object => {
-      if(!newSceneObjects.has(object)) {
-        // Not found in the new objects, let's REMOVE it
-        scene.remove(object)
-      }
-    })
+		existingSceneObjects.forEach(object => {
+			if(!newSceneObjects.has(object)) {
+				// Not found in the new objects, let's REMOVE it
+				scene.remove(object)
+			}
+		})
 	}
 
 	componentDidMount() {
@@ -322,40 +322,34 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.stopAnimation()
 		this.destroyStats()
 		this.state.renderer.domElement.remove()
+	}
+
+	private makeStats(): void {
+		if (!config['startup.show_stats_module']) return
+
+		// Create stats widget to display frequency of rendering
+		const stats = this.state.stats
+		stats.dom.style.top = 'initial' // disable existing setting
+		stats.dom.style.bottom = '50px' // above Mapper logo
+		stats.dom.style.left = '13px'
+		this.props.container.appendChild(stats.dom)
+		this.setState({stats})
 
 	}
 
-  private makeStats(): void {
-    if (!config['startup.show_stats_module']) return
-
-    // Create stats widget to display frequency of rendering
-    const stats = this.state.stats
-    stats.dom.style.top = 'initial' // disable existing setting
-    stats.dom.style.bottom = '50px' // above Mapper logo
-    stats.dom.style.left = '13px'
-    this.props.container.appendChild(stats.dom)
-		this.setState({stats})
-
-  }
-
-  private destroyStats(): void {
-    if (!config['startup.show_stats_module']) return
-    this.state.stats.dom.remove()
-  }
+	private destroyStats(): void {
+		if (!config['startup.show_stats_module']) return
+		this.state.stats.dom.remove()
+	}
 
 
-  /**
+	/**
 	 * updateOrbitControlsTargetPoint is called via componentWillReceiveProps.
 	 * Specifically AnnotatedSceneController.focusOnPointCloud -> PointCloudManager.focusOnPointCloud -> Redux Action
-   * @param {Vector3} point
-   */
+	 * @param {Vector3} point
+	 */
 	updateOrbitControlsTargetPoint(point:THREE.Vector3) {
-    if(!this.state.orbitControls) {
-      log.warn('[Migration ERROR] orbit controls are not initialized yet')
-      return
-    }
-
-    const orbitControls = this.state.orbitControls
+		const orbitControls = this.orbitControls
 		orbitControls.target.set(point.x, point.y, point.z)
 		orbitControls.update()
 		this.renderScene()
@@ -479,15 +473,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	enableOrbitControls() {
-		const orbitControls = this.state.orbitControls
-		if(!orbitControls) {
-			log.error("Orbit controls not found, unable to enable them")
-			return
-		}
+		const orbitControls = this.orbitControls
 
 		orbitControls.enabled = true
 	}
-
 
 	getCamera(): THREE.Camera {
 		return this.state.camera
@@ -497,13 +486,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	addChildLoop(childLoop: ChildAnimationLoop) {
 		// this.loop.addChildLoop( FlyThroughManager.getAnimationLoop() )
 		this.state.loop.addChildLoop( childLoop )
-	}
-
-	// @TODO Annotator and Beholder must call this function on setup (register orbitControls)
-	setOrbitControls(controls: THREE.OrbitControls) {
-		this.setState({
-			orbitControls: controls
-		})
 	}
 
 	// @TODO to be used by annotator and kiosk to register cameras
@@ -548,15 +530,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	 */
 	// @TODO long term move to Camera Manager
 	setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
-		const {camera, cameraOffset, orbitControls, plane, grid} = this.state
-
-		if(!orbitControls) {
-			log.info("Unable to set SceneManager stage, orbitControls not found")
-			return
-		}
+		const {camera, cameraOffset, plane, grid} = this.state
+		const {orbitControls} = this
 
 		plane.geometry.center()
 		plane.geometry.translate(x, y, z)
+
 		if (grid) {
 			grid.geometry.center()
 			grid.geometry.translate(x, y, z)
@@ -567,9 +546,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			// @TODO orbit controls will not be set on iniailization of Scene unless it's a required prop
 			orbitControls.target.set(x, y, z)
 			orbitControls.update()
-			this.renderScene()
 		}
 
+		this.renderScene()
 		new AnnotatedSceneActions().setCamera(this.state.camera)
 	}
 
@@ -612,24 +591,24 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		return orbitControls
 	}
 
-  /**
+	/**
 	 * To be used by external apps that want to register an orbit control event listener.
 	 * For example, Annotator needs the 'pan' event
-   * @param {string} type
-   * @param {() => void} callback
-   */
+	 * @param {string} type
+	 * @param {() => void} callback
+	 */
 	addOrbitControlEventListener(type:string, callback:()=>void) {
 		// @TODO Annotator needs to register a 'pan' event
-		const orbitControls = this.state.orbitControls
+		const orbitControls = this.orbitControls
 		orbitControls.addEventListener(type, callback)
 
-    // TODO JOE THURSDAY We could emit a cameraUpdate event (f.e. using my
-    // Observable class), and pass camera info to listeners. Then listeners
-    // can (f.e. maybe AnnotatedSceneController) can decide to update things
-    // (f.e. the camera info StatusWindow message)
-    // Search for displayCameraInfo to find code that was previously
-    // updating the clients message.
-    // orbitControls.addEventListener('pan', this.displayCameraInfo)
+		// TODO JOE THURSDAY We could emit a cameraUpdate event (f.e. using my
+		// Observable class), and pass camera info to listeners. Then listeners
+		// can (f.e. maybe AnnotatedSceneController) can decide to update things
+		// (f.e. the camera info StatusWindow message)
+		// Search for displayCameraInfo to find code that was previously
+		// updating the clients message.
+		// orbitControls.addEventListener('pan', this.displayCameraInfo)
 	}
 
 	private getContainerSize = (): Array<number> => {
@@ -705,7 +684,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 				this.renderScene() // can potentially remove but added it just in case
 			}
 			else{
-        // RT 7/9 to remove noise --> log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
+				// RT 7/9 to remove noise --> log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
 			}
 		}
 	}
@@ -718,7 +697,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 				this.renderScene() // can potentially remove but added it just in case
 			}
 			else {
-        log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
+				log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
 			}
 		}
 	}
@@ -745,6 +724,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		})
 	}
+
 	private showDecorations() {
 		this.state.decorations.forEach(d => d.visible = true)
 		// @TODO @Joe/Ryan (see comment immediately below)
@@ -756,25 +736,23 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// ?? -- [ryan added] this.renderScene()
 	}
 
-  resetTiltAndCompass(): void {
-    if(!this.state.orbitControls) {
-      log.error("Orbit controls not set, unable to reset tilt and compass")
-      return
-    }
+	resetTiltAndCompass(): void {
+		if(!this.orbitControls) {
+			log.error("Orbit controls not set, unable to reset tilt and compass")
+			return
+		}
 
-    const distanceCameraToTarget = this.state.camera.position.distanceTo(this.state.orbitControls.target)
-    const camera = this.state.camera
-    camera.position.x = this.state.orbitControls.target.x
-    camera.position.y = this.state.orbitControls.target.y + distanceCameraToTarget
-    camera.position.z = this.state.orbitControls.target.z
-    this.setState({camera})
-	new AnnotatedSceneActions().setCamera(this.state.camera)
+		const distanceCameraToTarget = this.state.camera.position.distanceTo(this.orbitControls.target)
+		const camera = this.state.camera
+		camera.position.x = this.orbitControls.target.x
+		camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
+		camera.position.z = this.orbitControls.target.z
+		this.setState({camera})
+		new AnnotatedSceneActions().setCamera(this.state.camera)
 
-    this.state.orbitControls.update()
-    this.renderScene()
-  }
-
-
+		this.orbitControls.update()
+		this.renderScene()
+	}
 
 	private setCompassRosePosition(x, y, z) {
 		if (!this.state.compassRose){
@@ -816,10 +794,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.onWindowResize()
 
 
-    const orbitControls = this.state.orbitControls
-	// tslint:disable-next-line:no-any
-    ;(orbitControls as any).setCamera(newCamera)
-    this.setState({orbitControls})
+		const orbitControls = this.orbitControls
+		// tslint:disable-next-line:no-any
+		;(orbitControls as any).setCamera(newCamera)
 
 		// RYAN UPDATED
 		// this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
