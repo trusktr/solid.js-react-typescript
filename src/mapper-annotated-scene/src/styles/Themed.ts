@@ -33,10 +33,9 @@ export interface IReactComponentConstructor<P, S> {
  */
 export function typedConnect<Props, State>( selector:any ):( target:IReactComponentConstructor<Props, State> ) => void {
 
-	// connect the selector to the react component (e.g., target)
-	// this will allow the react component to get updated when the underlying store changes for state that it needs
-	// by using connect and selectors it is more efficient then calling mapStateToProps
-	return ( target ) => connect( selector )( target as any ) as any
+    // connect the selector to the react component (e.g., target)
+    // this will allow the react component to get updated when the underlying store changes for state that it needs
+    // by using connect and selectors it is more efficient then calling mapStateToProps
+    return ( target ) => connect( selector, null, null, {withRef: true} )( target as any ) as any
 
 }
-
