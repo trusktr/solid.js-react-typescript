@@ -34,6 +34,7 @@ export interface FlyThroughManagerProps {
   flyThroughState ?: FlyThroughState
   isCarInitialized ?: boolean
   isKioskUserDataLoaded ?: boolean
+  shouldAnimate ?: boolean
 }
 
 export interface FlyThroughManagerState {
@@ -48,6 +49,7 @@ export interface FlyThroughManagerState {
   flyThroughState: (state) => state.get(AnnotatedSceneState.Key).flyThroughState,
   isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
   isKioskUserDataLoaded: (state) => state.get(AnnotatedSceneState.Key).isKioskUserDataLoaded,
+  shouldAnimate: (state) => state.get(AnnotatedSceneState.Key).shouldAnimate,
 }))
 export default class FlyThroughManager extends React.Component<FlyThroughManagerProps, FlyThroughManagerState> {
 
@@ -151,7 +153,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   }
 
   getCurrentFlyThroughTrajectory(): FlyThroughTrajectory {
-    const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
+    const flyThroughState = this.props.flyThroughState
     return flyThroughState.trajectories[flyThroughState.currentTrajectoryIndex]
   }
 
@@ -162,7 +164,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
   // Display some info about what flyThrough mode is doing now.
   private setFlyThroughMessage(): void {
-    const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
+    const flyThroughState = this.props.flyThroughState
     const currentFlyThroughTrajectory = this.getCurrentFlyThroughTrajectory()
 
     let message: string
@@ -204,7 +206,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
   private flyThroughAnimation = (): boolean => {
     console.log("NEED TO GET HERE flyThroughAnimation")
-    const shouldAnimate = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).shouldAnimate
+    const shouldAnimate = this.props.shouldAnimate
     if(!shouldAnimate)
       return false
     return this.runFlyThrough()
@@ -217,8 +219,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   private runFlyThrough(): boolean {
     // console.log("Inside runFlyThrough")
     console.log("BINGO - we're set")
-    const liveModeEnabled = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).liveModeEnabled
-    const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
+    const liveModeEnabled = this.props.liveModeEnabled
+    const flyThroughState = this.props.flyThroughState
 
     if (!liveModeEnabled || !flyThroughState || !getValue(() => flyThroughState.enabled, false)) {
       console.log("Returning early from within runFlyThrough")
@@ -229,7 +231,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
       // Reset pose index
       new FlyThroughActions().setCurrentPoseIndex(0)
       // Update the current trajectory index
-      const updatedFlyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
+	  const updatedFlyThroughState = this.props.flyThroughState
       if(updatedFlyThroughState.currentTrajectoryIndex >= updatedFlyThroughState.trajectories.length - 1){
         // Reset it
         new FlyThroughActions().setCurrentTrajectoryIndex(0)
@@ -238,7 +240,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
       }
       this.setFlyThroughMessage()
     }
-    const newFlyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
+	const newFlyThroughState = this.props.flyThroughState
     const pose = this.getCurrentFlyThroughTrajectory().poses[newFlyThroughState.currentPoseIndex]
     new StatusWindowActions().setMessage(StatusKey.FLY_THROUGH_POSE, `Pose: ${newFlyThroughState.currentPoseIndex + 1} of ${newFlyThroughState.endPoseIndex}`)
 
@@ -345,8 +347,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 	// RYAN - when someone clicks between LIVE AND RECORDED
   toggleLiveAndRecordedPlay() {
     console.log("inside toggleLiveAndRecordedPlay")
-    const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
-    const liveModeEnabled = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).liveModeEnabled
+    const flyThroughState = this.props.flyThroughState
+    const liveModeEnabled = this.props.liveModeEnabled
 
 
     console.log("Value for flyThroughState", flyThroughState)
@@ -379,8 +381,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 	// data or pre-recorded "fly-through" data.
 	// PAUSE AND PLAY BUTTON
   toggleLiveModePlay() {
-    const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
-    const playModeEnabled = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).playModeEnabled
+    const flyThroughState = this.props.flyThroughState
+    const playModeEnabled = this.props.playModeEnabled
     // @TODO comment back in
     // if (!this.props.liveModeEnabled) {
     // 	console.log("Early return live mode disabled")
