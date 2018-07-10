@@ -372,8 +372,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		loop.addAnimationFn(() => {
 			if ( !this.props.shouldAnimate ) return false
 
-			console.log( ' >>>>>>>>>>>>>>>>>>>>>>> RAF' )
-
 			// @TODO create a way to register animate methods
 			// this.animate()
 
