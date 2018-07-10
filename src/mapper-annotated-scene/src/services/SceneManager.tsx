@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import * as React from "react"
 import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
-import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
 import {Sky} from "@/mapper-annotated-scene/src/services/controls/Sky";
 import config from "@/config";
@@ -442,10 +441,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			// NOTE JOE longer term: Inversely, AreaOfInterestManager could instead hook into
 			// the animation loop rather than SceneManager knowing which
 			// managers need to be hooked in.
+			console.log("this.props", this.props)
 			this.props.areaOfInterestManager.updatePointCloudAoi()
 
 			// Ryan added 7/9
 			this.props.areaOfInterestManager.updateAoiHeading()
+
 
 			return true
 		})

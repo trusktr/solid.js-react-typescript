@@ -77,4 +77,7 @@ export default class AnnotatedSceneState {
   isControlKeyPressed: boolean
   isAddConflictOrDeviceKeyPressed: boolean
   isMouseButtonPressed: boolean
+  tilesAreLoading: boolean
+  cameraIsOrbiting: boolean
+  camera: THREE.Camera
 }

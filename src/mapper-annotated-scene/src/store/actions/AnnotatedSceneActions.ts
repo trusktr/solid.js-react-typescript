@@ -104,6 +104,10 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			isControlKeyPressed: false,
 			isAddConflictOrDeviceKeyPressed: false,
 			isMouseButtonPressed: false,
+
+      tilesAreLoading: false,
+      cameraIsOrbiting: false,
+      camera: null
 		}
 
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
@@ -243,6 +247,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setCamera( camera: THREE.Camera ) {
+		log.info("Setting camera")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, camera
 		})

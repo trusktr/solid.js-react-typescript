@@ -10,6 +10,8 @@ import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
 import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager"
 import toProps from '@/util/toProps'
+import {createStructuredSelector} from "reselect";
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 
 const log = Logger(__filename)
 
@@ -21,9 +23,9 @@ interface IAoiProps {
 	utmCoordinateSystem: UtmCoordinateSystem
 	groundPlaneManager: GroundPlaneManager | null
 	sceneManager: SceneManager | null
-	camera?: THREE.Camera
-	cameraIsOrbiting?: boolean
-	tilesAreLoading?: boolean
+	camera ?: THREE.Camera
+	cameraIsOrbiting ?: boolean
+	tilesAreLoading ?: boolean
 }
 
 // Area of Interest: where to load point clouds
@@ -38,13 +40,12 @@ interface IAoiState {
 	shouldDrawBoundingBox: boolean
 }
 
-@typedConnect(toProps(
-	'camera',
-	'cameraIsOrbiting',
-	'tilesAreLoading',
-))
-export default
-class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
+@typedConnect(createStructuredSelector({
+  camera: (state) => state.get(AnnotatedSceneState.Key).camera,
+  cameraIsOrbiting: (state) => state.get(AnnotatedSceneState.Key).cameraIsOrbiting,
+  tilesAreLoading: (state) => state.get(AnnotatedSceneState.Key).tilesAreLoading,
+}))
+export default class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 	private raycaster: THREE.Raycaster
 	private estimateGroundPlane: boolean
 
