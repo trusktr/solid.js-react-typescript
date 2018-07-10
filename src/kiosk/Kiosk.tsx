@@ -16,7 +16,6 @@ const log = Logger(__filename)
 
 
 export interface KioskProps {
-	sceneInitialized ?: boolean
 	isCarInitialized ?: boolean
 }
 
@@ -25,12 +24,11 @@ export interface KioskState {
 	carManager: CarManager | null
 	flyThroughManager: FlyThroughManager | null
 	hasCalledSetup: boolean
-
+  isChildLoopAdded: boolean
 }
 
 
 @typedConnect(createStructuredSelector({
-	sceneInitialized: (state) => state.get(AnnotatedSceneState.Key).sceneInitialized,
 	isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
 }))
 export default class Kiosk extends React.Component<KioskProps, KioskState> {
@@ -43,6 +41,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			carManager: null,
 			flyThroughManager: null,
 			hasCalledSetup: false,
+      isChildLoopAdded: false,
 		}
 
 		const watchForRebuilds: boolean = config['startup.watch_for_rebuilds.enable'] || false
@@ -81,12 +80,13 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	}
 
 	componentWillReceiveProps(newProps) {
-		if(newProps.sceneInitialized && !this.props.sceneInitialized && this.state.annotatedSceneController && this.state.flyThroughManager) {
+    if(!this.state.isChildLoopAdded && this.state.annotatedSceneController && this.state.flyThroughManager) {
 			// this is the transition from the Scene not being setup to when it is
 			// Since it's setup now let's setup the fly through manager
 			const flyThroughManager = this.state.flyThroughManager
 			// flyThroughManager.init() -- called on componentDidMount within FlyThroughManager
 			const sceneManager = this.state.annotatedSceneController
+			console.log("Add childAnimationLoop for flyThroughManager")
 			sceneManager.addChildAnimationLoop(flyThroughManager.getAnimationLoop())
 
 			flyThroughManager.startLoop()
@@ -94,12 +94,11 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			// Register key events
 			this.registerKeyDownEvents()
 
-			this.setState({flyThroughManager})
-
 			// setup other items after scene is initialized
 			// 1) Update the camera offset for kiosk specifically
 			const cameraOffset = new THREE.Vector3(30, 10, 0)
 			this.state.annotatedSceneController.setCameraOffsetVector(cameraOffset)
+			this.setState({isChildLoopAdded: true})
 		}
 
 		if(newProps.isCarInitialized && newProps.isKioskUserDataLoaded && !this.state.hasCalledSetup &&
