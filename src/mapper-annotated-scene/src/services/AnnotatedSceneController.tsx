@@ -374,10 +374,11 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	  }
   }
 
-  getAnnotationManagerRef = (ref: AnnotationManager): void => {
+  getAnnotationManagerRef = (ref: any): void => {
 	  if (ref) {
-		  this.annotationManager = ref
-		  this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef( ref )
+	    const wrappedRef = ref.getWrappedInstance() as AnnotationManager
+		  this.annotationManager = wrappedRef
+		  this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef( wrappedRef )
 	  }
   }
 

@@ -67,7 +67,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 			cameraPreference: CameraType.PERSPECTIVE,
 
-			pointOfInterest: new THREE.Vector3(0, 0, 0),
+			pointOfInterest: new THREE.Vector3(551632, 4179730, 3),
 			areaOfInterest: [{minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1 ,1 ,1)}, {minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1 ,1 ,1)}],
 			rendererSize: { width: 1, height: 1 },
 
@@ -355,7 +355,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
   @ActionReducer()
 	addObjectToScene(object:THREE.Object3D) {
-    log.info("Adding object to scene")
+    log.info("Adding object to scene", object)
     return (annotatedSceneState: AnnotatedSceneState) => {
       const sceneObjects = annotatedSceneState.sceneObjects
 			sceneObjects.add(object)

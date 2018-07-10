@@ -121,6 +121,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     }
 
     new AnnotatedSceneActions().setIsKioskUserDataLoaded(true)
+    console.log("RT-DEBUG Finished loadUserData")
     return trajectoryResult
   }
 
