@@ -242,7 +242,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		loop.addBaseFn( () => {
 			// if (this.stats) this.stats.update()
-			renderer.render(scene, camera)
+			renderer.render(scene, this.state.camera)
 		})
 
 		new AnnotatedSceneActions().setSceneInitialized(true)
@@ -372,15 +372,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		loop.addAnimationFn(() => {
 			if ( !this.props.shouldAnimate ) return false
 
+			console.log( ' >>>>>>>>>>>>>>>>>>>>>>> RAF' )
 
 			// @TODO create a way to register animate methods
 			// this.animate()
 
 			return true
-		})
-
-		this.setState({
-			loop: loop
 		})
 	}
 
@@ -549,7 +546,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		}
 
 		this.renderScene()
-		new AnnotatedSceneActions().setCamera(this.state.camera)
 	}
 
 	// The sky needs to be big enough that we don't bump into it but not so big that the camera can't see it.
@@ -571,13 +567,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	private initOrbitControls(camera:THREE.Camera, renderer:THREE.WebGLRenderer) {
 		const orbitControls = new OrbitControls(camera, renderer.domElement)
-		orbitControls.enabled = false
+		orbitControls.enabled = true
+		orbitControls.enablePan = true
 		orbitControls.minDistance = 10
 		orbitControls.maxDistance = 5000
 		orbitControls.minPolarAngle = 0
 		orbitControls.maxPolarAngle = Math.PI / 2
 		orbitControls.keyPanSpeed = 100
-		orbitControls.enablePan = false
 
 		orbitControls.addEventListener('change', this.updateSkyPosition)
 
@@ -747,8 +743,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		camera.position.x = this.orbitControls.target.x
 		camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
 		camera.position.z = this.orbitControls.target.z
-		this.setState({camera})
-		new AnnotatedSceneActions().setCamera(this.state.camera)
 
 		this.orbitControls.update()
 		this.renderScene()
