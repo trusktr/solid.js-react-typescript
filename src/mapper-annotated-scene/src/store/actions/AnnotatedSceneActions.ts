@@ -219,21 +219,20 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     })
   }
 
-  @ActionReducer()
-  setCarInitialized(isSetup:boolean) {
-    log.info("Setting isCarInitialized", isSetup)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, isCarInitialized: isSetup
-    })
+	@ActionReducer()
+	setCarInitialized(isCarInitialized: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isCarInitialized
+		})
 	}
 
-  @ActionReducer()
+	@ActionReducer()
 	setIsKioskUserDataLoaded(isLoaded:boolean) {
-    log.info("Setting isKioskUserDataLoaded", isLoaded)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, isKioskUserDataLoaded: isLoaded
-    })
-  }
+		log.info("Setting isKioskUserDataLoaded", isLoaded)
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isKioskUserDataLoaded: isLoaded
+		})
+	}
 
   @ActionReducer()
 	setCameraPreference(cameraPreference:CameraType) {

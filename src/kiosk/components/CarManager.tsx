@@ -14,13 +14,13 @@ import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/Annota
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 
 export interface CarManagerProps {
-  annotatedScene: AnnotatedSceneController
-  isCarInitialized ?: boolean
+	annotatedScene: AnnotatedSceneController
+	isCarInitialized ?: boolean
 }
 
 export interface CarManagerState {
 	carModel: THREE.Object3D
-  rotationQuaternion: THREE.Quaternion
+	rotationQuaternion: THREE.Quaternion
 }
 
 @typedConnect(createStructuredSelector({
@@ -35,17 +35,10 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 	}
 
 	componentDidMount() {
-    console.log("RT-DEBUG CarManager componentDidMount")
-    this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
+		this.loadCarModel().then(() => {
+			new AnnotatedSceneActions().setCarInitialized(true)
+		})
 	}
-
-	// componentWillReceiveProps(newProps: CarManagerProps) {
-   //  console.log("RT-DEBUG CarManager componentWillReceiveProps")
-	// 	if(newProps.annotatedScene && !this.props.isCarInitialized) {
-	// 		// Only execute this once -- hence the check against isCarInitialized
-	// 		this.loadCarModel().then((p) => new AnnotatedSceneActions().setCarInitialized(true))
-	// 	}
-	// }
 
   addObjectToCar(object:THREE.Object3D):void {
 		const carModel = this.state.carModel
@@ -65,9 +58,9 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 	}
 
 
-	private loadCarModel(): Promise<void> {
-    console.log("RT-DEBUG CarManager loadCarModel")
-		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
+	private loadCarModel(): Promise<THREE.Object3D> {
+		console.log("RT-DEBUG CarManager loadCarModel")
+		return new Promise((resolve: (carModel: THREE.Object3D) => void, reject: (reason?: Error) => void): void => {
 			try {
 				const manager = new THREE.LoadingManager()
 				const loader = new THREE.OBJLoader(manager)
@@ -91,7 +84,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 					this.setState({carModel})
 					console.log("RT-DEBUG about to add car to scene")
 					new AnnotatedSceneActions().addObjectToScene( carModel )
-					resolve()
+					resolve(carModel)
 				})
 			} catch (err) {
 				reject(err)

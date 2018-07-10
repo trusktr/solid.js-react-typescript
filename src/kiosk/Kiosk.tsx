@@ -17,6 +17,7 @@ const log = Logger(__filename)
 
 export interface KioskProps {
 	isCarInitialized ?: boolean
+	isKioskUserDataLoaded ?: boolean
 }
 
 export interface KioskState {
@@ -30,6 +31,7 @@ export interface KioskState {
 
 @typedConnect(createStructuredSelector({
 	isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
+	isKioskUserDataLoaded: (state) => state.get(AnnotatedSceneState.Key).isKioskUserDataLoaded,
 }))
 export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
@@ -41,7 +43,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			carManager: null,
 			flyThroughManager: null,
 			hasCalledSetup: false,
-      isChildLoopAdded: false,
+			isChildLoopAdded: false,
 		}
 
 		const watchForRebuilds: boolean = config['startup.watch_for_rebuilds.enable'] || false
@@ -80,7 +82,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	}
 
 	componentWillReceiveProps(newProps) {
-    if(!this.state.isChildLoopAdded && this.state.annotatedSceneController && this.state.flyThroughManager) {
+		if(!this.state.isChildLoopAdded && this.state.annotatedSceneController && this.state.flyThroughManager) {
 			// this is the transition from the Scene not being setup to when it is
 			// Since it's setup now let's setup the fly through manager
 			const flyThroughManager = this.state.flyThroughManager
@@ -134,7 +136,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			return
 		}
 
-    console.log('Listening for messages...')
+		console.log('Listening for messages...')
 		log.info('Listening for messages...')
 		this.setState({
 			hasCalledSetup: true
@@ -291,7 +293,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		}
 
 		console.log("RT-DEBUG Kiosk render --> this.state.annotatedSceneController", this.state.annotatedSceneController)
-    console.log("RT-DEBUG Kiosk render --> this.state.flyThroughManager", this.state.flyThroughManager)
+		console.log("RT-DEBUG Kiosk render --> this.state.flyThroughManager", this.state.flyThroughManager)
 		return (
 			<div style={{width: "100%", height: "100%"}}>
 				<AnnotatedSceneController ref={this.getAnnotatedSceneControllerRef} enableAnnotationTileManager={true} onPointOfInterestCall={onPointOfInterestCall} onCurrentRotation={onCurrentRotation} />
@@ -306,7 +308,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 				{this.state.annotatedSceneController && this.state.carManager &&
 					<FlyThroughManager
 						ref={this.getFlyThroughManagerRef}
-						carManager={this.state.carManager!}
+						carManager={this.state.carManager}
 						annotatedSceneController={this.state.annotatedSceneController}
 					/>
 				}
