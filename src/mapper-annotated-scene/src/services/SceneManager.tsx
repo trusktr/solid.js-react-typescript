@@ -363,11 +363,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// SHARED
 	private startAnimation(): void {
+		console.log("SceneManager startAnimation")
 		new AnnotatedSceneActions().setShouldAnimate(true)
 
 		// this.shouldAnimate = true
 		this.startAoiUpdates()
-
+		console.log("SceneManager finished startAoiUpdates from inside startAnimation")
 		const loop = this.state.loop
 		loop.addAnimationFn(() => {
 			if ( !this.props.shouldAnimate ) return false
@@ -396,11 +397,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	//
 	// {{{
 
-	addAnimationFn( fn ) {
+	addAnimationFunction( fn ) {
+		console.log("Inside SceneManager.addAnimationFunction actual method", this.state)
 		this.state.loop.addAnimationFn( fn )
 	}
 
-	removeAnimationFn( fn ) {
+	removeAnimationFunction( fn ) {
+    console.log("Inside SceneManager.removeAnimationFunction actual method", this.state)
 		this.state.loop.removeAnimationFn( fn )
 	}
 
@@ -417,6 +420,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// TODO JOE THURSDAY longer term, we can create the loop on init logic (f.e.
 	// constructor), then just use the loop when needed.
 	private startAoiUpdates(): void {
+		console.log("SceneManager startAoiUpdates")
 		const loop = this.state.loop
 
 		loop.addAnimationFn(() => {
@@ -437,6 +441,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 			return true
 		})
+    console.log("SceneManager startAoiUpdates is finished")
 
 		// this.setState({
 		// 	loop: loop
@@ -478,7 +483,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 
-	addChildLoop(childLoop: ChildAnimationLoop) {
+  addChildAnimationLoop(childLoop: ChildAnimationLoop) {
 		// this.loop.addChildLoop( FlyThroughManager.getAnimationLoop() )
 		this.state.loop.addChildLoop( childLoop )
 	}

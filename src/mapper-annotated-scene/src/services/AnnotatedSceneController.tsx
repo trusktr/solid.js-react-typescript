@@ -296,8 +296,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     this.state.sceneManager!.adjustCameraYOffset(value)
   }
 
-  addChildLoop(childLoop: ChildAnimationLoop) {
-    this.state.sceneManager!.addChildLoop(childLoop)
+  addChildAnimationLoop(childLoop: ChildAnimationLoop) {
+    this.state.sceneManager!.addChildAnimationLoop(childLoop)
   }
 
 

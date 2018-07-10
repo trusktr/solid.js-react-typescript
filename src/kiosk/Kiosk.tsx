@@ -87,7 +87,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			const flyThroughManager = this.state.flyThroughManager
 			// flyThroughManager.init() -- called on componentDidMount within FlyThroughManager
 			const sceneManager = this.state.annotatedSceneController
-			sceneManager.addChildLoop(flyThroughManager.getAnimationLoop())
+			sceneManager.addChildAnimationLoop(flyThroughManager.getAnimationLoop())
 
 			flyThroughManager.startLoop()
 

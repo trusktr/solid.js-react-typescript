@@ -70,7 +70,7 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 		// @TODO remove <div id="menu"> -- shouldn't be needed anymore, visibility is controlled by Redux
 		return (<div id="menu">
-				<menu id="liveModeMenu" className="menu hidden">
+				<menu id="liveModeMenu" className="menu">
 					<button id="live_mode_pause" className="mdc-button mdc-button--raised" onClick={this.makeOnPlayModeClick()}>
 						<span>{playModelLabel}</span>
 						<i className="material-icons mdc-button__icon" aria-hidden="true">{playModeIcon}</i>

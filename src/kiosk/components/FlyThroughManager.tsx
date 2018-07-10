@@ -37,7 +37,7 @@ export interface FlyThroughManagerProps {
 }
 
 export interface FlyThroughManagerState {
-  loop: ChildAnimationLoop
+  flyThroughLoop: ChildAnimationLoop
   liveSubscribeSocket: Socket | null
 }
 
@@ -62,7 +62,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     loop.interval = flyThroughInterval
 
     this.state = {
-      loop: loop,
+      flyThroughLoop: loop,
       liveSubscribeSocket: null,
     }
   }
@@ -179,29 +179,31 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   }
 
   getAnimationLoop() {
-    return this.state.loop
+    return this.state.flyThroughLoop
   }
 
   startLoop() {
-    log.info("RT-DEBUG FlyThrough Inside startLoop")
-    this.state.loop.start()
+    console.log("RT-DEBUG FlyThrough Inside startLoop")
+    this.state.flyThroughLoop.start()
   }
 
   pauseLoop() {
-    log.info("RT-DEBUG FlyThrough Inside pauseLoop")
-    this.state.loop.pause()
+    console.log("RT-DEBUG FlyThrough Inside pauseLoop")
+    this.state.flyThroughLoop.pause()
   }
 
   startFlyThrough(): void {
-    log.info("RT-DEBUG FlyThrough inside startFlyThrough")
+    console.log("RT-DEBUG FlyThrough inside startFlyThrough")
     this.setFlyThroughMessage()
-		const loop = this.state.loop
-		loop.removeAnimationFn(this.flyThroughAnimation)
-    loop.addAnimationFn(this.flyThroughAnimation)
+		const flyThroughLoop = this.state.flyThroughLoop
+    console.log("Inside startFlyThrough about to start loop.removeAnimationFn -- flyThroughLoop", flyThroughLoop.removeAnimationFn)
+    flyThroughLoop.removeAnimationFn(this.flyThroughAnimation)
+    console.log("Inside startFlyThrough about to start loop.addAnimationFn -- flyThroughLoop", flyThroughLoop.addAnimationFn)
+    flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
   }
 
   private flyThroughAnimation(): boolean {
-    console.log("RT-DEBUG FlyThrough inside flyThroughAnimation")
+    console.log("NEED TO GET HERE flyThroughAnimation")
     const shouldAnimate = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).shouldAnimate
     if(!shouldAnimate)
       return false
@@ -214,7 +216,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
    */
   private runFlyThrough(): boolean {
     // console.log("Inside runFlyThrough")
-    console.log("RT-DEBUG FlyThrough inside runFlyThrough")
+    console.log("BINGO - we're set")
     const liveModeEnabled = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).liveModeEnabled
     const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
 
@@ -347,6 +349,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     const liveModeEnabled = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).liveModeEnabled
 
 
+    console.log("Value for flyThroughState", flyThroughState)
+    console.log("Value for liveModeEnabled", liveModeEnabled)
 
     // if (!this.uiState.isLiveMode) return
 

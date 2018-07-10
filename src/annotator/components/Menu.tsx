@@ -76,7 +76,7 @@ class Menu extends React.Component<{}, {}> {
 					</div>
 				</menu>
 
-				<menu id="liveModeMenu" className="menu hidden">
+				<menu id="liveModeMenu" className="menu">
 					<button id="live_mode_pause" className="mdc-button mdc-button--raised">
 						<span>Play</span>
 						<i className="material-icons mdc-button__icon" aria-hidden="true">play_arrow</i>
