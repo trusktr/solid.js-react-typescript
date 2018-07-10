@@ -16,12 +16,12 @@ const log = Logger(__filename)
 
 
 export interface KioskProps {
-  sceneInitialized ?: boolean
-  isCarInitialized ?: boolean
+	sceneInitialized ?: boolean
+	isCarInitialized ?: boolean
 }
 
 export interface KioskState {
-  annotatedSceneController: AnnotatedSceneController | null
+	annotatedSceneController: AnnotatedSceneController | null
 	carManager: CarManager | null
 	flyThroughManager: FlyThroughManager | null
 	hasCalledSetup: boolean
@@ -30,8 +30,8 @@ export interface KioskState {
 
 
 @typedConnect(createStructuredSelector({
-  sceneInitialized: (state) => state.get(AnnotatedSceneState.Key).sceneInitialized,
-  isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
+	sceneInitialized: (state) => state.get(AnnotatedSceneState.Key).sceneInitialized,
+	isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
 }))
 export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
@@ -66,7 +66,8 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 						log.info("Rebuilt flag file modified, exiting app")
 						self.exitApp()
 					})
-				})
+				}
+			)
 		}
 
 		new FlyThroughActions().resetFlyThroughState()
@@ -83,22 +84,22 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		if(newProps.sceneInitialized && !this.props.sceneInitialized && this.state.annotatedSceneController && this.state.flyThroughManager) {
 			// this is the transition from the Scene not being setup to when it is
 			// Since it's setup now let's setup the fly through manager
-      const flyThroughManager = this.state.flyThroughManager
-      // flyThroughManager.init() -- called on componentDidMount within FlyThroughManager
+			const flyThroughManager = this.state.flyThroughManager
+			// flyThroughManager.init() -- called on componentDidMount within FlyThroughManager
 			const sceneManager = this.state.annotatedSceneController
 			sceneManager.addChildLoop(flyThroughManager.getAnimationLoop())
 
-      flyThroughManager.startLoop()
+			flyThroughManager.startLoop()
 
 			// Register key events
 			this.registerKeyDownEvents()
 
 			this.setState({flyThroughManager})
 
-      // setup other items after scene is initialized
-      // 1) Update the camera offset for kiosk specifically
-      const cameraOffset = new THREE.Vector3(30, 10, 0)
-      this.state.annotatedSceneController.setCameraOffsetVector(cameraOffset)
+			// setup other items after scene is initialized
+			// 1) Update the camera offset for kiosk specifically
+			const cameraOffset = new THREE.Vector3(30, 10, 0)
+			this.state.annotatedSceneController.setCameraOffsetVector(cameraOffset)
 		}
 
 		if(newProps.isCarInitialized && newProps.isKioskUserDataLoaded && !this.state.hasCalledSetup &&
@@ -118,59 +119,47 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		const DOWN_ARROW_KEY_CODE = 40
 		const cameraOffsetDelta = 1
 
-    this.state.annotatedSceneController!.registerKeyboardDownEvent(LEFT_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraXOffset(cameraOffsetDelta)})
+		this.state.annotatedSceneController!.registerKeyboardDownEvent(LEFT_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraXOffset(cameraOffsetDelta)})
 		this.state.annotatedSceneController!.registerKeyboardDownEvent(UP_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraYOffset(cameraOffsetDelta)})
 		this.state.annotatedSceneController!.registerKeyboardDownEvent(RIGHT_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraXOffset(-1 * cameraOffsetDelta)})
 		this.state.annotatedSceneController!.registerKeyboardDownEvent(DOWN_ARROW_KEY_CODE, () => {this.state.annotatedSceneController!.adjustCameraYOffset(-1 * cameraOffsetDelta)})
 	}
 
-	getCarManager = (carManager:CarManager) => {
-		this.setState({carManager,})
-	}
-
-	getAnnotatedSceneController = (annotatedSceneController:AnnotatedSceneController) => {
-		this.setState({annotatedSceneController,})
-	}
-
-  getFlyThroughManager = (flyThroughManager:FlyThroughManager) => {
-    this.setState({flyThroughManager,})
-  }
-
-  // this gets called after the CarManager is instantiated
-  private listen() {
-    if (this.state.hasCalledSetup) return
+	// this gets called after the CarManager is instantiated
+	private listen() {
+		if (this.state.hasCalledSetup) return
 
 		if(!this.state.carManager || !this.state.annotatedSceneController || !this.state.annotatedSceneController.state.sceneManager) {
 			log.warn("Unable to finish calling listen() -- managers not initialized")
-    	return
+			return
 		}
 
-    log.info('Listening for messages...')
+		log.info('Listening for messages...')
 		this.setState({
-      hasCalledSetup: true
+			hasCalledSetup: true
 		})
 
 		this.state.annotatedSceneController!.activateReadOnlyViewingMode()
 
-    // The camera and the point cloud AOI track the car object, so add it to the scene
-    // regardless of whether it is visible in the scene.
+		// The camera and the point cloud AOI track the car object, so add it to the scene
+		// regardless of whether it is visible in the scene.
 		// @TODO confirm this works as expected
 		this.state.carManager.addObjectToCar(this.state.annotatedSceneController.state.sceneManager.getCamera()) // follow/orbit around the car
 		this.state.carManager.makeCarVisible()
 
 
 		if(this.state.flyThroughManager) {
-      // Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
-      this.state.flyThroughManager.startFlyThrough()
+			// Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
+			this.state.flyThroughManager.startFlyThrough()
 
-      //this.resumeLiveMode()
-      this.state.flyThroughManager.initClient()
+			//this.resumeLiveMode()
+			this.state.flyThroughManager.initClient()
 		} else {
-    	log.error("Error in listen() - flyThroughManager expected, but not found")
+			log.error("Error in listen() - flyThroughManager expected, but not found")
 		}
 
-    this.state.annotatedSceneController!.renderScene()
-  }
+		this.state.annotatedSceneController!.renderScene()
+	}
 
 
     // TODO JOE WEDNESDAY {{{
@@ -279,17 +268,17 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
     // }}}
 
 
-  getCarManagerRef = (ref: any): void => {
-    this.setState({ carManager: ref.getWrappedInstance() as CarManager })
-  }
+	getCarManagerRef = (ref: any): void => {
+		this.setState({ carManager: ref.getWrappedInstance() as CarManager })
+	}
 
-  getFlyThroughManagerRef = (ref: any): void => {
-    this.setState({ flyThroughManager: ref.getWrappedInstance() as FlyThroughManager })
-  }
+	getFlyThroughManagerRef = (ref: any): void => {
+		this.setState({ flyThroughManager: ref.getWrappedInstance() as FlyThroughManager })
+	}
 
-  getAnnotatedSceneControllerRef = (ref: any): void => {
-    this.setState({ annotatedSceneController: ref.getWrappedInstance() as AnnotatedSceneController })
-  }
+	getAnnotatedSceneControllerRef = (ref: any): void => {
+		this.setState({ annotatedSceneController: ref.getWrappedInstance() as AnnotatedSceneController })
+	}
 
 	render() {
 		// CarManager will not be setup the first time through
@@ -306,12 +295,25 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 				<AnnotatedSceneController ref={this.getAnnotatedSceneControllerRef} enableAnnotationTileManager={true} onPointOfInterestCall={onPointOfInterestCall} onCurrentRotation={onCurrentRotation} />
 
 				{this.state.annotatedSceneController &&
-					<CarManager ref={this.getCarManagerRef} annotatedScene={this.state.annotatedSceneController}/> }
+					<CarManager
+						ref={this.getCarManagerRef}
+						annotatedScene={this.state.annotatedSceneController}
+					/>
+				}
 
 				{this.state.annotatedSceneController && this.state.carManager &&
-					<FlyThroughManager ref={this.getFlyThroughManagerRef} carManager={this.state.carManager!} annotatedSceneController={this.state.annotatedSceneController} />}
+					<FlyThroughManager
+						ref={this.getFlyThroughManagerRef}
+						carManager={this.state.carManager!}
+						annotatedSceneController={this.state.annotatedSceneController}
+					/>
+				}
 
-				{this.state.flyThroughManager && <KioskMenuView flyThroughManager={this.state.flyThroughManager}/>}
+				{this.state.flyThroughManager &&
+					<KioskMenuView
+						flyThroughManager={this.state.flyThroughManager}
+					/>
+				}
 			</div>
 		)
 	}
