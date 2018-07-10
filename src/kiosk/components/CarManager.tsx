@@ -5,7 +5,7 @@ import {
   convertToStandardCoordinateFrame, CoordinateFrameType,
   cvtQuaternionToStandardCoordinateFrame
 } from "@/mapper-annotated-scene/geometry/CoordinateFrame";
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts"
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
@@ -32,6 +32,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		super(props)
     console.log("RT-DEBUG CarManager constructor")
     this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
+
 	}
 
 	// componentWillReceiveProps(newProps: CarManagerProps) {
@@ -85,8 +86,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 					})
 
 					this.setState({carModel})
-					const annotatedScene = this.props.annotatedScene
-          annotatedScene.addObjectToScene(object)
+					new AnnotatedSceneActions().addObjectToScene( object )
 					resolve()
 				})
 			} catch (err) {
