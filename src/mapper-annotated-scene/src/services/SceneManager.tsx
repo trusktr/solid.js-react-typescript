@@ -248,7 +248,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	componentWillReceiveProps(newProps:SceneManagerProps) {
-		console.log("SceneManager starting componentWillReceiveProps")
 		if(newProps.compassRosePosition && newProps.compassRosePosition !== this.props.compassRosePosition) {
 			const position = newProps.compassRosePosition
 			this.setCompassRosePosition(position.x, position.y, position.z)
@@ -441,7 +440,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			// NOTE JOE longer term: Inversely, AreaOfInterestManager could instead hook into
 			// the animation loop rather than SceneManager knowing which
 			// managers need to be hooked in.
-			console.log("this.props", this.props)
 			this.props.areaOfInterestManager.updatePointCloudAoi()
 
 			// Ryan added 7/9
@@ -706,8 +704,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 				this.state.scene.add(st.pointCloud)
 				this.renderScene() // can potentially remove but added it just in case
 			}
-			else
-			log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
+			else{
+        log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
+			}
 		}
 	}
 
@@ -718,8 +717,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 				this.state.scene.remove(st.pointCloud)
 				this.renderScene() // can potentially remove but added it just in case
 			}
-			else
-			log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
+			else {
+        log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
+			}
 		}
 	}
 

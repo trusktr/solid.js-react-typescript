@@ -17,8 +17,6 @@ import {getAnnotatedSceneStoreState} from '@/mapper-annotated-scene/src/store/Ap
 
 const log = Logger(__filename)
 
-const loadingTileManagers = new Set<TileManager>()
-
 export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneState, ActionMessage<AnnotatedSceneState>> {
 
 	constructor() {
@@ -69,8 +67,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 			cameraPreference: CameraType.PERSPECTIVE,
 
-			// TODO JOE FRIDAY 7/6 what to do if there is no default, like with the camera?
-			// camera: ???,
 			pointOfInterest: new THREE.Vector3(0, 0, 0),
 			areaOfInterest: [{minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1 ,1 ,1)}, {minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1 ,1 ,1)}],
 			rendererSize: { width: 1, height: 1 },
@@ -105,9 +101,10 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			isAddConflictOrDeviceKeyPressed: false,
 			isMouseButtonPressed: false,
 
-      tilesAreLoading: false,
       cameraIsOrbiting: false,
-      camera: null
+      camera: null,
+      isOrbiting: false,
+      loadingTileManagers: new Set<TileManager>(),
 		}
 
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
@@ -283,18 +280,24 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	addLoadingTileManager( tileManager: TileManager ) {
-		loadingTileManagers.add( tileManager )
-		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, tilesAreLoading: loadingTileManagers.size ? true : false
-		})
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const loadingTileManagers = annotatedSceneState.loadingTileManagers
+      loadingTileManagers.add(tileManager)
+			return new AnnotatedSceneState({
+        ...annotatedSceneState, loadingTileManagers: loadingTileManagers
+      })
+    }
 	}
 
 	@ActionReducer()
 	removeLoadingTileManager( tileManager: TileManager ) {
-		loadingTileManagers.delete( tileManager )
-		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, tilesAreLoading: loadingTileManagers.size ? true : false
-		})
+		return (annotatedSceneState: AnnotatedSceneState) => {
+      const loadingTileManagers = annotatedSceneState.loadingTileManagers
+      loadingTileManagers.delete(tileManager)
+			return new AnnotatedSceneState({
+        ...annotatedSceneState, loadingTileManagers: loadingTileManagers
+      })
+    }
 	}
 
 	@ActionReducer()
@@ -328,7 +331,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     superTiles.forEach(st => points += st!.objectCount)
 
     const message = `Loaded ${superTiles.size} point tiles; ${points} points`
-    new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
+    // new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
 
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, pointCloudSuperTiles: superTiles
@@ -343,7 +346,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     superTiles.forEach(st => annotations += st!.objectCount)
 
     const message = `Loaded ${superTiles.size} annotation tiles; ${annotations} annotations`
-    new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
+    // new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
 
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, annotationSuperTiles: superTiles
@@ -354,9 +357,9 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	addObjectToScene(object:THREE.Object3D) {
     log.info("Adding object to scene")
     return (annotatedSceneState: AnnotatedSceneState) => {
-      const sceneObjects = getAnnotatedSceneStoreState().get(AnnotatedSceneState.Key).sceneObjects as Set<THREE.Object3D>
+      const sceneObjects = annotatedSceneState.sceneObjects
 			sceneObjects.add(object)
-    	new AnnotatedSceneState({
+    	return new AnnotatedSceneState({
         ...annotatedSceneState, sceneObjects
       })
     }
@@ -366,9 +369,9 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
   removeObjectFromScene(object:THREE.Object3D) {
     log.info("Removing object from scene")
     return (annotatedSceneState: AnnotatedSceneState) => {
-      const sceneObjects = getAnnotatedSceneStoreState().get(AnnotatedSceneState.Key).sceneObjects as Set<THREE.Object3D>
+      const sceneObjects = annotatedSceneState.sceneObjects
       sceneObjects.delete(object)
-      new AnnotatedSceneState({
+      return new AnnotatedSceneState({
         ...annotatedSceneState, sceneObjects: sceneObjects
       })
     }

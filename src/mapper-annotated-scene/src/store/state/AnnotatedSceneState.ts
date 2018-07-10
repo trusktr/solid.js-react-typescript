@@ -6,6 +6,8 @@ import Models = MapperProtos.mapper.models
 import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
 import {OrderedMap} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
+import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
+import {TileManager} from "@/mapper-annotated-scene/tile/TileManager";
 
 export default class AnnotatedSceneState {
 
@@ -77,7 +79,11 @@ export default class AnnotatedSceneState {
   isControlKeyPressed: boolean
   isAddConflictOrDeviceKeyPressed: boolean
   isMouseButtonPressed: boolean
-  tilesAreLoading: boolean
+
   cameraIsOrbiting: boolean
   camera: THREE.Camera
+	areaOfInterest: RangeSearch[]
+  rendererSize: any
+  isOrbiting: boolean
+  loadingTileManagers: Set<TileManager>
 }
