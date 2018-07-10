@@ -113,6 +113,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
       trajectoryResult = pointCloudResult
         .then(() => {
+          console.log('loading pre-configured trajectories')
           log.info('loading pre-configured trajectories')
           return this.loadFlyThroughTrajectories(trajectoryPaths)
         })
@@ -240,6 +241,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     new StatusWindowActions().setMessage(StatusKey.FLY_THROUGH_POSE, `Pose: ${newFlyThroughState.currentPoseIndex + 1} of ${newFlyThroughState.endPoseIndex}`)
 
     // new AnnotatedSceneActions().setCarPose(pose)
+    console.log("AH HA calling updateCarWithPose", pose)
     this.props.carManager.updateCarWithPose(pose)
 
     const newValue = newFlyThroughState.currentPoseIndex + 1
@@ -250,6 +252,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   // Move the camera and the car model through poses streamed from ZMQ.
   // See also runFlyThrough().
   initClient(): void {
+    console.log("RT FlyThroughManager initClient")
     if (this.state.liveSubscribeSocket) return
 
     const liveSubscribeSocket = zmq.socket('sub')
@@ -259,15 +262,21 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
       if (this.props.flyThroughState && this.props.flyThroughState.enabled) return
 
+
       const state = Models.InertialStateMessage.decode(msg)
+      console.log("GOT NEW MESSAGE FROM liveSubscribeSocket", state)
       if (
         state.pose &&
         state.pose.x != null && state.pose.y != null && state.pose.z != null &&
         state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
       ) {
+        console.log("Going to call updateCarWithPose")
         this.props.carManager.updateCarWithPose(state.pose as Models.PoseMessage)
-      } else
+      } else {
+        console.log('got an InertialStateMessage without a pose')
         log.warn('got an InertialStateMessage without a pose')
+
+      }
     })
 
     const locationHost = config['location_server.host'] || 'localhost'
@@ -312,6 +321,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
         if (trajectories.length) {
           new FlyThroughActions().setEndPoseIndex(this.getCurrentFlyThroughTrajectory().poses.length)
+          console.log(`loaded ${trajectories.length} trajectories`)
           log.info(`loaded ${trajectories.length} trajectories`)
         } else {
           throw Error('failed to load trajectories')
@@ -332,6 +342,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 	// Side effect: if the animation is paused, start playing.
 	// RYAN - when someone clicks between LIVE AND RECORDED
   toggleLiveAndRecordedPlay() {
+    console.log("inside toggleLiveAndRecordedPlay")
     const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
     const liveModeEnabled = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).liveModeEnabled
 
@@ -351,8 +362,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         console.log("Looking to start animation loop")
         this.startFlyThrough()
         this.startLoop()
-        // this.startFlyThrough()
-        // this.flyThroughLoop.start()
       }
     }
 

@@ -67,7 +67,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 			cameraPreference: CameraType.PERSPECTIVE,
 
-			pointOfInterest: new THREE.Vector3(551632, 4179730, 3),
+			pointOfInterest: new THREE.Vector3(0, 0, 0),
 			areaOfInterest: [{minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1 ,1 ,1)}, {minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1 ,1 ,1)}],
 			rendererSize: { width: 1, height: 1 },
 

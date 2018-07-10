@@ -64,6 +64,7 @@ export class TileServiceClient {
 		eventEmitter: EventEmitter,
 		// onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
 	) {
+    console.log("RT TileServer constructor")
 		this.serverStatus = null
 		this.pingInFlight = false
 		this.eventEmitter = eventEmitter
@@ -89,6 +90,7 @@ export class TileServiceClient {
 		if (this.client)
 			return Promise.resolve()
 
+		console.log('connecting to tile server at', this.tileServiceAddress)
 		log.info('connecting to tile server at', this.tileServiceAddress)
 		this.client = new GrpcClient(
 			this.tileServiceAddress,
@@ -139,6 +141,7 @@ export class TileServiceClient {
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum points.
 	getTilesByCoordinateRange(layerId: string, search: RangeSearch): Promise<TileInstance[]> {
+    console.log("RT TileServer getTilesByCoordinateRange")
 		const corner1 = new GeographicPoint3DMessage()
 		corner1.setSrid(this.srid)
 		corner1.setX(search.minPoint.x)
@@ -156,6 +159,7 @@ export class TileServiceClient {
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum corner tiles.
 	getTilesByTileRange(layerId: string, search: TileRangeSearch): Promise<TileInstance[]> {
+    console.log("RT TileServer getTilesByTileRange")
 		const corner1 = new GeographicPoint3DMessage()
 		corner1.setSrid(this.srid)
 		corner1.setX(search.minTileIndex.origin.x)
@@ -172,6 +176,7 @@ export class TileServiceClient {
 	}
 
 	private getTiles(layerId: string, corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<TileInstance[]> {
+    console.log("RT TileServer getTiles")
 		const rangeSearch = new RangeSearchMessage()
 		rangeSearch.setCorner1(corner1)
 		rangeSearch.setCorner2(corner2)
@@ -209,11 +214,13 @@ export class TileServiceClient {
 	}
 
 	getTileContents(url: string): Promise<Uint8Array> {
+    console.log("RT TileServer getTileContents")
 		return this.connect()
 			.then(() => this.getTileContentsImpl(url))
 	}
 
 	private getTileContentsImpl(url: string): Promise<Uint8Array> {
+    console.log("RT TileServer getTileContentsImpl")
 		const request = new GetTilesRequest()
 		request.addUrls(url)
 

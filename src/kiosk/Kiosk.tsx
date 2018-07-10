@@ -127,6 +127,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 	// this gets called after the CarManager is instantiated
 	private listen() {
+		console.log("RT Kiosk Listen")
 		if (this.state.hasCalledSetup) return
 
 		if(!this.state.carManager || !this.state.annotatedSceneController || !this.state.annotatedSceneController.state.sceneManager) {
@@ -134,6 +135,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			return
 		}
 
+    console.log('Listening for messages...')
 		log.info('Listening for messages...')
 		this.setState({
 			hasCalledSetup: true
@@ -290,6 +292,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		}
 
 		console.log("RT-DEBUG Kiosk render --> this.state.annotatedSceneController", this.state.annotatedSceneController)
+    console.log("RT-DEBUG Kiosk render --> this.state.flyThroughManager", this.state.flyThroughManager)
 		return (
 			<div style={{width: "100%", height: "100%"}}>
 				<AnnotatedSceneController ref={this.getAnnotatedSceneControllerRef} enableAnnotationTileManager={true} onPointOfInterestCall={onPointOfInterestCall} onCurrentRotation={onCurrentRotation} />
