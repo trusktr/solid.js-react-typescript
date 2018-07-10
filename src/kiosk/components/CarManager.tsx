@@ -31,15 +31,19 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 	constructor(props) {
 		super(props)
     console.log("RT-DEBUG CarManager constructor")
-    this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
 
+	}
+
+	componentDidMount() {
+    console.log("RT-DEBUG CarManager componentDidMount")
+    this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
 	}
 
 	// componentWillReceiveProps(newProps: CarManagerProps) {
    //  console.log("RT-DEBUG CarManager componentWillReceiveProps")
 	// 	if(newProps.annotatedScene && !this.props.isCarInitialized) {
 	// 		// Only execute this once -- hence the check against isCarInitialized
-	// 		this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
+	// 		this.loadCarModel().then((p) => new AnnotatedSceneActions().setCarInitialized(true))
 	// 	}
 	// }
 
@@ -86,6 +90,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 					})
 
 					this.setState({carModel})
+					console.log("RT-DEBUG about to add car to scene")
 					new AnnotatedSceneActions().addObjectToScene( object )
 					resolve()
 				})

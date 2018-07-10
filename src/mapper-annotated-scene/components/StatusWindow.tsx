@@ -70,6 +70,7 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
         // const isEnabled = getValue(() => statusWindowState.enabled, false)
         const messages = getValue(() => statusWindowState && statusWindowState.messages, new Map<string, string>()) as Map<string, string>
 
+        console.log("StatusWindow Messages", messages)
         let out = ''
         messages.forEach(value => {
             if (value !== '')

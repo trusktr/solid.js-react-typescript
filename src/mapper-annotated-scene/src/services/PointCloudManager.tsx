@@ -200,6 +200,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 			log.error("Attempting to set compassRose, unable to find bounding box")
 			return
 		}
+		console.log("RT123 houston we have a bb")
 
 		// Find the center of one of the sides of the bounding box. This is the side that is
 		// considered to be North given the current implementation of UtmInterface.utmToThreeJs().

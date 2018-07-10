@@ -135,6 +135,7 @@ export abstract class TileManager {
 	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
 		const key = utmIndex.toString()
 		if (!this.superTiles.has(key)) {
+			console.log("RT22 TileManager adding superTile")
       this.superTiles = this.superTiles.set(key, this.constructSuperTile(utmIndex, coordinateFrame, this.utmCoordinateSystem))
 			this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
     }
@@ -335,20 +336,31 @@ export abstract class TileManager {
 	// Bounding box of the union of all loaded objects.
 	getLoadedObjectsBoundingBox(): THREE.Box3 | null {
 		if (this.loadedObjectsBoundingBox) {
+			console.log("RT123 getLoadedObjectsBoundingBox 1")
 			return this.loadedObjectsBoundingBox
 		} else if (this.superTiles.isEmpty()) {
+      console.log("RT123 getLoadedObjectsBoundingBox 2")
 			return null
 		} else {
+      console.log("RT123 getLoadedObjectsBoundingBox 3 inside")
 			let bbox = new THREE.Box3()
+      console.log("RT123 bbox before", bbox)
+			console.log("RT123 bbox superTiles", this.superTiles)
 			this.superTiles.forEach(st => {
 				const newBbox = st!.getContentsBoundingBox()
-				if (newBbox && newBbox.min.x !== null && newBbox.min.x !== Infinity)
-					bbox = bbox.union(newBbox)
+				console.log("NEW BOX", newBbox)
+				if (newBbox && newBbox.min.x !== null && newBbox.min.x !== Infinity) {
+          console.log("RT BBOX UNION")
+          bbox = bbox.union(newBbox)
+				}
+
 			})
+			console.log("RT123 bbox after", bbox)
 			if (bbox.min.x === null || bbox.min.x === Infinity)
 				this.loadedObjectsBoundingBox = null
 			else
 				this.loadedObjectsBoundingBox = bbox
+      console.log("RT123 getLoadedObjectsBoundingBox return 3")
 			return this.loadedObjectsBoundingBox
 		}
 	}
