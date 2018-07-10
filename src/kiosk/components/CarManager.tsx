@@ -28,12 +28,19 @@ export interface CarManagerState {
 }))
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
 
-	componentWillReceiveProps(newProps: CarManagerProps) {
-		if(newProps.annotatedScene && !this.props.isCarInitialized) {
-			// Only execute this once -- hence the check against isCarInitialized
-			this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
-		}
+	constructor(props) {
+		super(props)
+    console.log("RT-DEBUG CarManager constructor")
+    this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
 	}
+
+	// componentWillReceiveProps(newProps: CarManagerProps) {
+   //  console.log("RT-DEBUG CarManager componentWillReceiveProps")
+	// 	if(newProps.annotatedScene && !this.props.isCarInitialized) {
+	// 		// Only execute this once -- hence the check against isCarInitialized
+	// 		this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
+	// 	}
+	// }
 
   addObjectToCar(object:THREE.Object3D):void {
 		const carModel = this.state.carModel
@@ -54,6 +61,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 
 
 	private loadCarModel(): Promise<void> {
+    console.log("RT-DEBUG CarManager loadCarModel")
 		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
 			try {
 				const manager = new THREE.LoadingManager()
@@ -125,6 +133,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 	}
 
   render() {
+		console.log("RT-DEBUG CarManager render")
 		return null
 	}
 

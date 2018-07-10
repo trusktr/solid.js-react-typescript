@@ -325,7 +325,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setPointCloudSuperTiles(superTiles:OrderedMap<string, SuperTile>) {
-    log.info("Setting point cloud super tiles.  Number of tiles", superTiles.size)
+    // log.info("Setting point cloud super tiles.  Number of tiles", superTiles.size)
 
     let points = 0
     superTiles.forEach(st => points += st!.objectCount)
@@ -340,7 +340,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
   @ActionReducer()
   setAnnotationSuperTiles(superTiles:OrderedMap<string, SuperTile>) {
-    log.info("Setting annotation super tiles.  Number of tiles", superTiles.size)
+    // log.info("Setting annotation super tiles.  Number of tiles", superTiles.size)
 
     let annotations = 0
     superTiles.forEach(st => annotations += st!.objectCount)

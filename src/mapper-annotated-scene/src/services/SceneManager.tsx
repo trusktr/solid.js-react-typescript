@@ -705,7 +705,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 				this.renderScene() // can potentially remove but added it just in case
 			}
 			else{
-        log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
+        // RT 7/9 to remove noise --> log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
 			}
 		}
 	}

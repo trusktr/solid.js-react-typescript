@@ -53,6 +53,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
   constructor(props) {
     super(props)
+    console.log("RT-DEBUG FlyThroughManager constructor")
 
     const loop = new ChildAnimationLoop
     const flyThroughFps = config['fly_through.animation.fps']
@@ -67,8 +68,10 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   }
 
   componentWillReceiveProps(newProps) {
+    console.log("RT-DEBUG FlyThroughManager componentWillReceiveProps")
     if(newProps.isCarInitialized && !newProps.isKioskUserDataLoaded) {
       // The car is setup but we haven't loaded the user data and trajectories - let's do that now
+      console.log("RT-DEBUG FlyThroughManager componentWillReceiveProps -- load user data")
       this.loadUserData()
     }
   }
@@ -78,11 +81,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
    * 	Note: This function is called after the car has been instantiated AND after PointCloudManager and AnnotatedScene are setup
    */
   private loadUserData(): Promise<void> {
-    if(!this.props.annotatedSceneController) {
-      log.error("annotatedSceneController not setup, unable to loadUserData")
-      return Promise.resolve()
-    }
-
     const annotationsPath = config['startup.annotations_path']
     let annotationsResult: Promise<void>
     if (annotationsPath) {
@@ -126,41 +124,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     return trajectoryResult
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   componentDidMount() {
+    console.log("RT-DEBUG FlyThrough componentDidMount")
     this.init()
   }
 
@@ -216,17 +181,17 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   }
 
   startLoop() {
-    log.info("Inside startLoop")
+    log.info("RT-DEBUG FlyThrough Inside startLoop")
     this.state.loop.start()
   }
 
   pauseLoop() {
-    log.info("Inside pauseLoop")
+    log.info("RT-DEBUG FlyThrough Inside pauseLoop")
     this.state.loop.pause()
   }
 
   startFlyThrough(): void {
-    log.info("inside startFlyThrough")
+    log.info("RT-DEBUG FlyThrough inside startFlyThrough")
     this.setFlyThroughMessage()
 		const loop = this.state.loop
 		loop.removeAnimationFn(this.flyThroughAnimation)
@@ -234,6 +199,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   }
 
   private flyThroughAnimation(): boolean {
+    console.log("RT-DEBUG FlyThrough inside flyThroughAnimation")
     const shouldAnimate = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).shouldAnimate
     if(!shouldAnimate)
       return false
@@ -246,6 +212,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
    */
   private runFlyThrough(): boolean {
     // console.log("Inside runFlyThrough")
+    console.log("RT-DEBUG FlyThrough inside runFlyThrough")
     const liveModeEnabled = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).liveModeEnabled
     const flyThroughState = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).flyThroughState
 
@@ -309,21 +276,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
     this.setState({liveSubscribeSocket})
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   loadFlyThroughTrajectories(paths: string[]): Promise<void> {
     if (!paths.length)
