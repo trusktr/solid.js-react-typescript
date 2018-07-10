@@ -30,7 +30,7 @@ const log = Logger(__filename)
 export interface SceneManagerProps {
 	width: number
 	height: number
-	areaOfInterestManager: AreaOfInterestManager | null
+	areaOfInterestManager: AreaOfInterestManager
 	shouldAnimate ?: boolean
 	compassRosePosition ?: THREE.Vector3
 	isDecorationsVisible ?: boolean
@@ -314,9 +314,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		new AnnotatedSceneActions().setCamera(this.state.camera)
 
 
-    this.makeStats()
-    this.props.container.appendChild(this.state.renderer.domElement)
-    this.startAnimation()
+		this.makeStats()
+		this.props.container.appendChild(this.state.renderer.domElement)
+		this.startAnimation()
 	}
 
 	componentWillUnmount() {

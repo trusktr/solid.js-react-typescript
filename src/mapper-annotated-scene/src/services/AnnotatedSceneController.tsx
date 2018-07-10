@@ -33,6 +33,8 @@ import {BusyError} from "@/mapper-annotated-scene/tile/TileManager"
 
 const log = Logger(__filename)
 
+console.log('forward ref?', (React as any).forwardRef)
+
 OBJLoader(THREE)
 
 const dialog = Electron.remote.dialog
@@ -373,37 +375,39 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   }
 
   getAnnotationManagerRef = (ref: AnnotationManager): void => {
-    this.annotationManager = ref
-	this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef( ref )
+	  if (ref) {
+		  this.annotationManager = ref
+		  this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef( ref )
+	  }
   }
 
-  getSceneManagerRef = (sceneManager: SceneManager): void => {
-    console.log("RT-DEBUG ASC getSceneManagerRef", sceneManager)
-    if(sceneManager) {
+  getSceneManagerRef = (ref: any): void => {
+    console.log("RT-DEBUG ASC getSceneManagerRef", ref)
+    if(ref) {
       console.log("RT-DEBUG setting sceneManager with value")
-      this.setState({sceneManager})
+      this.setState({sceneManager: ref.getWrappedInstance() as SceneManager})
     }
 
   }
 
-  getStatusWindowRef = (statusWindow: StatusWindow) => {
-    this.setState({statusWindow})
+  getStatusWindowRef = (ref: any) => {
+    ref && this.setState({statusWindow: ref.getWrappedInstance() as StatusWindow})
   }
 
-  getPointCloudManagerRef = (pointCloudManager: PointCloudManager) => {
-    this.setState({pointCloudManager})
+  getPointCloudManagerRef = (ref: any) => {
+    ref && this.setState({pointCloudManager: ref.getWrappedInstance() as any})
   }
 
-  getLayerManagerRef = (layerManager: LayerManager): void => {
-    this.setState({layerManager})
+  getLayerManagerRef = (ref: any): void => {
+    ref && this.setState({layerManager: ref as LayerManager})
   }
 
-  getAreaOfInterestManagerRef = (areaOfInterestManager:AreaOfInterestManager): void => {
-    this.setState({areaOfInterestManager})
+  getAreaOfInterestManagerRef = (ref: any): void => {
+    ref && this.setState({areaOfInterestManager: ref.getWrappedInstance() as AreaOfInterestManager})
   }
 
-  getGroundPlaneManagerRef = (groundPlaneManager: GroundPlaneManager): void => {
-    this.setState({groundPlaneManager})
+  getGroundPlaneManagerRef = (ref: any): void => {
+    ref && this.setState({groundPlaneManager: ref.getWrappedInstance() as GroundPlaneManager})
   }
 
 	getContainerRef = (container: HTMLDivElement | null): void => {
@@ -449,7 +453,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			eventEmitter={this.channel}
 		/>
 
-		{ this.state.container &&
+		{ this.state.container && this.state.areaOfInterestManager &&
 			<SceneManager
 	          ref={this.getSceneManagerRef}
 
