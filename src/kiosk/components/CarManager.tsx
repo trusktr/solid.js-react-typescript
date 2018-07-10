@@ -5,7 +5,7 @@ import {
   convertToStandardCoordinateFrame, CoordinateFrameType,
   cvtQuaternionToStandardCoordinateFrame
 } from "@/mapper-annotated-scene/geometry/CoordinateFrame";
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts"
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
@@ -27,9 +27,16 @@ export interface CarManagerState {
   isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
 }))
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
+	private loadingCarModel: boolean
+
+	constructor(props) {
+		super(props)
+		this.loadingCarModel = false
+	}
 
 	componentWillReceiveProps(newProps: CarManagerProps) {
-		if(newProps.annotatedScene && !this.props.isCarInitialized) {
+		if(newProps.annotatedScene && !this.props.isCarInitialized && !this.loadingCarModel) {
+			this.loadingCarModel = true
 			// Only execute this once -- hence the check against isCarInitialized
 			this.loadCarModel().then(() => new AnnotatedSceneActions().setCarInitialized(true))
 		}
@@ -77,8 +84,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 					})
 
 					this.setState({carModel})
-					const annotatedScene = this.props.annotatedScene
-          annotatedScene.addObjectToScene(object)
+					new AnnotatedSceneActions().addObjectToScene( object )
 					resolve()
 				})
 			} catch (err) {
