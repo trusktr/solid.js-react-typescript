@@ -21,9 +21,9 @@ export interface KioskProps {
 }
 
 export interface KioskState {
-	annotatedSceneController: AnnotatedSceneController | null
-	carManager: CarManager | null
-	flyThroughManager: FlyThroughManager | null
+	annotatedSceneController?: AnnotatedSceneController
+	carManager?: CarManager
+	flyThroughManager?: FlyThroughManager
 	hasCalledSetup: boolean
   isChildLoopAdded: boolean
 }
@@ -39,9 +39,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		super(props)
 
 		this.state = {
-			annotatedSceneController: null,
-			carManager: null,
-			flyThroughManager: null,
 			hasCalledSetup: false,
 			isChildLoopAdded: false,
 		}
@@ -131,7 +128,8 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		console.log("RT Kiosk Listen")
 		if (this.state.hasCalledSetup) return
 
-		if(!this.state.carManager || !this.state.annotatedSceneController || !this.state.annotatedSceneController.state.sceneManager) {
+		// TODO FIXME avoid access of deep state
+		if(!this.state.annotatedSceneController!.state.sceneManager) {
 			log.warn("Unable to finish calling listen() -- managers not initialized")
 			return
 		}
@@ -147,8 +145,9 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		// The camera and the point cloud AOI track the car object, so add it to the scene
 		// regardless of whether it is visible in the scene.
 		// @TODO confirm this works as expected
-		this.state.carManager.addObjectToCar(this.state.annotatedSceneController.state.sceneManager.getCamera()) // follow/orbit around the car
-		this.state.carManager.makeCarVisible()
+		// TODO FIXME avoid access of deep state
+		this.state.carManager!.addObjectToCar(this.state.annotatedSceneController!.state.sceneManager!.getCamera()) // follow/orbit around the car
+		this.state.carManager!.makeCarVisible()
 
 
 		if(this.state.flyThroughManager) {

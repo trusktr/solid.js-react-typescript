@@ -202,7 +202,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
   }
 
-  private flyThroughAnimation(): boolean {
+  private flyThroughAnimation = (): boolean => {
     console.log("NEED TO GET HERE flyThroughAnimation")
     const shouldAnimate = getAnnotatedSceneStore().getState().get(AnnotatedSceneState.Key).shouldAnimate
     if(!shouldAnimate)
