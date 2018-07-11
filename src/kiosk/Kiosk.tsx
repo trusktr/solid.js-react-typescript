@@ -18,6 +18,7 @@ const log = Logger(__filename)
 export interface KioskProps {
 	isCarInitialized ?: boolean
 	isKioskUserDataLoaded ?: boolean
+	// flyThroughState ?: boolean
 }
 
 export interface KioskState {
@@ -32,6 +33,7 @@ export interface KioskState {
 @typedConnect(createStructuredSelector({
 	isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
 	isKioskUserDataLoaded: (state) => state.get(AnnotatedSceneState.Key).isKioskUserDataLoaded,
+	// flyThroughState: (state) => state.get(AnnotatedSceneState.Key).flyThroughState,
 }))
 export default class Kiosk extends React.Component<KioskProps, KioskState> {
 

@@ -15,6 +15,7 @@ import {RangeSearch} from "../../../tile-model/RangeSearch";
 import {TileManager} from '../../../tile/TileManager'
 import {getAnnotatedSceneStoreState} from '@/mapper-annotated-scene/src/store/AppStore'
 import {Set} from "immutable";
+import {FlyThroughState} from "@/mapper-annotated-scene/src/models/FlyThroughState";
 
 const log = Logger(__filename)
 
@@ -47,13 +48,13 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			playModeEnabled: true,
 
 
-			flyThroughState: {
+			flyThroughState: new FlyThroughState({
 				enabled: true,
 				trajectories: [],
 				currentTrajectoryIndex: 0,
 				currentPoseIndex: 0,
 				endPoseIndex: 0,
-			},
+			}),
 
 			statusWindowState: {
 				enabled: !!config['startup.show_status_panel'],
@@ -109,6 +110,13 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 		}
 
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
+	}
+
+	@ActionReducer()
+	updateFlyThroughState(flyThroughState: FlyThroughState) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, flyThroughState: new FlyThroughState(flyThroughState)
+		})
 	}
 
 	@ActionReducer()

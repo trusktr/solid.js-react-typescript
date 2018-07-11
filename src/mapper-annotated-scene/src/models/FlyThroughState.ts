@@ -10,7 +10,7 @@ export interface FlyThroughTrajectory {
 
 export class FlyThroughState {
 
-	constructor(o:any = {}) {
+	constructor(o:FlyThroughState) {
 		Object.assign(this, o)
 	}
 

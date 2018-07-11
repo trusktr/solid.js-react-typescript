@@ -3,7 +3,6 @@ import * as React from "react"
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {FlyThroughState, FlyThroughTrajectory} from "@/mapper-annotated-scene/src/models/FlyThroughState";
 import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
-import FlyThroughActions from "@/kiosk/store/actions/FlyThroughActions";
 import {ChildAnimationLoop} from 'animation-loop'
 import config from "@/config";
 import * as AsyncFile from "async-file";
@@ -31,7 +30,6 @@ export interface FlyThroughManagerProps {
   annotatedSceneController: AnnotatedSceneController
   liveModeEnabled ?: boolean
   playModeEnabled ?: boolean
-  flyThroughState ?: FlyThroughState
   isCarInitialized ?: boolean
   isKioskUserDataLoaded ?: boolean
   shouldAnimate ?: boolean
@@ -46,12 +44,12 @@ export interface FlyThroughManagerState {
 @typedConnect(createStructuredSelector({
   liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
   playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
-  flyThroughState: (state) => state.get(AnnotatedSceneState.Key).flyThroughState,
   isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
   isKioskUserDataLoaded: (state) => state.get(AnnotatedSceneState.Key).isKioskUserDataLoaded,
   shouldAnimate: (state) => state.get(AnnotatedSceneState.Key).shouldAnimate,
 }))
 export default class FlyThroughManager extends React.Component<FlyThroughManagerProps, FlyThroughManagerState> {
+	private flyThroughState: FlyThroughState
 
   constructor(props) {
     super(props)
@@ -67,6 +65,14 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
       flyThroughLoop: loop,
       liveSubscribeSocket: null,
     }
+
+	this.flyThroughState = new FlyThroughState({
+		enabled: true,
+		trajectories: [],
+		currentTrajectoryIndex: 0,
+		currentPoseIndex: 0,
+		endPoseIndex: 0,
+	})
   }
 
   componentWillReceiveProps(newProps) {
@@ -153,7 +159,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
   }
 
   getCurrentFlyThroughTrajectory(): FlyThroughTrajectory {
-    const flyThroughState = this.props.flyThroughState
+    const flyThroughState = this.flyThroughState
     return flyThroughState.trajectories[flyThroughState.currentTrajectoryIndex]
   }
 
@@ -164,7 +170,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
   // Display some info about what flyThrough mode is doing now.
   private setFlyThroughMessage(): void {
-    const flyThroughState = this.props.flyThroughState
+    const flyThroughState = this.flyThroughState
     const currentFlyThroughTrajectory = this.getCurrentFlyThroughTrajectory()
 
     let message: string
@@ -220,7 +226,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     // console.log("Inside runFlyThrough")
     console.log("BINGO - we're set")
     const liveModeEnabled = this.props.liveModeEnabled
-    const flyThroughState = this.props.flyThroughState
+    const flyThroughState = this.flyThroughState
 
     if (!liveModeEnabled || !flyThroughState || !getValue(() => flyThroughState.enabled, false)) {
       console.log("Returning early from within runFlyThrough")
@@ -229,27 +235,29 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
     if (flyThroughState.currentPoseIndex >= flyThroughState.endPoseIndex) {
       // Reset pose index
-      new FlyThroughActions().setCurrentPoseIndex(0)
+	  this.flyThroughState.currentPoseIndex = 0
       // Update the current trajectory index
-	  const updatedFlyThroughState = this.props.flyThroughState
-      if(updatedFlyThroughState.currentTrajectoryIndex >= updatedFlyThroughState.trajectories.length - 1){
+	  const updatedFlyThroughState = this.flyThroughState
+      if(updatedFlyThroughState!.currentTrajectoryIndex >= updatedFlyThroughState!.trajectories.length - 1){
         // Reset it
-        new FlyThroughActions().setCurrentTrajectoryIndex(0)
+		this.flyThroughState.currentTrajectoryIndex = 0
       } else {
-        new FlyThroughActions().setCurrentTrajectoryIndex(updatedFlyThroughState.currentTrajectoryIndex++)
+		this.flyThroughState.currentTrajectoryIndex++
       }
       this.setFlyThroughMessage()
     }
-	const newFlyThroughState = this.props.flyThroughState
-    const pose = this.getCurrentFlyThroughTrajectory().poses[newFlyThroughState.currentPoseIndex]
-    new StatusWindowActions().setMessage(StatusKey.FLY_THROUGH_POSE, `Pose: ${newFlyThroughState.currentPoseIndex + 1} of ${newFlyThroughState.endPoseIndex}`)
+
+    const pose = this.getCurrentFlyThroughTrajectory().poses[this.flyThroughState.currentPoseIndex]
+    new StatusWindowActions().setMessage(StatusKey.FLY_THROUGH_POSE, `Pose: ${this.flyThroughState.currentPoseIndex + 1} of ${this.flyThroughState.endPoseIndex}`)
 
     // new AnnotatedSceneActions().setCarPose(pose)
     console.log("AH HA calling updateCarWithPose", pose)
     this.props.carManager.updateCarWithPose(pose)
 
-    const newValue = newFlyThroughState.currentPoseIndex + 1
-    new FlyThroughActions().setCurrentPoseIndex(newValue)
+    this.flyThroughState.currentPoseIndex++
+
+	new AnnotatedSceneActions().updateFlyThroughState(this.flyThroughState)
+
     return true
   }
 
@@ -264,7 +272,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     liveSubscribeSocket.on('message', (msg) => {
       if(!this.props.liveModeEnabled || !this.props.playModeEnabled) return
 
-      if (this.props.flyThroughState && this.props.flyThroughState.enabled) return
+      if (this.flyThroughState.enabled) return
 
 
       const state = Models.InertialStateMessage.decode(msg)
@@ -291,6 +299,16 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     this.setState({liveSubscribeSocket})
   }
 
+  resetFlyThroughState() {
+	  this.flyThroughState = new FlyThroughState({
+		  enabled: true,
+		  trajectories: [],
+		  currentTrajectoryIndex: 0,
+		  currentPoseIndex: 0,
+		  endPoseIndex: 0,
+	  })
+  }
+
   loadFlyThroughTrajectories(paths: string[]): Promise<void> {
     if (!paths.length)
       return Promise.reject(Error('called loadFlyThroughTrajectories() with no paths'))
@@ -301,7 +319,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     )
       .then(tuples => {
 
-        new FlyThroughActions().resetFlyThroughState()
+        this.resetFlyThroughState()
 
         const trajectories = tuples.map(tuple => {
           const path = tuple[0]
@@ -321,19 +339,22 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
           } as FlyThroughTrajectory
         }).filter(trajectory => trajectory.poses.length > 0)
 
-        new FlyThroughActions().setTrajectories(trajectories)
+        this.flyThroughState.trajectories = trajectories
 
         if (trajectories.length) {
-          new FlyThroughActions().setEndPoseIndex(this.getCurrentFlyThroughTrajectory().poses.length)
+		  this.flyThroughState.endPoseIndex = this.getCurrentFlyThroughTrajectory().poses.length
           console.log(`loaded ${trajectories.length} trajectories`)
           log.info(`loaded ${trajectories.length} trajectories`)
         } else {
           throw Error('failed to load trajectories')
         }
+
+		new AnnotatedSceneActions().updateFlyThroughState(this.flyThroughState)
       })
       .catch(err => {
         log.info("Error occurred loading fly through trajectories")
-        new FlyThroughActions().resetFlyThroughState()
+        this.resetFlyThroughState()
+		new AnnotatedSceneActions().updateFlyThroughState(this.flyThroughState)
         log.error(err.message)
         dialog.showErrorBox('Fly-through Load Error', err.message)
       })
@@ -347,7 +368,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 	// RYAN - when someone clicks between LIVE AND RECORDED
   toggleLiveAndRecordedPlay() {
     console.log("inside toggleLiveAndRecordedPlay")
-    const flyThroughState = this.props.flyThroughState
+    const flyThroughState = this.flyThroughState
     const liveModeEnabled = this.props.liveModeEnabled
 
 
@@ -359,10 +380,10 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     if (flyThroughState.enabled) {
       console.log("toggling LiveAndRecordedPlay - moving to enable=false")
       this.clearFlyThroughMessages()
-      new FlyThroughActions().setEnable(false)
+	  this.flyThroughState.enabled = false
     } else {
       console.log("toggling LiveAndRecordedPlay - moving to enable=true")
-      new FlyThroughActions().setEnable(true)
+	  this.flyThroughState.enabled = true
 
       if (flyThroughState.trajectories.length) {
         console.log("Looking to start animation loop")
@@ -370,6 +391,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         this.startLoop()
       }
     }
+
+	new AnnotatedSceneActions().updateFlyThroughState(this.flyThroughState)
 
     // if (this.uiState.isLiveModePaused)
     if (!liveModeEnabled)
@@ -381,7 +404,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 	// data or pre-recorded "fly-through" data.
 	// PAUSE AND PLAY BUTTON
   toggleLiveModePlay() {
-    const flyThroughState = this.props.flyThroughState
+    const flyThroughState = this.flyThroughState
     const playModeEnabled = this.props.playModeEnabled
     // @TODO comment back in
     // if (!this.props.liveModeEnabled) {
