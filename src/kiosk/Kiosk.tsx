@@ -10,7 +10,6 @@ import KioskMenuView from "@/kiosk/components/KioskMenuView";
 import Logger from "@/util/log";
 import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
 import * as watch from 'watch'
-import FlyThroughActions from "@/kiosk/store/actions/FlyThroughActions";
 
 const log = Logger(__filename)
 
@@ -69,8 +68,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 				}
 			)
 		}
-
-		new FlyThroughActions().resetFlyThroughState()
 
 		if (config['fly_through.render.fps'])
 			log.warn('config option fly_through.render.fps has been renamed to fly_through.animation.fps')
