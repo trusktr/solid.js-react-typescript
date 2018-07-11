@@ -48,7 +48,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			playModeEnabled: true,
 
 
-			flyThroughState: new FlyThroughState({}),
+			flyThroughState: new FlyThroughState({} as FlyThroughState),
 
 			statusWindowState: {
 				enabled: !!config['startup.show_status_panel'],
