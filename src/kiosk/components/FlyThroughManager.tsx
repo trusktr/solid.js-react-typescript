@@ -82,7 +82,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     if(newProps.isCarInitialized && !newProps.isKioskUserDataLoaded) {
       // The car is setup but we haven't loaded the user data and trajectories - let's do that now
       console.log("RT-DEBUG FlyThroughManager componentWillReceiveProps -- load user data")
-      this.loadUserData()
+      this.loadUserData().then(() => new AnnotatedSceneActions().setIsKioskUserDataLoaded(true))
     }
   }
 
@@ -131,7 +131,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
       trajectoryResult = pointCloudResult
     }
 
-    new AnnotatedSceneActions().setIsKioskUserDataLoaded(true)
     console.log("RT-DEBUG Finished loadUserData")
     return trajectoryResult
   }
