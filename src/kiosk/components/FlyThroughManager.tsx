@@ -73,6 +73,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 		currentPoseIndex: 0,
 		endPoseIndex: 0,
 	})
+	new AnnotatedSceneActions().updateFlyThroughState(this.flyThroughState)
+
   }
 
   componentWillReceiveProps(newProps) {
