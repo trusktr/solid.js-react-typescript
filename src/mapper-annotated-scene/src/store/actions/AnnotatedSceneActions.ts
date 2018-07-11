@@ -191,35 +191,35 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setIsAnnotationsVisible(isVisible:boolean) {
-	  log.info("Setting isAnnotationsVisible", isVisible)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, isAnnotationsVisible: isVisible
-    })
-  }
+		log.info("Setting isAnnotationsVisible", isVisible)
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isAnnotationsVisible: isVisible
+		})
+	}
 
-  @ActionReducer()
-  setIsImageScreensVisible(isVisible:boolean) {
-    log.info("Setting isImageScreensVisible", isVisible)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, isImageScreensVisible: isVisible
-    })
-  }
+	@ActionReducer()
+	setIsImageScreensVisible(isVisible:boolean) {
+		log.info("Setting isImageScreensVisible", isVisible)
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isImageScreensVisible: isVisible
+		})
+	}
 
-  @ActionReducer()
-  setIsPointCloudVisible(isVisible:boolean) {
-    log.info("Setting isPointCloudVisible", isVisible)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, isPointCloudVisible: isVisible
-    })
-  }
+	@ActionReducer()
+	setIsPointCloudVisible(isVisible:boolean) {
+		log.info("Setting isPointCloudVisible", isVisible)
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isPointCloudVisible: isVisible
+		})
+	}
 
-  @ActionReducer()
-  setIsDecorationsVisible(isVisible:boolean) {
-    log.info("Setting isDecorationsVisible", isVisible)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, isDecorationsVisible: isVisible
-    })
-  }
+	@ActionReducer()
+	setIsDecorationsVisible(isVisible:boolean) {
+		log.info("Setting isDecorationsVisible", isVisible)
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isDecorationsVisible: isVisible
+		})
+	}
 
 	@ActionReducer()
 	setCarInitialized(isCarInitialized: boolean) {
@@ -236,12 +236,12 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 		})
 	}
 
-  @ActionReducer()
+	@ActionReducer()
 	setCameraPreference(cameraPreference:CameraType) {
-    log.info("Setting camera preference", cameraPreference)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, cameraPreference
-    })
+		log.info("Setting camera preference", cameraPreference)
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, cameraPreference
+		})
 	}
 
 	@ActionReducer()
@@ -307,51 +307,51 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 		})
 	}
 
-  @ActionReducer()
+	@ActionReducer()
 	setCompassRosePosition(position:THREE.Vector3) {
-    log.info("Setting compass rose position", position)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, compassRosePosition: position
-    })
+		log.info("Setting compass rose position", position)
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, compassRosePosition: position
+		})
 	}
 
 	@ActionReducer()
-  setOrbitControlsTargetPoint(targetPoint:THREE.Vector3) {
-    log.info("Setting orbit controls target point", targetPoint)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, orbitControlsTargetPoint: targetPoint
-    })
+	setOrbitControlsTargetPoint(targetPoint:THREE.Vector3) {
+		log.info("Setting orbit controls target point", targetPoint)
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, orbitControlsTargetPoint: targetPoint
+		})
 	}
 
 	@ActionReducer()
 	setPointCloudSuperTiles(superTiles:OrderedMap<string, SuperTile>) {
-    // log.info("Setting point cloud super tiles.  Number of tiles", superTiles.size)
+		// log.info("Setting point cloud super tiles.  Number of tiles", superTiles.size)
 
-    let points = 0
-    superTiles.forEach(st => points += st!.objectCount)
+		let points = 0
+		superTiles.forEach(st => points += st!.objectCount)
 
-    const message = `Loaded ${superTiles.size} point tiles; ${points} points`
-    // new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
+		const message = `Loaded ${superTiles.size} point tiles; ${points} points`
+		// new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
 
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, pointCloudSuperTiles: superTiles
-    })
+			...annotatedSceneState, pointCloudSuperTiles: superTiles
+		})
 	}
 
-  @ActionReducer()
-  setAnnotationSuperTiles(superTiles:OrderedMap<string, SuperTile>) {
-    // log.info("Setting annotation super tiles.  Number of tiles", superTiles.size)
+	@ActionReducer()
+	setAnnotationSuperTiles(superTiles:OrderedMap<string, SuperTile>) {
+		// log.info("Setting annotation super tiles.  Number of tiles", superTiles.size)
 
-    let annotations = 0
-    superTiles.forEach(st => annotations += st!.objectCount)
+		let annotations = 0
+		superTiles.forEach(st => annotations += st!.objectCount)
 
-    const message = `Loaded ${superTiles.size} annotation tiles; ${annotations} annotations`
-    // new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
+		const message = `Loaded ${superTiles.size} annotation tiles; ${annotations} annotations`
+		// new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
 
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, annotationSuperTiles: superTiles
-    })
-  }
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, annotationSuperTiles: superTiles
+		})
+	}
 
 	@ActionReducer()
 	addObjectToScene(object:THREE.Object3D) {
@@ -375,20 +375,20 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 		}
 	}
 
-  @ActionReducer()
+	@ActionReducer()
 	setVisibleLayers(visibleLayers:string[]) {
-    log.info("Setting visible layers", visibleLayers)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, visibleLayers: visibleLayers
-    })
+		log.info("Setting visible layers", visibleLayers)
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, visibleLayers: visibleLayers
+		})
 	}
 
 	@ActionReducer()
-  setIsAnnotationTileManagerEnabled(isEnabled:boolean) {
-    log.info("Setting isAnnotationTileManagerEnabled", isEnabled)
-    return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-      ...annotatedSceneState, isAnnotationTileManagerEnabled: isEnabled
-    })
+	setIsAnnotationTileManagerEnabled(isEnabled:boolean) {
+		log.info("Setting isAnnotationTileManagerEnabled", isEnabled)
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isAnnotationTileManagerEnabled: isEnabled
+		})
 	}
 
 }

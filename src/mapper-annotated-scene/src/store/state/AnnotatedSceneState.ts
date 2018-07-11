@@ -14,10 +14,10 @@ export default class AnnotatedSceneState {
 	static Key = 'AnnotatedSceneState'
 
 	/**
-	 * Create state from JS (method required to comply with by IStateConstructor on the reducer)
-	 * @param o
-	 * @returns {AnnotatedSceneState}
-	 */
+	* Create state from JS (method required to comply with by IStateConstructor on the reducer)
+	* @param o
+	* @returns {AnnotatedSceneState}
+	*/
 	static fromJS(o: any = {}): AnnotatedSceneState {
 		return new AnnotatedSceneState(o)
 	}
@@ -39,8 +39,8 @@ export default class AnnotatedSceneState {
 	shouldAnimate: boolean
 
 	carPose: Models.PoseMessage
-  isCarInitialized: boolean
-  isKioskUserDataLoaded: boolean
+	isCarInitialized: boolean
+	isKioskUserDataLoaded: boolean
 
 
 
@@ -51,11 +51,11 @@ export default class AnnotatedSceneState {
 
 	compassRosePosition: THREE.Vector3
 	isDecorationsVisible: boolean
-  isPointCloudVisible: boolean
-  isImageScreensVisible: boolean
-  isAnnotationsVisible: boolean
+	isPointCloudVisible: boolean
+	isImageScreensVisible: boolean
+	isAnnotationsVisible: boolean
 
-  orbitControlsTargetPoint: THREE.Vector3
+	orbitControlsTargetPoint: THREE.Vector3
 
 	pointCloudSuperTiles: OrderedMap<string, SuperTile>
 	annotationSuperTiles: OrderedMap<string, SuperTile>
@@ -63,27 +63,27 @@ export default class AnnotatedSceneState {
 	sceneObjects: Set<THREE.Object3D>
 
 	visibleLayers: string[]
-  isAnnotationTileManagerEnabled: boolean
+	isAnnotationTileManagerEnabled: boolean
 
 
 	// Ported from uiState
-  isMouseDragging: boolean
-  isRotationModeActive: boolean
-  isConnectLeftNeighborKeyPressed: boolean
-  isConnectRightNeighborKeyPressed: boolean
-  isConnectFrontNeighborKeyPressed: boolean
-  isAddMarkerKeyPressed: boolean
-  isLiveMode: boolean
-  isAddConnectionKeyPressed: boolean
-  isJoinAnnotationKeyPressed: boolean
-  isControlKeyPressed: boolean
-  isAddConflictOrDeviceKeyPressed: boolean
-  isMouseButtonPressed: boolean
+	isMouseDragging: boolean
+	isRotationModeActive: boolean
+	isConnectLeftNeighborKeyPressed: boolean
+	isConnectRightNeighborKeyPressed: boolean
+	isConnectFrontNeighborKeyPressed: boolean
+	isAddMarkerKeyPressed: boolean
+	isLiveMode: boolean
+	isAddConnectionKeyPressed: boolean
+	isJoinAnnotationKeyPressed: boolean
+	isControlKeyPressed: boolean
+	isAddConflictOrDeviceKeyPressed: boolean
+	isMouseButtonPressed: boolean
 
-  cameraIsOrbiting: boolean
-  camera: THREE.Camera
+	cameraIsOrbiting: boolean
+	camera: THREE.Camera
 	areaOfInterest: RangeSearch[]
-  rendererSize: any
-  isOrbiting: boolean
-  loadingTileManagers: Set<TileManager>
+	rendererSize: any
+	isOrbiting: boolean
+	loadingTileManagers: Set<TileManager>
 }

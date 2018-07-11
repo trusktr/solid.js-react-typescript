@@ -202,9 +202,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   }
 
   componentDidUpdate(_, prevState, __) {
-    console.log(" ------------------ RT-DEBUG componentDidUpdate")
     if(prevState.sceneManager !== this.state.sceneManager && !prevState.container && this.state.container) {
-      console.log("RT-DEBUG ASC finally have sceneManager")
       this.setAnnotatedSceneController()
     }
 
@@ -240,7 +238,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.setState({cameraState})
 
         const utm = this.utmCoordinateSystem.threeJsToUtm(newPoint)
-        console.log("RT - test location 2")
         this.updateCurrentLocationStatusMessage(utm)
       }
     }
@@ -385,12 +382,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
   }
 
   getSceneManagerRef = (ref: any): void => {
-    console.log("RT-DEBUG ASC getSceneManagerRef", ref)
-    if(ref) {
-      console.log("RT-DEBUG setting sceneManager with value")
-      this.setState({sceneManager: ref.getWrappedInstance() as SceneManager})
-    }
-
+    ref && this.setState({sceneManager: ref.getWrappedInstance() as SceneManager})
   }
 
   getStatusWindowRef = (ref: any) => {
@@ -425,10 +417,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			y: event.clientY - event.target.offsetTop,
 		} )
 	}
-
-  componentWillUnmount() {
-	  console.log(' &&&&&&&&&&&&&&&& JOE_DEBUG AnnotatedSceneController componentWillUnmount')
-  }
 
   render() {
 
