@@ -25,6 +25,7 @@ import {TileManager, TileManagerConfig} from "@/mapper-annotated-scene/tile/Tile
 import {OrderedMap} from "immutable"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
+import {EventEmitter} from "events";
 
 const log = Logger(__filename)
 
@@ -52,11 +53,13 @@ export class PointCloudTileManager extends TileManager {
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
 		tileServiceClient: TileServiceClient,
+		channel: EventEmitter
 	) {
 		super(
 			scaleProvider,
 			utmCoordinateSystem,
 			tileServiceClient,
+			channel
 		)
 		if (config['tile_manager.tile_message_format'])
 			log.warn('config option tile_manager.tile_message_format has been removed.')

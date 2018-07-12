@@ -19,6 +19,7 @@ import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager.tsx"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import {OrderedMap} from "immutable";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
+import {EventEmitter} from "events";
 
 export class AnnotationTileManager extends TileManager {
 	constructor(
@@ -26,11 +27,13 @@ export class AnnotationTileManager extends TileManager {
 		utmCoordinateSystem: UtmCoordinateSystem,
 		tileServiceClient: TileServiceClient,
 		private annotationManager: AnnotationManager,
+        channel: EventEmitter
 	) {
 		super(
 			scaleProvider,
 			utmCoordinateSystem,
 			tileServiceClient,
+			channel,
 		)
 		this.config = {
 			layerId: 'anot1', // a layer which contains miniature annotator JSON files

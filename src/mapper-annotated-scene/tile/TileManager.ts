@@ -19,6 +19,7 @@ import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch"
 import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
 import AnnotatedSceneActions from "../src/store/actions/AnnotatedSceneActions";
+import {EventEmitter} from "events";
 import Logger from "@/util/log"
 
 const log = Logger(__filename)
@@ -66,6 +67,7 @@ export abstract class TileManager {
 		scaleProvider: ScaleProvider,
 		protected utmCoordinateSystem: UtmCoordinateSystem,
 		protected tileServiceClient: TileServiceClient,
+		protected channel: EventEmitter
 	) {
 		this.storage = new LocalStorage()
 		this.coordinateSystemInitialized = false

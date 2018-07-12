@@ -134,6 +134,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
             this.scaleProvider,
             this.utmCoordinateSystem,
             tileServiceClient,
+            this.channel
         )
 
         if (this.props.enableAnnotationTileManager) {
@@ -150,6 +151,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
                 // should split AnnotationManager into two, and name one of them
                 // something like AnnotationLayer or something.
                 this.annotationManager,
+                this.channel
             )
             new AnnotatedSceneActions().setIsAnnotationTileManagerEnabled(true)
         }
@@ -492,7 +494,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
                 <AnnotationManager
                     ref={this.getAnnotationManagerRef}
-
                     {...{
                         scaleProvider,
                         utmCoordinateSystem,
