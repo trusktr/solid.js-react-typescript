@@ -25,7 +25,7 @@ export interface KioskState {
 	carManager?: CarManager
 	flyThroughManager?: FlyThroughManager
 	hasCalledSetup: boolean
-  isChildLoopAdded: boolean
+	isChildLoopAdded: boolean
 }
 
 
@@ -83,9 +83,8 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			// Since it's setup now let's setup the fly through manager
 			const flyThroughManager = this.state.flyThroughManager
 			// flyThroughManager.init() -- called on componentDidMount within FlyThroughManager
-			const sceneManager = this.state.annotatedSceneController
-			console.log("Add childAnimationLoop for flyThroughManager")
-			sceneManager.addChildAnimationLoop(flyThroughManager.getAnimationLoop())
+			const controller = this.state.annotatedSceneController
+			controller.addChildAnimationLoop(flyThroughManager.getAnimationLoop())
 
 			flyThroughManager.startLoop()
 
@@ -95,7 +94,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			// setup other items after scene is initialized
 			// 1) Update the camera offset for kiosk specifically
 			const cameraOffset = new THREE.Vector3(30, 10, 0)
-			this.state.annotatedSceneController.setCameraOffsetVector(cameraOffset)
+			controller.setCameraOffsetVector(cameraOffset)
 			this.setState({isChildLoopAdded: true})
 		}
 
@@ -124,7 +123,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 	// this gets called after the CarManager is instantiated
 	private listen() {
-		console.log("RT Kiosk Listen")
 		if (this.state.hasCalledSetup) return
 
 		// TODO FIXME avoid access of deep state
@@ -133,7 +131,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			return
 		}
 
-		console.log('Listening for messages...')
 		log.info('Listening for messages...')
 		this.setState({
 			hasCalledSetup: true
@@ -290,8 +287,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			onCurrentRotation = () => {return this.state.carManager!.getCarModelRotation()}
 		}
 
-		console.log("RT-DEBUG Kiosk render --> this.state.annotatedSceneController", this.state.annotatedSceneController)
-		console.log("RT-DEBUG Kiosk render --> this.state.flyThroughManager", this.state.flyThroughManager)
 		return (
 			<div style={{width: "100%", height: "100%"}}>
 				<AnnotatedSceneController ref={this.getAnnotatedSceneControllerRef} enableAnnotationTileManager={true} onPointOfInterestCall={onPointOfInterestCall} onCurrentRotation={onCurrentRotation} />

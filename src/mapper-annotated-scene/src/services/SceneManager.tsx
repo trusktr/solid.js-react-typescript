@@ -306,7 +306,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	componentDidMount() {
-		console.log("RT-DEBUG SceneManager componentDidMount")
 		const [width, height]: Array<number> = this.getContainerSize()
 
 		this.createOrthographicCameraDimensions(width, height)
@@ -364,12 +363,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// SHARED
 	private startAnimation(): void {
-		console.log("SceneManager startAnimation")
 		new AnnotatedSceneActions().setShouldAnimate(true)
 
 		// this.shouldAnimate = true
 		this.startAoiUpdates()
-		console.log("SceneManager finished startAoiUpdates from inside startAnimation")
+
 		const loop = this.state.loop
 		loop.addAnimationFn(() => {
 			if ( !this.props.shouldAnimate ) return false
@@ -399,12 +397,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// {{{
 
 	addAnimationFunction( fn ) {
-		console.log("Inside SceneManager.addAnimationFunction actual method", this.state)
 		this.state.loop.addAnimationFn( fn )
 	}
 
 	removeAnimationFunction( fn ) {
-    console.log("Inside SceneManager.removeAnimationFunction actual method", this.state)
 		this.state.loop.removeAnimationFn( fn )
 	}
 
@@ -484,7 +480,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 
-  addChildAnimationLoop(childLoop: ChildAnimationLoop) {
+	addChildAnimationLoop(childLoop: ChildAnimationLoop) {
 		// this.loop.addChildLoop( FlyThroughManager.getAnimationLoop() )
 		this.state.loop.addChildLoop( childLoop )
 	}
