@@ -216,6 +216,7 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 					const geom = new THREE.Geometry()
 					geom.vertices.push(search.minPoint, search.maxPoint)
 					const bbox = new THREE.BoxHelper(new THREE.Points(geom), this.state.bBoxColor)
+					bbox.name = "AOI Bounding Box"
 					this.setState({ boundingBoxes: this.state.boundingBoxes.concat(bbox) })
 					new AnnotatedSceneActions().addObjectToScene(bbox)
 				})

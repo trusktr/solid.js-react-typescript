@@ -174,7 +174,7 @@ export abstract class TileManager {
 	// Side effect: Prune old SuperTiles as necessary.
 	// Returns true if super tiles were loaded.
 	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects: boolean = false): Promise<boolean> {
-		console.log("HERE13")
+		console.log("HERE13 ++++++++++++")
 		if (this.isLoadingTiles)
 			return Promise.reject(new BusyError('busy loading tiles'))
 
@@ -349,12 +349,9 @@ export abstract class TileManager {
 			//console.log("RT123 getLoadedObjectsBoundingBox 1")
 			return this.loadedObjectsBoundingBox
 		} else if (this.superTiles.isEmpty()) {
-      //console.log("RT123 getLoadedObjectsBoundingBox 2")
 			return null
 		} else {
-      //console.log("RT123 getLoadedObjectsBoundingBox 3 inside")
 			let bbox = new THREE.Box3()
-      //console.log("RT123 bbox before", bbox)
 			this.superTiles.forEach(st => {
 				const newBbox = st!.getContentsBoundingBox()
 				if (newBbox && newBbox.min.x !== null && newBbox.min.x !== Infinity) {
@@ -363,12 +360,10 @@ export abstract class TileManager {
 				}
 
 			})
-			//console.log("RT123 bbox after", bbox)
 			if (bbox.min.x === null || bbox.min.x === Infinity)
 				this.loadedObjectsBoundingBox = null
 			else
 				this.loadedObjectsBoundingBox = bbox
-      //console.log("RT123 getLoadedObjectsBoundingBox return 3")
 			return this.loadedObjectsBoundingBox
 		}
 	}

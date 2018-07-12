@@ -117,6 +117,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
         // tslint:disable-next-line:no-any
 
         const pointCloudBoundingBox = new THREE.BoxHelper(bbox as any, this.state.pointCloudBboxColor)
+        pointCloudBoundingBox.name = 'pointCloudBoundingBox'
         this.setState({pointCloudBoundingBox: pointCloudBoundingBox})
         new AnnotatedSceneActions().addObjectToScene(pointCloudBoundingBox)
       }
@@ -149,13 +150,12 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
     this.updatePointCloudBoundingBox()
 
-	// TODO JOE MONDAY 7/2/18 move compas rose stuff outside here (in a separate
-	// layer) and have it listen for point cloud load events.
     this.setCompassRoseByPointCloud()
 
     const focalPoint = this.props.pointCloudTileManager.centerPoint()
-    if (focalPoint)
-      this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z, resetCamera)
+    if (focalPoint) {
+        this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z, resetCamera)
+    }
 
     this.props.sceneManager.renderScene()
   }
@@ -217,6 +217,8 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
 	componentDidUpdate(previousProps: PointCloudManagerProps) {
 	    if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
+	        console.log("Comparing previous AOI", previousProps.areaOfInterest)
+            console.log("New AOI", this.props.areaOfInterest    )
 			if (this.props.areaOfInterest) {
                 console.log("RT Loading point cloud data from PointCloudManager.componentDidUpdate")
 				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true, false )

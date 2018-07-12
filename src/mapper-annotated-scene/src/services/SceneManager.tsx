@@ -289,11 +289,40 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		}
 
 		// If the LayerManager modifies the visible layers, we should rerender
-		if(newProps.visibleLayers != this.props.visibleLayers) {
+		if(this.areListsEqual(newProps.visibleLayers! , this.props.visibleLayers!)){
 			this.renderScene()
 		}
 
 	}
+
+	// @TODO RYAN TO MOVE TO UTILITY
+	private areListsEqual(first:string[], second:string[]): boolean {
+		if(first.length != second.length) return false
+
+		let updated = 0
+		for(let i of first) {
+			if(second.indexOf(i) < 0) {
+				updated++
+			}
+		}
+
+        for(let j of second) {
+            if(first.indexOf(j) < 0) {
+                updated++
+            }
+        }
+
+        let result
+        if(updated) {
+			// arrays are different, they are not equal
+			result= false
+		} else {
+			result= true
+		}
+		return result
+
+	}
+
 
 	private updateSceneObjects(newSceneObjects:Set<THREE.Object3D>, existingSceneObjects:Set<THREE.Object3D>) {
 		const scene = this.state.scene
