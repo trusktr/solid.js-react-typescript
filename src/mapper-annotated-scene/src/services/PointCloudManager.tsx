@@ -216,7 +216,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	}
 
 	componentDidUpdate(previousProps: PointCloudManagerProps) {
-	    return
 	    if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
 			if (this.props.areaOfInterest) {
                 console.log("RT Loading point cloud data from PointCloudManager.componentDidUpdate")

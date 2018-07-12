@@ -494,6 +494,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
                 <AnnotationManager
                     ref={this.getAnnotationManagerRef}
+                    eventEmitter={this.channel}
                     {...{
                         scaleProvider,
                         utmCoordinateSystem,
@@ -520,6 +521,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
                     ref={this.getGroundPlaneManagerRef}
                     utmCoordinateSystem={this.utmCoordinateSystem}
                     sceneManager={this.state.sceneManager!}
+                    eventEmitter={this.channel}
                 />
 
             </div>

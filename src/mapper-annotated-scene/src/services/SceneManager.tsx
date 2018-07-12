@@ -25,6 +25,7 @@ import * as Stats from 'stats.js'
 import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
 import getOrderedMapValueDiff from '../util/getOrderedMapValueDiff'
 import {Set} from 'immutable'
+import {Super} from "babel-types";
 
 const log = Logger(__filename)
 
@@ -36,7 +37,7 @@ export interface SceneManagerProps {
 	compassRosePosition ?: THREE.Vector3
 	isDecorationsVisible ?: boolean
 	orbitControlsTargetPoint ?: THREE.Vector3
-	pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
+	// pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
 	utmCoordinateSystem: UtmCoordinateSystem
 	eventEmitter: EventEmitter
 	sceneObjects ?: Set<THREE.Object3D>
@@ -81,7 +82,7 @@ export interface SceneManagerState {
 	'compassRosePosition',
 	'isDecorationsVisible',
 	'orbitControlsTargetPoint',
-	'pointCloudSuperTiles',
+	// 'pointCloudSuperTiles',
 	'sceneObjects',
 	'visibleLayers',
 	'cameraPreference',
@@ -246,6 +247,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			renderer.render(scene, this.state.camera)
 		})
 
+
+		// Setup listeners on add/remove point cloud tiles
+		this.props.eventEmitter.on('addPointCloudSuperTile', (superTile:SuperTile) => {this.addSuperTile(superTile)})
+        this.props.eventEmitter.on('removePointCloudSuperTile', (superTile:SuperTile) => {this.removeSuperTile(superTile)})
+
 		new AnnotatedSceneActions().setSceneInitialized(true)
 	}
 
@@ -267,12 +273,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.updateOrbitControlsTargetPoint(newProps.orbitControlsTargetPoint)
 		}
 
-		if(newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles) {
-			const { added, removed } = getOrderedMapValueDiff( this.props.pointCloudSuperTiles, newProps.pointCloudSuperTiles )
-
-			added && added.forEach(tile => this.addSuperTile(tile!))
-			removed && removed.forEach(tile => this.removeSuperTile(tile!))
-		}
+		// RT 7/12 Commented out and using an eventEmitter instead -- see constructor
+		// if(newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles) {
+		// 	const { added, removed } = getOrderedMapValueDiff( this.props.pointCloudSuperTiles, newProps.pointCloudSuperTiles )
+        //
+		// 	added && added.forEach(tile => this.addSuperTile(tile!))
+		// 	removed && removed.forEach(tile => this.removeSuperTile(tile!))
+		// }
 
 		// Handle adding and removing scene objects
 		if(newProps.sceneObjects != this.props.sceneObjects) {

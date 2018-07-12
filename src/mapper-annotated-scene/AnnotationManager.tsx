@@ -53,6 +53,7 @@ import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlan
 import {AnnotationTileManager} from "@/mapper-annotated-scene/tile/AnnotationTileManager";
 import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
 import Annotator from "@/annotator/Annotator";
+import {EventEmitter} from "events"
 
 const log = Logger(__filename)
 
@@ -90,7 +91,7 @@ interface IProps {
 
 	layerManager: LayerManager | null
 	isAnnotationsVisible?: boolean
-  annotationSuperTiles ?: OrderedMap<string, SuperTile>
+  // annotationSuperTiles ?: OrderedMap<string, SuperTile>
 
 	// Replacing uiState in the short term
   isMouseDragging ?: boolean
@@ -114,6 +115,7 @@ interface IProps {
   lockTerritories?: boolean
   lockLanes?: boolean
   lockTrafficDevices?: boolean
+	eventEmitter: EventEmitter
 }
 
 interface IState {
@@ -127,7 +129,7 @@ interface IState {
  */
 @typedConnect(toProps(
 	'isAnnotationsVisible',
-	'annotationSuperTiles',
+	//'annotationSuperTiles',
 
 	'isMouseDragging',
 	'isRotationModeActive',
@@ -178,7 +180,14 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.raycasterPlane.params.Points!.threshold = 0.1
 		this.raycasterMarker = new THREE.Raycaster()
 		this.raycasterAnnotation = new THREE.Raycaster()
-	}
+
+        // Setup listeners on add/remove point cloud tiles
+        this.props.eventEmitter.on('addAnnotationSuperTile', (superTile:SuperTile) => {this.addSuperTileAnnotations(superTile as AnnotationSuperTile)})
+        this.props.eventEmitter.on('removeAnnotationSuperTile', (superTile:SuperTile) => {this.removeSuperTileAnnotations(superTile as AnnotationSuperTile)})
+
+
+
+    }
 
 	componentWillReceiveProps(newProps) {
 		if(newProps.isAnnotationsVisible !== this.props.isAnnotationsVisible) {
@@ -189,20 +198,20 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 		}
 
-    if(this.props.annotationSuperTiles && newProps.superTiles &&
-			newProps.annotationSuperTiles !== this.props.annotationSuperTiles) {
-      const existingSuperTileIds = this.props.annotationSuperTiles.keySeq().toArray()
-      const newSuperTileIds = newProps.superTiles.keySeq().toArray()
-      const tilesToAdd = newSuperTileIds.filter(superTile => existingSuperTileIds.indexOf(superTile) < 0)
-      const tilesToRemove = existingSuperTileIds.filter(superTile => newSuperTileIds.indexOf(superTile) < 0)
-
-      tilesToAdd.forEach(tileId => this.addSuperTileAnnotations(newProps.superTiles!.get(tileId)))
-      tilesToRemove.forEach(tileId => this.removeSuperTileAnnotations(newProps.superTiles!.get(tileId)))
-    }
+		// RT 7/12
+		// if(this.props.annotationSuperTiles && newProps.superTiles &&
+		// 		newProps.annotationSuperTiles !== this.props.annotationSuperTiles) {
+		//   const existingSuperTileIds = this.props.annotationSuperTiles.keySeq().toArray()
+		//   const newSuperTileIds = newProps.superTiles.keySeq().toArray()
+		//   const tilesToAdd = newSuperTileIds.filter(superTile => existingSuperTileIds.indexOf(superTile) < 0)
+		//   const tilesToRemove = existingSuperTileIds.filter(superTile => newSuperTileIds.indexOf(superTile) < 0)
+        //
+		//   tilesToAdd.forEach(tileId => this.addSuperTileAnnotations(newProps.superTiles!.get(tileId)))
+		//   tilesToRemove.forEach(tileId => this.removeSuperTileAnnotations(newProps.superTiles!.get(tileId)))
+		// }
 	}
 
 	componentDidUpdate(previousProps: IProps) {
-		return
 		if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
 			if (this.props.areaOfInterest) {
 				this.loadAnnotationDataFromMapServer( this.props.areaOfInterest, true )

@@ -12,21 +12,23 @@ import {isNull} from "util"
 import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
 import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
+import {EventEmitter} from "events"
 
 export interface IGroundPlaneManagerProps {
-  pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
+  // pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
   utmCoordinateSystem: UtmCoordinateSystem
   camera?: THREE.Camera
   mousePosition?: { x: number, y: number }
   sceneManager: SceneManager | null
+	eventEmitter: EventEmitter
 }
 
 export interface IGroundPlaneManagerState {
-
+	pointCloudSuperTiles: OrderedMap<string, SuperTile>
 }
 
 @typedConnect(toProps(
-	'pointCloudSuperTiles',
+	//'pointCloudSuperTiles',
 	'camera',
 	'mousePosition'
 ))
@@ -50,6 +52,28 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 		this.superTileGroundPlanes = Map()
 
 		this.tileGroundPlaneScale = 1.05
+
+		this.state = {
+            pointCloudSuperTiles: OrderedMap<string, SuperTile>()
+		}
+
+        // Setup listeners on add/remove point cloud tiles
+        this.props.eventEmitter.on('addPointCloudSuperTile', (superTile:SuperTile) => {
+        	this.addTileToState(superTile as PointCloudSuperTile)
+        	this.loadTileGroundPlanes(superTile as PointCloudSuperTile)})
+        this.props.eventEmitter.on('removePointCloudSuperTile', (superTile:SuperTile) => {
+        	this.removeTileFromState(superTile as PointCloudSuperTile)
+        	this.unloadTileGroundPlanes(superTile as PointCloudSuperTile)})
+	}
+
+	addTileToState(superTile: PointCloudSuperTile) {
+		const pointCloudSuperTiles = this.state.pointCloudSuperTiles
+        pointCloudSuperTiles.set(superTile.key(), superTile)
+	}
+
+	removeTileFromState(superTile: PointCloudSuperTile) {
+        const pointCloudSuperTiles = this.state.pointCloudSuperTiles
+        pointCloudSuperTiles.delete(superTile.key())
 	}
 
 	// TODO JOR THURSDAY
@@ -61,35 +85,18 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 	// jumps between them won't matter much.
 	// ??????
 
-	componentDidUpdate(oldProps: IGroundPlaneManagerProps) {
-		const oldPointCloudSuperTiles = oldProps.pointCloudSuperTiles
-		const newPointCloudSuperTiles = this.props.pointCloudSuperTiles
-
-		if ( oldPointCloudSuperTiles !== newPointCloudSuperTiles ) {
-			const { added, removed } = getOrderedMapValueDiff( oldPointCloudSuperTiles, newPointCloudSuperTiles )
-
-			added && added.forEach(tile => this.loadTileGroundPlanes(tile as PointCloudSuperTile))
-			removed && removed.forEach(tile => this.unloadTileGroundPlanes(tile as PointCloudSuperTile))
-		}
-	}
-
-	getSuperTileDiff( oldSuperTiles, newSuperTiles ) {
-		let added
-		let removed
-
-		if (!oldSuperTiles && newSuperTiles) {
-			added = newSuperTiles
-		}
-		else if (oldSuperTiles && !newSuperTiles) {
-			removed = oldSuperTiles
-		}
-		else {
-			added = newSuperTiles.filter(superTile => !oldSuperTiles.includes(superTile))
-			removed = oldSuperTiles.filter(superTile => !newSuperTiles.includes(superTile))
-		}
-
-		return { added, removed }
-	}
+	// RT 7/12
+	// componentDidUpdate(oldProps: IGroundPlaneManagerProps) {
+	// 	const oldPointCloudSuperTiles = oldProps.pointCloudSuperTiles
+	// 	const newPointCloudSuperTiles = this.props.pointCloudSuperTiles
+    //
+	// 	if ( oldPointCloudSuperTiles !== newPointCloudSuperTiles ) {
+	// 		const { added, removed } = getOrderedMapValueDiff( oldPointCloudSuperTiles, newPointCloudSuperTiles )
+    //
+	// 		added && added.forEach(tile => this.loadTileGroundPlanes(tile as PointCloudSuperTile))
+	// 		removed && removed.forEach(tile => this.unloadTileGroundPlanes(tile as PointCloudSuperTile))
+	// 	}
+	// }
 
 	private loadTileGroundPlanes(superTile: PointCloudSuperTile): void {
 		if (!this.estimateGroundPlane) return
@@ -158,7 +165,7 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 	}
 
 	getPointClouds(): OrderedMap<string, THREE.Points> {
-		return this.props.pointCloudSuperTiles!.map<THREE.Points>(superTile => {
+		return this.state.pointCloudSuperTiles.map<THREE.Points>(superTile => {
 			return (superTile as PointCloudSuperTile).pointCloud!
 		}) as OrderedMap<string, THREE.Points>
 	}
@@ -166,9 +173,9 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 	pointCloudTileCount() {
 		let count = 0
 
-		if (!this.props.pointCloudSuperTiles) return count
+		if (this.state.pointCloudSuperTiles) return count
 
-		this.props.pointCloudSuperTiles.forEach( superTile => {
+		this.state.pointCloudSuperTiles!.forEach( superTile => {
 			count += superTile!.objectCount
 		})
 
