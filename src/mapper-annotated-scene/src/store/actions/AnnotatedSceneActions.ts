@@ -39,7 +39,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	 */
 	@ActionReducer()
 	loadAppState() {
-		log.info("Loading app state data from local storage")
+		console.log("Loading app state data from local storage")
 
 		const defaultState = {
 			messages: Array<UIMessage>(),
@@ -106,16 +106,17 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
 	}
 
-	@ActionReducer()
-	updateFlyThroughState(flyThroughState: FlyThroughState) {
-		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, flyThroughState: new FlyThroughState(flyThroughState)
-		})
-	}
+	// @ActionReducer()
+	// updateFlyThroughState(flyThroughState: FlyThroughState) {
+	// 	console.log("IN updateFlyThroughState")
+	// 	return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+	// 		...annotatedSceneState, flyThroughState: new FlyThroughState(flyThroughState)
+	// 	})
+	// }
 
 	@ActionReducer()
 	addMessage(message: UIMessage) {
-		log.info("Adding UI Message", message.id)
+		console.log("Adding UI Message", message.id)
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			let messages = [...annotatedSceneState.messages, message]
 			return new AnnotatedSceneState({...annotatedSceneState, messages: messages})
@@ -124,7 +125,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	removeMessage(messageId: string) {
-		log.info("Removing UI Message", messageId)
+		console.log("Removing UI Message", messageId)
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			let messages = [...annotatedSceneState.messages]
 			messages = messages.filter(it => it.id !== messageId)
@@ -135,7 +136,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	toggleLiveMode() {
-		log.info("Toggling live mode")
+		console.log("Toggling live mode")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, liveModeEnabled: !annotatedSceneState.liveModeEnabled
 		})
@@ -143,7 +144,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	togglePlayMode() {
-		log.info("Toggling play mode")
+		console.log("Toggling play mode")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, playModeEnabled: !annotatedSceneState.playModeEnabled
 		})
@@ -151,7 +152,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	toggleUIMenuVisible() {
-		log.info("Toggling UI Menu Visibility")
+		console.log("Toggling UI Menu Visibility")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, uiMenuVisible: !annotatedSceneState.uiMenuVisible
 		})
@@ -159,7 +160,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setUIMenuVisibility(visible:boolean) {
-		log.info("Setting UI Menu Visibility", visible)
+		console.log("Setting UI Menu Visibility", visible)
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, uiMenuVisible: visible
 		})
@@ -167,7 +168,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setShouldAnimate(shouldAnimate:boolean) {
-		log.info("Setting should animate", shouldAnimate)
+		console.log("Setting should animate", shouldAnimate)
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, shouldAnimate: shouldAnimate
 		})
@@ -175,7 +176,8 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setCarPose(pose:Models.PoseMessage) {
-		// log.info("Setting car pose", pose)
+		// console.log("Setting car pose", pose)
+        console.log("Toggling UI Menu Visibility")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, carPose: pose
 		})
@@ -183,7 +185,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setSceneInitialized(isInitialized:boolean) {
-		log.info("Setting sceneInitialized", isInitialized)
+		console.log("Setting sceneInitialized", isInitialized)
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, sceneInitialized: isInitialized
 		})
@@ -191,7 +193,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setIsAnnotationsVisible(isVisible:boolean) {
-	  log.info("Setting isAnnotationsVisible", isVisible)
+	  console.log("Setting isAnnotationsVisible", isVisible)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, isAnnotationsVisible: isVisible
     })
@@ -199,7 +201,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
   @ActionReducer()
   setIsImageScreensVisible(isVisible:boolean) {
-    log.info("Setting isImageScreensVisible", isVisible)
+    console.log("Setting isImageScreensVisible", isVisible)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, isImageScreensVisible: isVisible
     })
@@ -207,7 +209,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
   @ActionReducer()
   setIsPointCloudVisible(isVisible:boolean) {
-    log.info("Setting isPointCloudVisible", isVisible)
+    console.log("Setting isPointCloudVisible", isVisible)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, isPointCloudVisible: isVisible
     })
@@ -215,7 +217,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
   @ActionReducer()
   setIsDecorationsVisible(isVisible:boolean) {
-    log.info("Setting isDecorationsVisible", isVisible)
+    console.log("Setting isDecorationsVisible", isVisible)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, isDecorationsVisible: isVisible
     })
@@ -230,7 +232,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setIsKioskUserDataLoaded(isLoaded:boolean) {
-		log.info("Setting isKioskUserDataLoaded", isLoaded)
+		console.log("Setting isKioskUserDataLoaded", isLoaded)
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, isKioskUserDataLoaded: isLoaded
 		})
@@ -238,7 +240,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
   @ActionReducer()
 	setCameraPreference(cameraPreference:CameraType) {
-    log.info("Setting camera preference", cameraPreference)
+    console.log("Setting camera preference", cameraPreference)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, cameraPreference
     })
@@ -246,7 +248,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setCamera( camera: THREE.Camera ) {
-		log.info("Setting camera")
+		console.log("Setting camera")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, camera
 		})
@@ -254,6 +256,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setPointOfInterest( pointOfInterest: THREE.Vector3 | null ) {
+		console.log("IN setPointOfInterest")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, pointOfInterest
 		})
@@ -261,6 +264,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setAreaOfInterest( areaOfInterest: RangeSearch[] ) {
+        console.log("IN setAreaOfInterest")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, areaOfInterest
 		})
@@ -268,6 +272,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setRendererSize( rendererSize: { width: number, height: number } ) {
+        console.log("IN setRendererSize")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, rendererSize
 		})
@@ -275,6 +280,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	cameraIsOrbiting( isOrbiting: boolean ) {
+        console.log("IN cameraIsOrbiting")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, isOrbiting
 		})
@@ -282,6 +288,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	addLoadingTileManager( tileManager: TileManager ) {
+        console.log("IN addLoadingTileManager")
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			const loadingTileManagers = annotatedSceneState.loadingTileManagers
 			return new AnnotatedSceneState({
@@ -292,6 +299,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	removeLoadingTileManager( tileManager: TileManager ) {
+        console.log("IN removeLoadingTileManager")
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			const loadingTileManagers = annotatedSceneState.loadingTileManagers
 			return new AnnotatedSceneState({
@@ -302,6 +310,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setMousePosition( mousePosition: { x: number, y: number } ) {
+        console.log("IN setMousePosition")
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, mousePosition
 		})
@@ -309,7 +318,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
   @ActionReducer()
 	setCompassRosePosition(position:THREE.Vector3) {
-    log.info("Setting compass rose position", position)
+    console.log("Setting compass rose position", position)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, compassRosePosition: position
     })
@@ -317,7 +326,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
   setOrbitControlsTargetPoint(targetPoint:THREE.Vector3) {
-    log.info("Setting orbit controls target point", targetPoint)
+    console.log("Setting orbit controls target point", targetPoint)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, orbitControlsTargetPoint: targetPoint
     })
@@ -325,8 +334,8 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	setPointCloudSuperTiles(superTiles:OrderedMap<string, SuperTile>) {
-    // log.info("Setting point cloud super tiles.  Number of tiles", superTiles.size)
-
+    // console.log("Setting point cloud super tiles.  Number of tiles", superTiles.size)
+        console.log("IN setPointCloudSuperTiles")
     let points = 0
     superTiles.forEach(st => points += st!.objectCount)
 
@@ -340,8 +349,8 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
   @ActionReducer()
   setAnnotationSuperTiles(superTiles:OrderedMap<string, SuperTile>) {
-    // log.info("Setting annotation super tiles.  Number of tiles", superTiles.size)
-
+    // console.log("Setting annotation super tiles.  Number of tiles", superTiles.size)
+      console.log("IN setAnnotationSuperTiles")
     let annotations = 0
     superTiles.forEach(st => annotations += st!.objectCount)
 
@@ -355,7 +364,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	addObjectToScene(object:THREE.Object3D) {
-		log.info("Adding object to scene", object)
+		console.log("Adding object to scene", object)
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			const sceneObjects = annotatedSceneState.sceneObjects
 			return new AnnotatedSceneState({
@@ -366,7 +375,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
 	removeObjectFromScene(object:THREE.Object3D) {
-		log.info("Removing object from scene")
+		console.log("Removing object from scene")
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			const sceneObjects = annotatedSceneState.sceneObjects
 			return new AnnotatedSceneState({
@@ -377,7 +386,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
   @ActionReducer()
 	setVisibleLayers(visibleLayers:string[]) {
-    log.info("Setting visible layers", visibleLayers)
+    console.log("Setting visible layers", visibleLayers)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, visibleLayers: visibleLayers
     })
@@ -385,7 +394,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 	@ActionReducer()
   setIsAnnotationTileManagerEnabled(isEnabled:boolean) {
-    log.info("Setting isAnnotationTileManagerEnabled", isEnabled)
+    console.log("Setting isAnnotationTileManagerEnabled", isEnabled)
     return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
       ...annotatedSceneState, isAnnotationTileManagerEnabled: isEnabled
     })

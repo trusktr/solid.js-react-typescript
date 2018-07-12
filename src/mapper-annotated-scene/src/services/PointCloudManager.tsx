@@ -59,7 +59,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       }
 
     }
-
   }
 
   private showPointCloud():void {
@@ -146,7 +145,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   // Do some house keeping after loading a point cloud, such as drawing decorations
   // and centering the stage and the camera on the point cloud.
   private pointCloudLoadedSideEffects(resetCamera: boolean = false): void {
-    this.props.layerManager.setLayerVisibility([Layer.POINT_CLOUD.toString()])
+      this.props.layerManager.setLayerVisibility([Layer.POINT_CLOUD.toString()])
 
     this.updatePointCloudBoundingBox()
 
@@ -163,7 +162,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
   // Load tiles within a bounding box and add them to the scene.
   private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = false): Promise<void> {
-    return this.props.pointCloudTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
+      return this.props.pointCloudTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
       .then(loaded => {if (loaded) this.pointCloudLoadedSideEffects(resetCamera)})
       .catch(err => this.props.handleTileManagerLoadError('Point Cloud', err))
   }
@@ -217,12 +216,15 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	}
 
 	componentDidUpdate(previousProps: PointCloudManagerProps) {
-		if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
+	    return
+	    if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
 			if (this.props.areaOfInterest) {
-        console.log("RT Loading point cloud data from PointCloudManager.componentDidUpdate")
-				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true )
+                console.log("RT Loading point cloud data from PointCloudManager.componentDidUpdate")
+				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true, false )
 					.catch(err => {log.warn(err.message)})
 			}
 		}
 	}
+
+
 }

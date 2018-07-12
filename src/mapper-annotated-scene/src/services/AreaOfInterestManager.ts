@@ -116,6 +116,8 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 
 		const currentPoint = this.getPointOfInterest()
 
+
+
 		if (currentPoint) {
 			const oldPoint = this.state.aoiFocalPoint
 			const newPoint = currentPoint.clone().round()
@@ -176,10 +178,16 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
             return null
     }
 
+    shouldComponentUpdate(nextProps, nextState) {
+		return false
+	}
+
 	// Create a bounding box around the current AOI and optionally display it.
 	// Then load the points in and around the AOI. If we have a current heading,
 	// extend the AOI with another bounding box in the direction of motion.
 	private updatePointCloudAoiBoundingBox(aoiFocalPoint: THREE.Vector3 | null): void {
+
+
 		if (this.state.shouldDrawBoundingBox) {
 			this.state.boundingBoxes.forEach(bbox => {
 				new AnnotatedSceneActions().removeObjectFromScene(bbox)
@@ -221,10 +229,12 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 			})
 
 			new AnnotatedSceneActions().setAreaOfInterest( utmAOI )
+            return
 		}
 	}
 
 	render() {
+        console.log("AOIManager rendering")
 		return null
 	}
 

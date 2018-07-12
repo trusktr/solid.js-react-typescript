@@ -202,6 +202,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	componentDidUpdate(previousProps: IProps) {
+		return
 		if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
 			if (this.props.areaOfInterest) {
 				this.loadAnnotationDataFromMapServer( this.props.areaOfInterest, true )
