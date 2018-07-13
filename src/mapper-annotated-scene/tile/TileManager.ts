@@ -131,7 +131,9 @@ export abstract class TileManager {
 
 	protected abstract constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile
 
-	// Update state of which super tiles are loaded.
+    protected abstract setStatsMessage(): void
+
+    // Update state of which super tiles are loaded.
 	private setLoadedSuperTileKeys(newKeys: OrderedSet<string>): void {
 		this.loadedSuperTileKeys = newKeys
 	}
@@ -143,7 +145,8 @@ export abstract class TileManager {
       		this.superTiles = this.superTiles.set(key, superTile)
 			this.addSuperTile(superTile)
 			// RT 7/12 this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
-    }
+    		this.setStatsMessage()
+		}
 		return this.superTiles.get(key)
 	}
 
@@ -299,10 +302,14 @@ export abstract class TileManager {
 						this.superTiles = this.superTiles.set(superTile.key(), superTile)
 						this.addSuperTile(superTile)
 						// RT 7/12 this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
+
+						this.setStatsMessage()
 					}
 					return success
 				})
 	}
+
+
 
 	private unloadSuperTile(superTile: SuperTile): boolean {
 		this.superTiles = this.superTiles.remove(superTile.key())

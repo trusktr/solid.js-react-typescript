@@ -20,6 +20,8 @@ import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import {OrderedMap} from "immutable";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
 import {EventEmitter} from "events";
+import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
+import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 
 export class AnnotationTileManager extends TileManager {
 	constructor(
@@ -50,6 +52,17 @@ export class AnnotationTileManager extends TileManager {
 	protected constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile {
 		return new AnnotationSuperTile(index, coordinateFrame, utmCoordinateSystem)
 	}
+
+    /**
+     * Calculate annotations loaded and dispatch an action
+     */
+    protected setStatsMessage() {
+        let annotations = 0
+        this.superTiles.forEach(st => annotations += st!.objectCount)
+
+        const message = `Loaded ${this.superTiles.size} annotation tiles; ${annotations} annotations`
+        new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
+    }
 
 	protected tileInstanceToUtmTile(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): UtmTile {
 		return new AnnotationUtmTile(
