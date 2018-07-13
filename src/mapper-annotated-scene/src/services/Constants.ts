@@ -1,6 +1,5 @@
 import * as SaffronSDK from "@mapperai/mapper-saffron-sdk"
 
-console.log("IMPORT SDK", SaffronSDK)
 export const apiRoadNetwork = 4
 export const apiDomain = 'dev' // 'dexmonicus' 'evgenyzava'
 export const apiVersion = 1

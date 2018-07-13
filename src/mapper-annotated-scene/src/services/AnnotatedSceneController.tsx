@@ -176,7 +176,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
 
     setAnnotatedSceneController() {
-        console.log("RT-DEBUG ASC componentDidMount --> setAnnotatedSceneController")
 
         // TODO JOE FRIDAY
         // if ( interaction is enabled ) {
@@ -385,9 +384,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
 
     getSceneManagerRef = (ref: any): void => {
-        console.log("RT-DEBUG ASC getSceneManagerRef", ref)
         if (ref) {
-            console.log("RT-DEBUG setting sceneManager with value")
             this.setState({sceneManager: ref.getWrappedInstance() as SceneManager})
         }
 
@@ -426,12 +423,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         })
     }
 
-    componentWillUnmount() {
-        console.log(' &&&&&&&&&&&&&&&& JOE_DEBUG AnnotatedSceneController componentWillUnmount')
-    }
 
     render() {
-        console.log("AnnotatedSceneController rendering")
         const {
             scaleProvider,
             utmCoordinateSystem,

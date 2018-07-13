@@ -178,7 +178,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     } else {
       const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])
       const p2 = new THREE.Vector3(bbox[3], bbox[4], bbox[5])
-      console.log("RT Loading point cloud data from BB")
       return this.loadPointCloudDataFromMapServer([{minPoint: p1, maxPoint: p2}])
     }
   }
@@ -202,7 +201,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 			log.error("Attempting to set compassRose, unable to find bounding box")
 			return
 		}
-		console.log("RT123 houston we have a bb")
 
 		// Find the center of one of the sides of the bounding box. This is the side that is
 		// considered to be North given the current implementation of UtmInterface.utmToThreeJs().
@@ -222,7 +220,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
         // Instead of Config Bounding Box (the reverse will cause the scene to flicker)
 	    if (this.props.isKioskUserDataLoaded && previousProps.areaOfInterest !== this.props.areaOfInterest) {
 			if (this.props.areaOfInterest) {
-                console.log("RT Loading point cloud data from PointCloudManager.componentDidUpdate")
 				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true, false )
 					.catch(err => {log.warn(err.message)})
 			}

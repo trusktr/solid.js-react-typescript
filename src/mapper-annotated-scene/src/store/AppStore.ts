@@ -43,7 +43,6 @@ function initStore():ObservableStore<any> {
     log.error("Tried to init store multiple times")
     return store
   }
-  console.log("IN INIT STORE")
 
   loadActions()
   const reducers = loadReducers()

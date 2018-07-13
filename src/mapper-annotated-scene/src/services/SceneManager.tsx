@@ -453,7 +453,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// TODO JOE THURSDAY longer term, we can create the loop on init logic (f.e.
 	// constructor), then just use the loop when needed.
 	private startAoiUpdates(): void {
-		console.log("SceneManager startAoiUpdates")
 		const loop = this.state.loop
 
 		loop.addAnimationFn(() => {
@@ -474,7 +473,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 			return true
 		})
-    	console.log("SceneManager startAoiUpdates is finished")
 
 		// this.setState({
 		// 	loop: loop
@@ -705,7 +703,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	render() {
-        console.log("SceneManager rendering")
 		return null
 	}
 

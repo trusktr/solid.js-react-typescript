@@ -139,7 +139,6 @@ export abstract class TileManager {
 	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
 		const key = utmIndex.toString()
 		if (!this.superTiles.has(key)) {
-			console.log("RT22 TileManager adding superTile")
 			const superTile = this.constructSuperTile(utmIndex, coordinateFrame, this.utmCoordinateSystem)
       		this.superTiles = this.superTiles.set(key, superTile)
 			this.addSuperTile(superTile)
@@ -174,7 +173,6 @@ export abstract class TileManager {
 	// Side effect: Prune old SuperTiles as necessary.
 	// Returns true if super tiles were loaded.
 	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects: boolean = false): Promise<boolean> {
-		console.log("HERE13 ++++++++++++")
 		if (this.isLoadingTiles)
 			return Promise.reject(new BusyError('busy loading tiles'))
 
@@ -355,7 +353,6 @@ export abstract class TileManager {
 			this.superTiles.forEach(st => {
 				const newBbox = st!.getContentsBoundingBox()
 				if (newBbox && newBbox.min.x !== null && newBbox.min.x !== Infinity) {
-          console.log("RT BBOX UNION")
           bbox = bbox.union(newBbox)
 				}
 

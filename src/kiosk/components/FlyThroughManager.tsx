@@ -52,7 +52,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
     constructor(props) {
         super(props)
-        console.log("RT-DEBUG FlyThroughManager constructor")
 
         const loop = new ChildAnimationLoop
         const flyThroughFps = config['fly_through.animation.fps']
@@ -121,7 +120,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
             trajectoryResult = pointCloudResult
                 .then(() => {
-                    console.log('loading pre-configured trajectories')
                     log.info('loading pre-configured trajectories')
                     return this.loadFlyThroughTrajectories(trajectoryPaths)
                 })
@@ -129,12 +127,10 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
             trajectoryResult = pointCloudResult
         }
 
-        console.log("RT-DEBUG Finished loadUserData")
         return trajectoryResult
     }
 
     componentDidMount() {
-        console.log("RT-DEBUG FlyThrough componentDidMount")
         this.init()
     }
 
@@ -190,22 +186,17 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     }
 
     startLoop() {
-        console.log("RT-DEBUG FlyThrough Inside startLoop")
         this.state.flyThroughLoop.start()
     }
 
     pauseLoop() {
-        console.log("RT-DEBUG FlyThrough Inside pauseLoop")
         this.state.flyThroughLoop.pause()
     }
 
     startFlyThrough(): void {
-        console.log("RT-DEBUG FlyThrough inside startFlyThrough")
         this.setFlyThroughMessage()
         const flyThroughLoop = this.state.flyThroughLoop
-        console.log("Inside startFlyThrough about to start loop.removeAnimationFn -- flyThroughLoop", flyThroughLoop.removeAnimationFn)
         flyThroughLoop.removeAnimationFn(this.flyThroughAnimation)
-        console.log("Inside startFlyThrough about to start loop.addAnimationFn -- flyThroughLoop", flyThroughLoop.addAnimationFn)
         flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
     }
 
@@ -225,7 +216,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         const flyThroughState = this.state.flyThroughState
 
         if (!liveModeEnabled || !flyThroughState || !getValue(() => flyThroughState.enabled, false)) {
-            console.log("Returning early from within runFlyThrough")
             return false
         }
 
@@ -258,7 +248,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     // Move the camera and the car model through poses streamed from ZMQ.
     // See also runFlyThrough().
     initClient(): void {
-        console.log("RT FlyThroughManager initClient")
         if (this.state.liveSubscribeSocket) return
 
         const liveSubscribeSocket = zmq.socket('sub')
@@ -270,16 +259,13 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
 
             const state = Models.InertialStateMessage.decode(msg)
-            console.log("GOT NEW MESSAGE FROM liveSubscribeSocket", state)
             if (
                 state.pose &&
                 state.pose.x != null && state.pose.y != null && state.pose.z != null &&
                 state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
             ) {
-                console.log("Going to call updateCarWithPose")
                 this.props.carManager.updateCarWithPose(state.pose as Models.PoseMessage)
             } else {
-                console.log('got an InertialStateMessage without a pose')
                 log.warn('got an InertialStateMessage without a pose')
 
             }
@@ -339,7 +325,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
                 if (trajectories.length) {
                     flyThroughState.endPoseIndex = this.getCurrentFlyThroughTrajectory().poses.length
-                    console.log(`loaded ${trajectories.length} trajectories`)
                     log.info(`loaded ${trajectories.length} trajectories`)
                 } else {
                     throw Error('failed to load trajectories')
@@ -363,26 +348,20 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     // Side effect: if the animation is paused, start playing.
     // RYAN - when someone clicks between LIVE AND RECORDED
     toggleLiveAndRecordedPlay() {
-        console.log("inside toggleLiveAndRecordedPlay")
         const flyThroughState = this.state.flyThroughState
         const liveModeEnabled = this.props.liveModeEnabled
-
-
-        console.log("Value for flyThroughState", flyThroughState)
-        console.log("Value for liveModeEnabled", liveModeEnabled)
 
         // if (!this.uiState.isLiveMode) return
 
         if (flyThroughState.enabled) {
-            console.log("toggling LiveAndRecordedPlay - moving to enable=false")
+            log.info("toggling LiveAndRecordedPlay - moving to enable=false")
             this.clearFlyThroughMessages()
             flyThroughState.enabled = false
         } else {
-            console.log("toggling LiveAndRecordedPlay - moving to enable=true")
+            log.info("toggling LiveAndRecordedPlay - moving to enable=true")
             flyThroughState.enabled = true
 
             if (flyThroughState.trajectories.length) {
-                console.log("Looking to start animation loop")
                 this.startFlyThrough()
                 this.startLoop()
             }
@@ -411,7 +390,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         if (!playModeEnabled) {
             // this.resumeLiveMode()
             if (flyThroughState.enabled) {
-                console.log("STARTING LOOP onToggle")
                 this.startLoop()
             }
 
@@ -419,7 +397,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
             // this.pauseLiveMode()
 
             if (flyThroughState.enabled) {
-                console.log("PAUSING LOOP onToggle")
                 this.pauseLoop()
             }
 

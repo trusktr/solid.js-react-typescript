@@ -30,12 +30,10 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 	constructor(props: KioskViewProps) {
 		super(props)
-		console.log("INSIDE KioskMenuView constructor")
 	}
 
 
 	private makeOnPlayModeClick = () => () => {
-		console.log("Clicked onPlayMode")
 		new AnnotatedSceneActions().togglePlayMode()
 		const flyThroughManager = this.props.flyThroughManager
     flyThroughManager.toggleLiveModePlay()
@@ -44,20 +42,18 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 	}
 
 	private makeOnLiveModeClick = () => () => {
-		console.log("Clicked onLiveMode")
 		new AnnotatedSceneActions().toggleLiveMode()
     const flyThroughManager = this.props.flyThroughManager
     flyThroughManager.toggleLiveAndRecordedPlay()
 	}
 
 	private makeOnSelectDataSetClick = () => () => {
-		console.log("Clicked onDataSet")
+		console.log("Clicked onDataSet [NOT IMPLEMENTED]")
 	}
 
 
 
 	render(): JSX.Element {
-		console.log("Inside render of KioskMenuView")
 		const {liveModeEnabled, playModeEnabled} = this.props
 		const liveModeLabel = liveModeEnabled ? 'Recorded2' : 'Live2'
 		const playModelLabel = playModeEnabled ? 'Pause2' : 'Play2'
@@ -65,8 +61,6 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 		const playModeIcon = playModeEnabled ? 'pause' : 'play_arrow'
 		const liveModeIcon = liveModeEnabled ? 'videocam' : 'my_location'
 
-		console.log("CURRENT VALUE OF liveModeEnabled", liveModeEnabled)
-		console.log("CURRENT VALUE OF playModeEnabled", playModeEnabled)
 
 		// @TODO remove <div id="menu"> -- shouldn't be needed anymore, visibility is controlled by Redux
 		return (<div id="menu">

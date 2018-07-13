@@ -178,10 +178,6 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
             return null
     }
 
-    shouldComponentUpdate(nextProps, nextState) {
-		return false
-	}
-
 	// Create a bounding box around the current AOI and optionally display it.
 	// Then load the points in and around the AOI. If we have a current heading,
 	// extend the AOI with another bounding box in the direction of motion.
@@ -235,7 +231,6 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 	}
 
 	render() {
-        console.log("AOIManager rendering")
 		return null
 	}
 
