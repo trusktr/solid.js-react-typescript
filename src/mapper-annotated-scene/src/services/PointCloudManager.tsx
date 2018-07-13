@@ -26,6 +26,7 @@ export interface PointCloudManagerProps {
   layerManager: LayerManager
   handleTileManagerLoadError: (msg: string, err: Error) => void // TODO JOE do we need this?
   utmCoordinateSystem: UtmCoordinateSystem
+  isKioskUserDataLoaded?: boolean
 }
 
 export interface PointCloudManagerState {
@@ -37,6 +38,7 @@ export interface PointCloudManagerState {
 @typedConnect(toProps(
 	'isPointCloudVisible',
 	'areaOfInterest',
+	'isKioskUserDataLoaded',
 ))
 export default class PointCloudManager extends React.Component<PointCloudManagerProps, PointCloudManagerState> {
 
@@ -216,7 +218,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	}
 
 	componentDidUpdate(previousProps: PointCloudManagerProps) {
-	    if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
+	    if (previousProps.areaOfInterest !== this.props.areaOfInterest && this.props.isKioskUserDataLoaded) {
 			if (this.props.areaOfInterest) {
                 console.log("RT Loading point cloud data from PointCloudManager.componentDidUpdate")
 				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true, false )

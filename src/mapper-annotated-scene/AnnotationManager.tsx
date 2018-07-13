@@ -116,6 +116,8 @@ interface IProps {
   lockLanes?: boolean
   lockTrafficDevices?: boolean
 	eventEmitter: EventEmitter
+
+  isKioskUserDataLoaded?: boolean
 }
 
 interface IState {
@@ -149,6 +151,7 @@ interface IState {
 	'areaOfInterest',
 	'rendererSize',
 	'camera',
+	'isKioskUserDataLoaded',
 ))
 export class AnnotationManager extends React.Component<IProps, IState> {
 	laneAnnotations: Array<Lane>
@@ -212,7 +215,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	componentDidUpdate(previousProps: IProps) {
-		if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
+		if (previousProps.areaOfInterest !== this.props.areaOfInterest && this.props.isKioskUserDataLoaded) {
 			if (this.props.areaOfInterest) {
 				this.loadAnnotationDataFromMapServer( this.props.areaOfInterest, true )
 					.catch(err => {log.warn(err.message)})
