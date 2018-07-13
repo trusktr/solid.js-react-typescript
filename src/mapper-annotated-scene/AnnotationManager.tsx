@@ -116,6 +116,8 @@ interface IProps {
   lockLanes?: boolean
   lockTrafficDevices?: boolean
 	eventEmitter: EventEmitter
+
+  isKioskUserDataLoaded?: boolean
 }
 
 interface IState {
@@ -149,6 +151,7 @@ interface IState {
 	'areaOfInterest',
 	'rendererSize',
 	'camera',
+	'isKioskUserDataLoaded',
 ))
 export class AnnotationManager extends React.Component<IProps, IState> {
 	laneAnnotations: Array<Lane>
@@ -212,7 +215,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	componentDidUpdate(previousProps: IProps) {
-		if (previousProps.areaOfInterest !== this.props.areaOfInterest) {
+        // IMPORTANT - Kiosk User Data must be loaded before this runs otherwise the UTM Offset is set based on AOI
+        // Instead of Config Bounding Box (the reverse will cause the scene to flicker)
+		if (this.props.isKioskUserDataLoaded && previousProps.areaOfInterest !== this.props.areaOfInterest) {
 			if (this.props.areaOfInterest) {
 				this.loadAnnotationDataFromMapServer( this.props.areaOfInterest, true )
 					.catch(err => {log.warn(err.message)})
