@@ -79,7 +79,7 @@ interface IProps {
 
 	scaleProvider: ScaleProvider
 	utmCoordinateSystem: UtmCoordinateSystem
-  pointCloudManager: PointCloudManager | null
+	pointCloudManager: PointCloudManager | null
 	groundPlaneManager: GroundPlaneManager | null
 	annotationTileManager: AnnotationTileManager | null
 	sceneManager: SceneManager | null
@@ -91,33 +91,33 @@ interface IProps {
 
 	layerManager: LayerManager | null
 	isAnnotationsVisible?: boolean
-  // annotationSuperTiles ?: OrderedMap<string, SuperTile>
+	// annotationSuperTiles ?: OrderedMap<string, SuperTile>
 
 	// Replacing uiState in the short term
-  isMouseDragging ?: boolean
-  isRotationModeActive ?: boolean
-  isConnectLeftNeighborKeyPressed ?: boolean
-  isConnectRightNeighborKeyPressed ?: boolean
-  isConnectFrontNeighborKeyPressed ?: boolean
-  isAddMarkerKeyPressed ?: boolean
-  isLiveMode ?: boolean
-  isAddConnectionKeyPressed ?: boolean
-  isJoinAnnotationKeyPressed ?: boolean
-  isControlKeyPressed ?: boolean
-  isAddConflictOrDeviceKeyPressed ?: boolean
-  isMouseButtonPressed ?: boolean
+	isMouseDragging ?: boolean
+	isRotationModeActive ?: boolean
+	isConnectLeftNeighborKeyPressed ?: boolean
+	isConnectRightNeighborKeyPressed ?: boolean
+	isConnectFrontNeighborKeyPressed ?: boolean
+	isAddMarkerKeyPressed ?: boolean
+	isLiveMode ?: boolean
+	isAddConnectionKeyPressed ?: boolean
+	isJoinAnnotationKeyPressed ?: boolean
+	isControlKeyPressed ?: boolean
+	isAddConflictOrDeviceKeyPressed ?: boolean
+	isMouseButtonPressed ?: boolean
 
-  areaOfInterest ?: RangeSearch[]
-  rendererSize?: { width: number, height: number }
-  camera?: THREE.Camera
+	areaOfInterest ?: RangeSearch[]
+	rendererSize?: { width: number, height: number }
+	camera?: THREE.Camera
 
-  lockBoundaries?: boolean
-  lockTerritories?: boolean
-  lockLanes?: boolean
-  lockTrafficDevices?: boolean
+	lockBoundaries?: boolean
+	lockTerritories?: boolean
+	lockLanes?: boolean
+	lockTrafficDevices?: boolean
 	eventEmitter: EventEmitter
 
-  isKioskUserDataLoaded?: boolean
+	isKioskUserDataLoaded?: boolean
 }
 
 interface IState {
@@ -322,21 +322,21 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	addSuperTileAnnotations(superTile:AnnotationSuperTile) {
-    if (superTile instanceof AnnotationSuperTile) {
-      if (superTile.annotations)
-        superTile.annotations.forEach(a => this.addAnnotation(a))
-      else
-        log.error('addSuperTileAnnotations() got a super tile with no annotations')
-    } else {
-      log.error('unknown superTile on addSuperTileAnnotations')
+		if (superTile instanceof AnnotationSuperTile) {
+			if (superTile.annotations)
+				superTile.annotations.forEach(a => this.addAnnotation(a))
+			else
+				log.error('addSuperTileAnnotations() got a super tile with no annotations')
+		} else {
+			log.error('unknown superTile on addSuperTileAnnotations')
 		}
 	}
 
 	removeSuperTileAnnotations(superTile:AnnotationSuperTile) {
-    if (superTile instanceof AnnotationSuperTile) {
-      superTile.annotations.forEach(a => this.deleteAnnotation(a))
-    } else {
-      log.error('unknown superTile on removeSuperTileAnnotations')
+		if (superTile instanceof AnnotationSuperTile) {
+			superTile.annotations.forEach(a => this.deleteAnnotation(a))
+		} else {
+			log.error('unknown superTile on removeSuperTileAnnotations')
 		}
 	}
 
