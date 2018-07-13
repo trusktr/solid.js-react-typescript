@@ -113,6 +113,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		const scene = new THREE.Scene()
 
+		scene.add(perspectiveCam)
+		scene.add(orthographicCam)
+		scene.add(flyThroughCamera)
+
 		let camera;
 
 		// TODO JOE if this doesn't work in the constructor, move it to componentDidUpdate()
