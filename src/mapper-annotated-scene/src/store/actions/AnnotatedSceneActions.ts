@@ -45,9 +45,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
             liveModeEnabled: true,
             playModeEnabled: false,
-
-
-            flyThroughState: new FlyThroughState({} as FlyThroughState),
+            flyThroughEnabled: true,
 
             statusWindowState: {
                 enabled: !!config['startup.show_status_panel'],
@@ -395,6 +393,14 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             ...annotatedSceneState, isAnnotationTileManagerEnabled: isEnabled
         })
 
+    }
+
+    @ActionReducer()
+    setFlyThroughEnabled(isEnabled: boolean) {
+        log.info("Setting flyThroughEnabled", isEnabled)
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, flyThroughEnabled: isEnabled
+        })
     }
 
 }

@@ -17,6 +17,7 @@ interface KioskViewProps {
 	liveModeEnabled ?: boolean
 	playModeEnabled ?: boolean
 	flyThroughManager: FlyThroughManager
+    openTrajectoryPickerFunction: any
 }
 
 interface KioskViewState {}
@@ -49,6 +50,7 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 	private makeOnSelectDataSetClick = () => () => {
 		console.log("Clicked onDataSet [NOT IMPLEMENTED]")
+        this.props.openTrajectoryPickerFunction()
 	}
 
 
@@ -74,7 +76,7 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 						<i className="material-icons mdc-button__icon" aria-hidden="true">{liveModeIcon}</i>
 					</button>
 					<button id="select_trajectory_playback_file" className="mdc-button mdc-button--raised" onClick={this.makeOnSelectDataSetClick()}>
-						<span>Select data set123</span>
+						<span>Select data set</span>
 						<i className="material-icons mdc-button__icon" aria-hidden="true">playlist_play</i>
 					</button>
 				</menu>

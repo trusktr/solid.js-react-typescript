@@ -32,6 +32,7 @@ export interface FlyThroughManagerProps {
     isCarInitialized ?: boolean
     isKioskUserDataLoaded ?: boolean
     shouldAnimate ?: boolean
+    flyThroughEnabled ?: boolean
 }
 
 export interface FlyThroughManagerState {
@@ -47,6 +48,7 @@ export interface FlyThroughManagerState {
     isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
     isKioskUserDataLoaded: (state) => state.get(AnnotatedSceneState.Key).isKioskUserDataLoaded,
     shouldAnimate: (state) => state.get(AnnotatedSceneState.Key).shouldAnimate,
+    flyThroughEnabled: (state) => state.get(AnnotatedSceneState.Key).flyThroughEnabled,
 }))
 export default class FlyThroughManager extends React.Component<FlyThroughManagerProps, FlyThroughManagerState> {
 
@@ -60,7 +62,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         loop.interval = flyThroughInterval
 
         const flyThroughState = new FlyThroughState({
-            enabled: true,
             trajectories: [],
             currentTrajectoryIndex: 0,
             currentPoseIndex: 0,
@@ -169,7 +170,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         const currentFlyThroughTrajectory = this.getCurrentFlyThroughTrajectory()
 
         let message: string
-        if (!flyThroughState.enabled || !currentFlyThroughTrajectory)
+        if (!this.props.flyThroughEnabled || !currentFlyThroughTrajectory)
             message = ''
         else if (currentFlyThroughTrajectory.dataSet)
             message = `Data set: ${currentFlyThroughTrajectory.dataSet.name}`
@@ -215,7 +216,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         const liveModeEnabled = this.props.liveModeEnabled
         const flyThroughState = this.state.flyThroughState
 
-        if (!liveModeEnabled || !flyThroughState || !getValue(() => flyThroughState.enabled, false)) {
+        if (!liveModeEnabled || !flyThroughState || !getValue(() => this.props.flyThroughEnabled, false)) {
             return false
         }
 
@@ -255,7 +256,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         liveSubscribeSocket.on('message', (msg) => {
             if (!this.props.liveModeEnabled || !this.props.playModeEnabled) return
 
-            if (this.state.flyThroughState.enabled) return
+            if (this.props.flyThroughEnabled) return
 
 
             const state = Models.InertialStateMessage.decode(msg)
@@ -281,7 +282,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
     resetFlyThroughState() {
         const flyThroughState = new FlyThroughState({
-            enabled: true,
             trajectories: [],
             currentTrajectoryIndex: 0,
             currentPoseIndex: 0,
@@ -353,13 +353,13 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
         // if (!this.uiState.isLiveMode) return
 
-        if (flyThroughState.enabled) {
+        if (this.props.flyThroughEnabled) {
             log.info("toggling LiveAndRecordedPlay - moving to enable=false")
             this.clearFlyThroughMessages()
-            flyThroughState.enabled = false
+            new AnnotatedSceneActions().setFlyThroughEnabled(false)
         } else {
             log.info("toggling LiveAndRecordedPlay - moving to enable=true")
-            flyThroughState.enabled = true
+            new AnnotatedSceneActions().setFlyThroughEnabled(true)
 
             if (flyThroughState.trajectories.length) {
                 this.startFlyThrough()
@@ -389,14 +389,14 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
         if (!playModeEnabled) {
             // this.resumeLiveMode()
-            if (flyThroughState.enabled) {
+            if (this.props.flyThroughEnabled) {
                 this.startLoop()
             }
 
         } else {
             // this.pauseLiveMode()
 
-            if (flyThroughState.enabled) {
+            if (this.props.flyThroughEnabled) {
                 this.pauseLoop()
             }
 

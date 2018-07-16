@@ -32,7 +32,7 @@ export default class AnnotatedSceneState {
 	liveModeEnabled: boolean // toggles between live mode and recorded mode
 	playModeEnabled: boolean // toggles between play and pause modes
 
-	flyThroughState: FlyThroughState
+    flyThroughEnabled: boolean
 	statusWindowState: StatusWindowState
 
 	uiMenuVisible: boolean
