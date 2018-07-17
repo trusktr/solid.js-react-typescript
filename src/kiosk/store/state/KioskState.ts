@@ -18,8 +18,8 @@
 //   constructor(o: any = {}) {
 //     Object.assign(this, o)
 //   }
-//   liveModeEnabled: boolean // toggles between live mode and recorded mode
-//   playModeEnabled: boolean // toggles between play and pause modes
+//   isLiveMode: boolean // toggles between live mode and recorded mode
+//   isPlayMode: boolean // toggles between play and pause modes
 //
 //   flyThroughState: FlyThroughState
 //   isCarInitialized: boolean

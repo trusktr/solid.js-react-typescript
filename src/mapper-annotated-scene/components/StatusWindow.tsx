@@ -26,14 +26,16 @@ const log = Logger(__filename)
 
 interface StatusWindowProps {
     statusWindowState ?: StatusWindowState
-    playModeEnabled ?: boolean
+    isPlayMode ?: boolean
+    isLiveMode ?: boolean
+    flyThroughEnabled ?: boolean
     utmCoordinateSystem: UtmCoordinateSystem
     eventEmitter: EventEmitter
 }
 
 interface IStatusWindowState {
     locationServerStatusDisplayTimer: number
-	  serverStatusDisplayTimer: number
+    serverStatusDisplayTimer: number
     timeToDisplayHealthyStatusMs: number
     locationServerStatusClient: LocationServerStatusClient
 }
@@ -41,6 +43,10 @@ interface IStatusWindowState {
 
 @typedConnect(createStructuredSelector({
     statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,
+
+    isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
+    isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
+    flyThroughEnabled: (state) => state.get(AnnotatedSceneState.Key).flyThroughEnabled,
 }))
 export default class StatusWindow extends React.Component<StatusWindowProps, IStatusWindowState> {
 
@@ -66,7 +72,7 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
 
     render(): JSX.Element {
-        const {statusWindowState} = this.props
+        const {statusWindowState, isLiveMode, isPlayMode, flyThroughEnabled} = this.props
         // const isEnabled = getValue(() => statusWindowState.enabled, false)
         const messages = getValue(() => statusWindowState && statusWindowState.messages, new Map<string, string>()) as Map<string, string>
 
@@ -83,6 +89,9 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
             <div id="status_window">
                 STATUS WINDOW <br/>
                 <span dangerouslySetInnerHTML={{__html: out}} />
+                <div>isLiveMode: {isLiveMode!.toString()}</div>
+                <div>isPlayMode: {isPlayMode!.toString()}</div>
+                <div>flyThroughEnabled: {flyThroughEnabled!.toString()}</div>
             </div>
         )
     }

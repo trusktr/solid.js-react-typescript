@@ -14,8 +14,8 @@ import FlyThroughManager from "@/kiosk/components/FlyThroughManager";
 
 
 interface KioskViewProps {
-	liveModeEnabled ?: boolean
-	playModeEnabled ?: boolean
+	isLiveMode ?: boolean
+	isPlayMode ?: boolean
 	flyThroughManager: FlyThroughManager
     openTrajectoryPickerFunction: any
 }
@@ -24,8 +24,8 @@ interface KioskViewState {}
 
 
 @typedConnect(createStructuredSelector({
-	liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
-	playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
+	isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
+	isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
 }))
 export default class KioskMenuView extends React.Component<KioskViewProps, KioskViewState> {
 
@@ -56,12 +56,12 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 
 
 	render(): JSX.Element {
-		const {liveModeEnabled, playModeEnabled} = this.props
-		const liveModeLabel = liveModeEnabled ? 'Recorded2' : 'Live2'
-		const playModelLabel = playModeEnabled ? 'Pause2' : 'Play2'
+		const {isLiveMode, isPlayMode} = this.props
+		const liveModeLabel = isLiveMode ? 'Go to Recorded' : 'Go to Live'
+		const playModelLabel = isPlayMode ? 'Pause' : 'Play'
 
-		const playModeIcon = playModeEnabled ? 'pause' : 'play_arrow'
-		const liveModeIcon = liveModeEnabled ? 'videocam' : 'my_location'
+		const playModeIcon = isPlayMode ? 'pause' : 'play_arrow'
+		const liveModeIcon = isLiveMode ? 'videocam' : 'my_location'
 
 
 		// @TODO remove <div id="menu"> -- shouldn't be needed anymore, visibility is controlled by Redux

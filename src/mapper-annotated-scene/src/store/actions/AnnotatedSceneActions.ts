@@ -43,8 +43,8 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
         const defaultState = {
             messages: Array<UIMessage>(),
 
-            liveModeEnabled: true,
-            playModeEnabled: false,
+            isLiveMode: false,
+            isPlayMode: false,
             flyThroughEnabled: true,
 
             statusWindowState: {
@@ -90,7 +90,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             isConnectRightNeighborKeyPressed: false,
             isConnectFrontNeighborKeyPressed: false,
             isAddMarkerKeyPressed: false,
-            isLiveMode: false,
             isAddConnectionKeyPressed: false,
             isJoinAnnotationKeyPressed: false,
             isControlKeyPressed: false,
@@ -105,14 +104,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
         return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
     }
-
-    // @ActionReducer()
-    // updateFlyThroughState(flyThroughState: FlyThroughState) {
-    // 	log.info("IN updateFlyThroughState")
-    // 	return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-    // 		...annotatedSceneState, flyThroughState: new FlyThroughState(flyThroughState)
-    // 	})
-    // }
 
     @ActionReducer()
     addMessage(message: UIMessage) {
@@ -138,7 +129,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     toggleLiveMode() {
         log.info("Toggling live mode")
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, liveModeEnabled: !annotatedSceneState.liveModeEnabled
+            ...annotatedSceneState, isLiveMode: !annotatedSceneState.isLiveMode
         })
     }
 
@@ -146,7 +137,23 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     togglePlayMode() {
         log.info("Toggling play mode")
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, playModeEnabled: !annotatedSceneState.playModeEnabled
+            ...annotatedSceneState, isPlayMode: !annotatedSceneState.isPlayMode
+        })
+    }
+
+    @ActionReducer()
+    setPlayMode(isEnabled:boolean) {
+        log.info("Setting play mode", isEnabled)
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isPlayMode: isEnabled
+        })
+    }
+
+    @ActionReducer()
+    setLiveMode(isEnabled:boolean) {
+        log.info("Setting live mode", isEnabled)
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isLiveMode: isEnabled
         })
     }
 

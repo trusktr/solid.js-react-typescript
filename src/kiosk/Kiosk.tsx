@@ -19,8 +19,8 @@ const dialog = Electron.remote.dialog
 export interface KioskProps {
     isCarInitialized ?: boolean
     isKioskUserDataLoaded ?: boolean
-    liveModeEnabled ?: boolean
     isLiveMode ?: boolean
+    isPlayMode ?: boolean
     flyThroughEnabled ?: boolean
 }
 
@@ -37,8 +37,8 @@ export interface KioskState {
 @typedConnect(createStructuredSelector({
     isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
     isKioskUserDataLoaded: (state) => state.get(AnnotatedSceneState.Key).isKioskUserDataLoaded,
-    liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
     isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
+    isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
     flyThroughEnabled: (state) => state.get(AnnotatedSceneState.Key).flyThroughEnabled,
 }))
 export default class Kiosk extends React.Component<KioskProps, KioskState> {
@@ -165,7 +165,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
             // Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
             this.state.flyThroughManager.startFlyThrough()
 
-            //this.resumeLiveMode()
+            this.state.flyThroughManager.resumePlayMode()
             this.state.flyThroughManager.initClient()
         } else {
             log.error("Error in listen() - flyThroughManager expected, but not found")
@@ -268,9 +268,9 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
                 //this.startFlyThrough()
 
                 //if (this.uiState.isLiveModePaused)
-                if (!this.props.liveModeEnabled)
-                    console.log("WANTING TO RESUME LIVE MODE")
-                // this.resumeLiveMode()
+                if (!this.props.isPlayMode) {
+                    this.state.flyThroughManager!.resumePlayMode()
+                }
             })
             .catch(error => {
                 log.error(`loadFlyThroughTrajectories failed: ${error}`)

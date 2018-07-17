@@ -27,8 +27,8 @@ const log = Logger(__filename)
 export interface FlyThroughManagerProps {
     carManager: CarManager
     annotatedSceneController: AnnotatedSceneController
-    liveModeEnabled ?: boolean
-    playModeEnabled ?: boolean
+    isLiveMode ?: boolean
+    isPlayMode ?: boolean
     isCarInitialized ?: boolean
     isKioskUserDataLoaded ?: boolean
     shouldAnimate ?: boolean
@@ -43,8 +43,8 @@ export interface FlyThroughManagerState {
 
 
 @typedConnect(createStructuredSelector({
-    liveModeEnabled: (state) => state.get(AnnotatedSceneState.Key).liveModeEnabled,
-    playModeEnabled: (state) => state.get(AnnotatedSceneState.Key).playModeEnabled,
+    isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
+    isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
     isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
     isKioskUserDataLoaded: (state) => state.get(AnnotatedSceneState.Key).isKioskUserDataLoaded,
     shouldAnimate: (state) => state.get(AnnotatedSceneState.Key).shouldAnimate,
@@ -139,8 +139,8 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     async init() {
         try {
             log.info('Setting up FlyThroughManager')
-            getAnnotatedSceneStore().observe([AnnotatedSceneState.Key, 'playModeEnabled'], (newValue: Boolean, __oldValue: Boolean, __observer) => {
-                log.info("playModeEnabled changed, new value is", newValue)
+            getAnnotatedSceneStore().observe([AnnotatedSceneState.Key, 'isPlayMode'], (newValue: Boolean, __oldValue: Boolean, __observer) => {
+                log.info("isPlayMode changed, new value is", newValue)
 
                 if (newValue)
                     this.startLoop()
@@ -213,10 +213,10 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
      *  See also initClient().
      */
     private runFlyThrough(): boolean {
-        const liveModeEnabled = this.props.liveModeEnabled
+        const isLiveMode = this.props.isLiveMode
         const flyThroughState = this.state.flyThroughState
 
-        if (!liveModeEnabled || !flyThroughState || !getValue(() => this.props.flyThroughEnabled, false)) {
+        if (isLiveMode || !flyThroughState || !this.props.flyThroughEnabled) {
             return false
         }
 
@@ -254,7 +254,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         const liveSubscribeSocket = zmq.socket('sub')
 
         liveSubscribeSocket.on('message', (msg) => {
-            if (!this.props.liveModeEnabled || !this.props.playModeEnabled) return
+            if (!this.props.isLiveMode || !this.props.isPlayMode) return
 
             if (this.props.flyThroughEnabled) return
 
@@ -349,7 +349,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     // RYAN - when someone clicks between LIVE AND RECORDED
     toggleLiveAndRecordedPlay() {
         const flyThroughState = this.state.flyThroughState
-        const liveModeEnabled = this.props.liveModeEnabled
+        const isLiveMode = this.props.isLiveMode
 
         // if (!this.uiState.isLiveMode) return
 
@@ -367,10 +367,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
             }
         }
 
-        // new AnnotatedSceneActions().updateFlyThroughState(this.flyThroughState)
-
-        // if (this.uiState.isLiveModePaused)
-        if (!liveModeEnabled)
+        if (!isLiveMode)
             this.toggleLiveModePlay()
     }
 
@@ -379,29 +376,35 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     // data or pre-recorded "fly-through" data.
     // PAUSE AND PLAY BUTTON
     toggleLiveModePlay() {
-        const flyThroughState = this.state.flyThroughState
-        const playModeEnabled = this.props.playModeEnabled
-        // @TODO comment back in
-        // if (!this.props.liveModeEnabled) {
-        // 	console.log("Early return live mode disabled")
-        // 	return
-        // }
+        const {isPlayMode, isLiveMode, flyThroughEnabled} = this.props
 
-        if (!playModeEnabled) {
-            // this.resumeLiveMode()
-            if (this.props.flyThroughEnabled) {
+        if(!isLiveMode) return
+
+        if(!isPlayMode) {
+            this.resumePlayMode()
+            if(flyThroughEnabled) {
                 this.startLoop()
             }
-
         } else {
-            // this.pauseLiveMode()
-
-            if (this.props.flyThroughEnabled) {
+            this.pauseMode()
+            if(flyThroughEnabled) {
                 this.pauseLoop()
             }
-
         }
     }
+
+    private pauseMode(): void {
+        // Set it to False so we pause
+        new AnnotatedSceneActions().setPlayMode(false)
+    }
+
+    resumePlayMode(): void {
+        // Set it to true so we keep going
+        new AnnotatedSceneActions().setPlayMode(true)
+    }
+
+
+
 
 
     render() {
