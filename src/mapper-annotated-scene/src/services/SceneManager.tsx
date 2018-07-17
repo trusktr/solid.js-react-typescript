@@ -143,8 +143,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// Add grid on top of the plane to visualize where the plane is.
 		// Add an axes helper to visualize the origin and orientation of the primary directions.
 		const axesHelperLength = parseFloat(config['annotator.axes_helper_length']) || 0
-		let grid;
-		let axis;
+		let grid
+		let axis
 		if (axesHelperLength > 0) {
 			const gridSize = parseFloat(config['annotator.grid_size']) || 200
 			const gridUnit = parseFloat(config['annotator.grid_unit']) || 10
@@ -498,9 +498,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	hideGridVisibility() {
-		const grid = this.state.grid
-		grid.visible = false
-		this.setState({grid})
+		if (this.state.grid) {
+			const grid = this.state.grid
+			grid.visible = false
+			this.setState({grid})
+		}
 	}
 
 	enableOrbitControls() {
