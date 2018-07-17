@@ -76,7 +76,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
             isDecorationsVisible: false,
             isPointCloudVisible: true,
-            isImageScreensVisible: true,
             isAnnotationsVisible: true,
 
             orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0),
@@ -89,15 +88,16 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
             isMouseDragging: false,
             isRotationModeActive: false,
-            isConnectLeftNeighborKeyPressed: false,
-            isConnectRightNeighborKeyPressed: false,
-            isConnectFrontNeighborKeyPressed: false,
-            isAddMarkerKeyPressed: false,
+            isConnectLeftNeighborMode: false,
+            isConnectRightNeighborMode: false,
+            isConnectFrontNeighborMode: false,
+            isAddMarkerMode: false,
             isLiveMode: false,
-            isAddConnectionKeyPressed: false,
-            isJoinAnnotationKeyPressed: false,
+            isAddConnectionMode: false,
+            isJoinAnnotationMode: false,
             isControlKeyPressed: false,
-            isAddConflictOrDeviceKeyPressed: false,
+            isShiftKeyPressed: false,
+            isAddConflictOrDeviceMode: false,
             isMouseButtonPressed: false,
 
             cameraIsOrbiting: false,
@@ -107,6 +107,69 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
         }
 
         return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
+    }
+
+    @ActionReducer()
+    setControlKeyPressed(isControlKeyPressed: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isControlKeyPressed
+        })
+    }
+
+    @ActionReducer()
+    setShiftKeyPressed(isShiftKeyPressed: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isShiftKeyPressed
+        })
+    }
+
+    @ActionReducer()
+    setAddMarkerMode(isAddMarkerMode: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isAddMarkerMode
+        })
+    }
+
+    @ActionReducer()
+    setAddConnectionMode(isAddConnectionMode: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isAddConnectionMode
+        })
+    }
+
+    @ActionReducer()
+    setConnectFrontNeighborMode(isConnectFrontNeighborMode: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isConnectFrontNeighborMode
+        })
+    }
+
+    @ActionReducer()
+    setJoinAnnotationMode(isJoinAnnotationMode: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isJoinAnnotationMode
+        })
+    }
+
+    @ActionReducer()
+    setConnectLeftNeighborMode(isConnectLeftNeighborMode: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isConnectLeftNeighborMode
+        })
+    }
+
+    @ActionReducer()
+    setAddConflictOrDeviceMode(isAddConflictOrDeviceMode: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isAddConflictOrDeviceMode
+        })
+    }
+
+    @ActionReducer()
+    setConnectRightNeighborMode(isConnectRightNeighborMode: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isConnectRightNeighborMode
+        })
     }
 
     // @ActionReducer()
@@ -199,14 +262,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
         console.log("Setting isAnnotationsVisible", isVisible)
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
             ...annotatedSceneState, isAnnotationsVisible: isVisible
-        })
-    }
-
-    @ActionReducer()
-    setIsImageScreensVisible(isVisible: boolean) {
-        console.log("Setting isImageScreensVisible", isVisible)
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isImageScreensVisible: isVisible
         })
     }
 

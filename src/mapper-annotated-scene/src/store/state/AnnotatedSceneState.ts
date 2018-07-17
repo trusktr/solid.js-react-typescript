@@ -52,7 +52,6 @@ export default class AnnotatedSceneState {
 	compassRosePosition: THREE.Vector3
 	isDecorationsVisible: boolean
 	isPointCloudVisible: boolean
-	isImageScreensVisible: boolean
 	isAnnotationsVisible: boolean
 
 	orbitControlsTargetPoint: THREE.Vector3
@@ -69,15 +68,16 @@ export default class AnnotatedSceneState {
 	// Ported from uiState
 	isMouseDragging: boolean
 	isRotationModeActive: boolean
-	isConnectLeftNeighborKeyPressed: boolean
-	isConnectRightNeighborKeyPressed: boolean
-	isConnectFrontNeighborKeyPressed: boolean
-	isAddMarkerKeyPressed: boolean
+	isConnectLeftNeighborMode: boolean
+	isConnectRightNeighborMode: boolean
+	isConnectFrontNeighborMode: boolean
+	isAddMarkerMode: boolean
 	isLiveMode: boolean
-	isAddConnectionKeyPressed: boolean
-	isJoinAnnotationKeyPressed: boolean
+	isAddConnectionMode: boolean
+	isJoinAnnotationMode: boolean
 	isControlKeyPressed: boolean
-	isAddConflictOrDeviceKeyPressed: boolean
+	isShiftKeyPressed: boolean
+	isAddConflictOrDeviceMode: boolean
 	isMouseButtonPressed: boolean
 
 	cameraIsOrbiting: boolean

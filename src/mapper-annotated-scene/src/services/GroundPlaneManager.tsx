@@ -20,7 +20,7 @@ export interface IGroundPlaneManagerProps {
   camera?: THREE.Camera
   mousePosition?: { x: number, y: number }
   sceneManager: SceneManager | null
-	eventEmitter: EventEmitter
+	channel: EventEmitter
 }
 
 export interface IGroundPlaneManagerState {
@@ -58,10 +58,10 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 		}
 
         // Setup listeners on add/remove point cloud tiles
-        this.props.eventEmitter.on('addPointCloudSuperTile', (superTile:SuperTile) => {
+        this.props.channel.on('addPointCloudSuperTile', (superTile:SuperTile) => {
         	this.addTileToState(superTile as PointCloudSuperTile)
         	this.loadTileGroundPlanes(superTile as PointCloudSuperTile)})
-        this.props.eventEmitter.on('removePointCloudSuperTile', (superTile:SuperTile) => {
+        this.props.channel.on('removePointCloudSuperTile', (superTile:SuperTile) => {
         	this.removeTileFromState(superTile as PointCloudSuperTile)
         	this.unloadTileGroundPlanes(superTile as PointCloudSuperTile)})
 	}

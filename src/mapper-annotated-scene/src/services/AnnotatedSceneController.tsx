@@ -30,6 +30,10 @@ import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/An
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 import {Vector3} from "three";
 import {BusyError} from "@/mapper-annotated-scene/tile/TileManager"
+import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type";
+import LayerToggle from "@/mapper-annotated-scene/src/models/LayerToggle";
+import {Map} from 'immutable'
+import {KeyboardEventHighlights} from "@/electron-ipc/Messages"
 
 const log = Logger(__filename)
 
@@ -39,13 +43,14 @@ OBJLoader(THREE)
 
 const dialog = Electron.remote.dialog
 
+const timeBetweenErrorDialogsMs = 30000
+
 export interface CameraState {
     lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
 }
 
 // TODO JOE WEDNESDAY moved from Annotator.tsx
 interface AnnotatorSettings {
-    background: THREE.Color
     cameraOffset: THREE.Vector3
     orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
     defaultAnimationFrameIntervalMs: number | false
@@ -58,13 +63,14 @@ interface AnnotatorSettings {
 }
 
 export interface IAnnotatedSceneControllerProps {
+	backgroundColor?: THREEColorValue
     onPointOfInterestCall ?: () => THREE.Vector3
     onCurrentRotation ?: () => THREE.Quaternion
-    enableAnnotationTileManager: boolean // this should be true for Kiosk and false for Annotator
     // statusWindowState ?: StatusWindowState
     showStatusWindow ?: boolean
     pointOfInterest?: THREE.Vector3
     getAnnotationManagerRef?: (ref: AnnotationManager) => void
+	setKeys?: () => void
 
     lockBoundaries?: boolean
     lockTerritories?: boolean
@@ -74,14 +80,16 @@ export interface IAnnotatedSceneControllerProps {
 
 export interface IAnnotatedSceneControllerState {
     cameraState: CameraState // isolating camera state incase we decide to migrate it to a Camera Manager down the road
-    statusWindow: StatusWindow | null
-    pointCloudManager: PointCloudManager | null
-    areaOfInterestManager: AreaOfInterestManager | null
-    groundPlaneManager: GroundPlaneManager | null
-    sceneManager: SceneManager | null
-    layerManager: LayerManager | null
-    registeredKeyDownEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
-    registeredKeyUpEvents: Map<number, any> // mapping between KeyboardEvent.keycode and function to execute
+    statusWindow?: StatusWindow
+    pointCloudManager?: PointCloudManager
+    areaOfInterestManager?: AreaOfInterestManager
+    groundPlaneManager?: GroundPlaneManager
+    sceneManager?: SceneManager
+    layerManager?: LayerManager
+    annotationTileManager?: AnnotationTileManager
+    annotationManager?: AnnotationManager
+    registeredKeyDownEvents: Map<string, any> // mapping between KeyboardEvent.key and function to execute
+    registeredKeyUpEvents: Map<string, any> // mapping between KeyboardEvent.key and function to execute
     container?: HTMLDivElement
 }
 
@@ -95,10 +103,13 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     public utmCoordinateSystem: UtmCoordinateSystem
 
     private scaleProvider: ScaleProvider
+	private tileServiceClient: TileServiceClient
     private pointCloudTileManager: PointCloudTileManager
-    private annotationTileManager: AnnotationTileManager | null
-    annotationManager: AnnotationManager // public because apps like Kiosk need access to it (e.g., to load user data and trajectories)
-    private channel: EventEmitter
+    channel: EventEmitter
+
+	lastPointCloudLoadedErrorModalMs: number
+
+	private isAllSet: boolean
 
     constructor(props) {
         super(props)
@@ -110,14 +121,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
             cameraState: {
                 lastCameraCenterPoint: null,
             },
-            statusWindow: null,
-            pointCloudManager: null,
-            sceneManager: null,
-            layerManager: null,
-            groundPlaneManager: null,
-            registeredKeyDownEvents: new Map<number, any>(),
-            registeredKeyUpEvents: new Map<number, any>(),
-            areaOfInterestManager: null,
+            registeredKeyDownEvents: Map<string, any>(),
+            registeredKeyUpEvents: Map<string, any>(),
         }
 
         // These don't need to be state, because these references don't change
@@ -125,39 +130,24 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.utmCoordinateSystem = new UtmCoordinateSystem(this.channel)
         // ^ utmCoordinateSystem doesn't need to be a React component because it
         // isn't hooked to Redux.
-        this.annotationTileManager = null // this will be set if props.enableAnnotationTileManager is true
 
         // TODO JOE THURSDAY if not creating it here, pass pointCloudTileManager as a prop
         this.scaleProvider = new ScaleProvider()
-        const tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel)
+        this.tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel)
         this.pointCloudTileManager = new PointCloudTileManager(
             this.scaleProvider,
             this.utmCoordinateSystem,
-            tileServiceClient,
+            this.tileServiceClient,
             this.channel
         )
 
-        if (this.props.enableAnnotationTileManager) {
-            this.annotationTileManager = new AnnotationTileManager(
-                this.scaleProvider,
-                this.utmCoordinateSystem,
-                tileServiceClient,
-
-                // TODO FIXME JOE AnnotationManager is passed into
-                // AnnotationTileManager, so I think we're thinking of two
-                // AnnotationManager classes: the one Clyde made, and the one we
-                // imagine as effectively the thing controling the annotation
-                // tile layer which is similar to PointCloudManager. So we
-                // should split AnnotationManager into two, and name one of them
-                // something like AnnotationLayer or something.
-                this.annotationManager,
-                this.channel
-            )
-            new AnnotatedSceneActions().setIsAnnotationTileManagerEnabled(true)
-        }
+		this.lastPointCloudLoadedErrorModalMs = 0
 
         window.addEventListener('keydown', this.onKeyDown)
         window.addEventListener('keyup', this.onKeyUp)
+
+		this.setKeys()
+		this.props.setKeys && this.props.setKeys()
     }
 
     updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
@@ -176,20 +166,24 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
 
     setAnnotatedSceneController() {
+		if (this.isAllSet) return
+
+		this.isAllSet = true
+
         console.log("RT-DEBUG ASC componentDidMount --> setAnnotatedSceneController")
 
         // TODO JOE FRIDAY
         // if ( interaction is enabled ) {
 
-        this.state.container!.addEventListener('mousemove', this.annotationManager.checkForActiveMarker)
+        this.state.container!.addEventListener('mousemove', this.state.annotationManager!.checkForActiveMarker)
 
         // TODO REORG JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
-        this.state.container!.addEventListener('mouseup', this.annotationManager.checkForConflictOrDeviceSelection)
-        this.state.container!.addEventListener('mouseup', this.annotationManager.checkForAnnotationSelection)
-        this.state.container!.addEventListener('mouseup', this.annotationManager.addAnnotationMarker)
-        this.state.container!.addEventListener('mouseup', this.annotationManager.addLaneConnection)   // RYAN Annotator-specific
-        this.state.container!.addEventListener('mouseup', this.annotationManager.connectNeighbor)  // RYAN Annotator-specific
-        this.state.container!.addEventListener('mouseup', this.annotationManager.joinAnnotationsEventHandler)
+        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForConflictOrDeviceSelection)
+        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForAnnotationSelection)
+        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addAnnotationMarker)
+        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addLaneConnection)   // RYAN Annotator-specific
+        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.connectNeighbor)  // RYAN Annotator-specific
+        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.joinAnnotationsEventHandler)
 
         // }
 
@@ -202,14 +196,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
                 log.warn(`invalid startup.camera_offset config: ${cameraOffset}`)
             }
         }
-    }
-
-    componentDidUpdate(_, prevState, __) {
-        if (prevState.sceneManager !== this.state.sceneManager && !prevState.container && this.state.container) {
-            this.setAnnotatedSceneController()
-        }
-
-        this.displayCameraInfo()
     }
 
     /**
@@ -260,17 +246,33 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.state.pointCloudManager!.hidePointCloudBoundingBox()
     }
 
+	addLayer(name: string, toggle: LayerToggle) {
+		this.state.layerManager!.addLayerToggle(name, toggle)
+	}
+
+	setLayerVisibility(layerKeysToShow: string[], hideOthers: boolean = false): void {
+		this.state.layerManager!.setLayerVisibility( layerKeysToShow, hideOthers )
+	}
+
+	cleanTransformControls(): void {
+		this.state.annotationManager!.cleanTransformControls()
+	}
+
     /**
      *  Set the camera directly above the current target, looking down.
      */
     // @TODO long term move orbit controls to Camera Manger
     resetTiltAndCompass(): void {
-        if (this.state.sceneManager) {
-            this.state.sceneManager.resetTiltAndCompass()
-        } else {
-            log.error("Unable to reset tilt and compass - sceneManager not instantiated")
-        }
+        this.state.sceneManager!.resetTiltAndCompass()
     }
+
+	unloadPointCloudData() {
+		this.state.pointCloudManager!.unloadPointCloudData()
+	}
+
+	toggleCameraType() {
+		this.state.sceneManager!.toggleCameraType()
+	}
 
     setCameraOffsetVector(offset: THREE.Vector3): void {
         this.state.sceneManager!.setCameraOffsetVector(offset)
@@ -284,6 +286,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         new AnnotatedSceneActions().removeObjectFromScene(object)
     }
 
+	// TODO emit Events.SCENE_UPDATED event instead
     renderScene() {
         return this.state.sceneManager!.renderScene()
     }
@@ -300,46 +303,60 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.state.sceneManager!.addChildAnimationLoop(childLoop)
     }
 
+	setKeys() {
+		const actions = new AnnotatedSceneActions()
+		this.keyHeld('Control', held => actions.setControlKeyPressed(held))
+		this.keyHeld('Shift', held => actions.setShiftKeyPressed(held))
+	}
 
-    registerKeyboardDownEvent(eventKeyCode: number, fn: any) {
-        const registeredKeyboardEvents = this.state.registeredKeyDownEvents
+	keyHeld(key: string, fn: (held: boolean) => void) {
+		this.mapKeyDown(key, () => fn(true))
+		this.mapKeyUp(key, () => fn(false))
+	}
 
-        registeredKeyboardEvents.set(eventKeyCode, fn)
+	mapKey(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+		this.mapKeyDown(key, fn)
+	}
+
+	mapKeyDown(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+		this.registerKeyboardDownEvent(key, fn)
+	}
+
+	mapKeyUp(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+		this.registerKeyboardUpEvent(key, fn)
+	}
+
+    registerKeyboardDownEvent(key: string, fn: (e: KeyboardEvent | KeyboardEventHighlights) => void) {
         this.setState({
-            registeredKeyDownEvents: registeredKeyboardEvents
+            registeredKeyDownEvents: this.state.registeredKeyDownEvents.set(key, fn)
         })
     }
 
-    registerKeyboardUpEvent(eventKeyCode: number, fn: any) {
-        const registeredKeyboardEvents = this.state.registeredKeyUpEvents
-
-        registeredKeyboardEvents.set(eventKeyCode, fn)
+    registerKeyboardUpEvent(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
         this.setState({
-            registeredKeyUpEvents: registeredKeyboardEvents
+            registeredKeyUpEvents: this.state.registeredKeyUpEvents.set(key, fn)
         })
     }
 
     /**
      * Handle keyboard events
      */
-    private onKeyDown = (event: KeyboardEvent): void => {
+    onKeyDown = (event: KeyboardEvent | KeyboardEventHighlights): void => {
         if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
 
-        const fn = getValue(() => this.state.registeredKeyDownEvents.get(event.keyCode), () => {
-        })
-        fn()
+        const fn = this.state.registeredKeyDownEvents.get(event.key)
+        fn && fn( event )
 
         // OLD CODE FOR REFERENCE
         // if (document.activeElement.tagName === 'INPUT')
         // 	this.onKeyDownInputElement(event)
     }
 
-    private onKeyUp = (event: KeyboardEvent): void => {
+    onKeyUp = (event: KeyboardEvent | KeyboardEventHighlights): void => {
         if (event.defaultPrevented) return
 
-        const fn = getValue(() => this.state.registeredKeyUpEvents.get(event.keyCode), () => {
-        })
-        fn()
+        const fn = this.state.registeredKeyUpEvents.get(event.key)
+        fn && fn( event )
     }
 
     // just unfocuses the active input element on escape key
@@ -357,30 +374,61 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     private handleTileManagerLoadError = (dataType: string, err: Error): void => {
         if (err instanceof BusyError) {
             log.info(err.message)
-
-            // TODO TMP this was checking isKioskMode
-        } else if (this.props.enableAnnotationTileManager) {
-            log.warn(err.message)
-
         } else {
             console.error(dataType, err)
-            // TODO TMP
-            // const now = new Date().getTime()
-            // if (now - this.uiState.lastPointCloudLoadedErrorModalMs < this.settings.timeBetweenErrorDialogsMs) {
-            //   log.warn(err.message)
-            // } else {
-            //   log.error(err.message)
-            //   dialog.showErrorBox(`${dataType} Load Error`, err.message)
-            //   this.uiState.lastPointCloudLoadedErrorModalMs = now
-            // }
+
+            const now = new Date().getTime()
+            if (now - this.lastPointCloudLoadedErrorModalMs < timeBetweenErrorDialogsMs) {
+              log.warn(err.message)
+            } else {
+              log.error(err.message)
+              dialog.showErrorBox(`${dataType} Load Error`, err.message)
+              this.lastPointCloudLoadedErrorModalMs = now
+            }
         }
+    }
+
+    componentDidUpdate(_, prevState, __) {
+        if (!this.isAllSet && this.state.sceneManager && this.state.container && this.state.annotationManager) {
+            this.setAnnotatedSceneController()
+        }
+
+		if (!prevState.annotationManager && this.state.annotationManager) {
+
+            this.setState({
+				annotationTileManager: new AnnotationTileManager(
+	                this.scaleProvider,
+	                this.utmCoordinateSystem,
+	                this.tileServiceClient,
+	                this.channel,
+
+	                // TODO FIXME JOE AnnotationManager is passed into
+	                // AnnotationTileManager, so I think we're thinking of two
+	                // AnnotationManager classes: the one Clyde made, and the one we
+	                // imagine as effectively the thing controling the annotation
+	                // tile layer which is similar to PointCloudManager. So we
+	                // should split AnnotationManager into two, and name one of them
+	                // something like AnnotationLayer or something.
+	                this.state.annotationManager,
+	            )
+			})
+
+            new AnnotatedSceneActions().setIsAnnotationTileManagerEnabled(true)
+
+		}
+
+        this.displayCameraInfo()
+    }
+
+    componentWillUnmount() {
+        console.log(' &&&&&&&&&&&&&&&& JOE_DEBUG AnnotatedSceneController componentWillUnmount')
     }
 
     getAnnotationManagerRef = (ref: any): void => {
         if (ref) {
-            const wrappedRef = ref.getWrappedInstance() as AnnotationManager
-            this.annotationManager = wrappedRef
-            this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef(wrappedRef)
+            ref = ref.getWrappedInstance() as AnnotationManager
+            this.setState({ annotationManager: ref })
+            this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef(ref)
         }
     }
 
@@ -401,8 +449,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         ref && this.setState({pointCloudManager: ref.getWrappedInstance() as any})
     }
 
-    getLayerManagerRef = (ref: any): void => {
-        ref && this.setState({layerManager: ref as LayerManager})
+    getLayerManagerRef = (layerManager: LayerManager): void => {
+        layerManager && this.setState({layerManager})
     }
 
     getAreaOfInterestManagerRef = (ref: any): void => {
@@ -426,21 +474,29 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         })
     }
 
-    componentWillUnmount() {
-        console.log(' &&&&&&&&&&&&&&&& JOE_DEBUG AnnotatedSceneController componentWillUnmount')
-    }
-
     render() {
         console.log("AnnotatedSceneController rendering")
         const {
             scaleProvider,
             utmCoordinateSystem,
-            annotationTileManager,
             handleTileManagerLoadError,
+			channel,
         } = this
 
-        const {layerManager, pointCloudManager, groundPlaneManager, sceneManager} = this.state
-        const {lockBoundaries, lockTerritories, lockTrafficDevices, lockLanes} = this.props
+        const {
+			layerManager,
+			pointCloudManager,
+			groundPlaneManager,
+			sceneManager,
+			annotationTileManager
+		} = this.state
+
+        const {
+			lockBoundaries,
+			lockTerritories,
+			lockTrafficDevices,
+			lockLanes
+		} = this.props
 
         // TODO JOE THURSDAY see onRenender below
         // const onRenderCallBack = this.state.sceneManager ? this.state.sceneManager.renderScene : () => {}
@@ -456,73 +512,83 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
                 />
 
                 {this.state.container && this.state.areaOfInterestManager &&
-                <SceneManager
-                    ref={this.getSceneManagerRef}
+	                <SceneManager
+	                    ref={this.getSceneManagerRef}
 
-                    // TODO JOE this will resize based on container size using window.ResizeObserver.
-                    width={1000}
-                    height={1000}
+						backgroundColor={this.props.backgroundColor}
 
-                    utmCoordinateSystem={this.utmCoordinateSystem}
-                    eventEmitter={this.channel}
-                    areaOfInterestManager={this.state.areaOfInterestManager}
+	                    // TODO JOE this will resize based on container size using window.ResizeObserver.
+	                    width={1000}
+	                    height={1000}
 
-                    container={this.state.container}
-                />
+	                    utmCoordinateSystem={this.utmCoordinateSystem}
+	                    channel={this.channel}
+	                    areaOfInterestManager={this.state.areaOfInterestManager}
+
+	                    container={this.state.container}
+	                />
                 }
 
 
-                <AreaOfInterestManager
-                    ref={this.getAreaOfInterestManagerRef}
-                    getPointOfInterest={this.props.onPointOfInterestCall}
-                    getCurrentRotation={this.props.onCurrentRotation}
-                    utmCoordinateSystem={this.utmCoordinateSystem}
-                    groundPlaneManager={this.state.groundPlaneManager}
-                    sceneManager={this.state.sceneManager}
-                />
+				{ groundPlaneManager && sceneManager &&
+	                <AreaOfInterestManager
+	                    ref={this.getAreaOfInterestManagerRef}
+	                    getPointOfInterest={this.props.onPointOfInterestCall}
+	                    getCurrentRotation={this.props.onCurrentRotation}
+	                    utmCoordinateSystem={this.utmCoordinateSystem}
+	                    groundPlaneManager={groundPlaneManager}
+	                    sceneManager={sceneManager}
+	                />
+				}
 
                 <LayerManager ref={this.getLayerManagerRef}/>
 
-                <PointCloudManager
-                    ref={this.getPointCloudManagerRef}
-                    utmCoordinateSystem={this.utmCoordinateSystem}
-                    sceneManager={this.state.sceneManager!}
-                    pointCloudTileManager={this.pointCloudTileManager}
-                    layerManager={this.state.layerManager!}
-                    handleTileManagerLoadError={this.handleTileManagerLoadError}
-                />
+				{ layerManager && sceneManager &&
+	                <PointCloudManager
+	                    ref={this.getPointCloudManagerRef}
+	                    utmCoordinateSystem={this.utmCoordinateSystem}
+	                    sceneManager={sceneManager}
+	                    pointCloudTileManager={this.pointCloudTileManager}
+	                    layerManager={layerManager}
+	                    handleTileManagerLoadError={this.handleTileManagerLoadError}
+	                />
+				}
 
-                <AnnotationManager
-                    ref={this.getAnnotationManagerRef}
-                    eventEmitter={this.channel}
-                    {...{
-                        scaleProvider,
-                        utmCoordinateSystem,
-                        handleTileManagerLoadError,
+				{ pointCloudManager && groundPlaneManager && annotationTileManager && sceneManager && layerManager &&
+	                <AnnotationManager
+	                    ref={this.getAnnotationManagerRef}
+	                    {...{
+	                        scaleProvider,
+	                        utmCoordinateSystem,
+	                        handleTileManagerLoadError,
+							channel,
 
-                        layerManager,
-                        pointCloudManager,
-                        groundPlaneManager,
-                        annotationTileManager,
-                        sceneManager,
+	                        layerManager,
+	                        pointCloudManager,
+	                        groundPlaneManager,
+	                        annotationTileManager,
+	                        sceneManager,
 
-                        // TODO we can handle this better, revisit with Ryan. Currently we
-                        // forward props from the app through her to AnnotationManager
-                        lockBoundaries,
-                        lockTerritories,
-                        lockLanes,
-                        lockTrafficDevices,
+	                        // TODO we can handle this better, revisit with Ryan. Currently we
+	                        // forward props from the app through her to AnnotationManager
+	                        lockBoundaries,
+	                        lockTerritories,
+	                        lockLanes,
+	                        lockTrafficDevices,
 
-                    }}
+	                    }}
 
-                />
+	                />
+				}
 
-                <GroundPlaneManager
-                    ref={this.getGroundPlaneManagerRef}
-                    utmCoordinateSystem={this.utmCoordinateSystem}
-                    sceneManager={this.state.sceneManager!}
-                    eventEmitter={this.channel}
-                />
+				{ sceneManager &&
+	                <GroundPlaneManager
+	                    ref={this.getGroundPlaneManagerRef}
+	                    utmCoordinateSystem={this.utmCoordinateSystem}
+	                    sceneManager={sceneManager}
+	                    channel={this.channel}
+	                />
+				}
 
             </div>
         )

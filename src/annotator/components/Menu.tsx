@@ -76,21 +76,6 @@ class Menu extends React.Component<{}, {}> {
 					</div>
 				</menu>
 
-				<menu id="liveModeMenu" className="menu">
-					<button id="live_mode_pause" className="mdc-button mdc-button--raised">
-						<span>Play</span>
-						<i className="material-icons mdc-button__icon" aria-hidden="true">play_arrow</i>
-					</button>
-					<button id="live_recorded_playback_toggle" className="mdc-button mdc-button--raised">
-						<span>Live</span>
-						<i className="material-icons mdc-button__icon" aria-hidden="true">my_location</i>
-					</button>
-					<button id="select_trajectory_playback_file" className="mdc-button mdc-button--raised">
-						<span>Select data set</span>
-						<i className="material-icons mdc-button__icon" aria-hidden="true">playlist_play</i>
-					</button>
-				</menu>
-
 			</div>
 		)
 	}

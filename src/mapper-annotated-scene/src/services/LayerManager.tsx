@@ -3,14 +3,14 @@ import LayerToggle from "@/mapper-annotated-scene/src/models/LayerToggle";
 import * as lodash from "lodash";
 import Logger from "@/util/log";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
+import {v4 as UUID} from 'uuid'
 
 const log = Logger(__filename)
 
 
-export enum Layer {
-	POINT_CLOUD,
-	IMAGE_SCREENS,
-	ANNOTATIONS,
+export const Layer = {
+	POINT_CLOUD: UUID(),
+	ANNOTATIONS: UUID(),
 }
 
 export interface LayerManagerProps {}
@@ -27,26 +27,24 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 
 		// TODO JOE WEDNESDAY the toggles will be passed in by AnnotatedSceneController
 
-		const pointCloudLayerToggle = new LayerToggle({
-			show: () => {new AnnotatedSceneActions().setIsPointCloudVisible(true)},
-			hide: () => {new AnnotatedSceneActions().setIsPointCloudVisible(false)}
-		})
+		const pointCloudLayerToggle = visible => {
+			new AnnotatedSceneActions().setIsPointCloudVisible( visible )
+		}
 
-		const imageScreensLayerToggle = new LayerToggle({
-			show: () => {new AnnotatedSceneActions().setIsImageScreensVisible(false)},
-			hide: () => {new AnnotatedSceneActions().setIsImageScreensVisible(false)}
-		})
+		// TODO JOE remove
+		// const imageScreensLayerToggle = visible => {
+		// 	new AnnotatedSceneActions().setIsImageScreensVisible(false)
+		// }
 
-		const annotationLayerToggle = new LayerToggle({
-			show: () => {new AnnotatedSceneActions().setIsAnnotationsVisible(true)},
-			hide: () => {new AnnotatedSceneActions().setIsAnnotationsVisible(false)}
-		})
+		const annotationLayerToggle = visible => {
+			new AnnotatedSceneActions().setIsAnnotationsVisible(visible)
+		}
 
 		this.state = {
 			layerToggles: new Map([
-				[Layer.POINT_CLOUD.toString(), pointCloudLayerToggle],
-				[Layer.IMAGE_SCREENS.toString(), imageScreensLayerToggle],
-				[Layer.ANNOTATIONS.toString(), annotationLayerToggle]
+				[Layer.POINT_CLOUD, pointCloudLayerToggle],
+				// [Layer.IMAGE_SCREENS, imageScreensLayerToggle],
+				[Layer.ANNOTATIONS, annotationLayerToggle]
 			])
 		}
 	}
@@ -62,7 +60,7 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 		layerKeysToShow.forEach(key => {
 			if (this.state.layerToggles.has(key)) {
 				// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
-				this.state.layerToggles.get(key)!.show()
+				this.state.layerToggles.get(key)!( true )
 			}
 			else
 				log.error(`missing visibility toggle for ${key}`)
@@ -73,7 +71,7 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 			hide.forEach(key => {
 				if (this.state.layerToggles.has(key)) {
 					// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
-					this.state.layerToggles.get(key)!.hide()
+					this.state.layerToggles.get(key)!( false )
 				}
 				else
 					log.error(`missing visibility toggle for ${key}`)

@@ -7,7 +7,7 @@ import * as THREE from 'three'
 // import {isNull} from "util"
 import * as utmConverter from 'utm'
 import {EventEmitter} from "events";
-import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
 
 /**
  * UtmCoordinateSystem has two states: it has a zone or not. Zone can be set one time.
@@ -92,7 +92,7 @@ export class UtmCoordinateSystem {
 			}
 			// if (!isNull(this.onSetOrigin))
 			// 	this.onSetOrigin()
-			this.channel.emit(EventName.ORIGIN_UPDATE.toString())
+			this.channel.emit(Events.ORIGIN_UPDATE)
 			return true
 		}
 	}

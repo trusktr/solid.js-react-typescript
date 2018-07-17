@@ -61,8 +61,10 @@ export class PointCloudTileManager extends TileManager {
 			tileServiceClient,
 			channel
 		)
+
 		if (config['tile_manager.tile_message_format'])
 			log.warn('config option tile_manager.tile_message_format has been removed.')
+
 		this.config = {
 			layerId: 'base1', // a layer which contains instances of `BaseGeometryTileMessage`
 			pointsSize: parseFloat(config['annotator.point_render_size']) || 1,
@@ -72,8 +74,10 @@ export class PointCloudTileManager extends TileManager {
 			samplingStep: parseInt(config['tile_manager.sampling_step'], 10) || 5,
 			maxPointsDensity: parseInt(config['tile_manager.maximum_point_density'], 10) || 0,
 		}
+
 		if (this.config.samplingStep <= 0)
 			throw Error(`Bad config 'tile_manager.sampling_step' = ${this.config.samplingStep}. Step should be > 0.`)
+
 		this.pointsMaterial = new THREE.PointsMaterial({
 			size: this.config.pointsSize,
 			sizeAttenuation: false,
@@ -84,6 +88,7 @@ export class PointCloudTileManager extends TileManager {
 		this.addSuperTile = (superTile:SuperTile) => {
 			this.channel.emit("addPointCloudSuperTile", superTile)
 		}
+
         this.removeSuperTile = (superTile:SuperTile) => {this.channel.emit("removePointCloudSuperTile", superTile)}
 	}
 

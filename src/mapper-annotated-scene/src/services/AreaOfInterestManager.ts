@@ -22,8 +22,8 @@ interface IAoiProps {
 	getPointOfInterest?: () => THREE.Vector3
 	getCurrentRotation?: () => THREE.Quaternion
 	utmCoordinateSystem: UtmCoordinateSystem
-	groundPlaneManager: GroundPlaneManager | null
-	sceneManager: SceneManager | null
+	groundPlaneManager: GroundPlaneManager
+	sceneManager: SceneManager
 	camera ?: THREE.Camera
 	cameraIsOrbiting ?: boolean
   loadingTileManagers ?: Set<TileManager>

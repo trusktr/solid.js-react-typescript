@@ -22,14 +22,19 @@ import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {OrderedMap} from "immutable";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 import * as Stats from 'stats.js'
-import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
 import getOrderedMapValueDiff from '../util/getOrderedMapValueDiff'
 import {Set} from 'immutable'
 import {Super} from "babel-types";
+import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type";
 
 const log = Logger(__filename)
 
 export interface SceneManagerProps {
+
+	// TODO needs to handle background color changes, currently used only on construction
+	backgroundColor?: THREEColorValue
+
 	width: number
 	height: number
 	areaOfInterestManager: AreaOfInterestManager
@@ -39,7 +44,7 @@ export interface SceneManagerProps {
 	orbitControlsTargetPoint ?: THREE.Vector3
 	// pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
 	utmCoordinateSystem: UtmCoordinateSystem
-	eventEmitter: EventEmitter
+	channel: EventEmitter
 	sceneObjects ?: Set<THREE.Object3D>
 	visibleLayers ?: string[]
 	cameraPreference?: CameraType
@@ -125,11 +130,18 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		else
 			camera = perspectiveCam
 
+		const debugSphere = new THREE.Mesh( new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: 0xffffff }) )
+		debugSphere.position.z = -100
+		camera.add( debugSphere )
+
 		// Add some lights
 		scene.add(new THREE.AmbientLight(0xffffff))
 
+		// TODO move config to app, use only prop here
+		// const background = new THREE.Color(config['startup.background_color'] || '#082839')
+		const background = props.backgroundColor || 'gray'
+
 		// Draw the sky.
-		const background = new THREE.Color(config['startup.background_color'] || '#082839')
 		const sky = Sky(background, new THREE.Color(0xccccff), skyRadius)
 		scene.add(sky)
 
@@ -194,11 +206,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const animationFps = config['startup.render.fps']
 		loop.interval = animationFps === 'device' ? false : 1 / (animationFps || 10)
 
-		this.props.eventEmitter.on(EventName.ORIGIN_UPDATE.toString(), () => {
+		this.props.channel.on(Events.ORIGIN_UPDATE, () => {
 			// Triggered by UTMCoordinateSystem.setOrigin
 			this.loadDecorations()
 		})
 
+		this.props.channel.on(Events.SCENE_UPDATED, this.renderScene)
 
 		this.orbitControls = this.initOrbitControls(camera, renderer)
 
@@ -253,8 +266,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 
 		// Setup listeners on add/remove point cloud tiles
-		this.props.eventEmitter.on('addPointCloudSuperTile', (superTile:SuperTile) => {this.addSuperTile(superTile)})
-        this.props.eventEmitter.on('removePointCloudSuperTile', (superTile:SuperTile) => {this.removeSuperTile(superTile)})
+		this.props.channel.on('addPointCloudSuperTile', (superTile:SuperTile) => {this.addSuperTile(superTile)})
+        this.props.channel.on('removePointCloudSuperTile', (superTile:SuperTile) => {this.removeSuperTile(superTile)})
 
 		new AnnotatedSceneActions().setSceneInitialized(true)
 	}
@@ -314,6 +327,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 				scene.remove(object!)
 			}
 		})
+
+		this.renderScene()
 	}
 
 	componentDidMount() {
@@ -427,15 +442,16 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// TODO JOE THURSDAY longer term, we can create the loop on init logic (f.e.
 	// constructor), then just use the loop when needed.
+	// TODO This should go to AreaOfInterestManager, and hook into
+	// SceneManager's loop (or add a child one)
 	private startAoiUpdates(): void {
 		console.log("SceneManager startAoiUpdates")
 		const loop = this.state.loop
 
 		loop.addAnimationFn(() => {
 			if ( !this.props.shouldAnimate ) return false
-			if (!this.props.areaOfInterestManager) {
-				log.error( "[ERROR] areaOfInterestManager does not exist when it's expected!!")
-				return
+			if ( !this.props.areaOfInterestManager ) {
+				throw new Error( "areaOfInterestManager does not exist when it's expected!!")
 			}
 
 			// NOTE JOE longer term: Inversely, AreaOfInterestManager could instead hook into
@@ -449,11 +465,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 			return true
 		})
-    	console.log("SceneManager startAoiUpdates is finished")
 
-		// this.setState({
-		// 	loop: loop
-		// })
+    	console.log("SceneManager startAoiUpdates is finished")
 	}
 
 	setCameraOffsetVector(offset:THREE.Vector3) {
@@ -515,7 +528,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// used to be called renderAnnotator
 	renderScene = (): void => {
-		// force a tick which causes renderer.renderScene to be called
+		// force a tick which causes renderer.render to be called
 		this.state.loop.forceTick()
 	}
 

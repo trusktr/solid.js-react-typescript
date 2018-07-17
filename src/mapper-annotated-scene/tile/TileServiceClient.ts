@@ -24,7 +24,7 @@ import {scale3DToSpatialTileScale, spatialTileScaleToScale3D} from "./ScaleUtil"
 import Logger from "@/util/log"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import {EventEmitter} from "events";
-import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
 
 const log = Logger(__filename)
 
@@ -134,7 +134,7 @@ export class TileServiceClient {
 	private setServerStatus(newStatus: boolean): void {
 		if (this.serverStatus === null || this.serverStatus !== newStatus) {
 			this.serverStatus = newStatus
-			this.eventEmitter.emit(EventName.TILE_SERVICE_STATUS_UPDATE.toString(), newStatus)
+			this.eventEmitter.emit(Events.TILE_SERVICE_STATUS_UPDATE, newStatus)
 			// this.onTileServiceStatusUpdate(newStatus)
 		}
 	}

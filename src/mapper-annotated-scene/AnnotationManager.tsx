@@ -54,6 +54,7 @@ import {AnnotationTileManager} from "@/mapper-annotated-scene/tile/AnnotationTil
 import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
 import Annotator from "@/annotator/Annotator";
 import {EventEmitter} from "events"
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
 
 const log = Logger(__filename)
 
@@ -79,32 +80,32 @@ interface IProps {
 
 	scaleProvider: ScaleProvider
 	utmCoordinateSystem: UtmCoordinateSystem
-	pointCloudManager: PointCloudManager | null
-	groundPlaneManager: GroundPlaneManager | null
-	annotationTileManager: AnnotationTileManager | null
-	sceneManager: SceneManager | null
+	pointCloudManager: PointCloudManager
+	groundPlaneManager: GroundPlaneManager
+	annotationTileManager: AnnotationTileManager
+	sceneManager: SceneManager
+	layerManager: LayerManager
 
 	// TODO JOE did we conver this already with redux?
 	// onAddAnnotation(object: THREE.Object3D): void
 	// onRemoveAnnotation(object: THREE.Object3D): void
 	// onChangeActiveAnnotation(active: Annotation): void
 
-	layerManager: LayerManager | null
 	isAnnotationsVisible?: boolean
 	// annotationSuperTiles ?: OrderedMap<string, SuperTile>
 
 	// Replacing uiState in the short term
 	isMouseDragging ?: boolean
 	isRotationModeActive ?: boolean
-	isConnectLeftNeighborKeyPressed ?: boolean
-	isConnectRightNeighborKeyPressed ?: boolean
-	isConnectFrontNeighborKeyPressed ?: boolean
-	isAddMarkerKeyPressed ?: boolean
+	isConnectLeftNeighborMode ?: boolean
+	isConnectRightNeighborMode ?: boolean
+	isConnectFrontNeighborMode ?: boolean
+	isAddMarkerMode ?: boolean
 	isLiveMode ?: boolean
-	isAddConnectionKeyPressed ?: boolean
-	isJoinAnnotationKeyPressed ?: boolean
-	isControlKeyPressed ?: boolean
-	isAddConflictOrDeviceKeyPressed ?: boolean
+	isAddConnectionMode ?: boolean
+	isJoinAnnotationMode ?: boolean
+	isControlKeyPressed?: boolean
+	isAddConflictOrDeviceMode ?: boolean
 	isMouseButtonPressed ?: boolean
 
 	areaOfInterest ?: RangeSearch[]
@@ -115,7 +116,7 @@ interface IProps {
 	lockTerritories?: boolean
 	lockLanes?: boolean
 	lockTrafficDevices?: boolean
-	eventEmitter: EventEmitter
+	channel: EventEmitter
 
 	isKioskUserDataLoaded?: boolean
 }
@@ -135,17 +136,17 @@ interface IState {
 
 	'isMouseDragging',
 	'isRotationModeActive',
-	'isConnectLeftNeighborKeyPressed',
-	'isConnectRightNeighborKeyPressed',
-	'isConnectFrontNeighborKeyPressed',
-	'isAddMarkerKeyPressed',
+	'isConnectLeftNeighborMode',
+	'isConnectRightNeighborMode',
+	'isConnectFrontNeighborMode',
+	'isAddMarkerMode',
 
 
 	'isLiveMode',
-	'isAddConnectionKeyPressed',
-	'isJoinAnnotationKeyPressed',
+	'isAddConnectionMode',
+	'isJoinAnnotationMode',
 	'isControlKeyPressed',
-	'isAddConflictOrDeviceKeyPressed',
+	'isAddConflictOrDeviceMode',
 	'isMouseButtonPressed',
 
 	'areaOfInterest',
@@ -185,8 +186,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.raycasterAnnotation = new THREE.Raycaster()
 
         // Setup listeners on add/remove point cloud tiles
-        this.props.eventEmitter.on('addAnnotationSuperTile', (superTile:SuperTile) => {this.addSuperTileAnnotations(superTile as AnnotationSuperTile)})
-        this.props.eventEmitter.on('removeAnnotationSuperTile', (superTile:SuperTile) => {this.removeSuperTileAnnotations(superTile as AnnotationSuperTile)})
+        this.props.channel.on('addAnnotationSuperTile', (superTile:SuperTile) => {this.addSuperTileAnnotations(superTile as AnnotationSuperTile)})
+        this.props.channel.on('removeAnnotationSuperTile', (superTile:SuperTile) => {this.removeSuperTileAnnotations(superTile as AnnotationSuperTile)})
 
 
 
@@ -666,6 +667,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.activeAnnotation.deleteLastMarker()
 
 		this.metadataState.dirty()
+		this.hideTransform()
 		return true
 	}
 
@@ -849,6 +851,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	unhighlightMarkers(): void {
 		if (this.activeAnnotation)
 			this.activeAnnotation.unhighlightMarkers()
+		this.props.channel.emit(Events.SCENE_UPDATED)
 	}
 
 	/**
@@ -1596,11 +1599,11 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 */
 	// ANNOTATOR ONLY
 	addAnnotationMarker = (event: MouseEvent): void => {
-		const {isMouseDragging, isConnectLeftNeighborKeyPressed, isConnectRightNeighborKeyPressed,
-			isConnectFrontNeighborKeyPressed, isAddMarkerKeyPressed} = this.props
+		const {isMouseDragging, isConnectLeftNeighborMode, isConnectRightNeighborMode,
+			isConnectFrontNeighborMode, isAddMarkerMode} = this.props
 
-		if(isMouseDragging || isConnectLeftNeighborKeyPressed || isConnectRightNeighborKeyPressed ||
-			isConnectFrontNeighborKeyPressed || isAddMarkerKeyPressed ||
+		if(isMouseDragging || isConnectLeftNeighborMode || isConnectRightNeighborMode ||
+			isConnectFrontNeighborMode || isAddMarkerMode ||
 			!this.activeAnnotation || !this.activeAnnotation.allowNewMarkers) {
 			return
 		}
@@ -1656,7 +1659,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 */
 	// ANNOTATOR ONLY
 	addLaneConnection = (event: MouseEvent): void => {
-		if (!this.props.isAddConnectionKeyPressed || this.props.isMouseDragging) return
+		if (!this.props.isAddConnectionMode || this.props.isMouseDragging) return
 		// reject connection if active annotation is not a lane
 		const activeLane = this.getActiveLaneAnnotation()
 		if (!activeLane) {
@@ -1695,10 +1698,10 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		// update UI panel
 		// TODO TMP Annotator UI needs update
-		// if (activeLane.id === fromUID)
-		// 	Annotator.deactivateFrontSideNeighbours()
+		if (activeLane.id === fromUID)
+			Annotator.deactivateFrontSideNeighbours()
 
-			// GONE this.renderAnnotator()
+		// TODO GONE this.renderAnnotator()
 	}
 
 	/**
@@ -1706,16 +1709,16 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * add new neighbor between current active lane and the "clicked" lane
 	 */
 	connectNeighbor = (event: MouseEvent): void => {
-		const {isAddConnectionKeyPressed, isJoinAnnotationKeyPressed, isConnectLeftNeighborKeyPressed,
-			isConnectRightNeighborKeyPressed, isConnectFrontNeighborKeyPressed, isMouseDragging} = this.props
+		const {isAddConnectionMode, isJoinAnnotationMode, isConnectLeftNeighborMode,
+			isConnectRightNeighborMode, isConnectFrontNeighborMode, isMouseDragging} = this.props
 
-		if(isAddConnectionKeyPressed || isJoinAnnotationKeyPressed || isMouseDragging) {
+		if(isAddConnectionMode || isJoinAnnotationMode || isMouseDragging) {
 			return
 		}
 
-    if (!isConnectLeftNeighborKeyPressed &&
-      !isConnectRightNeighborKeyPressed &&
-      !isConnectFrontNeighborKeyPressed) return
+    if (!isConnectLeftNeighborMode &&
+      !isConnectRightNeighborMode &&
+      !isConnectFrontNeighborMode) return
 
 		// reject neighbor if active annotation is not a lane
 		const activeLane = this.getActiveLaneAnnotation()
@@ -1751,15 +1754,15 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		// Check if the neighbor must be added to the front
-		if (this.props.isConnectFrontNeighborKeyPressed) {
+		if (this.props.isConnectFrontNeighborMode) {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.FRONT)
 			inactive.setNeighborMode(NeighborLocation.FRONT)
 			inactive.addNeighbor(activeLane.uuid, NeighborLocation.BACK)
 
 			// TODO TMP Annotator needs UI update
-			// Annotator.deactivateFrontSideNeighbours()
+			Annotator.deactivateFrontSideNeighbours()
 
-			// GONE this.renderAnnotator()
+			// TODO GONE this.renderAnnotator()
 			return
 		}
 
@@ -1790,7 +1793,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		// add neighbor based on lane direction and selected side
 		const sameDirection: boolean = Math.abs(pt1.angleTo(pt2)) < (Math.PI / 2)
-		if (this.props.isConnectLeftNeighborKeyPressed) {
+		if (this.props.isConnectLeftNeighborMode) {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.LEFT)
 			inactive.setNeighborMode(NeighborLocation.LEFT)
 
@@ -1823,13 +1826,13 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * Check if we clicked an annotation. If so, make it active for editing
 	 */
 	checkForAnnotationSelection = (event: MouseEvent): void => {
-		const {isLiveMode, isMouseDragging, isControlKeyPressed, isAddMarkerKeyPressed, isAddConnectionKeyPressed,
-      isConnectLeftNeighborKeyPressed, isConnectRightNeighborKeyPressed, isConnectFrontNeighborKeyPressed,
-      isAddConflictOrDeviceKeyPressed, isJoinAnnotationKeyPressed} = this.props
+		const {isLiveMode, isMouseDragging, isControlKeyPressed, isAddMarkerMode, isAddConnectionMode,
+      isConnectLeftNeighborMode, isConnectRightNeighborMode, isConnectFrontNeighborMode,
+      isAddConflictOrDeviceMode, isJoinAnnotationMode} = this.props
 
-		if(isLiveMode || isMouseDragging || isControlKeyPressed || isAddMarkerKeyPressed || isAddConnectionKeyPressed ||
-      isConnectLeftNeighborKeyPressed || isConnectRightNeighborKeyPressed || isConnectFrontNeighborKeyPressed ||
-			isAddConflictOrDeviceKeyPressed || isJoinAnnotationKeyPressed) {
+		if(isLiveMode || isMouseDragging || isControlKeyPressed || isAddMarkerMode || isAddConnectionMode ||
+      isConnectLeftNeighborMode || isConnectRightNeighborMode || isConnectFrontNeighborMode ||
+			isAddConflictOrDeviceMode || isJoinAnnotationMode) {
 			return
 		}
 
@@ -1868,15 +1871,15 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	// TODO TMP needed for Annotator
 	checkForActiveMarker = (event: MouseEvent): void => {
 		console.log(event)
-    // const {isControlKeyPressed, isAddMarkerKeyPressed, isAddConnectionKeyPressed,
-    //   isConnectLeftNeighborKeyPressed, isConnectRightNeighborKeyPressed, isConnectFrontNeighborKeyPressed,
-    //   isAddConflictOrDeviceKeyPressed, isJoinAnnotationKeyPressed, isMouseButtonPressed} = this.props
+    // const {isControlKeyPressed, isAddMarkerMode, isAddConnectionMode,
+    //   isConnectLeftNeighborMode, isConnectRightNeighborMode, isConnectFrontNeighborMode,
+    //   isAddConflictOrDeviceMode, isJoinAnnotationMode, isMouseButtonPressed} = this.props
 	//
 	// 	// If the mouse is down we might be dragging a marker so avoid
 	// 	// picking another marker
-	// 	if(isMouseButtonPressed || isControlKeyPressed || isAddMarkerKeyPressed || isAddConnectionKeyPressed ||
-    //   isConnectLeftNeighborKeyPressed || isConnectRightNeighborKeyPressed || isConnectFrontNeighborKeyPressed ||
-    //   isAddConflictOrDeviceKeyPressed || isJoinAnnotationKeyPressed) {
+	// 	if(isMouseButtonPressed || isControlKeyPressed || isAddMarkerMode || isAddConnectionMode ||
+    //   isConnectLeftNeighborMode || isConnectRightNeighborMode || isConnectFrontNeighborMode ||
+    //   isAddConflictOrDeviceMode || isJoinAnnotationMode) {
     // 	return
 	// 	}
 	//
@@ -1926,9 +1929,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * Check if we clicked a connection or device while pressing the add conflict/device key
 	 */
 	checkForConflictOrDeviceSelection = (event: MouseEvent): void => {
-		const {isLiveMode, isMouseDragging, isAddConflictOrDeviceKeyPressed} = this.props
+		const {isLiveMode, isMouseDragging, isAddConflictOrDeviceMode} = this.props
 
-		if(isLiveMode || isMouseDragging || !isAddConflictOrDeviceKeyPressed) {
+		if(isLiveMode || isMouseDragging || !isAddConflictOrDeviceMode) {
 			return
 		}
 		log.info("checking for conflict selection")
@@ -1993,7 +1996,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * annotation with the clicked one, if they are of the same type
 	 */
 	joinAnnotationsEventHandler = (event: MouseEvent): void => {
-		if (this.props.isMouseDragging || !this.props.isJoinAnnotationKeyPressed) return
+		if (this.props.isMouseDragging || !this.props.isJoinAnnotationMode) return
 
 		// get active annotation
 		let activeAnnotation = this.activeAnnotation
@@ -2057,7 +2060,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.hideTransform()
 	}
 
-	private hideTransform = (): void => {
+	hideTransform = (): void => {
 		this.hideTransformControlTimer = window.setTimeout(this.cleanTransformControls, 1500)
 	}
 
@@ -2067,7 +2070,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 	}
 
-	private cleanTransformControls = (): void => {
+	cleanTransformControls = (): void => {
 		this.cancelHideTransform()
 		// TODO TMP fix
 		// this.transformControls.detach()
@@ -2086,6 +2089,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 	toggleTransformControlsRotationMode(): void {
 		// TODO TMP fix
+		// TODO toggle mode only if object is rotatable
+		// // if (this.activeAnnotation && this.activeAnnotation.isRotatable)
 		// this.uiState.isRotationModeActive = !this.uiState.isRotationModeActive
 		// const mode = this.uiState.isRotationModeActive ? 'rotate' : 'translate'
 		// this.transformControls.setMode(mode)

@@ -20,7 +20,7 @@ import {
 } from "@/kiosk/clients/LocationServerStatusClient";
 import Logger from "@/util/log";
 import {EventEmitter} from "events";
-import {EventName} from "@/mapper-annotated-scene/src/models/EventName";
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
 
 const log = Logger(__filename)
 
@@ -49,7 +49,7 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
         const locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
 
-        this.props.eventEmitter.on(EventName.TILE_SERVICE_STATUS_UPDATE.toString(), (status) => {
+        this.props.eventEmitter.on(Events.TILE_SERVICE_STATUS_UPDATE, (status) => {
             this.onTileServiceStatusUpdate(status)
         })
 
