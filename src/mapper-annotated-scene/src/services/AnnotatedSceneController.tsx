@@ -446,7 +446,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
                 <ResizeObserver
                     onResize={(rect) => {
-                        console.log('RTT Resized. New bounds:', rect.width, 'x', rect.height);
                         this.setState({
                             componentWidth: rect.width,
                             componentHeight: rect.height,
