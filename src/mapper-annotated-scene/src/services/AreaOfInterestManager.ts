@@ -88,6 +88,9 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
 	}
 
+    /**
+	 * Update the AOI Heading.  Currently (7/18) this is Kiosk-only logic but may expand
+     */
 	updateAoiHeading(): void {
 
 		// TODO TMP only called for Kiosk app. Maybe fix with detecting camera movement direction
