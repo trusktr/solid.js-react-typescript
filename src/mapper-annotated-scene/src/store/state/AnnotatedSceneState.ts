@@ -73,7 +73,6 @@ export default class AnnotatedSceneState {
 	isConnectRightNeighborKeyPressed: boolean
 	isConnectFrontNeighborKeyPressed: boolean
 	isAddMarkerKeyPressed: boolean
-	isLiveMode: boolean
 	isAddConnectionKeyPressed: boolean
 	isJoinAnnotationKeyPressed: boolean
 	isControlKeyPressed: boolean
