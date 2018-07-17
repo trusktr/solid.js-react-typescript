@@ -177,8 +177,9 @@ export class PointCloudTileManager extends TileManager {
 		}
 
 		// Choose the colors which are low to the ground with our above-the-ground color scheme, and discard the rest.
-		// TODO might be better to apply this in a first pass, then apply the density check.
-		const trimByColor = !!config.get('tile_manager.trim_points_above_ground.enable')
+		// TODO The color stuff is a hack. Get a model of the ground surface height, and filter points by height above ground.
+		// TODO And it might be better to apply this in a first pass, before the density check.
+		const trimByColor = !!config.get('tile_manager.trim_points_above_ground.height')
 
 		if (samplingStep <= 1 && !trimByColor)
 			return [contents.points, contents.colors]
