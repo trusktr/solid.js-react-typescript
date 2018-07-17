@@ -83,17 +83,19 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
         })
         // this.statusElement.innerHTML = out
         // const laneWidth = $('#lp_width_value')
-
         // @TODO show/hide internal parts of the component based on the value of isEnabled
         return (
-            <div id="status_window">
-                STATUS WINDOW <br/>
-                <span dangerouslySetInnerHTML={{__html: out}} />
-                <div>isLiveMode: {isLiveMode!.toString()}</div>
-                <div>isPlayMode: {isPlayMode!.toString()}</div>
-                <div>flyThroughEnabled: {flyThroughEnabled!.toString()}</div>
-            </div>
-        )
+            <div>
+                {statusWindowState!.enabled &&
+                    <div id="status_window">
+                        <span dangerouslySetInnerHTML={{__html: out}}/>
+                        <div>isLiveMode: {isLiveMode!.toString()}</div>
+                        <div>isPlayMode: {isPlayMode!.toString()}</div>
+                        <div>flyThroughEnabled: {flyThroughEnabled!.toString()}</div>
+                    </div>
+                }
+
+            </div>)
     }
 
 

@@ -18,6 +18,7 @@ interface KioskViewProps {
 	isPlayMode ?: boolean
 	flyThroughManager: FlyThroughManager
     openTrajectoryPickerFunction: any
+    uiMenuVisible ?: boolean
 }
 
 interface KioskViewState {}
@@ -26,6 +27,7 @@ interface KioskViewState {}
 @typedConnect(createStructuredSelector({
 	isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
 	isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
+    uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
 }))
 export default class KioskMenuView extends React.Component<KioskViewProps, KioskViewState> {
 
@@ -33,39 +35,34 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 		super(props)
 	}
 
-
 	private makeOnPlayModeClick = () => () => {
 		new AnnotatedSceneActions().togglePlayMode()
 		const flyThroughManager = this.props.flyThroughManager
-    flyThroughManager.toggleLiveModePlay()
-
-
+    	flyThroughManager.toggleLiveModePlay()
 	}
 
 	private makeOnLiveModeClick = () => () => {
 		new AnnotatedSceneActions().toggleLiveMode()
-    const flyThroughManager = this.props.flyThroughManager
-    flyThroughManager.toggleLiveAndRecordedPlay()
+    	const flyThroughManager = this.props.flyThroughManager
+    	flyThroughManager.toggleLiveAndRecordedPlay()
 	}
 
 	private makeOnSelectDataSetClick = () => () => {
-		console.log("Clicked onDataSet [NOT IMPLEMENTED]")
         this.props.openTrajectoryPickerFunction()
 	}
 
-
-
 	render(): JSX.Element {
-		const {isLiveMode, isPlayMode} = this.props
+		const {isLiveMode, isPlayMode, uiMenuVisible} = this.props
 		const liveModeLabel = isLiveMode ? 'Go to Recorded' : 'Go to Live'
 		const playModelLabel = isPlayMode ? 'Pause' : 'Play'
 
 		const playModeIcon = isPlayMode ? 'pause' : 'play_arrow'
 		const liveModeIcon = isLiveMode ? 'videocam' : 'my_location'
 
-
 		// @TODO remove <div id="menu"> -- shouldn't be needed anymore, visibility is controlled by Redux
 		return (<div id="menu">
+
+			{uiMenuVisible &&
 				<menu id="liveModeMenu" className="menu">
 					<button id="live_mode_pause" className="mdc-button mdc-button--raised" onClick={this.makeOnPlayModeClick()}>
 						<span>{playModelLabel}</span>
@@ -80,6 +77,8 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 						<i className="material-icons mdc-button__icon" aria-hidden="true">playlist_play</i>
 					</button>
 				</menu>
+			}
+
 			</div>)
 	}
 }

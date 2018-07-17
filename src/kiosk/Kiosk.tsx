@@ -254,10 +254,12 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 
     private trajectoryFileSelectedCallback = (path: string): void => {
-        if (!this.props.isLiveMode) return
+        log.info("Attempting to load path", path)
+        if (this.props.isLiveMode) return
 
         this.state.flyThroughManager!.loadFlyThroughTrajectories([path])
             .then(() => {
+                log.info("Finished loading trajectory from", path)
                 // Make sure that we are in flyThrough mode and that the animation is running.
                 if (!this.props.flyThroughEnabled) {
                     // this.toggleLiveAndRecordedPlay()

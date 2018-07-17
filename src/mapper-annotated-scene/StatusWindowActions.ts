@@ -40,7 +40,7 @@ export default class StatusWindowActions extends ActionFactory<AnnotatedSceneSta
 		log.info("Toggling enabled for StatusWindow")
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			const statusWindowState = new StatusWindowState({...annotatedSceneState.statusWindowState})
-			statusWindowState.enabled = !annotatedSceneState.statusWindowState
+			statusWindowState.enabled = !annotatedSceneState.statusWindowState.enabled
 			return new AnnotatedSceneState({
 				...annotatedSceneState, statusWindowState: statusWindowState
 			})

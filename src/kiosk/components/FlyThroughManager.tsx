@@ -195,6 +195,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     }
 
     startFlyThrough(): void {
+        log.info("Starting flyThrough")
         this.setFlyThroughMessage()
         const flyThroughLoop = this.state.flyThroughLoop
         flyThroughLoop.removeAnimationFn(this.flyThroughAnimation)
@@ -299,7 +300,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
                 .then(buffer => [path, buffer]))
         )
             .then(tuples => {
-
                 this.resetFlyThroughState()
                 const flyThroughState = this.state.flyThroughState
 
@@ -349,16 +349,14 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     // RYAN - when someone clicks between LIVE AND RECORDED
     toggleLiveAndRecordedPlay() {
         const flyThroughState = this.state.flyThroughState
-        const isLiveMode = this.props.isLiveMode
+        const isPlayMode = this.props.isPlayMode
 
         // if (!this.uiState.isLiveMode) return
 
         if (this.props.flyThroughEnabled) {
-            log.info("toggling LiveAndRecordedPlay - moving to enable=false")
             this.clearFlyThroughMessages()
             new AnnotatedSceneActions().setFlyThroughEnabled(false)
         } else {
-            log.info("toggling LiveAndRecordedPlay - moving to enable=true")
             new AnnotatedSceneActions().setFlyThroughEnabled(true)
 
             if (flyThroughState.trajectories.length) {
@@ -367,7 +365,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
             }
         }
 
-        if (!isLiveMode)
+        if (!isPlayMode)
             this.toggleLiveModePlay()
     }
 
