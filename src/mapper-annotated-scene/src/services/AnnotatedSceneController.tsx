@@ -7,7 +7,6 @@ import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
 import {createStructuredSelector} from "reselect";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
-import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
 import StatusWindow from "@/mapper-annotated-scene/components/StatusWindow";
 import Logger from "@/util/log";
 import PointCloudManager from "@/mapper-annotated-scene/src/services/PointCloudManager";
@@ -28,12 +27,12 @@ import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
-import {Vector3} from "three";
 import {BusyError} from "@/mapper-annotated-scene/tile/TileManager"
 import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type";
 import LayerToggle from "@/mapper-annotated-scene/src/models/LayerToggle";
 import {Map} from 'immutable'
 import {KeyboardEventHighlights} from "@/electron-ipc/Messages"
+import ResizeObserver from 'react-resize-observer'
 
 const log = Logger(__filename)
 
@@ -91,6 +90,8 @@ export interface IAnnotatedSceneControllerState {
     registeredKeyDownEvents: Map<string, any> // mapping between KeyboardEvent.key and function to execute
     registeredKeyUpEvents: Map<string, any> // mapping between KeyboardEvent.key and function to execute
     container?: HTMLDivElement
+    componentWidth: number
+    componentHeight: number
 }
 
 
@@ -123,6 +124,8 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
             },
             registeredKeyDownEvents: Map<string, any>(),
             registeredKeyUpEvents: Map<string, any>(),
+            componentWidth: 1000,
+            componentHeight: 1000,
         }
 
         // These don't need to be state, because these references don't change
@@ -169,8 +172,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 		if (this.isAllSet) return
 
 		this.isAllSet = true
-
-        console.log("RT-DEBUG ASC componentDidMount --> setAnnotatedSceneController")
 
         // TODO JOE FRIDAY
         // if ( interaction is enabled ) {
@@ -433,9 +434,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
 
     getSceneManagerRef = (ref: any): void => {
-        console.log("RT-DEBUG ASC getSceneManagerRef", ref)
         if (ref) {
-            console.log("RT-DEBUG setting sceneManager with value")
             this.setState({sceneManager: ref.getWrappedInstance() as SceneManager})
         }
 
@@ -475,7 +474,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
 
     render() {
-        console.log("AnnotatedSceneController rendering")
         const {
             scaleProvider,
             utmCoordinateSystem,
@@ -504,6 +502,18 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         return (
             <div ref={this.getContainerRef} className="scene-container" onMouseMove={this.onMouseMove}>
 
+                <ResizeObserver
+                    onResize={(rect) => {
+                        this.setState({
+                            componentWidth: rect.width,
+                            componentHeight: rect.height,
+                        })
+                    }}
+                    onPosition={(rect) => {
+                        console.log('Moved. New position:', rect.left, 'x', rect.top);
+                    }}
+                />
+
                 {/* TODO JOE THURSDAY StatusWindow doesn't need UtmCoordinateSystem, it is only concerned with messages */}
                 <StatusWindow
                     ref={this.getStatusWindowRef}
@@ -516,10 +526,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	                    ref={this.getSceneManagerRef}
 
 						backgroundColor={this.props.backgroundColor}
-
 	                    // TODO JOE this will resize based on container size using window.ResizeObserver.
-	                    width={1000}
-	                    height={1000}
+	                    width={this.state.componentWidth}
+	                    height={this.state.componentWidth}
 
 	                    utmCoordinateSystem={this.utmCoordinateSystem}
 	                    channel={this.channel}

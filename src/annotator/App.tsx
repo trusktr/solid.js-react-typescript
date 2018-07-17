@@ -22,15 +22,10 @@ import Annotator from "@/annotator/Annotator";
 
 const log = Logger(__filename)
 
-interface AppProps {
-	uiMenuVisible ?: boolean
-}
+interface AppProps {}
 
 interface AppState {}
 
-@typedConnect(createStructuredSelector({
-	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
-}))
 export default class App extends React.Component<AppProps, AppState> {
 	// private sceneContainer: HTMLElement | null
 	// private trajectoryPicker: JSX.Element
@@ -41,19 +36,14 @@ export default class App extends React.Component<AppProps, AppState> {
 	}
 
 	private makeOnStatusWindowClick = () => () => {
-		log.info("Testing click to toggle Status Window")
 		new StatusWindowActions().toggleEnabled()
 	}
 
 	private makeOnMenuClick = () => () => {
-		log.info("Testing click to toggle UI Menu")
 		new AnnotatedSceneActions().toggleUIMenuVisible()
 	}
 
 	render(): JSX.Element {
-		log.info("IN RENDER", config['startup.kiosk_mode'])
-		// const {uiMenuVisible} = this.props
-
 		return <React.Fragment>
 
 			{ config['startup.kiosk_mode'] ?

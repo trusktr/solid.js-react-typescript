@@ -30,8 +30,8 @@
 //     log.info("Loading app state data from local storage")
 //
 //     const defaultState = {
-//       liveModeEnabled: true,
-//       playModeEnabled: true,
+//       isLiveMode: true,
+//       isPlayMode: true,
 //       flyThroughState: {
 //         enabled: true,
 //         trajectories: [],
@@ -52,7 +52,7 @@
 //   toggleLiveMode() {
 //     log.info("Toggling live mode")
 //     return (kioskState: KioskState) => new KioskState({
-//       ...kioskState, liveModeEnabled: !kioskState.liveModeEnabled
+//       ...kioskState, isLiveMode: !kioskState.isLiveMode
 //     })
 //   }
 //
@@ -60,7 +60,7 @@
 //   togglePlayMode() {
 //     log.info("Toggling play mode")
 //     return (kioskState: KioskState) => new KioskState({
-//       ...kioskState, playModeEnabled: !kioskState.playModeEnabled
+//       ...kioskState, isPlayMode: !kioskState.isPlayMode
 //     })
 //   }
 //

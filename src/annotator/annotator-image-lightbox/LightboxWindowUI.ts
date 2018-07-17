@@ -57,7 +57,6 @@ class LightboxWindowUI {
 
 	// Throw away the old state. Rebuild the UI based on the new state.
 	private onLightboxState = (state: IpcMessages.LightboxState): void => {
-		console.log(' ############# receive lightbox state')
 		log.info('onLightboxState', state)
 		const imageListElement = document.getElementById('image_list')
 		if (imageListElement) {

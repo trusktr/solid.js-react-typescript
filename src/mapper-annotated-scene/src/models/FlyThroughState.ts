@@ -14,7 +14,6 @@ export class FlyThroughState {
 		Object.assign(this, o)
 	}
 
-	enabled:boolean
 	trajectories:FlyThroughTrajectory[]
 	currentTrajectoryIndex:number
 	currentPoseIndex:number

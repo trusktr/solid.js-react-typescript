@@ -159,8 +159,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// Add grid on top of the plane to visualize where the plane is.
 		// Add an axes helper to visualize the origin and orientation of the primary directions.
 		const axesHelperLength = parseFloat(config['annotator.axes_helper_length']) || 0
-		let grid;
-		let axis;
+		let grid
+		let axis
 		if (axesHelperLength > 0) {
 			const gridSize = parseFloat(config['annotator.grid_size']) || 200
 			const gridUnit = parseFloat(config['annotator.grid_unit']) || 10
@@ -306,11 +306,40 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		}
 
 		// If the LayerManager modifies the visible layers, we should rerender
-		if(newProps.visibleLayers != this.props.visibleLayers) {
+		if(this.areListsEqual(newProps.visibleLayers! , this.props.visibleLayers!)){
 			this.renderScene()
 		}
 
 	}
+
+	// @TODO RYAN TO MOVE TO UTILITY
+	private areListsEqual(first:string[], second:string[]): boolean {
+		if(first.length != second.length) return false
+
+		let updated = 0
+		for(let i of first) {
+			if(second.indexOf(i) < 0) {
+				updated++
+			}
+		}
+
+        for(let j of second) {
+            if(first.indexOf(j) < 0) {
+                updated++
+            }
+        }
+
+        let result
+        if(updated) {
+			// arrays are different, they are not equal
+			result= false
+		} else {
+			result= true
+		}
+		return result
+
+	}
+
 
 	private updateSceneObjects(newSceneObjects:Set<THREE.Object3D>, existingSceneObjects:Set<THREE.Object3D>) {
 		const scene = this.state.scene
@@ -445,7 +474,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// TODO This should go to AreaOfInterestManager, and hook into
 	// SceneManager's loop (or add a child one)
 	private startAoiUpdates(): void {
-		console.log("SceneManager startAoiUpdates")
 		const loop = this.state.loop
 
 		loop.addAnimationFn(() => {
@@ -488,9 +516,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	hideGridVisibility() {
-		const grid = this.state.grid
-		grid.visible = false
-		this.setState({grid})
+		if (this.state.grid) {
+			const grid = this.state.grid
+			grid.visible = false
+			this.setState({grid})
+		}
 	}
 
 	enableOrbitControls() {
@@ -693,7 +723,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	render() {
-        console.log("SceneManager rendering")
 		return null
 	}
 

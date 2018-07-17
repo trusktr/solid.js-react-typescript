@@ -30,7 +30,6 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 
     constructor(props) {
         super(props)
-        console.log("RT-DEBUG CarManager constructor")
 
     }
 
@@ -58,7 +57,6 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 
 
     private loadCarModel(): Promise<THREE.Object3D> {
-        console.log("RT-DEBUG CarManager loadCarModel")
         return new Promise((resolve: (carModel: THREE.Object3D) => void, reject: (reason?: Error) => void): void => {
             try {
                 const manager = new THREE.LoadingManager()
@@ -81,7 +79,6 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
                     })
 
                     this.setState({carModel})
-                    console.log("RT-DEBUG about to add car to scene")
                     new AnnotatedSceneActions().addObjectToScene(carModel)
                     resolve(carModel)
                 })
@@ -128,12 +125,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
         // RT NOW this.setState({carModel})
     }
 
-    shouldComponentUpdate(nextProps, nextState) {
-        return false
-    }
-
     render() {
-        console.log("RT-DEBUG CarManager render")
         return null
     }
 }

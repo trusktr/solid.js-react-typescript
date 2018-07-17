@@ -131,7 +131,9 @@ export abstract class TileManager {
 
 	protected abstract constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile
 
-	// Update state of which super tiles are loaded.
+    protected abstract setStatsMessage(): void
+
+    // Update state of which super tiles are loaded.
 	private setLoadedSuperTileKeys(newKeys: OrderedSet<string>): void {
 		this.loadedSuperTileKeys = newKeys
 	}
@@ -139,12 +141,12 @@ export abstract class TileManager {
 	private getOrCreateSuperTile(utmIndex: TileIndex, coordinateFrame: CoordinateFrameType): SuperTile {
 		const key = utmIndex.toString()
 		if (!this.superTiles.has(key)) {
-			console.log("RT22 TileManager adding superTile")
 			const superTile = this.constructSuperTile(utmIndex, coordinateFrame, this.utmCoordinateSystem)
       		this.superTiles = this.superTiles.set(key, superTile)
 			this.addSuperTile(superTile)
 			// RT 7/12 this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
-    }
+    		this.setStatsMessage()
+		}
 		return this.superTiles.get(key)
 	}
 
@@ -174,7 +176,6 @@ export abstract class TileManager {
 	// Side effect: Prune old SuperTiles as necessary.
 	// Returns true if super tiles were loaded.
 	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects: boolean = false): Promise<boolean> {
-		console.log("HERE13")
 		if (this.isLoadingTiles)
 			return Promise.reject(new BusyError('busy loading tiles'))
 
@@ -301,10 +302,14 @@ export abstract class TileManager {
 						this.superTiles = this.superTiles.set(superTile.key(), superTile)
 						this.addSuperTile(superTile)
 						// RT 7/12 this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
+
+						this.setStatsMessage()
 					}
 					return success
 				})
 	}
+
+
 
 	private unloadSuperTile(superTile: SuperTile): boolean {
 		this.superTiles = this.superTiles.remove(superTile.key())
@@ -349,26 +354,20 @@ export abstract class TileManager {
 			//console.log("RT123 getLoadedObjectsBoundingBox 1")
 			return this.loadedObjectsBoundingBox
 		} else if (this.superTiles.isEmpty()) {
-      //console.log("RT123 getLoadedObjectsBoundingBox 2")
 			return null
 		} else {
-      //console.log("RT123 getLoadedObjectsBoundingBox 3 inside")
 			let bbox = new THREE.Box3()
-      //console.log("RT123 bbox before", bbox)
 			this.superTiles.forEach(st => {
 				const newBbox = st!.getContentsBoundingBox()
 				if (newBbox && newBbox.min.x !== null && newBbox.min.x !== Infinity) {
-          console.log("RT BBOX UNION")
           bbox = bbox.union(newBbox)
 				}
 
 			})
-			//console.log("RT123 bbox after", bbox)
 			if (bbox.min.x === null || bbox.min.x === Infinity)
 				this.loadedObjectsBoundingBox = null
 			else
 				this.loadedObjectsBoundingBox = bbox
-      //console.log("RT123 getLoadedObjectsBoundingBox return 3")
 			return this.loadedObjectsBoundingBox
 		}
 	}

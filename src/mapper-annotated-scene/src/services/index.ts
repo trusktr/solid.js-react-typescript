@@ -32,5 +32,5 @@ export async function loadStore() {
   } catch (err) {
     log.error("Failed to load store", err)
   }
-  console.log("FINISHED LOADING STORE")
+  console.log("Finished loading store")
 }

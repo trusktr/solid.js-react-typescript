@@ -26,6 +26,8 @@ import {OrderedMap} from "immutable"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
 import {EventEmitter} from "events";
+import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
+import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 
 const log = Logger(__filename)
 
@@ -95,6 +97,18 @@ export class PointCloudTileManager extends TileManager {
 	protected constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile {
 		return new PointCloudSuperTile(index, coordinateFrame, utmCoordinateSystem, this.pointsMaterial)
 	}
+
+    /**
+     * Calculate points loaded and dispatch an action
+     */
+    protected setStatsMessage() {
+        let points = 0
+
+        this.superTiles.forEach(st => points += st!.objectCount)
+
+        const message = `Loaded ${this.superTiles.size} point tiles; ${points} points`
+        new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
+    }
 
 	// Get all populated point clouds from all the super tiles.
 	getPointClouds(): THREE.Points[] {

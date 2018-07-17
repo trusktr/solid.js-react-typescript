@@ -119,6 +119,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
         // tslint:disable-next-line:no-any
 
         const pointCloudBoundingBox = new THREE.BoxHelper(bbox as any, this.state.pointCloudBboxColor)
+        pointCloudBoundingBox.name = 'pointCloudBoundingBox'
         this.setState({pointCloudBoundingBox: pointCloudBoundingBox})
         new AnnotatedSceneActions().addObjectToScene(pointCloudBoundingBox)
       }
@@ -151,13 +152,12 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
     this.updatePointCloudBoundingBox()
 
-	// TODO JOE MONDAY 7/2/18 move compas rose stuff outside here (in a separate
-	// layer) and have it listen for point cloud load events.
     this.setCompassRoseByPointCloud()
 
     const focalPoint = this.props.pointCloudTileManager.centerPoint()
-    if (focalPoint)
-      this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z, resetCamera)
+    if (focalPoint) {
+        this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z, resetCamera)
+    }
 
     this.props.sceneManager.renderScene()
   }
@@ -178,7 +178,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
     } else {
       const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])
       const p2 = new THREE.Vector3(bbox[3], bbox[4], bbox[5])
-      console.log("RT Loading point cloud data from BB")
       return this.loadPointCloudDataFromMapServer([{minPoint: p1, maxPoint: p2}])
     }
   }
@@ -202,7 +201,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 			log.error("Attempting to set compassRose, unable to find bounding box")
 			return
 		}
-		console.log("RT123 houston we have a bb")
 
 		// Find the center of one of the sides of the bounding box. This is the side that is
 		// considered to be North given the current implementation of UtmInterface.utmToThreeJs().
@@ -218,9 +216,10 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	}
 
 	componentDidUpdate(previousProps: PointCloudManagerProps) {
-	    if (previousProps.areaOfInterest !== this.props.areaOfInterest && this.props.isKioskUserDataLoaded) {
+	    // IMPORTANT - Kiosk User Data must be loaded before this runs otherwise the UTM Offset is set based on AOI
+        // Instead of Config Bounding Box (the reverse will cause the scene to flicker)
+	    if (this.props.isKioskUserDataLoaded && previousProps.areaOfInterest !== this.props.areaOfInterest) {
 			if (this.props.areaOfInterest) {
-                console.log("RT Loading point cloud data from PointCloudManager.componentDidUpdate")
 				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true, false )
 					.catch(err => {log.warn(err.message)})
 			}

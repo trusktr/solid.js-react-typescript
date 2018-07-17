@@ -88,6 +88,9 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
 	}
 
+    /**
+	 * Update the AOI Heading.  Currently (7/18) this is Kiosk-only logic but may expand
+     */
 	updateAoiHeading(): void {
 
 		// TODO TMP only called for Kiosk app. Maybe fix with detecting camera movement direction
@@ -178,10 +181,6 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
             return null
     }
 
-    shouldComponentUpdate(nextProps, nextState) {
-		return false
-	}
-
 	// Create a bounding box around the current AOI and optionally display it.
 	// Then load the points in and around the AOI. If we have a current heading,
 	// extend the AOI with another bounding box in the direction of motion.
@@ -216,6 +215,7 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 					const geom = new THREE.Geometry()
 					geom.vertices.push(search.minPoint, search.maxPoint)
 					const bbox = new THREE.BoxHelper(new THREE.Points(geom), this.state.bBoxColor)
+					bbox.name = "AOI Bounding Box"
 					this.setState({ boundingBoxes: this.state.boundingBoxes.concat(bbox) })
 					new AnnotatedSceneActions().addObjectToScene(bbox)
 				})
@@ -234,7 +234,6 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 	}
 
 	render() {
-        console.log("AOIManager rendering")
 		return null
 	}
 

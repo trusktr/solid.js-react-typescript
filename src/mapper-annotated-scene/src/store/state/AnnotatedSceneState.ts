@@ -29,10 +29,10 @@ export default class AnnotatedSceneState {
 	messages: Array<UIMessage>
 
 	// ANNOTATOR SPECIFIC STATE
-	liveModeEnabled: boolean // toggles between live mode and recorded mode
-	playModeEnabled: boolean // toggles between play and pause modes
+	isLiveMode: boolean // toggles between live mode and recorded mode
+	isPlayMode: boolean // toggles between play and pause modes
 
-	flyThroughState: FlyThroughState
+    flyThroughEnabled: boolean
 	statusWindowState: StatusWindowState
 
 	uiMenuVisible: boolean
@@ -72,7 +72,6 @@ export default class AnnotatedSceneState {
 	isConnectRightNeighborMode: boolean
 	isConnectFrontNeighborMode: boolean
 	isAddMarkerMode: boolean
-	isLiveMode: boolean
 	isAddConnectionMode: boolean
 	isJoinAnnotationMode: boolean
 	isControlKeyPressed: boolean
