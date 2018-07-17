@@ -33,6 +33,7 @@ import * as CRS from "./CoordinateReferenceSystem"
 import Logger from "@/util/log"
 import {tileIndexFromVector3} from "@/annotator-entry-ui/model/TileIndex"
 import {ScaleProvider} from "@/annotator-entry-ui/tile/ScaleProvider"
+import {kmlToTerritories} from "@/util/KmlToTerritories"
 
 const log = Logger(__filename)
 
@@ -700,6 +701,21 @@ export class AnnotationManager {
 	unhighlightMarkers(): void {
 		if (this.activeAnnotation)
 			this.activeAnnotation.unhighlightMarkers()
+	}
+
+	/**
+	 * Load territories from KML which is generated elsewhere. Build the objects and add them to the Annotator scene.
+	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
+	 *   there will be something to look at there
+	 */
+	loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
+		return kmlToTerritories(this.utmCoordinateSystem, fileName)
+			.then(territories => {
+				if (!territories)
+					throw Error(`territories KML file ${fileName} has no territories`)
+				log.info(`found ${territories.length} territories`)
+				return this.addAnnotationsList(territories)
+			})
 	}
 
 	/**
