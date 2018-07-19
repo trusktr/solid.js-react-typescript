@@ -9,13 +9,9 @@ import Logger from "@/util/log";
 import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
 import {OrderedMap} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
-import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
-import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 import {RangeSearch} from "../../../tile-model/RangeSearch";
 import {TileManager} from '../../../tile/TileManager'
-import {getAnnotatedSceneStoreState} from '@/mapper-annotated-scene/src/store/AppStore'
 import {Set} from "immutable";
-import {FlyThroughState} from "@/mapper-annotated-scene/src/models/FlyThroughState";
 
 const log = Logger(__filename)
 
