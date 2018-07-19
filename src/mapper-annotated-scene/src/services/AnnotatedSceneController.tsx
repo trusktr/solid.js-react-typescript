@@ -532,6 +532,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
                 <ResizeObserver
                     onResize={(rect) => {
+						console.log( ' ------------------------------ componentSize:', rect )
                         this.setState({
                             componentWidth: rect.width,
                             componentHeight: rect.height,
@@ -556,7 +557,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 						backgroundColor={this.props.backgroundColor}
 	                    // TODO JOE this will resize based on container size using window.ResizeObserver.
 	                    width={this.state.componentWidth}
-	                    height={this.state.componentWidth}
+	                    height={this.state.componentHeight}
 
 	                    utmCoordinateSystem={this.utmCoordinateSystem}
 	                    channel={this.channel}
