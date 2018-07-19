@@ -138,8 +138,6 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 				this.setState({aoiFocalPoint: newPoint})
 				new AnnotatedSceneActions().setPointOfInterest( this.state.aoiFocalPoint )
 				this.updatePointCloudAoiBoundingBox(this.state.aoiFocalPoint)
-
-				console.log( ' ---------------------------- updatePointCloudAoi' )
 			}
 
 		} else {

@@ -311,7 +311,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
                     } as FlyThroughTrajectory
                 }).filter(trajectory => trajectory.poses.length > 0)
 
-				console.log( ' --------------------------------------------- loaded trajectories' )
                 flyThroughState.trajectories = trajectories
 
                 if (trajectories.length) {
@@ -339,7 +338,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     // Side effect: if the animation is paused, start playing.
     // RYAN - when someone clicks between LIVE AND RECORDED
     toggleLiveAndRecordedPlay() {
-		console.log( ' ***************************** toggleLiveAndRecordedPlay' )
         const flyThroughState = this.state.flyThroughState
         const isPlayMode = this.props.isPlayMode
 

@@ -433,7 +433,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 		}
 
 		if (!prevState.pointCloudManager && this.state.pointCloudManager) {
-			console.log( ' ------------------------------ load the initial tiles' )
 			this.loadInitialPointCloudTiles()
 		}
 
@@ -532,14 +531,10 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
                 <ResizeObserver
                     onResize={(rect) => {
-						console.log( ' ------------------------------ componentSize:', rect )
                         this.setState({
                             componentWidth: rect.width,
                             componentHeight: rect.height,
                         })
-                    }}
-                    onPosition={(rect) => {
-                        console.log('Moved. New position:', rect.left, 'x', rect.top);
                     }}
                 />
 
