@@ -30,7 +30,6 @@ import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfI
 import {BusyError} from "@/mapper-annotated-scene/tile/TileManager"
 import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type";
 import LayerToggle from "@/mapper-annotated-scene/src/models/LayerToggle";
-import {Map} from 'immutable'
 import {KeyboardEventHighlights} from "@/electron-ipc/Messages"
 import ResizeObserver from 'react-resize-observer'
 import {Events} from "@/mapper-annotated-scene/src/models/Events";
@@ -91,8 +90,6 @@ export interface IAnnotatedSceneControllerState {
     layerManager?: LayerManager
     annotationTileManager?: AnnotationTileManager
     annotationManager?: AnnotationManager
-    registeredKeyDownEvents: Map<string, any> // mapping between KeyboardEvent.key and function to execute
-    registeredKeyUpEvents: Map<string, any> // mapping between KeyboardEvent.key and function to execute
     container?: HTMLDivElement
     componentWidth: number
     componentHeight: number
@@ -115,6 +112,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	lastPointCloudLoadedErrorModalMs: number
 	private isAllSet: boolean
 
+    private registeredKeyDownEvents: Map<string, (e: KeyboardEvent | KeyboardEventHighlights) => void> = new Map<string, any>() // mapping between KeyboardEvent.key and function to execute
+    private registeredKeyUpEvents: Map<string, (e: KeyboardEvent | KeyboardEventHighlights) => void> = new Map<string, any>() // mapping between KeyboardEvent.key and function to execute
+
     constructor(props) {
         super(props)
 
@@ -125,8 +125,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
             cameraState: {
                 lastCameraCenterPoint: null,
             },
-            registeredKeyDownEvents: Map<string, any>(),
-            registeredKeyUpEvents: Map<string, any>(),
             componentWidth: 1000,
             componentHeight: 1000,
         }
@@ -317,7 +315,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 		this.possiblySetNumberPressed(event)
 
-        const fn = this.state.registeredKeyDownEvents.get(event.key)
+        const fn = this.registeredKeyDownEvents.get(event.key)
         fn && fn( event )
     }
 
@@ -326,7 +324,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 		this.possiblyUnsetNumberPressed(event)
 
-        const fn = this.state.registeredKeyUpEvents.get(event.key)
+        const fn = this.registeredKeyUpEvents.get(event.key)
         fn && fn( event )
     }
 
@@ -367,15 +365,11 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	}
 
     registerKeyboardDownEvent(key: string, fn: (e: KeyboardEvent | KeyboardEventHighlights) => void) {
-        this.setState({
-            registeredKeyDownEvents: this.state.registeredKeyDownEvents.set(key, fn)
-        })
+		this.registeredKeyDownEvents.set(key, fn)
     }
 
     registerKeyboardUpEvent(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
-        this.setState({
-            registeredKeyUpEvents: this.state.registeredKeyUpEvents.set(key, fn)
-        })
+		this.registeredKeyUpEvents.set(key, fn)
     }
 
     private handleTileManagerLoadError = (dataType: string, err: Error): void => {

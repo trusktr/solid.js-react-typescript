@@ -513,6 +513,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// }}}
 
 	mapKey(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+		console.log( ' -------------------------- set key!', key )
 		this.state.annotatedSceneController!.mapKey(key, fn)
 	}
 
@@ -525,6 +526,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	keyHeld(key: string, fn: (held: boolean) => void) {
+		console.log( ' --------------------------------------- held key', key )
 		this.state.annotatedSceneController!.keyHeld(key, fn)
 	}
 
@@ -556,14 +558,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.mapKey('V', () => this.state.annotatedSceneController!.toggleCameraType())
 		this.mapKey('X', () => this.state.annotationManager!.toggleTransformControlsRotationMode())
 
-		const actions = new AnnotatedSceneActions()
-		this.keyHeld('a', held => actions.setAddMarkerMode(held))
-		this.keyHeld('c', held => actions.setAddConnectionMode(held))
-		this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
-		this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
-		this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
-		this.keyHeld('q', held => actions.setAddConflictOrDeviceMode(held))
-		this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
+		// const actions = new AnnotatedSceneActions()
+		// this.keyHeld('a', held => actions.setAddMarkerMode(held))
+		// this.keyHeld('c', held => actions.setAddConnectionMode(held))
+		// this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
+		// this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
+		// this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
+		// this.keyHeld('q', held => actions.setAddConflictOrDeviceMode(held))
+		// this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
 	}
 
 	addImageScreenLayer() {
@@ -625,6 +627,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Create an annotation, add it to the scene, and activate (highlight) it.
 	private uiAddAnnotation(annotationType: AnnotationType): void {
+		console.log( ' &&&&&&&&&&&&&&&&&&&& add annotations', annotationType )
 		if (this.state.annotationManager!.createAndAddAnnotation(annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
 			this.deactivateAllAnnotationPropertiesMenus(annotationType)
@@ -1480,6 +1483,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			channel.on('deactivateRightSideNeighbours', Annotator.deactivateRightSideNeighbours)
 			channel.on('deactivateAllAnnotationPropertiesMenus', this.deactivateAllAnnotationPropertiesMenus)
 			channel.on('resetAllAnnotationPropertiesMenuElements', this.resetAllAnnotationPropertiesMenuElements)
+
+			this.setKeys()
 
 		}
 
