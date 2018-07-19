@@ -91,6 +91,8 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 		this.raycaster.params.Points!.threshold = 0.1
 
 		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
+
+        const initialAreaOfInterest: [number, number, number, number, number, number] = config['startup.point_cloud_bounding_box']
 	}
 
     /**
@@ -136,6 +138,8 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 				this.setState({aoiFocalPoint: newPoint})
 				new AnnotatedSceneActions().setPointOfInterest( this.state.aoiFocalPoint )
 				this.updatePointCloudAoiBoundingBox(this.state.aoiFocalPoint)
+
+				console.log( ' ---------------------------- updatePointCloudAoi' )
 			}
 
 		} else {
@@ -227,14 +231,15 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 				})
 			}
 
-			const utmAOI = threeJsAOI.map(threeJs => {
+			// convert the area of interest to UTM coordinates
+			const areaOfInterest = threeJsAOI.map(threeJs => {
 				return {
 					minPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
 					maxPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
 				}
 			})
 
-			new AnnotatedSceneActions().setAreaOfInterest( utmAOI )
+			new AnnotatedSceneActions().setAreaOfInterest( areaOfInterest )
             return
 		}
 	}

@@ -18,7 +18,7 @@ const dialog = Electron.remote.dialog
 
 export interface KioskProps {
     isCarInitialized ?: boolean
-    isKioskUserDataLoaded ?: boolean
+    isInitialOriginSet ?: boolean
     isLiveMode ?: boolean
     isPlayMode ?: boolean
     flyThroughEnabled ?: boolean
@@ -36,7 +36,7 @@ export interface KioskState {
 
 @typedConnect(createStructuredSelector({
     isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
-    isKioskUserDataLoaded: (state) => state.get(AnnotatedSceneState.Key).isKioskUserDataLoaded,
+    isInitialOriginSet: (state) => state.get(AnnotatedSceneState.Key).isInitialOriginSet,
     isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
     isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
     flyThroughEnabled: (state) => state.get(AnnotatedSceneState.Key).flyThroughEnabled,
@@ -84,7 +84,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
         Electron.remote.getCurrentWindow().close()
     }
 
-    componentWillReceiveProps(newProps) {
+    async componentWillReceiveProps(newProps) {
         if (!this.state.isChildLoopAdded && this.state.annotatedSceneController && this.state.flyThroughManager) {
             // this is the transition from the Scene not being setup to when it is
             // Since it's setup now let's setup the fly through manager
@@ -105,12 +105,16 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
             this.setState({isChildLoopAdded: true})
         }
 
-        if (newProps.isCarInitialized && newProps.isKioskUserDataLoaded && !this.state.hasCalledSetup &&
+        if (newProps.isCarInitialized && newProps.isInitialOriginSet && !this.state.hasCalledSetup &&
             this.state.annotatedSceneController && this.state.carManager && this.state.flyThroughManager
         ) {
+
+            await this.state.flyThroughManager.loadUserData()
+
             // At this point the car model has been loaded and user data has also been loaded, we're ready for listen()
             // this only gets called once because then state.hasCalledSetup is set to True
-            this.listen()
+			this.listen()
+
         }
 
     }
@@ -274,16 +278,14 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
         this.state.flyThroughManager!.loadFlyThroughTrajectories([path])
             .then(() => {
                 log.info("Finished loading trajectory from", path)
+
                 // Make sure that we are in flyThrough mode and that the animation is running.
                 if (!this.props.flyThroughEnabled) {
-                    // this.toggleLiveAndRecordedPlay()
                     this.state.flyThroughManager!.toggleLiveAndRecordedPlay()
                 }
 
                 this.state.flyThroughManager!.startFlyThrough()
-                //this.startFlyThrough()
 
-                //if (this.uiState.isLiveModePaused)
                 if (!this.props.isPlayMode) {
                     this.state.flyThroughManager!.resumePlayMode()
                 }
@@ -314,6 +316,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 					ref={this.getAnnotatedSceneControllerRef}
 					onPointOfInterestCall={onPointOfInterestCall}
 					onCurrentRotation={onCurrentRotation}
+					initialFocusPoint={config['startup.point_cloud_bounding_box']}
 				/>
 
 				{this.state.annotatedSceneController &&

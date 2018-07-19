@@ -8,6 +8,7 @@ import * as THREE from 'three'
 import * as utmConverter from 'utm'
 import {EventEmitter} from "events";
 import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
 
 /**
  * UtmCoordinateSystem has two states: it has a zone or not. Zone can be set one time.
@@ -26,7 +27,7 @@ export class UtmCoordinateSystem {
 	offset: THREE.Vector3
 	// private onSetOrigin: (() => void) | null
 
-	constructor( private channel: EventEmitter ) {
+	constructor() {
 
 		this.zoneAsString = ''
 		this.utmZoneNumber = 0
@@ -90,9 +91,10 @@ export class UtmCoordinateSystem {
 				this.utmZoneNumber = this.defaultUtmZoneNumber
 				this.utmZoneNorthernHemisphere = this.defaultUtmZoneNorthernHemisphere
 			}
-			// if (!isNull(this.onSetOrigin))
-			// 	this.onSetOrigin()
-			this.channel.emit(Events.ORIGIN_UPDATE)
+
+			// NOTE ORIGIN this is only triggered once, but in the future the origin will be able to be changed or reset
+			new AnnotatedSceneActions().setInitialOriginSet( true )
+
 			return true
 		}
 	}

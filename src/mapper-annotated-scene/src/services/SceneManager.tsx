@@ -50,6 +50,7 @@ export interface SceneManagerProps {
 	cameraPreference?: CameraType
 	container: HTMLDivElement
 	transformControlsMode?: 'translate' | 'rotate' | 'scale'
+	isInitialOriginSet?: boolean
 }
 
 
@@ -91,6 +92,7 @@ export interface SceneManagerState {
 	'visibleLayers',
 	'cameraPreference',
 	'transformControlsMode',
+	'isInitialOriginSet',
 ))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 	private orbitControls: THREE.OrbitControls
@@ -175,13 +177,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const animationFps = config['startup.render.fps']
 		loop.interval = animationFps === 'device' ? false : 1 / (animationFps || 10)
 
-		this.props.channel.on(Events.ORIGIN_UPDATE, () => {
-			// Triggered by UTMCoordinateSystem.setOrigin
-			this.loadDecorations()
-		})
-
-		this.props.channel.on(Events.SCENE_SHOULD_RENDER, this.renderScene)
-
 		this.orbitControls = this.initOrbitControls(camera, renderer)
 
 		// TODO JOE THURSDAY anything that doesn't need to change we can
@@ -233,6 +228,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			renderer.render(scene, this.state.camera)
 		})
 
+		this.props.channel.on(Events.SCENE_SHOULD_RENDER, this.renderScene)
 
 		// Setup listeners on add/remove point cloud tiles
 		this.props.channel.on('addPointCloudSuperTile', (superTile:SuperTile) => {this.addSuperTile(superTile)})
@@ -801,6 +797,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		if (newProps.transformControlsMode !== this.props.transformControlsMode) {
 			this.transformControls.setMode(newProps.transformControlsMode)
 			this.renderScene()
+		}
+
+		// Triggered by UTMCoordinateSystem.setOrigin
+		// NOTE ORIGIN JOE at the moment only happens once, but in the future will happens any number of times
+		if (newProps.isInitialOriginSet !== this.props.isInitialOriginSet) {
+			this.loadDecorations()
 		}
 
 	}

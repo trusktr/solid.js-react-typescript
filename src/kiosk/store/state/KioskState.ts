@@ -23,6 +23,6 @@
 //
 //   flyThroughState: FlyThroughState
 //   isCarInitialized: boolean
-//   isKioskUserDataLoaded: boolean
+//   isInitialOriginSet: boolean
 //   carPose: Models.PoseMessage
 // }

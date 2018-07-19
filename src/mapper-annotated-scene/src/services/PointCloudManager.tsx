@@ -26,7 +26,7 @@ export interface PointCloudManagerProps {
   layerManager: LayerManager
   handleTileManagerLoadError: (msg: string, err: Error) => void // TODO JOE do we need this?
   utmCoordinateSystem: UtmCoordinateSystem
-  isKioskUserDataLoaded?: boolean
+  isInitialOriginSet?: boolean
 }
 
 export interface PointCloudManagerState {
@@ -38,7 +38,7 @@ export interface PointCloudManagerState {
 @typedConnect(toProps(
 	'isPointCloudVisible',
 	'areaOfInterest',
-	'isKioskUserDataLoaded',
+	'isInitialOriginSet',
 ))
 export default class PointCloudManager extends React.Component<PointCloudManagerProps, PointCloudManagerState> {
 
@@ -174,7 +174,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   loadPointCloudDataFromConfigBoundingBox(bbox: number[]): Promise<void> {
     if (!isTupleOfNumbers(bbox, 6)) {
       this.props.handleTileManagerLoadError('Point Cloud', Error('invalid point cloud bounding box config'))
-      return Promise.resolve()
+      return Promise.reject(Error('invalid point cloud bounding box config'))
     } else {
       const p1 = new THREE.Vector3(bbox[0], bbox[1], bbox[2])
       const p2 = new THREE.Vector3(bbox[3], bbox[4], bbox[5])
@@ -218,7 +218,8 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	componentDidUpdate(previousProps: PointCloudManagerProps) {
 	    // IMPORTANT - Kiosk User Data must be loaded before this runs otherwise the UTM Offset is set based on AOI
         // Instead of Config Bounding Box (the reverse will cause the scene to flicker)
-	    if (this.props.isKioskUserDataLoaded && previousProps.areaOfInterest !== this.props.areaOfInterest) {
+		// TODO LIBRARY the lib won't know what app data to load, so we have to take isInitialOriginSet out of here.
+	    if (previousProps.areaOfInterest !== this.props.areaOfInterest && this.props.isInitialOriginSet) {
 			if (this.props.areaOfInterest) {
 				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true, false )
 					.catch(err => {log.warn(err.message)})

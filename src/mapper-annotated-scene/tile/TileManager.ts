@@ -157,6 +157,9 @@ export abstract class TileManager {
 
 	// The first tile we see defines the local origin and UTM zone for the lifetime of the application.
 	// All other data is expected to lie in the same zone.
+	// TODO JOE in the future we need to change the origin if we get far away
+	// from the Three.js origin, to prevent graphical jitter from floating-point
+	// precision error.
 	protected checkCoordinateSystem(msg: TileMessage, inputCoordinateFrame: CoordinateFrameType): boolean {
 		const num = msg.utmZoneNumber
 		const northernHemisphere = msg.utmZoneNorthernHemisphere

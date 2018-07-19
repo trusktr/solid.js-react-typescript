@@ -40,7 +40,7 @@
 //         endPoseIndex: 0,
 //       },
 //       isCarInitialized: false,
-//       isKioskUserDataLoaded: false,
+//       isInitialOriginSet: false,
 //
 //       carPose: null, // @TODO can maybe be deleted (will review once app is running)
 //     }
@@ -73,10 +73,10 @@
 //   }
 //
 //   @ActionReducer()
-//   setIsKioskUserDataLoaded(isLoaded:boolean) {
-//     log.info("Setting isKioskUserDataLoaded", isLoaded)
+//   setInitialOriginSet(isLoaded:boolean) {
+//     log.info("Setting isInitialOriginSet", isLoaded)
 //     return (kioskState: KioskState) => new KioskState({
-//       ...kioskState, isKioskUserDataLoaded: isLoaded
+//       ...kioskState, isInitialOriginSet: isLoaded
 //     })
 //   }
 // }

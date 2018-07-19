@@ -1509,6 +1509,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					ref={this.getAnnotatedSceneRef}
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
+					initialFocusPoint={config['startup.point_cloud_bounding_box']}
 
 					lockBoundaries={this.state.lockBoundaries}
 					lockTerritories={this.state.lockTerritories}

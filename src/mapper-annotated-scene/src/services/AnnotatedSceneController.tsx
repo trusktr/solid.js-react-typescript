@@ -33,6 +33,7 @@ import LayerToggle from "@/mapper-annotated-scene/src/models/LayerToggle";
 import {Map} from 'immutable'
 import {KeyboardEventHighlights} from "@/electron-ipc/Messages"
 import ResizeObserver from 'react-resize-observer'
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
 
 const log = Logger(__filename)
 
@@ -76,6 +77,8 @@ export interface IAnnotatedSceneControllerProps {
     lockTerritories?: boolean
     lockLanes?: boolean
     lockTrafficDevices?: boolean
+
+	initialFocusPoint: [ number, number, number, number, number, number ]
 }
 
 export interface IAnnotatedSceneControllerState {
@@ -130,7 +133,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
         // These don't need to be state, because these references don't change
         this.channel = new EventEmitter()
-        this.utmCoordinateSystem = new UtmCoordinateSystem(this.channel)
+        this.utmCoordinateSystem = new UtmCoordinateSystem()
         // ^ utmCoordinateSystem doesn't need to be a React component because it
         // isn't hooked to Redux.
 
@@ -165,6 +168,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         new StatusWindowActions().setMessage(StatusKey.CURRENT_LOCATION_UTM, messageUtm)
     }
 
+	// TODO this can have a better name
     setAnnotatedSceneController() {
 		if (this.isAllSet) return
 
@@ -391,33 +395,46 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         }
     }
 
+	makeAnnotationTileManager() {
+
+        this.setState({
+			annotationTileManager: new AnnotationTileManager(
+                this.scaleProvider,
+                this.utmCoordinateSystem,
+                this.tileServiceClient,
+                this.channel,
+
+                // TODO FIXME JOE AnnotationManager is passed into
+                // AnnotationTileManager, so I think we're thinking of two
+                // AnnotationManager classes: the one Clyde made, and the one we
+                // imagine as effectively the thing controling the annotation
+                // tile layer which is similar to PointCloudManager. So we
+                // should split AnnotationManager into two, and name one of them
+                // something like AnnotationLayer or something.
+                this.state.annotationManager!,
+            )
+		})
+
+        new AnnotatedSceneActions().setIsAnnotationTileManagerEnabled(true)
+
+	}
+
+	loadInitialPointCloudTiles(): Promise<void> {
+        return this.state.pointCloudManager!.loadPointCloudDataFromConfigBoundingBox( this.props.initialFocusPoint )
+	}
+
     componentDidUpdate(_, prevState, __) {
         if (!this.isAllSet && this.state.sceneManager && this.state.container && this.state.annotationManager) {
             this.setAnnotatedSceneController()
         }
 
 		if (!prevState.annotationManager && this.state.annotationManager) {
+			this.makeAnnotationTileManager()
+		}
 
-            this.setState({
-				annotationTileManager: new AnnotationTileManager(
-	                this.scaleProvider,
-	                this.utmCoordinateSystem,
-	                this.tileServiceClient,
-	                this.channel,
-
-	                // TODO FIXME JOE AnnotationManager is passed into
-	                // AnnotationTileManager, so I think we're thinking of two
-	                // AnnotationManager classes: the one Clyde made, and the one we
-	                // imagine as effectively the thing controling the annotation
-	                // tile layer which is similar to PointCloudManager. So we
-	                // should split AnnotationManager into two, and name one of them
-	                // something like AnnotationLayer or something.
-	                this.state.annotationManager,
-	            )
-			})
-
-            new AnnotatedSceneActions().setIsAnnotationTileManagerEnabled(true)
-
+		if (!prevState.pointCloudManager && this.state.pointCloudManager) {
+			console.log( ' ------------------------------ load the initial tiles' )
+			this.loadInitialPointCloudTiles()
 		}
 
         this.displayCameraInfo()

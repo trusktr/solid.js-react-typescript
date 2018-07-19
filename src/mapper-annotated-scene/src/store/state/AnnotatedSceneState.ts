@@ -40,7 +40,7 @@ export default class AnnotatedSceneState {
 
 	carPose: Models.PoseMessage
 	isCarInitialized: boolean
-	isKioskUserDataLoaded: boolean
+	isInitialOriginSet: boolean
 
 
 

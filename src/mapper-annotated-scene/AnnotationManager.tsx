@@ -119,7 +119,7 @@ interface IProps {
 	lockTrafficDevices?: boolean
 	channel: EventEmitter
 
-	isKioskUserDataLoaded?: boolean
+	isInitialOriginSet?: boolean
 }
 
 interface IState {
@@ -154,7 +154,7 @@ interface IState {
 	'areaOfInterest',
 	'rendererSize',
 	'camera',
-	'isKioskUserDataLoaded',
+	'isInitialOriginSet',
 ))
 export class AnnotationManager extends React.Component<IProps, IState> {
 
@@ -209,7 +209,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	componentDidUpdate(previousProps: IProps) {
         // IMPORTANT - Kiosk User Data must be loaded before this runs otherwise the UTM Offset is set based on AOI
         // Instead of Config Bounding Box (the reverse will cause the scene to flicker)
-		if (this.props.isKioskUserDataLoaded && previousProps.areaOfInterest !== this.props.areaOfInterest) {
+		if (this.props.isInitialOriginSet && previousProps.areaOfInterest !== this.props.areaOfInterest) {
 			if (this.props.areaOfInterest) {
 				this.loadAnnotationDataFromMapServer( this.props.areaOfInterest, true )
 					.catch(err => {log.warn(err.message)})

@@ -29,8 +29,7 @@ export interface FlyThroughManagerProps {
     annotatedSceneController: AnnotatedSceneController
     isLiveMode ?: boolean
     isPlayMode ?: boolean
-    isCarInitialized ?: boolean
-    isKioskUserDataLoaded ?: boolean
+    isInitialOriginSet ?: boolean
     shouldAnimate ?: boolean
     flyThroughEnabled ?: boolean
 }
@@ -45,8 +44,7 @@ export interface FlyThroughManagerState {
 @typedConnect(createStructuredSelector({
     isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
     isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
-    isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
-    isKioskUserDataLoaded: (state) => state.get(AnnotatedSceneState.Key).isKioskUserDataLoaded,
+    isInitialOriginSet: (state) => state.get(AnnotatedSceneState.Key).isInitialOriginSet,
     shouldAnimate: (state) => state.get(AnnotatedSceneState.Key).shouldAnimate,
     flyThroughEnabled: (state) => state.get(AnnotatedSceneState.Key).flyThroughEnabled,
 }))
@@ -78,9 +76,9 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     }
 
     componentWillReceiveProps(newProps) {
-        if (newProps.isCarInitialized && !newProps.isKioskUserDataLoaded) {
+        if (newProps.isCarInitialized) {
             // The car is setup but we haven't loaded the user data and trajectories - let's do that now
-            this.loadUserData().then(() => new AnnotatedSceneActions().setIsKioskUserDataLoaded(true))
+            this.loadUserData()
         }
     }
 
@@ -88,26 +86,10 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
      *    Load up any data which configuration has asked for on start-up.
      *    Note: This function is called after the car has been instantiated AND after PointCloudManager and AnnotatedScene are setup
      */
-    private loadUserData(): Promise<void> {
-        const annotationsPath = config['startup.annotations_path']
-        let annotationsResult: Promise<void>
-        if (annotationsPath) {
-            annotationsResult = this.props.annotatedSceneController.state.annotationManager!.loadAnnotations(annotationsPath)
-        } else {
-            annotationsResult = Promise.resolve()
-        }
-
-        const pointCloudBbox: [number, number, number, number, number, number] = config['startup.point_cloud_bounding_box']
-        let pointCloudResult: Promise<void>
-        if (pointCloudBbox) {
-            pointCloudResult = annotationsResult
-                .then(() => {
-                    log.info('loading pre-configured bounding box ' + pointCloudBbox)
-                    return this.props.annotatedSceneController.state.pointCloudManager!.loadPointCloudDataFromConfigBoundingBox(pointCloudBbox)
-                })
-        } else {
-            pointCloudResult = annotationsResult
-        }
+	// TODO JOE FlyThroughManager currently knows about annotations, but it
+	// shouldn't have to. FlyThroughManager only needs to load trajectory paths
+	// at most.
+    loadUserData(): Promise<void> {
 
         if (config['startup.point_cloud_directory'])
             log.warn('config option startup.point_cloud_directory has been removed.')
@@ -116,16 +98,25 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         if (config['fly_through.trajectory_path'])
             log.warn('config option fly_through.trajectory_path is now a list: fly_through.trajectory_path.list')
 
+		// TODO JOE Annotator needs this too.
+        const annotationsPath = config['startup.annotations_path']
+        let annotationsResult: Promise<void>
+        if (annotationsPath) {
+            annotationsResult = this.props.annotatedSceneController.state.annotationManager!.loadAnnotations(annotationsPath)
+        } else {
+            annotationsResult = Promise.resolve()
+        }
+
         let trajectoryResult: Promise<void>
         const trajectoryPaths = config['fly_through.trajectory_path.list']
         if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
-            trajectoryResult = pointCloudResult
+            trajectoryResult = annotationsResult
                 .then(() => {
                     log.info('loading pre-configured trajectories')
                     return this.loadFlyThroughTrajectories(trajectoryPaths)
                 })
         } else {
-            trajectoryResult = pointCloudResult
+            trajectoryResult = annotationsResult
         }
 
         return trajectoryResult
@@ -134,7 +125,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     componentDidMount() {
         this.init()
     }
-
 
     async init() {
         try {
@@ -321,6 +311,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
                     } as FlyThroughTrajectory
                 }).filter(trajectory => trajectory.poses.length > 0)
 
+				console.log( ' --------------------------------------------- loaded trajectories' )
                 flyThroughState.trajectories = trajectories
 
                 if (trajectories.length) {
@@ -348,6 +339,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
     // Side effect: if the animation is paused, start playing.
     // RYAN - when someone clicks between LIVE AND RECORDED
     toggleLiveAndRecordedPlay() {
+		console.log( ' ***************************** toggleLiveAndRecordedPlay' )
         const flyThroughState = this.state.flyThroughState
         const isPlayMode = this.props.isPlayMode
 
