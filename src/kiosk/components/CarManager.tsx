@@ -72,7 +72,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
                     carModel.traverse(child => {
                         if (child instanceof THREE.Mesh)
                             child.material = new THREE.MeshPhongMaterial({
-                                color: 0x002233,
+                                color: new THREE.Color( 0x002233 ),
                                 specular: 0x222222,
                                 shininess: 0,
                             })

@@ -4,7 +4,6 @@ import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
 import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
 import {Sky} from "@/mapper-annotated-scene/src/services/controls/Sky";
 import config from "@/config";
-import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper";
 import {CompassRose} from "@/mapper-annotated-scene/src/services/controls/CompassRose";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
 import Logger from "@/util/log";
@@ -25,8 +24,8 @@ import * as Stats from 'stats.js'
 import {Events} from "@/mapper-annotated-scene/src/models/Events";
 import getOrderedMapValueDiff from '../util/getOrderedMapValueDiff'
 import {Set} from 'immutable'
-import {Super} from "babel-types";
 import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type";
+import {TransformControls} from '@/mapper-annotated-scene/src/services/controls/TransformControls'
 
 const log = Logger(__filename)
 
@@ -46,17 +45,16 @@ export interface SceneManagerProps {
 	utmCoordinateSystem: UtmCoordinateSystem
 	channel: EventEmitter
 	sceneObjects ?: Set<THREE.Object3D>
+	transformedObjects?: Array<THREE.Object3D>
 	visibleLayers ?: string[]
 	cameraPreference?: CameraType
 	container: HTMLDivElement
+	transformControlsMode?: 'translate' | 'rotate' | 'scale'
 }
 
 
 
 export interface SceneManagerState {
-	plane: THREE.Mesh
-	grid: THREE.GridHelper
-	axis: THREE.Object3D
 	camera: THREE.Camera
 	perspectiveCamera: THREE.PerspectiveCamera
 	orthographicCamera: THREE.OrthographicCamera
@@ -89,11 +87,15 @@ export interface SceneManagerState {
 	'orbitControlsTargetPoint',
 	// 'pointCloudSuperTiles',
 	'sceneObjects',
+	'transformedObjects',
 	'visibleLayers',
 	'cameraPreference',
+	'transformControlsMode',
 ))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 	private orbitControls: THREE.OrbitControls
+	private transformControls: any // controller for translating an object within the scene
+	private hideTransformControlTimer: number
 
 	constructor(props) {
 		super(props)
@@ -130,53 +132,20 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		else
 			camera = perspectiveCam
 
-		const debugSphere = new THREE.Mesh( new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: 0xffffff }) )
+		const debugSphere = new THREE.Mesh( new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: new THREE.Color( 0xffffff ) }) )
 		debugSphere.position.z = -100
 		camera.add( debugSphere )
 
 		// Add some lights
-		scene.add(new THREE.AmbientLight(0xffffff))
+		scene.add(new THREE.AmbientLight(new THREE.Color( 0xffffff )))
 
 		// TODO move config to app, use only prop here
 		// const background = new THREE.Color(config['startup.background_color'] || '#082839')
 		const background = props.backgroundColor || 'gray'
 
 		// Draw the sky.
-		const sky = Sky(background, new THREE.Color(0xccccff), skyRadius)
+		const sky = Sky(new THREE.Color( background ), new THREE.Color(0xccccff), skyRadius)
 		scene.add(sky)
-
-		// Add a "ground plane" to facilitate annotations
-		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
-		planeGeometry.rotateX(-Math.PI / 2)
-		const planeMaterial = new THREE.ShadowMaterial()
-		planeMaterial.visible = false
-		planeMaterial.side = THREE.DoubleSide // enable raycaster intersections from both sides
-
-		const plane = new THREE.Mesh(planeGeometry, planeMaterial)
-		scene.add(plane)
-
-
-		// Add grid on top of the plane to visualize where the plane is.
-		// Add an axes helper to visualize the origin and orientation of the primary directions.
-		const axesHelperLength = parseFloat(config['annotator.axes_helper_length']) || 0
-		let grid
-		let axis
-		if (axesHelperLength > 0) {
-			const gridSize = parseFloat(config['annotator.grid_size']) || 200
-			const gridUnit = parseFloat(config['annotator.grid_unit']) || 10
-			const gridDivisions = gridSize / gridUnit
-
-			grid = new THREE.GridHelper(gridSize, gridDivisions, new THREE.Color('white'))
-			grid!.material.opacity = 0.25
-			grid!.material.transparent = true
-			scene.add(grid)
-
-			axis = AxesHelper(axesHelperLength)
-			scene.add(axis)
-		} else {
-			grid = null
-			axis = null
-		}
 
 		const compassRoseLength = parseFloat(config['annotator.compass_rose_length']) || 0
 		let compassRose;
@@ -191,7 +160,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		// Create GL Renderer
 		const renderer = new THREE.WebGLRenderer({antialias: true})
-		renderer.setClearColor(background)
+		renderer.setClearColor(new THREE.Color( background ))
 		renderer.setPixelRatio(window.devicePixelRatio)
 		renderer.setSize(width, height)
 
@@ -211,7 +180,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.loadDecorations()
 		})
 
-		this.props.channel.on(Events.SCENE_UPDATED, this.renderScene)
+		this.props.channel.on(Events.SCENE_SHOULD_RENDER, this.renderScene)
 
 		this.orbitControls = this.initOrbitControls(camera, renderer)
 
@@ -219,9 +188,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// take out of state and keep as instance variables. F.e. loop, scene,
 		// renderer, etc
 		const state = {
-			plane: plane,
-			grid: grid,
-			axis: axis,
 			camera: camera,
 			perspectiveCamera: perspectiveCam,
 			orthographicCamera: orthographicCam,
@@ -252,6 +218,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		this.createOrthographicCameraDimensions(width, height)
 
+		this.initTransformControls()
+
 		// Point the camera at some reasonable default location.
 		this.setStage(0, 0, 0)
 
@@ -260,7 +228,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		loop.start()
 
 		loop.addBaseFn( () => {
-			// if (this.stats) this.stats.update()
+			// if (this.stats) this.stats.update() TODO REMOVE
+			this.transformControls.update()
 			renderer.render(scene, this.state.camera)
 		})
 
@@ -272,74 +241,53 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		new AnnotatedSceneActions().setSceneInitialized(true)
 	}
 
-	componentWillReceiveProps(newProps:SceneManagerProps) {
-		if(newProps.compassRosePosition && newProps.compassRosePosition !== this.props.compassRosePosition) {
-			const position = newProps.compassRosePosition
-			this.setCompassRosePosition(position.x, position.y, position.z)
-		}
+	/**
+	 * Create Transform controls object. This allows for the translation of an object in the scene.
+	 */
+	// TODO JOE ? Transform logic could possibly go in a new
+	// TransformControlManaager class, which knows which object is currently
+	// selected?
+	initTransformControls(): void {
+		this.transformControls = new TransformControls(this.state.camera, this.state.renderer.domElement, false)
+		this.transformControls.addEventListener('change', this.renderScene)
 
-		if(newProps.isDecorationsVisible !== this.props.isDecorationsVisible) {
-			if(newProps.isDecorationsVisible) {
-				this.showDecorations()
-			} else {
-				this.hideDecorations()
-			}
-		}
+		new AnnotatedSceneActions().addObjectToScene(this.transformControls)
 
-		if(newProps.orbitControlsTargetPoint && newProps.orbitControlsTargetPoint !== this.props.orbitControlsTargetPoint) {
-			this.updateOrbitControlsTargetPoint(newProps.orbitControlsTargetPoint)
-		}
+		// Add listeners.
+		// If we are interacting with the transform object don't hide it.
+		this.transformControls.addEventListener('change', this.cancelHideTransform)
 
-		// RT 7/12 Commented out and using an eventEmitter instead -- see constructor
-		// if(newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles) {
-		// 	const { added, removed } = getOrderedMapValueDiff( this.props.pointCloudSuperTiles, newProps.pointCloudSuperTiles )
-        //
-		// 	added && added.forEach(tile => this.addSuperTile(tile!))
-		// 	removed && removed.forEach(tile => this.removeSuperTile(tile!))
-		// }
+		// If we just clicked on a transform object don't hide it.
+		this.transformControls.addEventListener('mouseDown', this.cancelHideTransform)
 
-		// Handle adding and removing scene objects
-		if(newProps.sceneObjects != this.props.sceneObjects) {
-			const newSceneObjects = newProps.sceneObjects!
-			const existingSceneObjects = this.props.sceneObjects!
-			this.updateSceneObjects(newSceneObjects, existingSceneObjects)
-		}
+		// If we are done interacting with a transform object start hiding process.
+		this.transformControls.addEventListener('mouseUp', this.delayHideTransform)
 
-		// If the LayerManager modifies the visible layers, we should rerender
-		if(this.areListsEqual(newProps.visibleLayers! , this.props.visibleLayers!)){
-			this.renderScene()
-		}
-
+		// If the object attached to the transform object has changed, do something.
+		// this.transformControls.addEventListener('objectChange', this.updateActiveAnnotationMesh)
+		this.transformControls.addEventListener('objectChange', () => this.props.channel.emit('transformUpdate'))
 	}
 
-	// @TODO RYAN TO MOVE TO UTILITY
-	private areListsEqual(first:string[], second:string[]): boolean {
-		if(first.length != second.length) return false
-
-		let updated = 0
-		for(let i of first) {
-			if(second.indexOf(i) < 0) {
-				updated++
-			}
-		}
-
-        for(let j of second) {
-            if(first.indexOf(j) < 0) {
-                updated++
-            }
-        }
-
-        let result
-        if(updated) {
-			// arrays are different, they are not equal
-			result= false
-		} else {
-			result= true
-		}
-		return result
-
+	delayHideTransform = (): void => {
+		this.cancelHideTransform()
+		this.hideTransform()
 	}
 
+	hideTransform = (): void => {
+		this.hideTransformControlTimer = window.setTimeout(this.cleanTransformControls, 1500)
+	}
+
+	cancelHideTransform = (): void => {
+		if (this.hideTransformControlTimer) {
+			window.clearTimeout(this.hideTransformControlTimer)
+		}
+	}
+
+	cleanTransformControls = (): void => {
+		this.cancelHideTransform()
+		this.transformControls.detach()
+		this.renderScene()
+	}
 
 	private updateSceneObjects(newSceneObjects:Set<THREE.Object3D>, existingSceneObjects:Set<THREE.Object3D>) {
 		const scene = this.state.scene
@@ -360,25 +308,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	componentDidMount() {
-		const [width, height]: Array<number> = this.getContainerSize()
-
-		this.createOrthographicCameraDimensions(width, height)
-
-		new AnnotatedSceneActions().setCamera(this.state.camera)
-
-
-		this.makeStats()
-		this.props.container.appendChild(this.state.renderer.domElement)
-		this.startAnimation()
-	}
-
-	componentWillUnmount() {
-		this.stopAnimation()
-		this.destroyStats()
-		this.state.renderer.domElement.remove()
-	}
-
 	private makeStats(): void {
 		if (!config['startup.show_stats_module']) return
 
@@ -388,7 +317,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		stats.dom.style.bottom = '50px' // above Mapper logo
 		stats.dom.style.left = '13px'
 		this.props.container.appendChild(stats.dom)
-		this.setState({stats})
 
 	}
 
@@ -423,12 +351,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// this.shouldAnimate = true
 		this.startAoiUpdates()
 
+		// TODO JOE this will go away, components will queue updates when necessary
 		const loop = this.state.loop
 		loop.addAnimationFn(() => {
 			if ( !this.props.shouldAnimate ) return false
 
 			// @TODO create a way to register animate methods
-			// this.animate()
+			// this.animate() TODO REMOVE
 
 			return true
 		})
@@ -474,6 +403,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// TODO This should go to AreaOfInterestManager, and hook into
 	// SceneManager's loop (or add a child one)
 	private startAoiUpdates(): void {
+		console.log("SceneManager startAoiUpdates")
 		const loop = this.state.loop
 
 		loop.addAnimationFn(() => {
@@ -501,25 +431,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.setState({cameraOffset: offset})
 	}
 
-	removeAxisFromScene() {
-		const scene = this.state.scene
-		if(this.state.axis) {
-			scene.remove(this.state.axis)
-		}
-	}
-
 	removeCompassFromScene() {
 		const scene = this.state.scene
 		if(this.state.compassRose) {
 			scene.remove(this.state.compassRose)
-		}
-	}
-
-	hideGridVisibility() {
-		if (this.state.grid) {
-			const grid = this.state.grid
-			grid.visible = false
-			this.setState({grid})
 		}
 	}
 
@@ -538,18 +453,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// this.loop.addChildLoop( FlyThroughManager.getAnimationLoop() )
 		this.state.loop.addChildLoop( childLoop )
 	}
-
-	// @TODO to be used by annotator and kiosk to register cameras
-	// Example: this.flyThroughCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-	// Example: this.flyThroughCamera.position.set(800, 400, 0)
-	// addCamera(camera:THREE.Camera, key:string) {
-	// 	const {cameras, scene} = this.state
-	// 	scene.add(camera)
-	// 	this.setState({
-	// 		cameras: cameras.set(key, camera),
-	// 		scene: scene
-	// 	})
-	// }
 
 	getRendererDOMElement() {
 		return this.state.renderer.domElement
@@ -581,16 +484,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	 */
 	// @TODO long term move to Camera Manager
 	setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
-		const {camera, cameraOffset, plane, grid} = this.state
+		const {camera, cameraOffset} = this.state
 		const {orbitControls} = this
 
-		plane.geometry.center()
-		plane.geometry.translate(x, y, z)
+		new AnnotatedSceneActions().setSceneStage(new THREE.Vector3(x, y, z))
 
-		if (grid) {
-			grid.geometry.center()
-			grid.geometry.translate(x, y, z)
-		}
 		if (resetCamera) {
 			camera.position.set(x + cameraOffset.x, y + cameraOffset.y, z + cameraOffset.z)
 
@@ -687,43 +585,31 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		renderer.setSize(width, height)
 		new AnnotatedSceneActions().setRendererSize({ width, height })
 		this.renderScene()
-
-		this.setState({
-			camera: camera,
-			renderer: renderer
-		})
-		new AnnotatedSceneActions().setCamera(this.state.camera)
 	}
 
 
 	registerDomEventElementEventListener(type:string, listener:any) {
 		const renderer = this.state.renderer
-
 		renderer.domElement.addEventListener(type, listener)
-		this.setState({renderer: renderer})
 	}
 
 	// @TODO Camera Manager
 	adjustCameraXOffset(value:number) {
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.x += value
-		this.setState({cameraOffset})
+		this.setState({cameraOffset: cameraOffset.clone()})
 	}
 
 	// @TODO Camera Manager
 	adjustCameraYOffset(value:number) {
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.y += value
-		this.setState({cameraOffset})
+		this.setState({cameraOffset: cameraOffset.clone()})
 	}
 
 	// JOE FRIDAY, called from AnnotatedSceneController
 	setCameraOffset( offset: [ number, number, number ] ): void {
 		this.setState( { cameraOffset: new THREE.Vector3().fromArray( offset ) } )
-	}
-
-	render() {
-		return null
 	}
 
 	addSuperTile(superTile: SuperTile) {
@@ -769,21 +655,19 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 				}
 			})
 
-			// NOTE JOE a single setState call outside the above loop, to avoid extra re-rendering
-			this.setState({decorations: this.state.decorations})
+			this.setState({decorations: [...this.state.decorations]})
 
 		})
 	}
 
 	private showDecorations() {
 		this.state.decorations.forEach(d => d.visible = true)
-		// @TODO @Joe/Ryan (see comment immediately below)
+		this.renderScene()
 	}
 
 	private hideDecorations() {
 		this.state.decorations.forEach(d => d.visible = false)
-		// @TODO @Joe (from ryan) should we render the scene again since the state isn't being update, just decorations?
-		// ?? -- [ryan added] this.renderScene()
+		this.renderScene()
 	}
 
 	resetTiltAndCompass(): void {
@@ -809,8 +693,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		} else {
 			const compassRose = this.state.compassRose
 			compassRose.position.set(x, y, z)
-			this.setState({compassRose})
 		}
+
+		this.renderScene()
 	}
 
 	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
@@ -863,6 +748,85 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		//
 		new AnnotatedSceneActions().setCameraPreference(newType)
 		this.renderScene()
+	}
+
+	componentWillReceiveProps(newProps:SceneManagerProps) {
+		if(newProps.compassRosePosition && newProps.compassRosePosition !== this.props.compassRosePosition) {
+			const position = newProps.compassRosePosition
+			this.setCompassRosePosition(position.x, position.y, position.z)
+		}
+
+		if(newProps.isDecorationsVisible !== this.props.isDecorationsVisible) {
+			if(newProps.isDecorationsVisible) {
+				this.showDecorations()
+			} else {
+				this.hideDecorations()
+			}
+		}
+
+		if(newProps.orbitControlsTargetPoint && newProps.orbitControlsTargetPoint !== this.props.orbitControlsTargetPoint) {
+			this.updateOrbitControlsTargetPoint(newProps.orbitControlsTargetPoint)
+		}
+
+		// RT 7/12 Commented out and using an eventEmitter instead -- see constructor
+		// if(newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles) {
+		// 	const { added, removed } = getOrderedMapValueDiff( this.props.pointCloudSuperTiles, newProps.pointCloudSuperTiles )
+        //
+		// 	added && added.forEach(tile => this.addSuperTile(tile!))
+		// 	removed && removed.forEach(tile => this.removeSuperTile(tile!))
+		// }
+
+		// Handle adding and removing scene objects
+		if(newProps.sceneObjects != this.props.sceneObjects) {
+			const newSceneObjects = newProps.sceneObjects!
+			const existingSceneObjects = this.props.sceneObjects!
+			this.updateSceneObjects(newSceneObjects, existingSceneObjects)
+		}
+
+		if(newProps.transformedObjects != this.props.transformedObjects) {
+			if (newProps.transformedObjects) {
+				this.transformControls.attach(newProps.transformedObjects)
+			}
+			else {
+				this.transformControls.detach()
+			}
+			this.renderScene()
+		}
+
+		// If the LayerManager modifies the visible layers, we should rerender
+		if(newProps.visibleLayers != this.props.visibleLayers) {
+			this.renderScene()
+		}
+
+		if (newProps.transformControlsMode !== this.props.transformControlsMode) {
+			this.transformControls.setMode(newProps.transformControlsMode)
+			this.renderScene()
+		}
+
+	}
+
+	componentDidMount() {
+		const [width, height]: Array<number> = this.getContainerSize()
+
+		this.createOrthographicCameraDimensions(width, height)
+
+		new AnnotatedSceneActions().setCamera(this.state.camera)
+
+
+		this.makeStats()
+		this.props.container.appendChild(this.state.renderer.domElement)
+		this.startAnimation()
+	}
+
+	componentWillUnmount() {
+		this.stopAnimation()
+		this.destroyStats()
+		this.state.renderer.domElement.remove()
+	}
+
+	// This is from React.Component.render, not related to WebGL rendering
+	render() {
+		return null
 	}
 
 }

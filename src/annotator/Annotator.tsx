@@ -97,7 +97,6 @@ interface AnnotatorState {
 	layerGroupIndex: number
 
 	lastMousePosition: MousePosition | null
-	numberKeyPressed: number | null
 
 	imageScreenOpacity: number
 
@@ -118,21 +117,22 @@ interface AnnotatorProps {
 	uiMenuVisible ?: boolean
 	flyThroughState ?: FlyThroughState
 	carPose ?: Models.PoseMessage
-	isLiveMode: boolean
-	rendererSize: { width: number, height: number }
-	camera: THREE.Camera
+	isLiveMode?: boolean
+	rendererSize?: { width: number, height: number }
+	camera?: THREE.Camera
 
-	isShiftKeyPressed: boolean
-	isAddMarkerMode: boolean
-	isAddConnectionMode: boolean
-	isConnectLeftNeighborMode: boolean
-	isConnectRightNeighborMode: boolean
-	isConnectFrontNeighborMode: boolean
-	isJoinAnnotationMode: boolean
-	isAddConflictOrDeviceMode: boolean
-	isRotationModeActive: boolean
-	isMouseButtonPressed: boolean
-	isMouseDragging: boolean
+	isShiftKeyPressed?: boolean
+	isAddMarkerMode?: boolean
+	isAddConnectionMode?: boolean
+	isConnectLeftNeighborMode?: boolean
+	isConnectRightNeighborMode?: boolean
+	isConnectFrontNeighborMode?: boolean
+	isJoinAnnotationMode?: boolean
+	isAddConflictOrDeviceMode?: boolean
+	isRotationModeActive?: boolean
+	isMouseButtonPressed?: boolean
+	isMouseDragging?: boolean
+	isTransformControlsAttached?: boolean
 
 }
 
@@ -156,6 +156,7 @@ interface AnnotatorProps {
 	'isRotationModeActive',
 	'isMouseButtonPressed',
 	'isMouseDragging',
+	'isTransformControlsAttached',
 ))
 export default class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 	private annotatorCamera: THREE.Camera
@@ -166,7 +167,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private imageManager: ImageManager
 	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
 	private stats: Stats
-	private transformControls: any // controller for translating an object within the scene
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
@@ -191,11 +191,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.lightboxImageRays = []
 
 		this.state = {
-			background: 'pink',
+			background: 0x442233,
 			layerGroupIndex: defaultLayerGroupIndex,
 
 			lastMousePosition: null,
-			numberKeyPressed: null,
 			imageScreenOpacity: parseFloat(config['image_manager.image.opacity']) || 0.5,
 
 			annotationManager: null,
@@ -283,7 +282,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		folderLock.open()
 
 		const folderConnection = gui.addFolder('Connection params')
-		folderConnection.add(this.state.annotationManager, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
+		folderConnection.add(this.state.annotationManager!, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
 		folderConnection.open()
 	}
 
@@ -308,25 +307,49 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// When a lightbox ray is created, add it to the scene.
 	// On null, remove all rays.
-	private onLightboxImageRay: (ray: THREE.Line | null) => void =
-		(ray: THREE.Line | null) => {
-			if (ray) {
-				// Accumulate rays while shift is pressed, otherwise clear old ones.
-				if (!this.props.isShiftKeyPressed)
-					this.clearLightboxImageRays()
-				this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
-				this.lightboxImageRays.push(ray)
-				new AnnotatedSceneActions().addObjectToScene( ray )
-			} else {
-				this.clearLightboxImageRays()
-			}
-		}
-	private clearLightboxImageRays(): void {
+	private onLightboxImageRay = (ray: THREE.Line): void => {
+		// Accumulate rays while shift is pressed, otherwise clear old ones.
+		if (!this.props.isShiftKeyPressed)
+			this.clearLightboxImageRays()
+		this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
+		this.lightboxImageRays.push(ray)
+		new AnnotatedSceneActions().addObjectToScene( ray )
+	}
+
+	private clearLightboxImageRays = (): void => {
 		if (!this.lightboxImageRays.length) return
 
 		this.lightboxImageRays.forEach(r => new AnnotatedSceneActions().removeObjectFromScene( r ))
 		this.lightboxImageRays = []
-		// this.renderAnnotator()
+		// TODO GONE this.renderAnnotator()
+	}
+
+	private intersectWithLightboxImageRay(): THREE.Intersection[] {
+
+		if (this.lightboxImageRays.length) {
+
+			const raycaster = new THREE.Raycaster()
+			raycaster.params.Points!.threshold = 0.1
+			return raycaster.intersectObjects(this.lightboxImageRays)
+
+		} else return []
+
+	}
+
+	private onIntersectionRequest = ( giveIntersections: (result: THREE.Intersection[]) => void ): void => {
+
+		let intersections: THREE.Intersection[] = []
+
+		// If this is part of a two-step interaction with the lightbox, handle that.
+		if (this.lightboxImageRays.length) {
+			intersections = this.intersectWithLightboxImageRay()
+			// On success, clean up the ray from the lightbox.
+			if (intersections.length)
+				this.clearLightboxImageRays()
+		}
+
+		giveIntersections( intersections )
+
 	}
 
 	private checkForImageScreenSelection = (mousePosition: MousePosition): void => {
@@ -344,7 +367,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (!this.imageManager.imageScreenMeshes.length) return this.unHighlightImageScreenBox()
 
 		const mouse = mousePositionToGLSpace(mousePosition, this.props.rendererSize!)
-		this.raycasterImageScreen.setFromCamera(mouse, this.props.camera)
+		this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterImageScreen.intersectObjects(this.imageManager.imageScreenMeshes)
 
 		// No screen intersected
@@ -377,8 +400,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			case 0: {
 				if (!this.highlightedImageScreenBox) return
 
-				const mouse = mousePositionToGLSpace(event, this.props.rendererSize)
-				this.raycasterImageScreen.setFromCamera(mouse, this.props.camera)
+				const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+				this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 				const intersects = this.raycasterImageScreen.intersectObject(this.highlightedImageScreenBox)
 
 				if (intersects.length) {
@@ -396,8 +419,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			} case 2: {
 				if (this.props.isShiftKeyPressed) return
 
-				const mouse = mousePositionToGLSpace(event, this.props.rendererSize)
-				this.raycasterImageScreen.setFromCamera(mouse, this.props.camera)
+				const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+				this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 				const intersects = this.raycasterImageScreen.intersectObjects(this.imageManager.imageScreenMeshes)
 				// Get intersected screen
 				if (intersects.length) {
@@ -489,40 +512,16 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// }}}
 
-	/**
-	 * Handle keyboard events
-	 */
-	private onKeyDown = (event: KeyboardEvent): void => {
-		if (event.defaultPrevented) return
-		if (event.altKey) return
-		if (event.ctrlKey) return
-		if (event.metaKey) return
-
-		this.onKeyDownInteractiveMode(event)
-	}
-
-    // TODO REORG JOE move some of this event state to shared lib, perhaps a
-    // KeyboardManager, and some of it is Annotation stuff.
-	private onKeyDownInteractiveMode = (event: KeyboardEvent): void => {
-		if (event.repeat) {
-			// tslint:disable-line:no-empty
-		} else if (event.keyCode >= 48 && event.keyCode <= 57) { // digits 0 to 9
-			this.setState({ numberKeyPressed: parseInt(event.key, 10) })
-		} else {
-		}
-	}
-
-	private onKeyUp = (event: KeyboardEvent): void => {
-		if (event.defaultPrevented) return
-
-		// TODO JOE THURSDAY longer term, generic stuff, perhaps re-usable from shared lib
-		this.setState({ numberKeyPressed: null })
-
-		if ( event.shiftKey ) this.onShiftKeyUp()
-	}
-
 	mapKey(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
 		this.state.annotatedSceneController!.mapKey(key, fn)
+	}
+
+	mapKeyDown(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+		this.state.annotatedSceneController!.mapKeyDown(key, fn)
+	}
+
+	mapKeyUp(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+		this.state.annotatedSceneController!.mapKeyUp(key, fn)
 	}
 
 	keyHeld(key: string, fn: (held: boolean) => void) {
@@ -537,7 +536,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		this.mapKey('Backspace', () => this.uiDeleteActiveAnnotation())
 		this.mapKey('Escape', () => this.uiEscapeSelection())
-		this.mapKey('Shift', () => this.onShiftKeyDown())
+		this.mapKeyDown('Shift', () => this.onShiftKeyDown())
+		this.mapKeyUp('Shift', () => this.onShiftKeyUp())
 		this.mapKey('A', () => this.uiDeleteAllAnnotations())
 		this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
 		this.mapKey('C', () => this.state.annotatedSceneController!.focusOnPointCloud())
@@ -582,13 +582,18 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 *  - a selected annotation
 	 */
 	uiEscapeSelection(): void {
-		if (this.transformControls.isAttached()) {
+		// TODO TRANSFORM_CONTROLS replace with redux state var
+		// if (this.transformControls.isAttached()) {
+		if (this.props.isTransformControlsAttached) {
 			this.state.annotatedSceneController!.cleanTransformControls()
 		} else if (this.state.annotationManager!.activeAnnotation) {
 			this.state.annotationManager!.unsetActiveAnnotation()
 			this.deactivateAllAnnotationPropertiesMenus()
-			// GONE this.renderAnnotator()
+			// TODO GONE this.renderAnnotator()
 		}
+
+        if (document.activeElement.tagName === 'INPUT')
+			(document.activeElement as HTMLInputElement).blur()
 	}
 
 	private onShiftKeyDown = (): void => {
@@ -1040,7 +1045,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     // TODO JOE this all will be controlled by React state + markup  at some point {{
 
-	private resetAllAnnotationPropertiesMenuElements(): void {
+	private resetAllAnnotationPropertiesMenuElements = (): void => {
 		this.resetBoundaryProp()
 		this.resetLaneProp()
 		this.resetConnectionProp()
@@ -1191,7 +1196,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		cpSelectType.val(activeAnnotation.type.toString())
 	}
 
-	private deactivateAllAnnotationPropertiesMenus(exceptFor: AnnotationType = AnnotationType.UNKNOWN): void {
+	private deactivateAllAnnotationPropertiesMenus = (exceptFor: AnnotationType = AnnotationType.UNKNOWN): void => {
 		if ( !this.props.uiMenuVisible ) return
 		if (exceptFor !== AnnotationType.BOUNDARY) this.deactivateBoundaryProp()
 		if (exceptFor !== AnnotationType.LANE) this.deactivateLanePropUI()
@@ -1418,10 +1423,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (!layerGroups[this.state.layerGroupIndex])
 			this.setState({ layerGroupIndex: defaultLayerGroupIndex })
 
-		// TODO JOE FRIDAY The Annotator UI would like to have button for
-		// toggling layer visibility, hence the reference to layerManager here.
-		// Should AnnotatedSceneController expose layerManager as a public
-		// property?
 		this.state.annotatedSceneController!.setLayerVisibility(layerGroups[this.state.layerGroupIndex], true)
 	}
 
@@ -1463,9 +1464,22 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			channel.on(Events.KEYDOWN, this.state.annotatedSceneController.onKeyDown)
 			channel.on(Events.KEYUP, this.state.annotatedSceneController.onKeyUp)
 			channel.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
+			channel.on(Events.LIGHTBOX_CLOSE, this.clearLightboxImageRays)
+
+			// TODO JOE ? maybe we need a separate LightBoxRayManager? Or at least move to ImageManager?
 			channel.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
 
 			this.addImageScreenLayer()
+
+			channel.on(Events.INTERSECTION_REQUEST, this.onIntersectionRequest)
+
+			// UI updates
+			// TODO move UI logic to React/JSX, and get state from Redux
+			channel.on('deactivateFrontSideNeighbours', Annotator.deactivateFrontSideNeighbours)
+			channel.on('deactivateLeftSideNeighbours', Annotator.deactivateLeftSideNeighbours)
+			channel.on('deactivateRightSideNeighbours', Annotator.deactivateRightSideNeighbours)
+			channel.on('deactivateAllAnnotationPropertiesMenus', this.deactivateAllAnnotationPropertiesMenus)
+			channel.on('resetAllAnnotationPropertiesMenuElements', this.resetAllAnnotationPropertiesMenuElements)
 
 		}
 
@@ -1478,10 +1492,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
         }
 	}
 
-	getAnnotatedSceneRef = (ref: AnnotatedSceneController) => {
-		ref && this.setState({ annotatedSceneController: ref })
+	getAnnotatedSceneRef = (ref: any) => {
+		ref && this.setState({ annotatedSceneController: ref.getWrappedInstance() as AnnotatedSceneController })
 	}
 
+	// TODO JOE don't get refs directly, proxy functionality through AnnotatedSceneController
 	getAnnotationManagerRef = (ref: AnnotationManager) => {
 		ref && this.setState({ annotationManager: ref })
 	}

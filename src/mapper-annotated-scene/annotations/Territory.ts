@@ -16,9 +16,9 @@ const defaultLabel = 'NEW_TERRITORY'
 
 // Some variables used for rendering
 const renderingProperties = {
-	markerMaterial: new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide}),
+	markerMaterial: new THREE.MeshBasicMaterial({color: new THREE.Color( 0xffffff ), side: THREE.DoubleSide}),
 	meshMaterialParameters: {side: THREE.DoubleSide, transparent: true, opacity: 0.5} as THREE.MeshBasicMaterialParameters,
-	contourMaterial: new THREE.LineBasicMaterial({color: 0x0000ff}),
+	contourMaterial: new THREE.LineBasicMaterial({color: new THREE.Color( 0x0000ff )}),
 }
 // Map a rectangular, repeating texture onto triangular faces of a mesh geometry.
 // This configuration will include the lower right half of the rectangle.

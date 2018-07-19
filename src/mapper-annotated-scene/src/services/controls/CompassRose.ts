@@ -18,7 +18,7 @@ export function CompassRose(length: number): THREE.Object3D {
 	const arrowHeadWidth = arrowHeadLength / 3
 
 	const geometry = new THREE.ExtrudeGeometry(letterN(letterLength), {amount: letterThickness, bevelEnabled: false})
-	const material = new THREE.MeshBasicMaterial({color: color})
+	const material = new THREE.MeshBasicMaterial({color: new THREE.Color( color )})
 	const mesh = new THREE.Mesh(geometry, material)
 
 	geometry.computeBoundingBox()

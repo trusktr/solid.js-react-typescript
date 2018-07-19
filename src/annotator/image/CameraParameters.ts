@@ -31,7 +31,7 @@ export class ImaginaryCameraParameters implements CameraParameters {
 	}
 }
 
-const clickRayMaterial = new THREE.LineBasicMaterial({color: 0xff6666})
+const clickRayMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0xff6666 )})
 
 // Draw a ray from the camera origin through some point within the image
 function ray(origin: THREE.Vector3, destination: THREE.Vector3): THREE.Line {

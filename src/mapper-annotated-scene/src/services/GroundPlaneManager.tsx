@@ -11,15 +11,15 @@ import config from '@/config'
 import {isNull} from "util"
 import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
-import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
+import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 import {EventEmitter} from "events"
 
 export interface IGroundPlaneManagerProps {
-  // pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
-  utmCoordinateSystem: UtmCoordinateSystem
-  camera?: THREE.Camera
-  mousePosition?: { x: number, y: number }
-  sceneManager: SceneManager | null
+	// pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
+	utmCoordinateSystem: UtmCoordinateSystem
+	camera?: THREE.Camera
+	mousePosition?: { x: number, y: number }
+	areaOfInterestManager: AreaOfInterestManager | null
 	channel: EventEmitter
 }
 
@@ -146,7 +146,7 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 	intersectWithGround(): THREE.Intersection[] {
 		let intersections: THREE.Intersection[] = []
 
-		if (!this.props.camera || !this.props.mousePosition || !this.props.sceneManager)
+		if (!this.props.camera || !this.props.mousePosition || !this.props.areaOfInterestManager)
 			return intersections
 
 		// TODO JOE we need this.props.mousePosition
@@ -156,7 +156,7 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 			if (this.allGroundPlanes.length)
 				intersections = this.raycaster.intersectObjects(this.allGroundPlanes)
 			else
-				intersections = this.raycaster.intersectObject(this.props.sceneManager.state.plane)
+				intersections = this.raycaster.intersectObject(this.props.areaOfInterestManager.plane)
 		} else {
 			intersections = this.raycaster.intersectObjects(this.getPointClouds().valueSeq().toArray())
 		}

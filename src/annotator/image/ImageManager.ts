@@ -67,7 +67,7 @@ export class ImageManager {
 		this.opacity = opacity
 		if (!this.imageScreens.length) return false
 		this.imageScreens.forEach(i => i.setOpacity(opacity))
-		this.channel.emit(Events.SCENE_UPDATED, null)
+		this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
 		return true
 	}
 
@@ -155,15 +155,11 @@ export class ImageManager {
 	}
 
 	private onLightboxWindowClose = (): void => {
-		// RYAN THURSDAY
-		// @TODO annotator app needs to listen on LIGHT_BOX_IMAGE_RAY_UPDATE
-		// this.onLightboxImageRay(null)
-		this.channel.emit(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, null)
 		let updated = 0
 		this.loadedImageDetails.forEach(i => i!.imageScreen.setHighlight(false) && updated++)
 		this.loadedImageDetails = OrderedSet()
 		if (updated)
-			this.channel.emit(Events.SCENE_UPDATED, null)
+			this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
 	}
 
 	private toLightboxStateMessage(): IpcMessages.LightboxState {
@@ -184,7 +180,7 @@ export class ImageManager {
 			.filter(i => i!.imageScreen.uuid === state.uuid)
 			.forEach(i => i!.imageScreen.setHighlight(state.active) && updated++)
 		if (updated)
-			this.channel.emit(Events.SCENE_UPDATED, null)
+			this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
 	}
 
 	private onImageClick = (click: IpcMessages.ImageClick): void => {
@@ -194,9 +190,6 @@ export class ImageManager {
 				const parameters = i!.parameters
 				if (parameters instanceof AuroraCameraParameters) {
 					const ray = parameters.imageCoordinatesToRay(click.ratioX, click.ratioY, this.settings.clickedRayLength)
-
-					// RYAN THURSDAY update to eventEmitter
-					// this.onLightboxImageRay(ray)
 					this.channel.emit(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, ray)
 				} else {
 					log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)

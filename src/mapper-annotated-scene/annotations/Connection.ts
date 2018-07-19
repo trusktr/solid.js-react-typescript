@@ -30,11 +30,11 @@ namespace ConnectionRenderingProperties {
 	directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
 	directionGeometry.computeFaceNormals()
 
-	export const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, side: THREE.DoubleSide})
-	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-	export const activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
-	export const conflictMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
-	export const inactiveMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.4, side: THREE.DoubleSide})
+	export const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color( 0xff0000 ), side: THREE.DoubleSide})
+	export const markerMaterial = new THREE.MeshLambertMaterial({color:            new THREE.Color( 0xffffff ), side: THREE.DoubleSide})
+	export const activeMaterial = new THREE.MeshBasicMaterial({color:              new THREE.Color( "orange" ), wireframe: true})
+	export const conflictMaterial = new THREE.MeshLambertMaterial({color:          new THREE.Color( 0xff0000 ), transparent: true, opacity: 0.4, side: THREE.DoubleSide})
+	export const inactiveMaterial = new THREE.MeshLambertMaterial({color:          new THREE.Color( 0x443333 ), transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 }
 
 export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterface {

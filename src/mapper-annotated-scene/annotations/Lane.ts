@@ -24,7 +24,7 @@ directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, -0.5))
 directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
 directionGeometry.computeFaceNormals()
 
-const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: 0xff0000, side: THREE.DoubleSide})
+const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color( 0xff0000 ), side: THREE.DoubleSide})
 
 export enum LaneType {
 	UNKNOWN = 0,
@@ -98,13 +98,13 @@ class LaneRenderingProperties {
 	inactiveMaterial: THREE.MeshLambertMaterial
 
 	constructor() {
-		this.markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-		this.activeMaterial = new THREE.MeshBasicMaterial({color: "orange", wireframe: true})
-		this.leftNeighborMaterial = new THREE.MeshBasicMaterial({color: 0xffff66, side: THREE.DoubleSide})
-		this.rightNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x00ffff, side: THREE.DoubleSide})
-		this.frontNeighborMaterial = new THREE.MeshBasicMaterial({color: 0x66ff99, side: THREE.DoubleSide})
-		this.centerLineMaterial = new THREE.LineDashedMaterial({color: 0xffaa00, dashSize: 3, gapSize: 1, linewidth: 2})
-		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: 0x443333, transparent: true, opacity: 0.3, side: THREE.DoubleSide})
+		this.markerMaterial = new THREE.MeshLambertMaterial({color:      new THREE.Color( 0xffffff ), side: THREE.DoubleSide})
+		this.activeMaterial = new THREE.MeshBasicMaterial({color:        new THREE.Color( "orange" ), wireframe: true})
+		this.leftNeighborMaterial = new THREE.MeshBasicMaterial({color:  new THREE.Color( 0xffff66 ), side: THREE.DoubleSide})
+		this.rightNeighborMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color( 0x00ffff ), side: THREE.DoubleSide})
+		this.frontNeighborMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color( 0x66ff99 ), side: THREE.DoubleSide})
+		this.centerLineMaterial = new THREE.LineDashedMaterial({color:   new THREE.Color( 0xffaa00 ), dashSize: 3, gapSize: 1, linewidth: 2})
+		this.inactiveMaterial = new THREE.MeshLambertMaterial({color:    new THREE.Color( 0x443333 ), transparent: true, opacity: 0.3, side: THREE.DoubleSide})
 	}
 }
 
@@ -758,32 +758,32 @@ export class Lane extends Annotation {
 		const rightColor = this.lineColorToHex(this.rightLineColor)
 
 		if (this.leftLineType === LaneLineType.DASHED) {
-			this.laneLeftLine.material = new THREE.LineDashedMaterial({color: leftColor, dashSize: 1, gapSize: 5, linewidth: 2})
+			this.laneLeftLine.material = new THREE.LineDashedMaterial({color: new THREE.Color( leftColor ), dashSize: 1, gapSize: 5, linewidth: 2})
 		} else {
-			this.laneLeftLine.material = new THREE.LineBasicMaterial({color: leftColor})
+			this.laneLeftLine.material = new THREE.LineBasicMaterial({color: new THREE.Color( leftColor )})
 		}
 		if (this.rightLineType === LaneLineType.DASHED) {
-			this.laneRightLine.material = new THREE.LineDashedMaterial({color: rightColor, dashSize: 1, gapSize: 5, linewidth: 2})
+			this.laneRightLine.material = new THREE.LineDashedMaterial({color: new THREE.Color( rightColor ), dashSize: 1, gapSize: 5, linewidth: 2})
 		} else {
-			this.laneRightLine.material = new THREE.LineBasicMaterial({color: rightColor})
+			this.laneRightLine.material = new THREE.LineBasicMaterial({color: new THREE.Color( rightColor )})
 		}
 
 		this.laneLeftLine.material.needsUpdate = true
 		this.laneRightLine.material.needsUpdate = true
 	}
 
-	private lineColorToHex(color: LaneLineColor): number {
+	private lineColorToHex(color: LaneLineColor): THREE.Color {
 		switch (color) {
 			case LaneLineColor.WHITE:
-				return 0xffffff
+				return new THREE.Color( 0xffffff )
 			case LaneLineColor.YELLOW:
-				return 0xffaa00
+				return new THREE.Color( 0xffaa00 )
 			case LaneLineColor.BLUE:
-				return 0x4682b4
+				return new THREE.Color( 0x4682b4 )
 			case LaneLineColor.RED:
-				return 0xdc143c
+				return new THREE.Color( 0xdc143c )
 			default:
-				return 0x333333
+				return new THREE.Color( 0x333333 )
 		}
 	}
 

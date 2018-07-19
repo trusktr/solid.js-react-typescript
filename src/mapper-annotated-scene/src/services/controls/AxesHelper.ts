@@ -9,7 +9,7 @@ import * as THREE from 'three'
 // This is just like THREE.AxesHelper, except that the axes converge
 // at [0, 0, 0]. In THREE.AxesHelper the axes converge at
 // [-length/2, -length/2, -length/2] which is too confusing.
-export function AxesHelper(length: number): THREE.Object3D {
+export function AxesHelper(length: number): THREE.Group {
 	if (length <= 0)
 		throw Error(`invalid length ${length} for AxesHelper`)
 

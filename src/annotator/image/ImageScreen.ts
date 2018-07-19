@@ -11,12 +11,12 @@ import {lineGeometry} from "@/mapper-annotated-scene/geometry/ThreeHelpers"
 const tip = new THREE.Vector3(0, 0, 1)
 
 // Image screen materials
-const pyramidMaterial = new THREE.LineBasicMaterial({color: 0x66aa00})
+const pyramidMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0x66aa00 )})
 const invisiblePyramidMaterial = new THREE.LineBasicMaterial({visible: false})
-const borderMaterial = new THREE.LineBasicMaterial({color: 0xffffff})
-const unhighlightedBorderMaterial = new THREE.LineBasicMaterial({color: 0x999999})
+const borderMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0xffffff )})
+const unhighlightedBorderMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0x999999 )})
 const invisibleBorderMaterial = new THREE.LineBasicMaterial({visible: false})
-const inactiveMaterial = new THREE.MeshBasicMaterial({color: 'white', side: THREE.FrontSide, transparent: true, opacity: 0.5})
+const inactiveMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color( 'white' ), side: THREE.FrontSide, transparent: true, opacity: 0.5})
 
 // Image loader
 const textureLoader = new THREE.TextureLoader()

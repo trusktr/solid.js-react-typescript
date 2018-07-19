@@ -82,7 +82,7 @@ interface IProps {
 	utmCoordinateSystem: UtmCoordinateSystem
 	pointCloudManager: PointCloudManager
 	groundPlaneManager: GroundPlaneManager
-	annotationTileManager: AnnotationTileManager
+	annotationTileManager?: AnnotationTileManager
 	sceneManager: SceneManager
 	layerManager: LayerManager
 
@@ -107,6 +107,7 @@ interface IProps {
 	isControlKeyPressed?: boolean
 	isAddConflictOrDeviceMode ?: boolean
 	isMouseButtonPressed ?: boolean
+	numberKeyPressed?: number | null
 
 	areaOfInterest ?: RangeSearch[]
 	rendererSize?: { width: number, height: number }
@@ -148,6 +149,7 @@ interface IState {
 	'isControlKeyPressed',
 	'isAddConflictOrDeviceMode',
 	'isMouseButtonPressed',
+	'numberKeyPressed',
 
 	'areaOfInterest',
 	'rendererSize',
@@ -155,42 +157,31 @@ interface IState {
 	'isKioskUserDataLoaded',
 ))
 export class AnnotationManager extends React.Component<IProps, IState> {
-	laneAnnotations: Array<Lane>
-	boundaryAnnotations: Array<Boundary>
-	trafficDeviceAnnotations: Array<TrafficDevice>
-	territoryAnnotations: Array<Territory>
-	connectionAnnotations: Array<Connection>
-	annotationObjects: Array<THREE.Object3D>
-	activeAnnotation: Annotation | null
-	private metadataState: AnnotationState
-	bezierScaleFactor: number  // Used when creating connections
-	private raycasterPlane: THREE.Raycaster
-	private raycasterMarker: THREE.Raycaster
-	private raycasterAnnotation: THREE.Raycaster
-	private hideTransformControlTimer: number
+
+	laneAnnotations: Array<Lane> = []
+	boundaryAnnotations: Array<Boundary> = []
+	trafficDeviceAnnotations: Array<TrafficDevice> = []
+	territoryAnnotations: Array<Territory> = []
+	connectionAnnotations: Array<Connection> = []
+	annotationObjects: Array<THREE.Object3D> = []
+	activeAnnotation: Annotation | null = null
+	private metadataState: AnnotationState = new AnnotationState(this)
+	bezierScaleFactor: number = 6  // Used when creating connections
+	private raycasterPlane: THREE.Raycaster = new THREE.Raycaster()
+	private raycasterMarker: THREE.Raycaster = new THREE.Raycaster()
+	private raycasterAnnotation: THREE.Raycaster = new THREE.Raycaster()
+	private hovered: THREE.Object3D | null = null // a marker which the user is interacting with
 
 	constructor( props: IProps ) {
 		super(props)
-		this.laneAnnotations = []
-		this.boundaryAnnotations = []
-		this.trafficDeviceAnnotations = []
-		this.territoryAnnotations = []
-		this.connectionAnnotations = []
-		this.annotationObjects = []
-		this.activeAnnotation = null
-		this.metadataState = new AnnotationState(this)
-		this.bezierScaleFactor = 6
-		this.raycasterPlane = new THREE.Raycaster()
+
 		this.raycasterPlane.params.Points!.threshold = 0.1
-		this.raycasterMarker = new THREE.Raycaster()
-		this.raycasterAnnotation = new THREE.Raycaster()
 
         // Setup listeners on add/remove point cloud tiles
         this.props.channel.on('addAnnotationSuperTile', (superTile:SuperTile) => {this.addSuperTileAnnotations(superTile as AnnotationSuperTile)})
         this.props.channel.on('removeAnnotationSuperTile', (superTile:SuperTile) => {this.removeSuperTileAnnotations(superTile as AnnotationSuperTile)})
 
-
-
+		this.props.channel.on('transformUpdate', this.updateActiveAnnotationMesh)
     }
 
 	componentWillReceiveProps(newProps) {
@@ -223,6 +214,11 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				this.loadAnnotationDataFromMapServer( this.props.areaOfInterest, true )
 					.catch(err => {log.warn(err.message)})
 			}
+		}
+
+		if ( previousProps.isRotationModeActive !== this.props.isRotationModeActive ) {
+			const mode = this.props.isRotationModeActive ? 'rotate' : 'translate'
+			new AnnotatedSceneActions().setTransformControlsMode(mode)
 		}
 	}
 
@@ -629,17 +625,15 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		return true
 	}
 
-	addMarkerToActiveAnnotation(position: THREE.Vector3): boolean {
+	addMarkerToActiveAnnotation(position: THREE.Vector3): void {
 		if (!this.activeAnnotation) {
 			log.info("No active annotation. Can't add marker")
-			return false
+			return
 		}
 
 		if (this.activeAnnotation.addMarker(position, true)) {
 			this.metadataState.dirty()
-			return true
-		} else {
-			return false
+			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 		}
 	}
 
@@ -832,7 +826,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 */
 	updateActiveAnnotationMesh = (): void => {
 		if (!this.activeAnnotation) {
-			log.info("No active annotation. Can't update mesh")
+			log.warn("No active annotation. Can't update mesh")
 			return
 		}
 
@@ -845,15 +839,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	highlightMarkers(markers: Array<THREE.Mesh>): void {
 		if (this.activeAnnotation)
 			this.activeAnnotation.highlightMarkers(markers)
-	}
-
-	/**
-	 * Draw all markers at normal size.
-	 */
-	unhighlightMarkers(): void {
-		if (this.activeAnnotation)
-			this.activeAnnotation.unhighlightMarkers()
-		this.props.channel.emit(Events.SCENE_UPDATED)
 	}
 
 	/**
@@ -1551,7 +1536,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 
-	/// the rest is migrated from Annotator.tsx ////////////////////////////////
+	/// NOTE JOE the rest is migrated from Annotator.tsx ////////////////////////////////
 
 	// Load tiles within a bounding box and add them to the scene.
 	// ANNOTATOR ONLY???
@@ -1587,7 +1572,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		return this.loadAnnotationsFromFile(fileName)
 			.then(focalPoint => {
 				if (focalPoint)
-					this.props.sceneManager!.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
+					this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
 					// TODO JOE AnnotationManager needs ref to SceneManager
 			})
 			.catch(err => {
@@ -1599,7 +1584,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	/**
 	 * If the mouse was clicked while pressing the "a" key, drop an annotation marker.
 	 */
-	// ANNOTATOR ONLY
 	addAnnotationMarker = (event: MouseEvent): void => {
 		const {isMouseDragging, isConnectLeftNeighborMode, isConnectRightNeighborMode,
 			isConnectFrontNeighborMode, isAddMarkerMode} = this.props
@@ -1630,28 +1614,18 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (this.activeAnnotation.snapToGround)
 			intersections = this.props.groundPlaneManager!.intersectWithGround()
 		else {
-			// TODO TMP we need to fix this wiring, which calls back into Annotator
-			//
-			// // If this is part of a two-step interaction with the lightbox, handle that.
-			// if (this.lightboxImageRays.length) {
-			// 	intersections = this.intersectWithLightboxImageRay(this.raycasterPlane)
-			// 	// On success, clean up the ray from the lightbox.
-			// 	if (intersections.length)
-			// 		this.onLightboxImageRay(null)
-			// }
-			// // Otherwise just find the closest point.
-			// if (!intersections.length)
-			// 	intersections = this.props.pointCloudManager.intersectWithPointCloud(this.raycasterPlane)
+
+			// get app specific intersections
+			const receiveIntersections = (result: THREE.Intersection[]) => intersections = result
+			this.props.channel.emit(Events.INTERSECTION_REQUEST, receiveIntersections)
+
+			// Otherwise just find the closest point.
+			if (!intersections.length)
+				intersections = this.props.pointCloudManager.intersectWithPointCloud(this.raycasterPlane)
 		}
 
 		if (intersections.length) {
 			this.addMarkerToActiveAnnotation(intersections[0].point)
-
-			// TODO JOE render update should happen at the leafmost part of the
-			// stack where the update happens, somewhere in the above
-			// addMarkerToActiveAnnotation. This will prevent outside code from
-			// having to know when to update the scene.
-			// GONE this.renderAnnotator()
 		}
 	}
 
@@ -1699,9 +1673,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		// update UI panel
-		// TODO TMP Annotator UI needs update
+		// TODO JOE UI replace with React state in Annotator
 		if (activeLane.id === fromUID)
-			Annotator.deactivateFrontSideNeighbours()
+			this.props.channel.emit('deactivateFrontSideNeighbours')
 
 		// TODO GONE this.renderAnnotator()
 	}
@@ -1761,8 +1735,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			inactive.setNeighborMode(NeighborLocation.FRONT)
 			inactive.addNeighbor(activeLane.uuid, NeighborLocation.BACK)
 
-			// TODO TMP Annotator needs UI update
-			Annotator.deactivateFrontSideNeighbours()
+			// TODO JOE UI replace with React state in Annotator
+			this.props.channel.emit('deactivateFrontSideNeighbours')
 
 			// TODO GONE this.renderAnnotator()
 			return
@@ -1799,8 +1773,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.LEFT)
 			inactive.setNeighborMode(NeighborLocation.LEFT)
 
-			// TODO TMP Annotator needs UI update
-			// Annotator.deactivateLeftSideNeighbours()
+			// TODO JOE UI replace with React state in Annotator
+			this.props.channel.emit('deactivateLeftSideNeighbours')
 
 			if (sameDirection) {
 				inactive.addNeighbor(activeLane.uuid, NeighborLocation.RIGHT)
@@ -1811,8 +1785,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.RIGHT)
 			inactive.setNeighborMode(NeighborLocation.RIGHT)
 
-			// TODO TMP Annotator needs UI update
-			// Annotator.deactivateRightSideNeighbours()
+			// TODO JOE UI replace with React state in Annotator
+			this.props.channel.emit('deactivateRightSideNeighbours')
 
 			if (sameDirection) {
 				inactive.addNeighbor(activeLane.uuid, NeighborLocation.LEFT)
@@ -1853,13 +1827,13 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 				this.cleanTransformControls()
 
-				// TODO TMP Annotator needs UI update
-				// this.deactivateAllAnnotationPropertiesMenus(inactive.annotationType)
+				// TODO JOE UI replace with React state in Annotator
+				this.props.channel.emit('deactivateAllAnnotationPropertiesMenus', inactive.annotationType)
 
 				this.setActiveAnnotation(inactive)
 
-				// TODO TMP Annotator needs UI update
-				// this.resetAllAnnotationPropertiesMenuElements()
+				// TODO JOE UI replace with React state in Annotator
+				this.props.channel.emit('resetAllAnnotationPropertiesMenuElements')
 
 				// GONE this.renderAnnotator()
 			}
@@ -1870,61 +1844,75 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * Check if the mouse is on top of an editable lane marker. If so, attach the
 	 * marker to the transform control for editing.
 	 */
-	// TODO TMP needed for Annotator
 	checkForActiveMarker = (event: MouseEvent): void => {
-		console.log(event)
-    // const {isControlKeyPressed, isAddMarkerMode, isAddConnectionMode,
-    //   isConnectLeftNeighborMode, isConnectRightNeighborMode, isConnectFrontNeighborMode,
-    //   isAddConflictOrDeviceMode, isJoinAnnotationMode, isMouseButtonPressed} = this.props
-	//
-	// 	// If the mouse is down we might be dragging a marker so avoid
-	// 	// picking another marker
-	// 	if(isMouseButtonPressed || isControlKeyPressed || isAddMarkerMode || isAddConnectionMode ||
-    //   isConnectLeftNeighborMode || isConnectRightNeighborMode || isConnectFrontNeighborMode ||
-    //   isAddConflictOrDeviceMode || isJoinAnnotationMode) {
-    // 	return
-	// 	}
-	//
-	// 	const markers = this.activeMarkers()
-	// 	if (!markers) return
-	//
-	// 	const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
-	// 	this.raycasterMarker.setFromCamera(mouse, this.props.camera!)
-	// 	const intersects = this.raycasterMarker.intersectObjects(markers)
-	//
-	// 	if (intersects.length > 0) {
-	// 		const marker = intersects[0].object as THREE.Mesh
-	// 		if (this.hovered !== marker) {
-	// 			this.cleanTransformControls()
-	//
-	// 			let moveableMarkers: Array<THREE.Mesh>
-	// 			if (this.uiState.numberKeyPressed === null) {
-	// 				moveableMarkers = [marker]
-	// 			} else {
-	// 				// special case: 0 searches for all neighbors, so set distance to infinity
-	// 				const distance = this.uiState.numberKeyPressed || Number.POSITIVE_INFINITY
-	// 				const neighbors = this.neighboringMarkers(marker, distance)
-	// 				this.highlightMarkers(neighbors)
-	// 				neighbors.unshift(marker)
-	// 				moveableMarkers = neighbors
-	// 			}
-	//
-	// 			this.renderer.domElement.style.cursor = 'pointer'
-	// 			this.hovered = marker
-	// 			// HOVER ON
-	// 			this.transformControls.attach(moveableMarkers)
-	// 			this.cancelHideTransform()
-	// 			// GONE this.renderAnnotator()
-	// 		}
-	// 	} else {
-	// 		if (this.hovered !== null) {
-	// 			// HOVER OFF
-	// 			this.renderer.domElement.style.cursor = 'auto'
-	// 			this.hovered = null
-	// 			this.delayHideTransform()
-	// 			// GONE this.renderAnnotator()
-	// 		}
-	// 	}
+		const {
+			isControlKeyPressed,
+			isAddMarkerMode,
+			isAddConnectionMode,
+			isConnectLeftNeighborMode,
+			isConnectRightNeighborMode,
+			isConnectFrontNeighborMode,
+			isAddConflictOrDeviceMode,
+			isJoinAnnotationMode,
+			isMouseButtonPressed
+		} = this.props
+
+		// If the mouse is down we might be dragging a marker so avoid
+		// picking another marker
+		if (
+			isMouseButtonPressed ||
+			isControlKeyPressed ||
+			isAddMarkerMode ||
+			isAddConnectionMode ||
+			isConnectLeftNeighborMode ||
+			isConnectRightNeighborMode ||
+			isConnectFrontNeighborMode ||
+			isAddConflictOrDeviceMode ||
+			isJoinAnnotationMode
+		) {
+			return
+		}
+
+		const markers = this.activeMarkers()
+		if (!markers) return
+
+		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+		this.raycasterMarker.setFromCamera(mouse, this.props.camera!)
+		const intersects = this.raycasterMarker.intersectObjects(markers)
+
+		if (intersects.length > 0) {
+			const marker = intersects[0].object as THREE.Mesh
+			if (this.hovered !== marker) {
+				this.cleanTransformControls()
+
+				let moveableMarkers: Array<THREE.Mesh>
+				if (this.props.numberKeyPressed === null) {
+					moveableMarkers = [marker]
+				} else {
+					// special case: 0 searches for all neighbors, so set distance to infinity
+					const distance = this.props.numberKeyPressed || Number.POSITIVE_INFINITY
+					const neighbors = this.neighboringMarkers(marker, distance)
+					this.highlightMarkers(neighbors)
+					neighbors.unshift(marker)
+					moveableMarkers = neighbors
+				}
+
+				// HOVER ON
+				this.hovered = marker
+				this.cancelHideTransform()
+				new AnnotatedSceneActions().isHoveringOnMarker(true)
+				new AnnotatedSceneActions().setTransformedObjects(moveableMarkers)
+				// TODO GONE this.renderAnnotator()
+			}
+		} else {
+			if (this.hovered !== null) {
+				// HOVER OFF
+				this.hovered = null
+				this.delayHideTransform()
+				new AnnotatedSceneActions().isHoveringOnMarker(false)
+				// TODO GONE this.renderAnnotator()
+			}
+		}
 	}
 
 	/**
@@ -2038,8 +2026,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return
 
 		// update UI panel
-		// TODO TMP needed for Annotator
-		// this.resetAllAnnotationPropertiesMenuElements()
+		// TODO JOE UI replace with React state in Annotator
+		this.props.channel.emit('resetAllAnnotationPropertiesMenuElements')
 
 		// GONE this.renderAnnotator()
 	}
@@ -2056,46 +2044,27 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		return false
 	}
 
-	// TODO TMP needed for Annotator
-	private delayHideTransform = (): void => {
-		this.cancelHideTransform()
-		this.hideTransform()
-	}
-
-	hideTransform = (): void => {
-		this.hideTransformControlTimer = window.setTimeout(this.cleanTransformControls, 1500)
-	}
-
-	private cancelHideTransform = (): void => {
-		if (this.hideTransformControlTimer) {
-			window.clearTimeout(this.hideTransformControlTimer)
-		}
-	}
-
+	delayHideTransform = (): void => this.props.sceneManager.delayHideTransform()
+	hideTransform = (): void => this.props.sceneManager.hideTransform()
+	cancelHideTransform = (): void => this.props.sceneManager.cancelHideTransform()
 	cleanTransformControls = (): void => {
-		this.cancelHideTransform()
-		// TODO TMP fix
-		// this.transformControls.detach()
+		this.props.sceneManager.cleanTransformControls()
 		this.unhighlightMarkers()
-		// this.renderAnnotator()
 	}
 
-	// TODO JOE THURSDAY this needs to hook into the animation loop
-	// TODO JOE THURSDAY possibly longer term unless it is simple, we don't need
-	// to continuously update transform controls, we should update them only on
-	// user interaction, on created/removed/hovered.
-	private animate(): void {
-		// TODO TMP fix
-		// this.transformControls.update()
+	/**
+	 * Draw all markers at normal size.
+	 */
+	unhighlightMarkers(): void {
+		if (this.activeAnnotation)
+			this.activeAnnotation.unhighlightMarkers()
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 	}
 
 	toggleTransformControlsRotationMode(): void {
-		// TODO TMP fix
 		// TODO toggle mode only if object is rotatable
 		// // if (this.activeAnnotation && this.activeAnnotation.isRotatable)
-		// this.uiState.isRotationModeActive = !this.uiState.isRotationModeActive
-		// const mode = this.uiState.isRotationModeActive ? 'rotate' : 'translate'
-		// this.transformControls.setMode(mode)
+		new AnnotatedSceneActions().toggleRotationModeActive()
 	}
 
 }

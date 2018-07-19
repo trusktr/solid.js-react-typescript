@@ -13,6 +13,7 @@ import toProps from '@/util/toProps'
 import {createStructuredSelector} from "reselect";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {TileManager} from "@/mapper-annotated-scene/tile/TileManager";
+import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper";
 
 const log = Logger(__filename)
 
@@ -23,10 +24,10 @@ interface IAoiProps {
 	getCurrentRotation?: () => THREE.Quaternion
 	utmCoordinateSystem: UtmCoordinateSystem
 	groundPlaneManager: GroundPlaneManager
-	sceneManager: SceneManager
 	camera ?: THREE.Camera
 	cameraIsOrbiting ?: boolean
-  loadingTileManagers ?: Set<TileManager>
+	loadingTileManagers ?: Set<TileManager>
+	sceneStage?: THREE.Vector3
 }
 
 // Area of Interest: where to load point clouds
@@ -45,10 +46,14 @@ interface IAoiState {
   camera: (state) => state.get(AnnotatedSceneState.Key).camera,
   cameraIsOrbiting: (state) => state.get(AnnotatedSceneState.Key).cameraIsOrbiting,
   loadingTileManagers: (state) => state.get(AnnotatedSceneState.Key).loadingTileManagers,
+  sceneStage: (state) => state.get(AnnotatedSceneState.Key).sceneStage,
 }))
 export default class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
 	private raycaster: THREE.Raycaster
 	private estimateGroundPlane: boolean
+	plane: THREE.Mesh
+	private grid?: THREE.GridHelper
+	private axis?: THREE.Group
 
 	constructor(props) {
 		super(props)
@@ -93,8 +98,9 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
      */
 	updateAoiHeading(): void {
 
-		// TODO TMP only called for Kiosk app. Maybe fix with detecting camera movement direction
-		const rotationThreeJs = this.props.getCurrentRotation!()
+		// TODO JOE only called for Kiosk app. Maybe fix with detecting camera
+		// movement direction instead, which is effectively the same thing.
+		const rotationThreeJs = this.props.getCurrentRotation ? this.props.getCurrentRotation() : null
 
 		if (this.state.enabled) {
 			const newHeading = rotationThreeJs
@@ -160,7 +166,7 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
     private getDefaultPointOfInterest(): THREE.Vector3 | null {
 
 		// wait until there's a camera
-		if (!this.props.camera || !this.props.sceneManager) return null
+		if (!this.props.camera) return null
 
 		const middleOfTheViewport = new THREE.Vector2(0, 0)
 
@@ -173,7 +179,7 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
             intersections = this.raycaster.intersectObjects(this.props.groundPlaneManager.allGroundPlanes)
 
         if (!intersections.length)
-            intersections = this.raycaster.intersectObject(this.props.sceneManager.state.plane) // TODO FIXME bad access of state
+            intersections = this.raycaster.intersectObject(this.plane) // TODO FIXME bad access of state
 
         if (intersections.length)
             return intersections[0].point
@@ -231,6 +237,63 @@ export default class AreaOfInterestManager extends React.Component<IAoiProps, IA
 			new AnnotatedSceneActions().setAreaOfInterest( utmAOI )
             return
 		}
+	}
+
+	removeAxisFromScene() {
+		if(this.axis) {
+			this.axis.visible = false
+		}
+	}
+
+	hideGridVisibility() {
+		this.grid!.visible = false
+	}
+
+	componentDidMount() {
+		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
+		planeGeometry.rotateX(-Math.PI / 2)
+
+		const planeMaterial = new THREE.ShadowMaterial()
+		planeMaterial.visible = false
+		planeMaterial.side = THREE.DoubleSide // enable raycaster intersections from both sides
+
+		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
+
+		new AnnotatedSceneActions().addObjectToScene( this.plane )
+
+		// Add grid to visualize where the plane is.
+		// Add an axes helper to visualize the origin and orientation of the primary directions.
+
+		const axesHelperLength = parseFloat(config['annotator.axes_helper_length']) || 0
+
+		if (axesHelperLength > 0) {
+			const gridSize = parseFloat(config['annotator.grid_size']) || 200
+			const gridUnit = parseFloat(config['annotator.grid_unit']) || 10
+			const gridDivisions = gridSize / gridUnit
+
+			this.grid = new THREE.GridHelper(gridSize, gridDivisions, new THREE.Color('white'))
+			this.grid.material.opacity = 0.25
+			this.grid.material.transparent = true
+			this.plane.add( this.grid )
+
+			this.axis = AxesHelper(axesHelperLength)
+			this.grid.add( this.axis )
+		}
+
+
+	}
+
+	componentDidUpdate(oldProps) {
+
+		if (oldProps.sceneStage !== this.props.sceneStage) {
+
+			const {x, y, z} = this.props.sceneStage!
+
+			this.plane.geometry.center()
+			this.plane.geometry.translate(x, y, z)
+
+		}
+
 	}
 
 	render() {

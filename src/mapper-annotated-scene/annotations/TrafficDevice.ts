@@ -36,11 +36,11 @@ interface MaterialFaces {
 
 // Some variables used for rendering
 namespace TrafficDeviceRenderingProperties {
-	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-	export const defaultMaterial = new THREE.MeshLambertMaterial({color: 0x008800, side: THREE.DoubleSide})
-	export const defaultContourMaterial = new THREE.LineBasicMaterial({color: 0x00ff00, visible: false})
-	export const activeContourMaterial = new THREE.LineBasicMaterial({color: 0xffff00, linewidth: 2})
-	export const normalMaterial = new THREE.LineBasicMaterial( {color: 0xff00ff})
+	export const markerMaterial = new THREE.MeshLambertMaterial({color:       new THREE.Color( 0xffffff ), side: THREE.DoubleSide})
+	export const defaultMaterial = new THREE.MeshLambertMaterial({color:      new THREE.Color( 0x008800 ), side: THREE.DoubleSide})
+	export const defaultContourMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0x00ff00 ), visible: false})
+	export const activeContourMaterial = new THREE.LineBasicMaterial({color:  new THREE.Color( 0xffff00 ), linewidth: 2})
+	export const normalMaterial = new THREE.LineBasicMaterial( {color:        new THREE.Color( 0xff00ff )})
 
 	// Set a default front and back face for each device type.
 	export const deviceFaceMaterials: MaterialFaces[] = []

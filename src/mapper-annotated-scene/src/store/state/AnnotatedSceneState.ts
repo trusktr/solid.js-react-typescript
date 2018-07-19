@@ -53,6 +53,7 @@ export default class AnnotatedSceneState {
 	isDecorationsVisible: boolean
 	isPointCloudVisible: boolean
 	isAnnotationsVisible: boolean
+	isTransformControlsAttached: boolean
 
 	orbitControlsTargetPoint: THREE.Vector3
 
@@ -60,7 +61,7 @@ export default class AnnotatedSceneState {
 	annotationSuperTiles: OrderedMap<string, SuperTile>
 
 	sceneObjects: Set<THREE.Object3D>
-
+	sceneStage: THREE.Vector3
 	visibleLayers: string[]
 	isAnnotationTileManagerEnabled: boolean
 
@@ -78,6 +79,11 @@ export default class AnnotatedSceneState {
 	isShiftKeyPressed: boolean
 	isAddConflictOrDeviceMode: boolean
 	isMouseButtonPressed: boolean
+	numberKeyPressed: number | null
+	isHoveringOnMarker: boolean
+
+	transformedObjects: Array<THREE.Object3D> | null
+	transformControlsMode: 'translate' | 'rotate' | 'scale'
 
 	cameraIsOrbiting: boolean
 	camera: THREE.Camera

@@ -36,8 +36,6 @@ import ResizeObserver from 'react-resize-observer'
 
 const log = Logger(__filename)
 
-console.log('forward ref?', (React as any).forwardRef)
-
 OBJLoader(THREE)
 
 const dialog = Electron.remote.dialog
@@ -70,6 +68,9 @@ export interface IAnnotatedSceneControllerProps {
     pointOfInterest?: THREE.Vector3
     getAnnotationManagerRef?: (ref: AnnotationManager) => void
 	setKeys?: () => void
+	camera?: THREE.Camera
+	numberKeyPressed?: number | null
+	isHoveringOnMarker?: boolean
 
     lockBoundaries?: boolean
     lockTerritories?: boolean
@@ -99,6 +100,7 @@ export interface IAnnotatedSceneControllerState {
     // statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,
     showStatusWindow: (state) => state.get(AnnotatedSceneState.Key).statusWindowState.enabled,
     pointOfInterest: (state) => state.get(AnnotatedSceneState.Key).pointOfInterest,
+    numberKeyPressed: (state) => state.get(AnnotatedSceneState.Key).numberKeyPressed,
 }))
 export default class AnnotatedSceneController extends React.Component<IAnnotatedSceneControllerProps, IAnnotatedSceneControllerState> {
     public utmCoordinateSystem: UtmCoordinateSystem
@@ -107,9 +109,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	private tileServiceClient: TileServiceClient
     private pointCloudTileManager: PointCloudTileManager
     channel: EventEmitter
-
 	lastPointCloudLoadedErrorModalMs: number
-
 	private isAllSet: boolean
 
     constructor(props) {
@@ -148,9 +148,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
         window.addEventListener('keydown', this.onKeyDown)
         window.addEventListener('keyup', this.onKeyUp)
-
-		this.setKeys()
-		this.props.setKeys && this.props.setKeys()
     }
 
     updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
@@ -236,10 +233,14 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     activateReadOnlyViewingMode() {
         this.state.layerManager!.setLayerVisibility([Layer.POINT_CLOUD.toString(), Layer.ANNOTATIONS.toString()], true)
 
+		// TODO JOE all that should be needed here is just setting layer
+		// visibility, the rest is not needed (assuming the following are all
+		// put in layers)
+
         // @TODO originally this function all called 'this.gui.close()' -- look into adding this funtionality
-        this.state.sceneManager!.removeAxisFromScene()
+        this.state.areaOfInterestManager!.removeAxisFromScene()
         this.state.sceneManager!.removeCompassFromScene()
-        this.state.sceneManager!.hideGridVisibility()
+        this.state.areaOfInterestManager!.hideGridVisibility()
 
         // @TODO annotatorOrbitControls.enabled = false
         // @TODO flyThroughOrbitControls.enabled = true
@@ -287,7 +288,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         new AnnotatedSceneActions().removeObjectFromScene(object)
     }
 
-	// TODO emit Events.SCENE_UPDATED event instead
+	// TODO emit Events.SCENE_SHOULD_RENDER event instead
     renderScene() {
         return this.state.sceneManager!.renderScene()
     }
@@ -303,6 +304,40 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     addChildAnimationLoop(childLoop: ChildAnimationLoop) {
         this.state.sceneManager!.addChildAnimationLoop(childLoop)
     }
+
+    /**
+     * Handle keyboard events
+     */
+    onKeyDown = (event: KeyboardEvent | KeyboardEventHighlights): void => {
+        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+
+		this.possiblySetNumberPressed(event)
+
+        const fn = this.state.registeredKeyDownEvents.get(event.key)
+        fn && fn( event )
+    }
+
+    onKeyUp = (event: KeyboardEvent | KeyboardEventHighlights): void => {
+        if (event.defaultPrevented) return
+
+		this.possiblyUnsetNumberPressed(event)
+
+        const fn = this.state.registeredKeyUpEvents.get(event.key)
+        fn && fn( event )
+    }
+
+	private possiblySetNumberPressed = (event: KeyboardEvent | KeyboardEventHighlights): void => {
+		if (event.repeat) return
+
+		if (event.keyCode >= 48 && event.keyCode <= 57) { // digits 0 to 9
+			new AnnotatedSceneActions().setNumberKeyPressed(parseInt(event.key, 10))
+		}
+	}
+
+	private possiblyUnsetNumberPressed = (event: KeyboardEvent | KeyboardEventHighlights): void => {
+		if (this.props.numberKeyPressed === event.keyCode)
+			new AnnotatedSceneActions().setNumberKeyPressed(null)
+	}
 
 	setKeys() {
 		const actions = new AnnotatedSceneActions()
@@ -337,39 +372,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.setState({
             registeredKeyUpEvents: this.state.registeredKeyUpEvents.set(key, fn)
         })
-    }
-
-    /**
-     * Handle keyboard events
-     */
-    onKeyDown = (event: KeyboardEvent | KeyboardEventHighlights): void => {
-        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
-
-        const fn = this.state.registeredKeyDownEvents.get(event.key)
-        fn && fn( event )
-
-        // OLD CODE FOR REFERENCE
-        // if (document.activeElement.tagName === 'INPUT')
-        // 	this.onKeyDownInputElement(event)
-    }
-
-    onKeyUp = (event: KeyboardEvent | KeyboardEventHighlights): void => {
-        if (event.defaultPrevented) return
-
-        const fn = this.state.registeredKeyUpEvents.get(event.key)
-        fn && fn( event )
-    }
-
-    // just unfocuses the active input element on escape key
-    private onKeyDownInputElement = (event: KeyboardEvent): void => {
-        switch (event.key) {
-            case 'Escape': {
-                (event.target as HTMLInputElement).blur()
-                break
-            }
-            default:
-            // nothing to do here
-        }
     }
 
     private handleTileManagerLoadError = (dataType: string, err: Error): void => {
@@ -421,9 +423,12 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.displayCameraInfo()
     }
 
-    componentWillUnmount() {
-        console.log(' &&&&&&&&&&&&&&&& JOE_DEBUG AnnotatedSceneController componentWillUnmount')
-    }
+	componentDidMount() {
+
+		this.setKeys()
+		this.props.setKeys && this.props.setKeys()
+
+	}
 
     getAnnotationManagerRef = (ref: any): void => {
         if (ref) {
@@ -434,10 +439,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
 
     getSceneManagerRef = (ref: any): void => {
-        if (ref) {
-            this.setState({sceneManager: ref.getWrappedInstance() as SceneManager})
-        }
-
+        ref && this.setState({sceneManager: ref.getWrappedInstance() as SceneManager})
     }
 
     getStatusWindowRef = (ref: any) => {
@@ -486,7 +488,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 			pointCloudManager,
 			groundPlaneManager,
 			sceneManager,
-			annotationTileManager
+			annotationTileManager,
+			container,
+			areaOfInterestManager,
 		} = this.state
 
         const {
@@ -500,7 +504,14 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         // const onRenderCallBack = this.state.sceneManager ? this.state.sceneManager.renderScene : () => {}
 
         return (
-            <div ref={this.getContainerRef} className="scene-container" onMouseMove={this.onMouseMove}>
+            <div
+				ref={this.getContainerRef}
+				className="scene-container"
+				onMouseMove={this.onMouseMove}
+				style={{
+					cursor: this.props.isHoveringOnMarker ? 'pointer' : 'auto'
+				}}
+			>
 
                 <ResizeObserver
                     onResize={(rect) => {
@@ -521,7 +532,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
                     eventEmitter={this.channel}
                 />
 
-                {this.state.container && this.state.areaOfInterestManager &&
+                { container && areaOfInterestManager &&
 	                <SceneManager
 	                    ref={this.getSceneManagerRef}
 
@@ -532,21 +543,20 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 	                    utmCoordinateSystem={this.utmCoordinateSystem}
 	                    channel={this.channel}
-	                    areaOfInterestManager={this.state.areaOfInterestManager}
+	                    areaOfInterestManager={areaOfInterestManager}
 
-	                    container={this.state.container}
+	                    container={container}
 	                />
                 }
 
 
-				{ groundPlaneManager && sceneManager &&
+				{ groundPlaneManager &&
 	                <AreaOfInterestManager
 	                    ref={this.getAreaOfInterestManagerRef}
 	                    getPointOfInterest={this.props.onPointOfInterestCall}
 	                    getCurrentRotation={this.props.onCurrentRotation}
 	                    utmCoordinateSystem={this.utmCoordinateSystem}
 	                    groundPlaneManager={groundPlaneManager}
-	                    sceneManager={sceneManager}
 	                />
 				}
 
@@ -563,7 +573,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	                />
 				}
 
-				{ pointCloudManager && groundPlaneManager && annotationTileManager && sceneManager && layerManager &&
+				{ pointCloudManager && groundPlaneManager && sceneManager && layerManager &&
 	                <AnnotationManager
 	                    ref={this.getAnnotationManagerRef}
 	                    {...{
@@ -590,14 +600,12 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	                />
 				}
 
-				{ sceneManager &&
-	                <GroundPlaneManager
-	                    ref={this.getGroundPlaneManagerRef}
-	                    utmCoordinateSystem={this.utmCoordinateSystem}
-	                    sceneManager={sceneManager}
-	                    channel={this.channel}
-	                />
-				}
+                <GroundPlaneManager
+                    ref={this.getGroundPlaneManagerRef}
+                    utmCoordinateSystem={this.utmCoordinateSystem}
+                    areaOfInterestManager={areaOfInterestManager!}
+                    channel={this.channel}
+                />
 
             </div>
         )

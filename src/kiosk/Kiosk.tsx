@@ -116,25 +116,25 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
     }
 
     private registerKeyDownEvents() {
-        const LEFT_ARROW_KEY_CODE = 37
-        const UP_ARROW_KEY_CODE = 38
-        const RIGHT_ARROW_KEY_CODE = 39
-        const DOWN_ARROW_KEY_CODE = 40
         const cameraOffsetDelta = 1
 
-        this.state.annotatedSceneController!.registerKeyboardDownEvent(LEFT_ARROW_KEY_CODE, () => {
+        this.mapKey('ArrowLeft', () => {
             this.state.annotatedSceneController!.adjustCameraXOffset(cameraOffsetDelta)
         })
-        this.state.annotatedSceneController!.registerKeyboardDownEvent(UP_ARROW_KEY_CODE, () => {
+        this.mapKey('ArrowUp', () => {
             this.state.annotatedSceneController!.adjustCameraYOffset(cameraOffsetDelta)
         })
-        this.state.annotatedSceneController!.registerKeyboardDownEvent(RIGHT_ARROW_KEY_CODE, () => {
+        this.mapKey('ArrowRight', () => {
             this.state.annotatedSceneController!.adjustCameraXOffset(-1 * cameraOffsetDelta)
         })
-        this.state.annotatedSceneController!.registerKeyboardDownEvent(DOWN_ARROW_KEY_CODE, () => {
+        this.mapKey('ArrowDown', () => {
             this.state.annotatedSceneController!.adjustCameraYOffset(-1 * cameraOffsetDelta)
         })
     }
+
+	mapKey( key, fn ) {
+        this.state.annotatedSceneController!.mapKey(key, fn)
+	}
 
     // this gets called after the CarManager is instantiated
     private listen() {

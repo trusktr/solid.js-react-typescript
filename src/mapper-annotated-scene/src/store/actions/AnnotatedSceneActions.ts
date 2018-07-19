@@ -74,12 +74,14 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             isDecorationsVisible: false,
             isPointCloudVisible: true,
             isAnnotationsVisible: true,
+			isTransformControlsAttached: false,
 
             orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0),
             annotationSuperTiles: OrderedMap<string, SuperTile>(),
             pointCloudSuperTiles: OrderedMap<string, SuperTile>(),
 
             sceneObjects: Set<THREE.Object3D>(),
+			sceneStage: new THREE.Vector3(0, 0, 0),
             visibleLayers: [],
             isAnnotationTileManagerEnabled: false, // by default, do not include the AnnotationTileManager -- it's only needed for the Kiosk app
 
@@ -95,6 +97,11 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             isShiftKeyPressed: false,
             isAddConflictOrDeviceMode: false,
             isMouseButtonPressed: false,
+			numberKeyPressed: null,
+			isHoveringOnMarker: false,
+
+			transformedObjects: null,
+			transformControlsMode: 'translate',
 
             cameraIsOrbiting: false,
             camera: null,
@@ -165,6 +172,55 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     setConnectRightNeighborMode(isConnectRightNeighborMode: boolean) {
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
             ...annotatedSceneState, isConnectRightNeighborMode
+        })
+    }
+
+    @ActionReducer()
+    toggleRotationModeActive() {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isRotationModeActive: !annotatedSceneState.isRotationModeActive
+        })
+    }
+
+    @ActionReducer()
+    setTransformControlsAttached(isTransformControlsAttached: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isTransformControlsAttached
+        })
+    }
+
+    @ActionReducer()
+    setNumberKeyPressed(numberKeyPressed: number | null) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, numberKeyPressed
+        })
+    }
+
+    @ActionReducer()
+    isHoveringOnMarker(isHoveringOnMarker: boolean) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, isHoveringOnMarker
+        })
+    }
+
+    @ActionReducer()
+    setTransformedObjects(transformedObjects: Array<THREE.Object3D>) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, transformedObjects
+        })
+    }
+
+    @ActionReducer()
+    setTransformControlsMode(transformControlsMode: string) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, transformControlsMode
+        })
+    }
+
+    @ActionReducer()
+    setSceneStage(sceneStage: THREE.Vector3) {
+        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+            ...annotatedSceneState, sceneStage
         })
     }
 

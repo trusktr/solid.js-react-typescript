@@ -35,21 +35,21 @@ export enum BoundaryColor {
 	OTHER
 }
 
-const MapBoundaryColorToHex: { [key: string]: number } =  {}
-MapBoundaryColorToHex[BoundaryColor.YELLOW.toString()] = 0xffdb00
-MapBoundaryColorToHex[BoundaryColor.WHITE.toString()] = 0xffffff
-MapBoundaryColorToHex[BoundaryColor.RED.toString()] = 0xff0000
-MapBoundaryColorToHex[BoundaryColor.BLUE.toString()] = 0x0000ff
-MapBoundaryColorToHex[BoundaryColor.GREEN.toString()] = 0x00ff00
-MapBoundaryColorToHex[BoundaryColor.UNKNOWN.toString()] = 0x00ffff
-MapBoundaryColorToHex[BoundaryColor.NONE.toString()] = 0x00ffff
-MapBoundaryColorToHex[BoundaryColor.OTHER.toString()] = 0x00ffff
+const MapBoundaryColorToHex: { [key: string]: THREE.Color } =  {}
+MapBoundaryColorToHex[BoundaryColor.YELLOW.toString()]  = new THREE.Color( 0xffdb00 )
+MapBoundaryColorToHex[BoundaryColor.WHITE.toString()]   = new THREE.Color( 0xffffff )
+MapBoundaryColorToHex[BoundaryColor.RED.toString()]     = new THREE.Color( 0xff0000 )
+MapBoundaryColorToHex[BoundaryColor.BLUE.toString()]    = new THREE.Color( 0x0000ff )
+MapBoundaryColorToHex[BoundaryColor.GREEN.toString()]   = new THREE.Color( 0x00ff00 )
+MapBoundaryColorToHex[BoundaryColor.UNKNOWN.toString()] = new THREE.Color( 0x00ffff )
+MapBoundaryColorToHex[BoundaryColor.NONE.toString()]    = new THREE.Color( 0x00ffff )
+MapBoundaryColorToHex[BoundaryColor.OTHER.toString()]   = new THREE.Color( 0x00ffff )
 
 // Some variables used for rendering
 namespace BoundaryRenderingProperties {
-	export const markerMaterial = new THREE.MeshLambertMaterial({color: 0xffffff, side: THREE.DoubleSide})
-	export const activeMaterial = new THREE.LineBasicMaterial({color: 0xf0d06e})
-	export const inactiveMaterial = new THREE.LineBasicMaterial({color: 0x00ffff})
+	export const markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color( 0xffffff ), side: THREE.DoubleSide})
+	export const activeMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0xf0d06e )})
+	export const inactiveMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0x00ffff )})
 }
 
 export interface BoundaryJsonInputInterface extends AnnotationJsonInputInterface {
