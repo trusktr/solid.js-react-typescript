@@ -354,7 +354,6 @@ export abstract class TileManager {
 	// Bounding box of the union of all loaded objects.
 	getLoadedObjectsBoundingBox(): THREE.Box3 | null {
 		if (this.loadedObjectsBoundingBox) {
-			//console.log("RT123 getLoadedObjectsBoundingBox 1")
 			return this.loadedObjectsBoundingBox
 		} else if (this.superTiles.isEmpty()) {
 			return null
@@ -363,9 +362,8 @@ export abstract class TileManager {
 			this.superTiles.forEach(st => {
 				const newBbox = st!.getContentsBoundingBox()
 				if (newBbox && newBbox.min.x !== null && newBbox.min.x !== Infinity) {
-          bbox = bbox.union(newBbox)
+					bbox = bbox.union(newBbox)
 				}
-
 			})
 			if (bbox.min.x === null || bbox.min.x === Infinity)
 				this.loadedObjectsBoundingBox = null

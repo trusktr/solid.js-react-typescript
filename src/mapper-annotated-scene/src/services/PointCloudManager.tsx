@@ -196,10 +196,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	 */
 	setCompassRoseByPointCloud(): void {
 		const boundingBox = this.props.pointCloudTileManager.getLoadedObjectsBoundingBox()
-		if (!boundingBox) {
-			log.error("Attempting to set compassRose, unable to find bounding box")
-			return
-		}
+		if (!boundingBox) return
 
 		// Find the center of one of the sides of the bounding box. This is the side that is
 		// considered to be North given the current implementation of UtmInterface.utmToThreeJs().
@@ -210,11 +207,11 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 		new AnnotatedSceneActions().setCompassRosePosition(new THREE.Vector3(topPoint.x, topPoint.y, topPoint.z - zOffset))
 	}
 
-	render() {
+	render(): JSX.Element | null {
 		return null
 	}
 
-	componentDidUpdate(previousProps: PointCloudManagerProps) {
+	componentDidUpdate(previousProps: PointCloudManagerProps): void {
 	    // IMPORTANT - Kiosk User Data must be loaded before this runs otherwise the UTM Offset is set based on AOI
         // Instead of Config Bounding Box (the reverse will cause the scene to flicker)
 		// TODO LIBRARY the lib won't know what app data to load, so we have to take isInitialOriginSet out of here.
