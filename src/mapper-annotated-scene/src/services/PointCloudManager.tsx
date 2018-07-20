@@ -170,7 +170,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   }
 
   // Load tiles within a bounding box and add them to the scene.
-  // Currently called from FlyThroughManager
   loadPointCloudDataFromConfigBoundingBox(bbox: number[]): Promise<void> {
     if (!isTupleOfNumbers(bbox, 6)) {
       this.props.handleTileManagerLoadError('Point Cloud', Error('invalid point cloud bounding box config'))

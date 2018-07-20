@@ -23,7 +23,7 @@ export default class AnnotatorMenuView extends React.Component<IProps, IState> {
 			<menu id="annotationMenu" className="menu">
 
 			<div id="tools" className="div_buttons_group">
-				<button id="tools_add_lane" className="ui-btn ui-icon-plus ui-btn-icon-left"> New Lane123 </button>
+				<button id="tools_add_lane" className="ui-btn ui-icon-plus ui-btn-icon-left"> New Lane </button>
 				<button id="tools_add_traffic_device" className="ui-btn ui-icon-plus ui-btn-icon-left"> New Traffic Device </button>
 				<button id="tools_delete" className="ui-btn ui-icon-minus ui-btn-icon-left"> Delete Annotation </button>
 				<button id="tools_load" className="ui-btn ui-icon-grid ui-btn-icon-left"> Load Tiles </button>

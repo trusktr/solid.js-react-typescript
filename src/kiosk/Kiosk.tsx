@@ -98,10 +98,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
             // Register key events
             this.registerKeyDownEvents()
 
-            // setup other items after scene is initialized
-            // 1) Update the camera offset for kiosk specifically
-            const cameraOffset = new THREE.Vector3(30, 10, 0)
-            controller.setCameraOffsetVector(cameraOffset)
             this.setState({isChildLoopAdded: true})
         }
 

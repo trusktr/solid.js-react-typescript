@@ -1,4 +1,9 @@
-import * as THREE from "three";
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
+import * as THREE from "three"
 import * as React from "react"
 import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
 import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
@@ -18,14 +23,13 @@ import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
 import {EventEmitter} from "events";
 import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
-import {OrderedMap} from "immutable";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 import * as Stats from 'stats.js'
 import {Events} from "@/mapper-annotated-scene/src/models/Events";
-import getOrderedMapValueDiff from '../util/getOrderedMapValueDiff'
 import {Set} from 'immutable'
 import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type";
 import {TransformControls} from '@/mapper-annotated-scene/src/services/controls/TransformControls'
+import {isTupleOfNumbers} from "@/util/Validation"
 
 const log = Logger(__filename)
 
@@ -104,11 +108,18 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		log.info("RT-DEBUG SceneManager constructor")
 		const {width, height} = this.props
 
-
 		// Settings for component state
 		const orthoCameraHeight = 100 // enough to view ~1 city block of data
 
-		const cameraOffset = new THREE.Vector3(0, 400, 200)
+		let cameraOffset = new THREE.Vector3(0, 400, 200)
+		if (config['startup.camera_offset']) {
+			const configCameraOffset: [number, number, number] = config['startup.camera_offset']
+			if (isTupleOfNumbers(configCameraOffset, 3)) {
+				cameraOffset = new THREE.Vector3().fromArray(configCameraOffset)
+			} else if (configCameraOffset) {
+				log.warn(`invalid startup.camera_offset config: ${configCameraOffset}`)
+			}
+		}
 
 		const skyRadius = 8000
 		const cameraToSkyMaxDistance = skyRadius * 0.05
@@ -126,8 +137,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		scene.add(orthographicCam)
 		scene.add(flyThroughCamera)
 
-		let camera;
-
+		let camera
 		// TODO JOE if this doesn't work in the constructor, move it to componentDidUpdate()
 		if (props.cameraPreference === CameraType.ORTHOGRAPHIC)
 			camera = orthographicCam
@@ -150,7 +160,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		scene.add(sky)
 
 		const compassRoseLength = parseFloat(config['annotator.compass_rose_length']) || 0
-		let compassRose;
+		let compassRose
 		if (compassRoseLength > 0) {
 			compassRose = CompassRose(compassRoseLength)
 			compassRose.rotateX(Math.PI / -2)
@@ -200,8 +210,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			maxDistanceToDecorations: 50000,
 			decorations: [],
 			stats: new Stats(),
-
-
 		}
 
 		this.state = state
@@ -394,7 +402,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// TODO This should go to AreaOfInterestManager, and hook into
 	// SceneManager's loop (or add a child one)
 	private startAoiUpdates(): void {
-		console.log("SceneManager startAoiUpdates")
 		const loop = this.state.loop
 
 		loop.addAnimationFn(() => {
@@ -414,12 +421,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 			return true
 		})
-
-    	console.log("SceneManager startAoiUpdates is finished")
-	}
-
-	setCameraOffsetVector(offset:THREE.Vector3) {
-		this.setState({cameraOffset: offset})
 	}
 
 	removeCompassFromScene() {
@@ -470,20 +471,17 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		orthographicCamera.updateProjectionMatrix()
 	}
 
-	/**
-	 * Move all visible elements into position, centered on a coordinate.
-	 */
+	// Move all visible elements into position, centered on a coordinate.
 	// @TODO long term move to Camera Manager
 	setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
-		const {camera, cameraOffset} = this.state
-		const {orbitControls} = this
-
 		new AnnotatedSceneActions().setSceneStage(new THREE.Vector3(x, y, z))
 
 		if (resetCamera) {
-			camera.position.set(x + cameraOffset.x, y + cameraOffset.y, z + cameraOffset.z)
+			const {camera, cameraOffset} = this.state
+			camera.position.set(x, y, z).add(cameraOffset)
 
-			// @TODO orbit controls will not be set on iniailization of Scene unless it's a required prop
+			// @TODO orbit controls will not be set on initialization of Scene unless it's a required prop
+			const {orbitControls} = this
 			orbitControls.target.set(x, y, z)
 			orbitControls.update()
 		}
@@ -500,7 +498,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		cameraPosition2D.set(camera.position.x, camera.position.z)
 
-		// this.uiState.cameraPosition2D.set(this.camera.position.x, this.camera.position.z)
 		if (cameraPosition2D.distanceTo(skyPosition2D) > cameraToSkyMaxDistance) {
 			sky.position.setX(cameraPosition2D.x)
 			sky.position.setZ(cameraPosition2D.y)
@@ -596,11 +593,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.y += value
 		this.setState({cameraOffset: cameraOffset.clone()})
-	}
-
-	// JOE FRIDAY, called from AnnotatedSceneController
-	setCameraOffset( offset: [ number, number, number ] ): void {
-		this.setState( { cameraOffset: new THREE.Vector3().fromArray( offset ) } )
 	}
 
 	addSuperTile(superTile: SuperTile) {

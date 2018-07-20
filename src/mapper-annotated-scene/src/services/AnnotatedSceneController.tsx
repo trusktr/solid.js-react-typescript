@@ -3,10 +3,8 @@ import * as React from "react"
 import {getValue} from "typeguard";
 import * as THREE from "three";
 import {sprintf} from 'sprintf-js'
-import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
-import {createStructuredSelector} from "reselect";
+import {ChildAnimationLoop} from 'animation-loop'
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
-import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import StatusWindow from "@/mapper-annotated-scene/components/StatusWindow";
 import Logger from "@/util/log";
 import PointCloudManager from "@/mapper-annotated-scene/src/services/PointCloudManager";
@@ -19,8 +17,6 @@ import {PointCloudTileManager} from "@/mapper-annotated-scene/tile/PointCloudTil
 import {TileServiceClient} from "@/mapper-annotated-scene/tile/TileServiceClient"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import * as OBJLoader from 'three-obj-loader'
-import {isTupleOfNumbers} from "@/util/Validation";
-import config from "@/config";
 import {AnnotationTileManager} from "@/mapper-annotated-scene/tile/AnnotationTileManager";
 import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
@@ -32,7 +28,6 @@ import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type
 import LayerToggle from "@/mapper-annotated-scene/src/models/LayerToggle";
 import {KeyboardEventHighlights} from "@/electron-ipc/Messages"
 import ResizeObserver from 'react-resize-observer'
-import {Events} from "@/mapper-annotated-scene/src/models/Events";
 import toProps from '@/util/toProps'
 import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
 import Key from '@/mapper-annotated-scene/src/models/Key'
@@ -51,7 +46,6 @@ export interface CameraState {
 
 // TODO JOE WEDNESDAY moved from Annotator.tsx
 interface AnnotatorSettings {
-    cameraOffset: THREE.Vector3
     orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
     defaultAnimationFrameIntervalMs: number | false
     animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
@@ -83,7 +77,7 @@ export interface IAnnotatedSceneControllerProps {
 }
 
 export interface IAnnotatedSceneControllerState {
-    cameraState: CameraState // isolating camera state incase we decide to migrate it to a Camera Manager down the road
+    cameraState: CameraState // isolating camera state in case we decide to migrate it to a Camera Manager down the road
     statusWindow?: StatusWindow
     pointCloudManager?: PointCloudManager
     areaOfInterestManager?: AreaOfInterestManager
@@ -160,18 +154,14 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
             const positionLla = this.utmCoordinateSystem.utmVectorToLngLatAlt(positionUtm)
             const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
 
-            // this.statusWindow.setMessage(statusKey.currentLocationLla, messageLla)
             new StatusWindowActions().setMessage(StatusKey.CURRENT_LOCATION_LLA, messageLla)
         }
         const messageUtm = sprintf('UTM %s: %dE %dN %.1falt', this.utmCoordinateSystem.utmZoneString(), positionUtm.x, positionUtm.y, positionUtm.z)
-        // this.statusWindow.setMessage(statusKey.currentLocationUtm, messageUtm)
         new StatusWindowActions().setMessage(StatusKey.CURRENT_LOCATION_UTM, messageUtm)
     }
 
-	// TODO this can have a better name
     setup() {
-
-        // TODO JOE FRIDAY
+	    // TODO JOE FRIDAY
         // if ( interaction is enabled ) {
 
 		// TODO JOE clean up event listeners on unmount
@@ -181,21 +171,11 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForConflictOrDeviceSelection)
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForAnnotationSelection)
         this.state.container!.addEventListener('mouseup', (e) => (console.log('mouseup!!!!!!!!!!!!'), this.state.annotationManager!.addAnnotationMarker(e)))
-        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addLaneConnection)   // RYAN Annotator-specific
-        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.connectNeighbor)  // RYAN Annotator-specific
+        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addLaneConnection)
+        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.connectNeighbor)
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.joinAnnotationsEventHandler)
 
         // }
-
-        if (config['startup.camera_offset']) {
-            const cameraOffset: [number, number, number] = config['startup.camera_offset']
-
-            if (isTupleOfNumbers(cameraOffset, 3)) {
-                this.state.sceneManager!.setCameraOffset(cameraOffset)
-            } else if (cameraOffset) {
-                log.warn(`invalid startup.camera_offset config: ${cameraOffset}`)
-            }
-        }
     }
 
     /**
@@ -277,10 +257,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	toggleCameraType() {
 		this.state.sceneManager!.toggleCameraType()
 	}
-
-    setCameraOffsetVector(offset: THREE.Vector3): void {
-        this.state.sceneManager!.setCameraOffsetVector(offset)
-    }
 
     addObjectToScene(object: THREE.Object3D) {
         new AnnotatedSceneActions().addObjectToScene(object)
