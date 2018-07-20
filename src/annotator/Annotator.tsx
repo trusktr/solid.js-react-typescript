@@ -623,7 +623,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Create an annotation, add it to the scene, and activate (highlight) it.
 	private uiAddAnnotation(annotationType: AnnotationType): void {
-		console.log( ' &&&&&&&&&&&&&&&&&&&& add annotations', annotationType )
 		if (this.state.annotationManager!.createAndAddAnnotation(annotationType, true)[0]) {
 			log.info(`Added new ${AnnotationType[annotationType]} annotation`)
 			this.deactivateAllAnnotationPropertiesMenus(annotationType)

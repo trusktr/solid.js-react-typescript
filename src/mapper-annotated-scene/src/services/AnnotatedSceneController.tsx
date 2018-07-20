@@ -489,11 +489,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
             x: event.clientX - event.target.offsetLeft,
             y: event.clientY - event.target.offsetTop,
         })
-
-		console.log( {
-            x: event.clientX - event.target.offsetLeft,
-            y: event.clientY - event.target.offsetTop,
-        } )
     }
 
     render() {
