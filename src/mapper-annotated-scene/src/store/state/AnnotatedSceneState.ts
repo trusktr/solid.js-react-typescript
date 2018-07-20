@@ -8,6 +8,7 @@ import {OrderedMap, Set} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
 import {TileManager} from "@/mapper-annotated-scene/tile/TileManager";
+import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 
 export default class AnnotatedSceneState {
 
@@ -68,6 +69,7 @@ export default class AnnotatedSceneState {
 
 	// Ported from uiState
 	isMouseDragging: boolean
+	mousePosition: MousePosition
 	isRotationModeActive: boolean
 	isConnectLeftNeighborMode: boolean
 	isConnectRightNeighborMode: boolean

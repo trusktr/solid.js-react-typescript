@@ -1591,9 +1591,11 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const {isMouseDragging, isConnectLeftNeighborMode, isConnectRightNeighborMode,
 			isConnectFrontNeighborMode, isAddMarkerMode} = this.props
 
-		if(isMouseDragging || isConnectLeftNeighborMode || isConnectRightNeighborMode ||
-			isConnectFrontNeighborMode || isAddMarkerMode ||
-			!this.activeAnnotation || !this.activeAnnotation.allowNewMarkers) {
+		if(
+			isMouseDragging || isConnectLeftNeighborMode ||
+			isConnectRightNeighborMode || isConnectFrontNeighborMode ||
+			!this.activeAnnotation || !this.activeAnnotation.allowNewMarkers
+		) {
 			return
 		}
 

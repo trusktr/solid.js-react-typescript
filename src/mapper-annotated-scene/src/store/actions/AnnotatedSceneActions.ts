@@ -12,6 +12,7 @@ import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {RangeSearch} from "../../../tile-model/RangeSearch";
 import {TileManager} from '../../../tile/TileManager'
 import {Set} from "immutable";
+import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 
 const log = Logger(__filename)
 
@@ -82,6 +83,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             isAnnotationTileManagerEnabled: false, // by default, do not include the AnnotationTileManager -- it's only needed for the Kiosk app
 
             isMouseDragging: false,
+			mousePosition: { x: 0, y: 0 },
             isRotationModeActive: false,
             isConnectLeftNeighborMode: false,
             isConnectRightNeighborMode: false,
@@ -410,7 +412,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     }
 
     @ActionReducer()
-    setMousePosition(mousePosition: { x: number, y: number }) {
+    setMousePosition(mousePosition: MousePosition) {
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
             ...annotatedSceneState, mousePosition
         })
