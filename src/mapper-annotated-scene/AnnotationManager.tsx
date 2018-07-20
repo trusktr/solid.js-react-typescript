@@ -180,9 +180,14 @@ export class AnnotationManager extends React.Component<IProps, IState> {
         // Setup listeners on add/remove point cloud tiles
         this.props.channel.on('addAnnotationSuperTile', (superTile:SuperTile) => {this.addSuperTileAnnotations(superTile as AnnotationSuperTile)})
         this.props.channel.on('removeAnnotationSuperTile', (superTile:SuperTile) => {this.removeSuperTileAnnotations(superTile as AnnotationSuperTile)})
-
 		this.props.channel.on('transformUpdate', this.updateActiveAnnotationMesh)
-    }
+	}
+
+	componentDidMount() {
+		const annotationsPath = config['startup.annotations_path']
+		if (annotationsPath)
+			this.loadAnnotations(annotationsPath).then()
+	}
 
 	componentWillReceiveProps(newProps) {
 		if(newProps.isAnnotationsVisible !== this.props.isAnnotationsVisible) {
@@ -268,10 +273,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return this.activeAnnotation as TrafficDevice
 		else
 			return null
-	}
-
-	getValidIds(): Array<AnnotationId> {
-		return this.allAnnotations().map(a => a.id)
 	}
 
 	neighboringMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {

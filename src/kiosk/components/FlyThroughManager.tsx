@@ -11,7 +11,6 @@ import Models = MapperProtos.mapper.models
 import Logger from "@/util/log";
 import * as Electron from "electron";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
-import {getValue} from "typeguard";
 import CarManager from "@/kiosk/components/CarManager";
 import * as zmq from "zmq";
 import {Socket} from "zmq";
@@ -86,9 +85,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
      *    Load up any data which configuration has asked for on start-up.
      *    Note: This function is called after the car has been instantiated AND after PointCloudManager and AnnotatedScene are setup
      */
-	// TODO JOE FlyThroughManager currently knows about annotations, but it
-	// shouldn't have to. FlyThroughManager only needs to load trajectory paths
-	// at most.
     loadUserData(): Promise<void> {
 
         if (config['startup.point_cloud_directory'])
@@ -98,32 +94,20 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         if (config['fly_through.trajectory_path'])
             log.warn('config option fly_through.trajectory_path is now a list: fly_through.trajectory_path.list')
 
-		// TODO JOE Annotator needs this too.
-        const annotationsPath = config['startup.annotations_path']
-        let annotationsResult: Promise<void>
-        if (annotationsPath) {
-            annotationsResult = this.props.annotatedSceneController.state.annotationManager!.loadAnnotations(annotationsPath)
-        } else {
-            annotationsResult = Promise.resolve()
-        }
-
         let trajectoryResult: Promise<void>
         const trajectoryPaths = config['fly_through.trajectory_path.list']
         if (Array.isArray(trajectoryPaths) && trajectoryPaths.length) {
-            trajectoryResult = annotationsResult
-                .then(() => {
-                    log.info('loading pre-configured trajectories')
-                    return this.loadFlyThroughTrajectories(trajectoryPaths)
-                })
+	        log.info('loading pre-configured trajectories')
+	        trajectoryResult = this.loadFlyThroughTrajectories(trajectoryPaths)
         } else {
-            trajectoryResult = annotationsResult
+            trajectoryResult = Promise.resolve()
         }
 
         return trajectoryResult
     }
 
     componentDidMount() {
-        this.init()
+        this.init().then()
     }
 
     async init() {
