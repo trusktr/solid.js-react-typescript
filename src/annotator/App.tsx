@@ -52,7 +52,6 @@ export default class App extends React.Component<AppProps, AppState> {
 				<Annotator />
 			}
 
-
 			<div id="logo">
 				<img
 					src={logo}

@@ -33,7 +33,6 @@ import {CalibratedImage} from "./image/CalibratedImage"
 import * as Stats from 'stats.js'
 import toProps from '@/util/toProps'
 import {KeyboardEventHighlights} from "@/electron-ipc/Messages"
-
 import * as React from "react";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
@@ -45,9 +44,8 @@ import AnnotatedSceneController from '@/mapper-annotated-scene/src/services/Anno
 import {Events} from "@/mapper-annotated-scene/src/models/Events";
 import {Layer as AnnotatedSceneLayer} from "@/mapper-annotated-scene/src/services/LayerManager";
 import {v4 as UUID} from 'uuid'
-
+import Key from '@/mapper-annotated-scene/src/models/Key'
 import AnnotatorMenuView from "./AnnotatorMenuView";
-
 import {dateToString} from "../util/dateToString"
 import {scale3DToSpatialTileScale, spatialTileScaleToString} from "../mapper-annotated-scene/tile/ScaleUtil"
 import {ScaleProvider} from "../mapper-annotated-scene/tile/ScaleProvider"
@@ -512,21 +510,19 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// }}}
 
-	mapKey(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
-		console.log( ' -------------------------- set key!', key )
+	mapKey(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
 		this.state.annotatedSceneController!.mapKey(key, fn)
 	}
 
-	mapKeyDown(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+	mapKeyDown(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
 		this.state.annotatedSceneController!.mapKeyDown(key, fn)
 	}
 
-	mapKeyUp(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+	mapKeyUp(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
 		this.state.annotatedSceneController!.mapKeyUp(key, fn)
 	}
 
-	keyHeld(key: string, fn: (held: boolean) => void) {
-		console.log( ' --------------------------------------- held key', key )
+	keyHeld(key: Key, fn: (held: boolean) => void) {
 		this.state.annotatedSceneController!.keyHeld(key, fn)
 	}
 
@@ -558,14 +554,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.mapKey('V', () => this.state.annotatedSceneController!.toggleCameraType())
 		this.mapKey('X', () => this.state.annotationManager!.toggleTransformControlsRotationMode())
 
-		// const actions = new AnnotatedSceneActions()
-		// this.keyHeld('a', held => actions.setAddMarkerMode(held))
-		// this.keyHeld('c', held => actions.setAddConnectionMode(held))
-		// this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
-		// this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
-		// this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
-		// this.keyHeld('q', held => actions.setAddConflictOrDeviceMode(held))
-		// this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
+		const actions = new AnnotatedSceneActions()
+		this.keyHeld('a', held => actions.setAddMarkerMode(held))
+		this.keyHeld('c', held => actions.setAddConnectionMode(held))
+		this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
+		this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
+		this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
+		this.keyHeld('q', held => actions.setAddConflictOrDeviceMode(held))
+		this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
 	}
 
 	addImageScreenLayer() {

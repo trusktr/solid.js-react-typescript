@@ -566,9 +566,12 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// Right neighbours
 		annotation.neighborsIds.right.forEach(NeighbourUuid => {
 			let neighbour =  this.findAnnotationByUuid(NeighbourUuid)
+
 			if (neighbour && neighbour instanceof Lane && neighbour.isValid()) {
+
 				let p2: THREE.Vector3 = neighbour.waypoints[1].sub(neighbour.waypoints[0])
 				let angle = p1.angleTo(p2)
+
 				if (angle < (Math.PI / 3)) {
 					// same direction
 					neighbour.addNeighbor(annotation.uuid, NeighborLocation.LEFT)
