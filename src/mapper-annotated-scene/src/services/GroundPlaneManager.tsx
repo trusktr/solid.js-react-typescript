@@ -24,6 +24,7 @@ export interface IGroundPlaneManagerProps {
 	areaOfInterestManager: AreaOfInterestManager | null
 	channel: EventEmitter
 	rendererSize?: { width: number, height: number }
+	isAddMarkerMode?: boolean
 }
 
 export interface IGroundPlaneManagerState {
@@ -35,6 +36,7 @@ export interface IGroundPlaneManagerState {
 	'camera',
 	'mousePosition',
 	'rendererSize',
+	'isAddMarkerMode',
 ))
 export default
 class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGroundPlaneManagerState> {
@@ -121,12 +123,13 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 				)
 				geometry.rotateX(-Math.PI / 2)
 
-				const material = new THREE.ShadowMaterial()
+				const material = new THREE.MeshNormalMaterial({ wireframe: true })
 				const plane = new THREE.Mesh(geometry, material)
 				const origin = this.props.utmCoordinateSystem.utmVectorToThreeJs(tile.index.origin)
 				plane.position.x = origin.x + xSize / 2
 				plane.position.y = y
 				plane.position.z = origin.z - zSize / 2
+				plane.visible = false // not visible at first, visible only when needed
 
 				groundPlanes.push(plane)
 			}
@@ -187,6 +190,21 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 		})
 
 		return count
+	}
+
+	makePlanesVisible(areVisible: boolean) {
+		for (const plane of this.allGroundPlanes) {
+			plane.visible = areVisible
+		}
+	}
+
+	componentDidUpdate(oldProps) {
+		if (oldProps.isAddMarkerMode !== this.props.isAddMarkerMode) {
+			if (this.props.isAddMarkerMode)
+				this.makePlanesVisible(true)
+			else
+				this.makePlanesVisible(false)
+		}
 	}
 
 	render() {

@@ -180,7 +180,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         // TODO REORG JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForConflictOrDeviceSelection)
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForAnnotationSelection)
-        this.state.container!.addEventListener('mouseup', (e) => (console.log('mouseup!!!!!!!!!!!!'), this.state.annotationManager!.addAnnotationMarker(e)))
+        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addAnnotationMarker)
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addLaneConnection)   // RYAN Annotator-specific
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.connectNeighbor)  // RYAN Annotator-specific
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.joinAnnotationsEventHandler)
@@ -513,11 +513,6 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
             x: event.clientX - event.target.offsetLeft,
             y: event.clientY - event.target.offsetTop,
         })
-
-		console.log( {
-            x: event.clientX - event.target.offsetLeft,
-            y: event.clientY - event.target.offsetTop,
-        } )
     }
 
     render() {
