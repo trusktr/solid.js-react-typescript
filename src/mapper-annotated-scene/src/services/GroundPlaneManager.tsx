@@ -121,7 +121,7 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 				)
 				geometry.rotateX(-Math.PI / 2)
 
-				const material = new THREE.MeshNormalMaterial()
+				const material = new THREE.ShadowMaterial()
 				const plane = new THREE.Mesh(geometry, material)
 				const origin = this.props.utmCoordinateSystem.utmVectorToThreeJs(tile.index.origin)
 				plane.position.x = origin.x + xSize / 2
@@ -158,8 +158,6 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 			mousePositionToGLSpace( this.props.mousePosition, this.props.rendererSize! ),
 			this.props.camera
 		)
-
-		console.log( this.props.rendererSize! )
 
 		if (this.estimateGroundPlane || !this.pointCloudTileCount()) {
 			if (this.allGroundPlanes.length)
