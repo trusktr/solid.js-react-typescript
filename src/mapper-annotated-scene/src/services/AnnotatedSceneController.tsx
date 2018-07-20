@@ -33,6 +33,9 @@ import LayerToggle from "@/mapper-annotated-scene/src/models/LayerToggle";
 import {KeyboardEventHighlights} from "@/electron-ipc/Messages"
 import ResizeObserver from 'react-resize-observer'
 import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import toProps from '@/util/toProps'
+import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
+import Key from '@/mapper-annotated-scene/src/models/Key'
 
 const log = Logger(__filename)
 
@@ -63,8 +66,7 @@ export interface IAnnotatedSceneControllerProps {
 	backgroundColor?: THREEColorValue
     onPointOfInterestCall ?: () => THREE.Vector3
     onCurrentRotation ?: () => THREE.Quaternion
-    // statusWindowState ?: StatusWindowState
-    showStatusWindow ?: boolean
+    statusWindowState ?: StatusWindowState
     pointOfInterest?: THREE.Vector3
     getAnnotationManagerRef?: (ref: AnnotationManager) => void
 	setKeys?: () => void
@@ -95,13 +97,11 @@ export interface IAnnotatedSceneControllerState {
     componentHeight: number
 }
 
-
-@typedConnect(createStructuredSelector({
-    // statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,
-    showStatusWindow: (state) => state.get(AnnotatedSceneState.Key).statusWindowState.enabled,
-    pointOfInterest: (state) => state.get(AnnotatedSceneState.Key).pointOfInterest,
-    numberKeyPressed: (state) => state.get(AnnotatedSceneState.Key).numberKeyPressed,
-}))
+@typedConnect(toProps(
+    'statusWindowState',
+    'pointOfInterest',
+    'numberKeyPressed',
+))
 export default class AnnotatedSceneController extends React.Component<IAnnotatedSceneControllerProps, IAnnotatedSceneControllerState> {
     public utmCoordinateSystem: UtmCoordinateSystem
 
@@ -112,8 +112,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 	lastPointCloudLoadedErrorModalMs: number
 	private isAllSet: boolean
 
-    private registeredKeyDownEvents: Map<string, (e: KeyboardEvent | KeyboardEventHighlights) => void> = new Map<string, any>() // mapping between KeyboardEvent.key and function to execute
-    private registeredKeyUpEvents: Map<string, (e: KeyboardEvent | KeyboardEventHighlights) => void> = new Map<string, any>() // mapping between KeyboardEvent.key and function to execute
+    private registeredKeyDownEvents: Map<string, Set<(e: KeyboardEvent | KeyboardEventHighlights) => void>> = new Map() // mapping between KeyboardEvent.key and function to execute
+    private registeredKeyUpEvents: Map<string, Set<(e: KeyboardEvent | KeyboardEventHighlights) => void>> = new Map() // mapping between KeyboardEvent.key and function to execute
+	private heldKeys: Set<Key> = new Set()
 
     constructor(props) {
         super(props)
@@ -147,6 +148,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
 		this.lastPointCloudLoadedErrorModalMs = 0
 
+		// TODO JOE clean up event listeners on unmount
         window.addEventListener('keydown', this.onKeyDown)
         window.addEventListener('keyup', this.onKeyUp)
     }
@@ -167,20 +169,18 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     }
 
 	// TODO this can have a better name
-    setAnnotatedSceneController() {
-		if (this.isAllSet) return
-
-		this.isAllSet = true
+    setup() {
 
         // TODO JOE FRIDAY
         // if ( interaction is enabled ) {
 
+		// TODO JOE clean up event listeners on unmount
         this.state.container!.addEventListener('mousemove', this.state.annotationManager!.checkForActiveMarker)
 
         // TODO REORG JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForConflictOrDeviceSelection)
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForAnnotationSelection)
-        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addAnnotationMarker)
+        this.state.container!.addEventListener('mouseup', (e) => (console.log('mouseup!!!!!!!!!!!!'), this.state.annotationManager!.addAnnotationMarker(e)))
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addLaneConnection)   // RYAN Annotator-specific
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.connectNeighbor)  // RYAN Annotator-specific
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.joinAnnotationsEventHandler)
@@ -212,7 +212,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     // Display some info in the UI about where the camera is pointed.
     private displayCameraInfo = (): void => {
 
-        if (!getValue(() => this.props.showStatusWindow, false)) return
+        if (!getValue(() => this.props.statusWindowState!.enabled, false)) return
 
         // const currentPoint = this.currentPointOfInterest()
         const currentPoint = this.props.pointOfInterest
@@ -311,21 +311,27 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
      * Handle keyboard events
      */
     onKeyDown = (event: KeyboardEvent | KeyboardEventHighlights): void => {
-        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
 
+		// TODO JOE we might have to add this check elsewhere now that it is disabled, if we need it
+        // if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+
+		// TODO JOE replace this with keyHeld API usage
 		this.possiblySetNumberPressed(event)
 
-        const fn = this.registeredKeyDownEvents.get(event.key)
-        fn && fn( event )
+        const handlers = this.registeredKeyDownEvents.get(event.key)
+        handlers && handlers.size && handlers.forEach(fn => fn(event))
     }
 
     onKeyUp = (event: KeyboardEvent | KeyboardEventHighlights): void => {
-        if (event.defaultPrevented) return
 
+		// TODO JOE we might have to add this check elsewhere now that it is disabled, if we need it
+        // if (event.defaultPrevented) return
+
+		// TODO JOE replace this with keyHeld API usage
 		this.possiblyUnsetNumberPressed(event)
 
-        const fn = this.registeredKeyUpEvents.get(event.key)
-        fn && fn( event )
+        const handlers = this.registeredKeyUpEvents.get(event.key)
+        handlers && handlers.size && handlers.forEach(fn => fn(event))
     }
 
 	private possiblySetNumberPressed = (event: KeyboardEvent | KeyboardEventHighlights): void => {
@@ -347,32 +353,54 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 		this.keyHeld('Shift', held => actions.setShiftKeyPressed(held))
 	}
 
-	keyHeld(key: string, fn: (held: boolean) => void) {
-		this.mapKeyDown(key, () => fn(true))
-		this.mapKeyUp(key, () => fn(false))
+	keyHeld(key: Key, fn: (held: boolean) => void) {
+		this.mapKeyDown(key, () => {
+			if (!this.heldKeys.has(key)) {
+				this.heldKeys.add(key)
+				console.log( 'keys held:', this.heldKeys )
+				fn(true)
+			}
+		})
+		this.mapKeyUp(key, () => {
+			this.heldKeys.delete(key)
+			console.log( 'keys held:', this.heldKeys )
+			fn(false)
+		})
 	}
 
-	mapKey(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+	mapKey(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
 		this.mapKeyDown(key, fn)
 	}
 
-	mapKeyDown(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+	mapKeyDown(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
 		this.registerKeyboardDownEvent(key, fn)
 	}
 
-	mapKeyUp(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+	mapKeyUp(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
 		this.registerKeyboardUpEvent(key, fn)
 	}
 
-    registerKeyboardDownEvent(key: string, fn: (e: KeyboardEvent | KeyboardEventHighlights) => void) {
-		this.registeredKeyDownEvents.set(key, fn)
+    registerKeyboardDownEvent(key: Key, fn: (e: KeyboardEvent | KeyboardEventHighlights) => void) {
+		let handlers = this.registeredKeyDownEvents.get(key)
+
+		if (!handlers) {
+			this.registeredKeyDownEvents.set(key, handlers = new Set())
+		}
+
+		handlers.add(fn)
     }
 
-    registerKeyboardUpEvent(key: string, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
-		this.registeredKeyUpEvents.set(key, fn)
+    registerKeyboardUpEvent(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+		let handlers = this.registeredKeyUpEvents.get(key)
+
+		if (!handlers) {
+			this.registeredKeyUpEvents.set(key, handlers = new Set())
+		}
+
+		handlers.add(fn)
     }
 
-    private handleTileManagerLoadError = (dataType: string, err: Error): void => {
+    private handleTileManagerLoadError = (dataType: Key, err: Error): void => {
         if (err instanceof BusyError) {
             log.info(err.message)
         } else {
@@ -419,7 +447,9 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
 
     componentDidUpdate(_, prevState, __) {
         if (!this.isAllSet && this.state.sceneManager && this.state.container && this.state.annotationManager) {
-            this.setAnnotatedSceneController()
+			this.isAllSet = true
+
+            this.setup()
         }
 
 		if (!prevState.annotationManager && this.state.annotationManager) {
@@ -483,6 +513,11 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
             x: event.clientX - event.target.offsetLeft,
             y: event.clientY - event.target.offsetTop,
         })
+
+		console.log( {
+            x: event.clientX - event.target.offsetLeft,
+            y: event.clientY - event.target.offsetTop,
+        } )
     }
 
     render() {

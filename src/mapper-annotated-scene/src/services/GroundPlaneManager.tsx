@@ -13,14 +13,17 @@ import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
 import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 import {EventEmitter} from "events"
+import mousePositionToGLSpace from '@/util/mousePositionToGLSpace'
+import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 
 export interface IGroundPlaneManagerProps {
 	// pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
 	utmCoordinateSystem: UtmCoordinateSystem
 	camera?: THREE.Camera
-	mousePosition?: { x: number, y: number }
+	mousePosition?: MousePosition
 	areaOfInterestManager: AreaOfInterestManager | null
 	channel: EventEmitter
+	rendererSize?: { width: number, height: number }
 }
 
 export interface IGroundPlaneManagerState {
@@ -30,7 +33,8 @@ export interface IGroundPlaneManagerState {
 @typedConnect(toProps(
 	//'pointCloudSuperTiles',
 	'camera',
-	'mousePosition'
+	'mousePosition',
+	'rendererSize',
 ))
 export default
 class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGroundPlaneManagerState> {
@@ -150,7 +154,10 @@ class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGrou
 			return intersections
 
 		// TODO JOE we need this.props.mousePosition
-		this.raycaster.setFromCamera(this.props.mousePosition, this.props.camera)
+		this.raycaster.setFromCamera(
+			mousePositionToGLSpace( this.props.mousePosition, this.props.rendererSize! ),
+			this.props.camera
+		)
 
 		if (this.estimateGroundPlane || !this.pointCloudTileCount()) {
 			if (this.allGroundPlanes.length)

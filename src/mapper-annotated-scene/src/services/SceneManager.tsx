@@ -166,11 +166,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		renderer.setPixelRatio(window.devicePixelRatio)
 		renderer.setSize(width, height)
 
-
-		// Add Listeners
-		window.addEventListener('resize', this.onWindowResize)
-
-
 		// @TODO (Annotator-only) Add renderer domElement event listeners using 'registerDomEventElementEventListener' below
 
 		const loop = new AnimationLoop
@@ -555,7 +550,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// orbitControls.addEventListener('pan', this.displayCameraInfo)
 	}
 
-	private getContainerSize = (): Array<number> => {
+	private getSize = (): Array<number> => {
 		return getValue(() => [this.props.width, this.props.height], [0, 0])
 	}
 
@@ -565,9 +560,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// scene's parent container. For example, on the mapper.ai public website,
 	// the scene might be a rectangle inside the page, not the whole window.
 	// We can use ResizeObserver for this.
-	private onWindowResize = (): void => {
+	private onResize = (): void => {
 
-		const [width, height]: Array<number> = this.getContainerSize()
+		const [width, height]: Array<number> = this.getSize()
 
 		const {camera, renderer} = this.state
 
@@ -720,7 +715,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.setState({camera: newCamera})
 		new AnnotatedSceneActions().setCamera(this.state.camera)
 
-		this.onWindowResize()
+		this.onResize()
 
 
 		const orbitControls = this.orbitControls
@@ -807,8 +802,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	}
 
+	componentDidUpdate(oldProps) {
+		if (oldProps.width !== this.props.width || oldProps.height !== this.props.height) {
+			this.onResize()
+		}
+	}
+
 	componentDidMount() {
-		const [width, height]: Array<number> = this.getContainerSize()
+		const [width, height]: Array<number> = this.getSize()
 
 		this.createOrthographicCameraDimensions(width, height)
 
@@ -818,6 +819,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.makeStats()
 		this.props.container.appendChild(this.state.renderer.domElement)
 		this.startAnimation()
+
+		this.onResize()
 	}
 
 	componentWillUnmount() {
