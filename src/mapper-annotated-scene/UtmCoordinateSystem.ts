@@ -4,11 +4,8 @@
  */
 
 import * as THREE from 'three'
-// import {isNull} from "util"
 import * as utmConverter from 'utm'
-import {EventEmitter} from "events";
-import {Events} from "@/mapper-annotated-scene/src/models/Events";
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts"
 
 /**
  * UtmCoordinateSystem has two states: it has a zone or not. Zone can be set one time.

@@ -2,7 +2,7 @@ import {Map as IMMap} from "immutable"
 import {compose, Store as ReduxStore, StoreEnhancer} from "redux"
 import {ILeafReducer, ObservableStore, setStoreProvider} from "typedux"
 
-import { loadReducers, updateReducers } from "mapper-annotated-scene/src/store/Reducers"
+import { loadReducers } from "mapper-annotated-scene/src/store/Reducers"
 import { loadActions } from "mapper-annotated-scene/src/store/Actions"
 import * as _ from "lodash"
 import {getHot} from "mapper-annotated-scene/src/util/HotUtil"

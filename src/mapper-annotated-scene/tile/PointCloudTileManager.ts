@@ -24,7 +24,6 @@ import Logger from "@/util/log"
 import {TileManager, TileManagerConfig} from "@/mapper-annotated-scene/tile/TileManager"
 import {OrderedMap} from "immutable"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
 import {EventEmitter} from "events";
 import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";

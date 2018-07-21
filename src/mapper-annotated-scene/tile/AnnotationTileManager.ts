@@ -17,11 +17,9 @@ import {AnnotationTileContents} from "@/mapper-annotated-scene/tile-model/TileCo
 import {AnnotationUtmTile} from "@/mapper-annotated-scene/tile/AnnotationUtmTile"
 import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager.tsx"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
-import {OrderedMap} from "immutable";
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
-import {EventEmitter} from "events";
-import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
-import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
+import {EventEmitter} from "events"
+import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions"
+import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey"
 
 export class AnnotationTileManager extends TileManager {
 	constructor(

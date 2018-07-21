@@ -8,8 +8,6 @@ import {RangeSearch} from "../../tile-model/RangeSearch";
 import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
-import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager"
-import toProps from '@/util/toProps'
 import {createStructuredSelector} from "reselect";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {TileManager} from "@/mapper-annotated-scene/tile/TileManager";

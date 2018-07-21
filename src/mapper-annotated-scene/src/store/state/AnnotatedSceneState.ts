@@ -1,5 +1,4 @@
 import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
-import {FlyThroughState} from "@/mapper-annotated-scene/src/models/FlyThroughState";
 import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models

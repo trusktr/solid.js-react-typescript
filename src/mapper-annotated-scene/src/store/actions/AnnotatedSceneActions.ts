@@ -5,7 +5,6 @@ import AnnotatedSceneState from "mapper-annotated-scene/src/store/state/Annotate
 import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
-import Logger from "@/util/log";
 import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
 import {OrderedMap} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";

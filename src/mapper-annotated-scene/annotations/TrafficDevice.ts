@@ -222,9 +222,8 @@ export class TrafficDevice extends Annotation {
 	}
 
 	updateVisualization(): void {
-		if (this.markers.length < 1) {
-			return
-		}
+		if (this.markers.length < 1) return
+
 		this.planeCenter = this.markers[0].position
 		const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(this.markers[0].getWorldRotation())
 		this.deviceOrientation.setFromRotationMatrix(rotationMatrix)

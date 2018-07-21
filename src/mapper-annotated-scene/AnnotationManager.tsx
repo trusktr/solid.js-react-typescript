@@ -36,25 +36,20 @@ import * as CRS from "./CoordinateReferenceSystem"
 import Logger from "@/util/log"
 import {tileIndexFromVector3} from "@/mapper-annotated-scene/tile-model/TileIndex"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
-import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerManager";
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
-
-import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerManager"
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions"
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed"
 import toProps from '@/util/toProps'
-import {createStructuredSelector} from "reselect";
-import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
-import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
-import {OrderedMap} from "immutable";
-import {AnnotationSuperTile} from "@/mapper-annotated-scene/tile/AnnotationSuperTile";
-import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
-import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateFrame";
-import PointCloudManager from "@/mapper-annotated-scene/src/services/PointCloudManager";
-import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager";
-import {AnnotationTileManager} from "@/mapper-annotated-scene/tile/AnnotationTileManager";
-import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
-import Annotator from "@/annotator/Annotator";
+import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile"
+import {AnnotationSuperTile} from "@/mapper-annotated-scene/tile/AnnotationSuperTile"
+import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch"
+import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateFrame"
+import PointCloudManager from "@/mapper-annotated-scene/src/services/PointCloudManager"
+import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
+import {AnnotationTileManager} from "@/mapper-annotated-scene/tile/AnnotationTileManager"
+import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager"
 import {EventEmitter} from "events"
-import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import {Events} from "@/mapper-annotated-scene/src/models/Events"
 
 const log = Logger(__filename)
 
