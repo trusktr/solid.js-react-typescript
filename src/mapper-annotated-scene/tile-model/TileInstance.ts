@@ -9,7 +9,7 @@ export class TileInstance {
 
 	constructor(
 		public tileIndex: TileIndex,
-		public layerId: string,
+		public layerId: LayerId,
 		public url: string
 	) { }
 }

@@ -138,7 +138,7 @@ export class TileServiceClient {
 	}
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum points.
-	getTilesByCoordinateRange(layerId: string, search: RangeSearch): Promise<TileInstance[]> {
+	getTilesByCoordinateRange(layerId: LayerId, search: RangeSearch): Promise<TileInstance[]> {
 		const corner1 = new GeographicPoint3DMessage()
 		corner1.setSrid(this.srid)
 		corner1.setX(search.minPoint.x)
@@ -155,7 +155,7 @@ export class TileServiceClient {
 	}
 
 	// Get all available tiles within a rectangular region specified by minimum and maximum corner tiles.
-	getTilesByTileRange(layerId: string, search: TileRangeSearch): Promise<TileInstance[]> {
+	getTilesByTileRange(layerId: LayerId, search: TileRangeSearch): Promise<TileInstance[]> {
 		const corner1 = new GeographicPoint3DMessage()
 		corner1.setSrid(this.srid)
 		corner1.setX(search.minTileIndex.origin.x)
@@ -171,7 +171,7 @@ export class TileServiceClient {
 			.then(() => this.getTiles(layerId, corner1, corner2))
 	}
 
-	private getTiles(layerId: string, corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<TileInstance[]> {
+	private getTiles(layerId: LayerId, corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<TileInstance[]> {
 		const rangeSearch = new RangeSearchMessage()
 		rangeSearch.setCorner1(corner1)
 		rangeSearch.setCorner2(corner2)
