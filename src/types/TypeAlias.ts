@@ -3,5 +3,5 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-type TileIndexDimension = number // but really it's an integer
-type LayerId = string
+export type TileIndexDimension = number // but really it's an integer
+export type LayerId = string

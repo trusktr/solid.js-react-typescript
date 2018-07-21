@@ -5,6 +5,7 @@
 
 import * as THREE from 'three'
 import {coordToIndex, indexToCoord, Scale3D} from "../geometry/Scale3D"
+import {TileIndexDimension} from "@/types/TypeAlias"
 
 const defaultSeparator = "," // for generating serializable ID strings
 

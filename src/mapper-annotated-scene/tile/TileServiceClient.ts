@@ -25,6 +25,7 @@ import Logger from "@/util/log"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import {EventEmitter} from "events";
 import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import {LayerId} from "@/types/TypeAlias"
 
 const log = Logger(__filename)
 

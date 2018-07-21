@@ -21,6 +21,7 @@ import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
 import AnnotatedSceneActions from "../src/store/actions/AnnotatedSceneActions";
 import {EventEmitter} from "events";
 import Logger from "@/util/log"
+import {LayerId} from "@/types/TypeAlias"
 
 const log = Logger(__filename)
 
