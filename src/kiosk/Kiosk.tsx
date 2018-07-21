@@ -33,7 +33,6 @@ export interface KioskState {
     trajectoryPicker ?: TrajectoryPicker
 }
 
-
 @typedConnect(createStructuredSelector({
     isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
     isInitialOriginSet: (state) => state.get(AnnotatedSceneState.Key).isInitialOriginSet,
@@ -43,7 +42,7 @@ export interface KioskState {
 }))
 export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
-    constructor(props) {
+    constructor(props: KioskProps) {
         super(props)
 
         this.state = {
@@ -84,7 +83,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
         Electron.remote.getCurrentWindow().close()
     }
 
-    async componentWillReceiveProps(newProps) {
+    async componentWillReceiveProps(newProps: KioskProps) {
         if (!this.state.isChildLoopAdded && this.state.annotatedSceneController && this.state.flyThroughManager) {
             // this is the transition from the Scene not being setup to when it is
             // Since it's setup now let's setup the fly through manager
@@ -115,7 +114,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
     }
 
-    private registerKeyDownEvents() {
+    private registerKeyDownEvents(): void {
         const cameraOffsetDelta = 1
 
         this.mapKey('ArrowLeft', () => {
@@ -132,12 +131,12 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
         })
     }
 
-	mapKey( key, fn ) {
+	mapKey( key, fn ): void {
         this.state.annotatedSceneController!.mapKey(key, fn)
 	}
 
     // this gets called after the CarManager is instantiated
-    private listen() {
+    private listen(): void {
         if (this.state.hasCalledSetup) return
 
         // TODO FIXME avoid access of deep state
@@ -160,7 +159,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
         this.state.carManager!.addObjectToCar(this.state.annotatedSceneController!.state.sceneManager!.getCamera()) // follow/orbit around the car
         this.state.carManager!.makeCarVisible()
 
-
         if (this.state.flyThroughManager) {
             // Start both types of playback, just in case. If fly-through is enabled it will preempt the live location client.
             this.state.flyThroughManager.startFlyThrough()
@@ -173,7 +171,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
         this.state.annotatedSceneController!.renderScene()
     }
-
 
     // TODO JOE WEDNESDAY {{{
     // get this kiosk-specific trajectory picker stuff working
@@ -253,7 +250,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
     //
 
     // }}}
-
 
     getCarManagerRef = (ref: any): void => {
         ref && this.setState({ carManager: ref.getWrappedInstance() as CarManager })

@@ -100,7 +100,7 @@ export class PointCloudTileManager extends TileManager {
     /**
      * Calculate points loaded and dispatch an action
      */
-    protected setStatsMessage() {
+    protected setStatsMessage(): void {
         let points = 0
 
         this.superTiles.forEach(st => points += st!.objectCount)

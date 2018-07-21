@@ -13,12 +13,10 @@ const log = Logger(__filename)
 
 // The main class responsible for rendering a Lightbox window, which contains a variable list of 2D images.
 class LightboxWindowUI {
-	private lightboxState: IpcMessages.LightboxState
 	private imageChildren: HTMLImageElement[]
 	private communicator: WindowCommunicator
 
 	constructor() {
-		this.lightboxState = {images: []}
 		this.imageChildren = []
 
 		window.addEventListener('resize', this.onResize)
@@ -54,7 +52,6 @@ class LightboxWindowUI {
 
 	// Throw away the old state. Rebuild the UI based on the new state.
 	private onLightboxState = (state: IpcMessages.LightboxState): void => {
-		log.info('onLightboxState', state)
 		const imageListElement = document.getElementById('image_list')
 		if (imageListElement) {
 			this.imageChildren.forEach(i => imageListElement.removeChild(i))
@@ -65,7 +62,6 @@ class LightboxWindowUI {
 				imageListElement.appendChild(img)
 				this.imageChildren.push(img)
 			})
-			this.lightboxState = state
 		} else
 			log.warn('missing element image_list')
 	}

@@ -57,8 +57,6 @@ export interface SceneManagerProps {
 	isInitialOriginSet?: boolean
 }
 
-
-
 export interface SceneManagerState {
 	camera: THREE.Camera
 	perspectiveCamera: THREE.PerspectiveCamera
@@ -84,7 +82,6 @@ export interface SceneManagerState {
 	stats: Stats
 }
 
-
 @typedConnect(toProps(
 	'shouldAnimate',
 	'compassRosePosition',
@@ -103,7 +100,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: number
 
-	constructor(props) {
+	constructor(props: SceneManagerProps) {
 		super(props)
 		const {width, height} = this.props
 
@@ -233,8 +230,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.props.channel.on(Events.SCENE_SHOULD_RENDER, this.renderScene)
 
 		// Setup listeners on add/remove point cloud tiles
-		this.props.channel.on('addPointCloudSuperTile', (superTile:SuperTile) => {this.addSuperTile(superTile)})
-        this.props.channel.on('removePointCloudSuperTile', (superTile:SuperTile) => {this.removeSuperTile(superTile)})
+		this.props.channel.on('addPointCloudSuperTile', (superTile: SuperTile) => this.addSuperTile(superTile))
+		this.props.channel.on('removePointCloudSuperTile', (superTile: SuperTile) => this.removeSuperTile(superTile))
 
 		new AnnotatedSceneActions().setSceneInitialized(true)
 	}

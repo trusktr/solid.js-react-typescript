@@ -89,7 +89,7 @@ async function connect() {
 
 		// we're either running in a <webview> in Saffron (so sendToHost() connects
 		// to the parent document where the <webview> is located), or we're running
-		// standlone outside of Saffron (so send() connects to main)
+		// standalone outside of Saffron (so send() connects to main)
 		Electron.ipcRenderer.sendToHost('connect')
 		Electron.ipcRenderer.send('connect')
 

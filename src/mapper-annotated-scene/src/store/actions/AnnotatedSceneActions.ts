@@ -418,10 +418,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
         let points = 0
         superTiles.forEach(st => points += st!.objectCount)
 
-
-        const message = `Loaded ${superTiles.size} point tiles; ${points} points`
-        // new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
-
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
             ...annotatedSceneState, pointCloudSuperTiles: superTiles
         })
@@ -431,9 +427,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     setAnnotationSuperTiles(superTiles: OrderedMap<string, SuperTile>) {
         let annotations = 0
         superTiles.forEach(st => annotations += st!.objectCount)
-
-        const message = `Loaded ${superTiles.size} annotation tiles; ${annotations} annotations`
-        // new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
 
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
             ...annotatedSceneState, annotationSuperTiles: superTiles

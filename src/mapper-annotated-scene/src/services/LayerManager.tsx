@@ -20,7 +20,7 @@ export interface LayerManagerState {
 
 export default class LayerManager extends React.Component<LayerManagerProps, LayerManagerState> {
 
-	constructor(props) {
+	constructor(props: LayerManagerProps) {
 		super(props)
 
 		// TODO JOE WEDNESDAY the toggles will be passed in by AnnotatedSceneController

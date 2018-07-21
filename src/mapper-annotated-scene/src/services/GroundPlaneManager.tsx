@@ -16,7 +16,7 @@ import mousePositionToGLSpace from '@/util/mousePositionToGLSpace'
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 import * as Electron from "electron"
 
-export interface IGroundPlaneManagerProps {
+export interface GroundPlaneManagerProps {
 	// pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
 	utmCoordinateSystem: UtmCoordinateSystem
 	camera?: THREE.Camera
@@ -27,7 +27,7 @@ export interface IGroundPlaneManagerProps {
 	isAddMarkerMode?: boolean
 }
 
-export interface IGroundPlaneManagerState {
+export interface GroundPlaneManagerState {
 	pointCloudSuperTiles: OrderedMap<string, SuperTile>
 }
 
@@ -39,14 +39,14 @@ export interface IGroundPlaneManagerState {
 	'isAddMarkerMode',
 ))
 export default
-class GroundPlaneManager extends React.Component<IGroundPlaneManagerProps, IGroundPlaneManagerState> {
+class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, GroundPlaneManagerState> {
 	allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private raycaster: THREE.Raycaster
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
 	private estimateGroundPlane: boolean
 	private tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 
-	constructor(props) {
+	constructor(props: GroundPlaneManagerProps) {
 		super(props)
 
 		this.raycaster = new THREE.Raycaster

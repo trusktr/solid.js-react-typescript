@@ -56,7 +56,7 @@ interface AnnotatorSettings {
     cameraToSkyMaxDistance: number
 }
 
-export interface IAnnotatedSceneControllerProps {
+export interface AnnotatedSceneControllerProps {
 	backgroundColor?: THREEColorValue
     onPointOfInterestCall ?: () => THREE.Vector3
     onCurrentRotation ?: () => THREE.Quaternion
@@ -76,7 +76,7 @@ export interface IAnnotatedSceneControllerProps {
 	initialFocusPoint: [ number, number, number, number, number, number ]
 }
 
-export interface IAnnotatedSceneControllerState {
+export interface AnnotatedSceneControllerState {
     cameraState: CameraState // isolating camera state in case we decide to migrate it to a Camera Manager down the road
     statusWindow?: StatusWindow
     pointCloudManager?: PointCloudManager
@@ -96,7 +96,7 @@ export interface IAnnotatedSceneControllerState {
     'pointOfInterest',
     'numberKeyPressed',
 ))
-export default class AnnotatedSceneController extends React.Component<IAnnotatedSceneControllerProps, IAnnotatedSceneControllerState> {
+export default class AnnotatedSceneController extends React.Component<AnnotatedSceneControllerProps, AnnotatedSceneControllerState> {
     public utmCoordinateSystem: UtmCoordinateSystem
 
     private scaleProvider: ScaleProvider
@@ -110,7 +110,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
     private registeredKeyUpEvents: Map<string, Set<(e: KeyboardEvent | KeyboardEventHighlights) => void>> = new Map() // mapping between KeyboardEvent.key and function to execute
 	private heldKeys: Set<Key> = new Set()
 
-    constructor(props) {
+    constructor(props: AnnotatedSceneControllerProps) {
         super(props)
 
         // TODO not used currently
@@ -230,7 +230,7 @@ export default class AnnotatedSceneController extends React.Component<IAnnotated
         this.state.pointCloudManager!.hidePointCloudBoundingBox()
     }
 
-	addLayer(name: string, toggle: LayerToggle) {
+	addLayer(name: string, toggle: LayerToggle): void {
 		this.state.layerManager!.addLayerToggle(name, toggle)
 	}
 

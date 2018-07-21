@@ -49,7 +49,7 @@ export interface FlyThroughManagerState {
 }))
 export default class FlyThroughManager extends React.Component<FlyThroughManagerProps, FlyThroughManagerState> {
 
-    constructor(props) {
+    constructor(props: FlyThroughManagerProps) {
         super(props)
 
         const loop = new ChildAnimationLoop

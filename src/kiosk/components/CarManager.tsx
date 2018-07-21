@@ -28,12 +28,12 @@ export interface CarManagerState {
 }))
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
 
-    constructor(props) {
+    constructor(props: CarManagerProps) {
         super(props)
 
     }
 
-    componentDidMount() {
+    componentDidMount(): void {
         this.loadCarModel().then(() => {
             new AnnotatedSceneActions().setCarInitialized(true)
         })

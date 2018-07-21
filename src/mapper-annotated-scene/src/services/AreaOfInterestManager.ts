@@ -17,7 +17,7 @@ const log = Logger(__filename)
 
 type AreaOfInterest = RangeSearch[]
 
-interface IAoiProps {
+interface AreaOfInterestManagerProps {
 	getPointOfInterest?: () => THREE.Vector3
 	getCurrentRotation?: () => THREE.Quaternion
 	utmCoordinateSystem: UtmCoordinateSystem
@@ -29,7 +29,7 @@ interface IAoiProps {
 }
 
 // Area of Interest: where to load point clouds
-interface IAoiState {
+interface AreaOfInterestManagerState {
 	enabled: boolean // enable auto-loading points around the AOI
 	aoiFocalPoint: THREE.Vector3 | null, // cached value for the center of the AOI
 	boundingBoxes: THREE.BoxHelper[] // boxes drawn around the current area of interest
@@ -46,14 +46,14 @@ interface IAoiState {
   loadingTileManagers: (state) => state.get(AnnotatedSceneState.Key).loadingTileManagers,
   sceneStage: (state) => state.get(AnnotatedSceneState.Key).sceneStage,
 }))
-export default class AreaOfInterestManager extends React.Component<IAoiProps, IAoiState>{
+export default class AreaOfInterestManager extends React.Component<AreaOfInterestManagerProps, AreaOfInterestManagerState>{
 	private raycaster: THREE.Raycaster
 	private estimateGroundPlane: boolean
 	plane: THREE.Mesh
 	private grid?: THREE.GridHelper
 	private axis?: THREE.Group
 
-	constructor(props) {
+	constructor(props: AreaOfInterestManagerProps) {
 		super(props)
 
 		const state = {

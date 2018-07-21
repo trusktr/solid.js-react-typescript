@@ -1,6 +1,6 @@
 // import {getLogger} from 'typelogger'
 
-const disableLogger = true
+const disableLogger = false
 
 if (disableLogger) {
 

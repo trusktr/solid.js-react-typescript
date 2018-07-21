@@ -42,7 +42,7 @@ export interface PointCloudManagerState {
 ))
 export default class PointCloudManager extends React.Component<PointCloudManagerProps, PointCloudManagerState> {
 
-  constructor(props) {
+  constructor(props: PointCloudManagerProps) {
     super(props)
 
     this.state = {
