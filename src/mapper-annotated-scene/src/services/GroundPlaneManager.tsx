@@ -3,7 +3,6 @@ import * as THREE from 'three'
 import * as lodash from 'lodash'
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import toProps from '@/util/toProps'
-import getOrderedMapValueDiff from '../util/getOrderedMapValueDiff'
 import {OrderedMap, Map} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
@@ -15,6 +14,7 @@ import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfI
 import {EventEmitter} from "events"
 import mousePositionToGLSpace from '@/util/mousePositionToGLSpace'
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
+import * as Electron from "electron"
 
 export interface IGroundPlaneManagerProps {
 	// pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
@@ -23,7 +23,7 @@ export interface IGroundPlaneManagerProps {
 	mousePosition?: MousePosition
 	areaOfInterestManager: AreaOfInterestManager | null
 	channel: EventEmitter
-	rendererSize?: { width: number, height: number }
+	rendererSize?: Electron.Size
 	isAddMarkerMode?: boolean
 }
 

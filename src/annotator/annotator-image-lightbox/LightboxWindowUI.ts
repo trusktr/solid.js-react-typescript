@@ -6,7 +6,7 @@
 import {channel} from "electron-ipc/Channel"
 import * as IpcMessages from "electron-ipc/Messages"
 import {toKeyboardEventHighlights} from "electron-ipc/Serializaton"
-import WindowCommunicator from 'util/WindowCommunicator'
+import WindowCommunicator from '@/util/WindowCommunicator'
 import Logger from "@/util/log"
 
 const log = Logger(__filename)
@@ -27,15 +27,12 @@ class LightboxWindowUI {
 
 		this.communicator = new WindowCommunicator()
 		this.communicator.send( 'connect', 'ready!' )
-		this.communicator.on('connect', msg => {
-			console.log('Main window says: ', msg)
-		})
+		this.communicator.on('connect', msg => log.info('Main window says:', msg))
 
 		this.openComChannels()
 	}
 
 	private openComChannels(): void {
-		console.log('set up the darn ipc channel in lightbox window')
 		this.communicator.on(channel.lightboxState, this.onLightboxState)
 		this.communicator.on(channel.imageEditState, this.onImageEditState)
 	}
@@ -69,7 +66,6 @@ class LightboxWindowUI {
 				this.imageChildren.push(img)
 			})
 			this.lightboxState = state
-			console.log(this.lightboxState)
 		} else
 			log.warn('missing element image_list')
 	}

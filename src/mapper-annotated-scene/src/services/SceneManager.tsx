@@ -105,7 +105,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	constructor(props) {
 		super(props)
-		log.info("RT-DEBUG SceneManager constructor")
 		const {width, height} = this.props
 
 		// Settings for component state

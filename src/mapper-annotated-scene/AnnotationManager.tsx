@@ -110,7 +110,7 @@ interface IProps {
 	numberKeyPressed?: number | null
 
 	areaOfInterest ?: RangeSearch[]
-	rendererSize?: { width: number, height: number }
+	rendererSize?: Electron.Size
 	camera?: THREE.Camera
 
 	lockBoundaries?: boolean
@@ -141,7 +141,6 @@ interface IState {
 	'isConnectRightNeighborMode',
 	'isConnectFrontNeighborMode',
 	'isAddMarkerMode',
-
 
 	'isLiveMode',
 	'isAddConnectionMode',
@@ -1585,6 +1584,14 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			})
 	}
 
+	private intersectWithLightboxImageRay(mousePosition: THREE.Vector2, lightboxImageRays: THREE.Line[]): THREE.Intersection[] {
+		if (lightboxImageRays.length) {
+			this.raycasterAnnotation.setFromCamera(mousePosition, this.props.camera!)
+			return this.raycasterAnnotation.intersectObjects(lightboxImageRays)
+		} else
+			return []
+	}
+
 	/**
 	 * If the mouse was clicked while pressing the "a" key, drop an annotation marker.
 	 */
@@ -1592,7 +1599,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const {isMouseDragging, isConnectLeftNeighborMode, isConnectRightNeighborMode,
 			isConnectFrontNeighborMode, isAddMarkerMode} = this.props
 
-		if(
+		if (
+			!isAddMarkerMode ||
 			isMouseDragging || isConnectLeftNeighborMode ||
 			isConnectRightNeighborMode || isConnectFrontNeighborMode ||
 			!this.activeAnnotation || !this.activeAnnotation.allowNewMarkers
@@ -1617,13 +1625,20 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		let intersections: THREE.Intersection[] = []
 
 		// Find a 3D point where to place the new marker.
-		if (this.activeAnnotation.snapToGround)
+		if (this.activeAnnotation.snapToGround) {
 			intersections = this.props.groundPlaneManager!.intersectWithGround()
-		else {
-
+		} else {
 			// get app specific intersections
-			const receiveIntersections = (result: THREE.Intersection[]) => intersections = result
-			this.props.channel.emit(Events.INTERSECTION_REQUEST, receiveIntersections)
+			const receiveRays = (lightboxImageRays: THREE.Line[]): void => {
+				// If this is part of a two-step interaction with the lightbox, handle that.
+				if (lightboxImageRays.length) {
+					intersections = this.intersectWithLightboxImageRay(mouse, lightboxImageRays)
+					// On success, clean up the ray from the lightbox.
+					if (intersections.length)
+						this.props.channel.emit(Events.CLEAR_LIGHTBOX_IMAGE_RAYS)
+				}
+			}
+			this.props.channel.emit(Events.GET_LIGHTBOX_IMAGE_RAYS, receiveRays)
 
 			// Otherwise just find the closest point.
 			if (!intersections.length)

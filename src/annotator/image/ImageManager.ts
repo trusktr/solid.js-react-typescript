@@ -130,9 +130,6 @@ export class ImageManager {
 		this.imageScreens.push(screen)
 		this.imageScreenMeshes.push(screen.imageMesh)
 
-		// RYAN THURSDAY - callback not needed -- thought being that an event is emitted and Annotator app can execute this method
-		// this.onImageScreenLoad(screen)
-		// @TODO have annotator app listen on this event
 		this.channel.emit(Events.IMAGE_SCREEN_LOAD_UPDATE, screen)
 	}
 
@@ -140,9 +137,8 @@ export class ImageManager {
 	loadImageIntoWindow(image: CalibratedImage): void {
 		if (this.loadedImageDetails.has(image)) return
 
-		if (!this.lightboxWindow) {
-			this.lightboxWindow = new LightboxWindowManager( this.channel )
-		}
+		if (!this.lightboxWindow)
+			this.lightboxWindow = new LightboxWindowManager(this.channel)
 
 		this.channel.on(Events.IMAGE_EDIT_STATE, this.onImageEditState)
 		this.channel.on(Events.IMAGE_CLICK, this.onImageClick)

@@ -9,12 +9,12 @@ import './style.scss'
 import initUIControl from "@/annotator/annotator-control-ui/UIControl";
 import Help from "@/annotator/components/Help";
 
-interface IProps {}
-interface IState {}
+interface AnnotatorMenuViewProps {}
+interface AnnotatorMenuViewState {}
 
-export default class AnnotatorMenuView extends React.Component<IProps, IState> {
+export default class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
 
-	constructor(props: IProps) {
+	constructor(props: AnnotatorMenuViewProps) {
 		super(props)
 	}
 
@@ -107,7 +107,6 @@ export default class AnnotatorMenuView extends React.Component<IProps, IState> {
 		</menu>
 		</div>)
 	}
-
 
 	componentDidMount(): void {
 		initUIControl()

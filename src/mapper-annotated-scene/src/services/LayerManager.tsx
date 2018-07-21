@@ -7,7 +7,6 @@ import {v4 as UUID} from 'uuid'
 
 const log = Logger(__filename)
 
-
 export const Layer = {
 	POINT_CLOUD: UUID(),
 	ANNOTATIONS: UUID(),
@@ -17,7 +16,6 @@ export interface LayerManagerProps {}
 
 export interface LayerManagerState {
 	layerToggles: Map<string, LayerToggle>
-
 }
 
 export default class LayerManager extends React.Component<LayerManagerProps, LayerManagerState> {

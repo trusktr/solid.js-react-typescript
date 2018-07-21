@@ -13,8 +13,7 @@ import {RangeSearch} from "../../../tile-model/RangeSearch";
 import {TileManager} from '../../../tile/TileManager'
 import {Set} from "immutable";
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
-
-const log = Logger(__filename)
+import * as Electron from "electron"
 
 export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneState, ActionMessage<AnnotatedSceneState>> {
 
@@ -361,7 +360,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     }
 
     @ActionReducer()
-    setRendererSize(rendererSize: { width: number, height: number }) {
+    setRendererSize(rendererSize: Electron.Size) {
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
             ...annotatedSceneState, rendererSize
         })

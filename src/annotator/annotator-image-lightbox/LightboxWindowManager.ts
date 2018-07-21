@@ -6,7 +6,6 @@
 import * as Url from 'url'
 import * as Path from 'path'
 import * as Electron from 'electron'
-// import {BrowserWindowConstructorOptions} from 'electron'
 import {windowStateKeeperOptions} from '@/util/WindowStateKeeperOptions'
 import {channel as ipcChannel} from "@/electron-ipc/Channel"
 import * as IpcMessages from "@/electron-ipc/Messages"
@@ -54,7 +53,6 @@ export class LightboxWindowManager {
 		const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
 
 		const options = `${objectToFeatureString( savedState )},_blank`
-		console.log( savedState, options )
 
 		const lightboxWindow = window.open(
 			'about:blank',

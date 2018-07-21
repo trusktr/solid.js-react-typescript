@@ -3,22 +3,12 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-// import * as React from "react";
-// export default
-// class Annotator extends React.Component<{}, {}> {
-// 	render() { return 'hello' }
-// }
-
-
 import config from '@/config'
 import * as $ from 'jquery'
 import * as Electron from 'electron'
-// import * as electronUnhandled from 'electron-unhandled'
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 import mousePositionToGLSpace from '../util/mousePositionToGLSpace'
-import {AnimationLoop} from 'animation-loop'
 import {GUI as DatGui, GUIParams} from 'dat.gui'
-import {UtmCoordinateSystem} from "../mapper-annotated-scene/UtmCoordinateSystem"
 import {AnnotationType} from '../mapper-annotated-scene/annotations/AnnotationType'
 import {AnnotationManager, OutputFormat} from '../mapper-annotated-scene/AnnotationManager'
 import {NeighborLocation, NeighborDirection} from '../mapper-annotated-scene/annotations/Lane'
@@ -30,13 +20,10 @@ import * as THREE from 'three'
 import {ImageManager} from "./image/ImageManager"
 import {ImageScreen} from "./image/ImageScreen"
 import {CalibratedImage} from "./image/CalibratedImage"
-import * as Stats from 'stats.js'
 import toProps from '@/util/toProps'
 import {KeyboardEventHighlights} from "@/electron-ipc/Messages"
 import * as React from "react";
-import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
-import {createStructuredSelector} from "reselect";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
 import {FlyThroughState} from "@/mapper-annotated-scene/src/models/FlyThroughState";
@@ -53,8 +40,6 @@ import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type
 
 const dialog = Electron.remote.dialog
 
-// electronUnhandled()
-
 const log = Logger(__filename)
 
 const Layers = {
@@ -66,10 +51,11 @@ type Layer = string
 
 let allLayers: Layer[] = []
 
-// Now let javascript show you how easy it is to work with enums:
 for (let key in Layers) {
-	const layer = Layers[key]
-	allLayers.push(layer)
+	if (Layers.hasOwnProperty(key)) {
+		const layer = Layers[key]
+		allLayers.push(layer)
+	}
 }
 
 // Groups of layers which are visible together. They are toggled on/off with the 'show/hide' command.
@@ -98,8 +84,6 @@ interface AnnotatorState {
 
 	imageScreenOpacity: number
 
-	///////////////////////////
-
 	annotationManager: AnnotationManager | null
 	annotatedSceneController: AnnotatedSceneController | null
 
@@ -116,7 +100,7 @@ interface AnnotatorProps {
 	flyThroughState ?: FlyThroughState
 	carPose ?: Models.PoseMessage
 	isLiveMode?: boolean
-	rendererSize?: { width: number, height: number }
+	rendererSize?: Electron.Size
 	camera?: THREE.Camera
 
 	isShiftKeyPressed?: boolean
@@ -131,7 +115,6 @@ interface AnnotatorProps {
 	isMouseButtonPressed?: boolean
 	isMouseDragging?: boolean
 	isTransformControlsAttached?: boolean
-
 }
 
 @typedConnect(toProps(
@@ -157,22 +140,15 @@ interface AnnotatorProps {
 	'isTransformControlsAttached',
 ))
 export default class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
-	private annotatorCamera: THREE.Camera
-	private flyThroughCamera: THREE.Camera
-	private renderer: THREE.WebGLRenderer
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
 	private scaleProvider: ScaleProvider
 	private imageManager: ImageManager
-	private plane: THREE.Mesh // an arbitrary horizontal (XZ) reference plane for the UI
-	private stats: Stats
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
 	private gui: DatGui | null
-	private loop: AnimationLoop
-	private root: HTMLElement
 
-	constructor(props) {
+	constructor(props: AnnotatorProps) {
 		super(props)
 
 		if (!isNullOrUndefined(config['output.trajectory.csv.path']))
@@ -183,7 +159,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('Config option startup.animation.fps has been removed. Use startup.render.fps.')
 
 		this.raycasterImageScreen = new THREE.Raycaster()
-        this.scaleProvider = new ScaleProvider()
+		this.scaleProvider = new ScaleProvider()
 		this.highlightedImageScreenBox = null
 		this.highlightedLightboxImage = null
 		this.lightboxImageRays = []
@@ -295,7 +271,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// When ImageManager loads an image, add it to the scene.
-    //
     // TODO JOE The UI can have check boxes for showing/hiding layers.
 	private onImageScreenLoad: (imageScreen: ImageScreen) => void =
 		(imageScreen: ImageScreen) => {
@@ -319,35 +294,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		this.lightboxImageRays.forEach(r => new AnnotatedSceneActions().removeObjectFromScene( r ))
 		this.lightboxImageRays = []
-		// TODO GONE this.renderAnnotator()
 	}
 
-	private intersectWithLightboxImageRay(): THREE.Intersection[] {
-
-		if (this.lightboxImageRays.length) {
-
-			const raycaster = new THREE.Raycaster()
-			raycaster.params.Points!.threshold = 0.1
-			return raycaster.intersectObjects(this.lightboxImageRays)
-
-		} else return []
-
-	}
-
-	private onIntersectionRequest = ( giveIntersections: (result: THREE.Intersection[]) => void ): void => {
-
-		let intersections: THREE.Intersection[] = []
-
-		// If this is part of a two-step interaction with the lightbox, handle that.
-		if (this.lightboxImageRays.length) {
-			intersections = this.intersectWithLightboxImageRay()
-			// On success, clean up the ray from the lightbox.
-			if (intersections.length)
-				this.clearLightboxImageRays()
-		}
-
-		giveIntersections( intersections )
-
+	private getLightboxImageRays = (callback: (lightboxImageRays: THREE.Line[]) => void): void => {
+		callback(this.lightboxImageRays)
 	}
 
 	private checkForImageScreenSelection = (mousePosition: MousePosition): void => {
@@ -510,23 +460,23 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// }}}
 
-	mapKey(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+	mapKey(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void): void {
 		this.state.annotatedSceneController!.mapKey(key, fn)
 	}
 
-	mapKeyDown(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+	mapKeyDown(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void): void {
 		this.state.annotatedSceneController!.mapKeyDown(key, fn)
 	}
 
-	mapKeyUp(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void) {
+	mapKeyUp(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void): void {
 		this.state.annotatedSceneController!.mapKeyUp(key, fn)
 	}
 
-	keyHeld(key: Key, fn: (held: boolean) => void) {
+	keyHeld(key: Key, fn: (held: boolean) => void): void {
 		this.state.annotatedSceneController!.keyHeld(key, fn)
 	}
 
-	setKeys() {
+	setKeys(): void {
 
 		// TODO JOE later: better keymap organization, a way to specify stuff like
 		// `ctrl+a` and let users customize. Perhaps built on ELectron
@@ -564,7 +514,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
 	}
 
-	addImageScreenLayer() {
+	addImageScreenLayer(): void {
 
 		const imagesToggle = visible => {
 			this.setState({ isImageScreensVisible: visible })
@@ -1425,10 +1375,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	componentDidMount(): void {
-
-		window.addEventListener('focus', this.onFocus)  // RYAN Annotator-specific
-		window.addEventListener('blur', this.onBlur)  // RYAN Annotator-specific
-		window.addEventListener('beforeunload', this.onBeforeUnload) // RYAN Annotator-specific
+		window.addEventListener('focus', this.onFocus)
+		window.addEventListener('blur', this.onBlur)
+		window.addEventListener('beforeunload', this.onBeforeUnload)
 
         document.addEventListener('mousemove', this.setLastMousePosition)
         document.addEventListener('mousemove', this.checkForImageScreenSelection)
@@ -1466,10 +1415,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 			// TODO JOE ? maybe we need a separate LightBoxRayManager? Or at least move to ImageManager?
 			channel.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
+			channel.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
+			channel.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
 
 			this.addImageScreenLayer()
-
-			channel.on(Events.INTERSECTION_REQUEST, this.onIntersectionRequest)
 
 			// UI updates
 			// TODO move UI logic to React/JSX, and get state from Redux
@@ -1483,13 +1432,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		}
 
-        if( oldState.isImageScreensVisible !== this.state.isImageScreensVisible ) {
-            if(this.state.isImageScreensVisible) {
-                this.imageManager.showImageScreens()
-            } else {
-                this.imageManager.hideImageScreens()
-            }
-        }
+		if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
+			if (this.state.isImageScreensVisible) {
+				this.imageManager.showImageScreens()
+			} else {
+				this.imageManager.hideImageScreens()
+			}
+		}
 	}
 
 	getAnnotatedSceneRef = (ref: any) => {
