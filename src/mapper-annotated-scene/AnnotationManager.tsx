@@ -509,6 +509,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.deleteAnnotation(annotation2)
 
 		this.metadataState.dirty()
+
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 		return true
 	}
 
@@ -703,12 +705,12 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	/**
 	 * Activate (i.e. make editable), the given annotation.
 	 */
-	setActiveAnnotation(changeTo: Annotation | null): boolean {
-		if (!changeTo) return false
+	setActiveAnnotation(changeTo: Annotation | null): void {
+		if (!changeTo) return
 
 		// Trying to activate the currently active annotation, there is nothing to do
 		if (this.activeAnnotation && this.activeAnnotation.uuid === changeTo.uuid) {
-			return false
+			return
 		}
 
 		// Deactivate current active annotation
@@ -761,61 +763,59 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (this.props.isRotationModeActive && !this.activeAnnotation.isRotatable)
 			this.toggleTransformControlsRotationMode()
 
-		return true
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 	}
 
 	// Make no annotations active.
-	unsetActiveAnnotation(): boolean {
-		if (this.activeAnnotation) {
-			// If the active annotation was a connection make sure its conflicting connections appearance is set back
-			// to inactive mode. In the future this behavior should happen inside the makeInactive function
-			// but at this moment we don't have access to other annotations inside an annotation.
-			if (this.activeAnnotation instanceof Connection) {
-				this.activeAnnotation.conflictingConnections.forEach( (id: AnnotationUuid) => {
-					const connection = this.connectionAnnotations.find( a => a.uuid === id)
-					if (!isNullOrUndefined(connection)) {
-						connection.makeInactive()
-					} else {
-						log.warn("Conflicting connection doesn't exist")
-					}
-				})
-				this.activeAnnotation.associatedTrafficDevices.forEach( (id: AnnotationUuid) => {
-					const device = this.trafficDeviceAnnotations.find( a => a.uuid === id)
-					if (!isNullOrUndefined(device)) {
-						device.makeInactive()
-					} else {
-						log.warn("Associated traffic device doesn't exist")
-					}
-				})
-			} else if (this.activeAnnotation instanceof  Lane) {
-				// If the active annotation was a lane make sure its neighbors appearance is set back to inactive mode.
-				this.activeAnnotation.neighborsIds.left.forEach((id: AnnotationUuid) => {
-					const neighbor = this.laneAnnotations.find(a => a.uuid === id)
-					if (!isNullOrUndefined(neighbor)) {
-						neighbor.makeInactive()
-					}
-				})
-				this.activeAnnotation.neighborsIds.right.forEach((id: AnnotationUuid) => {
-					const neighbor = this.laneAnnotations.find(a => a.uuid === id)
-					if (!isNullOrUndefined(neighbor)) {
-						neighbor.makeInactive()
-					}
-				})
-				this.activeAnnotation.neighborsIds.front.forEach((id: AnnotationUuid) => {
-					const neighbor = this.laneAnnotations.find(a => a.uuid === id)
-					if (!isNullOrUndefined(neighbor)) {
-						neighbor.makeInactive()
-					}
-				})
-			}
+	unsetActiveAnnotation(): void {
+		if (!this.activeAnnotation) return
 
-			this.activeAnnotation.makeInactive()
-			this.activeAnnotation = null
-
-			return true
-		} else {
-			return false
+		// If the active annotation was a connection make sure its conflicting connections appearance is set back
+		// to inactive mode. In the future this behavior should happen inside the makeInactive function
+		// but at this moment we don't have access to other annotations inside an annotation.
+		if (this.activeAnnotation instanceof Connection) {
+			this.activeAnnotation.conflictingConnections.forEach( (id: AnnotationUuid) => {
+				const connection = this.connectionAnnotations.find( a => a.uuid === id)
+				if (!isNullOrUndefined(connection)) {
+					connection.makeInactive()
+				} else {
+					log.warn("Conflicting connection doesn't exist")
+				}
+			})
+			this.activeAnnotation.associatedTrafficDevices.forEach( (id: AnnotationUuid) => {
+				const device = this.trafficDeviceAnnotations.find( a => a.uuid === id)
+				if (!isNullOrUndefined(device)) {
+					device.makeInactive()
+				} else {
+					log.warn("Associated traffic device doesn't exist")
+				}
+			})
+		} else if (this.activeAnnotation instanceof  Lane) {
+			// If the active annotation was a lane make sure its neighbors appearance is set back to inactive mode.
+			this.activeAnnotation.neighborsIds.left.forEach((id: AnnotationUuid) => {
+				const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+				if (!isNullOrUndefined(neighbor)) {
+					neighbor.makeInactive()
+				}
+			})
+			this.activeAnnotation.neighborsIds.right.forEach((id: AnnotationUuid) => {
+				const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+				if (!isNullOrUndefined(neighbor)) {
+					neighbor.makeInactive()
+				}
+			})
+			this.activeAnnotation.neighborsIds.front.forEach((id: AnnotationUuid) => {
+				const neighbor = this.laneAnnotations.find(a => a.uuid === id)
+				if (!isNullOrUndefined(neighbor)) {
+					neighbor.makeInactive()
+				}
+			})
 		}
+
+		this.activeAnnotation.makeInactive()
+		this.activeAnnotation = null
+
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 	}
 
 	/**
@@ -1382,6 +1382,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		connection.makeInactive()
 		connection.updateVisualization()
 		this.metadataState.dirty()
+
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 	}
 
 	/**
@@ -1654,6 +1656,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (!this.props.isAddConnectionMode || this.props.isMouseDragging) return
 		// reject connection if active annotation is not a lane
 		const activeLane = this.getActiveLaneAnnotation()
+
 		if (!activeLane) {
 			log.info("No lane annotation is active.")
 			return
@@ -1663,13 +1666,16 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
 		this.raycasterAnnotation.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationObjects, true)
+
 		if (intersects.length === 0) {
 			return
 		}
+
 		const object = intersects[0].object.parent
 
 		// check if clicked object is an inactive lane
 		const inactive = this.checkForInactiveAnnotation(object as THREE.Object3D)
+
 		if (!(inactive && inactive instanceof Lane)) {
 			log.warn(`Clicked object is not an inactive lane.`)
 			return
@@ -1692,8 +1698,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// TODO JOE UI replace with React state in Annotator
 		if (activeLane.id === fromUID)
 			this.props.channel.emit('deactivateFrontSideNeighbours')
-
-		// TODO GONE this.renderAnnotator()
 	}
 
 	/**
@@ -1708,12 +1712,13 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return
 		}
 
-    if (!isConnectLeftNeighborMode &&
-      !isConnectRightNeighborMode &&
-      !isConnectFrontNeighborMode) return
+		if (!isConnectLeftNeighborMode &&
+			!isConnectRightNeighborMode &&
+			!isConnectFrontNeighborMode) return
 
 		// reject neighbor if active annotation is not a lane
 		const activeLane = this.getActiveLaneAnnotation()
+
 		if (!activeLane) {
 			log.info("No lane annotation is active.")
 			return
@@ -1723,13 +1728,16 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
 		this.raycasterAnnotation.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationObjects, true)
+
 		if (intersects.length === 0) {
 			return
 		}
+
 		const object = intersects[0].object.parent
 
 		// check if clicked object is an inactive lane
 		const inactive = this.checkForInactiveAnnotation(object as THREE.Object3D)
+
 		if (!(inactive && inactive instanceof Lane)) {
 			log.warn(`Clicked object is not an inactive lane.`)
 			return
@@ -1738,8 +1746,10 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// Check if relation already exist.
 		// In the case this already exist, the relation is removed
 		if (activeLane.deleteNeighbor(inactive.uuid)) {
-			if (inactive.deleteNeighbor(activeLane.uuid))
+			if (inactive.deleteNeighbor(activeLane.uuid)) {
 				inactive.makeInactive()
+				this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+			}
 			else
 				log.error('Non-reciprocal neighbor relation detected. This should never happen.')
 			return
@@ -1753,8 +1763,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 			// TODO JOE UI replace with React state in Annotator
 			this.props.channel.emit('deactivateFrontSideNeighbours')
+			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 
-			// TODO GONE this.renderAnnotator()
 			return
 		}
 
@@ -1762,29 +1772,36 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const threshold: number = 4 // meters
 		let {index1: index11, index2: index21}: {index1: number, index2: number} =
 			getClosestPoints(activeLane.waypoints, inactive.waypoints, threshold)
+
 		if (index11 < 0 || index21 < 0) {
 			log.warn(`Clicked objects do not have a common segment.`)
 			return
 		}
+
 		// find active lane direction
 		let index12 = index11 + 1
+
 		if (index12 >= activeLane.waypoints.length) {
 			index12 = index11
 			index11 = index11 - 1
 		}
+
 		let pt1: THREE.Vector3 = activeLane.waypoints[index12].clone()
 		pt1.sub(activeLane.waypoints[index11])
 		// find inactive lane direction
 		let index22 = index21 + 1
+
 		if (index22 >= inactive.waypoints.length) {
 			index22 = index21
 			index21 = index21 - 1
 		}
+
 		let pt2: THREE.Vector3 = inactive.waypoints[index22].clone()
 		pt2.sub(inactive.waypoints[index21])
 
 		// add neighbor based on lane direction and selected side
 		const sameDirection: boolean = Math.abs(pt1.angleTo(pt2)) < (Math.PI / 2)
+
 		if (this.props.isConnectLeftNeighborMode) {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.LEFT)
 			inactive.setNeighborMode(NeighborLocation.LEFT)
@@ -1811,20 +1828,24 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 		}
 
-		// GONE this.renderAnnotator()
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 	}
 
 	/**
 	 * Check if we clicked an annotation. If so, make it active for editing
 	 */
 	checkForAnnotationSelection = (event: MouseEvent): void => {
-		const {isLiveMode, isMouseDragging, isControlKeyPressed, isAddMarkerMode, isAddConnectionMode,
-      isConnectLeftNeighborMode, isConnectRightNeighborMode, isConnectFrontNeighborMode,
-      isAddConflictOrDeviceMode, isJoinAnnotationMode} = this.props
+		const {
+			isLiveMode, isMouseDragging, isControlKeyPressed, isAddMarkerMode, isAddConnectionMode,
+			isConnectLeftNeighborMode, isConnectRightNeighborMode, isConnectFrontNeighborMode,
+			isAddConflictOrDeviceMode, isJoinAnnotationMode
+		} = this.props
 
-		if(isLiveMode || isMouseDragging || isControlKeyPressed || isAddMarkerMode || isAddConnectionMode ||
-      isConnectLeftNeighborMode || isConnectRightNeighborMode || isConnectFrontNeighborMode ||
-			isAddConflictOrDeviceMode || isJoinAnnotationMode) {
+		if (
+			isLiveMode || isMouseDragging || isControlKeyPressed || isAddMarkerMode || isAddConnectionMode ||
+			isConnectLeftNeighborMode || isConnectRightNeighborMode || isConnectFrontNeighborMode ||
+			isAddConflictOrDeviceMode || isJoinAnnotationMode
+		) {
 			return
 		}
 
@@ -1832,28 +1853,27 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.raycasterAnnotation.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationObjects, true)
 
-		if (intersects.length > 0) {
-			const object = intersects[0].object.parent
-			const inactive = this.checkForInactiveAnnotation(object as THREE.Object3D)
+		if (intersects.length === 0) return
 
-			// We clicked an inactive annotation, make it active
-			if (inactive) {
-				if (this.isAnnotationLocked(inactive))
-					return
+		const object = intersects[0].object.parent
+		const inactive = this.checkForInactiveAnnotation(object as THREE.Object3D)
 
-				this.cleanTransformControls()
+		// We clicked an inactive annotation, make it active
+		if (!inactive) return
 
-				// TODO JOE UI replace with React state in Annotator
-				this.props.channel.emit('deactivateAllAnnotationPropertiesMenus', inactive.annotationType)
+		if (this.isAnnotationLocked(inactive)) return
 
-				this.setActiveAnnotation(inactive)
+		this.cleanTransformControls()
 
-				// TODO JOE UI replace with React state in Annotator
-				this.props.channel.emit('resetAllAnnotationPropertiesMenuElements')
+		// TODO JOE UI replace with React state in Annotator
+		this.props.channel.emit('deactivateAllAnnotationPropertiesMenus', inactive.annotationType)
 
-				// GONE this.renderAnnotator()
-			}
-		}
+		this.setActiveAnnotation(inactive)
+
+		// TODO JOE UI replace with React state in Annotator
+		this.props.channel.emit('resetAllAnnotationPropertiesMenuElements')
+
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 	}
 
 	/**
@@ -1918,7 +1938,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				this.cancelHideTransform()
 				new AnnotatedSceneActions().isHoveringOnMarker(true)
 				new AnnotatedSceneActions().setTransformedObjects(moveableMarkers)
-				// TODO GONE this.renderAnnotator()
 			}
 		} else {
 			if (this.hovered !== null) {
@@ -1926,7 +1945,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				this.hovered = null
 				this.delayHideTransform()
 				new AnnotatedSceneActions().isHoveringOnMarker(false)
-				// TODO GONE this.renderAnnotator()
 			}
 		}
 	}
@@ -1949,51 +1967,54 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.raycasterAnnotation.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationObjects, true)
 
-		if (intersects.length > 0) {
-			const object = intersects[0].object.parent
-			const dstAnnotation = this.checkForInactiveAnnotation(object as THREE.Object3D)
+		if (intersects.length === 0) return
 
-			if (!dstAnnotation) return
+		const object = intersects[0].object.parent
+		const dstAnnotation = this.checkForInactiveAnnotation(object as THREE.Object3D)
 
-			// If we clicked a connection, add it to the set of conflicting connections
-			if (dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
-				const wasAdded = srcAnnotation.toggleConflictingConnection(dstAnnotation.uuid)
-				if (wasAdded) {
-					log.info("added conflict")
-					dstAnnotation.setConflictMode()
-				} else  {
-					log.info("removed conflict")
-					dstAnnotation.makeInactive()
-				}
-				// GONE this.renderAnnotator()
-				return
+		if (!dstAnnotation) return
+
+		// If we clicked a connection, add it to the set of conflicting connections
+		if (dstAnnotation !== srcAnnotation && dstAnnotation instanceof Connection) {
+			const wasAdded = srcAnnotation.toggleConflictingConnection(dstAnnotation.uuid)
+
+			if (wasAdded) {
+				log.info("added conflict")
+				dstAnnotation.setConflictMode()
+			} else  {
+				log.info("removed conflict")
+				dstAnnotation.makeInactive()
 			}
 
-			// If we clicked a traffic device, add it or remove it from the connection's set of associated devices.
-			if (dstAnnotation instanceof TrafficDevice) {
-				const wasAdded = srcAnnotation.toggleAssociatedDevice(dstAnnotation.uuid)
-				if (wasAdded) {
-					log.info("added traffic device")
-					dstAnnotation.setAssociatedMode(srcAnnotation.waypoints[0])
+			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+		}
 
-					// Attempt to align the traffic device with the lane that leads to it.
-					if (!dstAnnotation.orientationIsSet()) {
-						const inboundLane = this.laneAnnotations.find(l => l.uuid === srcAnnotation.startLaneUuid)
-						if (inboundLane) {
-							const laneTrajectory = inboundLane.finalTrajectory()
-							if (laneTrajectory) {
-								// Look at a distant point which will leave the traffic device's face roughly perpendicular to the lane.
-								const aPointBackOnTheHorizon = laneTrajectory.at(-1000)
-								dstAnnotation.lookAt(aPointBackOnTheHorizon)
-							}
+		// If we clicked a traffic device, add it or remove it from the connection's set of associated devices.
+		else if (dstAnnotation instanceof TrafficDevice) {
+			const wasAdded = srcAnnotation.toggleAssociatedDevice(dstAnnotation.uuid)
+
+			if (wasAdded) {
+				log.info("added traffic device")
+				dstAnnotation.setAssociatedMode(srcAnnotation.waypoints[0])
+
+				// Attempt to align the traffic device with the lane that leads to it.
+				if (!dstAnnotation.orientationIsSet()) {
+					const inboundLane = this.laneAnnotations.find(l => l.uuid === srcAnnotation.startLaneUuid)
+					if (inboundLane) {
+						const laneTrajectory = inboundLane.finalTrajectory()
+						if (laneTrajectory) {
+							// Look at a distant point which will leave the traffic device's face roughly perpendicular to the lane.
+							const aPointBackOnTheHorizon = laneTrajectory.at(-1000)
+							dstAnnotation.lookAt(aPointBackOnTheHorizon)
 						}
 					}
-				} else  {
-					log.info("removed traffic device")
-					dstAnnotation.makeInactive()
 				}
-				// GONE this.renderAnnotator()
+			} else  {
+				log.info("removed traffic device")
+				dstAnnotation.makeInactive()
 			}
+
+			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 		}
 	}
 
@@ -2006,6 +2027,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		// get active annotation
 		let activeAnnotation = this.activeAnnotation
+
 		if (!activeAnnotation) {
 			log.info("No annotation is active.")
 			return
@@ -2015,11 +2037,14 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
 		this.raycasterAnnotation.setFromCamera(mouse, this.props.camera!)
 		const intersects = this.raycasterAnnotation.intersectObjects(this.annotationObjects, true)
+
 		if (intersects.length === 0) {
 			return
 		}
+
 		const object = intersects[0].object.parent
 		let inactiveAnnotation = this.checkForInactiveAnnotation(object as THREE.Object3D)
+
 		if (!inactiveAnnotation) {
 			log.info("No clicked annotation.")
 			return
@@ -2032,6 +2057,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			.distanceTo(inactiveAnnotation.markers[0].position)
 		let annotation1 = activeAnnotation
 		let annotation2 = inactiveAnnotation
+
 		if (activeToInactive > inactiveToActive) {
 			annotation1 = inactiveAnnotation
 			annotation2 = activeAnnotation
@@ -2044,8 +2070,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// update UI panel
 		// TODO JOE UI replace with React state in Annotator
 		this.props.channel.emit('resetAllAnnotationPropertiesMenuElements')
-
-		// GONE this.renderAnnotator()
 	}
 
 	isAnnotationLocked(annotation: Annotation): boolean {

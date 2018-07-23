@@ -530,14 +530,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 *  - a selected annotation
 	 */
 	uiEscapeSelection(): void {
-		// TODO TRANSFORM_CONTROLS replace with redux state var
-		// if (this.transformControls.isAttached()) {
 		if (this.props.isTransformControlsAttached) {
 			this.state.annotatedSceneController!.cleanTransformControls()
 		} else if (this.state.annotationManager!.activeAnnotation) {
 			this.state.annotationManager!.unsetActiveAnnotation()
 			this.deactivateAllAnnotationPropertiesMenus()
-			// TODO GONE this.renderAnnotator()
 		}
 
         if (document.activeElement.tagName === 'INPUT')
