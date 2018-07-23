@@ -37,6 +37,7 @@ import {dateToString} from "../util/dateToString"
 import {scale3DToSpatialTileScale, spatialTileScaleToString} from "../mapper-annotated-scene/tile/ScaleUtil"
 import {ScaleProvider} from "../mapper-annotated-scene/tile/ScaleProvider"
 import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type";
+import {hexStringToHexadecimal} from "@/util/Color"
 
 const dialog = Electron.remote.dialog
 
@@ -95,10 +96,10 @@ interface AnnotatorState {
 }
 
 interface AnnotatorProps {
-	statusWindowState ?: StatusWindowState
-	uiMenuVisible ?: boolean
-	flyThroughState ?: FlyThroughState
-	carPose ?: Models.PoseMessage
+	statusWindowState?: StatusWindowState
+	uiMenuVisible?: boolean
+	flyThroughState?: FlyThroughState
+	carPose?: Models.PoseMessage
 	isLiveMode?: boolean
 	rendererSize?: Electron.Size
 	camera?: THREE.Camera
@@ -165,7 +166,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.lightboxImageRays = []
 
 		this.state = {
-			background: 0x442233,
+			background: hexStringToHexadecimal(config['startup.background_color'] || '#082839'),
 			layerGroupIndex: defaultLayerGroupIndex,
 
 			lastMousePosition: null,
@@ -976,8 +977,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('missing element tools_export_kml')
 	}
 
-    // }}
-
 	private expandAccordion(domId: string): void {
 		if ( !this.props.uiMenuVisible ) return
 		$(domId).accordion('option', {active: 0})
@@ -1465,7 +1464,5 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     			<AnnotatorMenuView />
 			</React.Fragment>
 		)
-
 	}
-
 }

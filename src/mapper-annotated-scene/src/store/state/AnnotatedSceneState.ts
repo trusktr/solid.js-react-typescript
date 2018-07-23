@@ -42,8 +42,6 @@ export default class AnnotatedSceneState {
 	isCarInitialized: boolean
 	isInitialOriginSet: boolean
 
-
-
 	// Shared State
 	cameraPreference: CameraType
 
