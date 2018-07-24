@@ -15,9 +15,13 @@ export const Events = {
 	GET_LIGHTBOX_IMAGE_RAYS: UUID(),
 	CLEAR_LIGHTBOX_IMAGE_RAYS: UUID(),
 
-	// when something that is in the scene was modified (outside of SceneManager),
-	// then SceneManager needs to know that it should re-render the WebGL scene.
-	// An app can emit this event to signal re-rendering after modifying some 3D
-	// object's properties.
+	// Emit this event after modifying anything in the scene, so that the
+	// upcoming animation frame will re-render the Three.js scene.
 	SCENE_SHOULD_RENDER: UUID(),
+
+	// called right before the SceneManager is about to re-draw the scene. Use
+	// this to hook into the render cycle when you want something to be done
+	// right before any redraw (but not necessarily trigger a redraw, which is
+	// what SCENE_SHOULD_RENDER is for)
+	SCENE_WILL_RENDER: UUID(),
 }

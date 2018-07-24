@@ -19,6 +19,7 @@ import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/AnnotatedSceneController";
 import {getAnnotatedSceneStore} from '@/mapper-annotated-scene/src/store/AppStore'
+import toProps from '@/util/toProps'
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -40,13 +41,13 @@ export interface FlyThroughManagerState {
 }
 
 
-@typedConnect(createStructuredSelector({
-    isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
-    isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
-    isInitialOriginSet: (state) => state.get(AnnotatedSceneState.Key).isInitialOriginSet,
-    shouldAnimate: (state) => state.get(AnnotatedSceneState.Key).shouldAnimate,
-    flyThroughEnabled: (state) => state.get(AnnotatedSceneState.Key).flyThroughEnabled,
-}))
+@typedConnect(toProps(
+    'isLiveMode',
+    'isPlayMode',
+    'isInitialOriginSet',
+    'shouldAnimate',
+    'flyThroughEnabled',
+))
 export default class FlyThroughManager extends React.Component<FlyThroughManagerProps, FlyThroughManagerState> {
 
     constructor(props: FlyThroughManagerProps) {
@@ -172,7 +173,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         log.info("Starting flyThrough")
         this.setFlyThroughMessage()
         const flyThroughLoop = this.state.flyThroughLoop
-        flyThroughLoop.removeAnimationFn(this.flyThroughAnimation)
         flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
     }
 

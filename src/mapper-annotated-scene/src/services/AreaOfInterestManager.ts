@@ -9,9 +9,12 @@ import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
 import {createStructuredSelector} from "reselect";
-import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {TileManager} from "@/mapper-annotated-scene/tile/TileManager";
 import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper";
+import toProps from '@/util/toProps'
+import EventEmitter from 'events'
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import {throttle} from 'lodash'
 
 const log = Logger(__filename)
 
@@ -23,9 +26,9 @@ interface AreaOfInterestManagerProps {
 	utmCoordinateSystem: UtmCoordinateSystem
 	groundPlaneManager: GroundPlaneManager
 	camera ?: THREE.Camera
-	cameraIsOrbiting ?: boolean
 	loadingTileManagers ?: Set<TileManager>
 	sceneStage?: THREE.Vector3
+	channel: EventEmitter
 }
 
 // Area of Interest: where to load point clouds
@@ -40,12 +43,11 @@ interface AreaOfInterestManagerState {
 	shouldDrawBoundingBox: boolean
 }
 
-@typedConnect(createStructuredSelector({
-  camera: (state) => state.get(AnnotatedSceneState.Key).camera,
-  cameraIsOrbiting: (state) => state.get(AnnotatedSceneState.Key).cameraIsOrbiting,
-  loadingTileManagers: (state) => state.get(AnnotatedSceneState.Key).loadingTileManagers,
-  sceneStage: (state) => state.get(AnnotatedSceneState.Key).sceneStage,
-}))
+@typedConnect(toProps(
+  'camera',
+  'loadingTileManagers',
+  'sceneStage',
+))
 export default class AreaOfInterestManager extends React.Component<AreaOfInterestManagerProps, AreaOfInterestManagerState>{
 	private raycaster: THREE.Raycaster
 	private estimateGroundPlane: boolean
@@ -91,12 +93,24 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
 
         const initialAreaOfInterest: [number, number, number, number, number, number] = config['startup.point_cloud_bounding_box']
+
+		this.props.channel.on(Events.SCENE_WILL_RENDER, this.updateAoi)
 	}
+
+	private updateAoi = throttle( (): void => {
+		if (!this.state.enabled) return
+
+		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
+		if (this.props.loadingTileManagers!.size > 0) return
+
+		this.updateAoiHeading()
+		this.updatePointCloudAoi()
+	}, 200 )
 
     /**
 	 * Update the AOI Heading.  Currently (7/18) this is Kiosk-only logic but may expand
      */
-	updateAoiHeading(): void {
+	private updateAoiHeading(): void {
 
 		// TODO JOE only called for Kiosk app. Maybe fix with detecting camera
 		// movement direction instead, which is effectively the same thing.
@@ -112,20 +126,8 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 
 
 	// Set the area of interest for loading point clouds.
-	updatePointCloudAoi(): void {
-		if (!this.state.enabled) return
-
-		// avoid while the camera is orbiting because the rotation can cause
-		// unnecessary movement of the AoI. TODO JOE This will be removed in
-		// https://github.com/Signafy/mapper-annotator/pull/202
-		if (this.props.cameraIsOrbiting) return
-
-		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
-		if (this.props.loadingTileManagers!.size > 0) return
-
+	private updatePointCloudAoi(): void {
 		const currentPoint = this.getPointOfInterest()
-
-
 
 		if (currentPoint) {
 			const oldPoint = this.state.aoiFocalPoint
@@ -148,14 +150,16 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 	}
 
 	private getPointOfInterest(): THREE.Vector3 | null {
+
+		// if the app supplies a way to get the point of interest, use it (f.e. Kiosk sets it based on the Car position)
         if ( this.props.getPointOfInterest ) {
 
 			return this.props.getPointOfInterest()
 
-			// TODO Kiosk needs to pass the above callback in.
-            // return this.carModel.position
+        }
 
-        } else {
+		// otherwise default to where the camera line of sight intersects the ground.
+		else {
 
 			return this.getDefaultPointOfInterest()
 
@@ -179,7 +183,7 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
             intersections = this.raycaster.intersectObjects(this.props.groundPlaneManager.allGroundPlanes)
 
         if (!intersections.length)
-            intersections = this.raycaster.intersectObject(this.plane) // TODO FIXME bad access of state
+            intersections = this.raycaster.intersectObject(this.plane)
 
         if (intersections.length)
             return intersections[0].point
@@ -191,7 +195,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 	// Then load the points in and around the AOI. If we have a current heading,
 	// extend the AOI with another bounding box in the direction of motion.
 	private updatePointCloudAoiBoundingBox(aoiFocalPoint: THREE.Vector3 | null): void {
-
 
 		if (this.state.shouldDrawBoundingBox) {
 			this.state.boundingBoxes.forEach(bbox => {

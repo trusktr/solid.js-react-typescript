@@ -102,7 +102,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 
         // Used by areaOfInterestManager to passively update  updateAoiHeading
         this.setState({rotationQuaternion: rotationThreeJs})
-        // OLD --> this.props.areaOfInterestManager.updateAoiHeading(rotationThreeJs)
+        // TODO OLD --> this.props.areaOfInterestManager.updateAoiHeading(rotationThreeJs)
 
         this.props.annotatedScene.updateCurrentLocationStatusMessage(standardPosition)
         this.updateCarPose(positionThreeJs, rotationThreeJs)

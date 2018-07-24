@@ -220,13 +220,9 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		// visibility, the rest is not needed (assuming the following are all
 		// put in layers)
 
-        // @TODO originally this function all called 'this.gui.close()' -- look into adding this funtionality
         this.state.areaOfInterestManager!.removeAxisFromScene()
         this.state.sceneManager!.removeCompassFromScene()
         this.state.areaOfInterestManager!.hideGridVisibility()
-
-        // @TODO annotatorOrbitControls.enabled = false
-        // @TODO flyThroughOrbitControls.enabled = true
 
         this.state.pointCloudManager!.hidePointCloudBoundingBox()
     }
@@ -566,6 +562,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	                    getCurrentRotation={this.props.onCurrentRotation}
 	                    utmCoordinateSystem={this.utmCoordinateSystem}
 	                    groundPlaneManager={groundPlaneManager}
+	                    channel={this.channel}
 	                />
 				}
 

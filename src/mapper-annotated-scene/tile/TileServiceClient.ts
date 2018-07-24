@@ -71,7 +71,7 @@ export class TileServiceClient {
 		// this.onTileServiceStatusUpdate = onTileServiceStatusUpdate
 		this.healthCheckInterval = config['tile_client.service.health_check.interval.seconds'] * 1000
 
-		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO config: UTM_10N (and make the server aware of UTM zones)
+		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO CLYDE config: UTM_10N (and make the server aware of UTM zones)
 		if (config['tile_client.tile_scale'])
 			log.warn('Config option tile_client.tile_scale is deprecated. Use tile_manager.utm_tile_scale.')
 		const scale = scale3DToSpatialTileScale(scaleProvider.utmTileScale)
