@@ -265,18 +265,15 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.gui) this.gui.destroy()
 	}
 
-    // TODO REORG JOE generic event state, can go somewhere for use by all.
 	private setLastMousePosition = (event: MouseEvent | null): void => {
 		this.setState({ lastMousePosition: event })
 	}
 
 	// When ImageManager loads an image, add it to the scene.
     // TODO JOE The UI can have check boxes for showing/hiding layers.
-	private onImageScreenLoad: (imageScreen: ImageScreen) => void =
-		(imageScreen: ImageScreen) => {
-			this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
-			new AnnotatedSceneActions().addObjectToScene( imageScreen )
-		}
+	private onImageScreenLoad = (): void => {
+		this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
+	}
 
 	// When a lightbox ray is created, add it to the scene.
 	// On null, remove all rays.
@@ -355,7 +352,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				if (intersects.length) {
 					const image = this.highlightedImageScreenBox.userData as CalibratedImage
 					this.unHighlightImageScreenBox()
-					// this.renderAnnotator()
 					this.imageManager.loadImageIntoWindow(image)
 				}
 				break
@@ -379,7 +375,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					const screen = this.imageManager.getImageScreen(first)
 					if (screen) screen.unloadImage()
 
-					// this.renderAnnotator()
+					this.state.annotatedSceneController!.shouldRender()
 				}
 				break
 			} default:
@@ -392,18 +388,18 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.props.isLiveMode) return
 		if (!this.props.isShiftKeyPressed) return
 
-		// Note: image loading takes time, so even if image is marked as "highlighted"
-		// it is required to continue to renderAnnotator until the image is actually loaded and rendered
 		if (imageScreenBox === this.highlightedImageScreenBox) {
-			// this.renderAnnotator()
 			return
 		}
+
 		this.highlightedImageScreenBox = imageScreenBox
 
 		const screen = this.imageManager.getImageScreen(imageScreenBox)
 		if (screen)
 			screen.loadImage()
-				.then(loaded => {if (loaded) { /*this.renderAnnotator() */ }})
+				.then(loaded => {if (loaded) {
+					this.state.annotatedSceneController!.shouldRender()
+				}})
 				.catch(err => log.warn('getImageScreen() failed', err))
 
 		const image = imageScreenBox.userData as CalibratedImage
@@ -417,7 +413,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		const material = imageScreenBox.material as THREE.MeshBasicMaterial
 		material.opacity = 1.0
-		// this.renderAnnotator()
+		this.state.annotatedSceneController!.shouldRender()
 	}
 
 	// Draw the box with default opacity like all the other boxes.
@@ -432,7 +428,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const material = this.highlightedImageScreenBox.material as THREE.MeshBasicMaterial
 		material.opacity = this.state.imageScreenOpacity
 		this.highlightedImageScreenBox = null
-		// this.renderAnnotator()
+		this.state.annotatedSceneController!.shouldRender()
 	}
 
 	// ANNOTATOR ONLY, because Kiosk doesn't have annotation editing
@@ -554,10 +550,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		// Delete annotation from scene
 		if (this.state.annotationManager!.deleteActiveAnnotation()) {
 			log.info("Deleted selected annotation")
-            // TODO JOE this will trigger state change which in turn updates the UI.
 			this.deactivateLanePropUI()
 			this.state.annotationManager!.hideTransform()
-			// this.renderAnnotator()
 		}
 	}
 
@@ -628,7 +622,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
 			Annotator.deactivateFrontSideNeighbours()
 		}
-		// this.renderAnnotator()
 	}
 
     // TODO REORG JOE remove?
@@ -637,7 +630,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
-		// this.renderAnnotator()
 	}
 
     // TODO REORG JOE remove?
@@ -646,7 +638,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateLeftSideNeighbours()
 		}
-		// this.renderAnnotator()
 	}
 
     // TODO REORG JOE remove?
@@ -655,7 +646,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
-		// this.renderAnnotator()
 	}
 
     // TODO REORG JOE remove?
@@ -664,7 +654,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
 			Annotator.deactivateRightSideNeighbours()
 		}
-		// this.renderAnnotator()
 	}
 
     // TODO REORG JOE move to AnnotationManager
@@ -683,7 +672,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			} else {
 				Annotator.activateRightSideNeighbours()
 			}
-			// this.renderAnnotator()
 		}
 	}
 
@@ -855,7 +843,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.info("Adding traffic device type: " + tpType.children("option").filter(":selected").text())
 			activeAnnotation.type = +tpType.val()
 			activeAnnotation.updateVisualization()
-			// this.renderAnnotator()
+			this.state.annotatedSceneController!.shouldRender()
 		})
 	}
 
@@ -901,7 +889,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			menuButton.addEventListener('click', () => {
 				log.info("Menu icon clicked. Close/Open menu bar.")
 
-				// RYAN UPDATED
+				// TODO works?
 				new AnnotatedSceneActions().toggleUIMenuVisible()
 				// this.displayMenu(MenuVisibility.TOGGLE)
 			})

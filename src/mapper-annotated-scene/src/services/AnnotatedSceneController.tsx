@@ -31,6 +31,7 @@ import ResizeObserver from 'react-resize-observer'
 import toProps from '@/util/toProps'
 import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
 import Key from '@/mapper-annotated-scene/src/models/Key'
+import {Events} from '@/mapper-annotated-scene/src/models/Events'
 
 const log = Logger(__filename)
 
@@ -266,11 +267,6 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
         new AnnotatedSceneActions().removeObjectFromScene(object)
     }
 
-	// TODO emit Events.SCENE_SHOULD_RENDER event instead
-    renderScene() {
-        return this.state.sceneManager!.renderScene()
-    }
-
     adjustCameraXOffset(value: number) {
         this.state.sceneManager!.adjustCameraXOffset(value)
     }
@@ -421,6 +417,10 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
         return this.state.pointCloudManager!.loadPointCloudDataFromConfigBoundingBox( this.props.initialFocusPoint )
 	}
 
+	shouldRender() {
+		this.channel.emit(Events.SCENE_SHOULD_RENDER)
+	}
+
     componentDidUpdate(_, prevState, __) {
         if (!this.isAllSet && this.state.sceneManager && this.state.container && this.state.annotationManager) {
 			this.isAllSet = true
@@ -516,9 +516,6 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 			lockLanes
 		} = this.props
 
-        // TODO JOE THURSDAY see onRenender below
-        // const onRenderCallBack = this.state.sceneManager ? this.state.sceneManager.renderScene : () => {}
-
         return (
             <div
 				ref={this.getContainerRef}
@@ -550,7 +547,6 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	                    ref={this.getSceneManagerRef}
 
 						backgroundColor={this.props.backgroundColor}
-	                    // TODO JOE this will resize based on container size using window.ResizeObserver.
 	                    width={this.state.componentWidth}
 	                    height={this.state.componentHeight}
 
@@ -573,7 +569,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	                />
 				}
 
-                <LayerManager ref={this.getLayerManagerRef}/>
+                <LayerManager ref={this.getLayerManagerRef} channel={this.channel} />
 
 				{ layerManager && sceneManager &&
 	                <PointCloudManager
