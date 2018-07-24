@@ -125,7 +125,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
         // RT NOW this.setState({carModel})
     }
 
-    render() {
+    render(): JSX.Element | null {
         return null
     }
 }

@@ -292,7 +292,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
         ref && this.setState({trajectoryPicker: ref})
     }
 
-    render() {
+    render(): JSX.Element {
         // CarManager will not be setup the first time through
 		let onPointOfInterestCall = () => new THREE.Vector3(0,0,0)
 		let onCurrentRotation = () => new THREE.Quaternion()

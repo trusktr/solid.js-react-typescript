@@ -207,8 +207,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		}
 	}
 
-	render() {
+	render(): JSX.Element | null {
 		return null
 	}
-
 }

@@ -91,7 +91,7 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 		return Array.from(this.state.layerToggles.keys())
 	}
 
-	render() {
+	render(): JSX.Element | null {
 		return null
 	}
 }

@@ -280,8 +280,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			this.axis = AxesHelper(axesHelperLength)
 			this.grid.add( this.axis )
 		}
-
-
 	}
 
 	componentDidUpdate(oldProps) {
@@ -297,8 +295,7 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 
 	}
 
-	render() {
+	render(): JSX.Element | null {
 		return null
 	}
-
 }

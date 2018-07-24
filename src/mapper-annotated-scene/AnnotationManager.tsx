@@ -221,7 +221,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 	}
 
-	render() {
+	render(): JSX.Element | null {
 		return null
 	}
 

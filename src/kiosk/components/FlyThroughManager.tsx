@@ -375,11 +375,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         new AnnotatedSceneActions().setPlayMode(true)
     }
 
-
-
-
-
-    render() {
+    render(): JSX.Element | null {
         return null
     }
 }

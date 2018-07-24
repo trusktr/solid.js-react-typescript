@@ -491,7 +491,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
         })
     }
 
-    render() {
+    render(): JSX.Element {
         const {
             scaleProvider,
             utmCoordinateSystem,

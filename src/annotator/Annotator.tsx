@@ -1359,8 +1359,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('missing element lp_add_forward')
 	}
 
-    // }}
-
 	// Toggle the visibility of data by cycling through the groups defined in layerGroups.
 	private uiToggleLayerVisibility(): void {
 		this.setState({ layerGroupIndex: this.state.layerGroupIndex + 1 })
@@ -1446,8 +1444,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		ref && this.setState({ annotationManager: ref })
 	}
 
-	render() {
-
+	render(): JSX.Element {
 		return (
 			<React.Fragment>
 	            <AnnotatedSceneController
