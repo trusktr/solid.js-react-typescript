@@ -172,8 +172,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		renderer.setPixelRatio(window.devicePixelRatio)
 		renderer.setSize(width, height)
 
-		// @TODO (Annotator-only) Add renderer domElement event listeners using 'registerDomEventElementEventListener' below
-
 		const loop = new AnimationLoop
 		const animationFps = config['startup.render.fps']
 		loop.interval = animationFps === 'device' ? false : 1 / (animationFps || 10)
@@ -567,11 +565,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		renderer.setSize(width, height)
 		new AnnotatedSceneActions().setRendererSize({ width, height })
 		this.renderScene()
-	}
-
-	registerDomEventElementEventListener(type:string, listener:any) {
-		const renderer = this.state.renderer
-		renderer.domElement.addEventListener(type, listener)
 	}
 
 	// @TODO Camera Manager
