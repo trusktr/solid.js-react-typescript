@@ -29,6 +29,14 @@ const log = Logger(__filename)
 
 const nullContents = new PointCloudTileContents([], [])
 
+function isGray(r: number, g: number, b: number): boolean {
+	return r === g && g === b
+}
+
+function isOrange(r: number, g: number, b: number): boolean {
+	return b < 0.1 && g < 0.5 && r - g < 0.8
+}
+
 interface PointCloudTileManagerConfig extends TileManagerConfig {
 	pointsSize: number,
 	samplingStep: number,
@@ -168,7 +176,12 @@ export class PointCloudTileManager extends TileManager {
 			}
 		}
 
-		if (samplingStep <= 1)
+		// Choose the colors which are low to the ground with our above-the-ground color scheme, and discard the rest.
+		// TODO The color stuff is a hack. Get a model of the ground surface height, and filter points by height above ground.
+		// TODO And it might be better to apply this in a first pass, before the density check.
+		const trimByColor = !!config.get('tile_manager.trim_points_above_ground.height')
+
+		if (samplingStep <= 1 && !trimByColor)
 			return [contents.points, contents.colors]
 
 		const sampledPoints: Array<number> = []
@@ -176,13 +189,19 @@ export class PointCloudTileManager extends TileManager {
 		const stride = samplingStep * threeDStepSize
 
 		for (let i = 0; i < contents.points.length; i += stride) {
-			// Assuming the utm points are: easting, northing, altitude
-			sampledPoints.push(contents.points[i])
-			sampledPoints.push(contents.points[i + 1])
-			sampledPoints.push(contents.points[i + 2])
-			sampledColors.push(contents.colors[i])
-			sampledColors.push(contents.colors[i + 1])
-			sampledColors.push(contents.colors[i + 2])
+			if (
+				!trimByColor ||
+				isGray(contents.colors[i], contents.colors[i + 1], contents.colors[i + 2]) ||
+				isOrange(contents.colors[i], contents.colors[i + 1], contents.colors[i + 2])
+			) {
+				// Assuming the utm points are: easting, northing, altitude
+				sampledPoints.push(contents.points[i])
+				sampledPoints.push(contents.points[i + 1])
+				sampledPoints.push(contents.points[i + 2])
+				sampledColors.push(contents.colors[i])
+				sampledColors.push(contents.colors[i + 1])
+				sampledColors.push(contents.colors[i + 2])
+			}
 		}
 		return [sampledPoints, sampledColors]
 	}
