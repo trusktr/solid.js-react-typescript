@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import * as _ from "lodash"
 import {DefaultLeafReducer, ILeafReducer} from "typedux"
 import Logger from "@/util/log";

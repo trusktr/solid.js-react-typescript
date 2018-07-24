@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import * as THREE from "three"
 import config from '@/config'
 import {ActionFactory, ActionMessage, ActionReducer} from "typedux"

@@ -1,7 +1,11 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import Logger from "@/util/log";
 
 const log = Logger(__filename)
-
 
 /**
  * Load all the services

@@ -1,3 +1,7 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
 
 // modified from https://github.com/trusktr/infamous/blob/master/src/core/Observable.js
 export default

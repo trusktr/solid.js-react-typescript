@@ -1,13 +1,14 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import {ActionFactory, ActionMessage, ActionReducer} from "typedux";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
-
-
-
 import Logger from "@/util/log";
 import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
 
 const log = Logger(__filename)
-
 
 export default class StatusWindowActions extends ActionFactory<AnnotatedSceneState, ActionMessage<AnnotatedSceneState>> {
 

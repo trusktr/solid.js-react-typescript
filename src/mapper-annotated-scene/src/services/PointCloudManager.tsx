@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import * as React from "react"
 import * as THREE from "three";
 import {PointCloudTileManager} from "@/mapper-annotated-scene/tile/PointCloudTileManager";

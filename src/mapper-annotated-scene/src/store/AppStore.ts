@@ -1,13 +1,16 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import {Map as IMMap} from "immutable"
 import {compose, Store as ReduxStore, StoreEnhancer} from "redux"
 import {ILeafReducer, ObservableStore, setStoreProvider} from "typedux"
-
 import { loadReducers } from "mapper-annotated-scene/src/store/Reducers"
 import { loadActions } from "mapper-annotated-scene/src/store/Actions"
 import * as _ from "lodash"
 import {getHot} from "mapper-annotated-scene/src/util/HotUtil"
 import Logger from "@/util/log";
-
 
 const log = Logger(__filename)// Create the global store as an ObservableStore (from typedux) which implements Redux store under the hood
 let store:ObservableStore<any> = getHot(module, "store") as any

@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
 import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
 import * as MapperProtos from '@mapperai/mapper-models'

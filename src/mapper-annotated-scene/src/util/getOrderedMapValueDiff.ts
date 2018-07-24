@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import {OrderedMap} from 'immutable'
 
 type DiffResult<A, B> = { added: OrderedMap<A, B> | false, removed: OrderedMap<A, B> | false }

@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import {ActionMessage, DefaultLeafReducer} from "typedux"
 
 import AnnotatedSceneState from "mapper-annotated-scene/src/store/state/AnnotatedSceneState"
