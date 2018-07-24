@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 // tslint:disable-next-line:no-any
 declare const __SAFFRON__: boolean
 

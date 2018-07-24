@@ -5,7 +5,6 @@
 
 import config from '@/config'
 
-const applicationDirectory = config['preferences.directory'] || 'mapper-annotator'
 const windowStateDirectory = 'window-state'
 
 // Build a partial path to a preferences file.
@@ -14,6 +13,7 @@ const windowStateDirectory = 'window-state'
 export function windowStateKeeperOptions(windowName: string): object {
 	if (!windowName)
 		throw Error('missing windowName')
+	const applicationDirectory = config['preferences.directory'] || 'mapper-annotator'
 	const windowStatePrefsFile = applicationDirectory + '/' + windowStateDirectory + '/' + windowName + '.json'
 	return {
 		file: windowStatePrefsFile,

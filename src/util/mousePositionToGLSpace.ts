@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import * as THREE from 'three'
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 import * as Electron from "electron"
