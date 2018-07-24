@@ -5,6 +5,7 @@
 
 import {OrderedMap, OrderedSet} from 'immutable'
 import * as THREE from 'three'
+import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
 import {TileMessage} from "@/mapper-annotated-scene/tile-model/TileMessage"
 import {NullTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
 import {SuperTile} from "./SuperTile"
@@ -17,8 +18,8 @@ import {TileIndex, tileIndexFromVector3} from "@/mapper-annotated-scene/tile-mod
 import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch"
 import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
-import AnnotatedSceneActions from "../src/store/actions/AnnotatedSceneActions";
-import {EventEmitter} from "events";
+import AnnotatedSceneActions from "../src/store/actions/AnnotatedSceneActions"
+import {EventEmitter} from "events"
 import Logger from "@/util/log"
 import {LayerId} from "@/types/TypeAlias"
 
@@ -47,7 +48,7 @@ export interface TileManagerConfig {
 // which serve as a local cache for chunks of tile data.
 // All objects are stored with reference to UTM origin and offset, but using the local coordinate
 // system which has different axes.
-export abstract class TileManager {
+export abstract class TileManager implements TileManagerBase {
 	protected config: TileManagerConfig
 	protected coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin // todo ?
 	// setPointCloud: (superTiles:OrderedMap<string, SuperTile>) => void

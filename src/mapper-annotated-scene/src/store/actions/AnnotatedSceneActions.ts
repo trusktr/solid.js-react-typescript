@@ -10,12 +10,12 @@ import AnnotatedSceneState from "mapper-annotated-scene/src/store/state/Annotate
 import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
-import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
+import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType"
 import {OrderedMap} from "immutable";
-import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
-import {RangeSearch} from "../../../tile-model/RangeSearch";
-import {TileManager} from '../../../tile/TileManager'
-import {Set} from "immutable";
+import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile"
+import {RangeSearch} from "../../../tile-model/RangeSearch"
+import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
+import {Set} from "immutable"
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 import * as Electron from "electron"
 
@@ -107,7 +107,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             cameraIsOrbiting: false,
             camera: null,
             isOrbiting: false,
-            loadingTileManagers: Set<TileManager>(),
+            loadingTileManagers: Set<TileManagerBase>(),
         }
 
         return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
@@ -378,7 +378,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     }
 
     @ActionReducer()
-    addLoadingTileManager(tileManager: TileManager) {
+    addLoadingTileManager(tileManager: TileManagerBase) {
         return (annotatedSceneState: AnnotatedSceneState) => {
             const loadingTileManagers = annotatedSceneState.loadingTileManagers
             return new AnnotatedSceneState({
@@ -388,7 +388,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     }
 
     @ActionReducer()
-    removeLoadingTileManager(tileManager: TileManager) {
+    removeLoadingTileManager(tileManager: TileManagerBase) {
         return (annotatedSceneState: AnnotatedSceneState) => {
             const loadingTileManagers = annotatedSceneState.loadingTileManagers
             return new AnnotatedSceneState({

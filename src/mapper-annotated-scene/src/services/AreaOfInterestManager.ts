@@ -15,7 +15,7 @@ import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
 import {createStructuredSelector} from "reselect";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
-import {TileManager} from "@/mapper-annotated-scene/tile/TileManager";
+import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
 import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper";
 
 const log = Logger(__filename)
@@ -29,7 +29,7 @@ interface AreaOfInterestManagerProps {
 	groundPlaneManager: GroundPlaneManager
 	camera ?: THREE.Camera
 	cameraIsOrbiting ?: boolean
-	loadingTileManagers ?: Set<TileManager>
+	loadingTileManagers ?: Set<TileManagerBase>
 	sceneStage?: THREE.Vector3
 }
 

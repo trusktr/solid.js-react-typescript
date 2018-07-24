@@ -11,7 +11,7 @@ import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
 import {OrderedMap, Set} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
-import {TileManager} from "@/mapper-annotated-scene/tile/TileManager";
+import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 
 export default class AnnotatedSceneState {
@@ -94,5 +94,5 @@ export default class AnnotatedSceneState {
 	areaOfInterest: RangeSearch[]
 	rendererSize: any
 	isOrbiting: boolean
-	loadingTileManagers: Set<TileManager>
+	loadingTileManagers: Set<TileManagerBase>
 }
