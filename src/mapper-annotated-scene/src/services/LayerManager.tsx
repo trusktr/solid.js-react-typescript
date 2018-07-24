@@ -9,6 +9,8 @@ import * as lodash from "lodash";
 import Logger from "@/util/log";
 import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 import {v4 as UUID} from 'uuid'
+import EventEmitter from 'events'
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
 
 const log = Logger(__filename)
 
@@ -17,7 +19,9 @@ export const Layer = {
 	ANNOTATIONS: UUID(),
 }
 
-export interface LayerManagerProps {}
+export interface LayerManagerProps {
+	channel: EventEmitter
+}
 
 export interface LayerManagerState {
 	layerToggles: Map<string, LayerToggle>
@@ -81,7 +85,7 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 			})
 		}
 
-		new AnnotatedSceneActions().setVisibleLayers(layerKeysToShow)
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 	}
 
 	// TODO JOE WEDNESDAY toggle visibility of a specific layer by name/id

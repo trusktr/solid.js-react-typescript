@@ -174,7 +174,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
             log.error("Error in listen() - flyThroughManager expected, but not found")
         }
 
-        this.state.annotatedSceneController!.renderScene()
+        this.state.annotatedSceneController!.shouldRender()
     }
 
     // TODO JOE WEDNESDAY {{{

@@ -100,7 +100,7 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
 
 
-	// TODO (Joe): To make things more re-usable, It would be nice if the
+	// TODO JOE To make things more re-usable, It would be nice if the
 	// following methods relating to specific types of messages would live
 	// outside of StatusWindow inside of the app code using the StatusWindow,
 	// and each app would tell StatusWindow when to show/hide messages. It'd be

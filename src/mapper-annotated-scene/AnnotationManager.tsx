@@ -599,6 +599,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return {result: false, existLeftNeighbour: false, existRightNeighbour: false}
 		}
 
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+
 		return {result: true,
 				existLeftNeighbour: activeLane.neighborsIds.left.length > 0,
 				existRightNeighbour: activeLane.neighborsIds.right.length > 0}
@@ -1135,6 +1137,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		newAnnotation.makeInactive()
 
 		this.metadataState.dirty()
+
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 		return true
 	}
 
@@ -1193,6 +1197,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		newAnnotation.makeInactive()
 
 		this.metadataState.dirty()
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 		return true
 	}
 
@@ -1251,6 +1256,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		newAnnotation.makeInactive()
 
 		this.metadataState.dirty()
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 		return true
 	}
 
@@ -1550,14 +1556,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	// Do some house keeping after loading annotations.
-	// @TODO @Joe please move this as well to AnnotationManager
 	private annotationLoadedSideEffects(): void {
-
-        // TODO REORG JOE needs layerManager ref. Maybe LayerManager is a part of SceneManager?
 		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS.toString()])
-
-        // TODO JOE belongs further down the call stack at the scene modification point.
-		// this.renderAnnotator()
 	}
 
 	/**
@@ -1568,12 +1568,11 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	loadAnnotations(fileName: string): Promise<void> {
 		log.info('Loading annotations from ' + fileName)
 		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS.toString()])
-		// TODO JOE AnnotationManager needs ref to LayerManager
+
 		return this.loadAnnotationsFromFile(fileName)
 			.then(focalPoint => {
 				if (focalPoint)
 					this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
-					// TODO JOE AnnotationManager needs ref to SceneManager
 			})
 			.catch(err => {
 				log.error(err.message)

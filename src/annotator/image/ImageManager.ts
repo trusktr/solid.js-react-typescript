@@ -17,6 +17,7 @@ import config from '@/config'
 import Logger from "@/util/log"
 import {EventEmitter} from "events";
 import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
 
 const log = Logger(__filename)
 
@@ -127,6 +128,7 @@ export class ImageManager {
 		this.imageScreens.push(screen)
 		this.imageScreenMeshes.push(screen.imageMesh)
 
+		new AnnotatedSceneActions().addObjectToScene( screen )
 		this.channel.emit(Events.IMAGE_SCREEN_LOAD_UPDATE, screen)
 	}
 

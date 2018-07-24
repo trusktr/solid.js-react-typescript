@@ -50,7 +50,6 @@ export interface SceneManagerProps {
 	channel: EventEmitter
 	sceneObjects ?: Set<THREE.Object3D>
 	transformedObjects?: Array<THREE.Object3D>
-	visibleLayers ?: string[]
 	cameraPreference?: CameraType
 	container: HTMLDivElement
 	transformControlsMode?: 'translate' | 'rotate' | 'scale'
@@ -90,7 +89,6 @@ export interface SceneManagerState {
 	// 'pointCloudSuperTiles',
 	'sceneObjects',
 	'transformedObjects',
-	'visibleLayers',
 	'cameraPreference',
 	'transformControlsMode',
 	'isInitialOriginSet',
@@ -755,11 +753,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			} else {
 				this.transformControls.detach()
 			}
-			this.renderScene()
-		}
-
-		// If the LayerManager modifies the visible layers, we should rerender
-		if (newProps.visibleLayers !== this.props.visibleLayers) {
 			this.renderScene()
 		}
 

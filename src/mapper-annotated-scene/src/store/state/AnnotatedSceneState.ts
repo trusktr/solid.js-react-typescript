@@ -65,7 +65,6 @@ export default class AnnotatedSceneState {
 
 	sceneObjects: Set<THREE.Object3D>
 	sceneStage: THREE.Vector3
-	visibleLayers: string[]
 	isAnnotationTileManagerEnabled: boolean
 
 

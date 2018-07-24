@@ -82,7 +82,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
             sceneObjects: Set<THREE.Object3D>(),
 			sceneStage: new THREE.Vector3(0, 0, 0),
-            visibleLayers: [],
             isAnnotationTileManagerEnabled: false, // by default, do not include the AnnotationTileManager -- it's only needed for the Kiosk app
 
             isMouseDragging: false,
@@ -456,13 +455,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
                 ...annotatedSceneState, sceneObjects: sceneObjects.delete(object)
             })
         }
-    }
-
-    @ActionReducer()
-    setVisibleLayers(visibleLayers: string[]) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, visibleLayers: visibleLayers
-        })
     }
 
     @ActionReducer()
