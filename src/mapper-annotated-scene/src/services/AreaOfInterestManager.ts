@@ -6,17 +6,17 @@
 import * as THREE from 'three'
 import * as React from 'react'
 import config from '@/config'
-import {isTupleOfNumbers} from "@/util/Validation";
-import Logger from "@/util/log";
-import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
-import {RangeSearch} from "../../tile-model/RangeSearch";
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
-import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import {isTupleOfNumbers} from "@/util/Validation"
+import Logger from "@/util/log"
+import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions"
+import {RangeSearch} from "../../tile-model/RangeSearch"
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed"
 import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
-import {createStructuredSelector} from "reselect";
-import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
+import {createStructuredSelector} from "reselect"
+import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState"
 import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
-import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper";
+import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper"
 
 const log = Logger(__filename)
 
@@ -74,7 +74,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],
 		}
 
-
 		const aoiSize: [number, number, number] = config['annotator.area_of_interest.size']
 
 		if (isTupleOfNumbers(aoiSize, 3)) {
@@ -115,7 +114,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 		}
 	}
 
-
 	// Set the area of interest for loading point clouds.
 	updatePointCloudAoi(): void {
 		if (!this.state.enabled) return
@@ -130,8 +128,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 
 		const currentPoint = this.getPointOfInterest()
 
-
-
 		if (currentPoint) {
 			const oldPoint = this.state.aoiFocalPoint
 			const newPoint = currentPoint.clone().round()
@@ -142,7 +138,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 				new AnnotatedSceneActions().setPointOfInterest( this.state.aoiFocalPoint )
 				this.updatePointCloudAoiBoundingBox(this.state.aoiFocalPoint)
 			}
-
 		} else {
 			if (this.state.aoiFocalPoint !== null) {
 				this.setState({aoiFocalPoint: null})
@@ -196,8 +191,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 	// Then load the points in and around the AOI. If we have a current heading,
 	// extend the AOI with another bounding box in the direction of motion.
 	private updatePointCloudAoiBoundingBox(aoiFocalPoint: THREE.Vector3 | null): void {
-
-
 		if (this.state.shouldDrawBoundingBox) {
 			this.state.boundingBoxes.forEach(bbox => {
 				new AnnotatedSceneActions().removeObjectFromScene(bbox)

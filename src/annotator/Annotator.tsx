@@ -18,25 +18,24 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 import * as THREE from 'three'
 import {ImageManager} from "./image/ImageManager"
-import {ImageScreen} from "./image/ImageScreen"
 import {CalibratedImage} from "./image/CalibratedImage"
 import toProps from '@/util/toProps'
 import {KeyboardEventHighlights} from "@/electron-ipc/Messages"
 import * as React from "react";
-import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
-import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
-import {FlyThroughState} from "@/mapper-annotated-scene/src/models/FlyThroughState";
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed"
+import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions"
+import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState"
+import {FlyThroughState} from "@/mapper-annotated-scene/src/models/FlyThroughState"
 import AnnotatedSceneController from '@/mapper-annotated-scene/src/services/AnnotatedSceneController'
-import {Events} from "@/mapper-annotated-scene/src/models/Events";
-import {Layer as AnnotatedSceneLayer} from "@/mapper-annotated-scene/src/services/LayerManager";
+import {Events} from "@/mapper-annotated-scene/src/models/Events"
+import {Layer as AnnotatedSceneLayer} from "@/mapper-annotated-scene/src/services/LayerManager"
 import {v4 as UUID} from 'uuid'
 import Key from '@/mapper-annotated-scene/src/models/Key'
-import AnnotatorMenuView from "./AnnotatorMenuView";
+import AnnotatorMenuView from "./AnnotatorMenuView"
 import {dateToString} from "../util/dateToString"
 import {scale3DToSpatialTileScale, spatialTileScaleToString} from "../mapper-annotated-scene/tile/ScaleUtil"
 import {ScaleProvider} from "../mapper-annotated-scene/tile/ScaleProvider"
-import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type";
+import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type"
 import {hexStringToHexadecimal} from "@/util/Color"
 
 const dialog = Electron.remote.dialog
@@ -870,7 +869,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		})
 	}
 
-	// RYAN -- mostly Annotator specific
 	private bind(): void {
 		this.bindLanePropertiesPanel()
 		this.bindLaneNeighborsPanel()
@@ -884,18 +882,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			menuControlElement.style.visibility = 'visible'
 		else
 			log.warn('missing element menu_control')
-
-		const menuButton = document.getElementById('menu_control_btn')
-		if (menuButton)
-			menuButton.addEventListener('click', () => {
-				log.info("Menu icon clicked. Close/Open menu bar.")
-
-				// TODO works?
-				new AnnotatedSceneActions().toggleUIMenuVisible()
-				// this.displayMenu(MenuVisibility.TOGGLE)
-			})
-		else
-			log.warn('missing element menu_control_btn')
 
 		const toolsDelete = document.getElementById('tools_delete')
 		if (toolsDelete)
@@ -963,6 +949,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			})
 		else
 			log.warn('missing element tools_export_kml')
+
+		this.deactivateAllAnnotationPropertiesMenus()
 	}
 
 	// }}
@@ -1363,13 +1351,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		window.addEventListener('blur', this.onBlur)
 		window.addEventListener('beforeunload', this.onBeforeUnload)
 
-        document.addEventListener('mousemove', this.setLastMousePosition)
-        document.addEventListener('mousemove', this.checkForImageScreenSelection)
+		document.addEventListener('mousemove', this.setLastMousePosition)
+		document.addEventListener('mousemove', this.checkForImageScreenSelection)
 		document.addEventListener('mouseup', this.clickImageScreenBox)
 
-		// Bind ui events
 		this.bind()
-		// if ( this.props.uiMenuVisible ) this.deactivateAllAnnotationPropertiesMenus()
 	}
 
 	componentWillUnmount(): void {
@@ -1380,7 +1366,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		//  - clean up child windows
 	}
 
-	componentDidUpdate(_oldProps, oldState) {
+	componentDidUpdate(_oldProps: AnnotatorProps, oldState: AnnotatorState): void {
 		if (!oldState.annotationManager && this.state.annotationManager) {
 			this.createControlsGui()
 		}
@@ -1437,7 +1423,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	render(): JSX.Element {
 		return (
 			<React.Fragment>
-	            <AnnotatedSceneController
+				<AnnotatedSceneController
 					ref={this.getAnnotatedSceneRef}
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
@@ -1448,7 +1434,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					lockLanes={this.state.lockLanes}
 					lockTrafficDevices={this.state.lockTrafficDevices}
 				/>
-    			<AnnotatorMenuView />
+				<AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!}/>
 			</React.Fragment>
 		)
 	}

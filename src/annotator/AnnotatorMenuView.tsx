@@ -9,7 +9,10 @@ import './style.scss'
 import initUIControl from "@/annotator/annotator-control-ui/UIControl";
 import Help from "@/annotator/components/Help";
 
-interface AnnotatorMenuViewProps {}
+interface AnnotatorMenuViewProps {
+	uiMenuVisible: boolean
+}
+
 interface AnnotatorMenuViewState {}
 
 export default class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
@@ -19,7 +22,7 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
 	}
 
 	render(): JSX.Element {
-		return (<div id="menu">
+		return (<div id="menu" className={this.props.uiMenuVisible ? '' : 'hidden'}>
 			<menu id="annotationMenu" className="menu">
 
 			<div id="tools" className="div_buttons_group">

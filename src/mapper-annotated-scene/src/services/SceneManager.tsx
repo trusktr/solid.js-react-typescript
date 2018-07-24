@@ -566,40 +566,35 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	// @TODO Camera Manager
-	adjustCameraXOffset(value:number) {
+	adjustCameraXOffset(value: number): void {
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.x += value
 		this.setState({cameraOffset: cameraOffset.clone()})
 	}
 
 	// @TODO Camera Manager
-	adjustCameraYOffset(value:number) {
+	adjustCameraYOffset(value: number): void {
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.y += value
 		this.setState({cameraOffset: cameraOffset.clone()})
 	}
 
-	addSuperTile(superTile: SuperTile) {
+	addSuperTile(superTile: SuperTile): void {
 		if (superTile instanceof PointCloudSuperTile) {
 			const st = superTile as PointCloudSuperTile
 			if (st.pointCloud) {
 				this.state.scene.add(st.pointCloud)
 				this.renderScene() // can potentially remove but added it just in case
 			}
-			else{
-				// RT 7/9 to remove noise --> log.error('Attempting to add super tile to scene - got a super tile with no point cloud')
-			}
 		}
 	}
 
-	removeSuperTile(superTile: SuperTile) {
+	removeSuperTile(superTile: SuperTile): void {
 		if (superTile instanceof PointCloudSuperTile) {
 			const st = superTile as PointCloudSuperTile
 			if (st.pointCloud) {
 				this.state.scene.remove(st.pointCloud)
 				this.renderScene() // can potentially remove but added it just in case
-			} else {
-				log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
 			}
 		}
 	}

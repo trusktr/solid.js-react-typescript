@@ -4,19 +4,19 @@
  */
 
 import * as React from "react"
-import * as THREE from "three";
-import {PointCloudTileManager} from "@/mapper-annotated-scene/tile/PointCloudTileManager";
-import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
-import Logger from "@/util/log";
-import config from "@/config";
-import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerManager";
-import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
-import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateFrame";
-import {isTupleOfNumbers} from "@/util/Validation";
-import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import * as THREE from "three"
+import {PointCloudTileManager} from "@/mapper-annotated-scene/tile/PointCloudTileManager"
+import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager"
+import Logger from "@/util/log"
+import config from "@/config"
+import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerManager"
+import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch"
+import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateFrame"
+import {isTupleOfNumbers} from "@/util/Validation"
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed"
 import toProps from '@/util/toProps'
-import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
+import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions"
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
 
 const log = Logger(__filename)
 
@@ -88,8 +88,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       new AnnotatedSceneActions().removeObjectFromScene(pointCloudBoundingBox)
   }
 
-
-
   // only called as a keyboard shortcut
   unloadPointCloudData(): void {
     if (this.props.pointCloudTileManager.unloadAllTiles()) {
@@ -122,7 +120,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
         // Maybe BoxHelper isn't so helpful after all. But guess what? It will take a Box3 anyway and
         // do the right thing with it.
         // tslint:disable-next-line:no-any
-
         const pointCloudBoundingBox = new THREE.BoxHelper(bbox as any, this.state.pointCloudBboxColor)
         pointCloudBoundingBox.name = 'pointCloudBoundingBox'
         this.setState({pointCloudBoundingBox: pointCloudBoundingBox})
