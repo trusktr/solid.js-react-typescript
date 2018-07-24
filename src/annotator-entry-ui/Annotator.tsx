@@ -1378,6 +1378,20 @@ class Annotator {
 		}
 	}
 
+	private loadTerritoriesKml(fileName: string): Promise<void> {
+		log.info('Loading KML Territories from ' + fileName)
+		this.setLayerVisibility([Layer.ANNOTATIONS])
+		return this.annotationManager.loadKmlTerritoriesFromFile(fileName)
+			.then(focalPoint => {
+				if (focalPoint)
+					this.setStageByVector(focalPoint)
+			})
+			.catch(err => {
+				log.error(err.message)
+				dialog.showErrorBox('Territories Load Error', err.message)
+			})
+	}
+
 	/**
 	 * Load annotations from file. Add all annotations to the annotation manager
 	 * and to the scene.
@@ -2840,6 +2854,24 @@ class Annotator {
 			})
 		else
 			log.warn('missing element tools_load_images')
+
+		const toolsLoadTerritoriesKml = document.getElementById('tools_load_territories_kml')
+		if (toolsLoadTerritoriesKml)
+			toolsLoadTerritoriesKml.addEventListener('click', () => {
+				const options: Electron.OpenDialogOptions = {
+					message: 'Load Territories KML File',
+					properties: ['openFile'],
+					filters: [{name: 'kml', extensions: ['kml']}],
+				}
+				const handler = (paths: string[]): void => {
+					if (paths && paths.length)
+						this.loadTerritoriesKml(paths[0])
+							.catch(err => log.warn('loadTerritoriesKml failed: ' + err.message))
+				}
+				dialog.showOpenDialog(options, handler)
+			})
+		else
+			log.warn('missing element tools_load_territories_kml')
 
 		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 		if (toolsLoadAnnotation)
