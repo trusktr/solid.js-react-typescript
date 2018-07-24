@@ -166,7 +166,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.lightboxImageRays = []
 
 		this.state = {
-			background: hexStringToHexadecimal(config['startup.background_color'] || '#082839'),
+			background: hexStringToHexadecimal(config['startup.background_color'] || '#442233'),
 			layerGroupIndex: defaultLayerGroupIndex,
 
 			lastMousePosition: null,
@@ -964,6 +964,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		else
 			log.warn('missing element tools_export_kml')
 	}
+
+	// }}
 
 	private expandAccordion(domId: string): void {
 		if ( !this.props.uiMenuVisible ) return
