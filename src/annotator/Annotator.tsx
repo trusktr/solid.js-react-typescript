@@ -930,6 +930,24 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		else
 			log.warn('missing element tools_load_images')
 
+		const toolsLoadTerritoriesKml = document.getElementById('tools_load_territories_kml')
+		if (toolsLoadTerritoriesKml)
+			toolsLoadTerritoriesKml.addEventListener('click', () => {
+				const options: Electron.OpenDialogOptions = {
+					message: 'Load Territories KML File',
+					properties: ['openFile'],
+					filters: [{name: 'kml', extensions: ['kml']}],
+				}
+				const handler = (paths: string[]): void => {
+					if (paths && paths.length)
+						this.state.annotationManager!.loadTerritoriesKml(paths[0])
+							.catch(err => log.warn('loadTerritoriesKml failed: ' + err.message))
+				}
+				dialog.showOpenDialog(options, handler)
+			})
+		else
+			log.warn('missing element tools_load_territories_kml')
+
 		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 		if (toolsLoadAnnotation)
 			toolsLoadAnnotation.addEventListener('click', () => {
