@@ -22,6 +22,7 @@ import AnnotatedSceneActions from "../src/store/actions/AnnotatedSceneActions"
 import {EventEmitter} from "events"
 import Logger from "@/util/log"
 import {LayerId} from "@/types/TypeAlias"
+import config from "@/config";
 
 const log = Logger(__filename)
 
@@ -64,6 +65,7 @@ export abstract class TileManager implements TileManagerBase {
 	private loadedObjectsBoundingBox: THREE.Box3 | null // cached state of what has been loaded by all super tiles
 	protected utmTileScale: Scale3D
 	protected superTileScale: Scale3D
+	protected enableTileManagerStats: boolean
 
 	constructor(
 		scaleProvider: ScaleProvider,
@@ -79,6 +81,8 @@ export abstract class TileManager implements TileManagerBase {
 
 		this.utmTileScale = scaleProvider.utmTileScale
 		this.superTileScale = scaleProvider.superTileScale
+
+		this.enableTileManagerStats = !!config['tile_manager.stats_display.enable']
 	}
 
 	private enumerateOneRange(search: RangeSearch): TileIndex[] {
