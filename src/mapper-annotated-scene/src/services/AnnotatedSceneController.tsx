@@ -536,10 +536,8 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
                     }}
                 />
 
-                {/* TODO JOE THURSDAY StatusWindow doesn't need UtmCoordinateSystem, it is only concerned with messages */}
                 <StatusWindow
                     ref={this.getStatusWindowRef}
-                    utmCoordinateSystem={this.utmCoordinateSystem}
                     eventEmitter={this.channel}
                 />
 

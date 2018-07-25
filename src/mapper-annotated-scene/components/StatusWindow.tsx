@@ -13,7 +13,6 @@ import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowS
 import {getValue} from "typeguard";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import {
     LocationServerStatusClient,
     LocationServerStatusLevel
@@ -26,7 +25,6 @@ const log = Logger(__filename)
 
 interface StatusWindowProps {
     statusWindowState ?: StatusWindowState
-    utmCoordinateSystem: UtmCoordinateSystem
     eventEmitter: EventEmitter
 }
 
