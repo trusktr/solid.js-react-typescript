@@ -221,8 +221,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			// this.updateTransformControls()
 
 			this.renderThree()
-
-			console.log( 'render' )
 		})
 
 		if (this.state.stats) {
@@ -530,14 +528,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	// TODO Joe Camera Manager
+	// TODO JOE Camera Manager
 	adjustCameraXOffset(value: number): void {
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.x += value
 		this.setState({cameraOffset: cameraOffset.clone()})
 	}
 
-	// TODO Joe Camera Manager
+	// TODO JOE Camera Manager
 	adjustCameraYOffset(value: number): void {
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.y += value

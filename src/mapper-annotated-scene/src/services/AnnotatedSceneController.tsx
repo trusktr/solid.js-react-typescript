@@ -330,13 +330,11 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.mapKeyDown(key, () => {
 			if (!this.heldKeys.has(key)) {
 				this.heldKeys.add(key)
-				console.log( 'keys held:', this.heldKeys )
 				fn(true)
 			}
 		})
 		this.mapKeyUp(key, () => {
 			this.heldKeys.delete(key)
-			console.log( 'keys held:', this.heldKeys )
 			fn(false)
 		})
 	}
