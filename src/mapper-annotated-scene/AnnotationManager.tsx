@@ -50,6 +50,7 @@ import {AnnotationTileManager} from "@/mapper-annotated-scene/tile/AnnotationTil
 import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager"
 import {EventEmitter} from "events"
 import {Events} from "@/mapper-annotated-scene/src/models/Events"
+import {kmlToTerritories} from "@/util/KmlToTerritories"
 
 const log = Logger(__filename)
 
@@ -842,6 +843,21 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	/**
+	 * Load territories from KML which is generated elsewhere. Build the objects and add them to the Annotator scene.
+	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
+	 *   there will be something to look at there
+	 */
+	loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
+		return kmlToTerritories(this.props.utmCoordinateSystem, fileName)
+			.then(territories => {
+				if (!territories)
+					throw Error(`territories KML file ${fileName} has no territories`)
+				log.info(`found ${territories.length} territories`)
+				return this.addAnnotationsList(territories)
+			})
+	}
+
+	/**
 	 * Load annotations from file. Store all annotations and add them to the Annotator scene.
 	 * This requires UTM as the input format.
 	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
@@ -1558,6 +1574,21 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	// Do some house keeping after loading annotations.
 	private annotationLoadedSideEffects(): void {
 		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS.toString()])
+	}
+
+	loadTerritoriesKml(fileName: string): Promise<void> {
+		log.info('Loading KML Territories from ' + fileName)
+		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS.toString()])
+
+		return this.loadKmlTerritoriesFromFile(fileName)
+			.then(focalPoint => {
+				if (focalPoint)
+					this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
+			})
+			.catch(err => {
+				log.error(err.message)
+				dialog.showErrorBox('Territories Load Error', err.message)
+			})
 	}
 
 	/**

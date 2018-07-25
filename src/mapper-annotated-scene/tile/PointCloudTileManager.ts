@@ -32,10 +32,19 @@ const log = Logger(__filename)
 
 const nullContents = new PointCloudTileContents([], [])
 
+function isGray(r: number, g: number, b: number): boolean {
+	return r === g && g === b
+}
+
+function isOrange(r: number, g: number, b: number): boolean {
+	return b < 0.1 && g < 0.5 && r - g < 0.8
+}
+
 interface PointCloudTileManagerConfig extends TileManagerConfig {
 	pointsSize: number,
 	samplingStep: number,
 	maxPointsDensity: number,
+	trimByColor: boolean,
 }
 
 // This handles loading and unloading point cloud data (for read only). Each SuperTile has a point cloud,
@@ -74,6 +83,7 @@ export class PointCloudTileManager extends TileManager {
 			maximumObjectsToLoad: parseInt(config['tile_manager.maximum_points_to_load'], 10) || 100000,
 			samplingStep: parseInt(config['tile_manager.sampling_step'], 10) || 5,
 			maxPointsDensity: parseInt(config['tile_manager.maximum_point_density'], 10) || 0,
+			trimByColor: !!config['tile_manager.trim_points_above_ground.height'],
 		}
 
 		if (this.config.samplingStep <= 0)
@@ -198,21 +208,30 @@ export class PointCloudTileManager extends TileManager {
 			}
 		}
 
-		if (samplingStep <= 1)
+		if (samplingStep <= 1 && !this.config.trimByColor)
 			return [contents.points, contents.colors]
 
 		const sampledPoints: Array<number> = []
 		const sampledColors: Array<number> = []
 		const stride = samplingStep * threeDStepSize
 
+		// If `trimByColor`, choose the colors which are low to the ground with our above-the-ground color scheme, and discard the rest.
+		// TODO The color stuff is a hack. Get a model of the ground surface height, and filter points by height above ground.
+		// TODO And it might be better to apply this in a first pass, before the density check.
 		for (let i = 0; i < contents.points.length; i += stride) {
-			// Assuming the utm points are: easting, northing, altitude
-			sampledPoints.push(contents.points[i])
-			sampledPoints.push(contents.points[i + 1])
-			sampledPoints.push(contents.points[i + 2])
-			sampledColors.push(contents.colors[i])
-			sampledColors.push(contents.colors[i + 1])
-			sampledColors.push(contents.colors[i + 2])
+			if (
+				!this.config.trimByColor ||
+				isGray(contents.colors[i], contents.colors[i + 1], contents.colors[i + 2]) ||
+				isOrange(contents.colors[i], contents.colors[i + 1], contents.colors[i + 2])
+			) {
+				// Assuming the utm points are: easting, northing, altitude
+				sampledPoints.push(contents.points[i])
+				sampledPoints.push(contents.points[i + 1])
+				sampledPoints.push(contents.points[i + 2])
+				sampledColors.push(contents.colors[i])
+				sampledColors.push(contents.colors[i + 1])
+				sampledColors.push(contents.colors[i + 2])
+			}
 		}
 		return [sampledPoints, sampledColors]
 	}
