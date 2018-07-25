@@ -9,9 +9,9 @@ import {lineGeometry} from "@/mapper-annotated-scene/geometry/ThreeHelpers"
 
 // Mapping between a real-world camera and an image displayed as a 3D object
 
-// TODO Cameras should validate the coordinate system for their 3D location.
-// TODO   See for example TileManager.checkCoordinateSystem().
-// TODO   Aurora gets away without this because all their data uses a local coordinate system.
+// TODO CLYDE Cameras should validate the coordinate system for their 3D location.
+// TODO CLYDE   See for example TileManager.checkCoordinateSystem().
+// TODO CLYDE   Aurora gets away without this because all their data uses a local coordinate system.
 export interface CameraParameters {
 	screenPosition: THREE.Vector3
 	cameraOrigin: THREE.Vector3

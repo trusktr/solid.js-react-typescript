@@ -65,25 +65,23 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
     render(): JSX.Element {
         const {statusWindowState} = this.props
         // const isEnabled = getValue(() => statusWindowState.enabled, false)
+
         const messages = getValue(() => statusWindowState && statusWindowState.messages, new Map<string, string>()) as Map<string, string>
 
-        let out = ''
-        messages.forEach(value => {
-            if (value !== '')
-            out += value + '<br>'
-        })
-        // this.statusElement.innerHTML = out
-        // const laneWidth = $('#lp_width_value')
         // @TODO show/hide internal parts of the component based on the value of isEnabled
-        return (
-            <div>
-                {statusWindowState!.enabled &&
-                    <div id="status_window">
-                        <span dangerouslySetInnerHTML={{__html: out}}/>
-                    </div>
-                }
+	    return (
+		    <div>
+			    {statusWindowState && statusWindowState.enabled &&
+			    <div id="status_window">
+				    {Array.from(messages).map(([name, value]) =>
+					    <div key={name}>
+						    {value}
+						</div>
+				    )}
+			    </div>
+			    }
 
-            </div>)
+		    </div>)
     }
 
 	// TODO JOE To make things more re-usable, It would be nice if the

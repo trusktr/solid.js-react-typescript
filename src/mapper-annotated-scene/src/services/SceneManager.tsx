@@ -73,12 +73,11 @@ export interface SceneManagerState {
 
 	sky: THREE.Object3D
 	skyPosition2D: THREE.Vector2
-	updateOrbitControls: boolean
 
 	maxDistanceToDecorations: number // meters
 
 	decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
-	stats: Stats
+	stats: Stats | null
 }
 
 @typedConnect(toProps(
@@ -118,7 +117,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		const skyRadius = 8000
 		const cameraToSkyMaxDistance = skyRadius * 0.05
 		const skyPosition2D = new THREE.Vector2()
-		const updateOrbitControls = false
 
 		const perspectiveCam = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
 		const orthographicCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
@@ -131,8 +129,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		scene.add(orthographicCam)
 		scene.add(flyThroughCamera)
 
+		// defaults to PerspectiveCamera because cameraPreference is undefined at first
 		let camera
-		// TODO JOE if this doesn't work in the constructor, move it to componentDidUpdate()
 		if (props.cameraPreference === CameraType.ORTHOGRAPHIC)
 			camera = orthographicCam
 		else
@@ -145,7 +143,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// Add some lights
 		scene.add(new THREE.AmbientLight(new THREE.Color( 0xffffff )))
 
-		// TODO move config to app, use only prop here
 		// const background = new THREE.Color(config['startup.background_color'] || '#082839')
 		const background = props.backgroundColor || 'gray'
 
@@ -162,8 +159,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		} else
 			compassRose = null
 
-		// @TODO Joe to add annotationManager at later time -- not needed in scene for Beholder??
-
 		// Create GL Renderer
 		const renderer = new THREE.WebGLRenderer({antialias: true})
 		renderer.setClearColor(new THREE.Color( background ))
@@ -172,11 +167,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		const loop = new AnimationLoop
 		const animationFps = config['startup.render.fps']
-		loop.interval = animationFps === 'device' ? false : 1 / (animationFps || 10)
+		loop.interval = animationFps === 'device' || animationFps === 'max' ?
+			false :
+			1 / (animationFps || 10)
 
 		this.orbitControls = this.initOrbitControls(camera, renderer)
 
-		// TODO JOE THURSDAY anything that doesn't need to change we can
+		// TODO JOE CLEANUP anything that doesn't need to change we can
 		// take out of state and keep as instance variables. F.e. loop, scene,
 		// renderer, etc
 		const state = {
@@ -197,11 +194,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 			sky: sky,
 			skyPosition2D: skyPosition2D,
-			updateOrbitControls: updateOrbitControls,
 
 			maxDistanceToDecorations: 50000,
 			decorations: [],
-			stats: new Stats(),
+			stats: this.makeStats(),
 		}
 
 		this.state = state
@@ -218,10 +214,22 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		loop.start()
 
 		loop.addBaseFn( () => {
-			// if (this.stats) this.stats.update() TODO REMOVE
-			this.transformControls.update()
-			renderer.render(scene, this.state.camera)
+
+			// let other code have the opportunity to hook in before redraw
+			this.props.channel.emit(Events.SCENE_WILL_RENDER)
+
+			// this.updateTransformControls()
+
+			this.renderThree()
+
+			console.log( 'render' )
 		})
+
+		if (this.state.stats) {
+			loop.addAnimationFn(() => {
+				this.state.stats!.update()
+			})
+		}
 
 		this.props.channel.on(Events.SCENE_SHOULD_RENDER, this.renderScene)
 
@@ -231,22 +239,40 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		new AnnotatedSceneActions().setSceneInitialized(true)
 	}
+	//
+	// private updateTransformControls = (): void => {
+	// 	this.transformControls.update()
+	// }
+
+	private renderThree = (): void => {
+		this.state.renderer.render(this.state.scene, this.state.camera)
+	}
+
+	// used to be called renderAnnotator
+	renderScene = (): void => {
+		// force a tick which causes renderer.render to be called
+		this.state.loop.forceTick()
+	}
 
 	/**
 	 * Create Transform controls object. This allows for the translation of an object in the scene.
 	 */
-	// TODO JOE ? Transform logic could possibly go in a new
+	// IDEA JOE Transform logic could possibly go in a new
 	// TransformControlManaager class, which knows which object is currently
-	// selected?
+	// selected.
 	initTransformControls(): void {
 		this.transformControls = new TransformControls(this.state.camera, this.state.renderer.domElement, false)
-		this.transformControls.addEventListener('change', this.renderScene)
 
 		new AnnotatedSceneActions().addObjectToScene(this.transformControls)
 
-		// Add listeners.
-		// If we are interacting with the transform object don't hide it.
-		this.transformControls.addEventListener('change', this.cancelHideTransform)
+		this.transformControls.addEventListener('change', () => {
+
+			// we transformed something, the scene needs to be redrawn
+			this.renderScene()
+
+			// If we are interacting with the transform object don't hide it.
+			this.cancelHideTransform()
+		})
 
 		// If we just clicked on a transform object don't hide it.
 		this.transformControls.addEventListener('mouseDown', this.cancelHideTransform)
@@ -255,7 +281,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.transformControls.addEventListener('mouseUp', this.delayHideTransform)
 
 		// If the object attached to the transform object has changed, do something.
-		// this.transformControls.addEventListener('objectChange', this.updateActiveAnnotationMesh)
 		this.transformControls.addEventListener('objectChange', () => this.props.channel.emit('transformUpdate'))
 	}
 
@@ -280,6 +305,35 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
+	private initOrbitControls(camera: THREE.Camera, renderer: THREE.WebGLRenderer): any {
+		const orbitControls = new OrbitControls(camera, renderer.domElement)
+		orbitControls.enabled = true
+		orbitControls.enablePan = true
+		orbitControls.minDistance = 10
+		orbitControls.maxDistance = 5000
+		orbitControls.minPolarAngle = 0
+		orbitControls.maxPolarAngle = Math.PI / 2
+		orbitControls.keyPanSpeed = 100
+
+		orbitControls.addEventListener('change', () => {
+
+			// we've moved the camera, the scene should be redrawn
+            this.renderScene()
+
+            this.updateSkyPosition()
+        })
+
+		orbitControls.addEventListener('start', () => {
+			new AnnotatedSceneActions().cameraIsOrbiting( true )
+		})
+
+		orbitControls.addEventListener('end', () => {
+			new AnnotatedSceneActions().cameraIsOrbiting( false )
+		})
+
+		return orbitControls
+	}
+
 	private updateSceneObjects(newSceneObjects:Set<THREE.Object3D>, existingSceneObjects:Set<THREE.Object3D>) {
 		const scene = this.state.scene
 		newSceneObjects.forEach(object => {
@@ -299,21 +353,21 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	private makeStats(): void {
-		if (!config['startup.show_stats_module']) return
+	private makeStats(): Stats | null {
+		if (!config['startup.show_stats_module']) return null
 
 		// Create stats widget to display frequency of rendering
-		const stats = this.state.stats
+		const stats = new Stats()
 		stats.dom.style.top = 'initial' // disable existing setting
 		stats.dom.style.bottom = '50px' // above Mapper logo
 		stats.dom.style.left = '13px'
 		this.props.container.appendChild(stats.dom)
 
+		return stats
 	}
 
 	private destroyStats(): void {
-		if (!config['startup.show_stats_module']) return
-		this.state.stats.dom.remove()
+		this.state.stats && this.state.stats.dom.remove()
 	}
 
 
@@ -335,28 +389,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	//
 	// {{{
 
-	// SHARED
 	private startAnimation(): void {
+		// TODO shouldAnimate might go away
 		new AnnotatedSceneActions().setShouldAnimate(true)
-
-		// this.shouldAnimate = true
-		this.startAoiUpdates()
-
-		// TODO JOE this will go away, components will queue updates when necessary
-		const loop = this.state.loop
-		loop.addAnimationFn(() => {
-			if ( !this.props.shouldAnimate ) return false
-
-			// @TODO create a way to register animate methods
-			// this.animate() TODO REMOVE
-
-			return true
-		})
 	}
 
-	// JOE THURSDAY moved from Annotator
 	private stopAnimation(): void {
-		// this.shouldAnimate = false
 		new AnnotatedSceneActions().setShouldAnimate(false)
 	}
 
@@ -389,32 +427,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// }}}
 
-	// TODO JOE THURSDAY longer term, we can create the loop on init logic (f.e.
-	// constructor), then just use the loop when needed.
-	// TODO This should go to AreaOfInterestManager, and hook into
-	// SceneManager's loop (or add a child one)
-	private startAoiUpdates(): void {
-		const loop = this.state.loop
-
-		loop.addAnimationFn(() => {
-			if ( !this.props.shouldAnimate ) return false
-			if ( !this.props.areaOfInterestManager ) {
-				throw new Error( "areaOfInterestManager does not exist when it's expected!!")
-			}
-
-			// NOTE JOE longer term: Inversely, AreaOfInterestManager could instead hook into
-			// the animation loop rather than SceneManager knowing which
-			// managers need to be hooked in.
-			this.props.areaOfInterestManager.updatePointCloudAoi()
-
-			// Ryan added 7/9
-			this.props.areaOfInterestManager.updateAoiHeading()
-
-
-			return true
-		})
-	}
-
 	removeCompassFromScene(): void {
 		const scene = this.state.scene
 		if(this.state.compassRose) {
@@ -439,12 +451,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	getRendererDOMElement() {
 		return this.state.renderer.domElement
-	}
-
-	// used to be called renderAnnotator
-	renderScene = (): void => {
-		// force a tick which causes renderer.render to be called
-		this.state.loop.forceTick()
 	}
 
 	// Scale the ortho camera frustum along with window dimensions to preserve a 1:1
@@ -482,7 +488,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// The sky needs to be big enough that we don't bump into it but not so big that the camera can't see it.
 	// So make it pretty big, then move it around to keep it centered over the camera in the XZ plane. Sky radius
 	// and camera zoom settings, set elsewhere, should keep the camera from penetrating the shell in the Y dimension.
-	// @TODO Camera Manager will update sky position long term
+	//
+	// IDEA JOE longer term a SkyBoxManager can add SkyBox as a layer, and update the position based on camera position boradcasted from a CameraManager
 	updateSkyPosition = (): void => {
 		const {cameraPosition2D, skyPosition2D, cameraToSkyMaxDistance, sky, camera} = this.state
 
@@ -493,48 +500,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			sky.position.setZ(cameraPosition2D.y)
 			skyPosition2D.set(sky.position.x, sky.position.z)
 		}
-	}
-
-	private initOrbitControls(camera: THREE.Camera, renderer: THREE.WebGLRenderer): any {
-		const orbitControls = new OrbitControls(camera, renderer.domElement)
-		orbitControls.enabled = true
-		orbitControls.enablePan = true
-		orbitControls.minDistance = 10
-		orbitControls.maxDistance = 5000
-		orbitControls.minPolarAngle = 0
-		orbitControls.maxPolarAngle = Math.PI / 2
-		orbitControls.keyPanSpeed = 100
-
-		orbitControls.addEventListener('change', this.updateSkyPosition)
-
-		orbitControls.addEventListener('start', () => {
-			new AnnotatedSceneActions().cameraIsOrbiting( true )
-		})
-		orbitControls.addEventListener('end', () => {
-			new AnnotatedSceneActions().cameraIsOrbiting( false )
-		})
-
-		return orbitControls
-	}
-
-	/**
-	 * To be used by external apps that want to register an orbit control event listener.
-	 * For example, Annotator needs the 'pan' event
-	 * @param {string} type
-	 * @param {() => void} callback
-	 */
-	addOrbitControlEventListener(type:string, callback:()=>void) {
-		// @TODO Annotator needs to register a 'pan' event
-		const orbitControls = this.orbitControls
-		orbitControls.addEventListener(type, callback)
-
-		// TODO JOE THURSDAY We could emit a cameraUpdate event (f.e. using my
-		// Observable class), and pass camera info to listeners. Then listeners
-		// can (f.e. maybe AnnotatedSceneController) can decide to update things
-		// (f.e. the camera info StatusWindow message)
-		// Search for displayCameraInfo to find code that was previously
-		// updating the clients message.
-		// orbitControls.addEventListener('pan', this.displayCameraInfo)
 	}
 
 	private getSize = (): Array<number> => {
@@ -777,7 +742,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		new AnnotatedSceneActions().setCamera(this.state.camera)
 
-		this.makeStats()
 		this.props.container.appendChild(this.state.renderer.domElement)
 		this.startAnimation()
 

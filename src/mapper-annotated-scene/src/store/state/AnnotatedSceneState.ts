@@ -92,6 +92,5 @@ export default class AnnotatedSceneState {
 	camera: THREE.Camera
 	areaOfInterest: RangeSearch[]
 	rendererSize: any
-	isOrbiting: boolean
 	loadingTileManagers: Set<TileManagerBase>
 }

@@ -55,6 +55,8 @@ export class AnnotationTileManager extends TileManager {
      * Calculate annotations loaded and dispatch an action
      */
     protected setStatsMessage() {
+		if (!this.enableTileManagerStats) return
+
         let annotations = 0
         this.superTiles.forEach(st => annotations += st!.objectCount)
 

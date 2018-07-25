@@ -105,7 +105,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
             cameraIsOrbiting: false,
             camera: null,
-            isOrbiting: false,
             loadingTileManagers: Set<TileManagerBase>(),
         }
 
@@ -370,9 +369,9 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     }
 
     @ActionReducer()
-    cameraIsOrbiting(isOrbiting: boolean) {
+    cameraIsOrbiting(cameraIsOrbiting: boolean) {
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isOrbiting
+            ...annotatedSceneState, cameraIsOrbiting
         })
     }
 

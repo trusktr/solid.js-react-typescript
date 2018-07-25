@@ -1,3 +1,7 @@
+// TODO JOE we will remove app-specific state from the shared lib, and have
+// app-specific actions for that state. I (Joe) need a quick tutorial from Jon
+// making sub-state in the redux store.
+
 // import {ActionFactory, ActionMessage, ActionReducer} from "typedux"
 // import * as MapperProtos from '@mapperai/mapper-models'
 // import Models = MapperProtos.mapper.models
@@ -42,7 +46,7 @@
 //       isCarInitialized: false,
 //       isInitialOriginSet: false,
 //
-//       carPose: null, // @TODO can maybe be deleted (will review once app is running)
+//       carPose: null, // can maybe be deleted (will review once app is running)
 //     }
 //
 //     return (__kioskState: KioskState) => new KioskState(defaultState)

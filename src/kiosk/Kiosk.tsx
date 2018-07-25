@@ -160,8 +160,11 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
         // The camera and the point cloud AOI track the car object, so add it to the scene
         // regardless of whether it is visible in the scene.
-        // @TODO confirm this works as expected
-        // TODO FIXME avoid access of deep state
+		//
+        // TODO FIXME JOE This is hacky, avoid access of deep state. We should
+        // provide the shared lib with a camera focus point function, then the
+        // lib can update the camera focus point with that, which will be the
+        // Car's position.
         this.state.carManager!.addObjectToCar(this.state.annotatedSceneController!.state.sceneManager!.getCamera()) // follow/orbit around the car
         this.state.carManager!.makeCarVisible()
 
