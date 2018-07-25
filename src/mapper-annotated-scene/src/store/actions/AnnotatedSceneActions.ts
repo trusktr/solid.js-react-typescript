@@ -18,6 +18,9 @@ import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
 import {Set} from "immutable"
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 import * as Electron from "electron"
+import LocalStorage from '@/mapper-annotated-scene/LocalStorage'
+
+const localStorage = new LocalStorage()
 
 export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneState, ActionMessage<AnnotatedSceneState>> {
 
@@ -58,7 +61,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             isCarInitialized: false,
             isInitialOriginSet: false,
 
-            cameraPreference: CameraType.PERSPECTIVE,
+            cameraPreference: localStorage.getItem('cameraPreference', CameraType.PERSPECTIVE),
 
             pointOfInterest: new THREE.Vector3(0, 0, 0),
             areaOfInterest: [{
@@ -335,6 +338,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
     @ActionReducer()
     setCameraPreference(cameraPreference: CameraType) {
+		localStorage.setItem('cameraPreference', cameraPreference)
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
             ...annotatedSceneState, cameraPreference
         })
