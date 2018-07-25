@@ -93,8 +93,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 		this.raycaster.params.Points!.threshold = 0.1
 
 		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
-
-        const initialAreaOfInterest: [number, number, number, number, number, number] = config['startup.point_cloud_bounding_box']
 	}
 
     /**
@@ -226,7 +224,7 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			}
 
 			// convert the area of interest to UTM coordinates
-			const areaOfInterest = threeJsAOI.map(threeJs => {
+			const areaOfInterest: AreaOfInterest = threeJsAOI.map(threeJs => {
 				return {
 					minPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
 					maxPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
