@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import * as React from "react"
 import LayerToggle from "@/mapper-annotated-scene/src/models/LayerToggle";
 import * as lodash from "lodash";
@@ -95,7 +100,7 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 		return Array.from(this.state.layerToggles.keys())
 	}
 
-	render() {
+	render(): JSX.Element | null {
 		return null
 	}
 }

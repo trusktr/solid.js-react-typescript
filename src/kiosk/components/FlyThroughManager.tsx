@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import * as React from "react"
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import {FlyThroughState, FlyThroughTrajectory} from "@/mapper-annotated-scene/src/models/FlyThroughState";
@@ -375,11 +380,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         new AnnotatedSceneActions().setPlayMode(true)
     }
 
-
-
-
-
-    render() {
+    render(): JSX.Element | null {
         return null
     }
 }

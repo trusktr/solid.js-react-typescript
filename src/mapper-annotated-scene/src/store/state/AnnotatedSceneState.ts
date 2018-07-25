@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
 import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
 import * as MapperProtos from '@mapperai/mapper-models'
@@ -6,7 +11,7 @@ import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
 import {OrderedMap, Set} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
-import {TileManager} from "@/mapper-annotated-scene/tile/TileManager";
+import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 
 export default class AnnotatedSceneState {
@@ -41,8 +46,6 @@ export default class AnnotatedSceneState {
 	carPose: Models.PoseMessage
 	isCarInitialized: boolean
 	isInitialOriginSet: boolean
-
-
 
 	// Shared State
 	cameraPreference: CameraType
@@ -89,5 +92,5 @@ export default class AnnotatedSceneState {
 	camera: THREE.Camera
 	areaOfInterest: RangeSearch[]
 	rendererSize: any
-	loadingTileManagers: Set<TileManager>
+	loadingTileManagers: Set<TileManagerBase>
 }

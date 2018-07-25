@@ -1,8 +1,11 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import * as SaffronSDK from "@mapperai/mapper-saffron-sdk"
 
-
 export interface IThemedProperties extends SaffronSDK.Style.IThemedProperties {
-
 }
 
 //export const typedConnect = SaffronSDK.ReactUtil.typedConnect
@@ -14,9 +17,6 @@ export interface IThemedProperties extends SaffronSDK.Style.IThemedProperties {
 // export const FillWidth = SaffronSDK.Style.FillWidth
 // export const FlexAlignCenter = SaffronSDK.Style.FlexAlignCenter
 // export const mergeStyles = SaffronSDK.Style.mergeStyles
-
-
-
 
 // MAKE SHIFT WHILE SDK IS RESOLVED
 import * as React from 'react'

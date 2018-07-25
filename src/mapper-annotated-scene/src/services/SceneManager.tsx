@@ -305,7 +305,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	private initOrbitControls(camera:THREE.Camera, renderer:THREE.WebGLRenderer) {
+	private initOrbitControls(camera: THREE.Camera, renderer: THREE.WebGLRenderer): any {
 		const orbitControls = new OrbitControls(camera, renderer.domElement)
 		orbitControls.enabled = true
 		orbitControls.enablePan = true
@@ -376,7 +376,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	 * Specifically AnnotatedSceneController.focusOnPointCloud -> PointCloudManager.focusOnPointCloud -> Redux Action
 	 * @param {Vector3} point
 	 */
-	updateOrbitControlsTargetPoint(point:THREE.Vector3) {
+	updateOrbitControlsTargetPoint(point: THREE.Vector3): void {
 		const orbitControls = this.orbitControls
 		orbitControls.target.set(point.x, point.y, point.z)
 		orbitControls.update()
@@ -427,14 +427,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// }}}
 
-	removeCompassFromScene() {
+	removeCompassFromScene(): void {
 		const scene = this.state.scene
 		if(this.state.compassRose) {
 			scene.remove(this.state.compassRose)
 		}
 	}
 
-	enableOrbitControls() {
+	enableOrbitControls(): void {
 		const orbitControls = this.orbitControls
 
 		orbitControls.enabled = true
@@ -444,8 +444,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		return this.state.camera
 	}
 
-
-	addChildAnimationLoop(childLoop: ChildAnimationLoop) {
+	addChildAnimationLoop(childLoop: ChildAnimationLoop): void {
 		// this.loop.addChildLoop( FlyThroughManager.getAnimationLoop() )
 		this.state.loop.addChildLoop( childLoop )
 	}
@@ -564,8 +563,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			if (st.pointCloud) {
 				this.state.scene.remove(st.pointCloud)
 				this.renderScene() // can potentially remove but added it just in case
-			}
-			else {
+			} else {
 				log.error('Attempting to remove super tile to scene - got a super tile with no point cloud')
 			}
 		}
@@ -619,8 +617,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	private setCompassRosePosition(x, y, z) {
-		if (!this.state.compassRose){
+	private setCompassRosePosition(x: number, y: number, z: number): void {
+		if (!this.state.compassRose) {
 			log.error("Unable to find compassRose")
 			return
 		} else {
@@ -659,7 +657,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		this.onResize()
 
-
 		const orbitControls = this.orbitControls
 		// tslint:disable-next-line:no-any
 		;(orbitControls as any).setCamera(newCamera)
@@ -667,7 +664,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// RYAN UPDATED
 		// this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
 		new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
-
 
 		// TODO JOE WEDNESDAY save camera state in a LocalStorage instance and
 		// reload it next time the app starts
@@ -683,7 +679,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	componentWillReceiveProps(newProps:SceneManagerProps) {
+	componentWillReceiveProps(newProps: SceneManagerProps): void {
 		if(newProps.compassRosePosition && newProps.compassRosePosition !== this.props.compassRosePosition) {
 			const position = newProps.compassRosePosition
 			this.setCompassRosePosition(position.x, position.y, position.z)
@@ -710,17 +706,16 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// }
 
 		// Handle adding and removing scene objects
-		if(newProps.sceneObjects != this.props.sceneObjects) {
+		if (newProps.sceneObjects !== this.props.sceneObjects) {
 			const newSceneObjects = newProps.sceneObjects!
 			const existingSceneObjects = this.props.sceneObjects!
 			this.updateSceneObjects(newSceneObjects, existingSceneObjects)
 		}
 
-		if(newProps.transformedObjects != this.props.transformedObjects) {
+		if (newProps.transformedObjects !== this.props.transformedObjects) {
 			if (newProps.transformedObjects) {
 				this.transformControls.attach(newProps.transformedObjects)
-			}
-			else {
+			} else {
 				this.transformControls.detach()
 			}
 			this.renderScene()
@@ -739,13 +734,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	}
 
-	componentDidUpdate(oldProps) {
+	componentDidUpdate(oldProps): void {
 		if (oldProps.width !== this.props.width || oldProps.height !== this.props.height) {
 			this.onResize()
 		}
 	}
 
-	componentDidMount() {
+	componentDidMount(): void {
 		const [width, height]: Array<number> = this.getSize()
 
 		this.createOrthographicCameraDimensions(width, height)
@@ -758,15 +753,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.onResize()
 	}
 
-	componentWillUnmount() {
+	componentWillUnmount(): void {
 		this.stopAnimation()
 		this.destroyStats()
 		this.state.renderer.domElement.remove()
 	}
 
 	// This is from React.Component.render, not related to WebGL rendering
-	render() {
+	render(): JSX.Element | null {
 		return null
 	}
-
 }

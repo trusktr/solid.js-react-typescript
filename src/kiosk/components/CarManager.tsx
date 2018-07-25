@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import * as React from "react"
 import * as THREE from "three";
 import * as carModelOBJ from '@/annotator-assets/models/BMW_X5_4.obj'
@@ -125,7 +130,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
         // RT NOW this.setState({carModel})
     }
 
-    render() {
+    render(): JSX.Element | null {
         return null
     }
 }

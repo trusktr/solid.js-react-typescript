@@ -5,6 +5,7 @@
 
 import {OrderedMap, OrderedSet} from 'immutable'
 import * as THREE from 'three'
+import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
 import {TileMessage} from "@/mapper-annotated-scene/tile-model/TileMessage"
 import {NullTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
 import {SuperTile} from "./SuperTile"
@@ -14,12 +15,11 @@ import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry
 import {Scale3D} from "../geometry/Scale3D"
 import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
 import {TileIndex, tileIndexFromVector3} from "@/mapper-annotated-scene/tile-model/TileIndex"
-import LocalStorage from "@/mapper-annotated-scene/LocalStorage"
 import {TileServiceClient} from "./TileServiceClient"
 import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch"
 import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
-import AnnotatedSceneActions from "../src/store/actions/AnnotatedSceneActions";
-import {EventEmitter} from "events";
+import AnnotatedSceneActions from "../src/store/actions/AnnotatedSceneActions"
+import {EventEmitter} from "events"
 import Logger from "@/util/log"
 import {LayerId} from "@/types/TypeAlias"
 
@@ -48,14 +48,13 @@ export interface TileManagerConfig {
 // which serve as a local cache for chunks of tile data.
 // All objects are stored with reference to UTM origin and offset, but using the local coordinate
 // system which has different axes.
-export abstract class TileManager {
+export abstract class TileManager implements TileManagerBase {
 	protected config: TileManagerConfig
-	private storage: LocalStorage // persistent state for UI settings
 	protected coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin // todo ?
 	// setPointCloud: (superTiles:OrderedMap<string, SuperTile>) => void
 	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
-    addSuperTile: (superTile:SuperTile) => void
-    removeSuperTile: (superTile:SuperTile) => void
+	addSuperTile: (superTile: SuperTile) => void
+	removeSuperTile: (superTile: SuperTile) => void
 	// Keys to super tiles which have objects loaded in memory. It is ordered so that it works as a least-recently-used
 	// cache when it comes time to unload excess super tiles.
 	private loadedSuperTileKeys: OrderedSet<string>
@@ -72,7 +71,6 @@ export abstract class TileManager {
 		protected tileServiceClient: TileServiceClient,
 		protected channel: EventEmitter
 	) {
-		this.storage = new LocalStorage()
 		this.coordinateSystemInitialized = false
 		this.superTiles = OrderedMap()
 		this.loadedSuperTileKeys = OrderedSet()

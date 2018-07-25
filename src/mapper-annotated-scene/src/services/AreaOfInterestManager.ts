@@ -1,3 +1,8 @@
+/**
+ *  Copyright 2018 Mapper Inc.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
 import * as THREE from 'three'
 import * as React from 'react'
 import config from '@/config'
@@ -9,7 +14,7 @@ import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
 import {createStructuredSelector} from "reselect";
-import {TileManager} from "@/mapper-annotated-scene/tile/TileManager";
+import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
 import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper";
 import toProps from '@/util/toProps'
 import EventEmitter from 'events'
@@ -26,7 +31,7 @@ interface AreaOfInterestManagerProps {
 	utmCoordinateSystem: UtmCoordinateSystem
 	groundPlaneManager: GroundPlaneManager
 	camera ?: THREE.Camera
-	loadingTileManagers ?: Set<TileManager>
+	loadingTileManagers ?: Set<TileManagerBase>
 	sceneStage?: THREE.Vector3
 	channel: EventEmitter
 }
@@ -283,8 +288,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			this.axis = AxesHelper(axesHelperLength)
 			this.grid.add( this.axis )
 		}
-
-
 	}
 
 	componentDidUpdate(oldProps) {
@@ -300,8 +303,7 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 
 	}
 
-	render() {
+	render(): JSX.Element | null {
 		return null
 	}
-
 }
