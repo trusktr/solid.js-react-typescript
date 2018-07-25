@@ -13,7 +13,6 @@ import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowS
 import {getValue} from "typeguard";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import {
     LocationServerStatusClient,
     LocationServerStatusLevel
@@ -26,10 +25,6 @@ const log = Logger(__filename)
 
 interface StatusWindowProps {
     statusWindowState ?: StatusWindowState
-    isPlayMode ?: boolean
-    isLiveMode ?: boolean
-    flyThroughEnabled ?: boolean
-    utmCoordinateSystem: UtmCoordinateSystem
     eventEmitter: EventEmitter
 }
 
@@ -40,13 +35,8 @@ interface IStatusWindowState {
     locationServerStatusClient: LocationServerStatusClient
 }
 
-
 @typedConnect(createStructuredSelector({
     statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,
-
-    isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
-    isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
-    flyThroughEnabled: (state) => state.get(AnnotatedSceneState.Key).flyThroughEnabled,
 }))
 export default class StatusWindow extends React.Component<StatusWindowProps, IStatusWindowState> {
 
@@ -70,38 +60,27 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
     }
 
-
     render(): JSX.Element {
-        const {statusWindowState, isLiveMode, isPlayMode, flyThroughEnabled} = this.props
-
+        const {statusWindowState} = this.props
         // const isEnabled = getValue(() => statusWindowState.enabled, false)
 
         const messages = getValue(() => statusWindowState && statusWindowState.messages, new Map<string, string>()) as Map<string, string>
 
         // @TODO show/hide internal parts of the component based on the value of isEnabled
-        return (
-            <div>
-                {statusWindowState && statusWindowState.enabled &&
-                    <div id="status_window">
+	    return (
+		    <div>
+			    {statusWindowState && statusWindowState.enabled &&
+			    <div id="status_window">
+				    {Array.from(messages).map(([name, value]) =>
+					    <div key={name}>
+						    {value}
+						</div>
+				    )}
+			    </div>
+			    }
 
-						{Array.from(messages).map( ([ name, value ]) =>
-							<div key={name}>
-								{value}
-							</div>
-						)}
-
-						{/* TODO JOE move this out, StatusWindow shouldn't know about specific messages, Kiosk should place them. */}
-                        <div>isLiveMode: {isLiveMode!.toString()}</div>
-                        <div>isPlayMode: {isPlayMode!.toString()}</div>
-                        <div>flyThroughEnabled: {flyThroughEnabled!.toString()}</div>
-
-                    </div>
-                }
-
-            </div>)
+		    </div>)
     }
-
-
 
 	// TODO JOE To make things more re-usable, It would be nice if the
 	// following methods relating to specific types of messages would live
@@ -111,13 +90,12 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 	// aware of what messages you give it from the outside, it only displays
 	// them.
 
-
     // Display a UI element to tell the user what is happening with the location server.
     // Error messages persist, and success messages disappear after a time-out.
     onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string) => void =
         (level: LocationServerStatusLevel, serverStatus: string) => {
 
-        let message = 'Location clients: '
+        let message = 'Location status: '
         switch (level) {
             case LocationServerStatusLevel.INFO:
             message += '<span class="statusOk">' + serverStatus + '</span>'

@@ -17,6 +17,7 @@ import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/Anno
 import * as watch from 'watch'
 import TrajectoryPicker from "@/kiosk/TrajectoryPicker";
 import * as Electron from "electron";
+import {ConfigDefault} from "@/config/ConfigDefault"
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
@@ -180,85 +181,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
         this.state.annotatedSceneController!.shouldRender()
     }
 
-    // TODO JOE WEDNESDAY {{{
-    // get this kiosk-specific trajectory picker stuff working
-
-    // import TrajectoryPicker, {TrajectoryFileSelectedCallback} from "./components/TrajectoryPicker"
-    // import {dataSetNameFromPath, TrajectoryDataSet} from "../util/Perception"
-    //
-    // private openTrajectoryPickerFunction: ((cb: TrajectoryFileSelectedCallback) => void) | null
-    // private sceneContainer: HTMLDivElement
-    // private trajectoryPickerRef: TrajectoryPicker
-    //
-    // constructor() {
-    //     this.openTrajectoryPickerFunction = null
-    // }
-    //
-    // private loadTrajectoryFromOpenDialog(): Promise<void> {
-    //     const { promise, resolve, reject }: PromiseReturn<void, Error> = createPromise<void, Error>()
-    //
-    //     const options: Electron.OpenDialogOptions = {
-    //         message: 'Load Trajectory File',
-    //         properties: ['openFile'],
-    //         filters: [{name: 'md', extensions: ['md']}],
-    //     }
-    //
-    //     const handler = (paths: string[]): void => {
-    //         if (paths && paths.length)
-    //         FlyThroughManager.loadFlyThroughTrajectories([ paths[0] ])
-    //         .then(() => resolve())
-    //         .catch(err => reject(err))
-    //         else
-    //         reject(Error('no trajectory path selected'))
-    //     }
-    //
-    //     dialog.showOpenDialog(options, handler)
-    //
-    //     return promise
-    // }
-    //
-    //     // TODO JOE WEDNESDAY on click #tools_load_trajectory run loadTrajectoryFromOpenDialog
-    //    const toolsLoadTrajectory = document.getElementById('tools_load_trajectory')
-    //    if (toolsLoadTrajectory)
-    //            toolsLoadTrajectory.addEventListener('click', () => {
-    //                    this.loadTrajectoryFromOpenDialog()
-    //                            .catch(err => log.warn('loadFromFile failed: ' + err.message))
-    //            })
-    //    else
-    //            log.warn('missing element tools_load_trajectory')
-    //
-    //     // TODO JOE WEDNESDAY on click #select_trajectory_playback_file run openTrajectoryPicker
-    //    const selectTrajectoryPlaybackFile = document.querySelector('#select_trajectory_playback_file')
-    //    if (selectTrajectoryPlaybackFile)
-    //            selectTrajectoryPlaybackFile.addEventListener('click', this.openTrajectoryPicker)
-    //    else
-    //            log.warn('missing element select_trajectory_playback_file')
-    //
-    // // Hang on to a reference to TrajectoryPicker so we can call it later.
-    // setOpenTrajectoryPickerFunction(theFunction: (cb: TrajectoryFileSelectedCallback) => void): void {
-    //    this.openTrajectoryPickerFunction = theFunction
-    // }
-    //
-    // // ANNOTATOR ONLY
-    // // TODO REORG JOE remove trajectory picker stuff
-    // private openTrajectoryPicker = (): void => {
-    //    if (this.openTrajectoryPickerFunction)
-    //        this.openTrajectoryPickerFunction(this.trajectoryFileSelectedCallback)
-    // }
-    //
-    //    <TrajectoryPicker
-    //         // TODO REORG JOE remove trajectory picker stuff
-    //        ref={(tp): TrajectoryPicker => this.trajectoryPickerRef = tp!}
-    //    />
-    //
-    //
-    //    // this was called in componentDidMount
-    //    this.mount()
-    //        .then(() => this.setOpenTrajectoryPickerFunction(this.trajectoryPickerRef.openModal))
-    //
-
-    // }}}
-
     getCarManagerRef = (ref: any): void => {
         ref && this.setState({ carManager: ref.getWrappedInstance() as CarManager })
     }
@@ -302,7 +224,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
     render(): JSX.Element {
         // CarManager will not be setup the first time through
-		let onPointOfInterestCall = () => new THREE.Vector3(0,0,0)
+		let onPointOfInterestCall = () => new THREE.Vector3(0, 0, 0)
 		let onCurrentRotation = () => new THREE.Quaternion()
 
         if (this.state.carManager && this.props.isCarInitialized) {
@@ -316,7 +238,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 					ref={this.getAnnotatedSceneControllerRef}
 					onPointOfInterestCall={onPointOfInterestCall}
 					onCurrentRotation={onCurrentRotation}
-					initialFocusPoint={config['startup.point_cloud_bounding_box']}
+					initialBoundingBox={config['startup.point_cloud_bounding_box'] || ConfigDefault.StartupPointCloudBoundingBox}
 				/>
 
 				{this.state.annotatedSceneController &&

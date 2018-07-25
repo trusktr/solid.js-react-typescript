@@ -79,7 +79,7 @@ export interface AnnotatedSceneControllerProps {
     lockLanes?: boolean
     lockTrafficDevices?: boolean
 
-	initialFocusPoint: [ number, number, number, number, number, number ]
+	initialBoundingBox: [ number, number, number, number, number, number ]
 }
 
 export interface AnnotatedSceneControllerState {
@@ -415,7 +415,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	}
 
 	loadInitialPointCloudTiles(): Promise<void> {
-        return this.state.pointCloudManager!.loadPointCloudDataFromConfigBoundingBox( this.props.initialFocusPoint )
+        return this.state.pointCloudManager!.loadPointCloudDataFromConfigBoundingBox( this.props.initialBoundingBox )
 	}
 
 	shouldRender() {
@@ -536,10 +536,8 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
                     }}
                 />
 
-                {/* TODO JOE THURSDAY StatusWindow doesn't need UtmCoordinateSystem, it is only concerned with messages */}
                 <StatusWindow
                     ref={this.getStatusWindowRef}
-                    utmCoordinateSystem={this.utmCoordinateSystem}
                     eventEmitter={this.channel}
                 />
 

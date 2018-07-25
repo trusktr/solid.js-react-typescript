@@ -6,19 +6,18 @@
 import * as THREE from 'three'
 import * as React from 'react'
 import config from '@/config'
-import {isTupleOfNumbers} from "@/util/Validation";
-import Logger from "@/util/log";
-import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
-import {RangeSearch} from "../../tile-model/RangeSearch";
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
-import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import {isTupleOfNumbers} from "@/util/Validation"
+import Logger from "@/util/log"
+import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions"
+import {RangeSearch} from "../../tile-model/RangeSearch"
+import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
+import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed"
 import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
-import {createStructuredSelector} from "reselect";
 import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
-import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper";
+import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper"
 import toProps from '@/util/toProps'
 import EventEmitter from 'events'
-import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import {Events} from "@/mapper-annotated-scene/src/models/Events"
 import {throttle} from 'lodash'
 
 const log = Logger(__filename)
@@ -76,7 +75,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],
 		}
 
-
 		const aoiSize: [number, number, number] = config['annotator.area_of_interest.size']
 
 		if (isTupleOfNumbers(aoiSize, 3)) {
@@ -96,8 +94,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 		this.raycaster.params.Points!.threshold = 0.1
 
 		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
-
-        const initialAreaOfInterest: [number, number, number, number, number, number] = config['startup.point_cloud_bounding_box']
 
 		this.props.channel.on(Events.SCENE_WILL_RENDER, this.updateAoi)
 	}
@@ -129,7 +125,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 		}
 	}
 
-
 	// Set the area of interest for loading point clouds.
 	private updatePointCloudAoi(): void {
 		const currentPoint = this.getPointOfInterest()
@@ -144,7 +139,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 				new AnnotatedSceneActions().setPointOfInterest( this.state.aoiFocalPoint )
 				this.updatePointCloudAoiBoundingBox(this.state.aoiFocalPoint)
 			}
-
 		} else {
 			if (this.state.aoiFocalPoint !== null) {
 				this.setState({aoiFocalPoint: null})
@@ -200,7 +194,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 	// Then load the points in and around the AOI. If we have a current heading,
 	// extend the AOI with another bounding box in the direction of motion.
 	private updatePointCloudAoiBoundingBox(aoiFocalPoint: THREE.Vector3 | null): void {
-
 		if (this.state.shouldDrawBoundingBox) {
 			this.state.boundingBoxes.forEach(bbox => {
 				new AnnotatedSceneActions().removeObjectFromScene(bbox)
@@ -236,7 +229,7 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			}
 
 			// convert the area of interest to UTM coordinates
-			const areaOfInterest = threeJsAOI.map(threeJs => {
+			const areaOfInterest: AreaOfInterest = threeJsAOI.map(threeJs => {
 				return {
 					minPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.minPoint),
 					maxPoint: this.props.utmCoordinateSystem.threeJsToUtm(threeJs.maxPoint),
