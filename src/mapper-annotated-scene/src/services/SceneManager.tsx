@@ -530,14 +530,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	// @TODO Camera Manager
+	// TODO Joe Camera Manager
 	adjustCameraXOffset(value: number): void {
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.x += value
 		this.setState({cameraOffset: cameraOffset.clone()})
 	}
 
-	// @TODO Camera Manager
+	// TODO Joe Camera Manager
 	adjustCameraYOffset(value: number): void {
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.y += value
