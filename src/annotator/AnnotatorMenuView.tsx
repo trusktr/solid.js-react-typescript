@@ -30,6 +30,7 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
 				<button id="tools_add_traffic_device" className="ui-btn ui-icon-plus ui-btn-icon-left"> New Traffic Device </button>
 				<button id="tools_delete" className="ui-btn ui-icon-minus ui-btn-icon-left"> Delete Annotation </button>
 				<button id="tools_load_images" className="ui-btn ui-icon-camera ui-btn-icon-left"> Load Images </button>
+				<button id="tools_load_territories_kml" className="ui-btn ui-icon-action ui-btn-icon-left"> Load Territories </button>
 				<button id="tools_load_annotation" className="ui-btn ui-icon-edit ui-btn-icon-left"> Load Annotations </button>
 				<button id="tools_save" className="ui-btn ui-icon-check ui-btn-icon-left"> Save Annotations </button>
 				<button id="tools_export_kml" className="ui-btn ui-icon-location ui-btn-icon-left"> Export Annotations KML </button>
