@@ -32,7 +32,7 @@ export class BusyError extends Error {}
 function makeTileMessageForCurrentUtmZone(origin: THREE.Vector3): TileMessage {
 	return {
 		origin: origin,
-		utmZoneNumber: 10, // TODO get these from config? read from an API call?
+		utmZoneNumber: 10, // TODO CLYDE get these from config? read from an API call?
 		utmZoneNorthernHemisphere: true,
 		contents: {} as NullTileContents,
 	}
@@ -249,7 +249,7 @@ export abstract class TileManager implements TileManagerBase {
 						minPoint: stIndex.boundingBox.min,
 						maxPoint: stIndex.boundingBox.max
 					}
-					// TODO merge these into fewer API requests
+					// TODO CLYDE merge these into fewer API requests
 					return this.tileServiceClient.getTilesByCoordinateRange(this.config.layerId, superTileSearch)
 						.then(tileInstances => {
 							if (tileInstances.length === 0)

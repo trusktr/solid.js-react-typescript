@@ -61,16 +61,3 @@ export default class StatusWindowActions extends ActionFactory<AnnotatedSceneSta
 	}
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

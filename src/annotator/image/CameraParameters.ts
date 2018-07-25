@@ -91,7 +91,7 @@ export class AuroraCameraParameters implements CameraParameters {
 		const imageY = this.imageHeight * yRatio
 		const cx = this.imageWidth * 0.5
 		const cy = this.imageHeight * 0.5
-		// TODO read these from camera intrinsics file
+		// TODO CLYDE read these from camera intrinsics file
 		const fx = this.imageWidth * 0.508447051
 		const fy = this.imageWidth * 0.513403773
 

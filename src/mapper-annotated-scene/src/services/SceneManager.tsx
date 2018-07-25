@@ -35,7 +35,7 @@ const log = Logger(__filename)
 
 export interface SceneManagerProps {
 
-	// TODO needs to handle background color changes, currently used only on construction
+	// TODO JOE We need to handle background color changes, currently backgroundColor is used only in constructor
 	backgroundColor?: THREEColorValue
 
 	width: number
@@ -143,11 +143,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// Add some lights
 		scene.add(new THREE.AmbientLight(new THREE.Color( 0xffffff )))
 
-		// const background = new THREE.Color(config['startup.background_color'] || '#082839')
 		const background = props.backgroundColor || 'gray'
 
 		// Draw the sky.
-		const sky = Sky(new THREE.Color( background ), new THREE.Color(0xccccff), skyRadius)
+		const sky = Sky(new THREE.Color( background as number ), new THREE.Color(0xccccff), skyRadius)
 		scene.add(sky)
 
 		const compassRoseLength = parseFloat(config['annotator.compass_rose_length']) || 0
@@ -161,7 +160,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		// Create GL Renderer
 		const renderer = new THREE.WebGLRenderer({antialias: true})
-		renderer.setClearColor(new THREE.Color( background ))
+		renderer.setClearColor(new THREE.Color( background as number ))
 		renderer.setPixelRatio(window.devicePixelRatio)
 		renderer.setSize(width, height)
 
@@ -255,7 +254,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	/**
 	 * Create Transform controls object. This allows for the translation of an object in the scene.
 	 */
-	// IDEA JOE Transform logic could possibly go in a new
+	// IDEA JOE TransformControls logic could possibly go in a new
 	// TransformControlManaager class, which knows which object is currently
 	// selected.
 	initTransformControls(): void {
@@ -388,7 +387,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// {{{
 
 	private startAnimation(): void {
-		// TODO shouldAnimate might go away
 		new AnnotatedSceneActions().setShouldAnimate(true)
 	}
 
@@ -466,7 +464,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	// Move all visible elements into position, centered on a coordinate.
-	// @TODO long term move to Camera Manager
+	// IDEA JOE long term move to Camera Manager
 	setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
 		new AnnotatedSceneActions().setSceneStage(new THREE.Vector3(x, y, z))
 
@@ -474,7 +472,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			const {camera, cameraOffset} = this.state
 			camera.position.set(x, y, z).add(cameraOffset)
 
-			// @TODO orbit controls will not be set on initialization of Scene unless it's a required prop
 			const {orbitControls} = this
 			orbitControls.target.set(x, y, z)
 			orbitControls.update()
@@ -504,12 +501,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		return getValue(() => [this.props.width, this.props.height], [0, 0])
 	}
 
-	// TODO JOE FRIDAY Resize on resize of parent element.
-	// The Annotated Scene may not always be full size of the winow, it might be
-	// anywhere on the page, so instead we need to listen to the size of the
-	// scene's parent container. For example, on the mapper.ai public website,
-	// the scene might be a rectangle inside the page, not the whole window.
-	// We can use ResizeObserver for this.
 	private onResize = (): void => {
 
 		const [width, height]: Array<number> = this.getSize()
@@ -528,14 +519,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	// TODO JOE Camera Manager
+	// IDEA JOE Camera Manager
 	adjustCameraXOffset(value: number): void {
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.x += value
 		this.setState({cameraOffset: cameraOffset.clone()})
 	}
 
-	// TODO JOE Camera Manager
+	// IDEA JOE Camera Manager
 	adjustCameraYOffset(value: number): void {
 		const cameraOffset = this.state.cameraOffset
 		cameraOffset.y += value
@@ -623,7 +614,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
-	// @TODO long term move to the camera manager
+	// TODO JOE long term move to the camera manager
 	toggleCameraType(): void {
 		let oldCamera: THREE.Camera
 		let newCamera: THREE.Camera
@@ -658,16 +649,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
 		new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
 
-		// TODO JOE WEDNESDAY save camera state in a LocalStorage instance and
-		// reload it next time the app starts
-		//
-		// enum cameraTypes = {
-		// 	orthographic: 'orthographic',
-		// 	perspective: 'perspective',
-		// }
-		//
-		// this.storage.getItem('cameraPreference', cameraTypes.perspective)
-		//
 		new AnnotatedSceneActions().setCameraPreference(newType)
 		this.renderScene()
 	}
@@ -720,7 +701,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		}
 
 		// Triggered by UTMCoordinateSystem.setOrigin
-		// NOTE ORIGIN JOE at the moment only happens once, but in the future will happens any number of times
+		// NOTE JOE at the moment this only happens once, but in the future will happens any number of times
 		if (newProps.isInitialOriginSet !== this.props.isInitialOriginSet) {
 			this.loadDecorations()
 		}

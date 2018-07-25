@@ -6,7 +6,6 @@
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState"
 import {createStructuredSelector} from "reselect";
 
-// TODO put this somewhere shareable
 export default
 function toProps(...args) {
 	const stateMap = {}

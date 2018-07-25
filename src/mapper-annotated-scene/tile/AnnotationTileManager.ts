@@ -77,6 +77,8 @@ export class AnnotationTileManager extends TileManager {
 	private annotationFileLoader(tileInstance: TileInstance, _: CoordinateFrameType): () => Promise<AnnotationTileContents> {
 		return (): Promise<AnnotationTileContents> =>
 			this.loadTile(tileInstance)
+				// TODO JOE take AnnotationManager reference out of here. Emit a
+				// tile load event that outside code can react to.
 				.then(obj => new AnnotationTileContents(this.annotationManager.objectToAnnotations(obj)))
 	}
 

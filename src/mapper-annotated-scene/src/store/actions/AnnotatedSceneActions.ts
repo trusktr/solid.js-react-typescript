@@ -19,6 +19,7 @@ import {Set} from "immutable"
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 import * as Electron from "electron"
 import LocalStorage from '@/mapper-annotated-scene/LocalStorage'
+import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
 
 const localStorage = new LocalStorage()
 
@@ -50,10 +51,10 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             isPlayMode: false,
             flyThroughEnabled: true,
 
-            statusWindowState: {
+            statusWindowState: new StatusWindowState({
                 enabled: !!config['startup.show_status_panel'],
                 messages: new Map<string, string>()
-            },
+            }),
 
             uiMenuVisible: config['startup.show_menu'],
             shouldAnimate: false,

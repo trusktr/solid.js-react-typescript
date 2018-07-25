@@ -69,8 +69,9 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   }
 
   private showPointCloud():void {
-	  // TODO JOE MONDAY 7/2/18 maybe we can make a more generic
-	  // `setLayerVisible( 'decorations', true )` type of action?
+	  // TODO JOE we should have a more generic `setLayerVisible( 'decorations',
+	  // true )` type of action, rather than the state knowing ahead of time
+	  // which layers we'll have
     new AnnotatedSceneActions().setIsDecorationsVisible(true)
     this.props.pointCloudTileManager.getPointClouds().forEach(pc => new AnnotatedSceneActions().addObjectToScene(pc))
 
@@ -132,7 +133,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
    * Set the point cloud as the center of the visible world.
    */
   // Currently this function is only used on keyboard shortcuts
-  // @TODO long term move orbit controls to Camera Manger
+  // IDEA JOE long term move orbit controls to Camera Manger
   focusOnPointCloud(): void {
     const center = this.props.pointCloudTileManager.centerPoint()
     if(!center) {
@@ -216,7 +217,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	componentDidUpdate(previousProps: PointCloudManagerProps): void {
 	    // IMPORTANT - Kiosk User Data must be loaded before this runs otherwise the UTM Offset is set based on AOI
         // Instead of Config Bounding Box (the reverse will cause the scene to flicker)
-		// TODO LIBRARY the lib won't know what app data to load, so we have to take isInitialOriginSet out of here.
+		// NOTE JOE isInitialOriginSet will be replaced with a dynamically changing origin
 	    if (previousProps.areaOfInterest !== this.props.areaOfInterest && this.props.isInitialOriginSet) {
 			if (this.props.areaOfInterest) {
 				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true, false )

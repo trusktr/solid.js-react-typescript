@@ -597,8 +597,8 @@ export class Lane extends Annotation {
 	}
 
 	// Estimate the trajectory of the final stretch of the lane.
-	// TODO This should work from the center line when we decide that the center line defines the lane.
-	// TODO For now using the markers along an edge will be close enough.
+	// TODO CLYDE This should work from the center line when we decide that the center line defines the lane.
+	// TODO CLYDE For now using the markers along an edge will be close enough.
 	finalTrajectory(): THREE.Ray | null {
 		if (this.markers.length < 4) return null
 		const ultimate = this.markers[this.markers.length - 1].position

@@ -221,7 +221,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		`)
 
 		gui.addColor(this.state, 'background').name('Background').onChange(() => {
-			// TODO this ends up changing only the renderer background color, but not he skybox background color in SceneManager
 			this.forceUpdate()
 		})
 
@@ -271,7 +270,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	// When ImageManager loads an image, add it to the scene.
-    // TODO JOE The UI can have check boxes for showing/hiding layers.
+    // IDEA JOE The UI can have check boxes for showing/hiding layers.
 	private onImageScreenLoad = (): void => {
 		this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
 	}
@@ -432,8 +431,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.state.annotatedSceneController!.shouldRender()
 	}
 
-	// ANNOTATOR ONLY, because Kiosk doesn't have annotation editing
-	//  {{{
+	// TODO JOE eventually we need to remove this filesystem stuff from the
+	// shared lib so that the shared lib can work in regular browsers
+	// {{
 
 	/*
 	 * Make a best effort to save annotations before exiting. There is no guarantee the
@@ -443,10 +443,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.state.annotationManager!.immediateAutoSave()
 	}
 
-    // TODO REORG JOE move to AnnotationManager?
-    //
-    // TODO REORG JOE instead of enabling/disabling autosave, just have auto-save
-    // configured not to save when unfocused unless there's changes.
 	private onFocus = (): void => {
 		this.state.annotationManager!.enableAutoSave()
 	}
@@ -455,7 +451,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.state.annotationManager!.disableAutoSave()
 	}
 
-	// }}}
+	// }}
 
 	mapKey(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void): void {
 		this.state.annotatedSceneController!.mapKey(key, fn)
@@ -586,7 +582,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			: basePath
 		log.info(`Saving annotations JSON to ${formattedPath}`)
 
-		// TODO maybe exportAnnotationsTiles should come out of the library and into Annotor
+		// TODO JOE saveAnnotationsToFile should come out of the library and into Annotor
 		return this.state.annotationManager!.saveAnnotationsToFile(formattedPath, format)
 			.catch(error => log.warn("save to file failed: " + error.message))
 	}
@@ -602,7 +598,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const dir = basePath + '/' + dateToString(new Date()) + scaleString
 		log.info(`Exporting annotations tiles to ${dir}`)
 
-		// TODO maybe exportAnnotationsTiles should come out of the library and into Annotor
+		// TODO JOE exportAnnotationsTiles should come out of the library and into Annotor
 		return this.state.annotationManager!.exportAnnotationsTiles(dir, format)
 			.catch(error => log.warn("export failed: " + error.message))
 	}
@@ -612,12 +608,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const basePath = config['output.annotations.kml.path']
 		log.info(`Saving waypoints KML to ${basePath}`)
 
-		// TODO maybe exportAnnotationsTiles should come out of the library and into Annotor
+		// TODO JOE saveToKML should come out of the library and into Annotor
 		return this.state.annotationManager!.saveToKML(basePath)
 			.catch(err => log.warn('saveToKML failed: ' + err.message))
 	}
 
-    // TODO REORG JOE remove?
 	private addFront(): void {
 		log.info("Adding connected annotation to the front")
 		if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME)) {
@@ -625,7 +620,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
-    // TODO REORG JOE remove?
 	private addLeftSame(): void {
 		log.info("Adding connected annotation to the left - same direction")
 		if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME)) {
@@ -633,7 +627,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
-    // TODO REORG JOE remove?
 	private addLeftReverse(): void {
 		log.info("Adding connected annotation to the left - reverse direction")
 		if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE)) {
@@ -641,7 +634,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
-    // TODO REORG JOE remove?
 	private addRightSame(): void {
 		log.info("Adding connected annotation to the right - same direction")
 		if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME)) {
@@ -649,7 +641,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
-    // TODO REORG JOE remove?
 	private addRightReverse(): void {
 		log.info("Adding connected annotation to the right - reverse direction")
 		if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE)) {
@@ -657,7 +648,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
-    // TODO REORG JOE move to AnnotationManager
 	private uiReverseLaneDirection(): void {
 		log.info("Reverse lane direction.")
 		const {result, existLeftNeighbour, existRightNeighbour}: { result: boolean, existLeftNeighbour: boolean, existRightNeighbour: boolean }
@@ -1149,7 +1139,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Deactivate lane properties menu panel
 	 */
-    // TODO JOE this should be React markup with state controling the content
 	private deactivateLanePropUI(): void {
 		this.collapseAccordion('#menu_lane')
 
@@ -1380,9 +1369,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	componentWillUnmount(): void {
 		this.destroyControlsGui()
 
-		// TODO:
-		//  - remove event listeners
-		//  - clean up child windows
+		// TODO JOE  - remove event listeners  - clean up child windows
 	}
 
 	componentDidUpdate(_oldProps: AnnotatorProps, oldState: AnnotatorState): void {
@@ -1402,7 +1389,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			channel.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
 			channel.on(Events.LIGHTBOX_CLOSE, this.clearLightboxImageRays)
 
-			// TODO JOE ? maybe we need a separate LightBoxRayManager? Or at least move to ImageManager?
+			// IDEA JOE maybe we need a separate LightBoxRayManager? Or at least move to ImageManager
 			channel.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
 			channel.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
 			channel.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
@@ -1410,7 +1397,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.addImageScreenLayer()
 
 			// UI updates
-			// TODO move UI logic to React/JSX, and get state from Redux
+			// TODO JOE move UI logic to React/JSX, and get state from Redux
 			channel.on('deactivateFrontSideNeighbours', Annotator.deactivateFrontSideNeighbours)
 			channel.on('deactivateLeftSideNeighbours', Annotator.deactivateLeftSideNeighbours)
 			channel.on('deactivateRightSideNeighbours', Annotator.deactivateRightSideNeighbours)

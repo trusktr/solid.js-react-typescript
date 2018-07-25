@@ -145,12 +145,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
     private listen(): void {
         if (this.state.hasCalledSetup) return
 
-        // TODO FIXME avoid access of deep state
-        if (!this.state.annotatedSceneController!.state.sceneManager) {
-            log.warn("Unable to finish calling listen() -- managers not initialized")
-            return
-        }
-
         log.info('Listening for messages...')
         this.setState({
             hasCalledSetup: true
@@ -161,11 +155,10 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
         // The camera and the point cloud AOI track the car object, so add it to the scene
         // regardless of whether it is visible in the scene.
 		//
-        // TODO FIXME JOE This is hacky, avoid access of deep state. We should
-        // provide the shared lib with a camera focus point function, then the
+        // TODO JOE This is hacky. We should provide the shared lib with a camera focus point function, then the
         // lib can update the camera focus point with that, which will be the
-        // Car's position.
-        this.state.carManager!.addObjectToCar(this.state.annotatedSceneController!.state.sceneManager!.getCamera()) // follow/orbit around the car
+        // Car's position in Kiosk's case.
+        this.state.carManager!.addObjectToCar(this.state.annotatedSceneController!.getCamera()) // follow/orbit around the car
         this.state.carManager!.makeCarVisible()
 
         if (this.state.flyThroughManager) {

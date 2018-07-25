@@ -36,7 +36,10 @@ function restoreWindowState(win: BrowserWindow, windowName: string): void {
 	}
 
 	// Set some more browser window options.
-	// NOTE It's not possible to set backgroundColor after already constructing a BrowserWindow =(
+	// NOTE JOE It's not possible to set Electron backgroundColor after already
+	// constructing a BrowserWindow. We can set the CSS background color
+	// though.
+	// TODO JOE set CSS background color from config
 	Object.assign(options, {
 		backgroundColor: config['startup.background_color'] || '#000',
 	})

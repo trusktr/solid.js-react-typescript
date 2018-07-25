@@ -246,7 +246,7 @@ export class Territory extends Annotation {
 		const newMeshGeometry = new THREE.Geometry()
 
 		// We need at least 3 vertices to generate a mesh
-		// NOTE: We assume that the contour of the annotation is convex
+		// NOTE CLYDE We assume that the contour of the annotation is convex
 		if (newContourGeometry.vertices.length > 2) {
 			// Add all vertices
 			newContourGeometry.vertices.forEach( (v) => {

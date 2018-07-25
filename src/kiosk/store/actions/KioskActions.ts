@@ -1,6 +1,4 @@
-// TODO JOE we will remove app-specific state from the shared lib, and have
-// app-specific actions for that state. I (Joe) need a quick tutorial from Jon
-// making sub-state in the redux store.
+// TODO JOE app-specific state from the shared lib, and have the app create it
 
 // import {ActionFactory, ActionMessage, ActionReducer} from "typedux"
 // import * as MapperProtos from '@mapperai/mapper-models'

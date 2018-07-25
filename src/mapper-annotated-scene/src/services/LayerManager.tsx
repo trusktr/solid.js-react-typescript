@@ -32,16 +32,15 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 	constructor(props: LayerManagerProps) {
 		super(props)
 
-		// TODO JOE WEDNESDAY the toggles will be passed in by AnnotatedSceneController
+		// TODO JOE Also use the more generic setLayerVisible action mentioned in the other TODO
+
+		// TODO JOE remove these calls, the toggles will be passed in by AnnotatedSceneController,
+		// so that LayerManager doesn't explicitly know ahead of time which
+		// layers it will manage.
 
 		const pointCloudLayerToggle = visible => {
 			new AnnotatedSceneActions().setIsPointCloudVisible( visible )
 		}
-
-		// TODO JOE remove
-		// const imageScreensLayerToggle = visible => {
-		// 	new AnnotatedSceneActions().setIsImageScreensVisible(false)
-		// }
 
 		const annotationLayerToggle = visible => {
 			new AnnotatedSceneActions().setIsAnnotationsVisible(visible)
@@ -88,16 +87,14 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 	}
 
-	// TODO JOE WEDNESDAY toggle visibility of a specific layer by name/id
-	// This will replace the `h` key of Annotator to cycle between layers (point
-	// cloud, annotations, or both)
 	toggleLayerVisibility( layer: string ): void {
 		console.log( layer )
-		// todo
+		// TODO JOE toggle visibility of a specific layer by name/id
+		// This will replace the `h` key of Annotator to cycle between layers
 	}
 
 	getLayerNames(): Array<string> {
-		return Array.from(this.state.layerToggles.keys())
+		return Array.from( this.state.layerToggles.keys() )
 	}
 
 	render(): JSX.Element | null {

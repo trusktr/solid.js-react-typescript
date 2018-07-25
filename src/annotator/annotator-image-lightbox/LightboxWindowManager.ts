@@ -70,10 +70,6 @@ export class LightboxWindowManager {
 
 		savedState.manage(win)
 
-		// NOTE: not currently possible to set backgroundColor, show, and other
-		// features of BrowserWindow of the new window with the native
-		// window.open API.
-
 		this.lightboxCommunicator = new WindowCommunicator( lightboxWindow )
 		this.openChannels()
 

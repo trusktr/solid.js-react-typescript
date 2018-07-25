@@ -31,7 +31,7 @@ const log = Logger(__filename)
 
 function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undefined): TileIndex | null {
 	if (!msg) return null
-	// TODO validate msg.getSrid()===this.srid (and fix the output on the server side)
+	// TODO CLYDE validate msg.getSrid()===this.srid (and fix the output on the server side)
 	const scale = spatialTileScaleToScale3D(msg.getScale())
 	if (!scale) return null
 	return new TileIndex(
@@ -113,7 +113,7 @@ export class TileServiceClient {
 	}
 
 	// Ping checks and this.serverStatus maintain a local copy of server state, for diagnostics.
-	// TODO The gRPC client has a default timeout of 20s when the server is unresponsive. It would be nice to reduce that for pings.
+	// TODO CLYDE The gRPC client has a default timeout of 20s when the server is unresponsive. It would be nice to reduce that for pings.
 	private pingServer(): Promise<void> {
 		if (!this.client)
 			return Promise.reject(Error('attempted to pingServer() before initializing client'))

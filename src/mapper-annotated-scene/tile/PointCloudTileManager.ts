@@ -50,10 +50,6 @@ interface PointCloudTileManagerConfig extends TileManagerConfig {
 // This handles loading and unloading point cloud data (for read only). Each SuperTile has a point cloud,
 // consolidated from its constituent Tiles, which when loaded is merged into a single data structure for
 // three.js rendering.
-//
-// TODO JOE, there's TileManager base class, but there probably needs to be a
-// higher-level "tile managers" manager that manages which tiles (AoIs) need to
-// load in each layer (in each TileManager).
 export class PointCloudTileManager extends TileManager {
 	protected readonly config: PointCloudTileManagerConfig
 	superTiles: OrderedMap<string, PointCloudSuperTile> // all super tiles which we are aware of
@@ -216,8 +212,8 @@ export class PointCloudTileManager extends TileManager {
 		const stride = samplingStep * threeDStepSize
 
 		// If `trimByColor`, choose the colors which are low to the ground with our above-the-ground color scheme, and discard the rest.
-		// TODO The color stuff is a hack. Get a model of the ground surface height, and filter points by height above ground.
-		// TODO And it might be better to apply this in a first pass, before the density check.
+		// TODO CLYDE The color stuff is a hack. Get a model of the ground surface height, and filter points by height above ground.
+		// TODO CLYDE And it might be better to apply this in a first pass, before the density check.
 		for (let i = 0; i < contents.points.length; i += stride) {
 			if (
 				!this.config.trimByColor ||

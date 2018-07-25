@@ -3,6 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+ // TODO JOE register a ground plane layer with LayerManager
+
 import * as React from "react"
 import * as THREE from 'three'
 import * as lodash from 'lodash'
@@ -87,28 +89,10 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
         pointCloudSuperTiles.delete(superTile.key())
 	}
 
-	// TODO JOR THURSDAY
-	// - register a ground plane layer with LayerManager
-
 	// Construct a set of 2D planes, each of which approximates the ground plane within a tile.
 	// This assumes that each ground plane is locally flat and normal to gravity.
 	// This assumes that the ground planes in neighboring tiles are close enough that the discrete
 	// jumps between them won't matter much.
-	// ??????
-
-	// RT 7/12
-	// componentDidUpdate(oldProps: IGroundPlaneManagerProps) {
-	// 	const oldPointCloudSuperTiles = oldProps.pointCloudSuperTiles
-	// 	const newPointCloudSuperTiles = this.props.pointCloudSuperTiles
-    //
-	// 	if ( oldPointCloudSuperTiles !== newPointCloudSuperTiles ) {
-	// 		const { added, removed } = getOrderedMapValueDiff( oldPointCloudSuperTiles, newPointCloudSuperTiles )
-    //
-	// 		added && added.forEach(tile => this.loadTileGroundPlanes(tile as PointCloudSuperTile))
-	// 		removed && removed.forEach(tile => this.unloadTileGroundPlanes(tile as PointCloudSuperTile))
-	// 	}
-	// }
-
 	private loadTileGroundPlanes(superTile: PointCloudSuperTile): void {
 		if (!this.estimateGroundPlane) return
 		if (!superTile.pointCloud) return
@@ -161,7 +145,6 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		if (!this.props.camera || !this.props.mousePosition || !this.props.areaOfInterestManager)
 			return intersections
 
-		// TODO JOE we need this.props.mousePosition
 		this.raycaster.setFromCamera(
 			mousePositionToGLSpace( this.props.mousePosition, this.props.rendererSize! ),
 			this.props.camera

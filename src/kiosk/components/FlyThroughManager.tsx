@@ -130,8 +130,6 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
         } catch (err) {
             console.log("ERROR OCCURRED ON FLY THROUGH LISTEN")
         }
-
-        // @TODO make any changes to the Scene orbitControls() -- see initFlyThroughOrbitControls()
     }
 
     getCurrentFlyThroughTrajectory(): FlyThroughTrajectory {

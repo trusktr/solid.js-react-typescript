@@ -113,8 +113,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
      */
 	private updateAoiHeading(): void {
 
-		// TODO JOE only called for Kiosk app. Maybe fix with detecting camera
-		// movement direction instead, which is effectively the same thing.
 		const rotationThreeJs = this.props.getCurrentRotation ? this.props.getCurrentRotation() : null
 
 		if (this.state.enabled) {
@@ -256,10 +254,10 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 		planeGeometry.rotateX(-Math.PI / 2)
 
 		const planeMaterial = new THREE.ShadowMaterial()
-		planeMaterial.visible = false
 		planeMaterial.side = THREE.DoubleSide // enable raycaster intersections from both sides
 
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
+		this.plane.visible = true
 
 		new AnnotatedSceneActions().addObjectToScene( this.plane )
 
@@ -274,9 +272,12 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			const gridDivisions = gridSize / gridUnit
 
 			this.grid = new THREE.GridHelper(gridSize, gridDivisions, new THREE.Color('white'))
+			this.grid.visible = true
 			this.grid.material.opacity = 0.25
 			this.grid.material.transparent = true
 			this.plane.add( this.grid )
+
+            ;(window as any).plane = this.plane
 
 			this.axis = AxesHelper(axesHelperLength)
 			this.grid.add( this.axis )

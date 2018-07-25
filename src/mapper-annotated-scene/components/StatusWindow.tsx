@@ -62,33 +62,27 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
     render(): JSX.Element {
         const {statusWindowState} = this.props
-        // const isEnabled = getValue(() => statusWindowState.enabled, false)
 
         const messages = getValue(() => statusWindowState && statusWindowState.messages, new Map<string, string>()) as Map<string, string>
 
-        // @TODO show/hide internal parts of the component based on the value of isEnabled
-	    return (
-		    <div>
-			    {statusWindowState && statusWindowState.enabled &&
-			    <div id="status_window">
-				    {Array.from(messages).map(([name, value]) =>
-					    <div key={name}>
-						    {value}
-						</div>
-				    )}
-			    </div>
-			    }
+        return (
+            <div>
+                {statusWindowState && statusWindowState.enabled &&
+                    <div id="status_window">
 
-		    </div>)
+						{Array.from(messages).map( ([ name, value ]) =>
+							<div key={name}>
+								{value}
+							</div>
+						)}
+
+                    </div>
+                }
+
+            </div>)
     }
 
-	// TODO JOE To make things more re-usable, It would be nice if the
-	// following methods relating to specific types of messages would live
-	// outside of StatusWindow inside of the app code using the StatusWindow,
-	// and each app would tell StatusWindow when to show/hide messages. It'd be
-	// similar to a Toast widget (or SnackBar in material-ui), where it is not
-	// aware of what messages you give it from the outside, it only displays
-	// them.
+	// TODO JOE To make things more re-usable, the following methods relating to specific types of messages should live outside of StatusWindow
 
     // Display a UI element to tell the user what is happening with the location server.
     // Error messages persist, and success messages disappear after a time-out.

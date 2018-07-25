@@ -9,8 +9,8 @@ import {Territory} from "@/mapper-annotated-scene/annotations/Territory"
 import * as lodash from 'lodash'
 import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
 
-// TODO gtran-kml drops altitude data, which is totally lame. Find a library which doesn't do that, and get
-// TODO   a better number from the KML. This one just tries to place territories below everything else.
+// TODO CLYDE gtran-kml drops altitude data, which is totally lame. Find a library which doesn't do that, and get
+// TODO CLYDE   a better number from the KML. This one just tries to place territories below everything else.
 const altitude = -20.0
 
 export function kmlToTerritories(utmCoordinateSystem: UtmCoordinateSystem, path: string): Promise<Territory[]> {

@@ -5,6 +5,7 @@
 
 import * as _ from "lodash"
 import {DefaultLeafReducer, ILeafReducer} from "typedux"
+import {getAnnotatedSceneStore} from '@/mapper-annotated-scene/src/store/AppStore'
 import Logger from "@/util/log";
 
 const log = Logger(__filename)
@@ -35,7 +36,7 @@ function filterReducers(modules):DefaultLeafReducer<any, any>[] {
       reducer = new reducerClass()
 
     if(_.isFunction((reducer as any).leaf) && !reducers.find(it => (it as any).leaf() === reducer.leaf())){
-      reducers.push(reducer as never) // FIXME, fix types
+      reducers.push(reducer as never)
     }
   }
   return reducers

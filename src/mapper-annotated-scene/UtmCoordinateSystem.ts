@@ -84,12 +84,12 @@ export class UtmCoordinateSystem {
 				this.utmZoneNumber = num
 				this.utmZoneNorthernHemisphere = northernHemisphere
 			} else {
-				// TODO This legacy behavior should be an error (return false) once we ensure that upstream data sources generate UTM data correctly.
+				// TODO CLYDE This legacy behavior should be an error (return false) once we ensure that upstream data sources generate UTM data correctly.
 				this.utmZoneNumber = this.defaultUtmZoneNumber
 				this.utmZoneNorthernHemisphere = this.defaultUtmZoneNorthernHemisphere
 			}
 
-			// NOTE ORIGIN this is only triggered once, but in the future the origin will be able to be changed or reset
+			// NOTE JOE this is only triggered once, but in the future the origin will be able to be changed or reset
 			new AnnotatedSceneActions().setInitialOriginSet( true )
 
 			return true

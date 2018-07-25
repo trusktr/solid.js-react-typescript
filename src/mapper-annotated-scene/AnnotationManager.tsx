@@ -82,11 +82,6 @@ interface IProps {
 	sceneManager: SceneManager
 	layerManager: LayerManager
 
-	// TODO JOE did we conver this already with redux?
-	// onAddAnnotation(object: THREE.Object3D): void
-	// onRemoveAnnotation(object: THREE.Object3D): void
-	// onChangeActiveAnnotation(active: Annotation): void
-
 	isAnnotationsVisible?: boolean
 	// annotationSuperTiles ?: OrderedMap<string, SuperTile>
 
@@ -926,8 +921,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		mkdirp.sync(directory)
 
 		// Repeat the entire annotation record in each tile that is intersected by the annotation.
-		// TODO For now the intersection algorithm only checks the markers (vertices) of the annotation
-		// TODO   geometry. It might be nice to interpolate between markers to find all intersections.
+		// TODO CLYDE For now the intersection algorithm only checks the markers (vertices) of the annotation
+		// TODO CLYDE   geometry. It might be nice to interpolate between markers to find all intersections.
 		const groups: Map<string, Set<Annotation>> = new Map()
 		annotations.forEach(annotation => {
 			annotation.markers.forEach(marker => {
@@ -1557,13 +1552,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		return false
 	}
 
-
-	/// NOTE JOE the rest is migrated from Annotator.tsx ////////////////////////////////
-
 	// Load tiles within a bounding box and add them to the scene.
 	// ANNOTATOR ONLY???
 	loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false): Promise<void> {
-		// TODO JOE AnnotationManager needs ref to AnnotationTileManager
 		return this.props.annotationTileManager!.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {
 				if (loaded) this.annotationLoadedSideEffects()
@@ -1725,7 +1716,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		// update UI panel
-		// TODO JOE UI replace with React state in Annotator
 		if (activeLane.id === fromUID)
 			this.props.channel.emit('deactivateFrontSideNeighbours')
 	}
@@ -1791,7 +1781,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			inactive.setNeighborMode(NeighborLocation.FRONT)
 			inactive.addNeighbor(activeLane.uuid, NeighborLocation.BACK)
 
-			// TODO JOE UI replace with React state in Annotator
 			this.props.channel.emit('deactivateFrontSideNeighbours')
 			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 
@@ -1836,7 +1825,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.LEFT)
 			inactive.setNeighborMode(NeighborLocation.LEFT)
 
-			// TODO JOE UI replace with React state in Annotator
 			this.props.channel.emit('deactivateLeftSideNeighbours')
 
 			if (sameDirection) {
@@ -1848,7 +1836,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			activeLane.addNeighbor(inactive.uuid, NeighborLocation.RIGHT)
 			inactive.setNeighborMode(NeighborLocation.RIGHT)
 
-			// TODO JOE UI replace with React state in Annotator
 			this.props.channel.emit('deactivateRightSideNeighbours')
 
 			if (sameDirection) {
@@ -1895,12 +1882,10 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		this.cleanTransformControls()
 
-		// TODO JOE UI replace with React state in Annotator
 		this.props.channel.emit('deactivateAllAnnotationPropertiesMenus', inactive.annotationType)
 
 		this.setActiveAnnotation(inactive)
 
-		// TODO JOE UI replace with React state in Annotator
 		this.props.channel.emit('resetAllAnnotationPropertiesMenuElements')
 
 		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
@@ -2098,7 +2083,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return
 
 		// update UI panel
-		// TODO JOE UI replace with React state in Annotator
 		this.props.channel.emit('resetAllAnnotationPropertiesMenuElements')
 	}
 
@@ -2132,8 +2116,10 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	toggleTransformControlsRotationMode(): void {
-		// TODO toggle mode only if object is rotatable
-		// // if (this.activeAnnotation && this.activeAnnotation.isRotatable)
+
+		// TODO JOE toggle mode only if object is rotatable
+		// if (!( this.activeAnnotation && this.activeAnnotation.isRotatable) ) return
+
 		new AnnotatedSceneActions().toggleRotationModeActive()
 	}
 

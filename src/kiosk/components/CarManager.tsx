@@ -93,9 +93,6 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
         })
     }
 
-    // BEHOLDER
-    // TODO JOE I'm thinking that Kiosk will update the car, and the
-    // SceneManager should pick up the state change and re-render.
     updateCarWithPose(pose: Models.PoseMessage): void {
         const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
         const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
@@ -106,8 +103,9 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
         rotationThreeJs.normalize()
 
         // Used by areaOfInterestManager to passively update  updateAoiHeading
+		// TODO JOE, huristics on setting the aoiHeading can go into the shared lib
+		// instead of here, and be based on camera angle and field of view, etc.
         this.setState({rotationQuaternion: rotationThreeJs})
-        // TODO OLD --> this.props.areaOfInterestManager.updateAoiHeading(rotationThreeJs)
 
         this.props.annotatedScene.updateCurrentLocationStatusMessage(standardPosition)
         this.updateCarPose(positionThreeJs, rotationThreeJs)

@@ -59,7 +59,6 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 		const playModeIcon = isPlayMode ? 'pause' : 'play_arrow'
 		const liveModeIcon = isLiveMode ? 'videocam' : 'my_location'
 
-		// @TODO remove <div id="menu"> -- shouldn't be needed anymore, visibility is controlled by Redux
 		return (<div id="menu">
 
 			{uiMenuVisible &&

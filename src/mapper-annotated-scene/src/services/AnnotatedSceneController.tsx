@@ -50,16 +50,7 @@ export interface CameraState {
     lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
 }
 
-// TODO JOE WEDNESDAY moved from Annotator.tsx
 interface AnnotatorSettings {
-    orthoCameraHeight: number // ortho camera uses world units (which we treat as meters) to define its frustum
-    defaultAnimationFrameIntervalMs: number | false
-    animationFrameIntervalSecs: number | false // how long we have to update the animation before the next frame fires
-    enableTileManagerStats: boolean
-    timeToDisplayHealthyStatusMs: number
-    maxDistanceToDecorations: number // meters
-    skyRadius: number
-    cameraToSkyMaxDistance: number
 }
 
 export interface AnnotatedSceneControllerProps {
@@ -119,9 +110,6 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
     constructor(props: AnnotatedSceneControllerProps) {
         super(props)
 
-        // TODO not used currently
-        // enableTileManagerStats: !!config['tile_manager.stats_display.enable'],
-
         this.state = {
             cameraState: {
                 lastCameraCenterPoint: null,
@@ -133,10 +121,6 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
         // These don't need to be state, because these references don't change
         this.channel = new EventEmitter()
         this.utmCoordinateSystem = new UtmCoordinateSystem()
-        // ^ utmCoordinateSystem doesn't need to be a React component because it
-        // isn't hooked to Redux.
-
-        // TODO JOE THURSDAY if not creating it here, pass pointCloudTileManager as a prop
         this.scaleProvider = new ScaleProvider()
         this.tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel)
         this.pointCloudTileManager = new PointCloudTileManager(
@@ -156,7 +140,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
     updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
         // This is a hack to allow data with no coordinate reference system to pass through the UTM classes.
         // Data in local coordinate systems tend to have small values for X (and Y and Z) which are invalid in UTM.
-        if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO fix this.
+        if (positionUtm.x > 100000) { // If it looks local, don't convert to LLA. TODO CLYDE fix this.
             const positionLla = this.utmCoordinateSystem.utmVectorToLngLatAlt(positionUtm)
             const messageLla = sprintf('LLA: %.4fE %.4fN %.1falt', positionLla.x, positionLla.y, positionLla.z)
 
@@ -167,34 +151,29 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
     }
 
     setup() {
-	    // TODO JOE FRIDAY
-        // if ( interaction is enabled ) {
 
 		// TODO JOE clean up event listeners on unmount
         this.state.container!.addEventListener('mousemove', this.state.annotationManager!.checkForActiveMarker)
 
-        // TODO REORG JOE, shared, move to AnnotationManager, but Kiosk won't enable interaction stuff
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForConflictOrDeviceSelection)
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForAnnotationSelection)
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addAnnotationMarker)
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addLaneConnection)
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.connectNeighbor)
         this.state.container!.addEventListener('mouseup', this.state.annotationManager!.joinAnnotationsEventHandler)
-
-        // }
     }
 
     /**
      * Set the point cloud as the center of the visible world.
      */
     // Currently this function is only used on keyboard shortcuts
-    // @TODO long term move orbit controls to Camera Manger
+    // IDEA JOE long term move orbit controls to Camera Manger
     focusOnPointCloud(): void {
         this.state.pointCloudManager!.focusOnPointCloud()
         this.displayCameraInfo()
     }
 
-    // @TODO long term move orbit controls to Camera Manger
+    // IDEA JOE long term move orbit controls to Camera Manger
     // Display some info in the UI about where the camera is pointed.
     private displayCameraInfo = (): void => {
 
@@ -247,7 +226,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
     /**
      *  Set the camera directly above the current target, looking down.
      */
-    // @TODO long term move orbit controls to Camera Manger
+    // TODO JOE long term move orbit controls to Camera Manger
     resetTiltAndCompass(): void {
         this.state.sceneManager!.resetTiltAndCompass()
     }
@@ -279,6 +258,10 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
     addChildAnimationLoop(childLoop: ChildAnimationLoop) {
         this.state.sceneManager!.addChildAnimationLoop(childLoop)
     }
+
+	getCamera(): THREE.Camera {
+        return this.state.sceneManager!.getCamera()
+	}
 
     /**
      * Handle keyboard events
@@ -397,13 +380,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
                 this.tileServiceClient,
                 this.channel,
 
-                // TODO FIXME JOE AnnotationManager is passed into
-                // AnnotationTileManager, so I think we're thinking of two
-                // AnnotationManager classes: the one Clyde made, and the one we
-                // imagine as effectively the thing controling the annotation
-                // tile layer which is similar to PointCloudManager. So we
-                // should split AnnotationManager into two, and name one of them
-                // something like AnnotationLayer or something.
+                // TODO JOE remove this reference, see TODO in AnnotationTileManager
                 this.state.annotationManager!,
             )
 		})
@@ -482,8 +459,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
     }
 
     onMouseMove = (event): void => {
-        // TODO JOE do we have to make a `new AnnotatedSceneActions` every time? Or
-        // can we just use a singleton?
+        // TODO JOE don't make a `new AnnotatedSceneActions` every time, just use a singleton
         new AnnotatedSceneActions().setMousePosition({
             x: event.clientX - event.target.offsetLeft,
             y: event.clientY - event.target.offsetTop,
@@ -595,8 +571,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	                        annotationTileManager,
 	                        sceneManager,
 
-	                        // TODO we can handle this better, revisit with Ryan. Currently we
-	                        // forward props from the app through her to AnnotationManager
+	                        // TODO JOE replace with redux state in AnnotationManager
 	                        lockBoundaries,
 	                        lockTerritories,
 	                        lockLanes,
