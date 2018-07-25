@@ -73,25 +73,28 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
 
     render(): JSX.Element {
         const {statusWindowState, isLiveMode, isPlayMode, flyThroughEnabled} = this.props
+
         // const isEnabled = getValue(() => statusWindowState.enabled, false)
+
         const messages = getValue(() => statusWindowState && statusWindowState.messages, new Map<string, string>()) as Map<string, string>
 
-        let out = ''
-        messages.forEach(value => {
-            if (value !== '')
-            out += value + '<br>'
-        })
-        // this.statusElement.innerHTML = out
-        // const laneWidth = $('#lp_width_value')
         // @TODO show/hide internal parts of the component based on the value of isEnabled
         return (
             <div>
-                {statusWindowState!.enabled &&
+                {statusWindowState && statusWindowState.enabled &&
                     <div id="status_window">
-                        <span dangerouslySetInnerHTML={{__html: out}}/>
+
+						{Array.from(messages).map( ([ name, value ]) =>
+							<div key={name}>
+								{value}
+							</div>
+						)}
+
+						{/* TODO JOE move this out, StatusWindow shouldn't know about specific messages, Kiosk should place them. */}
                         <div>isLiveMode: {isLiveMode!.toString()}</div>
                         <div>isPlayMode: {isPlayMode!.toString()}</div>
                         <div>flyThroughEnabled: {flyThroughEnabled!.toString()}</div>
+
                     </div>
                 }
 
