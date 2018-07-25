@@ -234,7 +234,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 					ref={this.getAnnotatedSceneControllerRef}
 					onPointOfInterestCall={onPointOfInterestCall}
 					onCurrentRotation={onCurrentRotation}
-					initialFocusPoint={config['startup.point_cloud_bounding_box']}
+					initialBoundingBox={config['startup.point_cloud_bounding_box']}
 				/>
 
 				{this.state.annotatedSceneController &&
