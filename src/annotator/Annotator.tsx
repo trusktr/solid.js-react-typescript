@@ -37,6 +37,7 @@ import {scale3DToSpatialTileScale, spatialTileScaleToString} from "../mapper-ann
 import {ScaleProvider} from "../mapper-annotated-scene/tile/ScaleProvider"
 import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type"
 import {hexStringToHexadecimal} from "@/util/Color"
+import {ConfigDefault} from "@/config/ConfigDefault"
 
 const dialog = Electron.remote.dialog
 
@@ -1445,7 +1446,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					ref={this.getAnnotatedSceneRef}
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
-					initialBoundingBox={config['startup.point_cloud_bounding_box']}
+					initialBoundingBox={config['startup.point_cloud_bounding_box'] || ConfigDefault.StartupPointCloudBoundingBox}
 
 					lockBoundaries={this.state.lockBoundaries}
 					lockTerritories={this.state.lockTerritories}

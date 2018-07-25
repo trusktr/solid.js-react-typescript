@@ -30,7 +30,7 @@ interface StatusWindowProps {
     eventEmitter: EventEmitter
 }
 
-interface StatusWindowState {
+interface IStatusWindowState {
     locationServerStatusDisplayTimer: number
     serverStatusDisplayTimer: number
     timeToDisplayHealthyStatusMs: number
@@ -40,7 +40,7 @@ interface StatusWindowState {
 @typedConnect(createStructuredSelector({
     statusWindowState: (state) => state.get(AnnotatedSceneState.Key).statusWindowState,
 }))
-export default class StatusWindow extends React.Component<StatusWindowProps, StatusWindowState> {
+export default class StatusWindow extends React.Component<StatusWindowProps, IStatusWindowState> {
 
     constructor(props: StatusWindowProps) {
         super(props)
@@ -86,8 +86,6 @@ export default class StatusWindow extends React.Component<StatusWindowProps, Sta
             </div>)
     }
 
-
-
 	// TODO JOE To make things more re-usable, It would be nice if the
 	// following methods relating to specific types of messages would live
 	// outside of StatusWindow inside of the app code using the StatusWindow,
@@ -96,13 +94,12 @@ export default class StatusWindow extends React.Component<StatusWindowProps, Sta
 	// aware of what messages you give it from the outside, it only displays
 	// them.
 
-
     // Display a UI element to tell the user what is happening with the location server.
     // Error messages persist, and success messages disappear after a time-out.
     onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string) => void =
         (level: LocationServerStatusLevel, serverStatus: string) => {
 
-        let message = 'Location clients: '
+        let message = 'Location status: '
         switch (level) {
             case LocationServerStatusLevel.INFO:
             message += '<span class="statusOk">' + serverStatus + '</span>'

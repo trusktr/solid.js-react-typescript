@@ -17,6 +17,7 @@ import AnnotatedSceneController from "@/mapper-annotated-scene/src/services/Anno
 import * as watch from 'watch'
 import TrajectoryPicker from "@/kiosk/TrajectoryPicker";
 import * as Electron from "electron";
+import {ConfigDefault} from "@/config/ConfigDefault"
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
@@ -220,7 +221,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
     render(): JSX.Element {
         // CarManager will not be setup the first time through
-		let onPointOfInterestCall = () => new THREE.Vector3(0,0,0)
+		let onPointOfInterestCall = () => new THREE.Vector3(0, 0, 0)
 		let onCurrentRotation = () => new THREE.Quaternion()
 
         if (this.state.carManager && this.props.isCarInitialized) {
@@ -234,7 +235,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 					ref={this.getAnnotatedSceneControllerRef}
 					onPointOfInterestCall={onPointOfInterestCall}
 					onCurrentRotation={onCurrentRotation}
-					initialBoundingBox={config['startup.point_cloud_bounding_box']}
+					initialBoundingBox={config['startup.point_cloud_bounding_box'] || ConfigDefault.StartupPointCloudBoundingBox}
 				/>
 
 				{this.state.annotatedSceneController &&
