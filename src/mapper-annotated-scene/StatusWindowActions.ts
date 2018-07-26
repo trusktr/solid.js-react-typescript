@@ -7,6 +7,7 @@ import {ActionFactory, ActionMessage, ActionReducer} from "typedux";
 import AnnotatedSceneState from "@/mapper-annotated-scene/src/store/state/AnnotatedSceneState";
 import Logger from "@/util/log";
 import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
+import * as React from 'react'
 
 const log = Logger(__filename)
 
@@ -49,7 +50,7 @@ export default class StatusWindowActions extends ActionFactory<AnnotatedSceneSta
 	}
 
 	@ActionReducer()
-	setMessage(key:string, message:string) {
+	setMessage(key: string, message: string | JSX.Element) {
 		// log.info("Setting new clients window message", {key:key, message:message})
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			const statusWindowState = new StatusWindowState({...annotatedSceneState.statusWindowState})

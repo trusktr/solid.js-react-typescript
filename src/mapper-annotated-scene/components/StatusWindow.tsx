@@ -70,9 +70,9 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
                 {statusWindowState && statusWindowState.enabled &&
                     <div id="status_window">
 
-						{Array.from(messages).map( ([ name, value ]) =>
+						{Array.from(messages).map( ([ name, Message ]) =>
 							<div key={name}>
-								{value}
+								{Message}
 							</div>
 						)}
 
@@ -89,23 +89,27 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
     onLocationServerStatusUpdate: (level: LocationServerStatusLevel, serverStatus: string) => void =
         (level: LocationServerStatusLevel, serverStatus: string) => {
 
-        let message = 'Location status: '
+		let className = ''
+
         switch (level) {
             case LocationServerStatusLevel.INFO:
-            message += '<span class="statusOk">' + serverStatus + '</span>'
-            this.delayLocationServerStatus()
-            break
+				className = 'statusOk'
+	            this.delayLocationServerStatus()
+	            break
             case LocationServerStatusLevel.WARNING:
-            message += '<span class="statusWarning">' + serverStatus + '</span>'
-            this.cancelHideLocationServerStatus()
-            break
+				className = 'statusWarning'
+	            this.cancelHideLocationServerStatus()
+	            break
             case LocationServerStatusLevel.ERROR:
-            message += '<span class="statusError">' + serverStatus + '</span>'
-            this.cancelHideLocationServerStatus()
-            break
+				className = 'statusError'
+	            this.cancelHideLocationServerStatus()
+	            break
             default:
-            log.error('unknown LocationServerStatusLevel ' + LocationServerStatusLevel.ERROR)
+	            log.error('unknown LocationServerStatusLevel ' + LocationServerStatusLevel.ERROR)
         }
+
+        let message = <div> Location status: <span className={className}> {serverStatus} </span> </div>
+
         new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, message)
     }
 
@@ -131,14 +135,20 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
   // Display a UI element to tell the user what is happening with tile server. Error messages persist,
   // and success messages disappear after a time-out.
   onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void = (tileServiceStatus: boolean) => {
-    let message = 'Tile server clients: '
+	let className = ''
+	let msg = ''
+
     if (tileServiceStatus) {
-      message += '<span class="statusOk">Available</span>'
+		className = 'statusOk'
+		msg = 'Available'
       this.delayHideTileServiceStatus()
     } else {
-      message += '<span class="statusError">Unavailable</span>'
+		className = 'statusOk'
+		msg = 'Unavailable'
       this.cancelHideTileServiceStatus()
     }
+
+    let message = <div> Tile server clients:  <span className={className}> {msg} </span> </div>
 
     new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
   }

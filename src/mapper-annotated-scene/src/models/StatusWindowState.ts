@@ -10,6 +10,6 @@ export default class StatusWindowState {
 	}
 
 	enabled:boolean
-	messages: Map<string, string>
+	messages: Map<string, string | JSX.Element>
 
 }
