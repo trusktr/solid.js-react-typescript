@@ -23,6 +23,7 @@ import {EventEmitter} from "events"
 import Logger from "@/util/log"
 import {LayerId} from "@/types/TypeAlias"
 import config from "@/config";
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
 
 const log = Logger(__filename)
 
@@ -52,10 +53,7 @@ export interface TileManagerConfig {
 export abstract class TileManager implements TileManagerBase {
 	protected config: TileManagerConfig
 	protected coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin // todo ?
-	// setPointCloud: (superTiles:OrderedMap<string, SuperTile>) => void
 	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
-	addSuperTile: (superTile: SuperTile) => void
-	removeSuperTile: (superTile: SuperTile) => void
 	// Keys to super tiles which have objects loaded in memory. It is ordered so that it works as a least-recently-used
 	// cache when it comes time to unload excess super tiles.
 	private loadedSuperTileKeys: OrderedSet<string>
@@ -146,8 +144,7 @@ export abstract class TileManager implements TileManagerBase {
 		if (!this.superTiles.has(key)) {
 			const superTile = this.constructSuperTile(utmIndex, coordinateFrame, this.utmCoordinateSystem)
       		this.superTiles = this.superTiles.set(key, superTile)
-			this.addSuperTile(superTile)
-			// RT 7/12 this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
+			this.channel.emit(Events.SUPER_TILE_CREATED, superTile)
     		this.setStatsMessage()
 		}
 		return this.superTiles.get(key)
@@ -306,8 +303,7 @@ export abstract class TileManager implements TileManagerBase {
 						this.loadedObjectsBoundingBox = null
 						this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.add(superTile.key()))
 						this.superTiles = this.superTiles.set(superTile.key(), superTile)
-						this.addSuperTile(superTile)
-						// RT 7/12 this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
+						this.channel.emit(Events.SUPER_TILE_CREATED, superTile)
 
 						this.setStatsMessage()
 					}
@@ -320,8 +316,7 @@ export abstract class TileManager implements TileManagerBase {
 	private unloadSuperTile(superTile: SuperTile): boolean {
 		this.superTiles = this.superTiles.remove(superTile.key())
 
-		this.removeSuperTile(superTile)
-		// RT 7/12 this.setPointCloud(this.superTiles) // this will dispatch an action to update the redux store
+		this.channel.emit(Events.SUPER_TILE_REMOVED, superTile)
 		this.loadedObjectsBoundingBox = null
 		this.setLoadedSuperTileKeys(this.loadedSuperTileKeys.remove(superTile.key()))
 		return true

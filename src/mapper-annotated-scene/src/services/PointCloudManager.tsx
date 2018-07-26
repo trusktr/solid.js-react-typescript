@@ -17,13 +17,15 @@ import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed"
 import toProps from '@/util/toProps'
 import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions"
 import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
+import EventEmitter from 'events'
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
 
 const log = Logger(__filename)
 
 export interface PointCloudManagerProps {
 
 	// redux props
-	isPointCloudVisible ?: boolean
 	areaOfInterest?: RangeSearch[]
 
   sceneManager: SceneManager
@@ -32,6 +34,7 @@ export interface PointCloudManagerProps {
   handleTileManagerLoadError: (msg: string, err: Error) => void // TODO JOE do we need this?
   utmCoordinateSystem: UtmCoordinateSystem
   isInitialOriginSet?: boolean
+  channel: EventEmitter
 }
 
 export interface PointCloudManagerState {
@@ -41,11 +44,11 @@ export interface PointCloudManagerState {
 }
 
 @typedConnect(toProps(
-	'isPointCloudVisible',
 	'areaOfInterest',
 	'isInitialOriginSet',
 ))
 export default class PointCloudManager extends React.Component<PointCloudManagerProps, PointCloudManagerState> {
+	private pointCloudGroup = new THREE.Group()
 
   constructor(props: PointCloudManagerProps) {
     super(props)
@@ -55,39 +58,40 @@ export default class PointCloudManager extends React.Component<PointCloudManager
       shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],
       pointCloudBboxColor: new THREE.Color(0xff0000),
     }
+
+	this.props.channel.on(Events.SUPER_TILE_CREATED, this.addSuperTile)
+	this.props.channel.on(Events.SUPER_TILE_REMOVED, this.removeSuperTile)
   }
 
-  componentWillReceiveProps(newProps) {
-    if(newProps.isPointCloudVisible !== this.props.isPointCloudVisible) {
-      if(newProps.isPointCloudVisible) {
-        this.showPointCloud()
-      } else {
-        this.hidePointCloud()
-      }
+  private showPointCloud = ( show: boolean ): void => {
 
-    }
-  }
+	  this.pointCloudGroup.visible = show
 
-  private showPointCloud():void {
 	  // TODO JOE we should have a more generic `setLayerVisible( 'decorations',
 	  // true )` type of action, rather than the state knowing ahead of time
 	  // which layers we'll have
-    new AnnotatedSceneActions().setIsDecorationsVisible(true)
-    this.props.pointCloudTileManager.getPointClouds().forEach(pc => new AnnotatedSceneActions().addObjectToScene(pc))
+    new AnnotatedSceneActions().setIsDecorationsVisible( show )
 
     const pointCloudBoundingBox = this.getPointCloudBoundingBox()
     if (pointCloudBoundingBox)
-      new AnnotatedSceneActions().addObjectToScene(pointCloudBoundingBox)
+		pointCloudBoundingBox.visible = show
   }
 
-  private hidePointCloud():void {
-    new AnnotatedSceneActions().setIsDecorationsVisible(false)
-    this.props.pointCloudTileManager.getPointClouds().forEach(pc => new AnnotatedSceneActions().removeObjectFromScene(pc))
+	addSuperTile = (superTile: PointCloudSuperTile): void => {
+		if (!( superTile instanceof PointCloudSuperTile )) return
+		if (!superTile.pointCloud) return
 
-    const pointCloudBoundingBox = this.getPointCloudBoundingBox()
-    if (pointCloudBoundingBox)
-      new AnnotatedSceneActions().removeObjectFromScene(pointCloudBoundingBox)
-  }
+		this.pointCloudGroup.add(superTile.pointCloud)
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+	}
+
+	removeSuperTile = (superTile: PointCloudSuperTile): void => {
+		if (!( superTile instanceof PointCloudSuperTile )) return
+		if (!superTile.pointCloud) return
+
+		this.pointCloudGroup.remove(superTile.pointCloud)
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+	}
 
   // only called as a keyboard shortcut
   unloadPointCloudData(): void {
@@ -151,8 +155,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   // Do some house keeping after loading a point cloud, such as drawing decorations
   // and centering the stage and the camera on the point cloud.
   private pointCloudLoadedSideEffects(resetCamera: boolean = false): void {
-      this.props.layerManager.setLayerVisibility([Layer.POINT_CLOUD.toString()])
-
     this.updatePointCloudBoundingBox()
 
     this.setCompassRoseByPointCloud()
@@ -208,6 +210,16 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 		const zOffset = boundingBoxHeight / 10
 
 		new AnnotatedSceneActions().setCompassRosePosition(new THREE.Vector3(topPoint.x, topPoint.y, topPoint.z - zOffset))
+	}
+
+	componentDidMount() {
+		new AnnotatedSceneActions().addObjectToScene( this.pointCloudGroup )
+		this.props.layerManager.addLayer( Layer.POINT_CLOUD, this.showPointCloud )
+	}
+
+	componentWillUnmount() {
+		this.props.layerManager.removeLayer( Layer.POINT_CLOUD )
+		new AnnotatedSceneActions().removeObjectFromScene( this.pointCloudGroup )
 	}
 
 	render(): JSX.Element | null {

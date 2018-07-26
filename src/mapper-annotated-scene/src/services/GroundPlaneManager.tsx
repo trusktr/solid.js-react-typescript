@@ -10,7 +10,7 @@ import * as THREE from 'three'
 import * as lodash from 'lodash'
 import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
 import toProps from '@/util/toProps'
-import {OrderedMap, Map} from "immutable";
+import {OrderedMap} from "immutable";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
 import config from '@/config'
@@ -22,6 +22,8 @@ import {EventEmitter} from "events"
 import mousePositionToGLSpace from '@/util/mousePositionToGLSpace'
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 import * as Electron from "electron"
+import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerManager";
+import {Events} from "@/mapper-annotated-scene/src/models/Events";
 
 export interface GroundPlaneManagerProps {
 	// pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
@@ -32,6 +34,7 @@ export interface GroundPlaneManagerProps {
 	channel: EventEmitter
 	rendererSize?: Electron.Size
 	isAddMarkerMode?: boolean
+	layerManager: LayerManager
 }
 
 export interface GroundPlaneManagerState {
@@ -52,9 +55,12 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
 	private estimateGroundPlane: boolean
 	private tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
+	private groundPlaneGroup: THREE.Group
 
 	constructor(props: GroundPlaneManagerProps) {
 		super(props)
+
+		this.groundPlaneGroup = new THREE.Group()
 
 		this.raycaster = new THREE.Raycaster
 		this.raycaster.params.Points!.threshold = 0.1
@@ -62,7 +68,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
 
 		this.allGroundPlanes = []
-		this.superTileGroundPlanes = Map()
+		this.superTileGroundPlanes = new Map()
 
 		this.tileGroundPlaneScale = 1.05
 
@@ -71,12 +77,21 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		}
 
         // Setup listeners on add/remove point cloud tiles
-        this.props.channel.on('addPointCloudSuperTile', (superTile:SuperTile) => {
-        	this.addTileToState(superTile as PointCloudSuperTile)
-        	this.loadTileGroundPlanes(superTile as PointCloudSuperTile)})
-        this.props.channel.on('removePointCloudSuperTile', (superTile:SuperTile) => {
-        	this.removeTileFromState(superTile as PointCloudSuperTile)
-        	this.unloadTileGroundPlanes(superTile as PointCloudSuperTile)})
+        this.props.channel.on(Events.SUPER_TILE_CREATED, (superTile:SuperTile) => {
+			if (!( superTile instanceof PointCloudSuperTile )) return
+			if (!superTile.pointCloud) return
+
+        	this.addTileToState(superTile)
+        	this.loadTileGroundPlanes(superTile)
+		})
+
+        this.props.channel.on(Events.SUPER_TILE_REMOVED, (superTile:SuperTile) => {
+			if (!( superTile instanceof PointCloudSuperTile )) return
+			if (!superTile.pointCloud) return
+
+        	this.removeTileFromState(superTile)
+        	this.unloadTileGroundPlanes(superTile)
+		})
 	}
 
 	addTileToState(superTile: PointCloudSuperTile) {
@@ -112,7 +127,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 				)
 				geometry.rotateX(-Math.PI / 2)
 
-				const material = new THREE.MeshNormalMaterial({ wireframe: true })
+				const material = new THREE.MeshNormalMaterial({ wireframe: true, transparent: true, opacity: 0.3 })
 				const plane = new THREE.Mesh(geometry, material)
 				const origin = this.props.utmCoordinateSystem.utmVectorToThreeJs(tile.index.origin)
 				plane.position.x = origin.x + xSize / 2
@@ -124,9 +139,9 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 			}
 		})
 
-		this.superTileGroundPlanes = this.superTileGroundPlanes.set(superTile.key(), groundPlanes)
+		this.superTileGroundPlanes.set(superTile.key(), groundPlanes)
 		this.allGroundPlanes = this.allGroundPlanes.concat(groundPlanes)
-		groundPlanes.forEach(plane => new AnnotatedSceneActions().addObjectToScene(plane))
+		groundPlanes.forEach(plane => this.groundPlaneGroup.add(plane))
 	}
 
 	private unloadTileGroundPlanes(superTile: PointCloudSuperTile): void {
@@ -134,9 +149,9 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 
 		const groundPlanes = this.superTileGroundPlanes.get(superTile.key())!
 
-		this.superTileGroundPlanes = this.superTileGroundPlanes.remove(superTile.key())
-		this.allGroundPlanes = lodash.flatten(this.superTileGroundPlanes.valueSeq().toArray())
-		groundPlanes.forEach(plane => new AnnotatedSceneActions().removeObjectFromScene(plane))
+		this.superTileGroundPlanes.delete(superTile.key())
+		this.allGroundPlanes = lodash.flatten( Array.from( this.superTileGroundPlanes.values() ) )
+		groundPlanes.forEach(plane => this.groundPlaneGroup.remove(plane))
 	}
 
 	intersectWithGround(): THREE.Intersection[] {
@@ -180,19 +195,32 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		return count
 	}
 
+	// This is similar to showGroundPlaneLayer, but used at
+	// different times on purpose.
 	makePlanesVisible(areVisible: boolean) {
 		for (const plane of this.allGroundPlanes) {
 			plane.visible = areVisible
 		}
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+	}
+
+	showGroundPlaneLayer = ( show: boolean ): void => {
+		this.groundPlaneGroup.visible = show
 	}
 
 	componentDidUpdate(oldProps) {
-		if (oldProps.isAddMarkerMode !== this.props.isAddMarkerMode) {
-			if (this.props.isAddMarkerMode)
-				this.makePlanesVisible(true)
-			else
-				this.makePlanesVisible(false)
-		}
+		if (oldProps.isAddMarkerMode !== this.props.isAddMarkerMode)
+			this.makePlanesVisible(!!this.props.isAddMarkerMode)
+	}
+
+	componentDidMount() {
+		new AnnotatedSceneActions().addObjectToScene( this.groundPlaneGroup )
+		this.props.layerManager.addLayer(Layer.GROUND_PLANES, this.showGroundPlaneLayer)
+	}
+
+	componentWillUnmount() {
+		this.props.layerManager.removeLayer( 'Ground Planes' )
+		new AnnotatedSceneActions().removeObjectFromScene( this.groundPlaneGroup )
 	}
 
 	render(): JSX.Element | null {

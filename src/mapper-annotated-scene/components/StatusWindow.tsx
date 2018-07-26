@@ -70,9 +70,9 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
                 {statusWindowState && statusWindowState.enabled &&
                     <div id="status_window">
 
-						{Array.from(messages).map( ([ name, Message ]) =>
+						{Array.from(messages).map( ([ name, message ]) =>
 							<div key={name}>
-								{Message}
+								{message}
 							</div>
 						)}
 

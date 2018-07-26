@@ -21,7 +21,6 @@ import {getDecorations} from "@/mapper-annotated-scene/Decorations";
 import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
 import {EventEmitter} from "events";
-import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
 import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 import * as Stats from 'stats.js'
@@ -45,7 +44,6 @@ export interface SceneManagerProps {
 	compassRosePosition ?: THREE.Vector3
 	isDecorationsVisible ?: boolean
 	orbitControlsTargetPoint ?: THREE.Vector3
-	// pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
 	utmCoordinateSystem: UtmCoordinateSystem
 	channel: EventEmitter
 	sceneObjects ?: Set<THREE.Object3D>
@@ -85,7 +83,6 @@ export interface SceneManagerState {
 	'compassRosePosition',
 	'isDecorationsVisible',
 	'orbitControlsTargetPoint',
-	// 'pointCloudSuperTiles',
 	'sceneObjects',
 	'transformedObjects',
 	'cameraPreference',
@@ -220,8 +217,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			// let other code have the opportunity to hook in before redraw
 			this.props.channel.emit(Events.SCENE_WILL_RENDER)
 
-			// this.updateTransformControls()
-
 			this.renderThree()
 		})
 
@@ -233,16 +228,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		this.props.channel.on(Events.SCENE_SHOULD_RENDER, this.renderScene)
 
-		// Setup listeners on add/remove point cloud tiles
-		this.props.channel.on('addPointCloudSuperTile', (superTile: SuperTile) => this.addSuperTile(superTile))
-		this.props.channel.on('removePointCloudSuperTile', (superTile: SuperTile) => this.removeSuperTile(superTile))
-
 		new AnnotatedSceneActions().setSceneInitialized(true)
 	}
-	//
-	// private updateTransformControls = (): void => {
-	// 	this.transformControls.update()
-	// }
 
 	private renderThree = (): void => {
 		this.state.renderer.render(this.state.scene, this.state.camera)
@@ -383,12 +370,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	// NOTE JOE THURSDAY at the moment shoudlAnimate is only used here, so
-	// perhaps we don't need Redux for this? And apps can call methods on
-	// AnnotatedSceneController which ultimately call these methods?
-	//
-	// {{{
-
 	private startAnimation(): void {
 		new AnnotatedSceneActions().setShouldAnimate(true)
 	}
@@ -397,13 +378,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		new AnnotatedSceneActions().setShouldAnimate(false)
 	}
 
-	// }}}
-
-	// JOE THURSDAY maybe instead of proxying, we let app code (f.e. Annotator,
+	// IDEA JOE maybe instead of proxying, we let app code (f.e. Annotator,
 	// Kiosk, and AnnotatedSceneController) get a ref to the loop to call these
-	// methods.
-	//
-	// Maybe AnnotatedSceneController exposes either the loop reference, or
+	// methods. Maybe AnnotatedSceneController exposes either the loop reference, or
 	// proxy methods, for apps to use.
 	//
 	// {{{
@@ -444,7 +421,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	addChildAnimationLoop(childLoop: ChildAnimationLoop): void {
-		// this.loop.addChildLoop( FlyThroughManager.getAnimationLoop() )
 		this.state.loop.addChildLoop( childLoop )
 	}
 
@@ -536,26 +512,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.setState({cameraOffset: cameraOffset.clone()})
 	}
 
-	addSuperTile(superTile: SuperTile): void {
-		if (superTile instanceof PointCloudSuperTile) {
-			const st = superTile as PointCloudSuperTile
-			if (st.pointCloud) {
-				this.state.scene.add(st.pointCloud)
-				this.renderScene() // can potentially remove but added it just in case
-			}
-		}
-	}
-
-	removeSuperTile(superTile: SuperTile): void {
-		if (superTile instanceof PointCloudSuperTile) {
-			const st = superTile as PointCloudSuperTile
-			if (st.pointCloud) {
-				this.state.scene.remove(st.pointCloud)
-				this.renderScene() // can potentially remove but added it just in case
-			}
-		}
-	}
-
 	// Add some easter eggs to the scene if they are close enough.
 	loadDecorations(): Promise<void> {
 		return getDecorations().then(decorations => {
@@ -617,7 +573,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	// Switch the camera between two views. Attempt to keep the scene framed in the same way after the switch.
-	// TODO JOE long term move to the camera manager
+	// IDEA JOE long term move to the camera manager
 	toggleCameraType(): void {
 		let oldCamera: THREE.Camera
 		let newCamera: THREE.Camera
@@ -648,12 +604,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// tslint:disable-next-line:no-any
 		;(orbitControls as any).setCamera(newCamera)
 
-		// RYAN UPDATED
-		// this.statusWindow.setMessage(statusKey.cameraType, 'Camera: ' + newType)
 		new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
 
 		new AnnotatedSceneActions().setCameraPreference(newType)
 		this.renderScene()
+	}
+
+	private addObjectsToScene( objects: THREE.Object3D[] ): void {
+		this.state.scene.add.apply( this.state.scene, objects )
 	}
 
 	componentWillReceiveProps(newProps: SceneManagerProps): void {
@@ -674,15 +632,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.updateOrbitControlsTargetPoint(newProps.orbitControlsTargetPoint)
 		}
 
-		// RT 7/12 Commented out and using an eventEmitter instead -- see constructor
-		// if(newProps.pointCloudSuperTiles !== this.props.pointCloudSuperTiles) {
-		// 	const { added, removed } = getOrderedMapValueDiff( this.props.pointCloudSuperTiles, newProps.pointCloudSuperTiles )
-        //
-		// 	added && added.forEach(tile => this.addSuperTile(tile!))
-		// 	removed && removed.forEach(tile => this.removeSuperTile(tile!))
-		// }
-
 		// Handle adding and removing scene objects
+		// TODO JOE This diffing is noticeably slow once there's many obbjects
+		// in the scene. Replace with something else.
 		if (newProps.sceneObjects !== this.props.sceneObjects) {
 			const newSceneObjects = newProps.sceneObjects!
 			const existingSceneObjects = this.props.sceneObjects!
@@ -719,6 +671,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	componentDidMount(): void {
 		const [width, height]: Array<number> = this.getSize()
+
+		// be sure to add any initial objects that may already be in the `sceneObjects` prop
+		this.props.sceneObjects && this.addObjectsToScene( this.props.sceneObjects.toArray() )
 
 		this.createOrthographicCameraDimensions(width, height)
 

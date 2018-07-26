@@ -54,8 +54,6 @@ export default class AnnotatedSceneState {
 
 	compassRosePosition: THREE.Vector3
 	isDecorationsVisible: boolean
-	isPointCloudVisible: boolean
-	isAnnotationsVisible: boolean
 	isTransformControlsAttached: boolean
 
 	orbitControlsTargetPoint: THREE.Vector3

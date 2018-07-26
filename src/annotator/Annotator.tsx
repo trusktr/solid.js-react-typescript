@@ -1347,11 +1347,15 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// Toggle the visibility of data by cycling through the groups defined in layerGroups.
 	private uiToggleLayerVisibility(): void {
-		this.setState({ layerGroupIndex: this.state.layerGroupIndex + 1 })
-		if (!layerGroups[this.state.layerGroupIndex])
-			this.setState({ layerGroupIndex: defaultLayerGroupIndex })
+		let { layerGroupIndex } = this.state
 
-		this.state.annotatedSceneController!.setLayerVisibility(layerGroups[this.state.layerGroupIndex], true)
+		layerGroupIndex++
+
+		if (!layerGroups[layerGroupIndex])
+			layerGroupIndex = defaultLayerGroupIndex
+
+		this.state.annotatedSceneController!.setLayerVisibility(layerGroups[layerGroupIndex], true)
+		this.setState({ layerGroupIndex })
 	}
 
 	componentDidMount(): void {

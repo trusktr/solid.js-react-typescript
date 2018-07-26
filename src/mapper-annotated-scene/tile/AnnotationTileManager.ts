@@ -41,10 +41,6 @@ export class AnnotationTileManager extends TileManager {
 			maximumSuperTilesToLoad: parseInt(config['tile_manager.maximum_super_tiles_to_load'], 10) || 10000,
 			maximumObjectsToLoad: parseInt(config['tile_manager.maximum_annotations_to_load'], 10) || 1000,
 		}
-
-    // RT 7/12 this.setPointCloud = (superTiles:OrderedMap<string, SuperTile>) => {new AnnotatedSceneActions().setAnnotationSuperTiles(superTiles)}
-        this.addSuperTile = (superTile:SuperTile) => {this.channel.emit("addAnnotationSuperTile", superTile)}
-        this.removeSuperTile = (superTile:SuperTile) => {this.channel.emit("removeAnnotationSuperTile", superTile)}
 	}
 
 	protected constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile {

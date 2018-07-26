@@ -82,9 +82,6 @@ interface IProps {
 	sceneManager: SceneManager
 	layerManager: LayerManager
 
-	isAnnotationsVisible?: boolean
-	// annotationSuperTiles ?: OrderedMap<string, SuperTile>
-
 	// Replacing uiState in the short term
 	isMouseDragging ?: boolean
 	isRotationModeActive ?: boolean
@@ -123,9 +120,6 @@ interface IState {
  * as its markers. The "active" annotation is the only one that can be modified.
  */
 @typedConnect(toProps(
-	'isAnnotationsVisible',
-	//'annotationSuperTiles',
-
 	'isMouseDragging',
 	'isRotationModeActive',
 	'isConnectLeftNeighborMode',
@@ -161,15 +155,16 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	private raycasterMarker: THREE.Raycaster = new THREE.Raycaster()
 	private raycasterAnnotation: THREE.Raycaster = new THREE.Raycaster()
 	private hovered: THREE.Object3D | null = null // a marker which the user is interacting with
+	private annotationGroup = new THREE.Group()
 
 	constructor( props: IProps ) {
 		super(props)
 
 		this.raycasterPlane.params.Points!.threshold = 0.1
 
-        // Setup listeners on add/remove point cloud tiles
-        this.props.channel.on('addAnnotationSuperTile', (superTile:SuperTile) => {this.addSuperTileAnnotations(superTile as AnnotationSuperTile)})
-        this.props.channel.on('removeAnnotationSuperTile', (superTile:SuperTile) => {this.removeSuperTileAnnotations(superTile as AnnotationSuperTile)})
+		this.props.channel.on(Events.SUPER_TILE_CREATED, this.addSuperTile)
+		this.props.channel.on(Events.SUPER_TILE_REMOVED, this.removeSuperTile)
+
 		this.props.channel.on('transformUpdate', this.updateActiveAnnotationMesh)
 	}
 
@@ -177,28 +172,14 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const annotationsPath = config['startup.annotations_path']
 		if (annotationsPath)
 			this.loadAnnotations(annotationsPath).then()
+
+		new AnnotatedSceneActions().addObjectToScene( this.annotationGroup )
+		this.props.layerManager.addLayer( Layer.ANNOTATIONS, this.showAnnotations )
 	}
 
-	componentWillReceiveProps(newProps) {
-		if(newProps.isAnnotationsVisible !== this.props.isAnnotationsVisible) {
-			if(newProps.isAnnotationsVisible) {
-				this.showAnnotations()
-			} else {
-				this.hideAnnotations()
-			}
-		}
-
-		// RT 7/12
-		// if(this.props.annotationSuperTiles && newProps.superTiles &&
-		// 		newProps.annotationSuperTiles !== this.props.annotationSuperTiles) {
-		//   const existingSuperTileIds = this.props.annotationSuperTiles.keySeq().toArray()
-		//   const newSuperTileIds = newProps.superTiles.keySeq().toArray()
-		//   const tilesToAdd = newSuperTileIds.filter(superTile => existingSuperTileIds.indexOf(superTile) < 0)
-		//   const tilesToRemove = existingSuperTileIds.filter(superTile => newSuperTileIds.indexOf(superTile) < 0)
-        //
-		//   tilesToAdd.forEach(tileId => this.addSuperTileAnnotations(newProps.superTiles!.get(tileId)))
-		//   tilesToRemove.forEach(tileId => this.removeSuperTileAnnotations(newProps.superTiles!.get(tileId)))
-		// }
+	componentWillUnmount() {
+		this.props.layerManager.removeLayer( Layer.ANNOTATIONS )
+		new AnnotatedSceneActions().removeObjectFromScene( this.annotationGroup )
 	}
 
 	componentDidUpdate(previousProps: IProps) {
@@ -311,23 +292,14 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return this.addAnnotation(annotation, activate)
 	}
 
-	addSuperTileAnnotations(superTile:AnnotationSuperTile) {
-		if (superTile instanceof AnnotationSuperTile) {
-			if (superTile.annotations)
-				superTile.annotations.forEach(a => this.addAnnotation(a))
-			else
-				log.error('addSuperTileAnnotations() got a super tile with no annotations')
-		} else {
-			log.error('unknown superTile on addSuperTileAnnotations')
-		}
+	addSuperTile = (superTile:AnnotationSuperTile): void => {
+		if (!( superTile instanceof AnnotationSuperTile )) return
+		superTile.annotations.forEach(a => this.addAnnotation(a))
 	}
 
-	removeSuperTileAnnotations(superTile:AnnotationSuperTile) {
-		if (superTile instanceof AnnotationSuperTile) {
-			superTile.annotations.forEach(a => this.deleteAnnotation(a))
-		} else {
-			log.error('unknown superTile on removeSuperTileAnnotations')
-		}
+	removeSuperTile = (superTile:AnnotationSuperTile): void => {
+		if (!( superTile instanceof AnnotationSuperTile )) return
+		superTile.annotations.forEach(a => this.deleteAnnotation(a))
 	}
 
 	addAnnotation(
@@ -350,7 +322,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// Set state.
 		similarAnnotations.push(annotation)
 		this.annotationObjects.push(annotation.renderingObject)
-		new AnnotatedSceneActions().addObjectToScene(annotation.renderingObject)
+		this.annotationGroup.add(annotation.renderingObject)
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 		if (activate)
 			this.setActiveAnnotation(annotation)
 
@@ -665,12 +638,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		return true
 	}
 
-	private showAnnotations(): void {
-		this.allAnnotations().forEach(a => a.makeVisible())
-	}
-
-	private hideAnnotations(): void {
-		this.allAnnotations().forEach(a => a.makeInvisible())
+	private showAnnotations = ( show: boolean ): void => {
+		this.annotationGroup.visible = show
 	}
 
 	/**
@@ -1394,7 +1363,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		// Add annotation to the scene
 		this.annotationObjects.push(connection.renderingObject)
-		new AnnotatedSceneActions().addObjectToScene(connection.renderingObject)
+		this.annotationGroup.add(connection.renderingObject)
 
 		connection.makeInactive()
 		connection.updateVisualization()
@@ -1424,7 +1393,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		const eraseIndex = this.getAnnotationIndexFromUuid(similarAnnotations, annotation.uuid)
 		similarAnnotations.splice(eraseIndex, 1)
 		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
-		new AnnotatedSceneActions().removeObjectFromScene(annotation.renderingObject)
+		this.annotationGroup.remove(annotation.renderingObject)
+		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 
 		return true
 	}
@@ -1562,14 +1532,13 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			.catch(err => this.props.handleTileManagerLoadError('Annotations', err))
 	}
 
-	// Do some house keeping after loading annotations.
 	private annotationLoadedSideEffects(): void {
-		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS.toString()])
+		// nothing here at the moment
 	}
 
 	loadTerritoriesKml(fileName: string): Promise<void> {
 		log.info('Loading KML Territories from ' + fileName)
-		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS.toString()])
+		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS])
 
 		return this.loadKmlTerritoriesFromFile(fileName)
 			.then(focalPoint => {
@@ -1589,7 +1558,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 */
 	loadAnnotations(fileName: string): Promise<void> {
 		log.info('Loading annotations from ' + fileName)
-		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS.toString()])
+		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS])
 
 		return this.loadAnnotationsFromFile(fileName)
 			.then(focalPoint => {

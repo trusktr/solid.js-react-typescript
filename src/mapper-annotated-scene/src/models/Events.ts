@@ -5,14 +5,19 @@
 
 import {v4 as UUID} from 'uuid'
 
+// TODO JOE give types to event arguments. Right now event payloads are `any`
 export const Events = {
-	IMAGE_SCREEN_LOAD_UPDATE: UUID(),
 	ORIGIN_UPDATE: UUID(),
+
 	TILE_SERVICE_STATUS_UPDATE: UUID(),
+	SUPER_TILE_CREATED: UUID(),
+	SUPER_TILE_REMOVED: UUID(),
+
 	KEYUP: UUID(),
 	KEYDOWN: UUID(),
 
 	// event relating to image lightbox
+	IMAGE_SCREEN_LOAD_UPDATE: UUID(),
 	LIGHT_BOX_IMAGE_RAY_UPDATE: UUID(),
 	LIGHTBOX_CLOSE: UUID(),
 	IMAGE_EDIT_STATE: UUID(),

@@ -76,8 +76,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             compassRosePosition: new THREE.Vector3(0, 0, 0),
 
             isDecorationsVisible: false,
-            isPointCloudVisible: true,
-            isAnnotationsVisible: true,
 			isTransformControlsAttached: false,
 
             orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0),
@@ -298,20 +296,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
     setSceneInitialized(isInitialized: boolean) {
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
             ...annotatedSceneState, sceneInitialized: isInitialized
-        })
-    }
-
-    @ActionReducer()
-    setIsAnnotationsVisible(isVisible: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isAnnotationsVisible: isVisible
-        })
-    }
-
-    @ActionReducer()
-    setIsPointCloudVisible(isVisible: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isPointCloudVisible: isVisible
         })
     }
 

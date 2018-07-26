@@ -15,7 +15,7 @@ import Logger from "@/util/log";
 import PointCloudManager from "@/mapper-annotated-scene/src/services/PointCloudManager";
 import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
 import {SceneManager} from "@/mapper-annotated-scene/src/services/SceneManager";
-import {Layer, default as LayerManager} from "@/mapper-annotated-scene/src/services/LayerManager";
+import LayerManager, {Layer, LayerToggle} from "@/mapper-annotated-scene/src/services/LayerManager";
 import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
 import {EventEmitter} from "events"
 import {PointCloudTileManager} from "@/mapper-annotated-scene/tile/PointCloudTileManager";
@@ -30,7 +30,6 @@ import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/An
 import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
 import {BusyError} from "@/mapper-annotated-scene/tile/TileManager"
 import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type";
-import LayerToggle from "@/mapper-annotated-scene/src/models/LayerToggle";
 import {KeyboardEventHighlights} from "@/electron-ipc/Messages"
 import ResizeObserver from 'react-resize-observer'
 import toProps from '@/util/toProps'
@@ -198,7 +197,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
     }
 
     activateReadOnlyViewingMode() {
-        this.state.layerManager!.setLayerVisibility([Layer.POINT_CLOUD.toString(), Layer.ANNOTATIONS.toString()], true)
+        this.state.layerManager!.setLayerVisibility([Layer.POINT_CLOUD, Layer.ANNOTATIONS], true)
 
 		// TODO JOE all that should be needed here is just setting layer
 		// visibility, the rest is not needed (assuming the following are all
@@ -212,7 +211,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
     }
 
 	addLayer(name: string, toggle: LayerToggle): void {
-		this.state.layerManager!.addLayerToggle(name, toggle)
+		this.state.layerManager!.addLayer(name, toggle)
 	}
 
 	setLayerVisibility(layerKeysToShow: string[], hideOthers: boolean = false): void {
@@ -553,6 +552,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	                    pointCloudTileManager={this.pointCloudTileManager}
 	                    layerManager={layerManager}
 	                    handleTileManagerLoadError={this.handleTileManagerLoadError}
+	                    channel={this.channel}
 	                />
 				}
 
@@ -582,12 +582,15 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	                />
 				}
 
-                <GroundPlaneManager
-                    ref={this.getGroundPlaneManagerRef}
-                    utmCoordinateSystem={this.utmCoordinateSystem}
-                    areaOfInterestManager={areaOfInterestManager!}
-                    channel={this.channel}
-                />
+				{ layerManager &&
+	                <GroundPlaneManager
+	                    ref={this.getGroundPlaneManagerRef}
+	                    utmCoordinateSystem={this.utmCoordinateSystem}
+	                    areaOfInterestManager={areaOfInterestManager!}
+	                    channel={this.channel}
+						layerManager={layerManager}
+	                />
+				}
 
             </div>
         )

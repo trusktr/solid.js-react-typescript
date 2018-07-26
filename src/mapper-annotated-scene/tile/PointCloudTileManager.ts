@@ -90,13 +90,6 @@ export class PointCloudTileManager extends TileManager {
 			sizeAttenuation: false,
 			vertexColors: THREE.VertexColors,
 		})
-
-		// RT 7/12 this.setPointCloud = (superTiles:OrderedMap<string, SuperTile>) => {new AnnotatedSceneActions().setPointCloudSuperTiles(superTiles)}
-		this.addSuperTile = (superTile:SuperTile) => {
-			this.channel.emit("addPointCloudSuperTile", superTile)
-		}
-
-        this.removeSuperTile = (superTile:SuperTile) => {this.channel.emit("removePointCloudSuperTile", superTile)}
 	}
 
 	protected constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile {
