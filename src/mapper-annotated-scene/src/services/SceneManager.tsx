@@ -136,9 +136,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		else
 			camera = perspectiveCam
 
-		const debugSphere = new THREE.Mesh( new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: new THREE.Color( 0xffffff ) }) )
-		debugSphere.position.z = -100
-		camera.add( debugSphere )
+		const showCameraFocusPoint = false
+		if ( showCameraFocusPoint ) {
+			const debugSphere = new THREE.Mesh( new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: new THREE.Color( 0xffffff ) }) )
+			debugSphere.position.z = -100
+			camera.add( debugSphere )
+		}
 
 		// Add some lights
 		scene.add(new THREE.AmbientLight(new THREE.Color( 0xffffff )))
