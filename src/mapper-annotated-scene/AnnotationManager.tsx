@@ -183,13 +183,15 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	componentDidUpdate(previousProps: IProps) {
-        // IMPORTANT - Kiosk User Data must be loaded before this runs otherwise the UTM Offset is set based on AOI
-        // Instead of Config Bounding Box (the reverse will cause the scene to flicker)
-		if (this.props.isInitialOriginSet && previousProps.areaOfInterest !== this.props.areaOfInterest) {
-			if (this.props.areaOfInterest) {
-				this.loadAnnotationDataFromMapServer( this.props.areaOfInterest, true )
-					.catch(err => {log.warn(err.message)})
-			}
+		// NOTE JOE isInitialOriginSet will be replaced with a dynamically changing origin
+	    if (
+			previousProps.areaOfInterest !== this.props.areaOfInterest &&
+			this.props.isInitialOriginSet &&
+			this.props.areaOfInterest &&
+			this.props.layerManager.isLayerVisible(Layer.ANNOTATIONS)
+		) {
+			this.loadAnnotationDataFromMapServer( this.props.areaOfInterest, true )
+				.catch(err => {log.warn(err.message)})
 		}
 
 		if ( previousProps.isRotationModeActive !== this.props.isRotationModeActive ) {

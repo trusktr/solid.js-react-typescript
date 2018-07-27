@@ -31,24 +31,28 @@ export interface LayerManagerState {
 
 export default class LayerManager extends React.Component<LayerManagerProps, LayerManagerState> {
 	private layerToggles = new Map<string, LayerToggle>()
+	private layerVisibilities = new Map<string, boolean>()
 
 	// TODO JOE Also make a more generic setLayerVisible action
 
 	addLayer(layerName:string, toggle:LayerToggle): void {
 		if (this.layerToggles.has(layerName)) throw new Error('layer already exists')
+		toggle(true) // set new layers visible by default
 		this.layerToggles.set(layerName, toggle)
+		this.layerVisibilities.set(layerName, true)
 	}
 
 	removeLayer( layerName: string ): void {
 		this.layerToggles.delete( layerName )
+		this.layerVisibilities.delete( layerName )
 	}
 
 	// Ensure that some layers of the model are visible. Optionally hide the other layers.
 	setLayerVisibility(layerKeysToShow: string[], hideOthers: boolean = false): void {
 		layerKeysToShow.forEach(key => {
 			if (this.layerToggles.has(key)) {
-				// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
 				this.layerToggles.get(key)!( true )
+				this.layerVisibilities.set(key, true)
 			}
 			else
 				log.error(`missing visibility toggle for ${key}`)
@@ -60,6 +64,7 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 				if (this.layerToggles.has(key)) {
 					// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
 					this.layerToggles.get(key)!( false )
+					this.layerVisibilities.set(key, false)
 				}
 				else
 					log.error(`missing visibility toggle for ${key}`)
@@ -77,6 +82,11 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 
 	getLayerNames(): Array<string> {
 		return Array.from( this.layerToggles.keys() )
+	}
+
+	isLayerVisible( layerName: string ): boolean {
+		if (!this.layerToggles.has(layerName)) throw new Error('layer does not exist')
+		return this.layerVisibilities.get( layerName )!
 	}
 
 	render(): JSX.Element | null {

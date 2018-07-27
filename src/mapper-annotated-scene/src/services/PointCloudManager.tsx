@@ -53,6 +53,8 @@ export default class PointCloudManager extends React.Component<PointCloudManager
   constructor(props: PointCloudManagerProps) {
     super(props)
 
+	;(window as any).pcm = this
+
     this.state = {
       pointCloudBoundingBox: null,
       shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],
@@ -227,14 +229,15 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	}
 
 	componentDidUpdate(previousProps: PointCloudManagerProps): void {
-	    // IMPORTANT - Kiosk User Data must be loaded before this runs otherwise the UTM Offset is set based on AOI
-        // Instead of Config Bounding Box (the reverse will cause the scene to flicker)
 		// NOTE JOE isInitialOriginSet will be replaced with a dynamically changing origin
-	    if (previousProps.areaOfInterest !== this.props.areaOfInterest && this.props.isInitialOriginSet) {
-			if (this.props.areaOfInterest) {
-				this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true, false )
-					.catch(err => {log.warn(err.message)})
-			}
+	    if (
+			previousProps.areaOfInterest !== this.props.areaOfInterest &&
+			this.props.isInitialOriginSet &&
+			this.props.areaOfInterest &&
+			this.props.layerManager.isLayerVisible(Layer.POINT_CLOUD)
+		) {
+			this.loadPointCloudDataFromMapServer( this.props.areaOfInterest, true, false )
+				.catch(err => {log.warn(err.message)})
 		}
 	}
 
