@@ -173,12 +173,12 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	}
 
 	componentDidMount(): void {
+		new AnnotatedSceneActions().addObjectToScene( this.annotationGroup )
+		this.props.layerManager.addLayer( Layer.ANNOTATIONS, this.showAnnotations )
+
 		const annotationsPath = config['startup.annotations_path']
 		if (annotationsPath)
 			this.loadAnnotations(annotationsPath).then()
-
-		new AnnotatedSceneActions().addObjectToScene( this.annotationGroup )
-		this.props.layerManager.addLayer( Layer.ANNOTATIONS, this.showAnnotations )
 	}
 
 	componentWillUnmount(): void {
