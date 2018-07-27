@@ -65,7 +65,6 @@ export default class AnnotatedSceneState {
 	sceneStage: THREE.Vector3
 	isAnnotationTileManagerEnabled: boolean
 
-
 	// Ported from uiState
 	isMouseDragging: boolean
 	mousePosition: MousePosition
@@ -79,7 +78,7 @@ export default class AnnotatedSceneState {
 	isControlKeyPressed: boolean
 	isShiftKeyPressed: boolean
 	isAddConflictOrDeviceMode: boolean
-	isMouseButtonPressed: boolean
+	isMouseDown: boolean
 	numberKeyPressed: number | null
 	isHoveringOnMarker: boolean
 

@@ -94,7 +94,7 @@ interface IProps {
 	isJoinAnnotationMode ?: boolean
 	isControlKeyPressed?: boolean
 	isAddConflictOrDeviceMode ?: boolean
-	isMouseButtonPressed ?: boolean
+	isMouseDown ?: boolean
 	numberKeyPressed?: number | null
 
 	areaOfInterest ?: RangeSearch[]
@@ -132,7 +132,7 @@ interface IState {
 	'isJoinAnnotationMode',
 	'isControlKeyPressed',
 	'isAddConflictOrDeviceMode',
-	'isMouseButtonPressed',
+	'isMouseDown',
 	'numberKeyPressed',
 
 	'areaOfInterest',
@@ -1876,13 +1876,13 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			isConnectFrontNeighborMode,
 			isAddConflictOrDeviceMode,
 			isJoinAnnotationMode,
-			isMouseButtonPressed
+			isMouseDown
 		} = this.props
 
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
 		if (
-			isMouseButtonPressed ||
+			isMouseDown ||
 			isControlKeyPressed ||
 			isAddMarkerMode ||
 			isAddConnectionMode ||

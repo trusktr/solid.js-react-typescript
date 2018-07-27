@@ -62,7 +62,6 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 			const hide = lodash.difference(Array.from(this.layerToggles.keys()), layerKeysToShow)
 			hide.forEach(key => {
 				if (this.layerToggles.has(key)) {
-					// tslint:disable-next-line:no-unused-expression <-- work around a tslint bug
 					this.layerToggles.get(key)!( false )
 					this.layerVisibilities.set(key, false)
 				}

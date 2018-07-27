@@ -98,7 +98,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             isControlKeyPressed: false,
             isShiftKeyPressed: false,
             isAddConflictOrDeviceMode: false,
-            isMouseButtonPressed: false,
+            isMouseDown: false,
 			numberKeyPressed: null,
 			isHoveringOnMarker: false,
 
@@ -176,7 +176,38 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
         })
     }
 
-    @ActionReducer()
+	@ActionReducer()
+	setIsMouseDown(isMouseDown: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isMouseDown: isMouseDown
+		})
+	}
+
+	@ActionReducer()
+	setIsMouseDraggingIfIsMouseDown() {
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			if (annotatedSceneState.isMouseDown && !annotatedSceneState.isMouseDragging)
+				return new AnnotatedSceneState({
+					...annotatedSceneState, isMouseDragging: true
+				})
+			else
+				return annotatedSceneState
+		}
+	}
+
+	@ActionReducer()
+	setIsMouseDraggingFalse() {
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			if (annotatedSceneState.isMouseDragging)
+				return new AnnotatedSceneState({
+					...annotatedSceneState, isMouseDragging: false
+				})
+			else
+				return annotatedSceneState
+		}
+	}
+
+	@ActionReducer()
     toggleRotationModeActive() {
         return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
             ...annotatedSceneState, isRotationModeActive: !annotatedSceneState.isRotationModeActive

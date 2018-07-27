@@ -148,9 +148,9 @@ export default class StatusWindow extends React.Component<StatusWindowProps, ISt
       this.cancelHideTileServiceStatus()
     }
 
-    let message = <div> Tile server clients:  <span className={className}> {msg} </span> </div>
+	  let message = <div> Tile server status: <span className={className}> {msg} </span></div>
 
-    new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
+	  new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
   }
 
 	private delayHideTileServiceStatus = (): void => {

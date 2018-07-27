@@ -26,7 +26,6 @@ import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerMa
 import {Events} from "@/mapper-annotated-scene/src/models/Events";
 
 export interface GroundPlaneManagerProps {
-	// pointCloudSuperTiles ?: OrderedMap<string, SuperTile>
 	utmCoordinateSystem: UtmCoordinateSystem
 	camera?: THREE.Camera
 	mousePosition?: MousePosition
@@ -42,7 +41,6 @@ export interface GroundPlaneManagerState {
 }
 
 @typedConnect(toProps(
-	//'pointCloudSuperTiles',
 	'camera',
 	'mousePosition',
 	'rendererSize',
@@ -165,7 +163,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 			this.props.camera
 		)
 
-		if (this.estimateGroundPlane || !this.pointCloudTileCount()) {
+		if (this.estimateGroundPlane || !this.pointCloudHasPoints()) {
 			if (this.allGroundPlanes.length) {
 
 				let toggleVisibility = false
@@ -197,21 +195,14 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		}) as OrderedMap<string, THREE.Points>
 	}
 
-	pointCloudTileCount() {
-		let count = 0
-
-		if (this.state.pointCloudSuperTiles) return count
-
-		this.state.pointCloudSuperTiles!.forEach( superTile => {
-			count += superTile!.objectCount
-		})
-
-		return count
+	pointCloudHasPoints(): boolean {
+		return this.state.pointCloudSuperTiles
+			&& !!this.state.pointCloudSuperTiles!.find(st => st!.objectCount > 0)
 	}
 
 	// This is similar to showGroundPlaneLayer, but used at
 	// different times on purpose.
-	makePlanesVisible(areVisible: boolean) {
+	makePlanesVisible(areVisible: boolean): void {
 		for (const plane of this.allGroundPlanes) {
 			plane.visible = areVisible
 		}
@@ -222,17 +213,17 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		this.groundPlaneGroup.visible = show
 	}
 
-	componentDidUpdate(oldProps) {
+	componentDidUpdate(oldProps: GroundPlaneManagerProps): void {
 		if (oldProps.isAddMarkerMode !== this.props.isAddMarkerMode)
 			this.makePlanesVisible(!!this.props.isAddMarkerMode)
 	}
 
-	componentDidMount() {
+	componentDidMount(): void {
 		new AnnotatedSceneActions().addObjectToScene( this.groundPlaneGroup )
 		this.props.layerManager.addLayer(Layer.GROUND_PLANES, this.showGroundPlaneLayer)
 	}
 
-	componentWillUnmount() {
+	componentWillUnmount(): void {
 		this.props.layerManager.removeLayer( 'Ground Planes' )
 		new AnnotatedSceneActions().removeObjectFromScene( this.groundPlaneGroup )
 	}

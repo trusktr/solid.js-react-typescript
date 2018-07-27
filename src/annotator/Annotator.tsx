@@ -113,7 +113,7 @@ interface AnnotatorProps {
 	isJoinAnnotationMode?: boolean
 	isAddConflictOrDeviceMode?: boolean
 	isRotationModeActive?: boolean
-	isMouseButtonPressed?: boolean
+	isMouseDown?: boolean
 	isMouseDragging?: boolean
 	isTransformControlsAttached?: boolean
 }
@@ -136,7 +136,7 @@ interface AnnotatorProps {
 	'isJoinAnnotationMode',
 	'isAddConflictOrDeviceMode',
 	'isRotationModeActive',
-	'isMouseButtonPressed',
+	'isMouseDown',
 	'isMouseDragging',
 	'isTransformControlsAttached',
 ))
@@ -300,7 +300,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private checkForImageScreenSelection = (mousePosition: MousePosition): void => {
 		if (this.props.isLiveMode) return
 		if (!this.props.isShiftKeyPressed) return
-		if (this.props.isMouseButtonPressed) return
+		if (this.props.isMouseDown) return
 		if (this.props.isAddMarkerMode) return
 		if (this.props.isAddConnectionMode) return
 		if (this.props.isConnectLeftNeighborMode ||

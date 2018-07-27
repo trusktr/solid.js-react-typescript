@@ -149,20 +149,29 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
         new StatusWindowActions().setMessage(StatusKey.CURRENT_LOCATION_UTM, messageUtm)
     }
 
-    setup() {
-
+	setup() {
 		// TODO JOE clean up event listeners on unmount
-        this.state.container!.addEventListener('mousemove', this.state.annotationManager!.checkForActiveMarker)
+		this.state.container!.addEventListener('mousemove', this.state.annotationManager!.checkForActiveMarker)
 
-        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForConflictOrDeviceSelection)
-        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForAnnotationSelection)
-        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addAnnotationMarker)
-        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addLaneConnection)
-        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.connectNeighbor)
-        this.state.container!.addEventListener('mouseup', this.state.annotationManager!.joinAnnotationsEventHandler)
-    }
+		this.state.container!.addEventListener('mousedown', () => {new AnnotatedSceneActions().setIsMouseDown(true)})
+		this.state.container!.addEventListener('mousemove', () => {new AnnotatedSceneActions().setIsMouseDraggingIfIsMouseDown()})
+		this.state.container!.addEventListener('mouseup', () => {new AnnotatedSceneActions().setIsMouseDown(false)})
+		this.state.container!.addEventListener('mouseup', () => {
+			// Waiting for 0 time queues this block to run in the next macro-task, so that for example
+			// AnnotationManager.checkForAnnotationSelection() can fire on mouseup and get the old
+			// value of isMouseDragging, before we negate isMouseDragging.
+			setTimeout(() => {new AnnotatedSceneActions().setIsMouseDraggingFalse()}, 0)
+		})
 
-    /**
+		this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForConflictOrDeviceSelection)
+		this.state.container!.addEventListener('mouseup', this.state.annotationManager!.checkForAnnotationSelection)
+		this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addAnnotationMarker)
+		this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addLaneConnection)
+		this.state.container!.addEventListener('mouseup', this.state.annotationManager!.connectNeighbor)
+		this.state.container!.addEventListener('mouseup', this.state.annotationManager!.joinAnnotationsEventHandler)
+	}
+
+	/**
      * Set the point cloud as the center of the visible world.
      */
     // Currently this function is only used on keyboard shortcuts
