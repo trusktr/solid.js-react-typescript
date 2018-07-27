@@ -524,7 +524,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 */
 	uiEscapeSelection(): void {
 		if (this.props.isTransformControlsAttached) {
-			this.state.annotatedSceneController!.cleanTransformControls()
+
+			// defer to the next tick so that TransformControls has a chance to run it's synchronous escape key logic
+			setTimeout(() => {
+				this.state.annotatedSceneController!.cleanTransformControls()
+			}, 0)
+
 		} else if (this.state.annotationManager!.activeAnnotation) {
 			this.state.annotationManager!.unsetActiveAnnotation()
 			this.deactivateAllAnnotationPropertiesMenus()
