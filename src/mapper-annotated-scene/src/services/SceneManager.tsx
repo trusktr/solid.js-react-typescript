@@ -644,8 +644,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		if (newProps.transformedObjects !== this.props.transformedObjects) {
 			if (newProps.transformedObjects) {
 				this.transformControls.attach(newProps.transformedObjects)
+				new AnnotatedSceneActions().setTransformControlsAttached( true )
 			} else {
 				this.transformControls.detach()
+				new AnnotatedSceneActions().setTransformControlsAttached( false )
 			}
 			this.renderScene()
 		}
