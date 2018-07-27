@@ -31,7 +31,7 @@ export class UtmCoordinateSystem {
 		this.utmZoneNorthernHemisphere = false
 		this.offset = new THREE.Vector3(0, 0, 0)
 
-		// replace with event
+		// TODO JOE replace with event
 		// this.onSetOrigin = onSetOrigin
 	}
 
