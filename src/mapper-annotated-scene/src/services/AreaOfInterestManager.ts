@@ -134,14 +134,14 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 
 			if (!samePoint) {
 				this.setState({aoiFocalPoint: newPoint})
-				new AnnotatedSceneActions().setPointOfInterest( this.state.aoiFocalPoint )
-				this.updatePointCloudAoiBoundingBox(this.state.aoiFocalPoint)
+				new AnnotatedSceneActions().setPointOfInterest(newPoint)
+				this.updatePointCloudAoiBoundingBox(newPoint)
 			}
 		} else {
 			if (this.state.aoiFocalPoint !== null) {
 				this.setState({aoiFocalPoint: null})
-				new AnnotatedSceneActions().setPointOfInterest( this.state.aoiFocalPoint )
-				this.updatePointCloudAoiBoundingBox(this.state.aoiFocalPoint)
+				new AnnotatedSceneActions().setPointOfInterest(null)
+				this.updatePointCloudAoiBoundingBox(null)
 			}
 		}
 	}
@@ -164,23 +164,11 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 	}
 
 	// Find the point in the scene that is most interesting to a human user.
+    // private getDefaultPointOfInterest(): THREE.Vector3 | null {
     private getDefaultPointOfInterest(): THREE.Vector3 | null {
-
-		// wait until there's a camera
-		if (!this.props.camera) return null
-
 		const middleOfTheViewport = new THREE.Vector2(0, 0)
 
-        // In interactive mode intersect the camera with the ground plane.
-        this.raycaster.setFromCamera(middleOfTheViewport, this.props.camera)
-
-        let intersections: THREE.Intersection[] = []
-
-        if (this.estimateGroundPlane && this.props.groundPlaneManager)
-            intersections = this.raycaster.intersectObjects(this.props.groundPlaneManager.allGroundPlanes)
-
-        if (!intersections.length)
-            intersections = this.raycaster.intersectObject(this.plane)
+		const intersections = this.props.groundPlaneManager.intersectWithGround( middleOfTheViewport )
 
         if (intersections.length)
             return intersections[0].point

@@ -62,7 +62,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 
 		this.groundPlaneGroup = new THREE.Group()
 
-		this.raycaster = new THREE.Raycaster
+		this.raycaster = new THREE.Raycaster()
 		this.raycaster.params.Points!.threshold = 0.1
 
 		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
@@ -127,7 +127,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 				)
 				geometry.rotateX(-Math.PI / 2)
 
-				const material = new THREE.MeshNormalMaterial({ wireframe: true, transparent: true, opacity: 0.3 })
+				const material = new THREE.MeshNormalMaterial({ wireframe: true, transparent: true, opacity: 0.15 })
 				const plane = new THREE.Mesh(geometry, material)
 				const origin = this.props.utmCoordinateSystem.utmVectorToThreeJs(tile.index.origin)
 				plane.position.x = origin.x + xSize / 2
@@ -154,21 +154,35 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		groundPlanes.forEach(plane => this.groundPlaneGroup.remove(plane))
 	}
 
-	intersectWithGround(): THREE.Intersection[] {
+	intersectWithGround( pointInGLSpace?: THREE.Vector2 ): THREE.Intersection[] {
 		let intersections: THREE.Intersection[] = []
 
 		if (!this.props.camera || !this.props.mousePosition || !this.props.areaOfInterestManager)
 			return intersections
 
 		this.raycaster.setFromCamera(
-			mousePositionToGLSpace( this.props.mousePosition, this.props.rendererSize! ),
+			pointInGLSpace || mousePositionToGLSpace( this.props.mousePosition, this.props.rendererSize! ),
 			this.props.camera
 		)
 
 		if (this.estimateGroundPlane || !this.pointCloudTileCount()) {
-			if (this.allGroundPlanes.length)
+			if (this.allGroundPlanes.length) {
+
+				let toggleVisibility = false
+				if (!this.allGroundPlanes[0].visible) toggleVisibility = true
+
+				if (toggleVisibility) {
+					this.makePlanesVisible( true )
+					this.allGroundPlanes.forEach(m => m.updateMatrixWorld(true))
+				}
+
 				intersections = this.raycaster.intersectObjects(this.allGroundPlanes)
-			else
+
+				if (toggleVisibility)
+					this.makePlanesVisible( false )
+			}
+
+			if (!intersections.length)
 				intersections = this.raycaster.intersectObject(this.props.areaOfInterestManager.plane)
 		} else {
 			intersections = this.raycaster.intersectObjects(this.getPointClouds().valueSeq().toArray())
