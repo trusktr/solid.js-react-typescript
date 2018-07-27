@@ -61,11 +61,6 @@ export interface AnnotatedSceneControllerProps {
 	numberKeyPressed?: number | null
 	isHoveringOnMarker?: boolean
 
-    lockBoundaries?: boolean
-    lockTerritories?: boolean
-    lockLanes?: boolean
-    lockTrafficDevices?: boolean
-
 	initialBoundingBox: [ number, number, number, number, number, number ]
 }
 
@@ -489,13 +484,6 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 			areaOfInterestManager,
 		} = this.state
 
-        const {
-			lockBoundaries,
-			lockTerritories,
-			lockTrafficDevices,
-			lockLanes
-		} = this.props
-
         return (
             <div
 				ref={this.getContainerRef}
@@ -576,13 +564,6 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	                        groundPlaneManager,
 	                        annotationTileManager,
 	                        sceneManager,
-
-	                        // TODO JOE replace with redux state in AnnotationManager
-	                        lockBoundaries,
-	                        lockTerritories,
-	                        lockLanes,
-	                        lockTrafficDevices,
-
 	                    }}
 
 	                />

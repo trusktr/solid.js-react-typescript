@@ -1447,11 +1447,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
 					initialBoundingBox={config['startup.point_cloud_bounding_box'] || ConfigDefault.StartupPointCloudBoundingBox}
-
-					lockBoundaries={this.state.lockBoundaries}
-					lockTerritories={this.state.lockTerritories}
-					lockLanes={this.state.lockLanes}
-					lockTrafficDevices={this.state.lockTrafficDevices}
 				/>
 				<AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!}/>
 			</React.Fragment>
