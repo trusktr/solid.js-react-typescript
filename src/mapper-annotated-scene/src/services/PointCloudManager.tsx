@@ -214,12 +214,12 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 		new AnnotatedSceneActions().setCompassRosePosition(new THREE.Vector3(topPoint.x, topPoint.y, topPoint.z - zOffset))
 	}
 
-	componentDidMount() {
+	componentDidMount(): void {
 		new AnnotatedSceneActions().addObjectToScene( this.pointCloudGroup )
 		this.props.layerManager.addLayer( Layer.POINT_CLOUD, this.showPointCloud )
 	}
 
-	componentWillUnmount() {
+	componentWillUnmount(): void {
 		this.props.layerManager.removeLayer( Layer.POINT_CLOUD )
 		new AnnotatedSceneActions().removeObjectFromScene( this.pointCloudGroup )
 	}

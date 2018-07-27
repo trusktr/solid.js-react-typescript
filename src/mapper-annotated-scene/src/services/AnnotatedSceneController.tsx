@@ -49,9 +49,6 @@ export interface CameraState {
     lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
 }
 
-interface AnnotatorSettings {
-}
-
 export interface AnnotatedSceneControllerProps {
 	backgroundColor?: THREEColorValue
     onPointOfInterestCall ?: () => THREE.Vector3
@@ -63,11 +60,6 @@ export interface AnnotatedSceneControllerProps {
 	camera?: THREE.Camera
 	numberKeyPressed?: number | null
 	isHoveringOnMarker?: boolean
-
-    lockBoundaries?: boolean
-    lockTerritories?: boolean
-    lockLanes?: boolean
-    lockTrafficDevices?: boolean
 
 	initialBoundingBox: [ number, number, number, number, number, number ]
 }
@@ -149,7 +141,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
         new StatusWindowActions().setMessage(StatusKey.CURRENT_LOCATION_UTM, messageUtm)
     }
 
-	setup() {
+	setup(): void {
 		// TODO JOE clean up event listeners on unmount
 		this.state.container!.addEventListener('mousemove', this.state.annotationManager!.checkForActiveMarker)
 
@@ -492,13 +484,6 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 			areaOfInterestManager,
 		} = this.state
 
-        const {
-			lockBoundaries,
-			lockTerritories,
-			lockTrafficDevices,
-			lockLanes
-		} = this.props
-
         return (
             <div
 				ref={this.getContainerRef}
@@ -579,13 +564,6 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	                        groundPlaneManager,
 	                        annotationTileManager,
 	                        sceneManager,
-
-	                        // TODO JOE replace with redux state in AnnotationManager
-	                        lockBoundaries,
-	                        lockTerritories,
-	                        lockLanes,
-	                        lockTrafficDevices,
-
 	                    }}
 
 	                />

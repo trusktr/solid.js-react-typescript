@@ -102,7 +102,12 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			numberKeyPressed: null,
 			isHoveringOnMarker: false,
 
-			transformedObjects: null,
+	        lockBoundaries: false,
+	        lockLanes: false,
+	        lockTerritories: false,
+	        lockTrafficDevices: false,
+
+	        transformedObjects: null,
 			transformControlsMode: 'translate',
 
             cameraIsOrbiting: false,
@@ -490,5 +495,33 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
             ...annotatedSceneState, flyThroughEnabled: isEnabled
         })
     }
+
+	@ActionReducer()
+	setLockBoundaries(lockBoundaries: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, lockBoundaries: lockBoundaries
+		})
+	}
+
+	@ActionReducer()
+	setLockLanes(lockLanes: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, lockLanes: lockLanes
+		})
+	}
+
+	@ActionReducer()
+	setLockTerritories(lockTerritories: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, lockTerritories: lockTerritories
+		})
+	}
+
+	@ActionReducer()
+	setLockTrafficDevices(lockTrafficDevices: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, lockTrafficDevices: lockTrafficDevices
+		})
+	}
 
 }

@@ -6,8 +6,6 @@
 import * as React from "react"
 import * as lodash from "lodash";
 import Logger from "@/util/log";
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
-import {v4 as UUID} from 'uuid'
 import EventEmitter from 'events'
 import {Events} from "@/mapper-annotated-scene/src/models/Events";
 
@@ -30,12 +28,12 @@ export interface LayerManagerState {
 }
 
 export default class LayerManager extends React.Component<LayerManagerProps, LayerManagerState> {
-	private layerToggles = new Map<string, LayerToggle>()
-	private layerVisibilities = new Map<string, boolean>()
+	private layerToggles: Map<string, LayerToggle> = new Map<string, LayerToggle>()
+	private layerVisibilities: Map<string, boolean> = new Map<string, boolean>()
 
 	// TODO JOE Also make a more generic setLayerVisible action
 
-	addLayer(layerName:string, toggle:LayerToggle): void {
+	addLayer(layerName: string, toggle: LayerToggle): void {
 		if (this.layerToggles.has(layerName)) throw new Error('layer already exists')
 		toggle(true) // set new layers visible by default
 		this.layerToggles.set(layerName, toggle)

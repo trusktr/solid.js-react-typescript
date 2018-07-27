@@ -164,7 +164,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 	}
 
 	// Find the point in the scene that is most interesting to a human user.
-    // private getDefaultPointOfInterest(): THREE.Vector3 | null {
     private getDefaultPointOfInterest(): THREE.Vector3 | null {
 		const middleOfTheViewport = new THREE.Vector2(0, 0)
 
@@ -223,21 +222,21 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			})
 
 			new AnnotatedSceneActions().setAreaOfInterest( areaOfInterest )
-            return
+			return
 		}
 	}
 
-	removeAxisFromScene() {
-		if(this.axis) {
+	removeAxisFromScene(): void {
+		if (this.axis) {
 			this.axis.visible = false
 		}
 	}
 
-	hideGridVisibility() {
+	hideGridVisibility(): void {
 		this.grid!.visible = false
 	}
 
-	componentDidMount() {
+	componentDidMount(): void {
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
 		planeGeometry.rotateX(-Math.PI / 2)
 
@@ -272,7 +271,7 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 		}
 	}
 
-	componentDidUpdate(oldProps) {
+	componentDidUpdate(oldProps: AreaOfInterestManagerProps): void {
 
 		if (oldProps.sceneStage !== this.props.sceneStage) {
 
