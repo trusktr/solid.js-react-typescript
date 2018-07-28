@@ -289,6 +289,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	cleanTransformControls = (): void => {
 		this.cancelHideTransform()
 		this.transformControls.detach()
+		new AnnotatedSceneActions().setTransformControlsAttached( false )
 		this.renderScene()
 	}
 
