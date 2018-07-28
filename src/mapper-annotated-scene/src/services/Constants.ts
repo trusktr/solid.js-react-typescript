@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+// TODO JOE figure out what we need for Saffron integration
 import * as SaffronSDK from "@mapperai/mapper-saffron-sdk"
 
 export const apiRoadNetwork = 4

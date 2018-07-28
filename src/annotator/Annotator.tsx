@@ -228,30 +228,39 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.imageManager.setOpacity(value)
 		})
 
+		new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
+		new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
+		new AnnotatedSceneActions().setLockTerritories(this.state.lockTerritories)
+		new AnnotatedSceneActions().setLockTrafficDevices(this.state.lockTrafficDevices)
+
 		const folderLock = gui.addFolder('Lock')
 		folderLock.add(this.state, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
 			if (value && this.state.annotationManager!.getActiveBoundaryAnnotation()) {
 				this.state.annotatedSceneController!.cleanTransformControls()
 				this.uiEscapeSelection()
 			}
+			new AnnotatedSceneActions().setLockBoundaries(value)
 		})
 		folderLock.add(this.state, 'lockLanes').name('Lanes').onChange((value: boolean) => {
 			if (value && (this.state.annotationManager!.getActiveLaneAnnotation() || this.state.annotationManager!.getActiveConnectionAnnotation())) {
 				this.state.annotatedSceneController!.cleanTransformControls()
 				this.uiEscapeSelection()
 			}
+			new AnnotatedSceneActions().setLockLanes(value)
 		})
 		folderLock.add(this.state, 'lockTerritories').name('Territories').onChange((value: boolean) => {
 			if (value && this.state.annotationManager!.getActiveTerritoryAnnotation()) {
 				this.state.annotatedSceneController!.cleanTransformControls()
 				this.uiEscapeSelection()
 			}
+			new AnnotatedSceneActions().setLockTerritories(value)
 		})
 		folderLock.add(this.state, 'lockTrafficDevices').name('Traffic Devices').onChange((value: boolean) => {
 			if (value && (this.state.annotationManager!.getActiveTrafficDeviceAnnotation())) {
 				this.state.annotatedSceneController!.cleanTransformControls()
 				this.uiEscapeSelection()
 			}
+			new AnnotatedSceneActions().setLockTrafficDevices(value)
 		})
 		folderLock.open()
 
@@ -1443,11 +1452,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
 					initialBoundingBox={config['startup.point_cloud_bounding_box'] || ConfigDefault.StartupPointCloudBoundingBox}
-
-					lockBoundaries={this.state.lockBoundaries}
-					lockTerritories={this.state.lockTerritories}
-					lockLanes={this.state.lockLanes}
-					lockTrafficDevices={this.state.lockTrafficDevices}
 				/>
 				<AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!}/>
 			</React.Fragment>

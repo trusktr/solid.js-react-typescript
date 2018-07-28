@@ -111,7 +111,6 @@ interface IProps {
 }
 
 interface IState {
-
 }
 
 /**
@@ -135,6 +134,11 @@ interface IState {
 	'isMouseDown',
 	'numberKeyPressed',
 
+	'lockBoundaries',
+	'lockTerritories',
+	'lockLanes',
+	'lockTrafficDevices',
+
 	'areaOfInterest',
 	'rendererSize',
 	'camera',
@@ -155,7 +159,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	private raycasterMarker: THREE.Raycaster = new THREE.Raycaster()
 	private raycasterAnnotation: THREE.Raycaster = new THREE.Raycaster()
 	private hovered: THREE.Object3D | null = null // a marker which the user is interacting with
-	private annotationGroup = new THREE.Group()
+	private annotationGroup: THREE.Group = new THREE.Group()
 
 	constructor( props: IProps ) {
 		super(props)
@@ -168,21 +172,21 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.props.channel.on('transformUpdate', this.updateActiveAnnotationMesh)
 	}
 
-	componentDidMount() {
+	componentDidMount(): void {
+		new AnnotatedSceneActions().addObjectToScene( this.annotationGroup )
+		this.props.layerManager.addLayer( Layer.ANNOTATIONS, this.showAnnotations )
+
 		const annotationsPath = config['startup.annotations_path']
 		if (annotationsPath)
 			this.loadAnnotations(annotationsPath).then()
-
-		new AnnotatedSceneActions().addObjectToScene( this.annotationGroup )
-		this.props.layerManager.addLayer( Layer.ANNOTATIONS, this.showAnnotations )
 	}
 
-	componentWillUnmount() {
+	componentWillUnmount(): void {
 		this.props.layerManager.removeLayer( Layer.ANNOTATIONS )
 		new AnnotatedSceneActions().removeObjectFromScene( this.annotationGroup )
 	}
 
-	componentDidUpdate(previousProps: IProps) {
+	componentDidUpdate(previousProps: IProps): void {
 		// NOTE JOE isInitialOriginSet will be replaced with a dynamically changing origin
 	    if (
 			previousProps.areaOfInterest !== this.props.areaOfInterest &&
