@@ -69,7 +69,8 @@ export interface SceneManagerState {
 	'isInitialOriginSet',
 ))
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
-	private orbitControls: THREE.OrbitControls
+	private perspectiveOrbitControls: THREE.OrbitControls
+	private orthoOrbitControls: THREE.OrbitControls
 	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: number
 
@@ -98,7 +99,57 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		super(props)
 		const {width, height} = this.props
 
-		const orthoCameraHeight = 100 // enough to view ~1 city block of data
+		const loop = new AnimationLoop
+		const animationFps = config['startup.render.fps']
+		loop.interval = animationFps === 'device' || animationFps === 'max' ?
+			false :
+			1 / (animationFps || 10)
+		this.loop = loop
+
+		const scene = new THREE.Scene()
+		this.scene = scene
+
+		this.perspectiveCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
+		this.orthographicCamera = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
+		this.orthographicCamera.zoom = 3.25 // start the ortho cam at approximately the same "zoom" as the perspective camera
+
+		// defaults to PerspectiveCamera because cameraPreference is undefined at first
+		if (props.cameraPreference === CameraType.ORTHOGRAPHIC)
+			this.camera = this.orthographicCamera
+		else
+			this.camera = this.perspectiveCamera
+
+		const showCameraFocusPoint = false
+		if ( showCameraFocusPoint ) {
+			const debugSphere = new THREE.Mesh( new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: new THREE.Color( 0xffffff ) }) )
+			debugSphere.position.z = -100
+			this.camera.add( debugSphere )
+		}
+
+		scene.add(this.perspectiveCamera)
+		scene.add(this.orthographicCamera)
+
+		const skyRadius = 8000
+		const cameraToSkyMaxDistance = skyRadius * 0.05
+		const skyPosition2D = new THREE.Vector2()
+
+		this.cameraPosition2D = new THREE.Vector2()
+		this.cameraToSkyMaxDistance = cameraToSkyMaxDistance
+
+		const background = props.backgroundColor || 'gray'
+
+		// Draw the sky.
+		const sky = Sky(new THREE.Color( background as number ), new THREE.Color(0xccccff), skyRadius)
+		scene.add(sky)
+
+		this.sky = sky
+		this.skyPosition2D = skyPosition2D
+
+		this.maxDistanceToDecorations = 50000
+		this.decorations = []
+		this.stats = this.makeStats()
+
+		this.orthoCameraHeight = 100 // enough to view ~1 city block of data
 
 		let cameraOffset = new THREE.Vector3(0, 400, 200)
 		if (config['startup.camera_offset']) {
@@ -109,41 +160,20 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 				log.warn(`invalid startup.camera_offset config: ${configCameraOffset}`)
 			}
 		}
+		this.cameraOffset = cameraOffset
 
-		const skyRadius = 8000
-		const cameraToSkyMaxDistance = skyRadius * 0.05
-		const skyPosition2D = new THREE.Vector2()
+		// Create GL Renderer
+		const renderer = new THREE.WebGLRenderer({antialias: true})
+		renderer.setClearColor(new THREE.Color( background as number ))
+		renderer.setPixelRatio(window.devicePixelRatio)
+		renderer.setSize(width, height)
+		this.renderer = renderer
 
-		const perspectiveCam = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		const orthographicCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
-
-		const scene = new THREE.Scene()
-
-		scene.add(perspectiveCam)
-		scene.add(orthographicCam)
-
-		// defaults to PerspectiveCamera because cameraPreference is undefined at first
-		let camera
-		if (props.cameraPreference === CameraType.ORTHOGRAPHIC)
-			camera = orthographicCam
-		else
-			camera = perspectiveCam
-
-		const showCameraFocusPoint = false
-		if ( showCameraFocusPoint ) {
-			const debugSphere = new THREE.Mesh( new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: new THREE.Color( 0xffffff ) }) )
-			debugSphere.position.z = -100
-			camera.add( debugSphere )
-		}
+		this.perspectiveOrbitControls = this.createOrbitControls(this.perspectiveCamera, renderer)
+		this.orthoOrbitControls = this.createOrbitControls(this.orthographicCamera, renderer)
 
 		// Add some lights
 		scene.add(new THREE.AmbientLight(new THREE.Color( 0xffffff )))
-
-		const background = props.backgroundColor || 'gray'
-
-		// Draw the sky.
-		const sky = Sky(new THREE.Color( background as number ), new THREE.Color(0xccccff), skyRadius)
-		scene.add(sky)
 
 		const compassRoseLength = parseFloat(config['annotator.compass_rose_length']) || 0
 		let compassRose
@@ -153,45 +183,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			scene.add(compassRose)
 		} else
 			compassRose = null
-
-		// Create GL Renderer
-		const renderer = new THREE.WebGLRenderer({antialias: true})
-		renderer.setClearColor(new THREE.Color( background as number ))
-		renderer.setPixelRatio(window.devicePixelRatio)
-		renderer.setSize(width, height)
-
-		const loop = new AnimationLoop
-		const animationFps = config['startup.render.fps']
-		loop.interval = animationFps === 'device' || animationFps === 'max' ?
-			false :
-			1 / (animationFps || 10)
-
-		this.orbitControls = this.initOrbitControls(camera, renderer)
-
-		this.camera = camera
-		this.perspectiveCamera = perspectiveCam
-		this.orthographicCamera = orthographicCam
-
-		this.scene = scene
 		this.compassRose = compassRose
-		this.renderer = renderer
-		this.loop = loop
-		this.cameraOffset = cameraOffset
-		this.orthoCameraHeight = orthoCameraHeight
-
-		this.cameraPosition2D = new THREE.Vector2()
-		this.cameraToSkyMaxDistance = cameraToSkyMaxDistance
-
-		this.sky = sky
-		this.skyPosition2D = skyPosition2D
-
-		this.maxDistanceToDecorations = 50000
-		this.decorations = []
-		this.stats = this.makeStats()
-
-		this.createOrthographicCameraDimensions(width, height)
 
 		this.initTransformControls()
+
+		this.onResize()
 
 		// Point the camera at some reasonable default location.
 		this.setStage(0, 0, 0)
@@ -208,11 +204,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.renderThree()
 		})
 
-		if (this.stats) {
-			loop.addAnimationFn(() => {
-				this.stats!.update()
-			})
-		}
+		this.stats && loop.addAnimationFn(() => {
+			this.stats!.update()
+		})
 
 		this.props.channel.on(Events.SCENE_SHOULD_RENDER, this.renderScene)
 
@@ -281,7 +275,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	private initOrbitControls(camera: THREE.Camera, renderer: THREE.WebGLRenderer): any {
+	private createOrbitControls(camera: THREE.Camera, renderer: THREE.WebGLRenderer): any {
 		const orbitControls = new OrbitControls(camera, renderer.domElement)
 		orbitControls.enabled = true
 		orbitControls.enablePan = true
@@ -353,9 +347,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	 * @param {Vector3} point
 	 */
 	updateOrbitControlsTargetPoint(point: THREE.Vector3): void {
-		const orbitControls = this.orbitControls
-		orbitControls.target.set(point.x, point.y, point.z)
-		orbitControls.update()
+		this.perspectiveOrbitControls.target.set(point.x, point.y, point.z)
+		this.orthoOrbitControls.target.set(point.x, point.y, point.z)
+		this.perspectiveOrbitControls.update()
+		this.orthoOrbitControls.update()
 		this.renderScene()
 	}
 
@@ -400,9 +395,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	enableOrbitControls(): void {
-		const orbitControls = this.orbitControls
-
-		orbitControls.enabled = true
+		this.perspectiveOrbitControls.enabled = true
+		this.orthoOrbitControls.enabled = true
 	}
 
 	getCamera(): THREE.Camera {
@@ -437,12 +431,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		new AnnotatedSceneActions().setSceneStage(new THREE.Vector3(x, y, z))
 
 		if (resetCamera) {
-			const {camera, cameraOffset} = this
-			camera.position.set(x, y, z).add(cameraOffset)
+			const {cameraOffset} = this
+			this.perspectiveCamera.position.set(x, y, z).add(cameraOffset)
+			this.orthographicCamera.position.set(x, y, z).add(cameraOffset)
 
-			const {orbitControls} = this
-			orbitControls.target.set(x, y, z)
-			orbitControls.update()
+			this.perspectiveOrbitControls.target.set(x, y, z)
+			this.orthoOrbitControls.target.set(x, y, z)
+			this.perspectiveOrbitControls.update()
+			this.orthoOrbitControls.update()
 		}
 
 		this.renderScene()
@@ -470,19 +466,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	private onResize = (): void => {
-
 		const [width, height]: Array<number> = this.getSize()
 
-		const {camera, renderer} = this
+		this.perspectiveCamera.aspect = width / height
+		this.perspectiveCamera.updateProjectionMatrix()
 
-		if ( camera instanceof THREE.PerspectiveCamera ) {
-			camera.aspect = width / height
-			camera.updateProjectionMatrix()
-		} else {
-			this.createOrthographicCameraDimensions(width, height)
-		}
+		this.createOrthographicCameraDimensions(width, height)
 
-		renderer.setSize(width, height)
+		this.renderer.setSize(width, height)
 		new AnnotatedSceneActions().setRendererSize({ width, height })
 		this.renderScene()
 	}
@@ -530,18 +521,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	resetTiltAndCompass(): void {
-		if(!this.orbitControls) {
-			log.error("Orbit controls not set, unable to reset tilt and compass")
-			return
-		}
-
-		const distanceCameraToTarget = this.camera.position.distanceTo(this.orbitControls.target)
+		const distanceCameraToTarget = this.camera.position.distanceTo(this.perspectiveOrbitControls.target)
 		const camera = this.camera
-		camera.position.x = this.orbitControls.target.x
-		camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
-		camera.position.z = this.orbitControls.target.z
+		camera.position.x = this.perspectiveOrbitControls.target.x
+		camera.position.y = this.perspectiveOrbitControls.target.y + distanceCameraToTarget
+		camera.position.z = this.perspectiveOrbitControls.target.z
 
-		this.orbitControls.update()
+		this.perspectiveOrbitControls.update()
+		this.orthoOrbitControls.update()
 		this.renderScene()
 	}
 
@@ -586,10 +573,10 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.onResize()
 
 		// tslint:disable-next-line:no-any
-		;(this.orbitControls as any).setCamera(newCamera)
-		this.transformControls.setCamera(newCamera)
+		// ;(this.perspectiveOrbitControls as any).setCamera(newCamera)
+		// this.perspectiveOrbitControls.update()
 
-		this.orbitControls.update()
+		this.transformControls.setCamera(newCamera)
 		this.transformControls.update()
 
 		new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
@@ -665,14 +652,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// be sure to add any initial objects that may already be in the `sceneObjects` prop
 		this.props.sceneObjects && this.addObjectsToScene( this.props.sceneObjects.toArray() )
 
-		this.createOrthographicCameraDimensions(width, height)
-
 		new AnnotatedSceneActions().setCamera(this.camera)
 
 		this.props.container.appendChild(this.renderer.domElement)
 		this.startAnimation()
 
 		this.onResize()
+
+		this.renderScene()
 	}
 
 	componentWillUnmount(): void {

@@ -382,6 +382,8 @@ export function OrbitControls(object: Camera, domElement: HTMLCanvasElement): vo
 
 		} else if (scope.object instanceof THREE.OrthographicCamera) {
 
+			scale /= dollyScale
+
 			scope.object.zoom = Math.max(scope.minZoom, Math.min(scope.maxZoom, scope.object.zoom * dollyScale))
 			scope.object.updateProjectionMatrix()
 			zoomChanged = true
@@ -402,6 +404,8 @@ export function OrbitControls(object: Camera, domElement: HTMLCanvasElement): vo
 			scale *= dollyScale
 
 		} else if (scope.object instanceof THREE.OrthographicCamera) {
+
+			scale *= dollyScale
 
 			scope.object.zoom = Math.max(scope.minZoom, Math.min(scope.maxZoom, scope.object.zoom / dollyScale))
 			scope.object.updateProjectionMatrix()
