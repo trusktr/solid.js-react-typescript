@@ -110,7 +110,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.scene = scene
 
 		this.perspectiveCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		this.orthographicCamera = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
+		this.orthographicCamera = new THREE.OrthographicCamera(1, 1, 1, 1, -500, 10000)
 		this.orthographicCamera.zoom = 3.25 // start the ortho cam at approximately the same "zoom" as the perspective camera
 
 		// defaults to PerspectiveCamera because cameraPreference is undefined at first
