@@ -1,3 +1,5 @@
+process.env['SUPPRESS_NO_CONFIG_WARNING'] = true // keeps gtran-kml package happy
+
 const
 	APP_SEARCH_PATHS = [
 		'../dist/app',

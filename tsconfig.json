@@ -2,7 +2,7 @@
     "compilerOptions": {
         "allowSyntheticDefaultImports": true,
         "alwaysStrict": true,
-        "baseUrl": "./packages",
+        "baseUrl": "./src",
         "declaration": false,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
@@ -16,7 +16,11 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "outDir": "./dist/out",
-        "paths": { "*": [ "*" ] },
+        "paths": {
+			"*": [ "*" ],
+			"assets/*": [ "annotator-assets/*" ],
+			"@/*": [ "*" ]
+		},
         "preserveConstEnums": true,
         "pretty": true,
         "sourceMap": true,
@@ -25,7 +29,7 @@
     },
     "compileOnSave": true,
     "include": [
-        "packages"
+        "src"
     ],
     "awesomeTypescriptLoaderOptions": {
         "useBabel": false,
@@ -43,5 +47,5 @@
             }
         }
     }
-    
+
 }
