@@ -605,6 +605,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		;(this.orbitControls as any).setCamera(newCamera)
 		this.transformControls.setCamera(newCamera)
 
+		this.orbitControls.update()
+		this.transformControls.update()
+
 		new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
 
 		new AnnotatedSceneActions().setCameraPreference(newType)
