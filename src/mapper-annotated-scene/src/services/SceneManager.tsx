@@ -55,27 +55,6 @@ export interface SceneManagerProps {
 }
 
 export interface SceneManagerState {
-	camera: THREE.Camera
-	perspectiveCamera: THREE.PerspectiveCamera
-	orthographicCamera: THREE.OrthographicCamera
-	flyThroughCamera: THREE.PerspectiveCamera
-	scene: THREE.Scene
-	compassRose: THREE.Object3D
-	renderer: THREE.WebGLRenderer
-	loop: AnimationLoop
-	cameraOffset: THREE.Vector3
-
-	orthoCameraHeight: number
-	cameraPosition2D: THREE.Vector2
-	cameraToSkyMaxDistance: number
-
-	sky: THREE.Object3D
-	skyPosition2D: THREE.Vector2
-
-	maxDistanceToDecorations: number // meters
-
-	decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
-	stats: Stats | null
 }
 
 @typedConnect(toProps(
@@ -94,11 +73,31 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	private transformControls: any // controller for translating an object within the scene
 	private hideTransformControlTimer: number
 
+	private camera: THREE.Camera
+	private perspectiveCamera: THREE.PerspectiveCamera
+	private orthographicCamera: THREE.OrthographicCamera
+	private scene: THREE.Scene
+	private compassRose: THREE.Object3D
+	private renderer: THREE.WebGLRenderer
+	private loop: AnimationLoop
+	private cameraOffset: THREE.Vector3
+
+	private orthoCameraHeight: number
+	private cameraPosition2D: THREE.Vector2
+	private cameraToSkyMaxDistance: number
+
+	private sky: THREE.Object3D
+	private skyPosition2D: THREE.Vector2
+
+	private maxDistanceToDecorations: number // meters
+
+	private decorations: THREE.Object3D[] // arbitrary objects displayed with the point cloud
+	private stats: Stats | null
+
 	constructor(props: SceneManagerProps) {
 		super(props)
 		const {width, height} = this.props
 
-		// Settings for component state
 		const orthoCameraHeight = 100 // enough to view ~1 city block of data
 
 		let cameraOffset = new THREE.Vector3(0, 400, 200)
@@ -117,14 +116,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		const perspectiveCam = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
 		const orthographicCam = new THREE.OrthographicCamera(1, 1, 1, 1, 0, 10000)
-		const flyThroughCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
-		flyThroughCamera.position.set(800, 400, 0)
 
 		const scene = new THREE.Scene()
 
 		scene.add(perspectiveCam)
 		scene.add(orthographicCam)
-		scene.add(flyThroughCamera)
 
 		// defaults to PerspectiveCamera because cameraPreference is undefined at first
 		let camera
@@ -172,34 +168,26 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		this.orbitControls = this.initOrbitControls(camera, renderer)
 
-		// TODO JOE CLEANUP anything that doesn't need to change we can
-		// take out of state and keep as instance variables. F.e. loop, scene,
-		// renderer, etc
-		const state = {
-			camera: camera,
-			perspectiveCamera: perspectiveCam,
-			orthographicCamera: orthographicCam,
-			flyThroughCamera: flyThroughCamera,
+		this.camera = camera
+		this.perspectiveCamera = perspectiveCam
+		this.orthographicCamera = orthographicCam
 
-			scene: scene,
-			compassRose: compassRose,
-			renderer: renderer,
-			loop: loop,
-			cameraOffset: cameraOffset,
-			orthoCameraHeight: orthoCameraHeight,
+		this.scene = scene
+		this.compassRose = compassRose
+		this.renderer = renderer
+		this.loop = loop
+		this.cameraOffset = cameraOffset
+		this.orthoCameraHeight = orthoCameraHeight
 
-			cameraPosition2D: new THREE.Vector2(),
-			cameraToSkyMaxDistance: cameraToSkyMaxDistance,
+		this.cameraPosition2D = new THREE.Vector2()
+		this.cameraToSkyMaxDistance = cameraToSkyMaxDistance
 
-			sky: sky,
-			skyPosition2D: skyPosition2D,
+		this.sky = sky
+		this.skyPosition2D = skyPosition2D
 
-			maxDistanceToDecorations: 50000,
-			decorations: [],
-			stats: this.makeStats(),
-		}
-
-		this.state = state
+		this.maxDistanceToDecorations = 50000
+		this.decorations = []
+		this.stats = this.makeStats()
 
 		this.createOrthographicCameraDimensions(width, height)
 
@@ -220,9 +208,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.renderThree()
 		})
 
-		if (this.state.stats) {
+		if (this.stats) {
 			loop.addAnimationFn(() => {
-				this.state.stats!.update()
+				this.stats!.update()
 			})
 		}
 
@@ -232,13 +220,13 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	private renderThree = (): void => {
-		this.state.renderer.render(this.state.scene, this.state.camera)
+		this.renderer.render(this.scene, this.camera)
 	}
 
 	// used to be called renderAnnotator
 	renderScene = (): void => {
 		// force a tick which causes renderer.render to be called
-		this.state.loop.forceTick()
+		this.loop.forceTick()
 	}
 
 	/**
@@ -248,7 +236,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// TransformControlManaager class, which knows which object is currently
 	// selected.
 	initTransformControls(): void {
-		this.transformControls = new TransformControls(this.state.camera, this.state.renderer.domElement, false)
+		this.transformControls = new TransformControls(this.camera, this.renderer.domElement, false)
 
 		new AnnotatedSceneActions().addObjectToScene(this.transformControls)
 
@@ -323,7 +311,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	private updateSceneObjects(newSceneObjects:Set<THREE.Object3D>, existingSceneObjects:Set<THREE.Object3D>) {
-		const scene = this.state.scene
+		const scene = this.scene
 		newSceneObjects.forEach(object => {
 			if(!existingSceneObjects.has(object!)) {
 				// Not found in the existing objects, let's ADD it to the scene
@@ -355,7 +343,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	private destroyStats(): void {
-		this.state.stats && this.state.stats.dom.remove()
+		this.stats && this.stats.dom.remove()
 	}
 
 
@@ -387,27 +375,27 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// {{{
 
 	addAnimationFunction( fn ) {
-		this.state.loop.addAnimationFn( fn )
+		this.loop.addAnimationFn( fn )
 	}
 
 	removeAnimationFunction( fn ) {
-		this.state.loop.removeAnimationFn( fn )
+		this.loop.removeAnimationFn( fn )
 	}
 
 	pauseEverything(): void {
-		this.state.loop.pause()
+		this.loop.pause()
 	}
 
 	resumeEverything(): void {
-		this.state.loop.start()
+		this.loop.start()
 	}
 
 	// }}}
 
 	removeCompassFromScene(): void {
-		const scene = this.state.scene
-		if(this.state.compassRose) {
-			scene.remove(this.state.compassRose)
+		const scene = this.scene
+		if(this.compassRose) {
+			scene.remove(this.compassRose)
 		}
 	}
 
@@ -418,24 +406,24 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	getCamera(): THREE.Camera {
-		return this.state.camera
+		return this.camera
 	}
 
 	addChildAnimationLoop(childLoop: ChildAnimationLoop): void {
-		this.state.loop.addChildLoop( childLoop )
+		this.loop.addChildLoop( childLoop )
 	}
 
 	getRendererDOMElement() {
-		return this.state.renderer.domElement
+		return this.renderer.domElement
 	}
 
 	// Scale the ortho camera frustum along with window dimensions to preserve a 1:1
 	// proportion for model width:height.
 	private createOrthographicCameraDimensions(width: number, height: number): void {
-		const orthoWidth = this.state.orthoCameraHeight * (width / height)
-		const orthoHeight = this.state.orthoCameraHeight
+		const orthoWidth = this.orthoCameraHeight * (width / height)
+		const orthoHeight = this.orthoCameraHeight
 
-		const orthographicCamera = this.state.orthographicCamera
+		const orthographicCamera = this.orthographicCamera
 		orthographicCamera.left = orthoWidth / -2
 		orthographicCamera.right = orthoWidth / 2
 		orthographicCamera.top = orthoHeight / 2
@@ -449,7 +437,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		new AnnotatedSceneActions().setSceneStage(new THREE.Vector3(x, y, z))
 
 		if (resetCamera) {
-			const {camera, cameraOffset} = this.state
+			const {camera, cameraOffset} = this
 			camera.position.set(x, y, z).add(cameraOffset)
 
 			const {orbitControls} = this
@@ -466,7 +454,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	//
 	// IDEA JOE longer term a SkyBoxManager can add SkyBox as a layer, and update the position based on camera position boradcasted from a CameraManager
 	updateSkyPosition = (): void => {
-		const {cameraPosition2D, skyPosition2D, cameraToSkyMaxDistance, sky, camera} = this.state
+		const {cameraPosition2D, skyPosition2D, cameraToSkyMaxDistance, sky, camera} = this
 
 		cameraPosition2D.set(camera.position.x, camera.position.z)
 
@@ -485,7 +473,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		const [width, height]: Array<number> = this.getSize()
 
-		const {camera, renderer} = this.state
+		const {camera, renderer} = this
 
 		if ( camera instanceof THREE.PerspectiveCamera ) {
 			camera.aspect = width / height
@@ -501,16 +489,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// IDEA JOE Camera Manager
 	adjustCameraXOffset(value: number): void {
-		const cameraOffset = this.state.cameraOffset
+		const cameraOffset = this.cameraOffset
 		cameraOffset.x += value
-		this.setState({cameraOffset: cameraOffset.clone()})
 	}
 
 	// IDEA JOE Camera Manager
 	adjustCameraYOffset(value: number): void {
-		const cameraOffset = this.state.cameraOffset
+		const cameraOffset = this.cameraOffset
 		cameraOffset.y += value
-		this.setState({cameraOffset: cameraOffset.clone()})
 	}
 
 	// Add some easter eggs to the scene if they are close enough.
@@ -520,28 +506,26 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			decorations.forEach(decoration => {
 				const position = this.props.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
 				const distanceFromOrigin = position.length()
-				if (distanceFromOrigin < this.state.maxDistanceToDecorations) {
+				if (distanceFromOrigin < this.maxDistanceToDecorations) {
 					// Don't worry about rotation. The object is just floating in space.
 					decoration.position.set(position.x, position.y, position.z)
 
-					const decorations = this.state.decorations
+					const decorations = this.decorations
 					decorations.push(decoration)
 					new AnnotatedSceneActions().addObjectToScene(decoration)
 				}
 			})
 
-			this.setState({decorations: [...this.state.decorations]})
-
 		})
 	}
 
 	private showDecorations() {
-		this.state.decorations.forEach(d => d.visible = true)
+		this.decorations.forEach(d => d.visible = true)
 		this.renderScene()
 	}
 
 	private hideDecorations() {
-		this.state.decorations.forEach(d => d.visible = false)
+		this.decorations.forEach(d => d.visible = false)
 		this.renderScene()
 	}
 
@@ -551,8 +535,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			return
 		}
 
-		const distanceCameraToTarget = this.state.camera.position.distanceTo(this.orbitControls.target)
-		const camera = this.state.camera
+		const distanceCameraToTarget = this.camera.position.distanceTo(this.orbitControls.target)
+		const camera = this.camera
 		camera.position.x = this.orbitControls.target.x
 		camera.position.y = this.orbitControls.target.y + distanceCameraToTarget
 		camera.position.z = this.orbitControls.target.z
@@ -562,11 +546,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	private setCompassRosePosition(x: number, y: number, z: number): void {
-		if (!this.state.compassRose) {
+		if (!this.compassRose) {
 			log.error("Unable to find compassRose")
 			return
 		} else {
-			const compassRose = this.state.compassRose
+			const compassRose = this.compassRose
 			compassRose.position.set(x, y, z)
 		}
 
@@ -579,13 +563,14 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		let oldCamera: THREE.Camera
 		let newCamera: THREE.Camera
 		let newType: CameraType
-		if (this.state.camera === this.state.perspectiveCamera) {
-			oldCamera = this.state.perspectiveCamera
-			newCamera = this.state.orthographicCamera
+
+		if (this.camera === this.perspectiveCamera) {
+			oldCamera = this.perspectiveCamera
+			newCamera = this.orthographicCamera
 			newType = CameraType.ORTHOGRAPHIC
 		} else {
-			oldCamera = this.state.orthographicCamera
-			newCamera = this.state.perspectiveCamera
+			oldCamera = this.orthographicCamera
+			newCamera = this.perspectiveCamera
 			newType = CameraType.PERSPECTIVE
 		}
 
@@ -595,9 +580,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// calculate zoom differently. It would be nice to convert one to the other here.
 		newCamera.position.set(oldCamera.position.x, oldCamera.position.y, oldCamera.position.z)
 
-		// used to be --> this.annotatorCamera = newCamera
-		this.setState({camera: newCamera})
-		new AnnotatedSceneActions().setCamera(this.state.camera)
+		this.camera = newCamera
+		new AnnotatedSceneActions().setCamera(this.camera)
 
 		this.onResize()
 
@@ -615,7 +599,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	private addObjectsToScene( objects: THREE.Object3D[] ): void {
-		this.state.scene.add.apply( this.state.scene, objects )
+		this.scene.add.apply( this.scene, objects )
 	}
 
 	componentWillReceiveProps(newProps: SceneManagerProps): void {
@@ -683,9 +667,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		this.createOrthographicCameraDimensions(width, height)
 
-		new AnnotatedSceneActions().setCamera(this.state.camera)
+		new AnnotatedSceneActions().setCamera(this.camera)
 
-		this.props.container.appendChild(this.state.renderer.domElement)
+		this.props.container.appendChild(this.renderer.domElement)
 		this.startAnimation()
 
 		this.onResize()
@@ -694,7 +678,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	componentWillUnmount(): void {
 		this.stopAnimation()
 		this.destroyStats()
-		this.state.renderer.domElement.remove()
+		this.renderer.domElement.remove()
 	}
 
 	// This is from React.Component.render, not related to WebGL rendering
