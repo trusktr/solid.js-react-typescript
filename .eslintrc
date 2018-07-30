@@ -33,7 +33,7 @@
 		"readJSONFileSync": true,
 		"baseDir": true,
 		"log": true,
-		
+
 		"compileTasks":true,
 		"allWatchConfigs":true,
 		"nextMinorVersion":true,
@@ -45,7 +45,7 @@
 		"processDir": true,
 		"console": true,
 		"process": false,
-		
+
 		"getLogger":true,
 		"ProcessType": true,
 		"ProcessConfig": true,

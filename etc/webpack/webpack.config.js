@@ -33,11 +33,11 @@ module.exports = patchConfig({
 
 	entry: Object.assign(
 		{
-		    'annotator-entry-ui': './annotator-entry-ui/index',
-		    'annotator-image-lightbox': './annotator-image-lightbox/index',
+		    'annotator-entry-ui': './annotator/index',
+		    'annotator-image-lightbox': './annotator/annotator-image-lightbox/index',
 		},
 		!isSaffron ? {
-		    'annotator-entry-main': './annotator-entry-main/MainEntry',
+		    'annotator-entry-main': './annotator/annotator-entry-main/MainEntry',
 		} : {}
 	),
 
@@ -172,7 +172,7 @@ module.exports = patchConfig({
 		// AVOID CIRCULAR
 		new CircularDependencyPlugin(),
 
-		// TODO, not needed in newer Webpack, just specify hot:true
+		// TODO JOE HotModuleReplacementPlugin is not needed in newer Webpack, just specify hot:true
 		// new HotModuleReplacementPlugin(),
 
 		new Webpack.NamedModulesPlugin(),
@@ -182,7 +182,7 @@ module.exports = patchConfig({
 		// NO ERRORS
 		new Webpack.NoEmitOnErrorsPlugin(),
 
-		/* TODO replace with Babel minify, UglifyJS is old and breaks on newer syntax.
+		/* TODO JOE replace with Babel minify, UglifyJS is old and breaks on newer syntax.
 		new Webpack.optimize.UglifyJsPlugin({
 			mangle: false,
 			mangleProperties: false,
@@ -216,7 +216,8 @@ module.exports = patchConfig({
 				/webpack/,
 				/webpack-hot/,
 				/react-hot-loader/
-			]
+			],
+			'@mapperai/mapper-saffron-sdk': '@mapperai/mapper-saffron-sdk'
 		})
 	],
 })

@@ -13,6 +13,5 @@ export default {
 	reasons: false,
 	modules: false,
 	chunkOrigins: false,
-	sources: false
 
 }

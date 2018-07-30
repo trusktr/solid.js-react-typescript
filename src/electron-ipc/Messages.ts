@@ -35,4 +35,7 @@ export interface KeyboardEventHighlights {
 	key: string,
 	keyCode: number,
 	repeat: boolean,
+	altKey: boolean,
+	ctrlKey: boolean,
+	metaKey: boolean
 }

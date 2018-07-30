@@ -8,7 +8,9 @@ import * as fs from 'fs'
 import * as Electron from 'electron'
 import createPromise from '@/util/createPromise'
 
-export default nconf
+const config = {}
+
+export default config
 
 // see https://github.com/jprichardson/is-electron-renderer
 function detectRenderer() {
@@ -87,7 +89,7 @@ async function connect() {
 
 		// we're either running in a <webview> in Saffron (so sendToHost() connects
 		// to the parent document where the <webview> is located), or we're running
-		// standlone outside of Saffron (so send() connects to main)
+		// standalone outside of Saffron (so send() connects to main)
 		Electron.ipcRenderer.sendToHost('connect')
 		Electron.ipcRenderer.send('connect')
 
@@ -147,7 +149,9 @@ async function setupConfig() {
 
 	})
 
-	resolveConfig( nconf )
+	Object.assign( config, nconf.get() )
+
+	resolveConfig( config )
 
 }
 

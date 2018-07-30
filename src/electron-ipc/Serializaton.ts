@@ -12,5 +12,8 @@ export function toKeyboardEventHighlights(event: KeyboardEvent): KeyboardEventHi
 		key: event.key,
 		keyCode: event.keyCode,
 		repeat: event.repeat,
+		altKey: event.altKey,
+		ctrlKey: event.ctrlKey,
+		metaKey: event.metaKey,
 	}
 }
