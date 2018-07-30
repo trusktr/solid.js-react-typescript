@@ -51,7 +51,9 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 	allGroundPlanes: THREE.Mesh[] // ground planes for all tiles, denormalized from superTileGroundPlanes
 	private raycaster: THREE.Raycaster
 	private superTileGroundPlanes: Map<string, THREE.Mesh[]> // super tile key -> all of the super tile's ground planes
+	private groundPlaneMaterial: THREE.Material
 	private estimateGroundPlane: boolean
+	private groundPlaneOpacityOnHover: number
 	private tileGroundPlaneScale: number // ground planes don't meet at the edges: scale them up a bit so they are more likely to intersect a raycaster
 	private groundPlaneGroup: THREE.Group
 
@@ -64,6 +66,8 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		this.raycaster.params.Points!.threshold = 0.1
 
 		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
+		this.groundPlaneOpacityOnHover = parseFloat(config['annotator.ground_plane_opacity_on_hover']) || 0.0
+		this.groundPlaneMaterial = new THREE.MeshNormalMaterial({wireframe: true, transparent: true, opacity: this.groundPlaneOpacityOnHover})
 
 		this.allGroundPlanes = []
 		this.superTileGroundPlanes = new Map()
@@ -125,8 +129,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 				)
 				geometry.rotateX(-Math.PI / 2)
 
-				const material = new THREE.MeshNormalMaterial({ wireframe: true, transparent: true, opacity: 0.15 })
-				const plane = new THREE.Mesh(geometry, material)
+				const plane = new THREE.Mesh(geometry, this.groundPlaneMaterial)
 				const origin = this.props.utmCoordinateSystem.utmVectorToThreeJs(tile.index.origin)
 				plane.position.x = origin.x + xSize / 2
 				plane.position.y = y
@@ -214,7 +217,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 	}
 
 	componentDidUpdate(oldProps: GroundPlaneManagerProps): void {
-		if (oldProps.isAddMarkerMode !== this.props.isAddMarkerMode)
+		if (this.groundPlaneOpacityOnHover && oldProps.isAddMarkerMode !== this.props.isAddMarkerMode)
 			this.makePlanesVisible(!!this.props.isAddMarkerMode)
 	}
 

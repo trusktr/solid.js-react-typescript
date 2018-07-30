@@ -5,7 +5,6 @@
 
 import * as _ from "lodash"
 import {DefaultLeafReducer, ILeafReducer} from "typedux"
-import {getAnnotatedSceneStore} from '@/mapper-annotated-scene/src/store/AppStore'
 import Logger from "@/util/log";
 
 const log = Logger(__filename)
@@ -40,12 +39,4 @@ function filterReducers(modules):DefaultLeafReducer<any, any>[] {
     }
   }
   return reducers
-}
-
-/**
- * Update the store with the new/updated reducers
- */
-export function updateReducers() {
-  log.info("Updating reducers")
-  getAnnotatedSceneStore().replaceReducers(...loadReducers())
 }
