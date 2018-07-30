@@ -601,9 +601,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		this.onResize()
 
-		const orbitControls = this.orbitControls
 		// tslint:disable-next-line:no-any
-		;(orbitControls as any).setCamera(newCamera)
+		;(this.orbitControls as any).setCamera(newCamera)
+		this.transformControls.setCamera(newCamera)
 
 		new StatusWindowActions().setMessage(StatusKey.CAMERA_TYPE, 'Camera: ' + newType)
 
