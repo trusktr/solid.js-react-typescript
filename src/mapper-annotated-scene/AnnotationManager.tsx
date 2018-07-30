@@ -1871,30 +1871,19 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * marker to the transform control for editing.
 	 */
 	checkForActiveMarker = (event: MouseEvent): void => {
-		const {
-			isControlKeyPressed,
-			isAddMarkerMode,
-			isAddConnectionMode,
-			isConnectLeftNeighborMode,
-			isConnectRightNeighborMode,
-			isConnectFrontNeighborMode,
-			isAddConflictOrDeviceMode,
-			isJoinAnnotationMode,
-			isMouseDown
-		} = this.props
 
 		// If the mouse is down we might be dragging a marker so avoid
 		// picking another marker
 		if (
-			isMouseDown ||
-			isControlKeyPressed ||
-			isAddMarkerMode ||
-			isAddConnectionMode ||
-			isConnectLeftNeighborMode ||
-			isConnectRightNeighborMode ||
-			isConnectFrontNeighborMode ||
-			isAddConflictOrDeviceMode ||
-			isJoinAnnotationMode
+			this.props.isMouseDown ||
+			this.props.isControlKeyPressed ||
+			this.props.isAddMarkerMode ||
+			this.props.isAddConnectionMode ||
+			this.props.isConnectLeftNeighborMode ||
+			this.props.isConnectRightNeighborMode ||
+			this.props.isConnectFrontNeighborMode ||
+			this.props.isAddConflictOrDeviceMode ||
+			this.props.isJoinAnnotationMode
 		) {
 			return
 		}
