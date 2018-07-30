@@ -605,10 +605,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const basePath = config['output.annotations.tiles_dir']
 		const scale = scale3DToSpatialTileScale(this.scaleProvider.utmTileScale)
 		if (isNullOrUndefined(scale))
-			return Promise.reject(Error(`1can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
+			return Promise.reject(Error(`can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
 		const scaleString = spatialTileScaleToString(scale)
 		if (isNullOrUndefined(scaleString))
-			return Promise.reject(Error(`2can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
+			return Promise.reject(Error(`can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
 		const dir = basePath + '/' + dateToString(new Date()) + scaleString
 		log.info(`Exporting annotations tiles to ${dir}`)
 
