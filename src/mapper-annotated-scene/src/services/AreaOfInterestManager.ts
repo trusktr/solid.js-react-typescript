@@ -164,16 +164,16 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 	}
 
 	// Find the point in the scene that is most interesting to a human user.
-    private getDefaultPointOfInterest(): THREE.Vector3 | null {
+	private getDefaultPointOfInterest(): THREE.Vector3 | null {
 		const middleOfTheViewport = new THREE.Vector2(0, 0)
 
-		const intersections = this.props.groundPlaneManager.intersectWithGround( middleOfTheViewport )
+		const intersections = this.props.groundPlaneManager.intersectWithGround(undefined, middleOfTheViewport)
 
-        if (intersections.length)
-            return intersections[0].point
-        else
-            return null
-    }
+		if (intersections.length)
+			return intersections[0].point
+		else
+			return null
+	}
 
 	// Create a bounding box around the current AOI and optionally display it.
 	// Then load the points in and around the AOI. If we have a current heading,

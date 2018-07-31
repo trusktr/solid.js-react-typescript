@@ -155,16 +155,22 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		groundPlanes.forEach(plane => this.groundPlaneGroup.remove(plane))
 	}
 
-	intersectWithGround( pointInGLSpace?: THREE.Vector2 ): THREE.Intersection[] {
+	intersectWithGround(customRaycaster?: THREE.Raycaster, pointInGLSpace?: THREE.Vector2): THREE.Intersection[] {
+		let raycaster: THREE.Raycaster
 		let intersections: THREE.Intersection[] = []
 
-		if (!this.props.camera || !this.props.mousePosition || !this.props.areaOfInterestManager)
-			return intersections
+		if (customRaycaster) {
+			raycaster = customRaycaster
+		} else {
+			if (!this.props.camera || !this.props.mousePosition)
+				return intersections
 
-		this.raycaster.setFromCamera(
-			pointInGLSpace || mousePositionToGLSpace( this.props.mousePosition, this.props.rendererSize! ),
-			this.props.camera
-		)
+			raycaster = this.raycaster
+			raycaster.setFromCamera(
+				pointInGLSpace || mousePositionToGLSpace(this.props.mousePosition, this.props.rendererSize!),
+				this.props.camera
+			)
+		}
 
 		if (this.estimateGroundPlane || !this.pointCloudHasPoints()) {
 			if (this.allGroundPlanes.length) {
@@ -177,16 +183,16 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 					this.allGroundPlanes.forEach(m => m.updateMatrixWorld(true))
 				}
 
-				intersections = this.raycaster.intersectObjects(this.allGroundPlanes)
+				intersections = raycaster.intersectObjects(this.allGroundPlanes)
 
 				if (toggleVisibility)
 					this.makePlanesVisible( false )
 			}
 
-			if (!intersections.length)
-				intersections = this.raycaster.intersectObject(this.props.areaOfInterestManager.plane)
+			if (!intersections.length && this.props.areaOfInterestManager)
+				intersections = raycaster.intersectObject(this.props.areaOfInterestManager.plane)
 		} else {
-			intersections = this.raycaster.intersectObjects(this.getPointClouds().valueSeq().toArray())
+			intersections = raycaster.intersectObjects(this.getPointClouds().valueSeq().toArray())
 		}
 
 		return intersections
