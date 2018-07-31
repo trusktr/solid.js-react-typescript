@@ -107,8 +107,8 @@
     "shelljs": "0.7.0",
     "style-loader": "0.14.1",
     "ts-jest": "19.0.0",
-    "tslint": "5.8.0",
-    "typescript": "2.7.1",
+    "tslint": "5.11.0",
+    "typescript": "3.0.1",
     "typescript-eslint-parser": "^17.0.1",
     "webpack": "3.10.0",
     "webpack-node-externals": "1.2.0"

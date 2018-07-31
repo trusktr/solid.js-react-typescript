@@ -25,6 +25,10 @@ module.exports = {
 	],
 	// add your custom rules here
 	'rules': {
+
+		// disable this rule because it causes an error with our code.
+		'no-useless-constructor': 0,
+
 		// allow paren-less arrow functions
 		'arrow-parens': 0,
 		// allow async-await
@@ -36,6 +40,7 @@ module.exports = {
 		'indent': [ 'error', 'tab', { SwitchCase: 1 } ],
 		'prefer-const': 'error',
 		'one-var': [ 'error', 'never' ],
+		'no-var': 'error',
 		'space-in-parens': [ 'error', 'never' ],
 		'space-before-function-paren': [ 'error', 'never' ],
 		'padded-blocks': [ 'error', 'never' ],
@@ -46,13 +51,51 @@ module.exports = {
 		'object-curly-spacing': [ 'error', 'never' ],
 		'array-bracket-spacing': [ 'error', 'never' ],
 		'computed-property-spacing': [ 'error', 'never' ],
-		'brace-style': [ 'error', 'stroustrup', { allowSingleLine: true } ],
+		// 'brace-style': [ 'error', 'stroustrup', { allowSingleLine: true } ],
+		'brace-style': 0,
+		'quote-props': [ 'error', 'as-needed' ],
+
+		// ????????????????
+		// 'no-mixed-operators': 0,
+		// 'no-return-assign': 0,
+
 		'padding-line-between-statements': [ 'error',
+
 			{
-				blankLine: 'never',
+				blankLine: 'always',
 				prev: '*',
 				next: [
 					'block',
+					'const',
+					'let',
+					'var',
+					'import',
+					'export',
+				],
+			},
+			{
+				blankLine: 'always',
+				next: '*',
+				prev: [
+					'block',
+					'const',
+					'let',
+					'var',
+					'import',
+					'export',
+				],
+			},
+
+			{ blankLine: 'never', prev: 'const', next: 'const' },
+			{ blankLine: 'never', prev: 'let', next: 'let' },
+			{ blankLine: 'never', prev: 'var', next: 'var' },
+			{ blankLine: 'never', prev: 'import', next: 'import' },
+			{ blankLine: 'never', prev: 'export', next: 'export' },
+
+			{
+				blankLine: 'always',
+				prev: '*',
+				next: [
 					'multiline-block-like',
 					'multiline-expression',
 					'class',
@@ -60,10 +103,9 @@ module.exports = {
 				],
 			},
 			{
-				blankLine: 'never',
+				blankLine: 'always',
 				next: '*',
 				prev: [
-					'block',
 					'multiline-block-like',
 					'multiline-expression',
 					'class',
