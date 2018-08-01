@@ -14,8 +14,8 @@
     "postinstall": "npm install --no-save grpc@1.7.3 --runtime=electron --target=1.7.9",
     "tslint": "tslint \"src/**/*.ts\" --force",
     "lint": "npm run lint-js && npm run lint-ts",
-    "lint-js": "eslint --config .eslintrc-js.js '{src,etc}/**/*.{js,json}' '.eslintrc*' 'package.json'",
-    "lint-ts": "eslint --config .eslintrc-ts.js '{src,etc}/**/*.ts'",
+    "lint-js": "eslint --format codeframe '{src,etc}/**/*.{js,json}' '.eslintrc*' 'package.json'",
+    "lint-ts": "eslint --format codeframe '{src,etc}/**/*.ts'",
     "lint-fix": "npm run lint-js -- --fix; npm run lint-ts -- --fix"
   },
   "license": "UNLICENSED",
@@ -108,7 +108,7 @@
     "style-loader": "0.14.1",
     "ts-jest": "19.0.0",
     "tslint": "5.11.0",
-    "typescript": "3.0.1",
+    "typescript": "2.9.1",
     "typescript-eslint-parser": "17.0.1",
     "webpack": "3.10.0",
     "webpack-node-externals": "1.2.0"

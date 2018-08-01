@@ -1,8 +1,17 @@
 console.log('ESLint TypeScript config')
 
 module.exports = {
-	extends: ['./.eslintrc.js'],
 	parser: 'typescript-eslint-parser',
+
+	// with the tslintplugin
+	//
+	// plugins: [
+	// 	'tslint',
+	// ],
+	// rules: {},
+
+	// with the typescript plugin
+	//
 	plugins: [
 		'typescript',
 	],

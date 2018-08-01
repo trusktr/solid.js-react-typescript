@@ -3,6 +3,7 @@ console.log('ESLint base config')
 
 module.exports = {
 	root: true,
+	parser: 'babel-eslint',
 	parserOptions: {
 		sourceType: 'module',
 	},
@@ -20,6 +21,7 @@ module.exports = {
 	plugins: [
 		// 'html',
 		// 'vue',
+		'json', // TODO JOE not working, doesn't seem to do anything with JSON files
 	],
 	// add your custom rules here
 	rules: {
