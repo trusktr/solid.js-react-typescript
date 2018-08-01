@@ -55,10 +55,6 @@ module.exports = {
 		'quote-props': [ 'error', 'as-needed' ],
 		'curly': [ 'error', 'multi-or-nest', 'consistent' ],
 
-		// ????????????????
-		// 'no-mixed-operators': 0,
-		// 'no-return-assign': 0,
-
 		'padding-line-between-statements': [ 'error',
 
 			{
