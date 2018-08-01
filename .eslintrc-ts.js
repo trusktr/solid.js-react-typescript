@@ -6,7 +6,7 @@ module.exports = {
 	plugins: [
 		'typescript',
 	],
-	'rules': {
+	rules: {
 
 		// these are off because TypeScript handles these, and ESLint otherwise gets false positives on these.
 		// See: https://github.com/eslint/typescript-eslint-parser/issues/208
@@ -20,9 +20,9 @@ module.exports = {
 		// 'typescript/explicit-member-accessibility': , // — Require explicit accessibility modifiers on class properties and methods (member-access from TSLint)
 		// 'typescript/interface-name-prefix': , // — Require that interface names be prefixed with I (interface-name from TSLint)
 		'typescript/member-delimiter-style': ['error', { // — Require a specific member delimiter style for interfaces and type literals
-			delimiter: "none",
+			delimiter: 'none',
 			requireLast: true,
-			ignoreSingleLine: true
+			ignoreSingleLine: true,
 		}],
 		// 'typescript/member-naming': , // — Enforces naming conventions for class members by visibility.
 		// 'typescript/member-ordering': , // — Require a consistent member declaration order (member-ordering from TSLint)
