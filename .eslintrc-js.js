@@ -51,8 +51,7 @@ module.exports = {
 		'object-curly-spacing': [ 'error', 'never' ],
 		'array-bracket-spacing': [ 'error', 'never' ],
 		'computed-property-spacing': [ 'error', 'never' ],
-		// 'brace-style': [ 'error', 'stroustrup', { allowSingleLine: true } ],
-		'brace-style': 0,
+		'brace-style': [ 'error', '1tbs', { allowSingleLine: false } ],
 		'quote-props': [ 'error', 'as-needed' ],
 		'curly': [ 'error', 'multi-or-nest', 'consistent' ],
 
