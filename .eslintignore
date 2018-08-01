@@ -1,3 +1,5 @@
 /build/
 /dist/
 /src/mapper-annotated-scene/grpc-compiled-protos/
+!/.eslintrc-js.js
+!/.eslintrc.js

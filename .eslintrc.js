@@ -2,7 +2,7 @@ module.exports = {
 	extends: [
 		'./.eslintrc-js.js',
 	],
-	'rules': {
+	rules: {
 
 		// these are off because TypeScript handles these, and ESLint otherwise gets false positives on these.
 		// See: https://github.com/eslint/typescript-eslint-parser/issues/208
