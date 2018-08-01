@@ -14,13 +14,13 @@ import Logger from '@/util/log'
 
 const log = Logger(__filename)// Create the global store as an ObservableStore (from typedux) which implements Redux store under the hood
 
-let store:ObservableStore<any> = getHot(module, 'store') as any
+let store: ObservableStore<any> = getHot(module, 'store') as any
 
 /**
  * Get the ObservableStore
  * @returns {ObservableStore<any>}
  */
-export function getAnnotatedSceneStore():ObservableStore<any> {
+export function getAnnotatedSceneStore(): ObservableStore<any> {
 	return store
 }
 
@@ -28,7 +28,7 @@ export function getAnnotatedSceneStore():ObservableStore<any> {
  * Retrieve redux store from the regular ObservableStore
  * @returns {Store<Map<string, any>>}
  */
-export function getAnnotatedSceneReduxStore():ReduxStore<Map<string, any>> {
+export function getAnnotatedSceneReduxStore(): ReduxStore<Map<string, any>> {
 	return getAnnotatedSceneStore() && getAnnotatedSceneStore().getReduxStore()
 }
 
@@ -37,11 +37,11 @@ export function getAnnotatedSceneReduxStore():ReduxStore<Map<string, any>> {
  *
  * @returns {Map<string,any>}
  */
-export function getAnnotatedSceneStoreState():IMMap<string, any> {
+export function getAnnotatedSceneStoreState(): IMMap<string, any> {
 	return getAnnotatedSceneStore() ? getAnnotatedSceneStore().getState() : IMMap()
 }
 
-function initStore():ObservableStore<any> {
+function initStore(): ObservableStore<any> {
 	if (store != null) {
 		log.error('Tried to init store multiple times')
 		return store
@@ -50,7 +50,7 @@ function initStore():ObservableStore<any> {
 	loadActions()
 
 	const reducers = loadReducers()
-	const newObservableStore:ObservableStore<any> = ObservableStore.createObservableStore(
+	const newObservableStore: ObservableStore<any> = ObservableStore.createObservableStore(
 		reducers,
 	compose.call(null) as StoreEnhancer<any>, // eslint-disable-line no-useless-call
 	undefined,
@@ -70,7 +70,7 @@ function initStore():ObservableStore<any> {
  * Load the store from disk and setup
  * @returns {ObservableStore<any>}
  */
-export function loadAndInitStore():ObservableStore<any> {
+export function loadAndInitStore(): ObservableStore<any> {
 	return initStore()
 }
 
@@ -79,7 +79,7 @@ export function loadAndInitStore():ObservableStore<any> {
  * @param {Error} err
  * @param {ILeafReducer<any, any>} reducer
  */
-function onError(err:Error, reducer?:ILeafReducer<any, any>) {
+function onError(err: Error, reducer?: ILeafReducer<any, any>) {
 	log.error('Reducer error occurred', reducer, err, err.stack)
 }
 
@@ -88,5 +88,5 @@ _.assign(global, {
 })
 
 declare global {
-	function getAnnotatedSceneStore():ObservableStore<any>
+	function getAnnotatedSceneStore(): ObservableStore<any>
 }

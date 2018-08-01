@@ -34,8 +34,8 @@ export enum TrafficDeviceType {
 }
 
 interface MaterialFaces {
-	front: THREE.Material,
-	back: THREE.Material,
+	front: THREE.Material
+	back: THREE.Material
 }
 
 // Some variables used for rendering

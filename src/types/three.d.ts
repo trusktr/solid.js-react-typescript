@@ -31,8 +31,8 @@ declare module 'three' {
 		minAzimuthAngle: number
 		maxAzimuthAngle: number
 		enableKeys: boolean
-		keys: { LEFT: number, UP: number, RIGHT: number, BOTTOM: number }
-		mouseButtons: { ORBIT: THREE.MOUSE, ZOOM: THREE.MOUSE, PAN: THREE.MOUSE }
+		keys: { LEFT: number UP: number RIGHT: number BOTTOM: number }
+		mouseButtons: { ORBIT: THREE.MOUSE ZOOM: THREE.MOUSE PAN: THREE.MOUSE }
 		enableDamping: boolean
 		dampingFactor: number
 

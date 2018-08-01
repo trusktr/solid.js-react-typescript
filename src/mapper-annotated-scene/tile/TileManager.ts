@@ -40,10 +40,10 @@ function makeTileMessageForCurrentUtmZone(origin: THREE.Vector3): TileMessage {
 }
 
 export interface TileManagerConfig {
-	layerId: LayerId, // Each TileManager gets all its data from a single layer of tiles.
-	initialSuperTilesToLoad: number, // preload some super tiles; initially we don't know how many objects they will contain
-	maximumSuperTilesToLoad: number, // sanity check so we don't load lots of very sparse or empty super tiles
-	maximumObjectsToLoad: number, // after loading super tiles we can trim them back by count of their contents (either points or annotations)
+	layerId: LayerId // Each TileManager gets all its data from a single layer of tiles.
+	initialSuperTilesToLoad: number // preload some super tiles; initially we don't know how many objects they will contain
+	maximumSuperTilesToLoad: number // sanity check so we don't load lots of very sparse or empty super tiles
+	maximumObjectsToLoad: number // after loading super tiles we can trim them back by count of their contents (either points or annotations)
 }
 // TileManager loads tile data from the network. Tiles are aggregated into SuperTiles,
 // which serve as a local cache for chunks of tile data.
@@ -185,7 +185,7 @@ export abstract class TileManager implements TileManagerBase {
 	// as allowed by configuration, or all if loadAllObjects.
 	// Side effect: Prune old SuperTiles as necessary.
 	// Returns true if super tiles were loaded.
-	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects: boolean = false): Promise<boolean> {
+	loadFromMapServer(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects = false): Promise<boolean> {
 		if (this.isLoadingTiles) return Promise.reject(new BusyError('busy loading tiles'))
 
 		this._isLoadingTiles = true
@@ -215,7 +215,7 @@ export abstract class TileManager implements TileManagerBase {
 	}
 
 	// The useful bits of loadFromMapServer()
-	protected loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects: boolean = false): Promise<boolean> {
+	protected loadFromMapServerImpl(searches: RangeSearch[], coordinateFrame: CoordinateFrameType, loadAllObjects = false): Promise<boolean> {
 		// Figure out which super tiles to load.
 		const allStIndexes = this.enumerateIntersectingSuperTileIndexes(searches)
 		const filteredStIndexes = allStIndexes

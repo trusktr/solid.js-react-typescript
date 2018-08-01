@@ -24,7 +24,7 @@ export default class StatusWindowActions extends ActionFactory<AnnotatedSceneSta
 	}
 
 	@ActionReducer()
-	setEnabled(isEnabled:boolean) {
+	setEnabled(isEnabled: boolean) {
 		log.info('Setting isEnabled for StatusWindow', isEnabled)
 
 		return (annotatedSceneState: AnnotatedSceneState) => {

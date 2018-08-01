@@ -29,8 +29,8 @@ interface AreaOfInterestManagerProps {
 	getCurrentRotation?: () => THREE.Quaternion
 	utmCoordinateSystem: UtmCoordinateSystem
 	groundPlaneManager: GroundPlaneManager
-	camera ?: THREE.Camera
-	loadingTileManagers ?: Set<TileManagerBase>
+	camera?: THREE.Camera
+	loadingTileManagers?: Set<TileManagerBase>
 	sceneStage?: THREE.Vector3
 	channel: EventEmitter
 }
@@ -38,7 +38,7 @@ interface AreaOfInterestManagerProps {
 // Area of Interest: where to load point clouds
 interface AreaOfInterestManagerState {
 	enabled: boolean // enable auto-loading points around the AOI
-	aoiFocalPoint: THREE.Vector3 | null, // cached value for the center of the AOI
+	aoiFocalPoint: THREE.Vector3 | null // cached value for the center of the AOI
 	boundingBoxes: THREE.BoxHelper[] // boxes drawn around the current area of interest
 	currentHeading: THREE.Vector3 | null // in fly-through mode: where the vehicle is heading
 	bBoxColor: THREE.Color

@@ -53,10 +53,10 @@ export function getClosestPoints(arr1: Array<THREE.Vector3>, arr2: Array<THREE.V
 	let index2: number = -1
 	let minDist: number = arr1[0].distanceTo(arr2[0]) + 1
 
-	for (let i1: number = 0; i1 < arr1.length; i1++) {
+	for (let i1 = 0; i1 < arr1.length; i1++) {
 		const pt1 = arr1[i1]
 
-		for (let i2: number = 0; i2 < arr2.length; i2++) {
+		for (let i2 = 0; i2 < arr2.length; i2++) {
 			const dist = pt1.distanceTo(arr2[i2])
 
 			if (dist < minDist) {

@@ -13,12 +13,12 @@ export interface FlyThroughTrajectory {
 	poses: Models.PoseMessage[]
 }
 export class FlyThroughState {
-	constructor(o:FlyThroughState) {
+	constructor(o: FlyThroughState) {
 		Object.assign(this, o)
 	}
 
-	trajectories:FlyThroughTrajectory[]
-	currentTrajectoryIndex:number
-	currentPoseIndex:number
-	endPoseIndex:number
+	trajectories: FlyThroughTrajectory[]
+	currentTrajectoryIndex: number
+	currentPoseIndex: number
+	endPoseIndex: number
 }

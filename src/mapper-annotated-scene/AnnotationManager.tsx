@@ -80,21 +80,21 @@ interface IProps {
 	layerManager: LayerManager
 
 	// Replacing uiState in the short term
-	isMouseDragging ?: boolean
-	isRotationModeActive ?: boolean
-	isConnectLeftNeighborMode ?: boolean
-	isConnectRightNeighborMode ?: boolean
-	isConnectFrontNeighborMode ?: boolean
-	isAddMarkerMode ?: boolean
-	isLiveMode ?: boolean
-	isAddConnectionMode ?: boolean
-	isJoinAnnotationMode ?: boolean
+	isMouseDragging?: boolean
+	isRotationModeActive?: boolean
+	isConnectLeftNeighborMode?: boolean
+	isConnectRightNeighborMode?: boolean
+	isConnectFrontNeighborMode?: boolean
+	isAddMarkerMode?: boolean
+	isLiveMode?: boolean
+	isAddConnectionMode?: boolean
+	isJoinAnnotationMode?: boolean
 	isControlKeyPressed?: boolean
-	isAddConflictOrDeviceMode ?: boolean
-	isMouseDown ?: boolean
+	isAddConflictOrDeviceMode?: boolean
+	isMouseDown?: boolean
 	numberKeyPressed?: number | null
 
-	areaOfInterest ?: RangeSearch[]
+	areaOfInterest?: RangeSearch[]
 	rendererSize?: Electron.Size
 	camera?: THREE.Camera
 
@@ -150,7 +150,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	annotationObjects: Array<THREE.Object3D> = []
 	activeAnnotation: Annotation | null = null
 	private metadataState: AnnotationState = new AnnotationState(this) // eslint-disable-line no-use-before-define
-	bezierScaleFactor: number = 6 // Used when creating connections
+	bezierScaleFactor = 6 // Used when creating connections
 	private raycasterPlane: THREE.Raycaster = new THREE.Raycaster()
 	private raycasterMarker: THREE.Raycaster = new THREE.Raycaster()
 	private raycasterAnnotation: THREE.Raycaster = new THREE.Raycaster()
@@ -288,7 +288,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 */
 	createAndAddAnnotation(
 		annotationType: AnnotationType,
-		activate: boolean = false
+		activate = false
 	): [Annotation | null, AnnotationConstructResult] {
 		const result = AnnotationManager.createAnnotationByType(annotationType)
 		const annotation = result[0]
@@ -299,19 +299,19 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return this.addAnnotation(annotation, activate)
 	}
 
-	addSuperTile = (superTile:AnnotationSuperTile): void => {
+	addSuperTile = (superTile: AnnotationSuperTile): void => {
 		if (!(superTile instanceof AnnotationSuperTile)) return
 		superTile.annotations.forEach(a => this.addAnnotation(a))
 	}
 
-	removeSuperTile = (superTile:AnnotationSuperTile): void => {
+	removeSuperTile = (superTile: AnnotationSuperTile): void => {
 		if (!(superTile instanceof AnnotationSuperTile)) return
 		superTile.annotations.forEach(a => this.deleteAnnotation(a))
 	}
 
 	addAnnotation(
 		annotation: Annotation,
-		activate: boolean = false
+		activate = false
 	): [Annotation | null, AnnotationConstructResult] {
 		// Can't create a new annotation if the current active annotation doesn't have any markers (because if we did
 		// that annotation wouldn't be selectable and it would be lost).
@@ -1602,7 +1602,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 	// Load tiles within a bounding box and add them to the scene.
 	// ANNOTATOR ONLY???
-	loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false): Promise<void> {
+	loadAnnotationDataFromMapServer(searches: RangeSearch[], loadAllPoints = false): Promise<void> {
 		return this.props.annotationTileManager!.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {
 				if (loaded) this.annotationLoadedSideEffects()
@@ -1839,7 +1839,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		// otherwise, compute direction of the two lanes
-		const threshold: number = 4 // meters
+		const threshold = 4 // meters
 
 		let {index1: index11, index2: index21}: {index1: number, index2: number} =
 			getClosestPoints(activeLane.waypoints, inactive.waypoints, threshold)

@@ -77,7 +77,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		}
 
 		// Setup listeners on add/remove point cloud tiles
-		this.props.channel.on(Events.SUPER_TILE_CREATED, (superTile:SuperTile) => {
+		this.props.channel.on(Events.SUPER_TILE_CREATED, (superTile: SuperTile) => {
 			if (!(superTile instanceof PointCloudSuperTile)) return
 			if (!superTile.pointCloud) return
 
@@ -85,7 +85,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 			this.loadTileGroundPlanes(superTile)
 		})
 
-		this.props.channel.on(Events.SUPER_TILE_REMOVED, (superTile:SuperTile) => {
+		this.props.channel.on(Events.SUPER_TILE_REMOVED, (superTile: SuperTile) => {
 			if (!(superTile instanceof PointCloudSuperTile)) return
 			if (!superTile.pointCloud) return
 

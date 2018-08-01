@@ -20,7 +20,7 @@ import Models = MapperProtos.mapper.models
 
 export interface CarManagerProps {
 	annotatedScene: AnnotatedSceneController
-	isCarInitialized ?: boolean
+	isCarInitialized?: boolean
 }
 export interface CarManagerState {
 	carModel: THREE.Object3D

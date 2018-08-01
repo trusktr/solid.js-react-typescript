@@ -10,9 +10,9 @@ import {DefaultLeafReducer, ILeafReducer} from 'typedux'
  * Load all the reducers from store/reducer
  * @returns {ILeafReducer<any, any>[]}
  */
-export function loadReducers():ILeafReducer<any, any>[] {
+export function loadReducers(): ILeafReducer<any, any>[] {
 	const ctxModule = require('./reducers/index')
-	const modules:DefaultLeafReducer<any, any>[] = Object
+	const modules: DefaultLeafReducer<any, any>[] = Object
 		.keys(ctxModule)
 		.filter(key => key.indexOf('Reducer') > 0 && _.isFunction(ctxModule[key]))
 		.map(key => ctxModule[key])
@@ -21,7 +21,7 @@ export function loadReducers():ILeafReducer<any, any>[] {
 	return reducers
 }
 
-function filterReducers(modules):DefaultLeafReducer<any, any>[] {
+function filterReducers(modules): DefaultLeafReducer<any, any>[] {
 	const reducers = []
 
 	for (const module of modules) {

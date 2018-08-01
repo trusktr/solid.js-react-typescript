@@ -49,9 +49,9 @@ export interface CameraState {
 }
 export interface AnnotatedSceneControllerProps {
 	backgroundColor?: THREEColorValue
-	onPointOfInterestCall ?: () => THREE.Vector3
-	onCurrentRotation ?: () => THREE.Quaternion
-	statusWindowState ?: StatusWindowState
+	onPointOfInterestCall?: () => THREE.Vector3
+	onCurrentRotation?: () => THREE.Quaternion
+	statusWindowState?: StatusWindowState
 	pointOfInterest?: THREE.Vector3
 	getAnnotationManagerRef?: (ref: AnnotationManager) => void
 	setKeys?: () => void
@@ -227,7 +227,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.state.layerManager!.addLayer(name, toggle)
 	}
 
-	setLayerVisibility(layerKeysToShow: string[], hideOthers: boolean = false): void {
+	setLayerVisibility(layerKeysToShow: string[], hideOthers = false): void {
 		this.state.layerManager!.setLayerVisibility(layerKeysToShow, hideOthers)
 	}
 

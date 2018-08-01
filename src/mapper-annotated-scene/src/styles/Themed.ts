@@ -19,7 +19,7 @@ import {connect} from 'react-redux'
 
 export interface IThemedProperties extends SaffronSDK.Style.IThemedProperties { }
 export interface IReactComponentConstructor<P, S> {
-	new(props?:P, context?:any):React.Component<P, S>
+	new(props?: P, context?: any): React.Component<P, S>
 }
 
 /**
@@ -27,7 +27,7 @@ export interface IReactComponentConstructor<P, S> {
  * @param selector
  * @returns {(target: IReactComponentConstructor<Props, State>) => void}
  */
-export function typedConnect<Props, State>(selector:any):(target:IReactComponentConstructor<Props, State>) => void {
+export function typedConnect<Props, State>(selector: any): (target:IReactComponentConstructor<Props, State>) => void {
 	// connect the selector to the react component (e.g., target)
 	// this will allow the react component to get updated when the underlying store changes for state that it needs
 	// by using connect and selectors it is more efficient then calling mapStateToProps

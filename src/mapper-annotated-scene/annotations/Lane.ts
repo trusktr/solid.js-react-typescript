@@ -574,7 +574,7 @@ export class Lane extends Annotation {
 		if (this.markers.length < 2)
 			return 0.0
 
-		let sum: number = 0.0
+		let sum = 0.0
 
 		const markers = this.markers
 

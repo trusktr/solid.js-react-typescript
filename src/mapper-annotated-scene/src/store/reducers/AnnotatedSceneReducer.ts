@@ -11,7 +11,7 @@ export class AnnotatedSceneReducer extends DefaultLeafReducer<AnnotatedSceneStat
 		super(AnnotatedSceneState.Key, AnnotatedSceneState)
 	}
 
-	defaultState(o = {}):any {
+	defaultState(o = {}): any {
 		return AnnotatedSceneState.fromJS(o)
 	}
 }

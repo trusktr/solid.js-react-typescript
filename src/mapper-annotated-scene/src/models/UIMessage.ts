@@ -8,13 +8,13 @@ export enum UIMessageType {
 	ERROR
 }
 export class UIMessage {
-	id:string
-	type:UIMessageType
-	expiresAt:number
-	message:string
-	showProgress:boolean = false
+	id: string
+	type: UIMessageType
+	expiresAt: number
+	message: string
+	showProgress = false
 
-	constructor(o:any) {
+	constructor(o: any) {
 		Object.assign(this, o)
 
 		if (!this.id)

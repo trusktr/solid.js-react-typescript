@@ -23,11 +23,11 @@ const log = Logger(__filename)
 const dialog = Electron.remote.dialog
 
 export interface KioskProps {
-	isCarInitialized ?: boolean
-	isInitialOriginSet ?: boolean
-	isLiveMode ?: boolean
-	isPlayMode ?: boolean
-	flyThroughEnabled ?: boolean
+	isCarInitialized?: boolean
+	isInitialOriginSet?: boolean
+	isLiveMode?: boolean
+	isPlayMode?: boolean
+	flyThroughEnabled?: boolean
 }
 export interface KioskState {
 	annotatedSceneController?: AnnotatedSceneController
@@ -35,7 +35,7 @@ export interface KioskState {
 	flyThroughManager?: FlyThroughManager
 	hasCalledSetup: boolean
 	isChildLoopAdded: boolean
-	trajectoryPicker ?: TrajectoryPicker
+	trajectoryPicker?: TrajectoryPicker
 }
 @typedConnect(createStructuredSelector({
 	isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,

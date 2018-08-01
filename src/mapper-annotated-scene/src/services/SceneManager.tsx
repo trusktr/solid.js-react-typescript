@@ -39,13 +39,13 @@ export interface SceneManagerProps {
 	width: number
 	height: number
 	areaOfInterestManager: AreaOfInterestManager
-	shouldAnimate ?: boolean
-	compassRosePosition ?: THREE.Vector3
-	isDecorationsVisible ?: boolean
-	orbitControlsTargetPoint ?: THREE.Vector3
+	shouldAnimate?: boolean
+	compassRosePosition?: THREE.Vector3
+	isDecorationsVisible?: boolean
+	orbitControlsTargetPoint?: THREE.Vector3
 	utmCoordinateSystem: UtmCoordinateSystem
 	channel: EventEmitter
-	sceneObjects ?: Set<THREE.Object3D>
+	sceneObjects?: Set<THREE.Object3D>
 	transformedObjects?: Array<THREE.Object3D>
 	cameraPreference?: CameraType
 	container: HTMLDivElement
@@ -310,7 +310,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		return orbitControls
 	}
 
-	private updateSceneObjects(newSceneObjects:Set<THREE.Object3D>, existingSceneObjects:Set<THREE.Object3D>) {
+	private updateSceneObjects(newSceneObjects: Set<THREE.Object3D>, existingSceneObjects: Set<THREE.Object3D>) {
 		const scene = this.scene
 
 		newSceneObjects.forEach(object => {
@@ -434,7 +434,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	// Move all visible elements into position, centered on a coordinate.
 	// IDEA JOE long term move to Camera Manager
-	setStage(x: number, y: number, z: number, resetCamera: boolean = true): void {
+	setStage(x: number, y: number, z: number, resetCamera = true): void {
 		new AnnotatedSceneActions().setSceneStage(new THREE.Vector3(x, y, z))
 
 		if (resetCamera) {

@@ -24,7 +24,7 @@ import {Events} from '@/mapper-annotated-scene/src/models/Events'
 const log = Logger(__filename)
 
 interface StatusWindowProps {
-	statusWindowState ?: StatusWindowState
+	statusWindowState?: StatusWindowState
 	eventEmitter: EventEmitter
 }
 

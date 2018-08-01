@@ -4,10 +4,10 @@
  */
 
 export default class StatusWindowState {
-	constructor(o:any = {}) {
+	constructor(o: any = {}) {
 		Object.assign(this, o)
 	}
 
-	enabled:boolean
+	enabled: boolean
 	messages: Map<string, string | JSX.Element>
 }

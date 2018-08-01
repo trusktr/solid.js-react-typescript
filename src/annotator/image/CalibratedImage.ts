@@ -8,6 +8,6 @@ import {ImageScreen} from './ImageScreen'
 
 export interface CalibratedImage {
 	path: string
-	imageScreen: ImageScreen,
-	parameters: CameraParameters,
+	imageScreen: ImageScreen
+	parameters: CameraParameters
 }

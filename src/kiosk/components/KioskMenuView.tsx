@@ -14,11 +14,11 @@ import AnnotatedSceneActions from 'mapper-annotated-scene/src/store/actions/Anno
 import FlyThroughManager from '@/kiosk/components/FlyThroughManager'
 
 interface KioskViewProps {
-	isLiveMode ?: boolean
-	isPlayMode ?: boolean
+	isLiveMode?: boolean
+	isPlayMode?: boolean
 	flyThroughManager: FlyThroughManager
 	openTrajectoryPickerFunction: any
-	uiMenuVisible ?: boolean
+	uiMenuVisible?: boolean
 }
 
 interface KioskViewState {}

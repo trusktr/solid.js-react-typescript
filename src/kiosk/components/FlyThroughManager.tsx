@@ -30,11 +30,11 @@ const log = Logger(__filename)
 export interface FlyThroughManagerProps {
 	carManager: CarManager
 	annotatedSceneController: AnnotatedSceneController
-	isLiveMode ?: boolean
-	isPlayMode ?: boolean
-	isInitialOriginSet ?: boolean
-	shouldAnimate ?: boolean
-	flyThroughEnabled ?: boolean
+	isLiveMode?: boolean
+	isPlayMode?: boolean
+	isInitialOriginSet?: boolean
+	shouldAnimate?: boolean
+	flyThroughEnabled?: boolean
 }
 export interface FlyThroughManagerState {
 	flyThroughLoop: ChildAnimationLoop

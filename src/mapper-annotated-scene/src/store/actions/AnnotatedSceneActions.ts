@@ -295,7 +295,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	}
 
 	@ActionReducer()
-	setPlayMode(isEnabled:boolean) {
+	setPlayMode(isEnabled: boolean) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, isPlayMode: isEnabled,
 		})

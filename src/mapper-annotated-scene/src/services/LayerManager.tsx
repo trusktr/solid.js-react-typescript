@@ -42,7 +42,7 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 	}
 
 	// Ensure that some layers of the model are visible. Optionally hide the other layers.
-	setLayerVisibility(layerKeysToShow: string[], hideOthers: boolean = false): void {
+	setLayerVisibility(layerKeysToShow: string[], hideOthers = false): void {
 		layerKeysToShow.forEach(key => {
 			if (this.layerToggles.has(key)) {
 				this.layerToggles.get(key)!(true)

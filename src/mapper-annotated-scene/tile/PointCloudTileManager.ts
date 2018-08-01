@@ -40,10 +40,10 @@ function isOrange(r: number, g: number, b: number): boolean {
 }
 
 interface PointCloudTileManagerConfig extends TileManagerConfig {
-	pointsSize: number,
-	samplingStep: number,
-	maxPointsDensity: number,
-	trimByColor: boolean,
+	pointsSize: number
+	samplingStep: number
+	maxPointsDensity: number
+	trimByColor: boolean
 }
 
 // This handles loading and unloading point cloud data (for read only). Each SuperTile has a point cloud,

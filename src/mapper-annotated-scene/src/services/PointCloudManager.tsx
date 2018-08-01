@@ -156,7 +156,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
 	// Do some house keeping after loading a point cloud, such as drawing decorations
 	// and centering the stage and the camera on the point cloud.
-	private pointCloudLoadedSideEffects(resetCamera: boolean = false): void {
+	private pointCloudLoadedSideEffects(resetCamera = false): void {
 		this.updatePointCloudBoundingBox()
 
 		this.setCompassRoseByPointCloud()
@@ -170,7 +170,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
-	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = false): Promise<void> {
+	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints = false, resetCamera = false): Promise<void> {
 		return this.props.pointCloudTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
 			.then(loaded => {
 				if (loaded) this.pointCloudLoadedSideEffects(resetCamera)

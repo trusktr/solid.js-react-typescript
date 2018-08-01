@@ -6,6 +6,6 @@
 import {TileIndex} from './TileIndex'
 
 export interface TileRangeSearch {
-	minTileIndex: TileIndex,
-	maxTileIndex: TileIndex,
+	minTileIndex: TileIndex
+	maxTileIndex: TileIndex
 }
