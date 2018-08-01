@@ -4,11 +4,16 @@
  */
 
 import * as THREE from 'three'
-import {Annotation, AnnotationGeometryType, AnnotationRenderingProperties} from './AnnotationBase'
-import {AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
-import {AnnotationType} from "./AnnotationType"
-import {isNullOrUndefined} from "util"
-import Logger from "@/util/log"
+import {
+	Annotation,
+	AnnotationGeometryType,
+	AnnotationRenderingProperties,
+	AnnotationJsonInputInterface,
+	AnnotationJsonOutputInterface,
+} from './AnnotationBase'
+import {AnnotationType} from './AnnotationType'
+import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
+import Logger from '@/util/log'
 
 const log = Logger(__filename)
 
@@ -23,7 +28,6 @@ export enum BoundaryType {
 	DASHED_SOLID,
 	OTHER
 }
-
 export enum BoundaryColor {
 	UNKNOWN = 0,
 	NONE,
@@ -35,33 +39,32 @@ export enum BoundaryColor {
 	OTHER
 }
 
-const MapBoundaryColorToHex: { [key: string]: THREE.Color } =  {}
-MapBoundaryColorToHex[BoundaryColor.YELLOW.toString()]  = new THREE.Color( 0xffdb00 )
-MapBoundaryColorToHex[BoundaryColor.WHITE.toString()]   = new THREE.Color( 0xffffff )
-MapBoundaryColorToHex[BoundaryColor.RED.toString()]     = new THREE.Color( 0xff0000 )
-MapBoundaryColorToHex[BoundaryColor.BLUE.toString()]    = new THREE.Color( 0x0000ff )
-MapBoundaryColorToHex[BoundaryColor.GREEN.toString()]   = new THREE.Color( 0x00ff00 )
-MapBoundaryColorToHex[BoundaryColor.UNKNOWN.toString()] = new THREE.Color( 0x00ffff )
-MapBoundaryColorToHex[BoundaryColor.NONE.toString()]    = new THREE.Color( 0x00ffff )
-MapBoundaryColorToHex[BoundaryColor.OTHER.toString()]   = new THREE.Color( 0x00ffff )
+const MapBoundaryColorToHex: { [key: string]: THREE.Color } = {}
+
+MapBoundaryColorToHex[BoundaryColor.YELLOW.toString()] = new THREE.Color(0xffdb00)
+MapBoundaryColorToHex[BoundaryColor.WHITE.toString()] = new THREE.Color(0xffffff)
+MapBoundaryColorToHex[BoundaryColor.RED.toString()] = new THREE.Color(0xff0000)
+MapBoundaryColorToHex[BoundaryColor.BLUE.toString()] = new THREE.Color(0x0000ff)
+MapBoundaryColorToHex[BoundaryColor.GREEN.toString()] = new THREE.Color(0x00ff00)
+MapBoundaryColorToHex[BoundaryColor.UNKNOWN.toString()] = new THREE.Color(0x00ffff)
+MapBoundaryColorToHex[BoundaryColor.NONE.toString()] = new THREE.Color(0x00ffff)
+MapBoundaryColorToHex[BoundaryColor.OTHER.toString()] = new THREE.Color(0x00ffff)
 
 // Some variables used for rendering
 namespace BoundaryRenderingProperties {
-	export const markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color( 0xffffff ), side: THREE.DoubleSide})
-	export const activeMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0xf0d06e )})
-	export const inactiveMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0x00ffff )})
+	export const markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
+	export const activeMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xf0d06e)})
+	export const inactiveMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0x00ffff)})
 }
 
 export interface BoundaryJsonInputInterface extends AnnotationJsonInputInterface {
 	boundaryType: string
 	boundaryColor: string
 }
-
 export interface BoundaryJsonOutputInterface extends AnnotationJsonOutputInterface {
 	boundaryType: string
 	boundaryColor: string
 }
-
 export class Boundary extends Annotation {
 	annotationType: AnnotationType
 	geometryType: AnnotationGeometryType
@@ -78,6 +81,7 @@ export class Boundary extends Annotation {
 		super(obj)
 		this.annotationType = AnnotationType.BOUNDARY
 		this.geometryType = AnnotationGeometryType.LINEAR
+
 		if (obj) {
 			this.type = isNullOrUndefined(BoundaryType[obj.boundaryType]) ? BoundaryType.UNKNOWN : BoundaryType[obj.boundaryType]
 			this.color = isNullOrUndefined(BoundaryColor[obj.boundaryColor]) ? BoundaryColor.UNKNOWN : BoundaryColor[obj.boundaryColor]
@@ -111,6 +115,7 @@ export class Boundary extends Annotation {
 
 	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, BoundaryRenderingProperties.markerMaterial)
+
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
@@ -139,7 +144,6 @@ export class Boundary extends Annotation {
 	 * Join this boundary with given boundary by copying it's content
 	 */
 	join(boundary: Boundary): boolean {
-
 		if (!boundary) {
 			log.error('Can not join an empty boundary.')
 			return false
@@ -179,6 +183,7 @@ export class Boundary extends Annotation {
 
 	makeInactive(): void {
 		const liveColor = MapBoundaryColorToHex[this.color.toString()]
+
 		switch (this.type) {
 			case BoundaryType.DASHED:
 			case BoundaryType.SOLID_DASHED:
@@ -188,6 +193,7 @@ export class Boundary extends Annotation {
 			default:
 				this.boundaryContour.material = new THREE.LineBasicMaterial({color: liveColor})
 		}
+
 		this.boundaryContour.material = BoundaryRenderingProperties.inactiveMaterial
 		this.unhighlightMarkers()
 		this.hideMarkers()
@@ -195,9 +201,8 @@ export class Boundary extends Annotation {
 
 	updateVisualization(): void {
 		// Check if there are at least two markers to draw a line
-		if (this.markers.length < 2) {
+		if (this.markers.length < 2)
 			return
-		}
 
 		const newContourGeometry = new THREE.Geometry()
 
@@ -223,11 +228,10 @@ export class Boundary extends Annotation {
 
 		if (this.markers) {
 			this.markers.forEach((marker) => {
-				if (pointConverter) {
+				if (pointConverter)
 					data.markers.push(pointConverter(marker.position))
-				} else {
+				else
 					data.markers.push(marker.position)
-				}
 			})
 		}
 

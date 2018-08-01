@@ -3,11 +3,11 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {channel} from "electron-ipc/Channel"
-import * as IpcMessages from "electron-ipc/Messages"
-import {toKeyboardEventHighlights} from "electron-ipc/Serializaton"
+import {channel} from 'electron-ipc/Channel'
+import * as IpcMessages from 'electron-ipc/Messages'
+import {toKeyboardEventHighlights} from 'electron-ipc/Serializaton'
 import WindowCommunicator from '@/util/WindowCommunicator'
-import Logger from "@/util/log"
+import Logger from '@/util/log'
 
 const log = Logger(__filename)
 
@@ -24,7 +24,7 @@ class LightboxWindowUI {
 		window.addEventListener('keyup', this.onKeyUp)
 
 		this.communicator = new WindowCommunicator()
-		this.communicator.send( 'connect', 'ready!' )
+		this.communicator.send('connect', 'ready!')
 		this.communicator.on('connect', msg => log.info('Main window says:', msg))
 
 		this.openComChannels()
@@ -41,7 +41,9 @@ class LightboxWindowUI {
 	// Let Annotator handle all keyboard events.
 	private onKeyDown = (event: KeyboardEvent): void => {
 		if (event.defaultPrevented) return
-		if (!event.repeat) // Annotator ignores repeating events, and streaming them through IPC probably wouldn't perform well.
+
+		// Annotator ignores repeating events, and streaming them through IPC probably wouldn't perform well.
+		if (!event.repeat)
 			this.communicator.send(channel.keyDownEvent, toKeyboardEventHighlights(event))
 	}
 
@@ -53,24 +55,25 @@ class LightboxWindowUI {
 	// Throw away the old state. Rebuild the UI based on the new state.
 	private onLightboxState = (state: IpcMessages.LightboxState): void => {
 		const imageListElement = document.getElementById('image_list')
+
 		if (imageListElement) {
 			this.imageChildren.forEach(i => imageListElement.removeChild(i))
 			this.imageChildren = []
 
 			state.images.forEach(imageDescription => {
 				const img = this.createLightboxImage(imageDescription)
+
 				imageListElement.appendChild(img)
 				this.imageChildren.push(img)
 			})
-		} else
-			log.warn('missing element image_list')
+		} else { log.warn('missing element image_list') }
 	}
 
 	// Update UI for one image.
 	private onImageEditState = (state: IpcMessages.ImageEditState): void => {
 		this.imageChildren
 			.filter(img => img.id === state.uuid)
-			.forEach(img => img.className = state.active ? 'image_highlighted' : 'image_default')
+			.forEach(img => { img.className = state.active ? 'image_highlighted' : 'image_default' })
 	}
 
 	private imageSetState(uuid: string, active: boolean): void {
@@ -79,14 +82,12 @@ class LightboxWindowUI {
 
 	// Notify listeners when the pointer hovers over an image.
 	private onImageMouseEnter = (ev: MouseEvent): void => {
-		if ((ev.target as HTMLImageElement).id)
-			this.imageSetState((ev.target as HTMLImageElement).id, true)
+		if ((ev.target as HTMLImageElement).id) this.imageSetState((ev.target as HTMLImageElement).id, true)
 	}
 
 	// Notify listeners when the pointer stops hovering over an image.
 	private onImageMouseLeave = (ev: MouseEvent): void => {
-		if ((ev.target as HTMLImageElement).id)
-			this.imageSetState((ev.target as HTMLImageElement).id, false)
+		if ((ev.target as HTMLImageElement).id) this.imageSetState((ev.target as HTMLImageElement).id, false)
 	}
 
 	// Notify listeners of the coordinates of a click on an image.
@@ -97,6 +98,7 @@ class LightboxWindowUI {
 		const pixelY = ev.clientY - rect.top
 		const ratioX = pixelX / img.width
 		const ratioY = pixelY / img.height
+
 		this.communicator.send(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as IpcMessages.ImageClick)
 	}
 
@@ -107,6 +109,7 @@ class LightboxWindowUI {
 				const aspectRatio = img.naturalWidth / img.naturalHeight
 				const w = img.parentNode.offsetWidth
 				const h = img.parentNode.offsetWidth / aspectRatio
+
 				img.style.width = w + 'px'
 				img.style.height = h + 'px'
 			} else {
@@ -117,6 +120,7 @@ class LightboxWindowUI {
 
 	private createLightboxImage(imageDescription: IpcMessages.LightboxImageDescription): HTMLImageElement {
 		const img = document.createElement('img')
+
 		img.src = imageDescription.path
 		img.id = imageDescription.uuid
 		img.width = 0

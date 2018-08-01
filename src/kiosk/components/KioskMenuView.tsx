@@ -4,58 +4,59 @@
  */
 
 import * as React from 'react'
-import '!!css-loader!jquery-ui-dist/jquery-ui.css'
+// TODO JOE don't use webpack-specific syntax in the import statements
+import '!!css-loader!jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
 import '@/annotator/style.scss'
-import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
-import AnnotatedSceneState from "mapper-annotated-scene/src/store/state/AnnotatedSceneState"
-import {createStructuredSelector} from "reselect"
-import AnnotatedSceneActions from "mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
-import FlyThroughManager from "@/kiosk/components/FlyThroughManager";
-
+import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
+import AnnotatedSceneState from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
+import {createStructuredSelector} from 'reselect'
+import AnnotatedSceneActions from 'mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts'
+import FlyThroughManager from '@/kiosk/components/FlyThroughManager'
 
 interface KioskViewProps {
 	isLiveMode ?: boolean
 	isPlayMode ?: boolean
 	flyThroughManager: FlyThroughManager
-    openTrajectoryPickerFunction: any
-    uiMenuVisible ?: boolean
+	openTrajectoryPickerFunction: any
+	uiMenuVisible ?: boolean
 }
 
 interface KioskViewState {}
 
-
 @typedConnect(createStructuredSelector({
 	isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
 	isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
-    uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
-}))
+	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
+	}))
 export default class KioskMenuView extends React.Component<KioskViewProps, KioskViewState> {
-
 	constructor(props: KioskViewProps) {
 		super(props)
 	}
 
 	private makeOnPlayModeClick = () => () => {
 		new AnnotatedSceneActions().togglePlayMode()
+
 		const flyThroughManager = this.props.flyThroughManager
-    	flyThroughManager.toggleLiveModePlay()
+
+		flyThroughManager.toggleLiveModePlay()
 	}
 
 	private makeOnLiveModeClick = () => () => {
 		new AnnotatedSceneActions().toggleLiveMode()
-    	const flyThroughManager = this.props.flyThroughManager
-    	flyThroughManager.toggleLiveAndRecordedPlay()
+
+		const flyThroughManager = this.props.flyThroughManager
+
+		flyThroughManager.toggleLiveAndRecordedPlay()
 	}
 
 	private makeOnSelectDataSetClick = () => () => {
-        this.props.openTrajectoryPickerFunction()
+		this.props.openTrajectoryPickerFunction()
 	}
 
 	render(): JSX.Element {
 		const {isLiveMode, isPlayMode, uiMenuVisible} = this.props
 		const liveModeLabel = isLiveMode ? 'Go to Recorded' : 'Go to Live'
 		const playModelLabel = isPlayMode ? 'Pause' : 'Play'
-
 		const playModeIcon = isPlayMode ? 'pause' : 'play_arrow'
 		const liveModeIcon = isLiveMode ? 'videocam' : 'my_location'
 
@@ -78,6 +79,6 @@ export default class KioskMenuView extends React.Component<KioskViewProps, Kiosk
 				</menu>
 			}
 
-			</div>)
+		</div>)
 	}
 }

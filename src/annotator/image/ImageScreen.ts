@@ -4,20 +4,18 @@
  */
 
 import * as THREE from 'three'
-import {lineGeometry} from "@/mapper-annotated-scene/geometry/ThreeHelpers"
+import {lineGeometry} from '@/mapper-annotated-scene/geometry/ThreeHelpers'
 
 // The tip of the pyramid will work with a default PlaneGeometry which hasn't been rotated
 // out of the XY plane.
 const tip = new THREE.Vector3(0, 0, 1)
-
 // Image screen materials
-const pyramidMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0x66aa00 )})
+const pyramidMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0x66aa00)})
 const invisiblePyramidMaterial = new THREE.LineBasicMaterial({visible: false})
-const borderMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0xffffff )})
-const unhighlightedBorderMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0x999999 )})
+const borderMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xffffff)})
+const unhighlightedBorderMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0x999999)})
 const invisibleBorderMaterial = new THREE.LineBasicMaterial({visible: false})
-const inactiveMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color( 'white' ), side: THREE.FrontSide, transparent: true, opacity: 0.5})
-
+const inactiveMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color('white'), side: THREE.FrontSide, transparent: true, opacity: 0.5})
 // Image loader
 const textureLoader = new THREE.TextureLoader()
 
@@ -30,6 +28,7 @@ function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
 		tip, base[2],
 		tip, base[3],
 	]
+
 	return lineGeometry(vertices, visible ? pyramidMaterial : invisiblePyramidMaterial)
 }
 
@@ -38,6 +37,7 @@ function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
 	const vertices = [
 		base[0], base[1], base[3], base[2], base[0],
 	]
+
 	return lineGeometry(vertices, visible ? unhighlightedBorderMaterial : invisibleBorderMaterial)
 }
 
@@ -106,33 +106,35 @@ export class ImageScreen extends THREE.Object3D {
 	}
 
 	makeVisible(): void {
-		this.visibleChildren().forEach(obj => obj.visible = true)
+		this.visibleChildren().forEach(obj => { obj.visible = true })
 	}
 
 	makeInvisible(): void {
-		this.visibleChildren().forEach(obj => obj.visible = false)
+		this.visibleChildren().forEach(obj => { obj.visible = false })
 	}
 
 	loadImage(): Promise<boolean> {
 		if (this.imageLoaded)
-			return Promise.resolve(false)
+		{ return Promise.resolve(false) }
 		else
-			return new Promise((resolve: (loaded: boolean) => void): void => {
-				const onLoad = (texture: THREE.Texture): void => {
-					texture.minFilter = THREE.LinearFilter
-					const activeMaterial = new THREE.MeshBasicMaterial({
-						side: THREE.FrontSide,
-						transparent: true,
-						opacity: 1.0
-					})
-					activeMaterial.map = texture
-					this.imageMesh.material = activeMaterial
-					this.imageLoaded = true
-					resolve(true)
-				}
+		{ return new Promise((resolve: (loaded: boolean) => void): void => {
+			const onLoad = (texture: THREE.Texture): void => {
+				texture.minFilter = THREE.LinearFilter
 
-				textureLoader.load(this.path, onLoad, undefined, undefined)
-			})
+				const activeMaterial = new THREE.MeshBasicMaterial({
+					side: THREE.FrontSide,
+					transparent: true,
+					opacity: 1.0,
+				})
+
+				activeMaterial.map = texture
+				this.imageMesh.material = activeMaterial
+				this.imageLoaded = true
+				resolve(true)
+			}
+
+			textureLoader.load(this.path, onLoad, undefined, undefined)
+		}) }
 	}
 
 	unloadImage(): void {

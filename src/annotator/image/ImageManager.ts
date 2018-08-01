@@ -8,19 +8,18 @@ import * as THREE from 'three'
 import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
 import {CalibratedImage} from './CalibratedImage'
-import {LightboxWindowManager} from "../annotator-image-lightbox/LightboxWindowManager"
-import * as IpcMessages from "electron-ipc/Messages"
-import {readImageMetadataFile} from "./Aurora"
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
-import {AuroraCameraParameters} from "./CameraParameters"
+import {LightboxWindowManager} from '../annotator-image-lightbox/LightboxWindowManager'
+import * as IpcMessages from 'electron-ipc/Messages'
+import {readImageMetadataFile} from './Aurora'
+import {UtmCoordinateSystem} from '@/mapper-annotated-scene/UtmCoordinateSystem'
+import {AuroraCameraParameters} from './CameraParameters'
 import config from '@/config'
-import Logger from "@/util/log"
-import {EventEmitter} from "events";
-import {Events} from "@/mapper-annotated-scene/src/models/Events";
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions";
+import Logger from '@/util/log'
+import {EventEmitter} from 'events'
+import {Events} from '@/mapper-annotated-scene/src/models/Events'
+import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
 
 const log = Logger(__filename)
-
 const dialog = Electron.remote.dialog
 
 interface ImageManagerSettings {
@@ -41,17 +40,16 @@ export class ImageManager {
 	loadedImageDetails: OrderedSet<CalibratedImage>
 
 	constructor(
-        private utmCoordinateSystem: UtmCoordinateSystem,
-        private channel: EventEmitter,
+		private utmCoordinateSystem: UtmCoordinateSystem,
+		private channel: EventEmitter,
 	) {
-
-
 		this.settings = {
 			imageScreenWidth: config['image_manager.image_screen.width'],
 			imageScreenHeight: config['image_manager.image_screen.height'],
 			visibleWireframe: config['image_manager.image.wireframe.visible'],
 			clickedRayLength: 100,
 		}
+
 		this.imageScreens = []
 		this.imageScreenMeshes = []
 		this.opacity = parseFloat(config['image_manager.image.opacity']) || 0.5
@@ -85,9 +83,11 @@ export class ImageManager {
 				properties: ['openFile', 'multiSelections'],
 				filters: [{name: 'images', extensions: ['jpeg', 'jpg', 'png']}],
 			}
+
 			const handler = (paths: string[]): void => {
 				if (paths && paths.length) {
 					const promises = paths.map(path => this.loadImageFromPath(path))
+
 					Promise.all(promises)
 						.then(() => resolve())
 						.catch(err => reject(err))
@@ -95,6 +95,7 @@ export class ImageManager {
 					reject(Error('no path selected'))
 				}
 			}
+
 			dialog.showOpenDialog(options, handler)
 		})
 	}
@@ -106,7 +107,7 @@ export class ImageManager {
 				this.setUpScreen({
 					path: path,
 					imageScreen: new ImageScreen(path, this.settings.imageScreenWidth, this.settings.imageScreenHeight, this.settings.visibleWireframe),
-					parameters: cameraParameters
+					parameters: cameraParameters,
 				} as CalibratedImage)
 			})
 			.catch(err => {
@@ -120,6 +121,7 @@ export class ImageManager {
 		const screen = calibratedImage.imageScreen
 		const position = calibratedImage.parameters.screenPosition
 		const origin = calibratedImage.parameters.cameraOrigin
+
 		screen.position.set(position.x, position.y, position.z)
 		screen.scaleDistance(position.distanceTo(origin))
 		screen.lookAt(origin)
@@ -128,7 +130,7 @@ export class ImageManager {
 		this.imageScreens.push(screen)
 		this.imageScreenMeshes.push(screen.imageMesh)
 
-		new AnnotatedSceneActions().addObjectToScene( screen )
+		new AnnotatedSceneActions().addObjectToScene(screen)
 		this.channel.emit(Events.IMAGE_SCREEN_LOAD_UPDATE, screen)
 	}
 
@@ -136,8 +138,7 @@ export class ImageManager {
 	loadImageIntoWindow(image: CalibratedImage): void {
 		if (this.loadedImageDetails.has(image)) return
 
-		if (!this.lightboxWindow)
-			this.lightboxWindow = new LightboxWindowManager(this.channel)
+		if (!this.lightboxWindow) this.lightboxWindow = new LightboxWindowManager(this.channel)
 
 		this.channel.on(Events.IMAGE_EDIT_STATE, this.onImageEditState)
 		this.channel.on(Events.IMAGE_CLICK, this.onImageClick)
@@ -151,10 +152,11 @@ export class ImageManager {
 
 	private onLightboxWindowClose = (): void => {
 		let updated = 0
+
 		this.loadedImageDetails.forEach(i => i!.imageScreen.setHighlight(false) && updated++)
 		this.loadedImageDetails = OrderedSet()
-		if (updated)
-			this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
+
+		if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
 	}
 
 	private toLightboxStateMessage(): IpcMessages.LightboxState {
@@ -165,17 +167,18 @@ export class ImageManager {
 						uuid: i.imageScreen.uuid,
 						path: i.path,
 					} as IpcMessages.LightboxImageDescription
-				})
+				}),
 		}
 	}
 
 	private onImageEditState = (state: IpcMessages.ImageEditState): void => {
 		let updated = 0
+
 		this.loadedImageDetails
 			.filter(i => i!.imageScreen.uuid === state.uuid)
 			.forEach(i => i!.imageScreen.setHighlight(state.active) && updated++)
-		if (updated)
-			this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
+
+		if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
 	}
 
 	private onImageClick = (click: IpcMessages.ImageClick): void => {
@@ -183,8 +186,10 @@ export class ImageManager {
 			.filter(i => i!.imageScreen.uuid === click.uuid)
 			.forEach(i => {
 				const parameters = i!.parameters
+
 				if (parameters instanceof AuroraCameraParameters) {
 					const ray = parameters.imageCoordinatesToRay(click.ratioX, click.ratioY, this.settings.clickedRayLength)
+
 					this.channel.emit(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, ray)
 				} else {
 					log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)
@@ -194,10 +199,11 @@ export class ImageManager {
 
 	getImageScreen(imageScreenMesh: THREE.Mesh): ImageScreen | null {
 		let foundScreen: ImageScreen | null = null
+
 		this.imageScreens.forEach(screen => {
-			if (screen.imageMesh === imageScreenMesh)
-				foundScreen = screen
+			if (screen.imageMesh === imageScreenMesh) foundScreen = screen
 		})
+
 		return foundScreen
 	}
 
@@ -211,11 +217,13 @@ export class ImageManager {
 
 	private imageSetState(image: CalibratedImage, active: boolean): boolean {
 		if (!this.loadedImageDetails.has(image)) return false
+
 		if (this.lightboxWindow) {
 			this.lightboxWindow.imageSetState({
 				uuid: image.imageScreen.uuid,
 				active: active,
 			} as IpcMessages.ImageEditState)
+
 			return true
 		} else {
 			log.warn('missing lightboxWindow')

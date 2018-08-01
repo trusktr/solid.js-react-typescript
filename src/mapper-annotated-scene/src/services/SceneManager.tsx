@@ -3,32 +3,31 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as THREE from "three"
-import * as React from "react"
+import * as THREE from 'three'
+import * as React from 'react'
 import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
-import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
-import {Sky} from "@/mapper-annotated-scene/src/services/controls/Sky";
-import config from "@/config";
-import {CompassRose} from "@/mapper-annotated-scene/src/services/controls/CompassRose";
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
-import Logger from "@/util/log";
-import {OrbitControls} from "@/mapper-annotated-scene/src/services/controls/OrbitControls";
-import {getValue} from "typeguard";
-import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import {CameraType} from '@/mapper-annotated-scene/src/models/CameraType'
+import {Sky} from '@/mapper-annotated-scene/src/services/controls/Sky'
+import config from '@/config'
+import {CompassRose} from '@/mapper-annotated-scene/src/services/controls/CompassRose'
+import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts'
+import Logger from '@/util/log'
+import {OrbitControls} from '@/mapper-annotated-scene/src/services/controls/OrbitControls'
+import {getValue} from 'typeguard'
+import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
 import toProps from '@/util/toProps'
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
-import {getDecorations} from "@/mapper-annotated-scene/Decorations";
-import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
-import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
-import {EventEmitter} from "events";
-import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
-import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
+import {UtmCoordinateSystem} from '@/mapper-annotated-scene/UtmCoordinateSystem'
+import {getDecorations} from '@/mapper-annotated-scene/Decorations'
+import {StatusKey} from '@/mapper-annotated-scene/src/models/StatusKey'
+import StatusWindowActions from '@/mapper-annotated-scene/StatusWindowActions'
+import {EventEmitter} from 'events'
+import AreaOfInterestManager from '@/mapper-annotated-scene/src/services/AreaOfInterestManager'
 import * as Stats from 'stats.js'
-import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import {Events} from '@/mapper-annotated-scene/src/models/Events'
 import {Set} from 'immutable'
-import {THREEColorValue} from "@/mapper-annotated-scene/src/THREEColorValue-type";
+import {THREEColorValue} from '@/mapper-annotated-scene/src/THREEColorValue-type'
 import {TransformControls} from '@/mapper-annotated-scene/src/services/controls/TransformControls'
-import {isTupleOfNumbers} from "@/util/Validation"
+import {isTupleOfNumbers} from '@/util/Validation'
 
 const log = Logger(__filename)
 
@@ -53,10 +52,8 @@ export interface SceneManagerProps {
 	transformControlsMode?: 'translate' | 'rotate' | 'scale'
 	isInitialOriginSet?: boolean
 }
-
 export interface SceneManagerState {
 }
-
 @typedConnect(toProps(
 	'shouldAnimate',
 	'compassRosePosition',
@@ -97,16 +94,19 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	constructor(props: SceneManagerProps) {
 		super(props)
-		const {width, height} = this.props
 
-		const loop = new AnimationLoop
+		const {width, height} = this.props
+		const loop = new AnimationLoop()
 		const animationFps = config['startup.render.fps']
-		loop.interval = animationFps === 'device' || animationFps === 'max' ?
-			false :
-			1 / (animationFps || 10)
+
+		loop.interval = animationFps === 'device' || animationFps === 'max'
+			? false
+			: 1 / (animationFps || 10)
+
 		this.loop = loop
 
 		const scene = new THREE.Scene()
+
 		this.scene = scene
 
 		this.perspectiveCamera = new THREE.PerspectiveCamera(70, width / height, 0.1, 10000)
@@ -120,10 +120,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			this.camera = this.perspectiveCamera
 
 		const showCameraFocusPoint = false
-		if ( showCameraFocusPoint ) {
-			const debugSphere = new THREE.Mesh( new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: new THREE.Color( 0xffffff ) }) )
+
+		if (showCameraFocusPoint) {
+			const debugSphere = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({color: new THREE.Color(0xffffff)}))
+
 			debugSphere.position.z = -100
-			this.camera.add( debugSphere )
+			this.camera.add(debugSphere)
 		}
 
 		scene.add(this.perspectiveCamera)
@@ -137,9 +139,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.cameraToSkyMaxDistance = cameraToSkyMaxDistance
 
 		const background = props.backgroundColor || 'gray'
-
 		// Draw the sky.
-		const sky = Sky(new THREE.Color( background as number ), new THREE.Color(0xccccff), skyRadius)
+		const sky = Sky(new THREE.Color(background as number), new THREE.Color(0xccccff), skyRadius)
+
 		scene.add(sky)
 
 		this.sky = sky
@@ -152,19 +154,22 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.orthoCameraHeight = 100 // enough to view ~1 city block of data
 
 		let cameraOffset = new THREE.Vector3(0, 400, 200)
+
 		if (config['startup.camera_offset']) {
 			const configCameraOffset: [number, number, number] = config['startup.camera_offset']
-			if (isTupleOfNumbers(configCameraOffset, 3)) {
+
+			if (isTupleOfNumbers(configCameraOffset, 3))
 				cameraOffset = new THREE.Vector3().fromArray(configCameraOffset)
-			} else if (configCameraOffset) {
+			else if (configCameraOffset)
 				log.warn(`invalid startup.camera_offset config: ${configCameraOffset}`)
-			}
 		}
+
 		this.cameraOffset = cameraOffset
 
 		// Create GL Renderer
 		const renderer = new THREE.WebGLRenderer({antialias: true})
-		renderer.setClearColor(new THREE.Color( background as number ))
+
+		renderer.setClearColor(new THREE.Color(background as number))
 		renderer.setPixelRatio(window.devicePixelRatio)
 		renderer.setSize(width, height)
 		this.renderer = renderer
@@ -173,16 +178,18 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.orthoOrbitControls = this.createOrbitControls(this.orthographicCamera, renderer)
 
 		// Add some lights
-		scene.add(new THREE.AmbientLight(new THREE.Color( 0xffffff )))
+		scene.add(new THREE.AmbientLight(new THREE.Color(0xffffff)))
 
 		const compassRoseLength = parseFloat(config['annotator.compass_rose_length']) || 0
+
 		let compassRose
+
 		if (compassRoseLength > 0) {
 			compassRose = CompassRose(compassRoseLength)
 			compassRose.rotateX(Math.PI / -2)
 			scene.add(compassRose)
-		} else
-			compassRose = null
+		} else { compassRose = null }
+
 		this.compassRose = compassRose
 
 		this.initTransformControls()
@@ -196,8 +203,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// because there are no animation functions added to the loop yet.
 		loop.start()
 
-		loop.addBaseFn( () => {
-
+		loop.addBaseFn(() => {
 			// let other code have the opportunity to hook in before redraw
 			this.props.channel.emit(Events.SCENE_WILL_RENDER)
 
@@ -235,7 +241,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		new AnnotatedSceneActions().addObjectToScene(this.transformControls)
 
 		this.transformControls.addEventListener('change', () => {
-
 			// we transformed something, the scene needs to be redrawn
 			this.renderScene()
 
@@ -263,20 +268,20 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	cancelHideTransform = (): void => {
-		if (this.hideTransformControlTimer) {
+		if (this.hideTransformControlTimer)
 			window.clearTimeout(this.hideTransformControlTimer)
-		}
 	}
 
 	cleanTransformControls = (): void => {
 		this.cancelHideTransform()
 		this.transformControls.detach()
-		new AnnotatedSceneActions().setTransformControlsAttached( false )
+		new AnnotatedSceneActions().setTransformControlsAttached(false)
 		this.renderScene()
 	}
 
 	private createOrbitControls(camera: THREE.Camera, renderer: THREE.WebGLRenderer): any {
 		const orbitControls = new OrbitControls(camera, renderer.domElement)
+
 		orbitControls.enabled = true
 		orbitControls.enablePan = true
 		orbitControls.minDistance = 10
@@ -286,19 +291,18 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		orbitControls.keyPanSpeed = 100
 
 		orbitControls.addEventListener('change', () => {
-
 			// we've moved the camera, the scene should be redrawn
-            this.renderScene()
+			this.renderScene()
 
-            this.updateSkyPosition()
-        })
+			this.updateSkyPosition()
+		})
 
 		orbitControls.addEventListener('start', () => {
-			new AnnotatedSceneActions().cameraIsOrbiting( true )
+			new AnnotatedSceneActions().cameraIsOrbiting(true)
 		})
 
 		orbitControls.addEventListener('end', () => {
-			new AnnotatedSceneActions().cameraIsOrbiting( false )
+			new AnnotatedSceneActions().cameraIsOrbiting(false)
 		})
 
 		return orbitControls
@@ -306,15 +310,16 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	private updateSceneObjects(newSceneObjects:Set<THREE.Object3D>, existingSceneObjects:Set<THREE.Object3D>) {
 		const scene = this.scene
+
 		newSceneObjects.forEach(object => {
-			if(!existingSceneObjects.has(object!)) {
+			if (!existingSceneObjects.has(object!)) {
 				// Not found in the existing objects, let's ADD it to the scene
 				scene.add(object!)
 			}
 		})
 
 		existingSceneObjects.forEach(object => {
-			if(!newSceneObjects.has(object!)) {
+			if (!newSceneObjects.has(object!)) {
 				// Not found in the new objects, let's REMOVE it
 				scene.remove(object!)
 			}
@@ -328,6 +333,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		// Create stats widget to display frequency of rendering
 		const stats = new Stats()
+
 		stats.dom.style.top = 'initial' // disable existing setting
 		stats.dom.style.bottom = '50px' // above Mapper logo
 		stats.dom.style.left = '13px'
@@ -339,7 +345,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	private destroyStats(): void {
 		this.stats && this.stats.dom.remove()
 	}
-
 
 	/**
 	 * updateOrbitControlsTargetPoint is called via componentWillReceiveProps.
@@ -369,12 +374,12 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	//
 	// {{{
 
-	addAnimationFunction( fn ) {
-		this.loop.addAnimationFn( fn )
+	addAnimationFunction(fn) {
+		this.loop.addAnimationFn(fn)
 	}
 
-	removeAnimationFunction( fn ) {
-		this.loop.removeAnimationFn( fn )
+	removeAnimationFunction(fn) {
+		this.loop.removeAnimationFn(fn)
 	}
 
 	pauseEverything(): void {
@@ -389,9 +394,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	removeCompassFromScene(): void {
 		const scene = this.scene
-		if(this.compassRose) {
+
+		if (this.compassRose)
 			scene.remove(this.compassRose)
-		}
 	}
 
 	enableOrbitControls(): void {
@@ -404,7 +409,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	addChildAnimationLoop(childLoop: ChildAnimationLoop): void {
-		this.loop.addChildLoop( childLoop )
+		this.loop.addChildLoop(childLoop)
 	}
 
 	getRendererDOMElement() {
@@ -416,8 +421,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	private createOrthographicCameraDimensions(width: number, height: number): void {
 		const orthoWidth = this.orthoCameraHeight * (width / height)
 		const orthoHeight = this.orthoCameraHeight
-
 		const orthographicCamera = this.orthographicCamera
+
 		orthographicCamera.left = orthoWidth / -2
 		orthographicCamera.right = orthoWidth / 2
 		orthographicCamera.top = orthoHeight / 2
@@ -432,6 +437,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		if (resetCamera) {
 			const {cameraOffset} = this
+
 			this.perspectiveCamera.position.set(x, y, z).add(cameraOffset)
 			this.orthographicCamera.position.set(x, y, z).add(cameraOffset)
 
@@ -474,55 +480,58 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.createOrthographicCameraDimensions(width, height)
 
 		this.renderer.setSize(width, height)
-		new AnnotatedSceneActions().setRendererSize({ width, height })
+		new AnnotatedSceneActions().setRendererSize({width, height})
 		this.renderScene()
 	}
 
 	// IDEA JOE Camera Manager
 	adjustCameraXOffset(value: number): void {
 		const cameraOffset = this.cameraOffset
+
 		cameraOffset.x += value
 	}
 
 	// IDEA JOE Camera Manager
 	adjustCameraYOffset(value: number): void {
 		const cameraOffset = this.cameraOffset
+
 		cameraOffset.y += value
 	}
 
 	// Add some easter eggs to the scene if they are close enough.
 	loadDecorations(): Promise<void> {
 		return getDecorations().then(decorations => {
-
 			decorations.forEach(decoration => {
 				const position = this.props.utmCoordinateSystem.lngLatAltToThreeJs(decoration.userData)
 				const distanceFromOrigin = position.length()
+
 				if (distanceFromOrigin < this.maxDistanceToDecorations) {
 					// Don't worry about rotation. The object is just floating in space.
 					decoration.position.set(position.x, position.y, position.z)
 
 					const decorations = this.decorations
+
 					decorations.push(decoration)
 					new AnnotatedSceneActions().addObjectToScene(decoration)
 				}
 			})
-
 		})
 	}
 
 	private showDecorations() {
-		this.decorations.forEach(d => d.visible = true)
+		this.decorations.forEach(d => { d.visible = true })
 		this.renderScene()
 	}
 
 	private hideDecorations() {
-		this.decorations.forEach(d => d.visible = false)
+		this.decorations.forEach(d => { d.visible = false })
 		this.renderScene()
 	}
 
 	resetTiltAndCompass(): void {
 		const distanceCameraToTarget = this.camera.position.distanceTo(this.perspectiveOrbitControls.target)
 		const camera = this.camera
+
 		camera.position.x = this.perspectiveOrbitControls.target.x
 		camera.position.y = this.perspectiveOrbitControls.target.y + distanceCameraToTarget
 		camera.position.z = this.perspectiveOrbitControls.target.z
@@ -534,10 +543,11 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 	private setCompassRosePosition(x: number, y: number, z: number): void {
 		if (!this.compassRose) {
-			log.error("Unable to find compassRose")
+			log.error('Unable to find compassRose')
 			return
 		} else {
 			const compassRose = this.compassRose
+
 			compassRose.position.set(x, y, z)
 		}
 
@@ -585,27 +595,26 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	private addObjectsToScene( objects: THREE.Object3D[] ): void {
-		this.scene.add.apply( this.scene, objects )
+	private addObjectsToScene(objects: THREE.Object3D[]): void {
+		this.scene.add.apply(this.scene, objects)
 	}
 
 	componentWillReceiveProps(newProps: SceneManagerProps): void {
-		if(newProps.compassRosePosition && newProps.compassRosePosition !== this.props.compassRosePosition) {
+		if (newProps.compassRosePosition && newProps.compassRosePosition !== this.props.compassRosePosition) {
 			const position = newProps.compassRosePosition
+
 			this.setCompassRosePosition(position.x, position.y, position.z)
 		}
 
-		if(newProps.isDecorationsVisible !== this.props.isDecorationsVisible) {
-			if(newProps.isDecorationsVisible) {
+		if (newProps.isDecorationsVisible !== this.props.isDecorationsVisible) {
+			if (newProps.isDecorationsVisible)
 				this.showDecorations()
-			} else {
+			else
 				this.hideDecorations()
-			}
 		}
 
-		if(newProps.orbitControlsTargetPoint && newProps.orbitControlsTargetPoint !== this.props.orbitControlsTargetPoint) {
+		if (newProps.orbitControlsTargetPoint && newProps.orbitControlsTargetPoint !== this.props.orbitControlsTargetPoint)
 			this.updateOrbitControlsTargetPoint(newProps.orbitControlsTargetPoint)
-		}
 
 		// Handle adding and removing scene objects
 		// TODO JOE This diffing is noticeably slow once there's many obbjects
@@ -613,17 +622,19 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		if (newProps.sceneObjects !== this.props.sceneObjects) {
 			const newSceneObjects = newProps.sceneObjects!
 			const existingSceneObjects = this.props.sceneObjects!
+
 			this.updateSceneObjects(newSceneObjects, existingSceneObjects)
 		}
 
 		if (newProps.transformedObjects !== this.props.transformedObjects) {
 			if (newProps.transformedObjects) {
 				this.transformControls.attach(newProps.transformedObjects)
-				new AnnotatedSceneActions().setTransformControlsAttached( true )
+				new AnnotatedSceneActions().setTransformControlsAttached(true)
 			} else {
 				this.transformControls.detach()
-				new AnnotatedSceneActions().setTransformControlsAttached( false )
+				new AnnotatedSceneActions().setTransformControlsAttached(false)
 			}
+
 			this.renderScene()
 		}
 
@@ -634,23 +645,18 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		// Triggered by UTMCoordinateSystem.setOrigin
 		// NOTE JOE at the moment this only happens once, but in the future will happens any number of times
-		if (newProps.isInitialOriginSet !== this.props.isInitialOriginSet) {
+		if (newProps.isInitialOriginSet !== this.props.isInitialOriginSet)
 			this.loadDecorations()
-		}
-
 	}
 
 	componentDidUpdate(oldProps): void {
-		if (oldProps.width !== this.props.width || oldProps.height !== this.props.height) {
+		if (oldProps.width !== this.props.width || oldProps.height !== this.props.height)
 			this.onResize()
-		}
 	}
 
 	componentDidMount(): void {
-		const [width, height]: Array<number> = this.getSize()
-
 		// be sure to add any initial objects that may already be in the `sceneObjects` prop
-		this.props.sceneObjects && this.addObjectsToScene( this.props.sceneObjects.toArray() )
+		this.props.sceneObjects && this.addObjectsToScene(this.props.sceneObjects.toArray())
 
 		new AnnotatedSceneActions().setCamera(this.camera)
 

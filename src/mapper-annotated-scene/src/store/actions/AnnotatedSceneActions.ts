@@ -3,525 +3,517 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as THREE from "three"
+import * as THREE from 'three'
 import config from '@/config'
-import {ActionFactory, ActionMessage, ActionReducer} from "typedux"
-import AnnotatedSceneState from "mapper-annotated-scene/src/store/state/AnnotatedSceneState"
-import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
+import {ActionFactory, ActionMessage, ActionReducer} from 'typedux'
+import AnnotatedSceneState from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
+import UIMessage from 'mapper-annotated-scene/src/models/UIMessage'
 import * as MapperProtos from '@mapperai/mapper-models'
-import Models = MapperProtos.mapper.models
-import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType"
-import {OrderedMap} from "immutable";
-import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile"
-import {RangeSearch} from "../../../tile-model/RangeSearch"
-import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
-import {Set} from "immutable"
+import {CameraType} from '@/mapper-annotated-scene/src/models/CameraType'
+import {OrderedMap, Set} from 'immutable'
+import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
+import {RangeSearch} from '../../../tile-model/RangeSearch'
+import TileManagerBase from '@/mapper-annotated-scene/tile/TileManagerBase'
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
-import * as Electron from "electron"
+import * as Electron from 'electron'
 import LocalStorage from '@/mapper-annotated-scene/LocalStorage'
-import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
+import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
+import Models = MapperProtos.mapper.models
 
 const localStorage = new LocalStorage()
 
 export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneState, ActionMessage<AnnotatedSceneState>> {
+	constructor() {
+		super(AnnotatedSceneState)
+	}
 
-    constructor() {
-        super(AnnotatedSceneState)
-    }
+	/**
+	 * Leaf name
+	 * @returns {string}
+	 */
+	leaf(): string {
+		return AnnotatedSceneState.Key
+	}
 
-    /**
-     * Leaf name
-     * @returns {string}
-     */
-    leaf(): string {
-        return AnnotatedSceneState.Key
-    }
+	/**
+	 * Load the state from local storage
+	 * @returns {(annotatedSceneState: AnnotatedSceneState) => void}
+	 */
+	@ActionReducer()
+	loadAppState() {
+		const defaultState = {
+			messages: [],
 
-    /**
-     * Load the state from local storage
-     * @returns {(annotatedSceneState: AnnotatedSceneState) => void}
-     */
-    @ActionReducer()
-    loadAppState() {
+			isLiveMode: false,
+			isPlayMode: false,
+			flyThroughEnabled: true,
 
-        const defaultState = {
-            messages: Array<UIMessage>(),
+			statusWindowState: new StatusWindowState({
+				enabled: !!config['startup.show_status_panel'],
+				messages: new Map<string, string>(),
+			}),
 
-            isLiveMode: false,
-            isPlayMode: false,
-            flyThroughEnabled: true,
+			uiMenuVisible: config['startup.show_menu'],
+			shouldAnimate: false,
+			carPose: null,
+			isCarInitialized: false,
+			isInitialOriginSet: false,
 
-            statusWindowState: new StatusWindowState({
-                enabled: !!config['startup.show_status_panel'],
-                messages: new Map<string, string>()
-            }),
+			cameraPreference: localStorage.getItem('cameraPreference', CameraType.PERSPECTIVE),
 
-            uiMenuVisible: config['startup.show_menu'],
-            shouldAnimate: false,
-            carPose: null,
-            isCarInitialized: false,
-            isInitialOriginSet: false,
+			pointOfInterest: new THREE.Vector3(0, 0, 0),
+			areaOfInterest: [{
+				minPoint: new THREE.Vector3(0, 0, 0),
+				maxPoint: new THREE.Vector3(1, 1, 1),
+			}, {minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1, 1, 1)}],
+			rendererSize: {width: 1, height: 1},
 
-            cameraPreference: localStorage.getItem('cameraPreference', CameraType.PERSPECTIVE),
+			sceneInitialized: false,
 
-            pointOfInterest: new THREE.Vector3(0, 0, 0),
-            areaOfInterest: [{
-                minPoint: new THREE.Vector3(0, 0, 0),
-                maxPoint: new THREE.Vector3(1, 1, 1)
-            }, {minPoint: new THREE.Vector3(0, 0, 0), maxPoint: new THREE.Vector3(1, 1, 1)}],
-            rendererSize: {width: 1, height: 1},
+			compassRosePosition: new THREE.Vector3(0, 0, 0),
 
-            sceneInitialized: false,
-
-            compassRosePosition: new THREE.Vector3(0, 0, 0),
-
-            isDecorationsVisible: false,
+			isDecorationsVisible: false,
 			isTransformControlsAttached: false,
 
-            orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0),
-            annotationSuperTiles: OrderedMap<string, SuperTile>(),
-            pointCloudSuperTiles: OrderedMap<string, SuperTile>(),
+			orbitControlsTargetPoint: new THREE.Vector3(0, 0, 0),
+			annotationSuperTiles: OrderedMap<string, SuperTile>(),
+			pointCloudSuperTiles: OrderedMap<string, SuperTile>(),
 
-            sceneObjects: Set<THREE.Object3D>(),
+			sceneObjects: Set<THREE.Object3D>(),
 			sceneStage: new THREE.Vector3(0, 0, 0),
-            isAnnotationTileManagerEnabled: false, // by default, do not include the AnnotationTileManager -- it's only needed for the Kiosk app
+			isAnnotationTileManagerEnabled: false, // by default, do not include the AnnotationTileManager -- it's only needed for the Kiosk app
 
-            isMouseDragging: false,
-			mousePosition: { x: 0, y: 0 },
-            isRotationModeActive: false,
-            isConnectLeftNeighborMode: false,
-            isConnectRightNeighborMode: false,
-            isConnectFrontNeighborMode: false,
-            isAddMarkerMode: false,
-            isAddConnectionMode: false,
-            isJoinAnnotationMode: false,
-            isControlKeyPressed: false,
-            isShiftKeyPressed: false,
-            isAddConflictOrDeviceMode: false,
-            isMouseDown: false,
+			isMouseDragging: false,
+			mousePosition: {x: 0, y: 0},
+			isRotationModeActive: false,
+			isConnectLeftNeighborMode: false,
+			isConnectRightNeighborMode: false,
+			isConnectFrontNeighborMode: false,
+			isAddMarkerMode: false,
+			isAddConnectionMode: false,
+			isJoinAnnotationMode: false,
+			isControlKeyPressed: false,
+			isShiftKeyPressed: false,
+			isAddConflictOrDeviceMode: false,
+			isMouseDown: false,
 			numberKeyPressed: null,
 			isHoveringOnMarker: false,
 
-	        lockBoundaries: false,
-	        lockLanes: false,
-	        lockTerritories: false,
-	        lockTrafficDevices: false,
+			lockBoundaries: false,
+			lockLanes: false,
+			lockTerritories: false,
+			lockTrafficDevices: false,
 
-	        transformedObjects: null,
+			transformedObjects: null,
 			transformControlsMode: 'translate',
 
-            cameraIsOrbiting: false,
-            camera: null,
-            loadingTileManagers: Set<TileManagerBase>(),
-        }
+			cameraIsOrbiting: false,
+			camera: null,
+			loadingTileManagers: Set<TileManagerBase>(),
+		}
 
-        return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
-    }
+		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
+	}
 
-    @ActionReducer()
-    setControlKeyPressed(isControlKeyPressed: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isControlKeyPressed
-        })
-    }
+	@ActionReducer()
+	setControlKeyPressed(isControlKeyPressed: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isControlKeyPressed,
+		})
+	}
 
-    @ActionReducer()
-    setShiftKeyPressed(isShiftKeyPressed: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isShiftKeyPressed
-        })
-    }
+	@ActionReducer()
+	setShiftKeyPressed(isShiftKeyPressed: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isShiftKeyPressed,
+		})
+	}
 
-    @ActionReducer()
-    setAddMarkerMode(isAddMarkerMode: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isAddMarkerMode
-        })
-    }
+	@ActionReducer()
+	setAddMarkerMode(isAddMarkerMode: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isAddMarkerMode,
+		})
+	}
 
-    @ActionReducer()
-    setAddConnectionMode(isAddConnectionMode: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isAddConnectionMode
-        })
-    }
+	@ActionReducer()
+	setAddConnectionMode(isAddConnectionMode: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isAddConnectionMode,
+		})
+	}
 
-    @ActionReducer()
-    setConnectFrontNeighborMode(isConnectFrontNeighborMode: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isConnectFrontNeighborMode
-        })
-    }
+	@ActionReducer()
+	setConnectFrontNeighborMode(isConnectFrontNeighborMode: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isConnectFrontNeighborMode,
+		})
+	}
 
-    @ActionReducer()
-    setJoinAnnotationMode(isJoinAnnotationMode: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isJoinAnnotationMode
-        })
-    }
+	@ActionReducer()
+	setJoinAnnotationMode(isJoinAnnotationMode: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isJoinAnnotationMode,
+		})
+	}
 
-    @ActionReducer()
-    setConnectLeftNeighborMode(isConnectLeftNeighborMode: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isConnectLeftNeighborMode
-        })
-    }
+	@ActionReducer()
+	setConnectLeftNeighborMode(isConnectLeftNeighborMode: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isConnectLeftNeighborMode,
+		})
+	}
 
-    @ActionReducer()
-    setAddConflictOrDeviceMode(isAddConflictOrDeviceMode: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isAddConflictOrDeviceMode
-        })
-    }
+	@ActionReducer()
+	setAddConflictOrDeviceMode(isAddConflictOrDeviceMode: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isAddConflictOrDeviceMode,
+		})
+	}
 
-    @ActionReducer()
-    setConnectRightNeighborMode(isConnectRightNeighborMode: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isConnectRightNeighborMode
-        })
-    }
+	@ActionReducer()
+	setConnectRightNeighborMode(isConnectRightNeighborMode: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isConnectRightNeighborMode,
+		})
+	}
 
 	@ActionReducer()
 	setIsMouseDown(isMouseDown: boolean) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, isMouseDown: isMouseDown
+			...annotatedSceneState, isMouseDown: isMouseDown,
 		})
 	}
 
 	@ActionReducer()
 	setIsMouseDraggingIfIsMouseDown() {
 		return (annotatedSceneState: AnnotatedSceneState) => {
-			if (annotatedSceneState.isMouseDown && !annotatedSceneState.isMouseDragging)
+			if (annotatedSceneState.isMouseDown && !annotatedSceneState.isMouseDragging) {
 				return new AnnotatedSceneState({
-					...annotatedSceneState, isMouseDragging: true
+					...annotatedSceneState, isMouseDragging: true,
 				})
-			else
-				return annotatedSceneState
+			} else { return annotatedSceneState }
 		}
 	}
 
 	@ActionReducer()
 	setIsMouseDraggingFalse() {
 		return (annotatedSceneState: AnnotatedSceneState) => {
-			if (annotatedSceneState.isMouseDragging)
+			if (annotatedSceneState.isMouseDragging) {
 				return new AnnotatedSceneState({
-					...annotatedSceneState, isMouseDragging: false
+					...annotatedSceneState, isMouseDragging: false,
 				})
-			else
-				return annotatedSceneState
+			} else { return annotatedSceneState }
 		}
 	}
 
 	@ActionReducer()
-    toggleRotationModeActive() {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isRotationModeActive: !annotatedSceneState.isRotationModeActive
-        })
-    }
+	toggleRotationModeActive() {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isRotationModeActive: !annotatedSceneState.isRotationModeActive,
+		})
+	}
 
-    @ActionReducer()
-    setTransformControlsAttached(isTransformControlsAttached: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isTransformControlsAttached
-        })
-    }
+	@ActionReducer()
+	setTransformControlsAttached(isTransformControlsAttached: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isTransformControlsAttached,
+		})
+	}
 
-    @ActionReducer()
-    setNumberKeyPressed(numberKeyPressed: number | null) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, numberKeyPressed
-        })
-    }
+	@ActionReducer()
+	setNumberKeyPressed(numberKeyPressed: number | null) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, numberKeyPressed,
+		})
+	}
 
-    @ActionReducer()
-    isHoveringOnMarker(isHoveringOnMarker: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isHoveringOnMarker
-        })
-    }
+	@ActionReducer()
+	isHoveringOnMarker(isHoveringOnMarker: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isHoveringOnMarker,
+		})
+	}
 
-    @ActionReducer()
-    setTransformedObjects(transformedObjects: Array<THREE.Object3D>) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, transformedObjects
-        })
-    }
+	@ActionReducer()
+	setTransformedObjects(transformedObjects: Array<THREE.Object3D>) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, transformedObjects,
+		})
+	}
 
-    @ActionReducer()
-    setTransformControlsMode(transformControlsMode: string) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, transformControlsMode
-        })
-    }
+	@ActionReducer()
+	setTransformControlsMode(transformControlsMode: string) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, transformControlsMode,
+		})
+	}
 
-    @ActionReducer()
-    setSceneStage(sceneStage: THREE.Vector3) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, sceneStage
-        })
-    }
+	@ActionReducer()
+	setSceneStage(sceneStage: THREE.Vector3) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, sceneStage,
+		})
+	}
 
-    @ActionReducer()
-    addMessage(message: UIMessage) {
-        return (annotatedSceneState: AnnotatedSceneState) => {
-            let messages = [...annotatedSceneState.messages, message]
-            return new AnnotatedSceneState({...annotatedSceneState, messages: messages})
-        }
-    }
+	@ActionReducer()
+	addMessage(message: UIMessage) {
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const messages = [...annotatedSceneState.messages, message]
 
-    @ActionReducer()
-    removeMessage(messageId: string) {
-        return (annotatedSceneState: AnnotatedSceneState) => {
-            let messages = [...annotatedSceneState.messages]
-            messages = messages.filter(it => it.id !== messageId)
+			return new AnnotatedSceneState({...annotatedSceneState, messages: messages})
+		}
+	}
 
-            return new AnnotatedSceneState({...annotatedSceneState, messages: messages})
-        }
-    }
+	@ActionReducer()
+	removeMessage(messageId: string) {
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			let messages = [...annotatedSceneState.messages]
 
-    @ActionReducer()
-    toggleLiveMode() {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isLiveMode: !annotatedSceneState.isLiveMode
-        })
-    }
+			messages = messages.filter(it => it.id !== messageId)
 
-    @ActionReducer()
-    togglePlayMode() {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isPlayMode: !annotatedSceneState.isPlayMode
-        })
-    }
+			return new AnnotatedSceneState({...annotatedSceneState, messages: messages})
+		}
+	}
 
-    @ActionReducer()
-    setPlayMode(isEnabled:boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isPlayMode: isEnabled
-        })
-    }
+	@ActionReducer()
+	toggleLiveMode() {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isLiveMode: !annotatedSceneState.isLiveMode,
+		})
+	}
 
-    @ActionReducer()
-    toggleUIMenuVisible() {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, uiMenuVisible: !annotatedSceneState.uiMenuVisible
-        })
-    }
+	@ActionReducer()
+	togglePlayMode() {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isPlayMode: !annotatedSceneState.isPlayMode,
+		})
+	}
 
-    @ActionReducer()
-    setUIMenuVisibility(visible: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, uiMenuVisible: visible
-        })
-    }
+	@ActionReducer()
+	setPlayMode(isEnabled:boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isPlayMode: isEnabled,
+		})
+	}
 
-    @ActionReducer()
-    setShouldAnimate(shouldAnimate: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, shouldAnimate: shouldAnimate
-        })
-    }
+	@ActionReducer()
+	toggleUIMenuVisible() {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, uiMenuVisible: !annotatedSceneState.uiMenuVisible,
+		})
+	}
 
-    @ActionReducer()
-    setCarPose(pose: Models.PoseMessage) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, carPose: pose
-        })
-    }
+	@ActionReducer()
+	setUIMenuVisibility(visible: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, uiMenuVisible: visible,
+		})
+	}
 
-    @ActionReducer()
-    setSceneInitialized(isInitialized: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, sceneInitialized: isInitialized
-        })
-    }
+	@ActionReducer()
+	setShouldAnimate(shouldAnimate: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, shouldAnimate: shouldAnimate,
+		})
+	}
 
-    @ActionReducer()
-    setIsDecorationsVisible(isVisible: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isDecorationsVisible: isVisible
-        })
-    }
+	@ActionReducer()
+	setCarPose(pose: Models.PoseMessage) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, carPose: pose,
+		})
+	}
 
+	@ActionReducer()
+	setSceneInitialized(isInitialized: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, sceneInitialized: isInitialized,
+		})
+	}
 
-    @ActionReducer()
-    setCarInitialized(isCarInitialized: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isCarInitialized
-        })
-    }
+	@ActionReducer()
+	setIsDecorationsVisible(isVisible: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isDecorationsVisible: isVisible,
+		})
+	}
 
-    @ActionReducer()
-    setInitialOriginSet(isInitialOriginSet: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isInitialOriginSet
-        })
-    }
+	@ActionReducer()
+	setCarInitialized(isCarInitialized: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isCarInitialized,
+		})
+	}
 
-    @ActionReducer()
-    setCameraPreference(cameraPreference: CameraType) {
+	@ActionReducer()
+	setInitialOriginSet(isInitialOriginSet: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isInitialOriginSet,
+		})
+	}
+
+	@ActionReducer()
+	setCameraPreference(cameraPreference: CameraType) {
 		localStorage.setItem('cameraPreference', cameraPreference)
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, cameraPreference
-        })
-    }
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, cameraPreference,
+		})
+	}
 
-    @ActionReducer()
-    setCamera(camera: THREE.Camera) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, camera
-        })
-    }
+	@ActionReducer()
+	setCamera(camera: THREE.Camera) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, camera,
+		})
+	}
 
-    @ActionReducer()
-    setPointOfInterest(pointOfInterest: THREE.Vector3 | null) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, pointOfInterest
-        })
-    }
+	@ActionReducer()
+	setPointOfInterest(pointOfInterest: THREE.Vector3 | null) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, pointOfInterest,
+		})
+	}
 
-    @ActionReducer()
-    setAreaOfInterest(areaOfInterest: RangeSearch[]) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, areaOfInterest
-        })
-    }
+	@ActionReducer()
+	setAreaOfInterest(areaOfInterest: RangeSearch[]) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, areaOfInterest,
+		})
+	}
 
-    @ActionReducer()
-    setRendererSize(rendererSize: Electron.Size) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, rendererSize
-        })
-    }
+	@ActionReducer()
+	setRendererSize(rendererSize: Electron.Size) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, rendererSize,
+		})
+	}
 
-    @ActionReducer()
-    cameraIsOrbiting(cameraIsOrbiting: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, cameraIsOrbiting
-        })
-    }
+	@ActionReducer()
+	cameraIsOrbiting(cameraIsOrbiting: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, cameraIsOrbiting,
+		})
+	}
 
-    @ActionReducer()
-    addLoadingTileManager(tileManager: TileManagerBase) {
-        return (annotatedSceneState: AnnotatedSceneState) => {
-            const loadingTileManagers = annotatedSceneState.loadingTileManagers
-            return new AnnotatedSceneState({
-                ...annotatedSceneState, loadingTileManagers: loadingTileManagers.add(tileManager)
-            })
-        }
-    }
+	@ActionReducer()
+	addLoadingTileManager(tileManager: TileManagerBase) {
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const loadingTileManagers = annotatedSceneState.loadingTileManagers
 
-    @ActionReducer()
-    removeLoadingTileManager(tileManager: TileManagerBase) {
-        return (annotatedSceneState: AnnotatedSceneState) => {
-            const loadingTileManagers = annotatedSceneState.loadingTileManagers
-            return new AnnotatedSceneState({
-                ...annotatedSceneState, loadingTileManagers: loadingTileManagers.delete(tileManager)
-            })
-        }
-    }
+			return new AnnotatedSceneState({
+				...annotatedSceneState, loadingTileManagers: loadingTileManagers.add(tileManager),
+			})
+		}
+	}
 
-    @ActionReducer()
-    setMousePosition(mousePosition: MousePosition) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, mousePosition
-        })
-    }
+	@ActionReducer()
+	removeLoadingTileManager(tileManager: TileManagerBase) {
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const loadingTileManagers = annotatedSceneState.loadingTileManagers
 
-    @ActionReducer()
-    setCompassRosePosition(position: THREE.Vector3) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, compassRosePosition: position
-        })
-    }
+			return new AnnotatedSceneState({
+				...annotatedSceneState, loadingTileManagers: loadingTileManagers.delete(tileManager),
+			})
+		}
+	}
 
-    @ActionReducer()
-    setOrbitControlsTargetPoint(targetPoint: THREE.Vector3) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, orbitControlsTargetPoint: targetPoint
-        })
-    }
+	@ActionReducer()
+	setMousePosition(mousePosition: MousePosition) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, mousePosition,
+		})
+	}
 
-    @ActionReducer()
-    setPointCloudSuperTiles(superTiles: OrderedMap<string, SuperTile>) {
-        let points = 0
-        superTiles.forEach(st => points += st!.objectCount)
+	@ActionReducer()
+	setCompassRosePosition(position: THREE.Vector3) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, compassRosePosition: position,
+		})
+	}
 
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, pointCloudSuperTiles: superTiles
-        })
-    }
+	@ActionReducer()
+	setOrbitControlsTargetPoint(targetPoint: THREE.Vector3) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, orbitControlsTargetPoint: targetPoint,
+		})
+	}
 
-    @ActionReducer()
-    setAnnotationSuperTiles(superTiles: OrderedMap<string, SuperTile>) {
-        let annotations = 0
-        superTiles.forEach(st => annotations += st!.objectCount)
+	@ActionReducer()
+	setPointCloudSuperTiles(superTiles: OrderedMap<string, SuperTile>) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, pointCloudSuperTiles: superTiles,
+		})
+	}
 
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, annotationSuperTiles: superTiles
-        })
-    }
+	@ActionReducer()
+	setAnnotationSuperTiles(superTiles: OrderedMap<string, SuperTile>) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, annotationSuperTiles: superTiles,
+		})
+	}
 
-    @ActionReducer()
-    addObjectToScene(object: THREE.Object3D) {
-        return (annotatedSceneState: AnnotatedSceneState) => {
-            const sceneObjects = annotatedSceneState.sceneObjects
-            return new AnnotatedSceneState({
-                ...annotatedSceneState, sceneObjects: sceneObjects.add(object)
-            })
-        }
-    }
+	@ActionReducer()
+	addObjectToScene(object: THREE.Object3D) {
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const sceneObjects = annotatedSceneState.sceneObjects
 
-    @ActionReducer()
-    removeObjectFromScene(object: THREE.Object3D) {
-        return (annotatedSceneState: AnnotatedSceneState) => {
-            const sceneObjects = annotatedSceneState.sceneObjects
-            return new AnnotatedSceneState({
-                ...annotatedSceneState, sceneObjects: sceneObjects.delete(object)
-            })
-        }
-    }
+			return new AnnotatedSceneState({
+				...annotatedSceneState, sceneObjects: sceneObjects.add(object),
+			})
+		}
+	}
 
-    @ActionReducer()
-    setIsAnnotationTileManagerEnabled(isEnabled: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, isAnnotationTileManagerEnabled: isEnabled
-        })
+	@ActionReducer()
+	removeObjectFromScene(object: THREE.Object3D) {
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			const sceneObjects = annotatedSceneState.sceneObjects
 
-    }
+			return new AnnotatedSceneState({
+				...annotatedSceneState, sceneObjects: sceneObjects.delete(object),
+			})
+		}
+	}
 
-    @ActionReducer()
-    setFlyThroughEnabled(isEnabled: boolean) {
-        return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-            ...annotatedSceneState, flyThroughEnabled: isEnabled
-        })
-    }
+	@ActionReducer()
+	setIsAnnotationTileManagerEnabled(isEnabled: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, isAnnotationTileManagerEnabled: isEnabled,
+		})
+	}
+
+	@ActionReducer()
+	setFlyThroughEnabled(isEnabled: boolean) {
+		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
+			...annotatedSceneState, flyThroughEnabled: isEnabled,
+		})
+	}
 
 	@ActionReducer()
 	setLockBoundaries(lockBoundaries: boolean) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, lockBoundaries: lockBoundaries
+			...annotatedSceneState, lockBoundaries: lockBoundaries,
 		})
 	}
 
 	@ActionReducer()
 	setLockLanes(lockLanes: boolean) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, lockLanes: lockLanes
+			...annotatedSceneState, lockLanes: lockLanes,
 		})
 	}
 
 	@ActionReducer()
 	setLockTerritories(lockTerritories: boolean) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, lockTerritories: lockTerritories
+			...annotatedSceneState, lockTerritories: lockTerritories,
 		})
 	}
 
 	@ActionReducer()
 	setLockTrafficDevices(lockTrafficDevices: boolean) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
-			...annotatedSceneState, lockTrafficDevices: lockTrafficDevices
+			...annotatedSceneState, lockTrafficDevices: lockTrafficDevices,
 		})
 	}
-
 }

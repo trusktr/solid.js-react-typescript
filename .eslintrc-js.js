@@ -54,6 +54,7 @@ module.exports = {
 		// 'brace-style': [ 'error', 'stroustrup', { allowSingleLine: true } ],
 		'brace-style': 0,
 		'quote-props': [ 'error', 'as-needed' ],
+		'curly': [ 'error', 'multi-or-nest', 'consistent' ],
 
 		// ????????????????
 		// 'no-mixed-operators': 0,

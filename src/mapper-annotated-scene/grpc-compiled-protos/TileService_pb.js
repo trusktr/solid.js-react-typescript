@@ -2,7 +2,7 @@
  * @fileoverview
  * @enhanceable
  * @suppress {messageConventions} JS Compiler reports an error if a variable or
- *     field starts with 'MSG_' and isn't a translatable message.
+ *	 field starts with 'MSG_' and isn't a translatable message.
  * @public
  */
 // GENERATED CODE -- DO NOT EDIT!
@@ -47,9 +47,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *	 for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.PingRequest.prototype.toObject = function(opt_includeInstance) {
@@ -60,19 +60,19 @@ proto.mapper.models.PingRequest.prototype.toObject = function(opt_includeInstanc
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
- *     http://goto/soy-param-migration
+ *	 instance for transitional soy proto support:
+ *	 http://goto/soy-param-migration
  * @param {!proto.mapper.models.PingRequest} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.PingRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    requestId: jspb.Message.getFieldWithDefault(msg, 1, "")
+	requestId: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
+	obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -100,19 +100,19 @@ proto.mapper.models.PingRequest.deserializeBinary = function(bytes) {
  */
 proto.mapper.models.PingRequest.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
-    }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setRequestId(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
+	if (reader.isEndGroup()) {
+	  break;
+	}
+	var field = reader.getFieldNumber();
+	switch (field) {
+	case 1:
+	  var value = /** @type {string} */ (reader.readString());
+	  msg.setRequestId(value);
+	  break;
+	default:
+	  reader.skipField();
+	  break;
+	}
   }
   return msg;
 };
@@ -140,10 +140,10 @@ proto.mapper.models.PingRequest.serializeBinaryToWriter = function(message, writ
   var f = undefined;
   f = message.getRequestId();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+	writer.writeString(
+	  1,
+	  f
+	);
   }
 };
 
@@ -222,9 +222,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *	 for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.SearchTilesRequest.prototype.toObject = function(opt_includeInstance) {
@@ -235,22 +235,22 @@ proto.mapper.models.SearchTilesRequest.prototype.toObject = function(opt_include
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
- *     http://goto/soy-param-migration
+ *	 instance for transitional soy proto support:
+ *	 http://goto/soy-param-migration
  * @param {!proto.mapper.models.SearchTilesRequest} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.SearchTilesRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    rangeSearch: (f = msg.getRangeSearch()) && proto.mapper.models.RangeSearchMessage.toObject(includeInstance, f),
-    radiusSearch: (f = msg.getRadiusSearch()) && proto.mapper.models.RadiusSearchMessage.toObject(includeInstance, f),
-    layerIdsList: jspb.Message.getRepeatedField(msg, 3),
-    getIfEmpty: jspb.Message.getFieldWithDefault(msg, 4, false)
+	rangeSearch: (f = msg.getRangeSearch()) && proto.mapper.models.RangeSearchMessage.toObject(includeInstance, f),
+	radiusSearch: (f = msg.getRadiusSearch()) && proto.mapper.models.RadiusSearchMessage.toObject(includeInstance, f),
+	layerIdsList: jspb.Message.getRepeatedField(msg, 3),
+	getIfEmpty: jspb.Message.getFieldWithDefault(msg, 4, false)
   };
 
   if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
+	obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -278,33 +278,33 @@ proto.mapper.models.SearchTilesRequest.deserializeBinary = function(bytes) {
  */
 proto.mapper.models.SearchTilesRequest.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
-    }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = new proto.mapper.models.RangeSearchMessage;
-      reader.readMessage(value,proto.mapper.models.RangeSearchMessage.deserializeBinaryFromReader);
-      msg.setRangeSearch(value);
-      break;
-    case 2:
-      var value = new proto.mapper.models.RadiusSearchMessage;
-      reader.readMessage(value,proto.mapper.models.RadiusSearchMessage.deserializeBinaryFromReader);
-      msg.setRadiusSearch(value);
-      break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.addLayerIds(value);
-      break;
-    case 4:
-      var value = /** @type {boolean} */ (reader.readBool());
-      msg.setGetIfEmpty(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
+	if (reader.isEndGroup()) {
+	  break;
+	}
+	var field = reader.getFieldNumber();
+	switch (field) {
+	case 1:
+	  var value = new proto.mapper.models.RangeSearchMessage;
+	  reader.readMessage(value,proto.mapper.models.RangeSearchMessage.deserializeBinaryFromReader);
+	  msg.setRangeSearch(value);
+	  break;
+	case 2:
+	  var value = new proto.mapper.models.RadiusSearchMessage;
+	  reader.readMessage(value,proto.mapper.models.RadiusSearchMessage.deserializeBinaryFromReader);
+	  msg.setRadiusSearch(value);
+	  break;
+	case 3:
+	  var value = /** @type {string} */ (reader.readString());
+	  msg.addLayerIds(value);
+	  break;
+	case 4:
+	  var value = /** @type {boolean} */ (reader.readBool());
+	  msg.setGetIfEmpty(value);
+	  break;
+	default:
+	  reader.skipField();
+	  break;
+	}
   }
   return msg;
 };
@@ -332,33 +332,33 @@ proto.mapper.models.SearchTilesRequest.serializeBinaryToWriter = function(messag
   var f = undefined;
   f = message.getRangeSearch();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.mapper.models.RangeSearchMessage.serializeBinaryToWriter
-    );
+	writer.writeMessage(
+	  1,
+	  f,
+	  proto.mapper.models.RangeSearchMessage.serializeBinaryToWriter
+	);
   }
   f = message.getRadiusSearch();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      proto.mapper.models.RadiusSearchMessage.serializeBinaryToWriter
-    );
+	writer.writeMessage(
+	  2,
+	  f,
+	  proto.mapper.models.RadiusSearchMessage.serializeBinaryToWriter
+	);
   }
   f = message.getLayerIdsList();
   if (f.length > 0) {
-    writer.writeRepeatedString(
-      3,
-      f
-    );
+	writer.writeRepeatedString(
+	  3,
+	  f
+	);
   }
   f = message.getGetIfEmpty();
   if (f) {
-    writer.writeBool(
-      4,
-      f
-    );
+	writer.writeBool(
+	  4,
+	  f
+	);
   }
 };
 
@@ -369,7 +369,7 @@ proto.mapper.models.SearchTilesRequest.serializeBinaryToWriter = function(messag
  */
 proto.mapper.models.SearchTilesRequest.prototype.getRangeSearch = function() {
   return /** @type{?proto.mapper.models.RangeSearchMessage} */ (
-    jspb.Message.getWrapperField(this, proto.mapper.models.RangeSearchMessage, 1));
+	jspb.Message.getWrapperField(this, proto.mapper.models.RangeSearchMessage, 1));
 };
 
 
@@ -399,7 +399,7 @@ proto.mapper.models.SearchTilesRequest.prototype.hasRangeSearch = function() {
  */
 proto.mapper.models.SearchTilesRequest.prototype.getRadiusSearch = function() {
   return /** @type{?proto.mapper.models.RadiusSearchMessage} */ (
-    jspb.Message.getWrapperField(this, proto.mapper.models.RadiusSearchMessage, 2));
+	jspb.Message.getWrapperField(this, proto.mapper.models.RadiusSearchMessage, 2));
 };
 
 
@@ -502,9 +502,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *	 for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.SearchTilesResponse.prototype.toObject = function(opt_includeInstance) {
@@ -515,20 +515,20 @@ proto.mapper.models.SearchTilesResponse.prototype.toObject = function(opt_includ
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
- *     http://goto/soy-param-migration
+ *	 instance for transitional soy proto support:
+ *	 http://goto/soy-param-migration
  * @param {!proto.mapper.models.SearchTilesResponse} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.SearchTilesResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    tileInstancesList: jspb.Message.toObjectList(msg.getTileInstancesList(),
-    proto.mapper.models.TileInstanceMessage.toObject, includeInstance)
+	tileInstancesList: jspb.Message.toObjectList(msg.getTileInstancesList(),
+	proto.mapper.models.TileInstanceMessage.toObject, includeInstance)
   };
 
   if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
+	obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -556,20 +556,20 @@ proto.mapper.models.SearchTilesResponse.deserializeBinary = function(bytes) {
  */
 proto.mapper.models.SearchTilesResponse.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
-    }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = new proto.mapper.models.TileInstanceMessage;
-      reader.readMessage(value,proto.mapper.models.TileInstanceMessage.deserializeBinaryFromReader);
-      msg.addTileInstances(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
+	if (reader.isEndGroup()) {
+	  break;
+	}
+	var field = reader.getFieldNumber();
+	switch (field) {
+	case 1:
+	  var value = new proto.mapper.models.TileInstanceMessage;
+	  reader.readMessage(value,proto.mapper.models.TileInstanceMessage.deserializeBinaryFromReader);
+	  msg.addTileInstances(value);
+	  break;
+	default:
+	  reader.skipField();
+	  break;
+	}
   }
   return msg;
 };
@@ -597,11 +597,11 @@ proto.mapper.models.SearchTilesResponse.serializeBinaryToWriter = function(messa
   var f = undefined;
   f = message.getTileInstancesList();
   if (f.length > 0) {
-    writer.writeRepeatedMessage(
-      1,
-      f,
-      proto.mapper.models.TileInstanceMessage.serializeBinaryToWriter
-    );
+	writer.writeRepeatedMessage(
+	  1,
+	  f,
+	  proto.mapper.models.TileInstanceMessage.serializeBinaryToWriter
+	);
   }
 };
 
@@ -612,7 +612,7 @@ proto.mapper.models.SearchTilesResponse.serializeBinaryToWriter = function(messa
  */
 proto.mapper.models.SearchTilesResponse.prototype.getTileInstancesList = function() {
   return /** @type{!Array.<!proto.mapper.models.TileInstanceMessage>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.mapper.models.TileInstanceMessage, 1));
+	jspb.Message.getRepeatedWrapperField(this, proto.mapper.models.TileInstanceMessage, 1));
 };
 
 
@@ -663,9 +663,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *	 for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.TileInstanceMessage.prototype.toObject = function(opt_includeInstance) {
@@ -676,21 +676,21 @@ proto.mapper.models.TileInstanceMessage.prototype.toObject = function(opt_includ
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
- *     http://goto/soy-param-migration
+ *	 instance for transitional soy proto support:
+ *	 http://goto/soy-param-migration
  * @param {!proto.mapper.models.TileInstanceMessage} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.TileInstanceMessage.toObject = function(includeInstance, msg) {
   var f, obj = {
-    id: (f = msg.getId()) && CoordinateReferenceSystem_pb.SpatialTileIndexMessage.toObject(includeInstance, f),
-    version: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    layersMap: (f = msg.getLayersMap()) ? f.toObject(includeInstance, undefined) : []
+	id: (f = msg.getId()) && CoordinateReferenceSystem_pb.SpatialTileIndexMessage.toObject(includeInstance, f),
+	version: jspb.Message.getFieldWithDefault(msg, 2, 0),
+	layersMap: (f = msg.getLayersMap()) ? f.toObject(includeInstance, undefined) : []
   };
 
   if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
+	obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -718,30 +718,30 @@ proto.mapper.models.TileInstanceMessage.deserializeBinary = function(bytes) {
  */
 proto.mapper.models.TileInstanceMessage.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
-    }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = new CoordinateReferenceSystem_pb.SpatialTileIndexMessage;
-      reader.readMessage(value,CoordinateReferenceSystem_pb.SpatialTileIndexMessage.deserializeBinaryFromReader);
-      msg.setId(value);
-      break;
-    case 2:
-      var value = /** @type {number} */ (reader.readInt64());
-      msg.setVersion(value);
-      break;
-    case 3:
-      var value = msg.getLayersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readString);
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
+	if (reader.isEndGroup()) {
+	  break;
+	}
+	var field = reader.getFieldNumber();
+	switch (field) {
+	case 1:
+	  var value = new CoordinateReferenceSystem_pb.SpatialTileIndexMessage;
+	  reader.readMessage(value,CoordinateReferenceSystem_pb.SpatialTileIndexMessage.deserializeBinaryFromReader);
+	  msg.setId(value);
+	  break;
+	case 2:
+	  var value = /** @type {number} */ (reader.readInt64());
+	  msg.setVersion(value);
+	  break;
+	case 3:
+	  var value = msg.getLayersMap();
+	  reader.readMessage(value, function(message, reader) {
+		jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readString);
+		 });
+	  break;
+	default:
+	  reader.skipField();
+	  break;
+	}
   }
   return msg;
 };
@@ -769,22 +769,22 @@ proto.mapper.models.TileInstanceMessage.serializeBinaryToWriter = function(messa
   var f = undefined;
   f = message.getId();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      CoordinateReferenceSystem_pb.SpatialTileIndexMessage.serializeBinaryToWriter
-    );
+	writer.writeMessage(
+	  1,
+	  f,
+	  CoordinateReferenceSystem_pb.SpatialTileIndexMessage.serializeBinaryToWriter
+	);
   }
   f = message.getVersion();
   if (f !== 0) {
-    writer.writeInt64(
-      2,
-      f
-    );
+	writer.writeInt64(
+	  2,
+	  f
+	);
   }
   f = message.getLayersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(3, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeString);
+	f.serializeBinary(3, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeString);
   }
 };
 
@@ -795,7 +795,7 @@ proto.mapper.models.TileInstanceMessage.serializeBinaryToWriter = function(messa
  */
 proto.mapper.models.TileInstanceMessage.prototype.getId = function() {
   return /** @type{?proto.mapper.models.SpatialTileIndexMessage} */ (
-    jspb.Message.getWrapperField(this, CoordinateReferenceSystem_pb.SpatialTileIndexMessage, 1));
+	jspb.Message.getWrapperField(this, CoordinateReferenceSystem_pb.SpatialTileIndexMessage, 1));
 };
 
 
@@ -842,8 +842,8 @@ proto.mapper.models.TileInstanceMessage.prototype.setVersion = function(value) {
  */
 proto.mapper.models.TileInstanceMessage.prototype.getLayersMap = function(opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,string>} */ (
-      jspb.Message.getMapField(this, 3, opt_noLazyCreate,
-      null));
+	  jspb.Message.getMapField(this, 3, opt_noLazyCreate,
+	  null));
 };
 
 
@@ -878,9 +878,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *	 for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.RangeSearchMessage.prototype.toObject = function(opt_includeInstance) {
@@ -891,21 +891,21 @@ proto.mapper.models.RangeSearchMessage.prototype.toObject = function(opt_include
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
- *     http://goto/soy-param-migration
+ *	 instance for transitional soy proto support:
+ *	 http://goto/soy-param-migration
  * @param {!proto.mapper.models.RangeSearchMessage} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.RangeSearchMessage.toObject = function(includeInstance, msg) {
   var f, obj = {
-    corner1: (f = msg.getCorner1()) && CoordinateReferenceSystem_pb.GeographicPoint3DMessage.toObject(includeInstance, f),
-    corner2: (f = msg.getCorner2()) && CoordinateReferenceSystem_pb.GeographicPoint3DMessage.toObject(includeInstance, f),
-    scale: jspb.Message.getFieldWithDefault(msg, 3, 0)
+	corner1: (f = msg.getCorner1()) && CoordinateReferenceSystem_pb.GeographicPoint3DMessage.toObject(includeInstance, f),
+	corner2: (f = msg.getCorner2()) && CoordinateReferenceSystem_pb.GeographicPoint3DMessage.toObject(includeInstance, f),
+	scale: jspb.Message.getFieldWithDefault(msg, 3, 0)
   };
 
   if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
+	obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -933,29 +933,29 @@ proto.mapper.models.RangeSearchMessage.deserializeBinary = function(bytes) {
  */
 proto.mapper.models.RangeSearchMessage.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
-    }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = new CoordinateReferenceSystem_pb.GeographicPoint3DMessage;
-      reader.readMessage(value,CoordinateReferenceSystem_pb.GeographicPoint3DMessage.deserializeBinaryFromReader);
-      msg.setCorner1(value);
-      break;
-    case 2:
-      var value = new CoordinateReferenceSystem_pb.GeographicPoint3DMessage;
-      reader.readMessage(value,CoordinateReferenceSystem_pb.GeographicPoint3DMessage.deserializeBinaryFromReader);
-      msg.setCorner2(value);
-      break;
-    case 3:
-      var value = /** @type {!proto.mapper.models.SpatialTileScale} */ (reader.readEnum());
-      msg.setScale(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
+	if (reader.isEndGroup()) {
+	  break;
+	}
+	var field = reader.getFieldNumber();
+	switch (field) {
+	case 1:
+	  var value = new CoordinateReferenceSystem_pb.GeographicPoint3DMessage;
+	  reader.readMessage(value,CoordinateReferenceSystem_pb.GeographicPoint3DMessage.deserializeBinaryFromReader);
+	  msg.setCorner1(value);
+	  break;
+	case 2:
+	  var value = new CoordinateReferenceSystem_pb.GeographicPoint3DMessage;
+	  reader.readMessage(value,CoordinateReferenceSystem_pb.GeographicPoint3DMessage.deserializeBinaryFromReader);
+	  msg.setCorner2(value);
+	  break;
+	case 3:
+	  var value = /** @type {!proto.mapper.models.SpatialTileScale} */ (reader.readEnum());
+	  msg.setScale(value);
+	  break;
+	default:
+	  reader.skipField();
+	  break;
+	}
   }
   return msg;
 };
@@ -983,26 +983,26 @@ proto.mapper.models.RangeSearchMessage.serializeBinaryToWriter = function(messag
   var f = undefined;
   f = message.getCorner1();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      CoordinateReferenceSystem_pb.GeographicPoint3DMessage.serializeBinaryToWriter
-    );
+	writer.writeMessage(
+	  1,
+	  f,
+	  CoordinateReferenceSystem_pb.GeographicPoint3DMessage.serializeBinaryToWriter
+	);
   }
   f = message.getCorner2();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      CoordinateReferenceSystem_pb.GeographicPoint3DMessage.serializeBinaryToWriter
-    );
+	writer.writeMessage(
+	  2,
+	  f,
+	  CoordinateReferenceSystem_pb.GeographicPoint3DMessage.serializeBinaryToWriter
+	);
   }
   f = message.getScale();
   if (f !== 0.0) {
-    writer.writeEnum(
-      3,
-      f
-    );
+	writer.writeEnum(
+	  3,
+	  f
+	);
   }
 };
 
@@ -1013,7 +1013,7 @@ proto.mapper.models.RangeSearchMessage.serializeBinaryToWriter = function(messag
  */
 proto.mapper.models.RangeSearchMessage.prototype.getCorner1 = function() {
   return /** @type{?proto.mapper.models.GeographicPoint3DMessage} */ (
-    jspb.Message.getWrapperField(this, CoordinateReferenceSystem_pb.GeographicPoint3DMessage, 1));
+	jspb.Message.getWrapperField(this, CoordinateReferenceSystem_pb.GeographicPoint3DMessage, 1));
 };
 
 
@@ -1043,7 +1043,7 @@ proto.mapper.models.RangeSearchMessage.prototype.hasCorner1 = function() {
  */
 proto.mapper.models.RangeSearchMessage.prototype.getCorner2 = function() {
   return /** @type{?proto.mapper.models.GeographicPoint3DMessage} */ (
-    jspb.Message.getWrapperField(this, CoordinateReferenceSystem_pb.GeographicPoint3DMessage, 2));
+	jspb.Message.getWrapperField(this, CoordinateReferenceSystem_pb.GeographicPoint3DMessage, 2));
 };
 
 
@@ -1108,9 +1108,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *	 for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.RadiusSearchMessage.prototype.toObject = function(opt_includeInstance) {
@@ -1121,21 +1121,21 @@ proto.mapper.models.RadiusSearchMessage.prototype.toObject = function(opt_includ
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
- *     http://goto/soy-param-migration
+ *	 instance for transitional soy proto support:
+ *	 http://goto/soy-param-migration
  * @param {!proto.mapper.models.RadiusSearchMessage} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.RadiusSearchMessage.toObject = function(includeInstance, msg) {
   var f, obj = {
-    centerPoint: (f = msg.getCenterPoint()) && CoordinateReferenceSystem_pb.GeographicPoint3DMessage.toObject(includeInstance, f),
-    radius: +jspb.Message.getFieldWithDefault(msg, 2, 0.0),
-    scale: jspb.Message.getFieldWithDefault(msg, 3, 0)
+	centerPoint: (f = msg.getCenterPoint()) && CoordinateReferenceSystem_pb.GeographicPoint3DMessage.toObject(includeInstance, f),
+	radius: +jspb.Message.getFieldWithDefault(msg, 2, 0.0),
+	scale: jspb.Message.getFieldWithDefault(msg, 3, 0)
   };
 
   if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
+	obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -1163,28 +1163,28 @@ proto.mapper.models.RadiusSearchMessage.deserializeBinary = function(bytes) {
  */
 proto.mapper.models.RadiusSearchMessage.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
-    }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = new CoordinateReferenceSystem_pb.GeographicPoint3DMessage;
-      reader.readMessage(value,CoordinateReferenceSystem_pb.GeographicPoint3DMessage.deserializeBinaryFromReader);
-      msg.setCenterPoint(value);
-      break;
-    case 2:
-      var value = /** @type {number} */ (reader.readDouble());
-      msg.setRadius(value);
-      break;
-    case 3:
-      var value = /** @type {!proto.mapper.models.SpatialTileScale} */ (reader.readEnum());
-      msg.setScale(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
+	if (reader.isEndGroup()) {
+	  break;
+	}
+	var field = reader.getFieldNumber();
+	switch (field) {
+	case 1:
+	  var value = new CoordinateReferenceSystem_pb.GeographicPoint3DMessage;
+	  reader.readMessage(value,CoordinateReferenceSystem_pb.GeographicPoint3DMessage.deserializeBinaryFromReader);
+	  msg.setCenterPoint(value);
+	  break;
+	case 2:
+	  var value = /** @type {number} */ (reader.readDouble());
+	  msg.setRadius(value);
+	  break;
+	case 3:
+	  var value = /** @type {!proto.mapper.models.SpatialTileScale} */ (reader.readEnum());
+	  msg.setScale(value);
+	  break;
+	default:
+	  reader.skipField();
+	  break;
+	}
   }
   return msg;
 };
@@ -1212,25 +1212,25 @@ proto.mapper.models.RadiusSearchMessage.serializeBinaryToWriter = function(messa
   var f = undefined;
   f = message.getCenterPoint();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      CoordinateReferenceSystem_pb.GeographicPoint3DMessage.serializeBinaryToWriter
-    );
+	writer.writeMessage(
+	  1,
+	  f,
+	  CoordinateReferenceSystem_pb.GeographicPoint3DMessage.serializeBinaryToWriter
+	);
   }
   f = message.getRadius();
   if (f !== 0.0) {
-    writer.writeDouble(
-      2,
-      f
-    );
+	writer.writeDouble(
+	  2,
+	  f
+	);
   }
   f = message.getScale();
   if (f !== 0.0) {
-    writer.writeEnum(
-      3,
-      f
-    );
+	writer.writeEnum(
+	  3,
+	  f
+	);
   }
 };
 
@@ -1241,7 +1241,7 @@ proto.mapper.models.RadiusSearchMessage.serializeBinaryToWriter = function(messa
  */
 proto.mapper.models.RadiusSearchMessage.prototype.getCenterPoint = function() {
   return /** @type{?proto.mapper.models.GeographicPoint3DMessage} */ (
-    jspb.Message.getWrapperField(this, CoordinateReferenceSystem_pb.GeographicPoint3DMessage, 1));
+	jspb.Message.getWrapperField(this, CoordinateReferenceSystem_pb.GeographicPoint3DMessage, 1));
 };
 
 
@@ -1328,9 +1328,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *	 for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.GetTilesRequest.prototype.toObject = function(opt_includeInstance) {
@@ -1341,19 +1341,19 @@ proto.mapper.models.GetTilesRequest.prototype.toObject = function(opt_includeIns
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
- *     http://goto/soy-param-migration
+ *	 instance for transitional soy proto support:
+ *	 http://goto/soy-param-migration
  * @param {!proto.mapper.models.GetTilesRequest} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.GetTilesRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    urlsList: jspb.Message.getRepeatedField(msg, 1)
+	urlsList: jspb.Message.getRepeatedField(msg, 1)
   };
 
   if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
+	obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -1381,19 +1381,19 @@ proto.mapper.models.GetTilesRequest.deserializeBinary = function(bytes) {
  */
 proto.mapper.models.GetTilesRequest.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
-    }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.addUrls(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
+	if (reader.isEndGroup()) {
+	  break;
+	}
+	var field = reader.getFieldNumber();
+	switch (field) {
+	case 1:
+	  var value = /** @type {string} */ (reader.readString());
+	  msg.addUrls(value);
+	  break;
+	default:
+	  reader.skipField();
+	  break;
+	}
   }
   return msg;
 };
@@ -1421,10 +1421,10 @@ proto.mapper.models.GetTilesRequest.serializeBinaryToWriter = function(message, 
   var f = undefined;
   f = message.getUrlsList();
   if (f.length > 0) {
-    writer.writeRepeatedString(
-      1,
-      f
-    );
+	writer.writeRepeatedString(
+	  1,
+	  f
+	);
   }
 };
 
@@ -1491,9 +1491,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *	 for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.GetTilesResponse.prototype.toObject = function(opt_includeInstance) {
@@ -1504,20 +1504,20 @@ proto.mapper.models.GetTilesResponse.prototype.toObject = function(opt_includeIn
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
- *     http://goto/soy-param-migration
+ *	 instance for transitional soy proto support:
+ *	 http://goto/soy-param-migration
  * @param {!proto.mapper.models.GetTilesResponse} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.GetTilesResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    tileContentsList: jspb.Message.toObjectList(msg.getTileContentsList(),
-    proto.mapper.models.TileContentsMessage.toObject, includeInstance)
+	tileContentsList: jspb.Message.toObjectList(msg.getTileContentsList(),
+	proto.mapper.models.TileContentsMessage.toObject, includeInstance)
   };
 
   if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
+	obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -1545,20 +1545,20 @@ proto.mapper.models.GetTilesResponse.deserializeBinary = function(bytes) {
  */
 proto.mapper.models.GetTilesResponse.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
-    }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = new proto.mapper.models.TileContentsMessage;
-      reader.readMessage(value,proto.mapper.models.TileContentsMessage.deserializeBinaryFromReader);
-      msg.addTileContents(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
+	if (reader.isEndGroup()) {
+	  break;
+	}
+	var field = reader.getFieldNumber();
+	switch (field) {
+	case 1:
+	  var value = new proto.mapper.models.TileContentsMessage;
+	  reader.readMessage(value,proto.mapper.models.TileContentsMessage.deserializeBinaryFromReader);
+	  msg.addTileContents(value);
+	  break;
+	default:
+	  reader.skipField();
+	  break;
+	}
   }
   return msg;
 };
@@ -1586,11 +1586,11 @@ proto.mapper.models.GetTilesResponse.serializeBinaryToWriter = function(message,
   var f = undefined;
   f = message.getTileContentsList();
   if (f.length > 0) {
-    writer.writeRepeatedMessage(
-      1,
-      f,
-      proto.mapper.models.TileContentsMessage.serializeBinaryToWriter
-    );
+	writer.writeRepeatedMessage(
+	  1,
+	  f,
+	  proto.mapper.models.TileContentsMessage.serializeBinaryToWriter
+	);
   }
 };
 
@@ -1601,7 +1601,7 @@ proto.mapper.models.GetTilesResponse.serializeBinaryToWriter = function(message,
  */
 proto.mapper.models.GetTilesResponse.prototype.getTileContentsList = function() {
   return /** @type{!Array.<!proto.mapper.models.TileContentsMessage>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.mapper.models.TileContentsMessage, 1));
+	jspb.Message.getRepeatedWrapperField(this, proto.mapper.models.TileContentsMessage, 1));
 };
 
 
@@ -1652,9 +1652,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *	 for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.TileContentsMessage.prototype.toObject = function(opt_includeInstance) {
@@ -1665,20 +1665,20 @@ proto.mapper.models.TileContentsMessage.prototype.toObject = function(opt_includ
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
- *     http://goto/soy-param-migration
+ *	 instance for transitional soy proto support:
+ *	 http://goto/soy-param-migration
  * @param {!proto.mapper.models.TileContentsMessage} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.TileContentsMessage.toObject = function(includeInstance, msg) {
   var f, obj = {
-    url: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    contents: msg.getContents_asB64()
+	url: jspb.Message.getFieldWithDefault(msg, 1, ""),
+	contents: msg.getContents_asB64()
   };
 
   if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
+	obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -1706,23 +1706,23 @@ proto.mapper.models.TileContentsMessage.deserializeBinary = function(bytes) {
  */
 proto.mapper.models.TileContentsMessage.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
-    }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setUrl(value);
-      break;
-    case 2:
-      var value = /** @type {!Uint8Array} */ (reader.readBytes());
-      msg.setContents(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
+	if (reader.isEndGroup()) {
+	  break;
+	}
+	var field = reader.getFieldNumber();
+	switch (field) {
+	case 1:
+	  var value = /** @type {string} */ (reader.readString());
+	  msg.setUrl(value);
+	  break;
+	case 2:
+	  var value = /** @type {!Uint8Array} */ (reader.readBytes());
+	  msg.setContents(value);
+	  break;
+	default:
+	  reader.skipField();
+	  break;
+	}
   }
   return msg;
 };
@@ -1750,17 +1750,17 @@ proto.mapper.models.TileContentsMessage.serializeBinaryToWriter = function(messa
   var f = undefined;
   f = message.getUrl();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+	writer.writeString(
+	  1,
+	  f
+	);
   }
   f = message.getContents_asU8();
   if (f.length > 0) {
-    writer.writeBytes(
-      2,
-      f
-    );
+	writer.writeBytes(
+	  2,
+	  f
+	);
   }
 };
 
@@ -1796,7 +1796,7 @@ proto.mapper.models.TileContentsMessage.prototype.getContents = function() {
  */
 proto.mapper.models.TileContentsMessage.prototype.getContents_asB64 = function() {
   return /** @type {string} */ (jspb.Message.bytesAsB64(
-      this.getContents()));
+	  this.getContents()));
 };
 
 
@@ -1809,7 +1809,7 @@ proto.mapper.models.TileContentsMessage.prototype.getContents_asB64 = function()
  */
 proto.mapper.models.TileContentsMessage.prototype.getContents_asU8 = function() {
   return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
-      this.getContents()));
+	  this.getContents()));
 };
 
 

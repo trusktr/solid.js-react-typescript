@@ -9,22 +9,22 @@ import * as lodash from 'lodash'
 import {
 	AnnotationUuid, Annotation, AnnotationRenderingProperties,
 	AnnotationJsonOutputInterface, AnnotationJsonInputInterface,
-	AnnotationGeometryType
+	AnnotationGeometryType,
 } from './AnnotationBase'
-import {AnnotationType} from "./AnnotationType"
-import {isNullOrUndefined} from "util"
-import Logger from "@/util/log"
+import {AnnotationType} from './AnnotationType'
+import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
+import Logger from '@/util/log'
 
 const log = Logger(__filename)
-
 const directionGeometry = new THREE.Geometry()
-directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25,  0.5))
-directionGeometry.vertices.push(new THREE.Vector3( 0.25, 0.25,  0))
+
+directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, 0.5))
+directionGeometry.vertices.push(new THREE.Vector3(0.25, 0.25, 0))
 directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, -0.5))
 directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
 directionGeometry.computeFaceNormals()
 
-const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color( 0xff0000 ), side: THREE.DoubleSide})
+const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xff0000), side: THREE.DoubleSide})
 
 export enum LaneType {
 	UNKNOWN = 0,
@@ -39,26 +39,22 @@ export enum LaneType {
 	CROSSWALK,
 	OTHER
 }
-
 export enum NeighborDirection {
 	SAME = 1,
 	REVERSE
 }
-
 export enum NeighborLocation {
 	FRONT = 1,
 	BACK,
 	LEFT,
 	RIGHT
 }
-
 export enum LaneLineType {
 	UNKNOWN = 0,
 	SOLID,
 	DASHED,
 	OTHER
 }
-
 export enum LaneLineColor {
 	UNKNOWN = 0,
 	WHITE,
@@ -67,13 +63,11 @@ export enum LaneLineColor {
 	BLUE,
 	OTHER
 }
-
 export enum LaneEntryExitType {
 	UNKNOWN = 0,
 	CONTINUE,
 	STOP
 }
-
 export class LaneNeighborsIds {
 	right: Array<AnnotationUuid>
 	left: Array<AnnotationUuid>
@@ -98,13 +92,13 @@ class LaneRenderingProperties {
 	inactiveMaterial: THREE.MeshLambertMaterial
 
 	constructor() {
-		this.markerMaterial = new THREE.MeshLambertMaterial({color:      new THREE.Color( 0xffffff ), side: THREE.DoubleSide})
-		this.activeMaterial = new THREE.MeshBasicMaterial({color:        new THREE.Color( "orange" ), wireframe: true})
-		this.leftNeighborMaterial = new THREE.MeshBasicMaterial({color:  new THREE.Color( 0xffff66 ), side: THREE.DoubleSide})
-		this.rightNeighborMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color( 0x00ffff ), side: THREE.DoubleSide})
-		this.frontNeighborMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color( 0x66ff99 ), side: THREE.DoubleSide})
-		this.centerLineMaterial = new THREE.LineDashedMaterial({color:   new THREE.Color( 0xffaa00 ), dashSize: 3, gapSize: 1, linewidth: 2})
-		this.inactiveMaterial = new THREE.MeshLambertMaterial({color:    new THREE.Color( 0x443333 ), transparent: true, opacity: 0.3, side: THREE.DoubleSide})
+		this.markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
+		this.activeMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color('orange'), wireframe: true})
+		this.leftNeighborMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color(0xffff66), side: THREE.DoubleSide})
+		this.rightNeighborMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color(0x00ffff), side: THREE.DoubleSide})
+		this.frontNeighborMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color(0x66ff99), side: THREE.DoubleSide})
+		this.centerLineMaterial = new THREE.LineDashedMaterial({color: new THREE.Color(0xffaa00), dashSize: 3, gapSize: 1, linewidth: 2})
+		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0x443333), transparent: true, opacity: 0.3, side: THREE.DoubleSide})
 	}
 }
 
@@ -119,7 +113,6 @@ export interface LaneJsonInputInterfaceV1 {
 	entryType: LaneEntryExitType
 	exitType: LaneEntryExitType
 }
-
 export interface LaneJsonInputInterfaceV3 extends AnnotationJsonInputInterface {
 	laneType: string
 	neighborsIds: LaneNeighborsIds
@@ -130,7 +123,6 @@ export interface LaneJsonInputInterfaceV3 extends AnnotationJsonInputInterface {
 	entryType: string
 	exitType: string
 }
-
 export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface {
 	laneType: string
 	neighborsIds: LaneNeighborsIds
@@ -144,7 +136,6 @@ export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface
 	// convenience, but we don't read them back in.
 	waypoints: Array<Object>
 }
-
 /**
  * LaneAnnotation class.
  */
@@ -176,6 +167,7 @@ export class Lane extends Annotation {
 		super(obj)
 		this.annotationType = AnnotationType.LANE
 		this.geometryType = AnnotationGeometryType.PAIRED_LINEAR
+
 		if (obj) {
 			this.type = isNullOrUndefined(LaneType[obj.laneType]) ? LaneType.UNKNOWN : LaneType[obj.laneType]
 			this.neighborsIds = obj.neighborsIds
@@ -215,8 +207,9 @@ export class Lane extends Annotation {
 		if (obj) {
 			if (obj.markers.length >= this.minimumMarkerCount) {
 				obj.markers.forEach(position => this.addRawMarker(new THREE.Vector3(position.x, position.y, position.z)))
-				if (!this.isValid())
-					throw Error(`can't load invalid lane with id ${obj.uuid}`)
+
+				if (!this.isValid()) throw Error(`can't load invalid lane with id ${obj.uuid}`)
+
 				this.updateVisualization()
 				this.makeInactive()
 			}
@@ -230,11 +223,11 @@ export class Lane extends Annotation {
 	}
 
 	isValid(): boolean {
-		if  (this.markers.length < this.minimumMarkerCount)
-			return false
+		if (this.markers.length < this.minimumMarkerCount) return false
 
 		// Check the lane has any length/area
 		const distance = this.markers[0].position.distanceTo(this.markers[2].position)
+
 		return distance > 0.10
 	}
 
@@ -244,6 +237,7 @@ export class Lane extends Annotation {
 	 */
 	addRawMarker(position: THREE.Vector3): void {
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, this.renderingProperties.markerMaterial)
+
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
@@ -252,13 +246,12 @@ export class Lane extends Annotation {
 	/**
 	 * Add marker. The behavior of this functions changes depending if this is the
 	 * first, second, or higher indexed marker.
-	 *      - First marker: is equivalent as calling addRawMarker
-	 *      - Second marker: has it's height modified to match the height of the first marker
-	 *      - Third and onwards: Two markers are added using the passed position and the
-	 *                           position of the last two markers.
+	 *	  - First marker: is equivalent as calling addRawMarker
+	 *	  - Second marker: has it's height modified to match the height of the first marker
+	 *	  - Third and onwards: Two markers are added using the passed position and the
+	 *						   position of the last two markers.
 	 */
 	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
-
 		if (this.markers.length < 2) {
 			// Add first 2 points in any order
 			this.addRawMarker(position)
@@ -266,6 +259,7 @@ export class Lane extends Annotation {
 			// From the third marker onwards, add markers in pairs by estimating the position
 			// of the paired marker.
 			const nextMarker = this.computeNextMarkerEstimatedPosition(position)
+
 			this.addRawMarker(nextMarker)
 			this.addRawMarker(position)
 		}
@@ -278,15 +272,13 @@ export class Lane extends Annotation {
 	 * Delete last marker(s).
 	 */
 	deleteLastMarker(): boolean {
-		if (this.markers.length === 0) {
+		if (this.markers.length === 0)
 			return false
-		}
 
 		this.renderingObject.remove(this.markers.pop()!)
 
-		if (this.markers.length > 2) {
+		if (this.markers.length > 2)
 			this.renderingObject.remove(this.markers.pop()!)
-		}
 
 		this.updateVisualization()
 
@@ -302,9 +294,8 @@ export class Lane extends Annotation {
 	 */
 	reverseMarkers(): boolean {
 		// if less than 2 markers --> nothing to reverse
-		if (this.markers.length < 2) {
+		if (this.markers.length < 2)
 			return false
-		}
 
 		// block reverse if lane connected with a front neighbour
 		if (this.neighborsIds.front.length > 0) {
@@ -316,7 +307,8 @@ export class Lane extends Annotation {
 		this.markers.reverse()
 
 		// flip left-right neighbours
-		let aux = this.neighborsIds.left
+		const aux = this.neighborsIds.left
+
 		this.neighborsIds.left = this.neighborsIds.right
 		this.neighborsIds.right = aux
 
@@ -330,7 +322,6 @@ export class Lane extends Annotation {
 	 * Join this lane with given lane by copying it's content
 	 */
 	join(lane: Lane): boolean {
-
 		if (!lane) {
 			log.error('Can not join an empty lane.')
 			return false
@@ -394,8 +385,9 @@ export class Lane extends Annotation {
 			default:
 				this.setAllVehiclesInactiveRendering()
 		}
-		if (this.type !== LaneType.CROSSWALK)
-			this.showDirectionMarkers()
+
+		if (this.type !== LaneType.CROSSWALK) this.showDirectionMarkers()
+
 		this.mesh.material = this.renderingProperties.inactiveMaterial
 		this.laneCenterLine.visible = true
 		this.unhighlightMarkers()
@@ -406,15 +398,15 @@ export class Lane extends Annotation {
 	 * Change this annotation to "neighbor" rendering mode, using given type of neighbor
 	 */
 	setNeighborMode(location: NeighborLocation): void {
-		if (location === NeighborLocation.LEFT) {
+		if (location === NeighborLocation.LEFT)
 			this.mesh.material = this.renderingProperties.leftNeighborMaterial
-		} else if (location === NeighborLocation.RIGHT) {
+		else if (location === NeighborLocation.RIGHT)
 			this.mesh.material = this.renderingProperties.rightNeighborMaterial
-		} else if (location === NeighborLocation.FRONT) {
+		else if (location === NeighborLocation.FRONT)
 			this.mesh.material = this.renderingProperties.frontNeighborMaterial
-		} else {
+		else
 			log.warn('Neighbor location not supported for coloring.')
-		}
+
 		this.laneCenterLine.visible = true
 		this.unhighlightMarkers()
 	}
@@ -423,14 +415,12 @@ export class Lane extends Annotation {
 	 * Recompute lane rendering components from marker positions and current lane properties.
 	 */
 	updateVisualization(): void {
-
 		// First thing first, update lane width
 		this.updateLaneWidth()
 
 		// There is no mesh or side lines to compute if we don't have enough markers
-		if (!this.isValid()) {
+		if (!this.isValid())
 			return
-		}
 
 		// Update side lines first
 		this.updateLaneSideLinesMaterial()
@@ -446,11 +436,10 @@ export class Lane extends Annotation {
 
 		// Add faces
 		for (let i = 0; i < this.markers.length - 2; i++) {
-			if (i % 2 === 0) {
+			if (i % 2 === 0)
 				newGeometry.faces.push(new THREE.Face3(i + 2, i + 1, i))
-			} else {
+			else
 				newGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))
-			}
 		}
 
 		newGeometry.computeFaceNormals()
@@ -502,18 +491,20 @@ export class Lane extends Annotation {
 	}
 
 	deleteLeftOrRightNeighbor(neighborId: AnnotationUuid): boolean {
-
 		let index = this.neighborsIds.right.indexOf(neighborId, 0)
+
 		if (index > -1) {
 			this.neighborsIds.right.splice(index, 1)
 			return true
 		}
 
 		index = this.neighborsIds.left.indexOf(neighborId, 0)
+
 		if (index > -1) {
 			this.neighborsIds.left.splice(index, 1)
 			return true
 		}
+
 		return false
 	}
 
@@ -521,10 +512,12 @@ export class Lane extends Annotation {
 		const index = this.neighborsIds.front.findIndex((uuid) => {
 			return uuid === neighborId
 		})
+
 		if (index >= 0) {
 			this.neighborsIds.front.splice(index, 1)
 			return true
 		}
+
 		return false
 	}
 
@@ -532,10 +525,12 @@ export class Lane extends Annotation {
 		const index = this.neighborsIds.back.findIndex((uuid) => {
 			return uuid === neighborId
 		})
+
 		if (index >= 0) {
 			this.neighborsIds.back.splice(index, 1)
 			return true
 		}
+
 		return false
 	}
 
@@ -558,19 +553,17 @@ export class Lane extends Annotation {
 		}
 
 		this.markers.forEach((marker) => {
-			if (pointConverter) {
+			if (pointConverter)
 				data.markers.push(pointConverter(marker.position))
-			} else {
+			else
 				data.markers.push(marker.position)
-			}
 		})
 
 		this.waypoints.forEach((waypoint) => {
-			if (pointConverter) {
+			if (pointConverter)
 				data.waypoints.push(pointConverter(waypoint))
-			} else {
+			else
 				data.waypoints.push(waypoint)
-			}
 		})
 
 		return data
@@ -578,22 +571,24 @@ export class Lane extends Annotation {
 
 	getLaneWidth(): number {
 		// If just one point or non --> lane width is 0
-		if (this.markers.length < 2) {
+		if (this.markers.length < 2)
 			return 0.0
-		}
 
 		let sum: number = 0.0
+
 		const markers = this.markers
-		for (let i = 0; i < markers.length - 1; i += 2) {
+
+		for (let i = 0; i < markers.length - 1; i += 2)
 			sum += markers[i].position.distanceTo(markers[i + 1].position)
-		}
+
 		return sum / (markers.length / 2)
 	}
 
 	// todo Annotator should ask for getLaneWidth() and update #lp_width_value for itself
 	updateLaneWidth(): void {
 		const laneWidth = $('#lp_width_value')
-		laneWidth.text(this.getLaneWidth().toFixed(3) + " m")
+
+		laneWidth.text(this.getLaneWidth().toFixed(3) + ' m')
 	}
 
 	// Estimate the trajectory of the final stretch of the lane.
@@ -601,9 +596,11 @@ export class Lane extends Annotation {
 	// TODO CLYDE For now using the markers along an edge will be close enough.
 	finalTrajectory(): THREE.Ray | null {
 		if (this.markers.length < 4) return null
+
 		const ultimate = this.markers[this.markers.length - 1].position
 		const penultimate = this.markers[this.markers.length - 3].position // next point on the same edge
 		const trajectory = new THREE.Ray(penultimate.clone())
+
 		trajectory.lookAt(ultimate)
 		trajectory.set(ultimate, trajectory.direction)
 		return trajectory
@@ -614,16 +611,18 @@ export class Lane extends Annotation {
 	 *  the location of the next marker
 	 */
 	private computeNextMarkerEstimatedPosition(P3: THREE.Vector3): THREE.Vector3 {
-		// P3     ?     ?    P3
+		// P3	 ?	 ?	P3
 		// P1 -> P2 or P2 <- P1
 		const lastIndex = this.markers.length
 		const P1 = this.markers[lastIndex - 2].position
 		const P2 = this.markers[lastIndex - 1].position
 		const vectorP1ToP2 = new THREE.Vector3()
+
 		vectorP1ToP2.subVectors(P1, P2)
 
 		// P4 = P3 + V(P1,P2)
 		const P4 = P3.clone()
+
 		P4.add(vectorP1ToP2)
 
 		return P4
@@ -631,13 +630,14 @@ export class Lane extends Annotation {
 
 	private computeWaypoints(): void {
 		// There must be at least 4 markers to compute waypoints
-		if (this.markers.length < 4) {
+		if (this.markers.length < 4)
 			return
-		}
 
 		const points: Array<THREE.Vector3> = []
+
 		for (let i = 0; i < this.markers.length - 1; i += 2) {
 			const waypoint = this.markers[i].position.clone()
+
 			waypoint.add(this.markers[i + 1].position).divideScalar(2)
 			points.push(waypoint)
 		}
@@ -651,6 +651,7 @@ export class Lane extends Annotation {
 		}
 
 		const numPoints = spline.getLength() / distanceBetweenMarkers
+
 		this.waypoints = spline.getSpacedPoints(numPoints)
 
 		this.updateLaneDirectionMarkers()
@@ -658,14 +659,15 @@ export class Lane extends Annotation {
 		// Change the line geometry
 		const lineGeometry = new THREE.Geometry()
 		const centerPoints = spline.getPoints(100)
+
 		for (let i = 0; i < centerPoints.length; i++) {
 			lineGeometry.vertices[i] = centerPoints[i]
 			lineGeometry.vertices[i].y += 0.02
 		}
+
 		lineGeometry.computeLineDistances()
 		this.laneCenterLine.geometry = lineGeometry
 		this.laneCenterLine.geometry.verticesNeedUpdate = true
-
 	}
 
 	private updateLaneDirectionMarkers(): void {
@@ -674,17 +676,16 @@ export class Lane extends Annotation {
 			this.renderingObject.remove(marker)
 		})
 
-		if (this.waypoints.length < 3) {
+		if (this.waypoints.length < 3)
 			return
-		}
 
 		for (let i = 1; i < this.waypoints.length - 1; i++) {
 			const angle = Math.atan2(
 				this.waypoints[i + 1].z - this.waypoints[i].z,
 				this.waypoints[i + 1].x - this.waypoints[i].x
 			)
-
 			const marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
+
 			marker.position.set(this.waypoints[i].x, this.waypoints[i].y, this.waypoints[i].z)
 			marker.rotateY(-angle)
 			this.renderingObject.add(marker)
@@ -693,11 +694,11 @@ export class Lane extends Annotation {
 	}
 
 	private hideDirectionMarkers(): void {
-		this.laneDirectionMarkers.forEach(m => m.visible = false)
+		this.laneDirectionMarkers.forEach(m => { m.visible = false })
 	}
 
 	private showDirectionMarkers(): void {
-		this.laneDirectionMarkers.forEach(m => m.visible = true)
+		this.laneDirectionMarkers.forEach(m => { m.visible = true })
 	}
 
 	private setCrosswalkInactiveRendering(): void {
@@ -757,16 +758,15 @@ export class Lane extends Annotation {
 		const leftColor = this.lineColorToHex(this.leftLineColor)
 		const rightColor = this.lineColorToHex(this.rightLineColor)
 
-		if (this.leftLineType === LaneLineType.DASHED) {
-			this.laneLeftLine.material = new THREE.LineDashedMaterial({color: new THREE.Color( leftColor ), dashSize: 1, gapSize: 5, linewidth: 2})
-		} else {
-			this.laneLeftLine.material = new THREE.LineBasicMaterial({color: new THREE.Color( leftColor )})
-		}
-		if (this.rightLineType === LaneLineType.DASHED) {
-			this.laneRightLine.material = new THREE.LineDashedMaterial({color: new THREE.Color( rightColor ), dashSize: 1, gapSize: 5, linewidth: 2})
-		} else {
-			this.laneRightLine.material = new THREE.LineBasicMaterial({color: new THREE.Color( rightColor )})
-		}
+		if (this.leftLineType === LaneLineType.DASHED)
+			this.laneLeftLine.material = new THREE.LineDashedMaterial({color: new THREE.Color(leftColor), dashSize: 1, gapSize: 5, linewidth: 2})
+		else
+			this.laneLeftLine.material = new THREE.LineBasicMaterial({color: new THREE.Color(leftColor)})
+
+		if (this.rightLineType === LaneLineType.DASHED)
+			this.laneRightLine.material = new THREE.LineDashedMaterial({color: new THREE.Color(rightColor), dashSize: 1, gapSize: 5, linewidth: 2})
+		else
+			this.laneRightLine.material = new THREE.LineBasicMaterial({color: new THREE.Color(rightColor)})
 
 		this.laneLeftLine.material.needsUpdate = true
 		this.laneRightLine.material.needsUpdate = true
@@ -775,16 +775,15 @@ export class Lane extends Annotation {
 	private lineColorToHex(color: LaneLineColor): THREE.Color {
 		switch (color) {
 			case LaneLineColor.WHITE:
-				return new THREE.Color( 0xffffff )
+				return new THREE.Color(0xffffff)
 			case LaneLineColor.YELLOW:
-				return new THREE.Color( 0xffaa00 )
+				return new THREE.Color(0xffaa00)
 			case LaneLineColor.BLUE:
-				return new THREE.Color( 0x4682b4 )
+				return new THREE.Color(0x4682b4)
 			case LaneLineColor.RED:
-				return new THREE.Color( 0xdc143c )
+				return new THREE.Color(0xdc143c)
 			default:
-				return new THREE.Color( 0x333333 )
+				return new THREE.Color(0x333333)
 		}
 	}
-
 }

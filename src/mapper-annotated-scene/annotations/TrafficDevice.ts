@@ -4,21 +4,25 @@
  */
 
 import * as THREE from 'three'
-import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
-import {AnnotationGeometryType, AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
-import {AnnotationType} from "./AnnotationType"
-import {isNullOrUndefined} from "util"
-import {QuaternionJsonInterface} from "../geometry/ThreeHelpers"
-import Logger from "@/util/log"
-
-const log = Logger(__filename)
-
+import {
+	Annotation,
+	AnnotationRenderingProperties,
+	AnnotationGeometryType,
+	AnnotationJsonInputInterface,
+	AnnotationJsonOutputInterface,
+} from './AnnotationBase'
+import {AnnotationType} from './AnnotationType'
+import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
+import {QuaternionJsonInterface} from '../geometry/ThreeHelpers'
+import Logger from '@/util/log'
 import * as rygFrontUrl from '../../annotator-assets/images/TrafficDevice/ryg_front.png'
 import * as rygBackUrl from '../../annotator-assets/images/TrafficDevice/ryg_back.png'
 import * as stopFrontUrl from '../../annotator-assets/images/TrafficDevice/stop_front.png'
 import * as stopBackUrl from '../../annotator-assets/images/TrafficDevice/stop_back.png'
 import * as yieldFrontUrl from '../../annotator-assets/images/TrafficDevice/yield_front.png'
 import * as yieldBackUrl from '../../annotator-assets/images/TrafficDevice/yield_back.png'
+
+const log = Logger(__filename)
 
 export enum TrafficDeviceType {
 	UNKNOWN = 0,
@@ -36,15 +40,15 @@ interface MaterialFaces {
 
 // Some variables used for rendering
 namespace TrafficDeviceRenderingProperties {
-	export const markerMaterial = new THREE.MeshLambertMaterial({color:       new THREE.Color( 0xffffff ), side: THREE.DoubleSide})
-	export const defaultMaterial = new THREE.MeshLambertMaterial({color:      new THREE.Color( 0x008800 ), side: THREE.DoubleSide})
-	export const defaultContourMaterial = new THREE.LineBasicMaterial({color: new THREE.Color( 0x00ff00 ), visible: false})
-	export const activeContourMaterial = new THREE.LineBasicMaterial({color:  new THREE.Color( 0xffff00 ), linewidth: 2})
-	export const normalMaterial = new THREE.LineBasicMaterial( {color:        new THREE.Color( 0xff00ff )})
+	export const markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
+	export const defaultMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0x008800), side: THREE.DoubleSide})
+	export const defaultContourMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0x00ff00), visible: false})
+	export const activeContourMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xffff00), linewidth: 2})
+	export const normalMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xff00ff)})
 
 	// Set a default front and back face for each device type.
 	export const deviceFaceMaterials: MaterialFaces[] = []
-	for (let i in TrafficDeviceType) {
+	for (const i in TrafficDeviceType) {
 		if (parseInt(i, 10) >= 0) {
 			deviceFaceMaterials[i] = {
 				front: defaultMaterial,
@@ -82,12 +86,10 @@ export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInte
 	trafficDeviceType: string
 	deviceOrientation: QuaternionJsonInterface
 }
-
 export interface TrafficDeviceJsonOutputInterface extends AnnotationJsonOutputInterface {
 	trafficDeviceType: string
 	deviceOrientation: QuaternionJsonInterface
 }
-
 export class TrafficDevice extends Annotation {
 	annotationType: AnnotationType
 	geometryType: AnnotationGeometryType
@@ -110,12 +112,19 @@ export class TrafficDevice extends Annotation {
 		super(obj)
 		this.annotationType = AnnotationType.TRAFFIC_DEVICE
 		this.geometryType = AnnotationGeometryType.RING
+
 		if (obj) {
 			this.type = isNullOrUndefined(TrafficDeviceType[obj.trafficDeviceType]) ? TrafficDeviceType.UNKNOWN : TrafficDeviceType[obj.trafficDeviceType]
+
 			if (isNullOrUndefined(obj.deviceOrientation))
-				this.deviceOrientation = new THREE.Quaternion()
+			{ this.deviceOrientation = new THREE.Quaternion() }
 			else
-				this.deviceOrientation = new THREE.Quaternion(obj.deviceOrientation.x, obj.deviceOrientation.y, obj.deviceOrientation.z, obj.deviceOrientation.w)
+			{ this.deviceOrientation = new THREE.Quaternion(
+				obj.deviceOrientation.x,
+				obj.deviceOrientation.y,
+				obj.deviceOrientation.z,
+				obj.deviceOrientation.w
+			) }
 		} else {
 			this.type = TrafficDeviceType.UNKNOWN
 			this.deviceOrientation = new THREE.Quaternion()
@@ -127,7 +136,7 @@ export class TrafficDevice extends Annotation {
 		this.isRotatable = true
 		this.trafficDeviceContour = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.defaultContourMaterial)
 		this.linkLine = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.activeContourMaterial)
-		this.normalLine = new THREE.Line( new THREE.Geometry(), TrafficDeviceRenderingProperties.normalMaterial)
+		this.normalLine = new THREE.Line(new THREE.Geometry(), TrafficDeviceRenderingProperties.normalMaterial)
 		this.mesh = new THREE.Mesh(new THREE.Geometry(), TrafficDeviceRenderingProperties.defaultMaterial)
 		this.meshBackFace = new THREE.Mesh(new THREE.Geometry(), TrafficDeviceRenderingProperties.defaultMaterial)
 		this.renderingObject.add(this.mesh)
@@ -142,8 +151,9 @@ export class TrafficDevice extends Annotation {
 				this.markers[0].setRotationFromQuaternion(this.deviceOrientation)
 				this.markers[0].updateMatrix()
 				this.isComplete = true
-				if (!this.isValid())
-					throw Error(`can't load invalid traffic sign with id ${obj.uuid}`)
+
+				if (!this.isValid()) throw Error(`can't load invalid traffic sign with id ${obj.uuid}`)
+
 				this.updateVisualization()
 				this.makeInactive()
 			}
@@ -166,14 +176,14 @@ export class TrafficDevice extends Annotation {
 		}
 
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, TrafficDeviceRenderingProperties.markerMaterial)
+
 		marker.position.set(position.x, position.y, position.z)
 		this.markers.push(marker)
 		this.renderingObject.add(marker)
 		this.planeCenter = position
 		this.planeNormal = new THREE.Vector3(0, 0, 0)
 
-		if (updateVisualization)
-			this.updateVisualization()
+		if (updateVisualization) this.updateVisualization()
 
 		return true
 	}
@@ -210,25 +220,30 @@ export class TrafficDevice extends Annotation {
 
 	setAssociatedMode(position: THREE.Vector3): void {
 		this.trafficDeviceContour.material = TrafficDeviceRenderingProperties.activeContourMaterial
+
 		const newLinkGeometry = new THREE.Geometry()
+
 		newLinkGeometry.vertices.push(position)
 		newLinkGeometry.vertices.push(this.markers[0].position)
 		newLinkGeometry.computeLineDistances()
 		this.linkLine.geometry = newLinkGeometry
 		this.linkLine.geometry.verticesNeedUpdate = true
 		this.linkLine.visible = true
-		if (this.markers.length > 0)
-			this.markers[0].visible = false
+
+		if (this.markers.length > 0) this.markers[0].visible = false
 	}
 
 	updateVisualization(): void {
 		if (this.markers.length < 1) return
 
 		this.planeCenter = this.markers[0].position
+
 		const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(this.markers[0].getWorldRotation())
+
 		this.deviceOrientation.setFromRotationMatrix(rotationMatrix)
 
 		const newMeshGeometry = new THREE.PlaneGeometry(0.8, 0.8)
+
 		newMeshGeometry.applyMatrix(rotationMatrix)
 		newMeshGeometry.translate(this.planeCenter.x, this.planeCenter.y, this.planeCenter.z)
 		newMeshGeometry.computeFaceNormals()
@@ -239,6 +254,7 @@ export class TrafficDevice extends Annotation {
 		this.meshBackFace.material = TrafficDeviceRenderingProperties.deviceFaceMaterials[this.type].back
 
 		const newContourGeometry = new THREE.Geometry()
+
 		newContourGeometry.vertices.push(this.mesh.geometry.vertices[0])
 		newContourGeometry.vertices.push(this.mesh.geometry.vertices[1])
 		newContourGeometry.vertices.push(this.mesh.geometry.vertices[3])
@@ -247,11 +263,13 @@ export class TrafficDevice extends Annotation {
 		this.trafficDeviceContour.geometry = newContourGeometry
 		this.trafficDeviceContour.geometry.verticesNeedUpdate = true
 
-		this.planeNormal =  new THREE.Vector3().set(0, 0, 1)
+		this.planeNormal = new THREE.Vector3().set(0, 0, 1)
 		this.planeNormal.applyMatrix4(rotationMatrix)
+
 		const newNormalGeometry = new THREE.Geometry()
 		const normalStartPoint = this.markers[0].position
 		const normalEndPoint = normalStartPoint.clone()
+
 		normalEndPoint.add(this.planeNormal)
 		newNormalGeometry.vertices.push(normalStartPoint)
 		newNormalGeometry.vertices.push(normalEndPoint)
@@ -262,7 +280,9 @@ export class TrafficDevice extends Annotation {
 	// If the current rotation is all zeroes assume it has never been rotated; otherwise it has been.
 	orientationIsSet(): boolean {
 		if (!this.markers.length) return false
+
 		const rotation = this.markers[0].getWorldRotation()
+
 		return !!rotation.x || !!rotation.y || !!rotation.z
 	}
 
@@ -290,11 +310,10 @@ export class TrafficDevice extends Annotation {
 
 		if (this.markers) {
 			this.markers.forEach((marker) => {
-				if (pointConverter) {
+				if (pointConverter)
 					data.markers.push(pointConverter(marker.position))
-				} else {
+				else
 					data.markers.push(marker.position)
-				}
 			})
 		}
 

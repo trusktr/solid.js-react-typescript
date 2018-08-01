@@ -3,27 +3,27 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
- // TODO JOE register a ground plane layer with LayerManager
+// TODO JOE register a ground plane layer with LayerManager
 
-import * as React from "react"
+import * as React from 'react'
 import * as THREE from 'three'
 import * as lodash from 'lodash'
-import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed";
+import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
 import toProps from '@/util/toProps'
-import {OrderedMap} from "immutable";
-import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
-import {PointCloudSuperTile} from "@/mapper-annotated-scene/tile/PointCloudSuperTile";
+import {OrderedMap} from 'immutable'
+import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
+import {PointCloudSuperTile} from '@/mapper-annotated-scene/tile/PointCloudSuperTile'
 import config from '@/config'
-import {isNull} from "util"
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem";
-import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions";
-import AreaOfInterestManager from "@/mapper-annotated-scene/src/services/AreaOfInterestManager";
-import {EventEmitter} from "events"
+import {isNull} from 'util' // eslint-disable-line node/no-deprecated-api
+import {UtmCoordinateSystem} from '@/mapper-annotated-scene/UtmCoordinateSystem'
+import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
+import AreaOfInterestManager from '@/mapper-annotated-scene/src/services/AreaOfInterestManager'
+import {EventEmitter} from 'events'
 import mousePositionToGLSpace from '@/util/mousePositionToGLSpace'
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
-import * as Electron from "electron"
-import LayerManager, {Layer} from "@/mapper-annotated-scene/src/services/LayerManager";
-import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import * as Electron from 'electron'
+import LayerManager, {Layer} from '@/mapper-annotated-scene/src/services/LayerManager'
+import {Events} from '@/mapper-annotated-scene/src/models/Events'
 
 export interface GroundPlaneManagerProps {
 	utmCoordinateSystem: UtmCoordinateSystem
@@ -35,11 +35,9 @@ export interface GroundPlaneManagerProps {
 	isAddMarkerMode?: boolean
 	layerManager: LayerManager
 }
-
 export interface GroundPlaneManagerState {
 	pointCloudSuperTiles: OrderedMap<string, SuperTile>
 }
-
 @typedConnect(toProps(
 	'camera',
 	'mousePosition',
@@ -75,35 +73,37 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		this.tileGroundPlaneScale = 1.05
 
 		this.state = {
-            pointCloudSuperTiles: OrderedMap<string, SuperTile>()
+			pointCloudSuperTiles: OrderedMap<string, SuperTile>(),
 		}
 
-        // Setup listeners on add/remove point cloud tiles
-        this.props.channel.on(Events.SUPER_TILE_CREATED, (superTile:SuperTile) => {
-			if (!( superTile instanceof PointCloudSuperTile )) return
+		// Setup listeners on add/remove point cloud tiles
+		this.props.channel.on(Events.SUPER_TILE_CREATED, (superTile:SuperTile) => {
+			if (!(superTile instanceof PointCloudSuperTile)) return
 			if (!superTile.pointCloud) return
 
-        	this.addTileToState(superTile)
-        	this.loadTileGroundPlanes(superTile)
+			this.addTileToState(superTile)
+			this.loadTileGroundPlanes(superTile)
 		})
 
-        this.props.channel.on(Events.SUPER_TILE_REMOVED, (superTile:SuperTile) => {
-			if (!( superTile instanceof PointCloudSuperTile )) return
+		this.props.channel.on(Events.SUPER_TILE_REMOVED, (superTile:SuperTile) => {
+			if (!(superTile instanceof PointCloudSuperTile)) return
 			if (!superTile.pointCloud) return
 
-        	this.removeTileFromState(superTile)
-        	this.unloadTileGroundPlanes(superTile)
+			this.removeTileFromState(superTile)
+			this.unloadTileGroundPlanes(superTile)
 		})
 	}
 
 	addTileToState(superTile: PointCloudSuperTile) {
 		const pointCloudSuperTiles = this.state.pointCloudSuperTiles
-        pointCloudSuperTiles.set(superTile.key(), superTile)
+
+		pointCloudSuperTiles.set(superTile.key(), superTile)
 	}
 
 	removeTileFromState(superTile: PointCloudSuperTile) {
-        const pointCloudSuperTiles = this.state.pointCloudSuperTiles
-        pointCloudSuperTiles.delete(superTile.key())
+		const pointCloudSuperTiles = this.state.pointCloudSuperTiles
+
+		pointCloudSuperTiles.delete(superTile.key())
 	}
 
 	// Construct a set of 2D planes, each of which approximates the ground plane within a tile.
@@ -119,18 +119,20 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 
 		superTile.tiles.forEach(tile => {
 			const y = tile.groundAverageYIndex()
+
 			if (!isNull(y)) {
 				const xSize = tile.index.scale.xSize
 				const zSize = tile.index.scale.zSize
-
 				const geometry = new THREE.PlaneGeometry(
 					xSize * this.tileGroundPlaneScale,
 					zSize * this.tileGroundPlaneScale
 				)
+
 				geometry.rotateX(-Math.PI / 2)
 
 				const plane = new THREE.Mesh(geometry, this.groundPlaneMaterial)
 				const origin = this.props.utmCoordinateSystem.utmVectorToThreeJs(tile.index.origin)
+
 				plane.position.x = origin.x + xSize / 2
 				plane.position.y = y
 				plane.position.z = origin.z - zSize / 2
@@ -151,40 +153,37 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		const groundPlanes = this.superTileGroundPlanes.get(superTile.key())!
 
 		this.superTileGroundPlanes.delete(superTile.key())
-		this.allGroundPlanes = lodash.flatten( Array.from( this.superTileGroundPlanes.values() ) )
+		this.allGroundPlanes = lodash.flatten(Array.from(this.superTileGroundPlanes.values()))
 		groundPlanes.forEach(plane => this.groundPlaneGroup.remove(plane))
 	}
 
-	intersectWithGround( pointInGLSpace?: THREE.Vector2 ): THREE.Intersection[] {
+	intersectWithGround(pointInGLSpace?: THREE.Vector2): THREE.Intersection[] {
 		let intersections: THREE.Intersection[] = []
 
-		if (!this.props.camera || !this.props.mousePosition || !this.props.areaOfInterestManager)
-			return intersections
+		if (!this.props.camera || !this.props.mousePosition || !this.props.areaOfInterestManager) return intersections
 
 		this.raycaster.setFromCamera(
-			pointInGLSpace || mousePositionToGLSpace( this.props.mousePosition, this.props.rendererSize! ),
+			pointInGLSpace || mousePositionToGLSpace(this.props.mousePosition, this.props.rendererSize!),
 			this.props.camera
 		)
 
 		if (this.estimateGroundPlane || !this.pointCloudHasPoints()) {
 			if (this.allGroundPlanes.length) {
-
 				let toggleVisibility = false
+
 				if (!this.allGroundPlanes[0].visible) toggleVisibility = true
 
 				if (toggleVisibility) {
-					this.makePlanesVisible( true )
+					this.makePlanesVisible(true)
 					this.allGroundPlanes.forEach(m => m.updateMatrixWorld(true))
 				}
 
 				intersections = this.raycaster.intersectObjects(this.allGroundPlanes)
 
-				if (toggleVisibility)
-					this.makePlanesVisible( false )
+				if (toggleVisibility) this.makePlanesVisible(false)
 			}
 
-			if (!intersections.length)
-				intersections = this.raycaster.intersectObject(this.props.areaOfInterestManager.plane)
+			if (!intersections.length) intersections = this.raycaster.intersectObject(this.props.areaOfInterestManager.plane)
 		} else {
 			intersections = this.raycaster.intersectObjects(this.getPointClouds().valueSeq().toArray())
 		}
@@ -199,36 +198,35 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 	}
 
 	pointCloudHasPoints(): boolean {
-		return this.state.pointCloudSuperTiles
-			&& !!this.state.pointCloudSuperTiles!.find(st => st!.objectCount > 0)
+		return this.state.pointCloudSuperTiles &&
+			!!this.state.pointCloudSuperTiles!.find(st => st!.objectCount > 0)
 	}
 
 	// This is similar to showGroundPlaneLayer, but used at
 	// different times on purpose.
 	makePlanesVisible(areVisible: boolean): void {
-		for (const plane of this.allGroundPlanes) {
+		for (const plane of this.allGroundPlanes)
 			plane.visible = areVisible
-		}
+
 		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
 	}
 
-	showGroundPlaneLayer = ( show: boolean ): void => {
+	showGroundPlaneLayer = (show: boolean): void => {
 		this.groundPlaneGroup.visible = show
 	}
 
 	componentDidUpdate(oldProps: GroundPlaneManagerProps): void {
-		if (this.groundPlaneOpacityOnHover && oldProps.isAddMarkerMode !== this.props.isAddMarkerMode)
-			this.makePlanesVisible(!!this.props.isAddMarkerMode)
+		if (this.groundPlaneOpacityOnHover && oldProps.isAddMarkerMode !== this.props.isAddMarkerMode) this.makePlanesVisible(!!this.props.isAddMarkerMode)
 	}
 
 	componentDidMount(): void {
-		new AnnotatedSceneActions().addObjectToScene( this.groundPlaneGroup )
+		new AnnotatedSceneActions().addObjectToScene(this.groundPlaneGroup)
 		this.props.layerManager.addLayer(Layer.GROUND_PLANES, this.showGroundPlaneLayer)
 	}
 
 	componentWillUnmount(): void {
-		this.props.layerManager.removeLayer( 'Ground Planes' )
-		new AnnotatedSceneActions().removeObjectFromScene( this.groundPlaneGroup )
+		this.props.layerManager.removeLayer('Ground Planes')
+		new AnnotatedSceneActions().removeObjectFromScene(this.groundPlaneGroup)
 	}
 
 	render(): JSX.Element | null {

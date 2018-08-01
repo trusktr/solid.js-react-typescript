@@ -6,21 +6,21 @@
 import * as lodash from 'lodash'
 import * as THREE from 'three'
 import * as UUID from 'uuid'
-import {AnnotationType} from "./AnnotationType"
-import {isNumber} from "util"
-import Logger from "@/util/log"
+import {AnnotationType} from './AnnotationType'
+import {isNumber} from 'util' // eslint-disable-line node/no-deprecated-api
+import Logger from '@/util/log'
 
 const log = Logger(__filename)
 
 export type AnnotationId = number
 export type AnnotationUuid = string
 
-namespace AnnotationCounter {
-	let i = 0
+const AnnotationCounter = {
+	i: 0,
 
-	export function nextId(): number {
-		return ++i
-	}
+	nextId(): number {
+		return ++this.i
+	},
 }
 
 export enum AnnotationGeometryType {
@@ -36,30 +36,25 @@ export interface UtmJson {
 	'N': number,
 	'alt': number,
 }
-
 export interface LlaJson {
 	'lng': number,
 	'lat': number,
 	'alt': number,
 }
-
 export interface AnnotationJsonInputInterface {
 	annotationType: string // stringified instance of enum AnnotationType
 	uuid: AnnotationUuid
 	markers: Array<THREE.Vector3>
 }
-
 export interface AnnotationJsonOutputInterface {
 	annotationType: string // stringified instance of enum AnnotationType
 	uuid: AnnotationUuid
 	markers: Array<Object>
 }
-
 export namespace AnnotationRenderingProperties {
 	export const markerPointGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2)
 	export const markerHighlightPointGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
 }
-
 export abstract class Annotation {
 	abstract annotationType: AnnotationType // Its type, expressed as an enumeration for convenience
 	abstract geometryType: AnnotationGeometryType
@@ -67,11 +62,11 @@ export abstract class Annotation {
 	uuid: AnnotationUuid 				// A UUID, for use across distributed applications
 	markers: Array<THREE.Mesh> 			// Control point used to edit the annotation
 	abstract minimumMarkerCount: number // Minimum to form a valid annotation
-	abstract allowNewMarkers: boolean   // Allow interactive addition of markers after the annotation is created
-	abstract mesh: THREE.Mesh           // Represents the physical extents of the annotation
+	abstract allowNewMarkers: boolean // Allow interactive addition of markers after the annotation is created
+	abstract mesh: THREE.Mesh // Represents the physical extents of the annotation
 	renderingObject: THREE.Object3D		// Object that is added to the scene for display
-	abstract snapToGround: boolean      // Preference for where to place markers
-	abstract isRotatable: boolean       // Can markers be rotated
+	abstract snapToGround: boolean // Preference for where to place markers
+	abstract isRotatable: boolean // Can markers be rotated
 
 	constructor(inputInterface?: AnnotationJsonInputInterface) {
 		this.id = AnnotationCounter.nextId()
@@ -84,7 +79,7 @@ export abstract class Annotation {
 	abstract isValid(): boolean
 	abstract addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean
 	abstract deleteLastMarker(): boolean
-	abstract complete(): boolean        // Close the loop of markers or do any other clean-up to designate an annotation "complete"
+	abstract complete(): boolean // Close the loop of markers or do any other clean-up to designate an annotation "complete"
 	abstract makeActive(): void
 	abstract makeInactive(): void
 	abstract updateVisualization(): void
@@ -101,11 +96,11 @@ export abstract class Annotation {
 
 	// Typically markers will be shown only when the annotation is made active for editing.
 	protected showMarkers(): void {
-		this.markers.forEach((marker) => marker.visible = true)
+		this.markers.forEach((marker) => { marker.visible = true })
 	}
 
 	protected hideMarkers(): void {
-		this.markers.forEach((marker) => marker.visible = false)
+		this.markers.forEach((marker) => { marker.visible = false })
 	}
 
 	/**
@@ -114,6 +109,7 @@ export abstract class Annotation {
 	 */
 	highlightMarkers(markers: Array<THREE.Mesh>): void {
 		const ids: Array<number> = markers.map(m => m.id)
+
 		this.markers.forEach(marker => {
 			ids.filter(id => id === marker.id).forEach(() => {
 				marker.geometry = AnnotationRenderingProperties.markerHighlightPointGeometry
@@ -138,23 +134,28 @@ export abstract class Annotation {
 	 */
 	neighboringMarkers(origin: THREE.Mesh, distance: number): Array<THREE.Mesh> {
 		if (distance < 1) return []
+
 		const len = this.markers.length
+
 		if (len < 2) return []
 
 		// Find the origin.
 		let originIndex = -1
+
 		for (let i = 0; i < len; i++) {
 			if (this.markers[i].id === origin.id) {
 				originIndex = i
 				break
 			}
 		}
+
 		if (originIndex === -1) return []
 
 		// Find the neighbors.
 		let min: number
 		let max: number
 		let neighborIndexes: number[] = []
+
 		switch (this.geometryType) {
 			// Search all markers. Clip at the ends of the markers array.
 			case AnnotationGeometryType.LINEAR:
@@ -178,6 +179,7 @@ export abstract class Annotation {
 			case AnnotationGeometryType.RING:
 				let loopedMin: number | null = null
 				let loopedMax: number | null = null
+
 				if (distance * 2 + 1 >= len) {
 					// Get the whole ring.
 					min = 0
@@ -185,21 +187,26 @@ export abstract class Annotation {
 				} else {
 					// Get a subset.
 					min = originIndex - distance
+
 					if (min < 0) {
 						loopedMin = len + min
 						loopedMax = len
 						min = 0
 					}
+
 					max = originIndex + distance + 1
+
 					if (max > len) {
 						loopedMin = 0
 						loopedMax = max - len
 						max = len
 					}
 				}
+
 				neighborIndexes = lodash.range(min, max)
-				if (isNumber(loopedMin) && isNumber(loopedMax))
-					neighborIndexes = neighborIndexes.concat(lodash.range(loopedMin, loopedMax))
+
+				if (isNumber(loopedMin) && isNumber(loopedMax)) neighborIndexes = neighborIndexes.concat(lodash.range(loopedMin, loopedMax))
+
 				break
 
 			default:

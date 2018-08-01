@@ -7,7 +7,6 @@ import * as React from 'react'
 
 export default
 class Help extends React.Component<{}, {}> {
-
 	render(): JSX.Element {
 		return (
 			<p className="div_help">
@@ -50,5 +49,4 @@ class Help extends React.Component<{}, {}> {
 			</p>
 		)
 	}
-
 }

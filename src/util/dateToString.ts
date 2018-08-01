@@ -16,5 +16,6 @@ export function dateToString(date: Date): string {
 		date.getUTCSeconds(),
 		date.getUTCMilliseconds(),
 	]
+
 	return vsprintf('%04d-%02d-%02dT%02d-%02d-%02d.%03dZ', dateElements)
 }

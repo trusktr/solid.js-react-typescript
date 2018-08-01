@@ -1,12 +1,12 @@
-const
-	{
-		env,
-		isDev,
-		baseDir
-	} = global,
-	Path = require('path'),
-	Fs = require('fs'),
-	pkgJson = JSON.parse(Fs.readFileSync(Path.resolve(baseDir, 'package.json'), 'utf-8'))
+const {
+	env,
+	isDev,
+	baseDir,
+	isSaffron,
+} = global
+const Path = require('path')
+const Fs = require('fs')
+const pkgJson = JSON.parse(Fs.readFileSync(Path.resolve(baseDir, 'package.json'), 'utf-8'))
 
 module.exports = {
 	__DEV__: isDev,
@@ -20,5 +20,5 @@ module.exports = {
 	'process.env.NODE_ENV': JSON.stringify(env),
 	'process.env.DefaultTransportScheme': JSON.stringify('IPC'),
 	'ProcessConfig.isStorybook()': false,
-	'Env.isElectron': true
+	'Env.isElectron': true,
 }

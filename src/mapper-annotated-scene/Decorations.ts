@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as THREE from "three"
+import * as THREE from 'three'
 import * as mapperLogoObj from 'assets/models/Mapper_logo.obj'
 import * as hondaLogoObj from 'assets/models/Honda_logo.obj'
 
@@ -17,16 +17,15 @@ interface DecorationConfig {
 // Assume the object will be rendered as a floating billboard within a point cloud.
 // Make it roughly human-sized.
 const objectSize = 5.0 // approx in meters
-
 const configs: DecorationConfig[] = [
 	{ // Mapper, San Francisco
 		asset: mapperLogoObj,
-		material: new THREE.MeshPhongMaterial({color: new THREE.Color( 0xFFC629 ), specular: 0x000000, shininess: 0}),
+		material: new THREE.MeshPhongMaterial({color: new THREE.Color(0xFFC629), specular: 0x000000, shininess: 0}),
 		lngLatAlt: new THREE.Vector3(-122.4139, 37.7635, 3),
 	},
 	{ // Honda, Mountain View
 		asset: hondaLogoObj,
-		material: new THREE.MeshPhongMaterial({color: new THREE.Color( 0x0080C5 ), specular: 0x000000, shininess: 0}),
+		material: new THREE.MeshPhongMaterial({color: new THREE.Color(0x0080C5), specular: 0x000000, shininess: 0}),
 		lngLatAlt: new THREE.Vector3(-122.0522, 37.3900, 10),
 	},
 ]
@@ -35,22 +34,24 @@ const configs: DecorationConfig[] = [
 export function getDecorations(): Promise<THREE.Object3D[]> {
 	const manager = new THREE.LoadingManager()
 	const loader = new THREE.OBJLoader(manager)
-
 	const promises = configs.map(config =>
 		new Promise((resolve: (object: THREE.Object3D) => void, reject: (reason?: Error) => void): void => {
 			try {
 				const model = config.asset
+
 				loader.load(model, (object: THREE.Object3D) => {
 					const boundingBox = new THREE.Box3().setFromObject(object)
 					const boxSize = boundingBox.getSize().toArray()
 					const modelLength = Math.max(...boxSize)
 					const scaleFactor = objectSize / modelLength
+
 					object.scale.setScalar(scaleFactor)
 					object.visible = true
+
 					object.traverse(child => {
-						if (child instanceof THREE.Mesh)
-							child.material = config.material
+						if (child instanceof THREE.Mesh) child.material = config.material
 					})
+
 					object.userData = config.lngLatAlt
 					resolve(object)
 				})

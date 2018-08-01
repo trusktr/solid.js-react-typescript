@@ -10,16 +10,14 @@ import * as React from 'react'
 import * as Modal from 'react-modal'
 import * as Electron from 'electron'
 import Logger from '@/util/log'
-import * as Fs from "fs"
-import * as AsyncFile from "async-file"
+import * as Fs from 'fs'
+import * as AsyncFile from 'async-file'
 import * as Executable from 'executable'
 import * as ChildProcess from 'child_process'
-import {s1SessionFileName, TrajectoryDataSet, trajectoryFileName} from "@/util/Perception"
+import {s1SessionFileName, TrajectoryDataSet, trajectoryFileName} from '@/util/Perception'
 
 const VirtualList = require('react-tiny-virtual-list')
-
 const log = Logger(__filename)
-
 const dialog = Electron.remote.dialog
 
 export type TrajectoryFileSelectedCallback = (path: string) => void
@@ -74,10 +72,9 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 				log.error(`Can't load offline localizer: ${err.message}`)
 				throw err
 			})
-
 		const promises: Promise<void>[] = [localizerPromise]
-
 		const dirs = [this.processedTrajectoriesDir, this.unprocessedTrajectoriesDir]
+
 		dirs.forEach(dir => {
 			const promise = AsyncFile.readdir(dir)
 				.then(() => {}) // tslint:disable-line:no-empty
@@ -85,6 +82,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 					log.error(`Can't open trajectories directory: ${err.message}`)
 					throw err
 				})
+
 			promises.push(promise)
 		})
 
@@ -98,8 +96,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 	}
 
 	render(): JSX.Element {
-		if (!this.state.enabled || !this.state.isOpen)
-			return <div/>
+		if (!this.state.enabled || !this.state.isOpen) return <div/>
 
 		return (
 			<Modal
@@ -122,13 +119,13 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 			return
 		}
 
-		if (this.onTrajectoryFileSelected)
-			log.error('trajectoryFileSelected callback should not be present in openModal()')
+		if (this.onTrajectoryFileSelected) log.error('trajectoryFileSelected callback should not be present in openModal()')
 
 		if (!this.processingCheckTimer) {
 			this.checkTrajectoryDirectories()
 			this.processingCheckTimer = window.setInterval(this.checkTrajectoryDirectories, 5000)
 		}
+
 		this.onTrajectoryFileSelected = cb
 		this.setState({isOpen: true})
 	}
@@ -141,8 +138,8 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 
 	private playTrajectory(path: string): () => void {
 		return (): void => {
-			if (this.onTrajectoryFileSelected)
-				this.onTrajectoryFileSelected(path)
+			if (this.onTrajectoryFileSelected) this.onTrajectoryFileSelected(path)
+
 			this.closeModal()
 		}
 	}
@@ -151,12 +148,14 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 		if (!dataSetRoot) return []
 
 		let names: string[] = []
+
 		try {
 			names = Fs.readdirSync(dataSetRoot).sort()
 		} catch (err) {
 			log.warn(`can't load trajectory files at ${dataSetRoot}`)
 			dialog.showErrorBox('Fly-through Load Error', err.message)
 		}
+
 		return names
 			.map(name => {
 				return {
@@ -169,8 +168,8 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 
 	private processed(): JSX.Element {
 		const dataSets = this.state.processedTrajectories
-		if (!dataSets.length)
-			return <div><em>No processed data sets are available.</em></div>
+
+		if (!dataSets.length) return <div><em>No processed data sets are available.</em></div>
 
 		return (
 			<div>
@@ -197,8 +196,8 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 
 	private unprocessed(): JSX.Element {
 		const dataSets = this.state.unprocessedTrajectories
-		if (!dataSets.length)
-			return <div/>
+
+		if (!dataSets.length) return <div/>
 
 		const processingButton = this.state.isProcessing
 			? (
@@ -238,6 +237,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 		this.setState({isProcessing: true})
 
 		const command = [this.localizerPath, this.unprocessedTrajectoriesDir, this.processedTrajectoriesDir].join(' ')
+
 		ChildProcess.exec(command, (error, stdout, stderr) => {
 			if (error) {
 				log.error(`localizer failed: ${error}`)
@@ -246,6 +246,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 				if (stdout) log.info(`localizer stdout: ${stdout}`)
 				if (stderr) log.warn(`localizer stderr: ${stderr}`)
 			}
+
 			this.setState({isProcessing: false})
 		})
 	}
@@ -267,26 +268,25 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 			processed,
 			'name'
 		)
-
-		const processedDiffs = processed.length !== this.state.processedTrajectories.length
-			|| lodash.differenceBy(
+		const processedDiffs = processed.length !== this.state.processedTrajectories.length ||
+			lodash.differenceBy(
 				this.state.processedTrajectories,
 				processed,
 				'name'
 			).length
-
-		const unprocessedDiffs = unprocessed.length !== this.state.unprocessedTrajectories.length
-			|| lodash.differenceBy(
+		const unprocessedDiffs = unprocessed.length !== this.state.unprocessedTrajectories.length ||
+			lodash.differenceBy(
 				this.state.unprocessedTrajectories,
 				unprocessed,
 				'name'
 			).length
 
-		if (processedDiffs || unprocessedDiffs)
+		if (processedDiffs || unprocessedDiffs) {
 			this.setState({
 				processedTrajectories: processed,
 				unprocessedTrajectories: unprocessed,
 			})
+		}
 	}
 }
 
@@ -307,6 +307,6 @@ const trajectoryPickerStyle: Modal.Styles = {
 		left: 0,
 		right: 0,
 		bottom: 0,
-		backgroundColor: 'rgba(0, 0, 0, 0.5)'
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
 	},
 }

@@ -3,19 +3,18 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
-import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
+import UIMessage from 'mapper-annotated-scene/src/models/UIMessage'
+import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
 import * as MapperProtos from '@mapperai/mapper-models'
-import Models = MapperProtos.mapper.models
-import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
-import {OrderedMap, Set} from "immutable";
-import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
-import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
-import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
+import {CameraType} from '@/mapper-annotated-scene/src/models/CameraType'
+import {OrderedMap, Set} from 'immutable'
+import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
+import {RangeSearch} from '@/mapper-annotated-scene/tile-model/RangeSearch'
+import TileManagerBase from '@/mapper-annotated-scene/tile/TileManagerBase'
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
+import Models = MapperProtos.mapper.models
 
 export default class AnnotatedSceneState {
-
 	static Key = 'AnnotatedSceneState'
 
 	/**
@@ -37,7 +36,7 @@ export default class AnnotatedSceneState {
 	isLiveMode: boolean // toggles between live mode and recorded mode
 	isPlayMode: boolean // toggles between play and pause modes
 
-    flyThroughEnabled: boolean
+	flyThroughEnabled: boolean
 	statusWindowState: StatusWindowState
 
 	uiMenuVisible: boolean
