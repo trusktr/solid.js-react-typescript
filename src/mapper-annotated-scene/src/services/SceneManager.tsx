@@ -188,7 +188,9 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			compassRose = CompassRose(compassRoseLength)
 			compassRose.rotateX(Math.PI / -2)
 			scene.add(compassRose)
-		} else { compassRose = null }
+		} else {
+			compassRose = null
+		}
 
 		this.compassRose = compassRose
 
@@ -519,12 +521,18 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	private showDecorations() {
-		this.decorations.forEach(d => { d.visible = true })
+		this.decorations.forEach(d => {
+			d.visible = true
+		})
+
 		this.renderScene()
 	}
 
 	private hideDecorations() {
-		this.decorations.forEach(d => { d.visible = false })
+		this.decorations.forEach(d => {
+			d.visible = false
+		})
+
 		this.renderScene()
 	}
 

@@ -172,7 +172,9 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	// Load tiles within a bounding box and add them to the scene.
 	private loadPointCloudDataFromMapServer(searches: RangeSearch[], loadAllPoints: boolean = false, resetCamera: boolean = false): Promise<void> {
 		return this.props.pointCloudTileManager.loadFromMapServer(searches, CoordinateFrameType.STANDARD, loadAllPoints)
-			.then(loaded => { if (loaded) this.pointCloudLoadedSideEffects(resetCamera) })
+			.then(loaded => {
+				if (loaded) this.pointCloudLoadedSideEffects(resetCamera)
+			})
 			.catch(err => this.props.handleTileManagerLoadError('Point Cloud', err))
 	}
 
@@ -240,7 +242,9 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 			this.props.layerManager.isLayerVisible(Layer.POINT_CLOUD)
 		) {
 			this.loadPointCloudDataFromMapServer(this.props.areaOfInterest, true, false)
-				.catch(err => { log.warn(err.message) })
+				.catch(err => {
+					log.warn(err.message)
+				})
 		}
 	}
 }

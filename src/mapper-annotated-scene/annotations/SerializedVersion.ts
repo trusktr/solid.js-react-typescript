@@ -110,7 +110,9 @@ export function toCurrentAnnotationVersion(data: Object): Object {
 			throw Error(`SerializedVersion is missing an updater for file version (${startVersion})`)
 	}
 
-	updaters.forEach(updater => { data = updater(data) })
+	updaters.forEach(updater => {
+		data = updater(data)
+	})
 
 	return data
 }

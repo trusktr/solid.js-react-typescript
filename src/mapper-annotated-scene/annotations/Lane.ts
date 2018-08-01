@@ -694,11 +694,15 @@ export class Lane extends Annotation {
 	}
 
 	private hideDirectionMarkers(): void {
-		this.laneDirectionMarkers.forEach(m => { m.visible = false })
+		this.laneDirectionMarkers.forEach(m => {
+			m.visible = false
+		})
 	}
 
 	private showDirectionMarkers(): void {
-		this.laneDirectionMarkers.forEach(m => { m.visible = true })
+		this.laneDirectionMarkers.forEach(m => {
+			m.visible = true
+		})
 	}
 
 	private setCrosswalkInactiveRendering(): void {

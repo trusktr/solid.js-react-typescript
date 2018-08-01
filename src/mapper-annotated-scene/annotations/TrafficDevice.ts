@@ -116,15 +116,16 @@ export class TrafficDevice extends Annotation {
 		if (obj) {
 			this.type = isNullOrUndefined(TrafficDeviceType[obj.trafficDeviceType]) ? TrafficDeviceType.UNKNOWN : TrafficDeviceType[obj.trafficDeviceType]
 
-			if (isNullOrUndefined(obj.deviceOrientation))
-			{ this.deviceOrientation = new THREE.Quaternion() }
-			else
-			{ this.deviceOrientation = new THREE.Quaternion(
-				obj.deviceOrientation.x,
-				obj.deviceOrientation.y,
-				obj.deviceOrientation.z,
-				obj.deviceOrientation.w
-			) }
+			if (isNullOrUndefined(obj.deviceOrientation)) {
+				this.deviceOrientation = new THREE.Quaternion()
+			} else {
+				this.deviceOrientation = new THREE.Quaternion(
+					obj.deviceOrientation.x,
+					obj.deviceOrientation.y,
+					obj.deviceOrientation.z,
+					obj.deviceOrientation.w
+				)
+			}
 		} else {
 			this.type = TrafficDeviceType.UNKNOWN
 			this.deviceOrientation = new THREE.Quaternion()

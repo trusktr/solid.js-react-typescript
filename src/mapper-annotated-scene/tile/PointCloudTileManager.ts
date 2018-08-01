@@ -101,7 +101,9 @@ export class PointCloudTileManager extends TileManager {
 
 		let points = 0
 
-		this.superTiles.forEach(st => { points += st!.objectCount })
+		this.superTiles.forEach(st => {
+			points += st!.objectCount
+		})
 
 		const message = `Loaded ${this.superTiles.size} point tiles; ${points} points`
 

@@ -106,35 +106,40 @@ export class ImageScreen extends THREE.Object3D {
 	}
 
 	makeVisible(): void {
-		this.visibleChildren().forEach(obj => { obj.visible = true })
+		this.visibleChildren().forEach(obj => {
+			obj.visible = true
+		})
 	}
 
 	makeInvisible(): void {
-		this.visibleChildren().forEach(obj => { obj.visible = false })
+		this.visibleChildren().forEach(obj => {
+			obj.visible = false
+		})
 	}
 
 	loadImage(): Promise<boolean> {
-		if (this.imageLoaded)
-		{ return Promise.resolve(false) }
-		else
-		{ return new Promise((resolve: (loaded: boolean) => void): void => {
-			const onLoad = (texture: THREE.Texture): void => {
-				texture.minFilter = THREE.LinearFilter
+		if (this.imageLoaded) {
+			return Promise.resolve(false)
+		} else {
+			return new Promise((resolve: (loaded: boolean) => void): void => {
+				const onLoad = (texture: THREE.Texture): void => {
+					texture.minFilter = THREE.LinearFilter
 
-				const activeMaterial = new THREE.MeshBasicMaterial({
-					side: THREE.FrontSide,
-					transparent: true,
-					opacity: 1.0,
-				})
+					const activeMaterial = new THREE.MeshBasicMaterial({
+						side: THREE.FrontSide,
+						transparent: true,
+						opacity: 1.0,
+					})
 
-				activeMaterial.map = texture
-				this.imageMesh.material = activeMaterial
-				this.imageLoaded = true
-				resolve(true)
-			}
+					activeMaterial.map = texture
+					this.imageMesh.material = activeMaterial
+					this.imageLoaded = true
+					resolve(true)
+				}
 
-			textureLoader.load(this.path, onLoad, undefined, undefined)
-		}) }
+				textureLoader.load(this.path, onLoad, undefined, undefined)
+			})
+		}
 	}
 
 	unloadImage(): void {

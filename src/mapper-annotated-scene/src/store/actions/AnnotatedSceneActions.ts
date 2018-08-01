@@ -192,7 +192,9 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 				return new AnnotatedSceneState({
 					...annotatedSceneState, isMouseDragging: true,
 				})
-			} else { return annotatedSceneState }
+			} else {
+				return annotatedSceneState
+			}
 		}
 	}
 
@@ -203,7 +205,9 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 				return new AnnotatedSceneState({
 					...annotatedSceneState, isMouseDragging: false,
 				})
-			} else { return annotatedSceneState }
+			} else {
+				return annotatedSceneState
+			}
 		}
 	}
 

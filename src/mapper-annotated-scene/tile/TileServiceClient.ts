@@ -210,8 +210,7 @@ export class TileServiceClient {
 						if (tileIndex) {
 							instance.getLayersMap()
 								.forEach((responseLayerUrl, responseLayerId) => {
-									if (responseLayerId === layerId) // should be always true
-									{
+									if (responseLayerId === layerId) { // should be always true
 										tiles.push(new TileInstance(
 											tileIndex,
 											responseLayerId,

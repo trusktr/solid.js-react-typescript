@@ -47,7 +47,9 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 			if (this.layerToggles.has(key)) {
 				this.layerToggles.get(key)!(true)
 				this.layerVisibilities.set(key, true)
-			} else { log.error(`missing visibility toggle for ${key}`) }
+			} else {
+				log.error(`missing visibility toggle for ${key}`)
+			}
 		})
 
 		if (hideOthers) {
@@ -57,7 +59,9 @@ export default class LayerManager extends React.Component<LayerManagerProps, Lay
 				if (this.layerToggles.has(key)) {
 					this.layerToggles.get(key)!(false)
 					this.layerVisibilities.set(key, false)
-				} else { log.error(`missing visibility toggle for ${key}`) }
+				} else {
+					log.error(`missing visibility toggle for ${key}`)
+				}
 			})
 		}
 

@@ -191,7 +191,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			this.props.layerManager.isLayerVisible(Layer.ANNOTATIONS)
 		) {
 			this.loadAnnotationDataFromMapServer(this.props.areaOfInterest, true)
-				.catch(err => { log.warn(err.message) })
+				.catch(err => {
+					log.warn(err.message)
+				})
 		}
 
 		if (previousProps.isRotationModeActive !== this.props.isRotationModeActive) {
@@ -1504,7 +1506,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		let first: THREE.Vector3 | null = null
 
 		// and round off the values for nicer debug output
-		const trunc = function(x: number): number { return Math.trunc(x / 10) * 10 }
+		const trunc = function(x: number): number {
+			return Math.trunc(x / 10) * 10
+		}
 
 		for (let i = 0; !first && i < data['annotations'].length; i++) {
 			const annotation = data['annotations'][i]
@@ -1815,8 +1819,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			if (inactive.deleteNeighbor(activeLane.uuid)) {
 				inactive.makeInactive()
 				this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
-			}
-			else {
+			} else {
 				log.error('Non-reciprocal neighbor relation detected. This should never happen.')
 			}
 
@@ -2049,10 +2052,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 
 			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
-		}
 
 		// If we clicked a traffic device, add it or remove it from the connection's set of associated devices.
-		else if (dstAnnotation instanceof TrafficDevice) {
+		} else if (dstAnnotation instanceof TrafficDevice) {
 			const wasAdded = srcAnnotation.toggleAssociatedDevice(dstAnnotation.uuid)
 
 			if (wasAdded) {

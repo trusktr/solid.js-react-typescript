@@ -66,14 +66,18 @@ class LightboxWindowUI {
 				imageListElement.appendChild(img)
 				this.imageChildren.push(img)
 			})
-		} else { log.warn('missing element image_list') }
+		} else {
+			log.warn('missing element image_list')
+		}
 	}
 
 	// Update UI for one image.
 	private onImageEditState = (state: IpcMessages.ImageEditState): void => {
 		this.imageChildren
 			.filter(img => img.id === state.uuid)
-			.forEach(img => { img.className = state.active ? 'image_highlighted' : 'image_default' })
+			.forEach(img => {
+				img.className = state.active ? 'image_highlighted' : 'image_default'
+			})
 	}
 
 	private imageSetState(uuid: string, active: boolean): void {

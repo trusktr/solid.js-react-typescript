@@ -96,11 +96,15 @@ export abstract class Annotation {
 
 	// Typically markers will be shown only when the annotation is made active for editing.
 	protected showMarkers(): void {
-		this.markers.forEach((marker) => { marker.visible = true })
+		this.markers.forEach((marker) => {
+			marker.visible = true
+		})
 	}
 
 	protected hideMarkers(): void {
-		this.markers.forEach((marker) => { marker.visible = false })
+		this.markers.forEach((marker) => {
+			marker.visible = false
+		})
 	}
 
 	/**

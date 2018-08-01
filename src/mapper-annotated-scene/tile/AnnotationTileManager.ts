@@ -56,7 +56,9 @@ export class AnnotationTileManager extends TileManager {
 
 		let annotations = 0
 
-		this.superTiles.forEach(st => { annotations += st!.objectCount })
+		this.superTiles.forEach(st => {
+			annotations += st!.objectCount
+		})
 
 		const message = `Loaded ${this.superTiles.size} annotation tiles; ${annotations} annotations`
 
@@ -86,6 +88,8 @@ export class AnnotationTileManager extends TileManager {
 		if (tileInstance.layerId === this.config.layerId) {
 			return this.tileServiceClient.getTileContents(tileInstance.url)
 				.then(buffer => JSON.parse(String.fromCharCode.apply(null, buffer)))
-		} else { return Promise.reject(Error('unknown tileInstance.layerId: ' + tileInstance.layerId)) }
+		} else {
+			return Promise.reject(Error('unknown tileInstance.layerId: ' + tileInstance.layerId))
+		}
 	}
 }

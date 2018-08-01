@@ -173,7 +173,9 @@ export abstract class TileManager implements TileManagerBase {
 
 		const p = convertToStandardCoordinateFrame(msg.origin, inputCoordinateFrame)
 
-		if (this.utmCoordinateSystem.setOrigin(num, northernHemisphere, p)) { return true } else {
+		if (this.utmCoordinateSystem.setOrigin(num, northernHemisphere, p)) {
+			return true
+		} else {
 			return TileManager.isDefaultUtmZone(num, northernHemisphere) ||
 				this.utmCoordinateSystem.zoneMatch(num, northernHemisphere)
 		}
@@ -256,7 +258,9 @@ export abstract class TileManager implements TileManagerBase {
 					// TODO CLYDE merge these into fewer API requests
 					return this.tileServiceClient.getTilesByCoordinateRange(this.config.layerId, superTileSearch)
 						.then(tileInstances => {
-							if (tileInstances.length === 0) { this.getOrCreateSuperTile(stIndex, coordinateFrame) } else {
+							if (tileInstances.length === 0) {
+								this.getOrCreateSuperTile(stIndex, coordinateFrame)
+							} else {
 								tileInstances.forEach(tileInstance => {
 									const utmTile = this.tileInstanceToUtmTile(tileInstance, coordinateFrame)
 
@@ -359,7 +363,10 @@ export abstract class TileManager implements TileManagerBase {
 	objectCount(): number {
 		let count = 0
 
-		this.superTiles.forEach(st => { count += st!.objectCount })
+		this.superTiles.forEach(st => {
+			count += st!.objectCount
+		})
+
 		return count
 	}
 

@@ -51,17 +51,45 @@ export class LocationServerStatusClient {
 		// location server.
 		const sock = this.statusClient = zmq.socket('req')
 
-		sock.on('connect_delay', () => { self.handleMonitorEvent() })
-		sock.on('connect_retry', () => { self.handleMonitorEvent() })
-		sock.on('listen', () => { self.handleMonitorEvent() })
-		sock.on('bind_error', () => { self.handleMonitorEvent() })
-		sock.on('accept', () => { self.handleMonitorEvent() })
-		sock.on('accept_error', () => { self.handleMonitorEvent() })
-		sock.on('close', () => { self.handleMonitorEvent() })
-		sock.on('close_error', () => { self.handleMonitorEvent() })
-		sock.on('disconnect', () => { self.handleMonitorEvent() })
+		sock.on('connect_delay', () => {
+			self.handleMonitorEvent()
+		})
 
-		sock.on('monitor_error', () => { self.handleMonitorEvent() })
+		sock.on('connect_retry', () => {
+			self.handleMonitorEvent()
+		})
+
+		sock.on('listen', () => {
+			self.handleMonitorEvent()
+		})
+
+		sock.on('bind_error', () => {
+			self.handleMonitorEvent()
+		})
+
+		sock.on('accept', () => {
+			self.handleMonitorEvent()
+		})
+
+		sock.on('accept_error', () => {
+			self.handleMonitorEvent()
+		})
+
+		sock.on('close', () => {
+			self.handleMonitorEvent()
+		})
+
+		sock.on('close_error', () => {
+			self.handleMonitorEvent()
+		})
+
+		sock.on('disconnect', () => {
+			self.handleMonitorEvent()
+		})
+
+		sock.on('monitor_error', () => {
+			self.handleMonitorEvent()
+		})
 
 		// typedef for .monitor() is incorrect
 		// tslint:disable-next-line:no-any

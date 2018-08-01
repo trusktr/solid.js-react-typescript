@@ -29,7 +29,9 @@ export default class LocalStorage {
 
 			if (item !== null) return item
 			else return defaultValue
-		} else { return null }
+		} else {
+			return null
+		}
 	}
 
 	private static storageAvailable(): boolean {

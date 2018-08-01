@@ -172,7 +172,9 @@ export class Connection extends Annotation {
 		return false
 	}
 
-	deleteLastMarker(): boolean { return false }
+	deleteLastMarker(): boolean {
+		return false
+	}
 
 	complete(): boolean {
 		return true

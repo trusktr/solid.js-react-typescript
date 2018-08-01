@@ -432,12 +432,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		const screen = this.imageManager.getImageScreen(imageScreenBox)
 
-		if (screen)
-		{ screen.loadImage()
-			.then(loaded => { if (loaded)
+		if (screen) {
+			screen.loadImage()
+				.then(loaded => {
+					if (loaded)
 					this.state.annotatedSceneController!.shouldRender()
-			})
-			.catch(err => log.warn('getImageScreen() failed', err)) }
+				})
+				.catch(err => log.warn('getImageScreen() failed', err))
+		}
 
 		const image = imageScreenBox.userData as CalibratedImage
 
@@ -819,48 +821,53 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private bindLaneNeighborsPanel(): void {
 		const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
 
-		if (lpAddLeftOpposite)
-		{ lpAddLeftOpposite.addEventListener('click', () => {
-			this.addLeftReverse()
-		}) }
-		else
-		{ log.warn('missing element lp_add_left_opposite') }
+		if (lpAddLeftOpposite) {
+			lpAddLeftOpposite.addEventListener('click', () => {
+				this.addLeftReverse()
+			})
+		} else {
+			log.warn('missing element lp_add_left_opposite')
+		}
 
 		const lpAddLeftSame = document.getElementById('lp_add_left_same')
 
-		if (lpAddLeftSame)
-		{ lpAddLeftSame.addEventListener('click', () => {
-			this.addLeftSame()
-		}) }
-		else
-		{ log.warn('missing element lp_add_left_same') }
+		if (lpAddLeftSame) {
+			lpAddLeftSame.addEventListener('click', () => {
+				this.addLeftSame()
+			})
+		} else {
+			log.warn('missing element lp_add_left_same')
+		}
 
 		const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
 
-		if (lpAddRightOpposite)
-		{ lpAddRightOpposite.addEventListener('click', () => {
-			this.addRightReverse()
-		}) }
-		else
-		{ log.warn('missing element lp_add_right_opposite') }
+		if (lpAddRightOpposite) {
+			lpAddRightOpposite.addEventListener('click', () => {
+				this.addRightReverse()
+			})
+		} else {
+			log.warn('missing element lp_add_right_opposite')
+		}
 
 		const lpAddRightSame = document.getElementById('lp_add_right_same')
 
-		if (lpAddRightSame)
-		{ lpAddRightSame.addEventListener('click', () => {
-			this.addRightSame()
-		}) }
-		else
-		{ log.warn('missing element lp_add_right_same') }
+		if (lpAddRightSame) {
+			lpAddRightSame.addEventListener('click', () => {
+				this.addRightSame()
+			})
+		} else {
+			log.warn('missing element lp_add_right_same')
+		}
 
 		const lpAddFront = document.getElementById('lp_add_forward')
 
-		if (lpAddFront)
-		{ lpAddFront.addEventListener('click', () => {
-			this.addFront()
-		}) }
-		else
-		{ log.warn('missing element lp_add_forward') }
+		if (lpAddFront) {
+			lpAddFront.addEventListener('click', () => {
+				this.addFront()
+			})
+		} else {
+			log.warn('missing element lp_add_forward')
+		}
 	}
 
 	private bindConnectionPropertiesPanel(): void {
@@ -898,7 +905,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			territoryLabel.addEventListener('change', (event: Event) => {
 				(event.target as HTMLInputElement).blur()
 			})
-		} else { log.warn('missing element input_label_territory') }
+		} else {
+			log.warn('missing element input_label_territory')
+		}
 	}
 
 	private bindTrafficDevicePropertiesPanel(): void {
@@ -963,101 +972,110 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		const toolsDelete = document.getElementById('tools_delete')
 
-		if (toolsDelete)
-		{ toolsDelete.addEventListener('click', () => {
-			this.uiDeleteActiveAnnotation()
-		}) }
-		else
-		{ log.warn('missing element tools_delete') }
+		if (toolsDelete) {
+			toolsDelete.addEventListener('click', () => {
+				this.uiDeleteActiveAnnotation()
+			})
+		} else {
+			log.warn('missing element tools_delete')
+		}
 
 		const toolsAddLane = document.getElementById('tools_add_lane')
 
-		if (toolsAddLane)
-		{ toolsAddLane.addEventListener('click', () => {
-			this.uiAddAnnotation(AnnotationType.LANE)
-		}) }
-		else
-		{ log.warn('missing element tools_add_lane') }
+		if (toolsAddLane) {
+			toolsAddLane.addEventListener('click', () => {
+				this.uiAddAnnotation(AnnotationType.LANE)
+			})
+		} else {
+			log.warn('missing element tools_add_lane')
+		}
 
 		const toolsAddTrafficDevice = document.getElementById('tools_add_traffic_device')
 
-		if (toolsAddTrafficDevice)
-		{ toolsAddTrafficDevice.addEventListener('click', () => {
-			this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
-		}) }
-		else
-		{ log.warn('missing element tools_add_traffic_device') }
+		if (toolsAddTrafficDevice) {
+			toolsAddTrafficDevice.addEventListener('click', () => {
+				this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
+			})
+		} else {
+			log.warn('missing element tools_add_traffic_device')
+		}
 
 		const toolsLoadImages = document.getElementById('tools_load_images')
 
-		if (toolsLoadImages)
-		{ toolsLoadImages.addEventListener('click', () => {
-			this.imageManager.loadImagesFromOpenDialog()
-				.catch(err => log.warn('loadImagesFromOpenDialog failed: ' + err.message))
-		}) }
-		else
-		{ log.warn('missing element tools_load_images') }
+		if (toolsLoadImages) {
+			toolsLoadImages.addEventListener('click', () => {
+				this.imageManager.loadImagesFromOpenDialog()
+					.catch(err => log.warn('loadImagesFromOpenDialog failed: ' + err.message))
+			})
+		} else {
+			log.warn('missing element tools_load_images')
+		}
 
 		const toolsLoadTerritoriesKml = document.getElementById('tools_load_territories_kml')
 
-		if (toolsLoadTerritoriesKml)
-		{ toolsLoadTerritoriesKml.addEventListener('click', () => {
-			const options: Electron.OpenDialogOptions = {
-				message: 'Load Territories KML File',
-				properties: ['openFile'],
-				filters: [{name: 'kml', extensions: ['kml']}],
-			}
+		if (toolsLoadTerritoriesKml) {
+			toolsLoadTerritoriesKml.addEventListener('click', () => {
+				const options: Electron.OpenDialogOptions = {
+					message: 'Load Territories KML File',
+					properties: ['openFile'],
+					filters: [{name: 'kml', extensions: ['kml']}],
+				}
 
-			const handler = (paths: string[]): void => {
-				if (paths && paths.length)
-				{ this.state.annotationManager!.loadTerritoriesKml(paths[0])
-					.catch(err => log.warn('loadTerritoriesKml failed: ' + err.message)) }
-			}
+				const handler = (paths: string[]): void => {
+					if (paths && paths.length) {
+						this.state.annotationManager!.loadTerritoriesKml(paths[0])
+							.catch(err => log.warn('loadTerritoriesKml failed: ' + err.message))
+					}
+				}
 
-			dialog.showOpenDialog(options, handler)
-		}) }
-		else
-		{ log.warn('missing element tools_load_territories_kml') }
+				dialog.showOpenDialog(options, handler)
+			})
+		} else {
+			log.warn('missing element tools_load_territories_kml')
+		}
 
 		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 
-		if (toolsLoadAnnotation)
-		{ toolsLoadAnnotation.addEventListener('click', () => {
-			const options: Electron.OpenDialogOptions = {
-				message: 'Load Annotations File',
-				properties: ['openFile'],
-				filters: [{name: 'json', extensions: ['json']}],
-			}
+		if (toolsLoadAnnotation) {
+			toolsLoadAnnotation.addEventListener('click', () => {
+				const options: Electron.OpenDialogOptions = {
+					message: 'Load Annotations File',
+					properties: ['openFile'],
+					filters: [{name: 'json', extensions: ['json']}],
+				}
 
-			const handler = (paths: string[]): void => {
-				if (paths && paths.length) {
+				const handler = (paths: string[]): void => {
+					if (paths && paths.length) {
 						this.state.annotationManager!.loadAnnotations(paths[0])
 							.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+					}
 				}
-			}
 
-			dialog.showOpenDialog(options, handler)
-		}) }
-		else
-		{ log.warn('missing element tools_load_annotation') }
+				dialog.showOpenDialog(options, handler)
+			})
+		} else {
+			log.warn('missing element tools_load_annotation')
+		}
 
 		const toolsSave = document.getElementById('tools_save')
 
-		if (toolsSave)
-		{ toolsSave.addEventListener('click', () => {
-			this.uiSaveToFile(OutputFormat.UTM)
-		}) }
-		else
-		{ log.warn('missing element tools_save') }
+		if (toolsSave) {
+			toolsSave.addEventListener('click', () => {
+				this.uiSaveToFile(OutputFormat.UTM)
+			})
+		} else {
+			log.warn('missing element tools_save')
+		}
 
 		const toolsExportKml = document.getElementById('tools_export_kml')
 
-		if (toolsExportKml)
-		{ toolsExportKml.addEventListener('click', () => {
-			this.uiSaveWaypointsKml()
-		}) }
-		else
-		{ log.warn('missing element tools_export_kml') }
+		if (toolsExportKml) {
+			toolsExportKml.addEventListener('click', () => {
+				this.uiSaveWaypointsKml()
+			})
+		} else {
+			log.warn('missing element tools_export_kml')
+		}
 
 		this.deactivateAllAnnotationPropertiesMenus()
 	}
@@ -1283,8 +1301,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				selects.item(i).selectedIndex = 0
 				selects.item(i).setAttribute('disabled', 'disabled')
 			}
-		} else
-		{ log.warn('missing element lane_prop_1') }
+		} else {
+			log.warn('missing element lane_prop_1')
+		}
 	}
 
 	/**
@@ -1323,8 +1342,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				selects.item(i).selectedIndex = 0
 				selects.item(i).setAttribute('disabled', 'disabled')
 			}
-		} else
-		{ log.warn('missing element boundary_prop') }
+		} else {
+			log.warn('missing element boundary_prop')
+		}
 	}
 
 	/**
@@ -1356,8 +1376,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				selects.item(i).selectedIndex = 0
 				selects.item(i).setAttribute('disabled', 'disabled')
 			}
-		} else
-		{ log.warn('missing element boundary_prop') }
+		} else {
+			log.warn('missing element boundary_prop')
+		}
 	}
 
 	/**
