@@ -15,7 +15,7 @@
     "tslint": "./node_modules/.bin/tslint \"src/**/*.ts\" --force",
     "lint": "npm run lint-js && npm run lint-ts",
     "lint-js": "eslint --ext .js,.json --config .eslintrc-js.js .",
-    "lint-ts": "eslint --ext .ts,.tsx --config .eslintrc.js .",
+    "lint-ts": "eslint --ext .ts,.tsx --config .eslintrc-ts.js .",
     "lint-fix": "npm run lint-js -- --fix; npm run lint-ts -- --fix"
   },
   "license": "UNLICENSED",
