@@ -428,6 +428,8 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.props.setKeys && this.props.setKeys()
 	}
 
+	/* eslint-disable typescript/no-explicit-any */
+
 	getAnnotationManagerRef = (ref: any): void => {
 		if (ref) {
 			ref = ref.getWrappedInstance() as AnnotationManager
@@ -463,6 +465,8 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	getContainerRef = (container: HTMLDivElement | null): void => {
 		container && this.setState({container})
 	}
+
+	/* eslint-enable typescript/no-explicit-any */
 
 	onMouseMove = (event): void => {
 		// TODO JOE don't make a `new AnnotatedSceneActions` every time, just use a singleton

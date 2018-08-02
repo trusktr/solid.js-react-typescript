@@ -17,7 +17,7 @@ interface KioskViewProps {
 	isLiveMode?: boolean
 	isPlayMode?: boolean
 	flyThroughManager: FlyThroughManager
-	openTrajectoryPickerFunction: any
+	openTrajectoryPickerFunction(): void
 	uiMenuVisible?: boolean
 }
 

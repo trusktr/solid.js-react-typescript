@@ -51,8 +51,6 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 	constructor(props: PointCloudManagerProps) {
 		super(props)
 
-		;(window as any).pcm = this
-
 		this.state = {
 			pointCloudBoundingBox: null,
 			shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],

@@ -15,8 +15,8 @@ import * as AsyncFile from 'async-file'
 import * as Executable from 'executable'
 import * as ChildProcess from 'child_process'
 import {s1SessionFileName, TrajectoryDataSet, trajectoryFileName} from '@/util/Perception'
+import * as VirtualList from 'react-tiny-virtual-list'
 
-const VirtualList = require('react-tiny-virtual-list')
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
 

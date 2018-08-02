@@ -68,7 +68,7 @@ export interface SceneManagerState {
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 	private perspectiveOrbitControls: THREE.OrbitControls
 	private orthoOrbitControls: THREE.OrbitControls
-	private transformControls: any // controller for translating an object within the scene
+	private transformControls: THREE.TransformControls // controller for translating an object within the scene
 	private hideTransformControlTimer: number
 
 	private camera: THREE.Camera
@@ -238,7 +238,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	// TransformControlManaager class, which knows which object is currently
 	// selected.
 	initTransformControls(): void {
-		this.transformControls = new TransformControls(this.camera, this.renderer.domElement, false)
+		this.transformControls = new TransformControls(this.camera, this.renderer.domElement, false) as THREE.TransformControls
 
 		new AnnotatedSceneActions().addObjectToScene(this.transformControls)
 
@@ -281,7 +281,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.renderScene()
 	}
 
-	private createOrbitControls(camera: THREE.Camera, renderer: THREE.WebGLRenderer): any {
+	private createOrbitControls(camera: THREE.Camera, renderer: THREE.WebGLRenderer): THREE.OrbitControls {
 		const orbitControls = new OrbitControls(camera, renderer.domElement)
 
 		orbitControls.enabled = true
@@ -307,7 +307,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 			new AnnotatedSceneActions().cameraIsOrbiting(false)
 		})
 
-		return orbitControls
+		return orbitControls as THREE.OrbitControls
 	}
 
 	private updateSceneObjects(newSceneObjects: Set<THREE.Object3D>, existingSceneObjects: Set<THREE.Object3D>) {
@@ -589,10 +589,6 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		new AnnotatedSceneActions().setCamera(this.camera)
 
 		this.onResize()
-
-		// eslint-disable-next-line typescript/no-explicit-any
-		// ;(this.perspectiveOrbitControls as any).setCamera(newCamera)
-		// this.perspectiveOrbitControls.update()
 
 		this.transformControls.setCamera(newCamera)
 		this.transformControls.update()

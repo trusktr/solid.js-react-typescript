@@ -550,7 +550,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	addImageScreenLayer(): void {
-		const imagesToggle = visible => {
+		const imagesToggle = (visible: boolean): void => {
 			this.setState({isImageScreensVisible: visible})
 		}
 
@@ -1578,9 +1578,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	/* eslint-disable typescript/no-explicit-any */
 	getAnnotatedSceneRef = (ref: any) => {
 		ref && this.setState({annotatedSceneController: ref.getWrappedInstance() as AnnotatedSceneController})
 	}
+	/* eslint-enable typescript/no-explicit-any */
 
 	// TODO JOE don't get refs directly, proxy functionality through AnnotatedSceneController
 	getAnnotationManagerRef = (ref: AnnotationManager) => {

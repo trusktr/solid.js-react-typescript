@@ -67,7 +67,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 						return f === '/tmp/visualizer-rebuilt.flag'
 					},
 				},
-				function(monitor: any): void {
+				function(monitor) {
 					monitor.on('created', function(): void {
 						log.info('Rebuilt flag file created, exiting app')
 						self.exitApp()
@@ -175,18 +175,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		this.state.annotatedSceneController!.shouldRender()
 	}
 
-	getCarManagerRef = (ref: any): void => {
-		ref && this.setState({carManager: ref.getWrappedInstance() as CarManager})
-	}
-
-	getFlyThroughManagerRef = (ref: any): void => {
-		ref && this.setState({flyThroughManager: ref.getWrappedInstance() as FlyThroughManager})
-	}
-
-	getAnnotatedSceneControllerRef = (ref: any): void => {
-		ref && this.setState({annotatedSceneController: ref.getWrappedInstance() as AnnotatedSceneController})
-	}
-
 	private trajectoryFileSelectedCallback = (path: string): void => {
 		log.info('Attempting to load path', path)
 		if (this.props.isLiveMode) return
@@ -210,26 +198,46 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			})
 	}
 
+	/* eslint-disable typescript/no-explicit-any */
+
+	getCarManagerRef = (ref: any): void => {
+		ref && this.setState({carManager: ref.getWrappedInstance() as CarManager})
+	}
+
+	getFlyThroughManagerRef = (ref: any): void => {
+		ref && this.setState({flyThroughManager: ref.getWrappedInstance() as FlyThroughManager})
+	}
+
+	getAnnotatedSceneControllerRef = (ref: any): void => {
+		ref && this.setState({annotatedSceneController: ref.getWrappedInstance() as AnnotatedSceneController})
+	}
+
 	getTrajectoryPickerRef = (ref: any): void => {
 		ref && this.setState({trajectoryPicker: ref})
 	}
 
+	/* eslint-enable typescript/no-explicit-any */
+
+	onPointOfInterestCall = (): THREE.Vector3 => new THREE.Vector3(0, 0, 0)
+	onCurrentRotation = (): THREE.Quaternion => new THREE.Quaternion()
+
+	componentDidUpdate(oldProps) {
+		if (!oldProps.isCarInitialized && this.props.isCarInitialized) {
+			this.onPointOfInterestCall = () => this.state.carManager!.getCarModelPosition()
+			this.onCurrentRotation = () => this.state.carManager!.getCarModelRotation()
+			this.forceUpdate()
+		}
+	}
+
 	render(): JSX.Element {
 		// CarManager will not be setup the first time through
-		let onPointOfInterestCall = () => new THREE.Vector3(0, 0, 0)
-		let onCurrentRotation = () => new THREE.Quaternion()
-
-		if (this.state.carManager && this.props.isCarInitialized) {
-			onPointOfInterestCall = () => this.state.carManager!.getCarModelPosition()
-			onCurrentRotation = () => this.state.carManager!.getCarModelRotation()
-		}
 
 		return (
 			<div style={{width: '100%', height: '100%'}}>
 				<AnnotatedSceneController
 					ref={this.getAnnotatedSceneControllerRef}
-					onPointOfInterestCall={onPointOfInterestCall}
-					onCurrentRotation={onCurrentRotation}
+					onPointOfInterestCall={this.onPointOfInterestCall}
+					onCurrentRotation={this.onCurrentRotation}
 					initialBoundingBox={config['startup.point_cloud_bounding_box'] || ConfigDefault.StartupPointCloudBoundingBox}
 				/>
 
