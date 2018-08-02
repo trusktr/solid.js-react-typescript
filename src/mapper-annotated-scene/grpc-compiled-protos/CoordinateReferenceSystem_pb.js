@@ -2,7 +2,7 @@
  * @fileoverview
  * @enhanceable
  * @suppress {messageConventions} JS Compiler reports an error if a variable or
- *	 field starts with 'MSG_' and isn't a translatable message.
+ *     field starts with 'MSG_' and isn't a translatable message.
  * @public
  */
 // GENERATED CODE -- DO NOT EDIT!
@@ -41,9 +41,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *	 for transitional soy proto support: http://goto/soy-param-migration
+ *     for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.SpatialTileIndexMessage.prototype.toObject = function(opt_includeInstance) {
@@ -54,24 +54,24 @@ proto.mapper.models.SpatialTileIndexMessage.prototype.toObject = function(opt_in
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *	 instance for transitional soy proto support:
- *	 http://goto/soy-param-migration
+ *     instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
  * @param {!proto.mapper.models.SpatialTileIndexMessage} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.SpatialTileIndexMessage.toObject = function(includeInstance, msg) {
   var f, obj = {
-	srid: jspb.Message.getFieldWithDefault(msg, 1, 0),
-	scale: jspb.Message.getFieldWithDefault(msg, 2, 0),
-	xIndex: jspb.Message.getFieldWithDefault(msg, 3, 0),
-	yIndex: jspb.Message.getFieldWithDefault(msg, 4, 0),
-	zIndex: jspb.Message.getFieldWithDefault(msg, 5, 0),
-	spatialReferenceUpdated: jspb.Message.getFieldWithDefault(msg, 6, 0)
+    srid: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    scale: jspb.Message.getFieldWithDefault(msg, 2, 0),
+    xIndex: jspb.Message.getFieldWithDefault(msg, 3, 0),
+    yIndex: jspb.Message.getFieldWithDefault(msg, 4, 0),
+    zIndex: jspb.Message.getFieldWithDefault(msg, 5, 0),
+    spatialReferenceUpdated: jspb.Message.getFieldWithDefault(msg, 6, 0)
   };
 
   if (includeInstance) {
-	obj.$jspbMessageInstance = msg;
+    obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -99,39 +99,39 @@ proto.mapper.models.SpatialTileIndexMessage.deserializeBinary = function(bytes) 
  */
 proto.mapper.models.SpatialTileIndexMessage.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-	if (reader.isEndGroup()) {
-	  break;
-	}
-	var field = reader.getFieldNumber();
-	switch (field) {
-	case 1:
-	  var value = /** @type {!proto.mapper.models.SpatialReferenceSystemIdentifier} */ (reader.readEnum());
-	  msg.setSrid(value);
-	  break;
-	case 2:
-	  var value = /** @type {!proto.mapper.models.SpatialTileScale} */ (reader.readEnum());
-	  msg.setScale(value);
-	  break;
-	case 3:
-	  var value = /** @type {number} */ (reader.readSint32());
-	  msg.setXIndex(value);
-	  break;
-	case 4:
-	  var value = /** @type {number} */ (reader.readSint32());
-	  msg.setYIndex(value);
-	  break;
-	case 5:
-	  var value = /** @type {number} */ (reader.readSint32());
-	  msg.setZIndex(value);
-	  break;
-	case 6:
-	  var value = /** @type {number} */ (reader.readUint32());
-	  msg.setSpatialReferenceUpdated(value);
-	  break;
-	default:
-	  reader.skipField();
-	  break;
-	}
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {!proto.mapper.models.SpatialReferenceSystemIdentifier} */ (reader.readEnum());
+      msg.setSrid(value);
+      break;
+    case 2:
+      var value = /** @type {!proto.mapper.models.SpatialTileScale} */ (reader.readEnum());
+      msg.setScale(value);
+      break;
+    case 3:
+      var value = /** @type {number} */ (reader.readSint32());
+      msg.setXIndex(value);
+      break;
+    case 4:
+      var value = /** @type {number} */ (reader.readSint32());
+      msg.setYIndex(value);
+      break;
+    case 5:
+      var value = /** @type {number} */ (reader.readSint32());
+      msg.setZIndex(value);
+      break;
+    case 6:
+      var value = /** @type {number} */ (reader.readUint32());
+      msg.setSpatialReferenceUpdated(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
   }
   return msg;
 };
@@ -159,45 +159,45 @@ proto.mapper.models.SpatialTileIndexMessage.serializeBinaryToWriter = function(m
   var f = undefined;
   f = message.getSrid();
   if (f !== 0.0) {
-	writer.writeEnum(
-	  1,
-	  f
-	);
+    writer.writeEnum(
+      1,
+      f
+    );
   }
   f = message.getScale();
   if (f !== 0.0) {
-	writer.writeEnum(
-	  2,
-	  f
-	);
+    writer.writeEnum(
+      2,
+      f
+    );
   }
   f = message.getXIndex();
   if (f !== 0) {
-	writer.writeSint32(
-	  3,
-	  f
-	);
+    writer.writeSint32(
+      3,
+      f
+    );
   }
   f = message.getYIndex();
   if (f !== 0) {
-	writer.writeSint32(
-	  4,
-	  f
-	);
+    writer.writeSint32(
+      4,
+      f
+    );
   }
   f = message.getZIndex();
   if (f !== 0) {
-	writer.writeSint32(
-	  5,
-	  f
-	);
+    writer.writeSint32(
+      5,
+      f
+    );
   }
   f = message.getSpatialReferenceUpdated();
   if (f !== 0) {
-	writer.writeUint32(
-	  6,
-	  f
-	);
+    writer.writeUint32(
+      6,
+      f
+    );
   }
 };
 
@@ -318,9 +318,9 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *	 com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
+ *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
  * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *	 for transitional soy proto support: http://goto/soy-param-migration
+ *     for transitional soy proto support: http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.mapper.models.GeographicPoint3DMessage.prototype.toObject = function(opt_includeInstance) {
@@ -331,22 +331,22 @@ proto.mapper.models.GeographicPoint3DMessage.prototype.toObject = function(opt_i
 /**
  * Static version of the {@see toObject} method.
  * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *	 instance for transitional soy proto support:
- *	 http://goto/soy-param-migration
+ *     instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
  * @param {!proto.mapper.models.GeographicPoint3DMessage} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.mapper.models.GeographicPoint3DMessage.toObject = function(includeInstance, msg) {
   var f, obj = {
-	srid: jspb.Message.getFieldWithDefault(msg, 1, 0),
-	x: +jspb.Message.getFieldWithDefault(msg, 2, 0.0),
-	y: +jspb.Message.getFieldWithDefault(msg, 3, 0.0),
-	z: +jspb.Message.getFieldWithDefault(msg, 4, 0.0)
+    srid: jspb.Message.getFieldWithDefault(msg, 1, 0),
+    x: +jspb.Message.getFieldWithDefault(msg, 2, 0.0),
+    y: +jspb.Message.getFieldWithDefault(msg, 3, 0.0),
+    z: +jspb.Message.getFieldWithDefault(msg, 4, 0.0)
   };
 
   if (includeInstance) {
-	obj.$jspbMessageInstance = msg;
+    obj.$jspbMessageInstance = msg;
   }
   return obj;
 };
@@ -374,31 +374,31 @@ proto.mapper.models.GeographicPoint3DMessage.deserializeBinary = function(bytes)
  */
 proto.mapper.models.GeographicPoint3DMessage.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
-	if (reader.isEndGroup()) {
-	  break;
-	}
-	var field = reader.getFieldNumber();
-	switch (field) {
-	case 1:
-	  var value = /** @type {!proto.mapper.models.SpatialReferenceSystemIdentifier} */ (reader.readEnum());
-	  msg.setSrid(value);
-	  break;
-	case 2:
-	  var value = /** @type {number} */ (reader.readDouble());
-	  msg.setX(value);
-	  break;
-	case 3:
-	  var value = /** @type {number} */ (reader.readDouble());
-	  msg.setY(value);
-	  break;
-	case 4:
-	  var value = /** @type {number} */ (reader.readDouble());
-	  msg.setZ(value);
-	  break;
-	default:
-	  reader.skipField();
-	  break;
-	}
+    if (reader.isEndGroup()) {
+      break;
+    }
+    var field = reader.getFieldNumber();
+    switch (field) {
+    case 1:
+      var value = /** @type {!proto.mapper.models.SpatialReferenceSystemIdentifier} */ (reader.readEnum());
+      msg.setSrid(value);
+      break;
+    case 2:
+      var value = /** @type {number} */ (reader.readDouble());
+      msg.setX(value);
+      break;
+    case 3:
+      var value = /** @type {number} */ (reader.readDouble());
+      msg.setY(value);
+      break;
+    case 4:
+      var value = /** @type {number} */ (reader.readDouble());
+      msg.setZ(value);
+      break;
+    default:
+      reader.skipField();
+      break;
+    }
   }
   return msg;
 };
@@ -426,31 +426,31 @@ proto.mapper.models.GeographicPoint3DMessage.serializeBinaryToWriter = function(
   var f = undefined;
   f = message.getSrid();
   if (f !== 0.0) {
-	writer.writeEnum(
-	  1,
-	  f
-	);
+    writer.writeEnum(
+      1,
+      f
+    );
   }
   f = message.getX();
   if (f !== 0.0) {
-	writer.writeDouble(
-	  2,
-	  f
-	);
+    writer.writeDouble(
+      2,
+      f
+    );
   }
   f = message.getY();
   if (f !== 0.0) {
-	writer.writeDouble(
-	  3,
-	  f
-	);
+    writer.writeDouble(
+      3,
+      f
+    );
   }
   f = message.getZ();
   if (f !== 0.0) {
-	writer.writeDouble(
-	  4,
-	  f
-	);
+    writer.writeDouble(
+      4,
+      f
+    );
   }
 };
 
