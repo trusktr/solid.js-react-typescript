@@ -3,7 +3,9 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-// tslint:disable-next-line:no-any
+/* eslint-disable typescript/no-explicit-any */
+
+// eslint-disable-next-line typescript/no-explicit-any
 declare const __SAFFRON__: boolean
 
 // current working directory

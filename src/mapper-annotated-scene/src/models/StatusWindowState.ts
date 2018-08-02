@@ -3,8 +3,11 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+/* eslint-disable-next-line no-use-before-define */
+type Args = Partial<StatusWindowState>
+
 export default class StatusWindowState {
-	constructor(o: any = {}) {
+	constructor(o: Args = {}) {
 		Object.assign(this, o)
 	}
 

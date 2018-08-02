@@ -2,9 +2,9 @@
  * @author arodic / https://github.com/arodic
  */
 
-import * as THREE from 'three'
+/* eslint-disable typescript/no-explicit-any, typescript/explicit-function-return-type */
 
-// tslint:disable:no-string-literal
+import * as THREE from 'three'
 
 const GizmoMaterial = function(parameters: any) {
 	THREE.MeshBasicMaterial.call(this)

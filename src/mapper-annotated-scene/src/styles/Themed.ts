@@ -3,6 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+/* eslint-disable typescript/no-explicit-any */
+
 // export const typedConnect = SaffronSDK.ReactUtil.typedConnect
 // export const Themed = SaffronSDK.Style.Themed
 // export const FlexRow = SaffronSDK.Style.FlexRow

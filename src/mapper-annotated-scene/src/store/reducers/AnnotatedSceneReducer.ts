@@ -3,6 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+/* eslint-disable typescript/no-explicit-any */
+
 import {ActionMessage, DefaultLeafReducer} from 'typedux'
 import AnnotatedSceneState from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
 

@@ -7,6 +7,10 @@ export enum UIMessageType {
 	INFO,
 	ERROR
 }
+
+/* eslint-disable-next-line no-use-before-define */
+type Args = Partial<UIMessage>
+
 export class UIMessage {
 	id: string
 	type: UIMessageType
@@ -14,7 +18,7 @@ export class UIMessage {
 	message: string
 	showProgress = false
 
-	constructor(o: any) {
+	constructor(o: Args) {
 		Object.assign(this, o)
 
 		if (!this.id)

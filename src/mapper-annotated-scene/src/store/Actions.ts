@@ -6,8 +6,8 @@
 /**
  * Recurse the actions/ directory and load all the modules
  */
-export function loadActions() {
-	// tslint:disable-next-line:no-any
+export function loadActions(): void {
+	// eslint-disable-next-line typescript/no-explicit-any
 	const context = (require as any).context('./actions', true, /\.ts$/)
 
 	context.keys().forEach(context)

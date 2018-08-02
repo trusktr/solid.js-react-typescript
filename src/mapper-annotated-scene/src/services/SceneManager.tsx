@@ -590,7 +590,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		this.onResize()
 
-		// tslint:disable-next-line:no-any
+		// eslint-disable-next-line typescript/no-explicit-any
 		// ;(this.perspectiveOrbitControls as any).setCamera(newCamera)
 		// this.perspectiveOrbitControls.update()
 

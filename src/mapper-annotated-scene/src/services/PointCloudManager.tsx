@@ -124,7 +124,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 				// BoxHelper wants an Object3D, but a three.js bounding box is a Box3, which is not an Object3D.
 				// Maybe BoxHelper isn't so helpful after all. But guess what? It will take a Box3 anyway and
 				// do the right thing with it.
-				// tslint:disable-next-line:no-any
+				// eslint-disable-next-line typescript/no-explicit-any
 				const pointCloudBoundingBox = new THREE.BoxHelper(bbox as any, this.state.pointCloudBboxColor)
 
 				pointCloudBoundingBox.name = 'pointCloudBoundingBox'

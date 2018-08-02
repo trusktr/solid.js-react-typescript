@@ -92,7 +92,7 @@ export class LocationServerStatusClient {
 		})
 
 		// typedef for .monitor() is incorrect
-		// tslint:disable-next-line:no-any
+		// eslint-disable-next-line typescript/no-explicit-any
 		;(sock as any).monitor(this.statusCheckInterval, 0) // The second arg (zero) says to get all available events
 
 		sock.on('message', (reply: Buffer) => {

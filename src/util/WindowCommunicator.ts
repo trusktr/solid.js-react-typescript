@@ -12,13 +12,13 @@ class WindowCommunicator {
 	constructor(win?: Window) {
 		this.window = win || window.opener
 
-		addEventListener('message', event => {
+		addEventListener('message', (event): void => {
 			this.receive(event.data.channel, event.data.msg)
 		})
 	}
 
-	// tslint:disable-next-line:no-any
-	receive(channel: string, msg: any): void {
+	// eslint-disable-next-line typescript/no-explicit-any
+	receive(channel: string, msg: any): void { // eslint-disable-line typescript/no-explicit-any
 		if (!this._eventMap || !this._eventMap.has(channel)) return
 
 		const callbacks = this._eventMap.get(channel)
@@ -37,8 +37,8 @@ class WindowCommunicator {
 		}
 	}
 
-	// tslint:disable-next-line:no-any
-	send(channel: string, msg: any): void {
+	// eslint-disable-next-line typescript/no-explicit-any
+	send(channel: string, msg: any): void { // eslint-disable-line typescript/no-explicit-any
 		this.window.postMessage({channel, msg}, '*')
 	}
 
@@ -60,7 +60,7 @@ class WindowCommunicator {
 
 		if (!callbacks) return
 
-		const index = callbacks.findIndex(tuple => tuple[0] === callback)
+		const index = callbacks.findIndex((tuple): boolean => tuple[0] === callback)
 
 		if (index === -1) return
 		callbacks.splice(index, 1)

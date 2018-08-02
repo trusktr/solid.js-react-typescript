@@ -3,6 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+/* eslint-disable typescript/no-explicit-any */
+
 import {Map as IMMap} from 'immutable'
 import {compose, Store as ReduxStore, StoreEnhancer} from 'redux'
 import {ILeafReducer, ObservableStore, setStoreProvider} from 'typedux'
@@ -79,7 +81,7 @@ export function loadAndInitStore(): ObservableStore<any> {
  * @param {Error} err
  * @param {ILeafReducer<any, any>} reducer
  */
-function onError(err: Error, reducer?: ILeafReducer<any, any>) {
+function onError(err: Error, reducer?: ILeafReducer<any, any>): void {
 	log.error('Reducer error occurred', reducer, err, err.stack)
 }
 

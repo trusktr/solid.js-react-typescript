@@ -13,7 +13,7 @@ const config = {}
 export default config
 
 // see https://github.com/jprichardson/is-electron-renderer
-function detectRenderer() {
+function detectRenderer(): boolean {
 	// running in a web browser
 	if (typeof process === 'undefined') return true
 
@@ -46,14 +46,14 @@ interface IMeta {
 	IN_SAFFRON: boolean
 }
 
-// tslint:disable-next-line:no-any
+// eslint-disable-next-line typescript/no-explicit-any
 const {promise: metaPromise, resolve: resolveMeta, reject: rejectMeta} = createPromise<IMeta, Error>()
 
-export async function getMeta() {
+export async function getMeta(): Promise<IMeta> {
 	return metaPromise
 }
 
-async function connect() {
+async function connect(): Promise<void> {
 	if (isMain) {
 		resolveMeta({
 			APP_PATH: process.cwd(),
@@ -91,11 +91,12 @@ connect()
 
 const {promise: configPromise, resolve: resolveConfig} = createPromise()
 
-export function configReady() {
+// eslint-disable-next-line typescript/no-explicit-any
+export function configReady(): any {
 	return configPromise
 }
 
-async function setupConfig() {
+async function setupConfig(): Promise<void> {
 	const {APP_PATH} = await getMeta()
 	const dirName = path.join(APP_PATH, 'src', 'config')
 	const envFile = path.join(dirName, deployEnv + '.yaml')

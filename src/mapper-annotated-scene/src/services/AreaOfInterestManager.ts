@@ -252,8 +252,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 
 			this.plane.add(this.grid)
 
-			;(window as any).plane = this.plane
-
 			this.axis = AxesHelper(axesHelperLength)
 			this.grid.add(this.axis)
 		}

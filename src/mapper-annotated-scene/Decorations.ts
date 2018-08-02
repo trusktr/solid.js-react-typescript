@@ -8,7 +8,7 @@ import * as mapperLogoObj from 'assets/models/Mapper_logo.obj'
 import * as hondaLogoObj from 'assets/models/Honda_logo.obj'
 
 interface DecorationConfig {
-	// tslint:disable-next-line:no-any
+	// eslint-disable-next-line typescript/no-explicit-any
 	asset: any
 	material: THREE.Material
 	lngLatAlt: THREE.Vector3

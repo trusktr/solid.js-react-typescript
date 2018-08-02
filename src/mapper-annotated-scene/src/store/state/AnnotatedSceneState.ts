@@ -14,6 +14,9 @@ import TileManagerBase from '@/mapper-annotated-scene/tile/TileManagerBase'
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 import Models = MapperProtos.mapper.models
 
+/* eslint-disable-next-line no-use-before-define */
+type InitialState = Partial<AnnotatedSceneState>
+
 export default class AnnotatedSceneState {
 	static Key = 'AnnotatedSceneState'
 
@@ -22,11 +25,11 @@ export default class AnnotatedSceneState {
 	* @param o
 	* @returns {AnnotatedSceneState}
 	*/
-	static fromJS(o: any = {}): AnnotatedSceneState {
+	static fromJS(o: InitialState = {}): AnnotatedSceneState {
 		return new AnnotatedSceneState(o)
 	}
 
-	constructor(o: any = {}) {
+	constructor(o: InitialState = {}) {
 		Object.assign(this, o)
 	}
 
@@ -87,6 +90,9 @@ export default class AnnotatedSceneState {
 	cameraIsOrbiting: boolean
 	camera: THREE.Camera
 	areaOfInterest: RangeSearch[]
-	rendererSize: any
+	rendererSize: {
+		x: number
+		y: number
+	}
 	loadingTileManagers: Set<TileManagerBase>
 }

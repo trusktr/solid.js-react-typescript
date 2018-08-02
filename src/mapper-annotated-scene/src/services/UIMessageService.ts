@@ -8,7 +8,7 @@ import AnnotatedSceneState from 'mapper-annotated-scene/src/store/state/Annotate
 import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts'
 import {getAnnotatedSceneStoreState} from '@/mapper-annotated-scene/src/store/AppStore'
 
-function expireMessages() {
+function expireMessages(): void {
 	const
 		msgs = getAnnotatedSceneStoreState().get(AnnotatedSceneState.Key).messages as Array<UIMessage>
 	const now = Date.now()

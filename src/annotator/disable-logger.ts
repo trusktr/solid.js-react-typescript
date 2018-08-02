@@ -1,4 +1,4 @@
-// import {getLogger} from 'typelogger'
+/* eslint-disable typescript/no-explicit-any */
 
 const disableLogger = false
 
