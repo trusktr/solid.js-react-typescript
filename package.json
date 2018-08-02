@@ -8,7 +8,7 @@
   "main-off": "dist/app/annotator-entry-ui.js",
   "scripts": {
     "start": "electron bin/annotator-start.js",
-    "build": "./etc/scripts/compile.js",
+    "build": "npm run lint && ./etc/scripts/compile.js",
     "watch": "./etc/scripts/compile-watch.js & p3=$!; npm run lint-watch & p4=$!; wait $p3 $p4",
     "dev": "npm run build; npm run watch & p1=$!; npm start & p2=$!; wait $p1 $p2",
     "postinstall": "npm install --no-save grpc@1.7.3 --runtime=electron --target=1.7.9",
