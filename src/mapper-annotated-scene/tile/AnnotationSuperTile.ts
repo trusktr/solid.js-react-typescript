@@ -4,12 +4,12 @@
  */
 
 import * as THREE from 'three'
-import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile"
-import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
-import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateFrame"
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
-import {AnnotationUtmTile} from "@/mapper-annotated-scene/tile/AnnotationUtmTile"
-import {Annotation} from "@/mapper-annotated-scene/annotations/AnnotationBase"
+import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
+import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {CoordinateFrameType} from '@/mapper-annotated-scene/geometry/CoordinateFrame'
+import {UtmCoordinateSystem} from '@/mapper-annotated-scene/UtmCoordinateSystem'
+import {AnnotationUtmTile} from '@/mapper-annotated-scene/tile/AnnotationUtmTile'
+import {Annotation} from '@/mapper-annotated-scene/annotations/AnnotationBase'
 
 export class AnnotationSuperTile extends SuperTile {
 	tiles: AnnotationUtmTile[]
@@ -31,16 +31,16 @@ export class AnnotationSuperTile extends SuperTile {
 
 	// The contents load once. Call addTile() first.
 	loadContents(): Promise<boolean> {
-		if (this.isLoaded)
-			return Promise.resolve(true)
+		if (this.isLoaded) return Promise.resolve(true)
 
 		const promises = this.tiles.map(t => t.load())
+
 		return Promise.all(promises)
 			.then(results => {
 				results.forEach(result => {
-					if (result.annotations.length)
-						this.annotations = this.annotations.concat(result.annotations)
+					if (result.annotations.length) this.annotations = this.annotations.concat(result.annotations)
 				})
+
 				this.isLoaded = true
 				this.objectCount = this.annotations.length
 				return true

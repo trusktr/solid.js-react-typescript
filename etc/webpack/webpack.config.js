@@ -1,26 +1,28 @@
 
 import '../scripts/init-scripts'
 import '../tools/global-env'
-const { isDev, baseDir, srcRootDir, _ } = global
 import DefinedEnv from './webpack.env'
 import assert from 'assert'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import Path from 'path'
 import nodeExternals from 'webpack-node-externals'
-import CircularDependencyPlugin from "circular-dependency-plugin"
-import Webpack, { DefinePlugin, HotModuleReplacementPlugin } from 'webpack'
+import CircularDependencyPlugin from 'circular-dependency-plugin'
+import Webpack, {
+	DefinePlugin,
+	// HotModuleReplacementPlugin
+} from 'webpack'
 import Fs from 'fs'
-import { CheckerPlugin } from 'awesome-typescript-loader'
+import {CheckerPlugin} from 'awesome-typescript-loader'
 import WebpackStatsConfig from './stats'
 
+const {isDev, baseDir, srcRootDir, _, isSaffron} = global
 const name = 'annotator-app'
 const moduleDirs = resolveDirs(srcRootDir, 'node_modules')
 const isPackaging = false
 const distDir = `${baseDir}/dist/${isPackaging ? 'app-package' : 'app'}`
-
 const DevTools = {
-	'development': 'cheap-source-map',
-	'production': 'source-map'
+	development: 'cheap-source-map',
+	production: 'source-map',
 }
 
 assert(Fs.existsSync(srcRootDir), `TypeScript must be compiled to ${Path.resolve(srcRootDir)}`)
@@ -33,11 +35,11 @@ module.exports = patchConfig({
 
 	entry: Object.assign(
 		{
-		    'annotator-entry-ui': './annotator/index',
-		    'annotator-image-lightbox': './annotator/annotator-image-lightbox/index',
+			'annotator-entry-ui': './annotator/index',
+			'annotator-image-lightbox': './annotator/annotator-image-lightbox/index',
 		},
 		!isSaffron ? {
-		    'annotator-entry-main': './annotator/annotator-entry-main/MainEntry',
+			'annotator-entry-main': './annotator/annotator-entry-main/MainEntry',
 		} : {}
 	),
 
@@ -50,7 +52,7 @@ module.exports = patchConfig({
 		path: `${distDir}/`,
 		publicPath: `${distDir}/`,
 		filename: '[name].js',
-        libraryTarget: 'commonjs2',
+		libraryTarget: 'commonjs2',
 	},
 
 	// LOADERS
@@ -59,7 +61,7 @@ module.exports = patchConfig({
 			{
 				test: /\.json$/,
 				exclude: [/node_modules/],
-				loader: 'json-loader'
+				loader: 'json-loader',
 			},
 
 			// SourceCode
@@ -76,13 +78,13 @@ module.exports = patchConfig({
 			// JADE
 			{
 				test: /\.(jade|pug)$/,
-				loaders: ['pug-loader']
+				loaders: ['pug-loader'],
 			},
 
 			// ASSETS / FONTS
 			{
 				test: /\.(eot|svg|ttf|woff|woff2)\w*/,
-				loaders: ['file-loader?name=assets/fonts/[name].[hash].[ext]']
+				loaders: ['file-loader?name=assets/fonts/[name].[hash].[ext]'],
 			},
 
 			// ASSETS / IMAGES & ICONS
@@ -102,20 +104,20 @@ module.exports = patchConfig({
 				test: /\.global\.css$/,
 				loaders: [
 					'style-loader',
-					'css-loader?sourceMap'
-				]
+					'css-loader?sourceMap',
+				],
 			},
 			{
 				test: /node_modules.*\.css$/,
-				loaders: ['file-loader?name=assets/images/[name].[hash].[ext]']
+				loaders: ['file-loader?name=assets/images/[name].[hash].[ext]'],
 			},
 			{
 				test: /^((?!\.global).)*\.css$/,
 				exclude: /(node_modules)/,
 				loaders: [
 					'style-loader',
-					'css-loader?modules&sourceMap&importLoaders=1&localIdentName=[name]__[local]___[hash:base64:5]'
-				]
+					'css-loader?modules&sourceMap&importLoaders=1&localIdentName=[name]__[local]___[hash:base64:5]',
+				],
 			},
 
 			// SCSS
@@ -124,12 +126,13 @@ module.exports = patchConfig({
 				loaders: [
 					'style-loader',
 					'css-loader',
-					{ loader: `sass-loader`, options: {
-						data: `$__SAFFRON__: ${ isSaffron };`
-					}},
+					{loader: `sass-loader`,
+						options: {
+							data: `$__SAFFRON__: ${isSaffron};`,
+						}},
 				],
 			},
-		]
+		],
 	},
 	cache: true,
 	recordsPath: `${distDir}/records__${name}`,
@@ -143,31 +146,31 @@ module.exports = patchConfig({
 			'@': alias(''),
 		},
 		modules: moduleDirs,
-		extensions: ['.ts', '.tsx', '.js', '.jsx']
+		extensions: ['.ts', '.tsx', '.js', '.jsx'],
 	},
 
 	plugins: [
 
-        new HtmlWebpackPlugin({
-            filename: 'browser-entry.html',
-            template: `${process.cwd()}/src/annotator-assets/templates/BrowserEntry.jade`,
-            inject: false,
-            isDev
-        }),
+		new HtmlWebpackPlugin({
+			filename: 'browser-entry.html',
+			template: `${process.cwd()}/src/annotator-assets/templates/BrowserEntry.jade`,
+			inject: false,
+			isDev,
+		}),
 
-        new HtmlWebpackPlugin({
-            filename: 'image-lightbox.html',
-            template: `${process.cwd()}/src/annotator-assets/templates/ImageLightbox.jade`,
-            inject: false,
-            isDev
-        }),
+		new HtmlWebpackPlugin({
+			filename: 'image-lightbox.html',
+			template: `${process.cwd()}/src/annotator-assets/templates/ImageLightbox.jade`,
+			inject: false,
+			isDev,
+		}),
 
 		new CheckerPlugin(),
 
 		// ENV
 		new DefinePlugin(DefinedEnv),
 
-	].concat( isDev ? [
+	].concat(isDev ? [
 
 		// AVOID CIRCULAR
 		new CircularDependencyPlugin(),
@@ -194,7 +197,7 @@ module.exports = patchConfig({
 
 		new Webpack.LoaderOptionsPlugin({
 			minimize: true,
-			debug: false
+			debug: false,
 		}),
 
 	]),
@@ -206,7 +209,7 @@ module.exports = patchConfig({
 		__dirname: true,
 		__filename: true,
 		global: true,
-		process: true
+		process: true,
 	},
 
 	externals: [
@@ -215,10 +218,10 @@ module.exports = patchConfig({
 			whitelist: [
 				/webpack/,
 				/webpack-hot/,
-				/react-hot-loader/
+				/react-hot-loader/,
 			],
-			'@mapperai/mapper-saffron-sdk': '@mapperai/mapper-saffron-sdk'
-		})
+			'@mapperai/mapper-saffron-sdk': '@mapperai/mapper-saffron-sdk',
+		}),
 	],
 })
 
@@ -229,9 +232,9 @@ module.exports = patchConfig({
 function resolveDirs(...dirs) {
 	return dirs.map(dir => {
 		// f.e. c:\path, C:\path, /path, ./path, ../path
-		return (['c', 'C', '/', '.'].includes(dir.charAt(0))) ?
-			Path.resolve(dir) :
-			Path.join(baseDir, dir)
+		return (['c', 'C', '/', '.'].includes(dir.charAt(0)))
+			? Path.resolve(dir)
+			: Path.join(baseDir, dir)
 	})
 }
 
@@ -242,14 +245,13 @@ function alias(tsFilename) {
 }
 
 function patchConfig(config) {
-
 	// Development specific updates
 	if (isDev) {
 		_.merge(config, {
 			// In development specify absolute path - better debugger support
 			output: {
-				devtoolModuleFilenameTemplate: "file://[absolute-resource-path]",
-				devtoolFallbackModuleFilenameTemplate: "file://[absolute-resource-path]"
+				devtoolModuleFilenameTemplate: 'file://[absolute-resource-path]',
+				devtoolFallbackModuleFilenameTemplate: 'file://[absolute-resource-path]',
 			},
 		})
 	}

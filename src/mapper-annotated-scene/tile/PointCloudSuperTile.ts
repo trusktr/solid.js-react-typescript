@@ -4,12 +4,12 @@
  */
 
 import * as THREE from 'three'
-import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
-import {PointCloudUtmTile} from "./PointCloudUtmTile"
-import {CoordinateFrameType} from "../geometry/CoordinateFrame"
-import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
-import {threeDStepSize} from "./Constant"
-import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile"
+import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {PointCloudUtmTile} from './PointCloudUtmTile'
+import {CoordinateFrameType} from '../geometry/CoordinateFrame'
+import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
+import {threeDStepSize} from './Constant'
+import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
 
 export class PointCloudSuperTile extends SuperTile {
 	pointCloud: THREE.Points | null
@@ -41,35 +41,41 @@ export class PointCloudSuperTile extends SuperTile {
 
 	// The point cloud loads once. Call addTile() first.
 	loadContents(): Promise<boolean> {
-		if (this.isLoaded)
-			return Promise.resolve(true)
+		if (this.isLoaded) return Promise.resolve(true)
 
 		const promises = this.tiles.map(t => t.load())
+
 		return Promise.all(promises)
 			.then(results => {
 				let arraySize = 0
+
 				results.forEach(result => {
 					arraySize += result.points.length
 				})
 
 				const rawPositions = new Float32Array(arraySize)
 				const rawColors = new Float32Array(arraySize)
+
 				let m = 0
+
 				results.forEach(result => {
 					const superTilePositions = result.points
-					for (let i = 0; i < superTilePositions.length; i++, m++) {
+
+					for (let i = 0; i < superTilePositions.length; i++, m++)
 						rawPositions[m] = superTilePositions[i]
-					}
 				})
+
 				let n = 0
+
 				results.forEach(result => {
 					const superTileColors = result.colors
-					for (let i = 0; i < superTileColors.length; i++, n++) {
+
+					for (let i = 0; i < superTileColors.length; i++, n++)
 						rawColors[n] = superTileColors[i]
-					}
 				})
 
 				const geometry = new THREE.BufferGeometry()
+
 				geometry.addAttribute('position', new THREE.BufferAttribute(rawPositions, threeDStepSize))
 				geometry.addAttribute('color', new THREE.BufferAttribute(rawColors, threeDStepSize))
 				this.pointCloud = new THREE.Points(geometry, this.pointsMaterial)
@@ -84,10 +90,12 @@ export class PointCloudSuperTile extends SuperTile {
 	unloadContents(): void {
 		this.isLoaded = false
 		this.tiles.forEach(tile => tile.unload())
+
 		if (this.pointCloud) {
 			this.pointCloud.geometry.dispose()
 			this.pointCloud = null
 		}
+
 		this.pointCloudBoundingBox = null
 		this.objectCount = 0
 	}

@@ -7,15 +7,12 @@ export interface CoordinateReferenceSystem {
 	coordinateSystem: string
 	datum: string
 }
-
 export interface UtmCrsParameters {
 	utmZoneNumber: number
 	utmZoneNorthernHemisphere: boolean
 }
-
 export interface UtmCrs extends CoordinateReferenceSystem {
 	parameters: UtmCrsParameters
 }
-
 export interface LlaCrs extends CoordinateReferenceSystem {
 }

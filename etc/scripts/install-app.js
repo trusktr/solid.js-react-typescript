@@ -1,6 +1,9 @@
 require('./init-scripts')
 
+const {echo, exec, rm, cp, isMac} = global
+
 echo(`Installing App`)
+
 if (isMac) {
 	exec('pkill -9 Epictask')
 	rm('-Rf', '/Applications/Epictask.app')

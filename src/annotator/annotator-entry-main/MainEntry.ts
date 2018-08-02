@@ -6,14 +6,13 @@
 import * as Url from 'url'
 import * as Path from 'path'
 import * as Electron from 'electron'
-import {BrowserWindow} from 'electron'
 import restoreWindowState from './restoreWindowState'
 
 const app = Electron.app
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let win: BrowserWindow | null
+let win: Electron.BrowserWindow | null
 
 const isSecondInstance = app.makeSingleInstance(() => {
 	if (win) {
@@ -21,17 +20,17 @@ const isSecondInstance = app.makeSingleInstance(() => {
 		win.focus()
 	}
 })
-if (isSecondInstance)
-	app.quit()
+
+if (isSecondInstance) app.quit()
 
 function createWindow(): void {
 	const windowName = 'browser-entry'
 
-	win = new BrowserWindow({
+	win = new Electron.BrowserWindow({
 		show: false,
 		webPreferences: {
 			// allow code inside this window to use use native window.open()
-			nativeWindowOpen: true
+			nativeWindowOpen: true,
 		},
 	})
 
@@ -45,7 +44,7 @@ function createWindow(): void {
 	win.loadURL(Url.format({
 		pathname: Path.join(process.cwd(), `dist/app/${windowName}.html`),
 		protocol: 'file:',
-		slashes: true
+		slashes: true,
 	}))
 
 	// Emitted when the window is closed.
@@ -70,7 +69,6 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
 	// On macOS it's common to re-create a window in the app when the
 	// dock icon is clicked and there are no other windows open.
-	if (win === null) {
+	if (win === null)
 		createWindow()
-	}
 })

@@ -4,14 +4,14 @@
  */
 
 import * as React from 'react'
-import '!!css-loader!jquery-ui-dist/jquery-ui.css'
+import '!!css-loader!jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
 import './style.scss'
-import config from "@/config";
+import config from '@/config'
 import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
-import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts";
-import Kiosk from "@/kiosk/Kiosk";
-import Annotator from "@/annotator/Annotator";
+import StatusWindowActions from '@/mapper-annotated-scene/StatusWindowActions'
+import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts'
+import Kiosk from '@/kiosk/Kiosk'
+import Annotator from '@/annotator/Annotator'
 
 interface AppProps {}
 
@@ -33,10 +33,9 @@ export default class App extends React.Component<AppProps, AppState> {
 	render(): JSX.Element {
 		return <React.Fragment>
 
-			{ config['startup.kiosk_mode'] ?
-				<Kiosk />
-			:
-				<Annotator />
+			{ config['startup.kiosk_mode']
+				? <Kiosk />
+				:				<Annotator />
 			}
 
 			<div id="logo">
@@ -54,5 +53,4 @@ export default class App extends React.Component<AppProps, AppState> {
 
 		</React.Fragment>
 	}
-
 }

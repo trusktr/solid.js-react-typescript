@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {TrajectoryDataSet} from "@/util/Perception"
+import {TrajectoryDataSet} from '@/util/Perception'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Models = MapperProtos.mapper.models
 
@@ -12,15 +12,13 @@ export interface FlyThroughTrajectory {
 	dataSet: TrajectoryDataSet | null
 	poses: Models.PoseMessage[]
 }
-
 export class FlyThroughState {
-
-	constructor(o:FlyThroughState) {
+	constructor(o: FlyThroughState) {
 		Object.assign(this, o)
 	}
 
-	trajectories:FlyThroughTrajectory[]
-	currentTrajectoryIndex:number
-	currentPoseIndex:number
-	endPoseIndex:number
+	trajectories: FlyThroughTrajectory[]
+	currentTrajectoryIndex: number
+	currentPoseIndex: number
+	endPoseIndex: number
 }

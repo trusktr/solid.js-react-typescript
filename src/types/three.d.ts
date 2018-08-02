@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-// tslint:disable:no-any
+/* eslint-disable typescript/no-explicit-any */
 
 declare module 'three' {
 	export class OrbitControls {
@@ -31,8 +31,17 @@ declare module 'three' {
 		minAzimuthAngle: number
 		maxAzimuthAngle: number
 		enableKeys: boolean
-		keys: { LEFT: number, UP: number, RIGHT: number, BOTTOM: number }
-		mouseButtons: { ORBIT: THREE.MOUSE, ZOOM: THREE.MOUSE, PAN: THREE.MOUSE }
+		keys: {
+			LEFT: number
+			UP: number
+			RIGHT: number
+			BOTTOM: number
+		}
+		mouseButtons: {
+			ORBIT: THREE.MOUSE
+			ZOOM: THREE.MOUSE
+			PAN: THREE.MOUSE
+		}
 		enableDamping: boolean
 		dampingFactor: number
 

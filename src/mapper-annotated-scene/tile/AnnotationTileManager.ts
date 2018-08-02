@@ -3,30 +3,30 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {TileManager} from "@/mapper-annotated-scene/tile/TileManager"
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
-import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile"
-import {TileServiceClient} from "@/mapper-annotated-scene/tile/TileServiceClient"
-import config from "@/config"
-import {CoordinateFrameType} from "@/mapper-annotated-scene/geometry/CoordinateFrame"
-import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
-import {AnnotationSuperTile} from "@/mapper-annotated-scene/tile/AnnotationSuperTile"
-import {UtmTile} from "@/mapper-annotated-scene/tile/UtmTile"
-import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
-import {AnnotationTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
-import {AnnotationUtmTile} from "@/mapper-annotated-scene/tile/AnnotationUtmTile"
-import {AnnotationManager} from "@/mapper-annotated-scene/AnnotationManager.tsx"
-import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
-import {EventEmitter} from "events"
-import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions"
-import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey"
+import {TileManager} from '@/mapper-annotated-scene/tile/TileManager'
+import {UtmCoordinateSystem} from '@/mapper-annotated-scene/UtmCoordinateSystem'
+import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
+import {TileServiceClient} from '@/mapper-annotated-scene/tile/TileServiceClient'
+import config from '@/config'
+import {CoordinateFrameType} from '@/mapper-annotated-scene/geometry/CoordinateFrame'
+import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {AnnotationSuperTile} from '@/mapper-annotated-scene/tile/AnnotationSuperTile'
+import {UtmTile} from '@/mapper-annotated-scene/tile/UtmTile'
+import {TileInstance} from '@/mapper-annotated-scene/tile-model/TileInstance'
+import {AnnotationTileContents} from '@/mapper-annotated-scene/tile-model/TileContents'
+import {AnnotationUtmTile} from '@/mapper-annotated-scene/tile/AnnotationUtmTile'
+import {AnnotationManager} from '@/mapper-annotated-scene/AnnotationManager.tsx'
+import {ScaleProvider} from '@/mapper-annotated-scene/tile/ScaleProvider'
+import {EventEmitter} from 'events'
+import StatusWindowActions from '@/mapper-annotated-scene/StatusWindowActions'
+import {StatusKey} from '@/mapper-annotated-scene/src/models/StatusKey'
 
 export class AnnotationTileManager extends TileManager {
 	constructor(
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
 		tileServiceClient: TileServiceClient,
-        channel: EventEmitter,
+		channel: EventEmitter,
 		private annotationManager: AnnotationManager,
 	) {
 		super(
@@ -35,6 +35,7 @@ export class AnnotationTileManager extends TileManager {
 			tileServiceClient,
 			channel,
 		)
+
 		this.config = {
 			layerId: 'anot1', // a layer which contains miniature annotator JSON files
 			initialSuperTilesToLoad: parseInt(config['tile_manager.initial_super_tiles_to_load'], 10) || 4,
@@ -47,18 +48,22 @@ export class AnnotationTileManager extends TileManager {
 		return new AnnotationSuperTile(index, coordinateFrame, utmCoordinateSystem)
 	}
 
-    /**
-     * Calculate annotations loaded and dispatch an action
-     */
-    protected setStatsMessage() {
+	/**
+	 * Calculate annotations loaded and dispatch an action
+	 */
+	protected setStatsMessage() {
 		if (!this.enableTileManagerStats) return
 
-        let annotations = 0
-        this.superTiles.forEach(st => annotations += st!.objectCount)
+		let annotations = 0
 
-        const message = `Loaded ${this.superTiles.size} annotation tiles; ${annotations} annotations`
-        new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
-    }
+		this.superTiles.forEach(st => {
+			annotations += st!.objectCount
+		})
+
+		const message = `Loaded ${this.superTiles.size} annotation tiles; ${annotations} annotations`
+
+		new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_ANNOTATION_STATS, message)
+	}
 
 	protected tileInstanceToUtmTile(tileInstance: TileInstance, coordinateFrame: CoordinateFrameType): UtmTile {
 		return new AnnotationUtmTile(
@@ -80,10 +85,11 @@ export class AnnotationTileManager extends TileManager {
 
 	// Load an annotations JSON object from a file.
 	private loadTile(tileInstance: TileInstance): Promise<Object> {
-		if (tileInstance.layerId === this.config.layerId)
+		if (tileInstance.layerId === this.config.layerId) {
 			return this.tileServiceClient.getTileContents(tileInstance.url)
 				.then(buffer => JSON.parse(String.fromCharCode.apply(null, buffer)))
-		else
+		} else {
 			return Promise.reject(Error('unknown tileInstance.layerId: ' + tileInstance.layerId))
+		}
 	}
 }

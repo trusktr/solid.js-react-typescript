@@ -4,35 +4,37 @@
  */
 
 import config from '@/config'
-import {isNullOrUndefined} from "util"
+import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import * as grpc from 'grpc'
 import {TileServiceClient as GrpcClient} from '@/mapper-annotated-scene/grpc-compiled-protos/TileService_grpc_pb'
 import {
 	GetTilesRequest, GetTilesResponse,
 	PingRequest, RangeSearchMessage, SearchTilesRequest,
-	SearchTilesResponse
-} from "@/mapper-annotated-scene/grpc-compiled-protos/TileService_pb"
+	SearchTilesResponse,
+} from '@/mapper-annotated-scene/grpc-compiled-protos/TileService_pb'
 import {
 	GeographicPoint3DMessage, SpatialReferenceSystemIdentifier, SpatialTileIndexMessage,
-	SpatialTileScale
-} from "@/mapper-annotated-scene/grpc-compiled-protos/CoordinateReferenceSystem_pb"
-import {TileRangeSearch} from "@/mapper-annotated-scene/tile-model/TileRangeSearch"
-import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch"
-import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
-import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
-import {scale3DToSpatialTileScale, spatialTileScaleToScale3D} from "./ScaleUtil"
-import Logger from "@/util/log"
-import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
-import {EventEmitter} from "events";
-import {Events} from "@/mapper-annotated-scene/src/models/Events";
-import {LayerId} from "@/types/TypeAlias"
+	SpatialTileScale,
+} from '@/mapper-annotated-scene/grpc-compiled-protos/CoordinateReferenceSystem_pb'
+import {TileRangeSearch} from '@/mapper-annotated-scene/tile-model/TileRangeSearch'
+import {RangeSearch} from '@/mapper-annotated-scene/tile-model/RangeSearch'
+import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {TileInstance} from '@/mapper-annotated-scene/tile-model/TileInstance'
+import {scale3DToSpatialTileScale, spatialTileScaleToScale3D} from './ScaleUtil'
+import Logger from '@/util/log'
+import {ScaleProvider} from '@/mapper-annotated-scene/tile/ScaleProvider'
+import {EventEmitter} from 'events'
+import {Events} from '@/mapper-annotated-scene/src/models/Events'
+import {LayerId} from '@/types/TypeAlias'
 
 const log = Logger(__filename)
 
 function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undefined): TileIndex | null {
 	if (!msg) return null
+
 	// TODO CLYDE validate msg.getSrid()===this.srid (and fix the output on the server side)
 	const scale = spatialTileScaleToScale3D(msg.getScale())
+
 	if (!scale) return null
 	return new TileIndex(
 		scale,
@@ -43,7 +45,6 @@ function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undef
 }
 
 const pingRequest = new PingRequest()
-
 // We generate tile searches using the boundaries of super tiles. Tile boundaries are inclusive on the
 // lower faces and exclusive on the upper faces. Apply an offset from the upper boundaries to avoid
 // retrieving a bunch of extra tiles there.
@@ -72,14 +73,18 @@ export class TileServiceClient {
 		this.healthCheckInterval = config['tile_client.service.health_check.interval.seconds'] * 1000
 
 		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO CLYDE config: UTM_10N (and make the server aware of UTM zones)
-		if (config['tile_client.tile_scale'])
-			log.warn('Config option tile_client.tile_scale is deprecated. Use tile_manager.utm_tile_scale.')
+
+		if (config['tile_client.tile_scale']) log.warn('Config option tile_client.tile_scale is deprecated. Use tile_manager.utm_tile_scale.')
+
 		const scale = scale3DToSpatialTileScale(scaleProvider.utmTileScale)
-		if (isNullOrUndefined(scale))
-			throw Error(`invalid utmTileScale: ${scaleProvider.utmTileScale}`)
+
+		if (isNullOrUndefined(scale)) throw Error(`invalid utmTileScale: ${scaleProvider.utmTileScale}`)
+
 		this.scale = scale
+
 		const tileServiceHost = config['tile_client.service.host'] || 'localhost'
 		const tileServicePort = config['tile_client.service.port'] || '50051'
+
 		this.tileServiceAddress = tileServiceHost + ':' + tileServicePort
 		this.client = null
 	}
@@ -87,10 +92,10 @@ export class TileServiceClient {
 	// Lazily create the gRPC client and initiate server health checks. All gRPC requests (except the ping check)
 	// must call connect() first.
 	private connect(): Promise<void> {
-		if (this.client)
-			return Promise.resolve()
+		if (this.client) return Promise.resolve()
 
 		log.info('connecting to tile server at', this.tileServiceAddress)
+
 		this.client = new GrpcClient(
 			this.tileServiceAddress,
 			grpc.credentials.createInsecure(),
@@ -98,6 +103,7 @@ export class TileServiceClient {
 		)
 
 		const result = this.pingServer()
+
 		this.periodicallyCheckServerStatus()
 		return result
 	}
@@ -105,6 +111,7 @@ export class TileServiceClient {
 	private periodicallyCheckServerStatus(): void {
 		if (this.healthCheckInterval) {
 			const self = this
+
 			setInterval(
 				(): Promise<void> => self.pingServer().then(),
 				this.healthCheckInterval
@@ -115,10 +122,10 @@ export class TileServiceClient {
 	// Ping checks and this.serverStatus maintain a local copy of server state, for diagnostics.
 	// TODO CLYDE The gRPC client has a default timeout of 20s when the server is unresponsive. It would be nice to reduce that for pings.
 	private pingServer(): Promise<void> {
-		if (!this.client)
-			return Promise.reject(Error('attempted to pingServer() before initializing client'))
-		if (this.pingInFlight)
-			return Promise.resolve()
+		if (!this.client) return Promise.reject(Error('attempted to pingServer() before initializing client'))
+
+		if (this.pingInFlight) return Promise.resolve()
+
 		this.pingInFlight = true
 
 		return new Promise((resolve: () => void): void => {
@@ -141,11 +148,14 @@ export class TileServiceClient {
 	// Get all available tiles within a rectangular region specified by minimum and maximum points.
 	getTilesByCoordinateRange(layerId: LayerId, search: RangeSearch): Promise<TileInstance[]> {
 		const corner1 = new GeographicPoint3DMessage()
+
 		corner1.setSrid(this.srid)
 		corner1.setX(search.minPoint.x)
 		corner1.setY(search.minPoint.y)
 		corner1.setZ(search.minPoint.z)
+
 		const corner2 = new GeographicPoint3DMessage()
+
 		corner2.setSrid(this.srid)
 		corner2.setX(search.maxPoint.x + tileSearchOffset)
 		corner2.setY(search.maxPoint.y + tileSearchOffset)
@@ -158,11 +168,14 @@ export class TileServiceClient {
 	// Get all available tiles within a rectangular region specified by minimum and maximum corner tiles.
 	getTilesByTileRange(layerId: LayerId, search: TileRangeSearch): Promise<TileInstance[]> {
 		const corner1 = new GeographicPoint3DMessage()
+
 		corner1.setSrid(this.srid)
 		corner1.setX(search.minTileIndex.origin.x)
 		corner1.setY(search.minTileIndex.origin.y)
 		corner1.setZ(search.minTileIndex.origin.z)
+
 		const corner2 = new GeographicPoint3DMessage()
+
 		corner2.setSrid(this.srid)
 		corner2.setX(search.maxTileIndex.origin.x + search.maxTileIndex.scale.xSize + tileSearchOffset)
 		corner2.setY(search.maxTileIndex.origin.y + search.maxTileIndex.scale.ySize + tileSearchOffset)
@@ -174,10 +187,13 @@ export class TileServiceClient {
 
 	private getTiles(layerId: LayerId, corner1: GeographicPoint3DMessage, corner2: GeographicPoint3DMessage): Promise<TileInstance[]> {
 		const rangeSearch = new RangeSearchMessage()
+
 		rangeSearch.setCorner1(corner1)
 		rangeSearch.setCorner2(corner2)
 		rangeSearch.setScale(this.scale)
+
 		const request = new SearchTilesRequest()
+
 		request.setRangeSearch(rangeSearch)
 		request.setLayerIdsList([layerId])
 
@@ -187,22 +203,26 @@ export class TileServiceClient {
 					reject(Error(`searchTiles() failed: ${err.message}`))
 				} else {
 					const tiles: TileInstance[] = []
+
 					response.getTileInstancesList().forEach(instance => {
 						const tileIndex = spatialTileIndexMessageToTileIndex(instance.getId())
+
 						if (tileIndex) {
 							instance.getLayersMap()
 								.forEach((responseLayerUrl, responseLayerId) => {
-									if (responseLayerId === layerId) // should be always true
+									if (responseLayerId === layerId) { // should be always true
 										tiles.push(new TileInstance(
 											tileIndex,
 											responseLayerId,
 											responseLayerUrl,
 										))
+									}
 								})
 						} else {
 							log.warn('found tile with bad SpatialTileIndexMessage')
 						}
 					})
+
 					resolve(tiles)
 				}
 			})
@@ -216,6 +236,7 @@ export class TileServiceClient {
 
 	private getTileContentsImpl(url: string): Promise<Uint8Array> {
 		const request = new GetTilesRequest()
+
 		request.addUrls(url)
 
 		return new Promise((resolve: (tile: Uint8Array) => void, reject: (reason?: Error) => void): void => {
@@ -227,7 +248,8 @@ export class TileServiceClient {
 						reject(Error(`getTiles() return no results`))
 					} else {
 						const firstResult = response.getTileContentsList()[0]
-						if (firstResult.getUrl() === url)  // should be always true
+
+						if (firstResult.getUrl() === url) // should be always true
 							resolve(firstResult.getContents_asU8())
 						else
 							reject(Error(`getTiles() returned unknown url ${firstResult.getUrl()}`))

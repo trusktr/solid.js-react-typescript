@@ -1,1 +1,1 @@
-import "./MainEntry"
+import './MainEntry'

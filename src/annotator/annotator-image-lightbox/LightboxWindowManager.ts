@@ -7,14 +7,14 @@ import * as Url from 'url'
 import * as Path from 'path'
 import * as Electron from 'electron'
 import {windowStateKeeperOptions} from '@/util/WindowStateKeeperOptions'
-import {channel as ipcChannel} from "@/electron-ipc/Channel"
-import * as IpcMessages from "@/electron-ipc/Messages"
-import config, { getMeta } from '@/config'
-import windowStateKeeper = require('electron-window-state')
+import {channel as ipcChannel} from '@/electron-ipc/Channel'
+import * as IpcMessages from '@/electron-ipc/Messages'
+import config, {getMeta} from '@/config'
 import WindowCommunicator from '@/util/WindowCommunicator'
-import createPromise, { Resolve } from '@/util/createPromise'
-import {EventEmitter} from "events";
-import {Events} from "@/mapper-annotated-scene/src/models/Events";
+import createPromise, {Resolve} from '@/util/createPromise'
+import {EventEmitter} from 'events'
+import {Events} from '@/mapper-annotated-scene/src/models/Events'
+import windowStateKeeper = require('electron-window-state')
 
 interface LightboxWindowManagerSettings {
 	backgroundColor: string
@@ -37,6 +37,7 @@ export class LightboxWindowManager {
 			backgroundColor: config['startup.background_color'] || '#000',
 			openDevTools: !!config['startup.show_dev_tools'],
 		}
+
 		this.loadingWindow = false
 		this.window = null
 	}
@@ -49,20 +50,17 @@ export class LightboxWindowManager {
 
 		const windowName = 'image-lightbox'
 		const {promise, resolve}: {promise: Promise<void>, resolve: Resolve<void>} = createPromise<void, void>()
-
 		const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
-
-		const options = `${objectToFeatureString( savedState )},_blank`
-
+		const options = `${objectToFeatureString(savedState)},_blank`
 		const lightboxWindow = window.open(
 			'about:blank',
 			windowName,
 			options // yeah, it's a string. Why would they make the API take a string of options???
 		)!
-
 		// A trick (hack?) for getting the BrowserWindow we just created with native
 		// window.open. The new window is now the focused window.
 		const win = Electron.remote.BrowserWindow.getFocusedWindow()
+
 		this.window = win
 
 		// if ( savedState.isMaximized ) win.maximize()
@@ -70,7 +68,7 @@ export class LightboxWindowManager {
 
 		savedState.manage(win)
 
-		this.lightboxCommunicator = new WindowCommunicator( lightboxWindow )
+		this.lightboxCommunicator = new WindowCommunicator(lightboxWindow)
 		this.openChannels()
 
 		const onConnect = (): void => {
@@ -83,13 +81,12 @@ export class LightboxWindowManager {
 
 		this.lightboxCommunicator.on('connect', onConnect)
 
-		if (this.settings.openDevTools)
-			win.webContents.openDevTools()
+		if (this.settings.openDevTools) win.webContents.openDevTools()
 
 		win.loadURL(Url.format({
-			pathname: Path.join( (await getMeta()).APP_PATH, `dist/app/${windowName}.html`),
+			pathname: Path.join((await getMeta()).APP_PATH, `dist/app/${windowName}.html`),
 			protocol: 'file:',
-			slashes: true
+			slashes: true,
 		}))
 
 		win.on('closed', () => {
@@ -154,37 +151,33 @@ export class LightboxWindowManager {
 
 // regarding feature strings, see:
 // https://developer.mozilla.org/en-US/docs/Web/API/Window/open#Window_features
-function objectToFeatureString( obj: object ): string {
-
+function objectToFeatureString(obj: object): string {
 	// never set this to show=no or new windows can never be opened. See:
 	// https://github.com/electron/electron/issues/13156
 	let result = 'show=yes'
-
 	let val
 
-	for ( let key in obj ) {
-		if ( !obj.hasOwnProperty( key ) ) continue
+	for (let key in obj) {
+		if (!obj.hasOwnProperty(key)) continue
 
-		val = obj[ key ]
+		val = obj[key]
 
-		if ( typeof val === 'function' ) continue
+		if (typeof val === 'function') continue
 
-		if ( key === 'x' ) key = 'left'
-		if ( key === 'y' ) key = 'top'
+		if (key === 'x') key = 'left'
+		if (key === 'y') key = 'top'
 
 		val = typeof val === 'string'
-			? ( val === 'yes'
+			? (val === 'yes'
 				? true
-				: ( val === 'no' ? false : val )
+				: (val === 'no' ? false : val)
 			)
 			: val
 
 		val = typeof val === 'boolean' ? +!!val : val
 
-		result += `,${ key }=${ val }`
-
+		result += `,${key}=${val}`
 	}
 
 	return result
-
 }

@@ -4,12 +4,11 @@
  */
 
 import * as TypeLogger from 'typelogger'
-import {ILogger} from "typelogger"
 
-// tslint:disable-next-line:no-any
+// eslint-disable-next-line typescript/no-explicit-any
 TypeLogger.setLoggerOutput(console as any)
 
 export default
-function Logger(path: string): ILogger {
+function Logger(path: string): TypeLogger.ILogger {
 	return TypeLogger.getLogger(path)
 }
