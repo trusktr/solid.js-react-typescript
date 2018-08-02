@@ -25,10 +25,12 @@ module.exports = {
 		// typescript-specific rules
 		'typescript/adjacent-overload-signatures': 'error', // — Require that member overloads be consecutive
 		'typescript/class-name-casing': 'error', // — Require PascalCased class and interface names (class-name from TSLint)
-		'typescript/explicit-function-return-type': 'error', // — Require explicit return types on functions and class methods
+		'typescript/explicit-function-return-type': ['error', {
+			allowExpressions: true,
+		}], // — Require explicit return types on functions and class methods
 		// 'typescript/explicit-member-accessibility': , // — Require explicit accessibility modifiers on class properties and methods (member-access from TSLint)
 		// 'typescript/interface-name-prefix': , // — Require that interface names be prefixed with I (interface-name from TSLint)
-		'typescript/member-delimiter-style': ['error', { // — Require a specific member delimiter style for interfaces and type literals
+		'typescript/member-delimiter-style': ['off', { // — Require a specific member delimiter style for interfaces and type literals
 			delimiter: 'none',
 			requireLast: true,
 			ignoreSingleLine: true,
