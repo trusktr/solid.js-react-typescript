@@ -15,6 +15,6 @@ echo "**** Rebuilding electron..."
 echo "**** Rebuilding electron complete"
 
 echo "**** Compiling..."
-./etc/scripts/compile.js
+# npm run lint TODO: enable so that build fails on lint errors once we fix the current errors
+npm run typecheck
 echo "**** Compiling complete"
-

@@ -1,11 +1,13 @@
 {
 	"presets": [
-		"es2016-node5",
-		"stage-0",
-		"react",
+		"@babel/preset-typescript",
 	],
 	"sourceMaps": "both",
 	"plugins": [
-		"transform-runtime"
+		"@babel/plugin-proposal-object-rest-spread",
+		["@babel/plugin-proposal-decorators", { "legacy": true }],
+		"babel-plugin-transform-class-properties",
+		"@babel/plugin-transform-modules-commonjs",
+		"@babel/plugin-transform-react-jsx"
 	]
 }

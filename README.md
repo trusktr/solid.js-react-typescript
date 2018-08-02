@@ -52,15 +52,18 @@ The application uses [nconf](https://www.npmjs.com/package/nconf) for configurat
 
 See [the docs](documentation/configuration.md) for details.
 
-## Build
+## Run the app
 
-### Run the incremental compiler
-    ./etc/scripts/compile-watch.js
+#### With NPM
 
-### Run the [electron](https://www.npmjs.com/package/electron) app with debug GUI
+This starts the Electron app. There's no build required, just run it
+(`@babel/register` handles TypeScript code on the fly):
 
-#### Manually with `npm`
     npm start
+
+If you'd like linting and typechecks while developing, run
+
+    npm run dev
 
 #### With IntelliJ IDEA
 
@@ -68,13 +71,15 @@ See [the docs](documentation/configuration.md) for details.
  - Under Run>Run…, select the Mapper Annotator configuration and run it.
 
 ## Rebuild
+
 If you pull down the latest version of the code base and things stop working, try one or more of the following to clear out the caches.
 
-    npm install
-    npm rebuild
-    ./node_modules/.bin/electron-rebuild
-    rm -rf dist
-    ./etc/scripts/compile-watch.js
+```sh
+npm install
+npm rebuild
+./node_modules/.bin/electron-rebuild
+npm start # or npm run dev
+```
 
 ## Manipulating data
 
