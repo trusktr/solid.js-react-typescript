@@ -14,7 +14,7 @@
     "postinstall": "npm install --no-save grpc@1.7.3 --runtime=electron --target=1.7.9",
     "lint": "npm run lint-js && npm run lint-ts",
     "lint-js": "eslint --format codeframe '{src,etc}/**/*.{js,json}' '.eslintrc*' 'package.json'",
-    "lint-ts": "eslint --format codeframe '{src,etc}/**/*.ts'",
+    "lint-ts": "eslint --format codeframe '{src,etc}/**/*.{ts,tsx}'",
     "lint-fix": "npm run lint-js -- --fix; npm run lint-ts -- --fix"
   },
   "license": "UNLICENSED",
