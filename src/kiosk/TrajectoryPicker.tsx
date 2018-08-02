@@ -17,6 +17,8 @@ import * as ChildProcess from 'child_process'
 import {s1SessionFileName, TrajectoryDataSet, trajectoryFileName} from '@/util/Perception'
 import * as VirtualList from 'react-tiny-virtual-list'
 
+// eslint-disable-next-line typescript/no-explicit-any
+const List = VirtualList as any
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
 
@@ -175,7 +177,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 			<div>
 				<h3>Processed</h3>
 				<p className='center'>{dataSets.length} Data Sets</p>
-				<VirtualList
+				<List
 					width='100%'
 					height={194}
 					itemCount={dataSets.length}
@@ -217,7 +219,7 @@ class TrajectoryPicker extends React.Component<TrajectoryPickerProps, Trajectory
 				<h3>Unprocessed</h3>
 				<p className='center'>{dataSets.length} Data Sets</p>
 				<div className='bottom_padding'>{processingButton}</div>
-				<VirtualList
+				<List
 					width='100%'
 					height={100}
 					itemCount={dataSets.length}

@@ -6,7 +6,7 @@
 import * as THREE from 'three'
 import config from '@/config'
 import {ActionFactory, ActionMessage, ActionReducer} from 'typedux'
-import AnnotatedSceneState from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
+import AnnotatedSceneState, {InitialState, TransformMode} from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
 import UIMessage from 'mapper-annotated-scene/src/models/UIMessage'
 import * as MapperProtos from '@mapperai/mapper-models'
 import {CameraType} from '@/mapper-annotated-scene/src/models/CameraType'
@@ -41,7 +41,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	 */
 	@ActionReducer()
 	loadAppState() {
-		const defaultState = {
+		const defaultState: InitialState = {
 			messages: [],
 
 			isLiveMode: false,
@@ -55,11 +55,11 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 
 			uiMenuVisible: config['startup.show_menu'],
 			shouldAnimate: false,
-			carPose: null,
+			carPose: undefined,
 			isCarInitialized: false,
 			isInitialOriginSet: false,
 
-			cameraPreference: localStorage.getItem('cameraPreference', CameraType.PERSPECTIVE),
+			cameraPreference: localStorage.getItem('cameraPreference', CameraType.PERSPECTIVE) as CameraType,
 
 			pointOfInterest: new THREE.Vector3(0, 0, 0),
 			areaOfInterest: [{
@@ -108,7 +108,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			transformControlsMode: 'translate',
 
 			cameraIsOrbiting: false,
-			camera: null,
+			camera: undefined,
 			loadingTileManagers: Set<TileManagerBase>(),
 		}
 
@@ -247,7 +247,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	}
 
 	@ActionReducer()
-	setTransformControlsMode(transformControlsMode: string) {
+	setTransformControlsMode(transformControlsMode: TransformMode) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, transformControlsMode,
 		})

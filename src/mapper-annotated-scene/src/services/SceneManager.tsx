@@ -68,7 +68,8 @@ export interface SceneManagerState {
 export class SceneManager extends React.Component<SceneManagerProps, SceneManagerState> {
 	private perspectiveOrbitControls: THREE.OrbitControls
 	private orthoOrbitControls: THREE.OrbitControls
-	private transformControls: THREE.TransformControls // controller for translating an object within the scene
+	// eslint-disable-next-line typescript/no-explicit-any
+	private transformControls: any // controller for translating an object within the scene. not sure why it can't find the type def here.
 	private hideTransformControlTimer: number
 
 	private camera: THREE.Camera

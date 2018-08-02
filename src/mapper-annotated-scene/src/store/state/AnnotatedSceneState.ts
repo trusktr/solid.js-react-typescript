@@ -15,8 +15,8 @@ import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
 import Models = MapperProtos.mapper.models
 
 /* eslint-disable-next-line no-use-before-define */
-type InitialState = Partial<AnnotatedSceneState>
-
+export type InitialState = Partial<AnnotatedSceneState>
+export type TransformMode = 'translate' | 'rotate' | 'scale'
 export default class AnnotatedSceneState {
 	static Key = 'AnnotatedSceneState'
 
@@ -85,14 +85,20 @@ export default class AnnotatedSceneState {
 	isHoveringOnMarker: boolean
 
 	transformedObjects: Array<THREE.Object3D> | null
-	transformControlsMode: 'translate' | 'rotate' | 'scale'
+	transformControlsMode: TransformMode
 
 	cameraIsOrbiting: boolean
 	camera: THREE.Camera
+	pointOfInterest: THREE.Vector3 | null
 	areaOfInterest: RangeSearch[]
 	rendererSize: {
-		x: number
-		y: number
+		width: number
+		height: number
 	}
 	loadingTileManagers: Set<TileManagerBase>
+
+	lockBoundaries: boolean
+	lockLanes: boolean
+	lockTerritories: boolean
+	lockTrafficDevices: boolean
 }
