@@ -33,9 +33,10 @@ export default class App extends React.Component<AppProps, AppState> {
 	render(): JSX.Element {
 		return <React.Fragment>
 
-			{ config['startup.kiosk_mode']
-				? <Kiosk />
-				:				<Annotator />
+			{ config['startup.kiosk_mode'] ?
+				<Kiosk />
+			:
+				<Annotator />
 			}
 
 			<div id="logo">
