@@ -4,7 +4,7 @@
  */
 
 import {TileIndex} from './TileIndex'
-import {LayerId} from '@/types/TypeAlias'
+import {LayerId} from '../../types/TypeAlias'
 
 export class TileInstance {
 	constructor(

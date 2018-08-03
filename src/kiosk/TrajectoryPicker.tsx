@@ -3,18 +3,18 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import './TrajectoryPicker.scss'
-import config from '@/config'
+import './TrajectoryPicker.css'
+import config from '../config'
 import * as lodash from 'lodash'
 import * as React from 'react'
-import * as Modal from 'react-modal'
+import Modal from 'react-modal'
 import * as Electron from 'electron'
-import Logger from '@/util/log'
+import Logger from '../util/log'
 import * as Fs from 'fs'
 import * as AsyncFile from 'async-file'
-import * as Executable from 'executable'
-import * as ChildProcess from 'child_process'
-import {s1SessionFileName, TrajectoryDataSet, trajectoryFileName} from '@/util/Perception'
+import Executable from 'executable'
+import ChildProcess from 'child_process'
+import {s1SessionFileName, TrajectoryDataSet, trajectoryFileName} from '../util/Perception'
 import * as VirtualList from 'react-tiny-virtual-list'
 
 // eslint-disable-next-line typescript/no-explicit-any

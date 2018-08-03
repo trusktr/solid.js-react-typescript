@@ -6,15 +6,15 @@
 import * as Url from 'url'
 import * as Path from 'path'
 import * as Electron from 'electron'
-import {windowStateKeeperOptions} from '@/util/WindowStateKeeperOptions'
-import {channel as ipcChannel} from '@/electron-ipc/Channel'
-import * as IpcMessages from '@/electron-ipc/Messages'
-import config, {getMeta} from '@/config'
-import WindowCommunicator from '@/util/WindowCommunicator'
-import createPromise, {Resolve} from '@/util/createPromise'
+import {windowStateKeeperOptions} from '../../util/WindowStateKeeperOptions'
+import {channel as ipcChannel} from '../../electron-ipc/Channel'
+import * as IpcMessages from '../../electron-ipc/Messages'
+import config, {getMeta} from '../../config'
+import WindowCommunicator from '../../util/WindowCommunicator'
+import createPromise, {Resolve} from '../../util/createPromise'
 import {EventEmitter} from 'events'
-import {Events} from '@/mapper-annotated-scene/src/models/Events'
-import windowStateKeeper = require('electron-window-state')
+import {Events} from '../../mapper-annotated-scene/src/models/Events'
+import windowStateKeeper from 'electron-window-state'
 
 interface LightboxWindowManagerSettings {
 	backgroundColor: string

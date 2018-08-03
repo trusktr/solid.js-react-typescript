@@ -3,29 +3,29 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import config from '@/config'
+import config from '../../config'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import * as grpc from 'grpc'
-import {TileServiceClient as GrpcClient} from '@/mapper-annotated-scene/grpc-compiled-protos/TileService_grpc_pb'
+import {TileServiceClient as GrpcClient} from '../grpc-compiled-protos/TileService_grpc_pb'
 import {
 	GetTilesRequest, GetTilesResponse,
 	PingRequest, RangeSearchMessage, SearchTilesRequest,
 	SearchTilesResponse,
-} from '@/mapper-annotated-scene/grpc-compiled-protos/TileService_pb'
+} from '../grpc-compiled-protos/TileService_pb'
 import {
 	GeographicPoint3DMessage, SpatialReferenceSystemIdentifier, SpatialTileIndexMessage,
 	SpatialTileScale,
-} from '@/mapper-annotated-scene/grpc-compiled-protos/CoordinateReferenceSystem_pb'
-import {TileRangeSearch} from '@/mapper-annotated-scene/tile-model/TileRangeSearch'
-import {RangeSearch} from '@/mapper-annotated-scene/tile-model/RangeSearch'
-import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
-import {TileInstance} from '@/mapper-annotated-scene/tile-model/TileInstance'
+} from '../grpc-compiled-protos/CoordinateReferenceSystem_pb'
+import {TileRangeSearch} from '../tile-model/TileRangeSearch'
+import {RangeSearch} from '../tile-model/RangeSearch'
+import {TileIndex} from '../tile-model/TileIndex'
+import {TileInstance} from '../tile-model/TileInstance'
 import {scale3DToSpatialTileScale, spatialTileScaleToScale3D} from './ScaleUtil'
-import Logger from '@/util/log'
-import {ScaleProvider} from '@/mapper-annotated-scene/tile/ScaleProvider'
+import Logger from '../../util/log'
+import {ScaleProvider} from './ScaleProvider'
 import {EventEmitter} from 'events'
-import {Events} from '@/mapper-annotated-scene/src/models/Events'
-import {LayerId} from '@/types/TypeAlias'
+import {Events} from '../src/models/Events'
+import {LayerId} from '../../types/TypeAlias'
 
 const log = Logger(__filename)
 

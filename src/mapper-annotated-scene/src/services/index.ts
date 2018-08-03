@@ -3,7 +3,9 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import Logger from '@/util/log'
+import Logger from '../../../util/log'
+import * as annotatedSceneStore from '../store/AppStore'
+import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
 
 const log = Logger(__filename)
 
@@ -19,16 +21,11 @@ export function loadServices(): void {
  * Load offline data for initial state
  */
 function loadInitialState(): void {
-	const AnnotatedSceneActions = require('mapper-annotated-scene/src/store/actions/AnnotatedSceneActions').default
-
 	new AnnotatedSceneActions().loadAppState()
 }
 
 export async function loadStore(): Promise<void> {
 	console.log('Starting to load store')
-
-	/* eslint-disable-next-line typescript/no-var-requires */
-	const annotatedSceneStore = require('mapper-annotated-scene/src/store/AppStore')
 
 	try {
 		annotatedSceneStore.loadAndInitStore()

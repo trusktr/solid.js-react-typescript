@@ -3,11 +3,10 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import config from '@/config'
+import config from '../../config'
 import * as zmq from 'zmq'
 import * as MapperProtos from '@mapperai/mapper-models'
-import Logger from '@/util/log'
-import Models = MapperProtos.mapper.models
+import Logger from '../../util/log'
 
 const log = Logger(__filename)
 
@@ -23,7 +22,7 @@ export class LocationServerStatusClient {
 	private reqInFlight: boolean // semaphore for pingServer()
 	private statusCheckInterval: number // configuration for pinging the server
 	private locationServerStatusAddress: string
-	private locationServerStatusTarget: Models.SystemModule
+	private locationServerStatusTarget: MapperProtos.mapper.models.SystemModule
 
 	constructor(onStatusUpdate: (level: LocationServerStatusLevel, status: string) => void) {
 		this.serverStatus = null
@@ -35,7 +34,7 @@ export class LocationServerStatusClient {
 		const locationServerStatusPort = config['location_server.status.port'] || '26600'
 
 		this.locationServerStatusAddress = 'tcp://' + locationServerStatusHost + ':' + locationServerStatusPort
-		this.locationServerStatusTarget = Models.SystemModule.kSystemModuleMapCap
+		this.locationServerStatusTarget = MapperProtos.mapper.models.SystemModule.kSystemModuleMapCap
 		this.statusClient = null
 	}
 
@@ -111,7 +110,7 @@ export class LocationServerStatusClient {
 	}
 
 	private parseStatus(message: Buffer): void {
-		const responseMessage = Models.StatusResponseMessage.decode(message)
+		const responseMessage = MapperProtos.mapper.models.StatusResponseMessage.decode(message)
 
 		if (!responseMessage) {
 			log.error('Invalid location server response')
@@ -127,16 +126,16 @@ export class LocationServerStatusClient {
 				)
 			} else {
 				switch (responseMessage.status) {
-					case Models.StatusType.kStatusInitializing:
+					case MapperProtos.mapper.models.StatusType.kStatusInitializing:
 						level = LocationServerStatusLevel.WARNING
 						break
-					case Models.StatusType.kStatusOffline:
+					case MapperProtos.mapper.models.StatusType.kStatusOffline:
 						level = LocationServerStatusLevel.ERROR
 						break
-					case Models.StatusType.kStatusReady:
+					case MapperProtos.mapper.models.StatusType.kStatusReady:
 						level = LocationServerStatusLevel.INFO
 						break
-					case Models.StatusType.kStatusDataRecording:
+					case MapperProtos.mapper.models.StatusType.kStatusDataRecording:
 						level = LocationServerStatusLevel.INFO
 						break
 					default:
@@ -171,15 +170,15 @@ export class LocationServerStatusClient {
 		this.reqInFlight = true
 
 		const statusRequestPayload = {target: this.locationServerStatusTarget}
-		const errMsg = Models.StatusRequestMessage.verify(statusRequestPayload)
+		const errMsg = MapperProtos.mapper.models.StatusRequestMessage.verify(statusRequestPayload)
 
 		if (errMsg) {
 			log.error(errMsg)
 			return
 		}
 
-		const request = Models.StatusRequestMessage.create(statusRequestPayload)
-		const buffer = Models.StatusRequestMessage.encode(request).finish()
+		const request = MapperProtos.mapper.models.StatusRequestMessage.create(statusRequestPayload)
+		const buffer = MapperProtos.mapper.models.StatusRequestMessage.encode(request).finish()
 
 		// We will receive the error via the .on("message") callback
 		this.statusClient.send(buffer.toString())

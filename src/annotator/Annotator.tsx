@@ -3,41 +3,40 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import config from '@/config'
-import * as $ from 'jquery'
+import config from '../config'
+import $ from 'jquery'
 import * as Electron from 'electron'
-import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
+import MousePosition from '../mapper-annotated-scene/src/models/MousePosition'
 import mousePositionToGLSpace from '../util/mousePositionToGLSpace'
 import {GUI as DatGui, GUIParams} from 'dat.gui'
 import {AnnotationType} from '../mapper-annotated-scene/annotations/AnnotationType'
 import {AnnotationManager, OutputFormat} from '../mapper-annotated-scene/AnnotationManager'
 import {NeighborLocation, NeighborDirection} from '../mapper-annotated-scene/annotations/Lane'
-import Logger from '@/util/log'
+import Logger from '../util/log'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
 import {ImageManager} from './image/ImageManager'
 import {CalibratedImage} from './image/CalibratedImage'
-import toProps from '@/util/toProps'
-import {KeyboardEventHighlights} from '@/electron-ipc/Messages'
+import toProps from '../util/toProps'
+import {KeyboardEventHighlights} from '../electron-ipc/Messages'
 import * as React from 'react'
-import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
-import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
-import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
-import {FlyThroughState} from '@/mapper-annotated-scene/src/models/FlyThroughState'
-import AnnotatedSceneController from '@/mapper-annotated-scene/src/services/AnnotatedSceneController'
-import {Events} from '@/mapper-annotated-scene/src/models/Events'
-import {Layer as AnnotatedSceneLayer} from '@/mapper-annotated-scene/src/services/LayerManager'
+import {typedConnect} from '../mapper-annotated-scene/src/styles/Themed'
+import AnnotatedSceneActions from '../mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
+import StatusWindowState from '../mapper-annotated-scene/src/models/StatusWindowState'
+import {FlyThroughState} from '../mapper-annotated-scene/src/models/FlyThroughState'
+import AnnotatedSceneController from '../mapper-annotated-scene/src/services/AnnotatedSceneController'
+import {Events} from '../mapper-annotated-scene/src/models/Events'
+import {Layer as AnnotatedSceneLayer} from '../mapper-annotated-scene/src/services/LayerManager'
 import {v4 as UUID} from 'uuid'
-import Key from '@/mapper-annotated-scene/src/models/Key'
+import Key from '../mapper-annotated-scene/src/models/Key'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import {dateToString} from '../util/dateToString'
 import {scale3DToSpatialTileScale, spatialTileScaleToString} from '../mapper-annotated-scene/tile/ScaleUtil'
 import {ScaleProvider} from '../mapper-annotated-scene/tile/ScaleProvider'
-import {THREEColorValue} from '@/mapper-annotated-scene/src/THREEColorValue-type'
-import {hexStringToHexadecimal} from '@/util/Color'
-import {ConfigDefault} from '@/config/ConfigDefault'
-import Models = MapperProtos.mapper.models
+import {THREEColorValue} from '../mapper-annotated-scene/src/THREEColorValue-type'
+import {hexStringToHexadecimal} from '../util/Color'
+import {ConfigDefault} from '../config/ConfigDefault'
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -97,7 +96,7 @@ interface AnnotatorProps {
 	statusWindowState?: StatusWindowState
 	uiMenuVisible?: boolean
 	flyThroughState?: FlyThroughState
-	carPose?: Models.PoseMessage
+	carPose?: MapperProtos.mapper.models.PoseMessage
 	isLiveMode?: boolean
 	rendererSize?: Electron.Size
 	camera?: THREE.Camera

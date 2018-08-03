@@ -3,16 +3,15 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import UIMessage from 'mapper-annotated-scene/src/models/UIMessage'
-import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
+import UIMessage from '../../models/UIMessage'
+import StatusWindowState from '../../models/StatusWindowState'
 import * as MapperProtos from '@mapperai/mapper-models'
-import {CameraType} from '@/mapper-annotated-scene/src/models/CameraType'
+import {CameraType} from '../../models/CameraType'
 import {OrderedMap, Set} from 'immutable'
-import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
-import {RangeSearch} from '@/mapper-annotated-scene/tile-model/RangeSearch'
-import TileManagerBase from '@/mapper-annotated-scene/tile/TileManagerBase'
-import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
-import Models = MapperProtos.mapper.models
+import {SuperTile} from '../../../tile/SuperTile'
+import {RangeSearch} from '../../../tile-model/RangeSearch'
+import TileManagerBase from '../../../tile/TileManagerBase'
+import MousePosition from '../../models/MousePosition'
 
 /* eslint-disable-next-line no-use-before-define */
 export type InitialState = Partial<AnnotatedSceneState>
@@ -45,7 +44,7 @@ export default class AnnotatedSceneState {
 	uiMenuVisible: boolean
 	shouldAnimate: boolean
 
-	carPose: Models.PoseMessage
+	carPose: MapperProtos.mapper.models.PoseMessage
 	isCarInitialized: boolean
 	isInitialOriginSet: boolean
 

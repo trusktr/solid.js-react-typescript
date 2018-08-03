@@ -5,7 +5,7 @@
 
 import * as THREE from 'three'
 import * as utmConverter from 'utm'
-import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts'
+import AnnotatedSceneActions from './src/store/actions/AnnotatedSceneActions'
 
 /**
  * UtmCoordinateSystem has two states: it has a zone or not. Zone can be set one time.

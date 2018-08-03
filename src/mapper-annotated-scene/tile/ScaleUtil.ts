@@ -5,9 +5,8 @@
 
 import * as MapperProtos from '@mapperai/mapper-models'
 import {Scale3D} from '../geometry/Scale3D'
-import {SpatialTileScale} from '@/mapper-annotated-scene/grpc-compiled-protos/CoordinateReferenceSystem_pb'
+import {SpatialTileScale} from '../grpc-compiled-protos/CoordinateReferenceSystem_pb'
 import * as THREE from 'three'
-import Models = MapperProtos.mapper.models
 
 // tslint:disable:variable-name
 /* eslint-disable camelcase */
@@ -58,11 +57,11 @@ export function scale3DToSpatialTileScale(scale: Scale3D): SpatialTileScale | nu
 		return null
 }
 
-export function spatialTileScaleEnumToScaleVector(scale: Models.SpatialTileScale): THREE.Vector3 | null {
+export function spatialTileScaleEnumToScaleVector(scale: MapperProtos.mapper.models.SpatialTileScale): THREE.Vector3 | null {
 	switch (scale) {
-		case Models.SpatialTileScale._008_008_008:
+		case MapperProtos.mapper.models.SpatialTileScale._008_008_008:
 			return scaleVector_008_008_008
-		case Models.SpatialTileScale._010_010_010:
+		case MapperProtos.mapper.models.SpatialTileScale._010_010_010:
 			return scaleVector_010_010_010
 		default:
 			return null

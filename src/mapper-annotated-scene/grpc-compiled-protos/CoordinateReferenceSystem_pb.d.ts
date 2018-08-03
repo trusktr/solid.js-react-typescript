@@ -5,7 +5,7 @@
 
 import * as jspb from "google-protobuf";
 
-export class SpatialTileIndexMessage extends jspb.Message { 
+export class SpatialTileIndexMessage extends jspb.Message {
     getSrid(): SpatialReferenceSystemIdentifier;
     setSrid(value: SpatialReferenceSystemIdentifier): void;
 
@@ -26,8 +26,8 @@ export class SpatialTileIndexMessage extends jspb.Message {
 
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): SpatialTileIndexMessage.AsObject;
-    static toObject(includeInstance: boolean, msg: SpatialTileIndexMessage): SpatialTileIndexMessage.AsObject;
+    toObject(includeInstance?: boolean): SpatialTileIndexMessageObject;
+    static toObject(includeInstance: boolean, msg: SpatialTileIndexMessage): SpatialTileIndexMessageObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: SpatialTileIndexMessage, writer: jspb.BinaryWriter): void;
@@ -35,18 +35,16 @@ export class SpatialTileIndexMessage extends jspb.Message {
     static deserializeBinaryFromReader(message: SpatialTileIndexMessage, reader: jspb.BinaryReader): SpatialTileIndexMessage;
 }
 
-export namespace SpatialTileIndexMessage {
-    export type AsObject = {
-        srid: SpatialReferenceSystemIdentifier,
-        scale: SpatialTileScale,
-        xIndex: number,
-        yIndex: number,
-        zIndex: number,
-        spatialReferenceUpdated: number,
-    }
+export type SpatialTileIndexMessageObject = {
+    srid: SpatialReferenceSystemIdentifier,
+    scale: SpatialTileScale,
+    xIndex: number,
+    yIndex: number,
+    zIndex: number,
+    spatialReferenceUpdated: number,
 }
 
-export class GeographicPoint3DMessage extends jspb.Message { 
+export class GeographicPoint3DMessage extends jspb.Message {
     getSrid(): SpatialReferenceSystemIdentifier;
     setSrid(value: SpatialReferenceSystemIdentifier): void;
 
@@ -61,8 +59,8 @@ export class GeographicPoint3DMessage extends jspb.Message {
 
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): GeographicPoint3DMessage.AsObject;
-    static toObject(includeInstance: boolean, msg: GeographicPoint3DMessage): GeographicPoint3DMessage.AsObject;
+    toObject(includeInstance?: boolean): GeographicPoint3DMessageObject;
+    static toObject(includeInstance: boolean, msg: GeographicPoint3DMessage): GeographicPoint3DMessageObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: GeographicPoint3DMessage, writer: jspb.BinaryWriter): void;
@@ -70,13 +68,11 @@ export class GeographicPoint3DMessage extends jspb.Message {
     static deserializeBinaryFromReader(message: GeographicPoint3DMessage, reader: jspb.BinaryReader): GeographicPoint3DMessage;
 }
 
-export namespace GeographicPoint3DMessage {
-    export type AsObject = {
-        srid: SpatialReferenceSystemIdentifier,
-        x: number,
-        y: number,
-        z: number,
-    }
+export type GeographicPoint3DMessageObject = {
+    srid: SpatialReferenceSystemIdentifier,
+    x: number,
+    y: number,
+    z: number,
 }
 
 export enum SpatialReferenceSystemIdentifier {

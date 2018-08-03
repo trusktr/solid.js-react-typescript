@@ -5,12 +5,6 @@
 
 /* eslint-disable typescript/no-explicit-any */
 
-// eslint-disable-next-line typescript/no-explicit-any
-declare const __SAFFRON__: boolean
-
-// current working directory
-declare const __CWD: string
-
 // required by mapper-models/protobufjs
 type Long = number
 
@@ -22,4 +16,14 @@ type Long = number
 declare module '*.json' {
 	const value: any
 	export default value
+}
+
+declare module "*.scss" {
+	const value: any;
+	export default value;
+}
+
+declare module "*.css" {
+	const value: any;
+	export default value;
 }

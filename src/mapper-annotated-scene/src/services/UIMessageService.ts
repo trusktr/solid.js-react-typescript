@@ -3,10 +3,10 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import UIMessage from 'mapper-annotated-scene/src/models/UIMessage'
-import AnnotatedSceneState from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
-import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts'
-import {getAnnotatedSceneStoreState} from '@/mapper-annotated-scene/src/store/AppStore'
+import UIMessage from '../models/UIMessage'
+import AnnotatedSceneState from '../store/state/AnnotatedSceneState'
+import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
+import {getAnnotatedSceneStoreState} from '../store/AppStore'
 
 function expireMessages(): void {
 	const

@@ -4,12 +4,12 @@
  */
 
 import * as THREE from 'three'
-import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {TileIndex} from '../tile-model/TileIndex'
 import {PointCloudUtmTile} from './PointCloudUtmTile'
 import {CoordinateFrameType} from '../geometry/CoordinateFrame'
 import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
 import {threeDStepSize} from './Constant'
-import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
+import {SuperTile} from './SuperTile'
 
 export class PointCloudSuperTile extends SuperTile {
 	pointCloud: THREE.Points | null

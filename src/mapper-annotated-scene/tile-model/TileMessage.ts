@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three'
-import {TileContents} from '@/mapper-annotated-scene/tile-model/TileContents'
+import {TileContents} from '../tile-model/TileContents'
 
 export class TileMessage {
 	constructor(

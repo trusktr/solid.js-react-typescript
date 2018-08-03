@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three'
-import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {TileIndex} from '../tile-model/TileIndex'
 import {UtmTile} from './UtmTile'
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from '../geometry/CoordinateFrame'
 import {UtmCoordinateSystem} from '../UtmCoordinateSystem'

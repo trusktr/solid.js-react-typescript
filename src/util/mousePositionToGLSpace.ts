@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three'
-import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
+import MousePosition from '../mapper-annotated-scene/src/models/MousePosition'
 import * as Electron from 'electron'
 
 export default

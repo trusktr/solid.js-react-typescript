@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three'
-import {lineGeometry} from '@/mapper-annotated-scene/geometry/ThreeHelpers'
+import {lineGeometry} from '../../mapper-annotated-scene/geometry/ThreeHelpers'
 
 // The tip of the pyramid will work with a default PlaneGeometry which hasn't been rotated
 // out of the XY plane.

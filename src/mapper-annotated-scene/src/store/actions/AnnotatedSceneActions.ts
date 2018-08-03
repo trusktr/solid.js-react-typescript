@@ -4,21 +4,20 @@
  */
 
 import * as THREE from 'three'
-import config from '@/config'
+import config from '../../../../config'
 import {ActionFactory, ActionMessage, ActionReducer} from 'typedux'
-import AnnotatedSceneState, {InitialState, TransformMode} from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
-import UIMessage from 'mapper-annotated-scene/src/models/UIMessage'
+import AnnotatedSceneState, {InitialState, TransformMode} from '../state/AnnotatedSceneState'
+import UIMessage from '../../models/UIMessage'
 import * as MapperProtos from '@mapperai/mapper-models'
-import {CameraType} from '@/mapper-annotated-scene/src/models/CameraType'
+import {CameraType} from '../../models/CameraType'
 import {OrderedMap, Set} from 'immutable'
-import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
+import {SuperTile} from '../../../tile/SuperTile'
 import {RangeSearch} from '../../../tile-model/RangeSearch'
-import TileManagerBase from '@/mapper-annotated-scene/tile/TileManagerBase'
-import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
+import TileManagerBase from '../../../tile/TileManagerBase'
+import MousePosition from '../../models/MousePosition'
 import * as Electron from 'electron'
-import LocalStorage from '@/mapper-annotated-scene/LocalStorage'
-import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
-import Models = MapperProtos.mapper.models
+import LocalStorage from '../../../LocalStorage'
+import StatusWindowState from '../../models/StatusWindowState'
 
 const localStorage = new LocalStorage()
 
@@ -323,7 +322,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	}
 
 	@ActionReducer()
-	setCarPose(pose: Models.PoseMessage) {
+	setCarPose(pose: MapperProtos.mapper.models.PoseMessage) {
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, carPose: pose,
 		})

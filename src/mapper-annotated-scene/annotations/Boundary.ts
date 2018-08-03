@@ -13,7 +13,7 @@ import {
 } from './AnnotationBase'
 import {AnnotationType} from './AnnotationType'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
-import Logger from '@/util/log'
+import Logger from '../../util/log'
 
 const log = Logger(__filename)
 
@@ -51,11 +51,11 @@ MapBoundaryColorToHex[BoundaryColor.NONE.toString()] = new THREE.Color(0x00ffff)
 MapBoundaryColorToHex[BoundaryColor.OTHER.toString()] = new THREE.Color(0x00ffff)
 
 // Some variables used for rendering
-namespace BoundaryRenderingProperties {
-	export const markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
-	export const activeMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xf0d06e)})
-	export const inactiveMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0x00ffff)})
-}
+const BoundaryRenderingProperties = new (class {
+	readonly markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
+	readonly activeMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xf0d06e)})
+	readonly inactiveMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0x00ffff)})
+})
 
 export interface BoundaryJsonInputInterface extends AnnotationJsonInputInterface {
 	boundaryType: string

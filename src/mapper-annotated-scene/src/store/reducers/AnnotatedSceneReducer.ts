@@ -6,7 +6,7 @@
 /* eslint-disable typescript/no-explicit-any */
 
 import {ActionMessage, DefaultLeafReducer} from 'typedux'
-import AnnotatedSceneState from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
+import AnnotatedSceneState from '../state/AnnotatedSceneState'
 
 export class AnnotatedSceneReducer extends DefaultLeafReducer<AnnotatedSceneState, ActionMessage<AnnotatedSceneState>> {
 	constructor() {

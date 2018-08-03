@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {Annotation} from '@/mapper-annotated-scene/annotations/AnnotationBase'
+import {Annotation} from '../annotations/AnnotationBase'
 
 export interface TileContents {}
 export class NullTileContents implements TileContents {}

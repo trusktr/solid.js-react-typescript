@@ -6,14 +6,14 @@
 import * as jspb from "google-protobuf";
 import * as CoordinateReferenceSystem_pb from "./CoordinateReferenceSystem_pb";
 
-export class PingRequest extends jspb.Message { 
+export class PingRequest extends jspb.Message {
     getRequestId(): string;
     setRequestId(value: string): void;
 
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): PingRequest.AsObject;
-    static toObject(includeInstance: boolean, msg: PingRequest): PingRequest.AsObject;
+    toObject(includeInstance?: boolean): PingRequestObject;
+    static toObject(includeInstance: boolean, msg: PingRequest): PingRequestObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: PingRequest, writer: jspb.BinaryWriter): void;
@@ -21,13 +21,11 @@ export class PingRequest extends jspb.Message {
     static deserializeBinaryFromReader(message: PingRequest, reader: jspb.BinaryReader): PingRequest;
 }
 
-export namespace PingRequest {
-    export type AsObject = {
-        requestId: string,
-    }
+export type PingRequestObject = {
+    requestId: string,
 }
 
-export class SearchTilesRequest extends jspb.Message { 
+export class SearchTilesRequest extends jspb.Message {
 
     hasRangeSearch(): boolean;
     clearRangeSearch(): void;
@@ -49,11 +47,11 @@ export class SearchTilesRequest extends jspb.Message {
     setGetIfEmpty(value: boolean): void;
 
 
-    getSpatialSearchCase(): SearchTilesRequest.SpatialSearchCase;
+    getSpatialSearchCase(): SpatialSearchCase;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): SearchTilesRequest.AsObject;
-    static toObject(includeInstance: boolean, msg: SearchTilesRequest): SearchTilesRequest.AsObject;
+    toObject(includeInstance?: boolean): SearchTilesRequestObject;
+    static toObject(includeInstance: boolean, msg: SearchTilesRequest): SearchTilesRequestObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: SearchTilesRequest, writer: jspb.BinaryWriter): void;
@@ -61,26 +59,22 @@ export class SearchTilesRequest extends jspb.Message {
     static deserializeBinaryFromReader(message: SearchTilesRequest, reader: jspb.BinaryReader): SearchTilesRequest;
 }
 
-export namespace SearchTilesRequest {
-    export type AsObject = {
-        rangeSearch?: RangeSearchMessage.AsObject,
-        radiusSearch?: RadiusSearchMessage.AsObject,
-        layerIdsList: Array<string>,
-        getIfEmpty: boolean,
-    }
-
-    export enum SpatialSearchCase {
-        SPATIALSEARCH_NOT_SET = 0,
-    
-    RANGE_SEARCH = 1,
-
-    RADIUS_SEARCH = 2,
-
-    }
-
+export type SearchTilesRequestObject = {
+    rangeSearch?: RangeSearchMessageObject,
+    radiusSearch?: RadiusSearchMessageObject,
+    layerIdsList: Array<string>,
+    getIfEmpty: boolean,
 }
 
-export class SearchTilesResponse extends jspb.Message { 
+export enum SpatialSearchCase {
+	SPATIALSEARCH_NOT_SET = 0,
+
+	RANGE_SEARCH = 1,
+
+	RADIUS_SEARCH = 2,
+}
+
+export class SearchTilesResponse extends jspb.Message {
     clearTileInstancesList(): void;
     getTileInstancesList(): Array<TileInstanceMessage>;
     setTileInstancesList(value: Array<TileInstanceMessage>): void;
@@ -88,8 +82,8 @@ export class SearchTilesResponse extends jspb.Message {
 
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): SearchTilesResponse.AsObject;
-    static toObject(includeInstance: boolean, msg: SearchTilesResponse): SearchTilesResponse.AsObject;
+    toObject(includeInstance?: boolean): SearchTilesResponseObject;
+    static toObject(includeInstance: boolean, msg: SearchTilesResponse): SearchTilesResponseObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: SearchTilesResponse, writer: jspb.BinaryWriter): void;
@@ -97,13 +91,11 @@ export class SearchTilesResponse extends jspb.Message {
     static deserializeBinaryFromReader(message: SearchTilesResponse, reader: jspb.BinaryReader): SearchTilesResponse;
 }
 
-export namespace SearchTilesResponse {
-    export type AsObject = {
-        tileInstancesList: Array<TileInstanceMessage.AsObject>,
-    }
+export type SearchTilesResponseObject = {
+    tileInstancesList: Array<TileInstanceMessageObject>,
 }
 
-export class TileInstanceMessage extends jspb.Message { 
+export class TileInstanceMessage extends jspb.Message {
 
     hasId(): boolean;
     clearId(): void;
@@ -119,8 +111,8 @@ export class TileInstanceMessage extends jspb.Message {
 
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): TileInstanceMessage.AsObject;
-    static toObject(includeInstance: boolean, msg: TileInstanceMessage): TileInstanceMessage.AsObject;
+    toObject(includeInstance?: boolean): TileInstanceMessageObject;
+    static toObject(includeInstance: boolean, msg: TileInstanceMessage): TileInstanceMessageObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: TileInstanceMessage, writer: jspb.BinaryWriter): void;
@@ -128,16 +120,14 @@ export class TileInstanceMessage extends jspb.Message {
     static deserializeBinaryFromReader(message: TileInstanceMessage, reader: jspb.BinaryReader): TileInstanceMessage;
 }
 
-export namespace TileInstanceMessage {
-    export type AsObject = {
-        id?: CoordinateReferenceSystem_pb.SpatialTileIndexMessage.AsObject,
-        version: number,
+export type TileInstanceMessageObject = {
+    id?: CoordinateReferenceSystem_pb.SpatialTileIndexMessageObject,
+    version: number,
 
-        layersMap: Array<[string, string]>,
-    }
+    layersMap: Array<[string, string]>,
 }
 
-export class RangeSearchMessage extends jspb.Message { 
+export class RangeSearchMessage extends jspb.Message {
 
     hasCorner1(): boolean;
     clearCorner1(): void;
@@ -155,8 +145,8 @@ export class RangeSearchMessage extends jspb.Message {
 
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): RangeSearchMessage.AsObject;
-    static toObject(includeInstance: boolean, msg: RangeSearchMessage): RangeSearchMessage.AsObject;
+    toObject(includeInstance?: boolean): RangeSearchMessageObject;
+    static toObject(includeInstance: boolean, msg: RangeSearchMessage): RangeSearchMessageObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: RangeSearchMessage, writer: jspb.BinaryWriter): void;
@@ -164,15 +154,13 @@ export class RangeSearchMessage extends jspb.Message {
     static deserializeBinaryFromReader(message: RangeSearchMessage, reader: jspb.BinaryReader): RangeSearchMessage;
 }
 
-export namespace RangeSearchMessage {
-    export type AsObject = {
-        corner1?: CoordinateReferenceSystem_pb.GeographicPoint3DMessage.AsObject,
-        corner2?: CoordinateReferenceSystem_pb.GeographicPoint3DMessage.AsObject,
-        scale: CoordinateReferenceSystem_pb.SpatialTileScale,
-    }
+export type RangeSearchMessageObject = {
+    corner1?: CoordinateReferenceSystem_pb.GeographicPoint3DMessageObject,
+    corner2?: CoordinateReferenceSystem_pb.GeographicPoint3DMessageObject,
+    scale: CoordinateReferenceSystem_pb.SpatialTileScale,
 }
 
-export class RadiusSearchMessage extends jspb.Message { 
+export class RadiusSearchMessage extends jspb.Message {
 
     hasCenterPoint(): boolean;
     clearCenterPoint(): void;
@@ -187,8 +175,8 @@ export class RadiusSearchMessage extends jspb.Message {
 
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): RadiusSearchMessage.AsObject;
-    static toObject(includeInstance: boolean, msg: RadiusSearchMessage): RadiusSearchMessage.AsObject;
+    toObject(includeInstance?: boolean): RadiusSearchMessageObject;
+    static toObject(includeInstance: boolean, msg: RadiusSearchMessage): RadiusSearchMessageObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: RadiusSearchMessage, writer: jspb.BinaryWriter): void;
@@ -196,15 +184,13 @@ export class RadiusSearchMessage extends jspb.Message {
     static deserializeBinaryFromReader(message: RadiusSearchMessage, reader: jspb.BinaryReader): RadiusSearchMessage;
 }
 
-export namespace RadiusSearchMessage {
-    export type AsObject = {
-        centerPoint?: CoordinateReferenceSystem_pb.GeographicPoint3DMessage.AsObject,
-        radius: number,
-        scale: CoordinateReferenceSystem_pb.SpatialTileScale,
-    }
+export type RadiusSearchMessageObject = {
+    centerPoint?: CoordinateReferenceSystem_pb.GeographicPoint3DMessageObject,
+    radius: number,
+    scale: CoordinateReferenceSystem_pb.SpatialTileScale,
 }
 
-export class GetTilesRequest extends jspb.Message { 
+export class GetTilesRequest extends jspb.Message {
     clearUrlsList(): void;
     getUrlsList(): Array<string>;
     setUrlsList(value: Array<string>): void;
@@ -212,8 +198,8 @@ export class GetTilesRequest extends jspb.Message {
 
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): GetTilesRequest.AsObject;
-    static toObject(includeInstance: boolean, msg: GetTilesRequest): GetTilesRequest.AsObject;
+    toObject(includeInstance?: boolean): GetTilesRequestObject;
+    static toObject(includeInstance: boolean, msg: GetTilesRequest): GetTilesRequestObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: GetTilesRequest, writer: jspb.BinaryWriter): void;
@@ -221,13 +207,11 @@ export class GetTilesRequest extends jspb.Message {
     static deserializeBinaryFromReader(message: GetTilesRequest, reader: jspb.BinaryReader): GetTilesRequest;
 }
 
-export namespace GetTilesRequest {
-    export type AsObject = {
-        urlsList: Array<string>,
-    }
+export type GetTilesRequestObject = {
+    urlsList: Array<string>
 }
 
-export class GetTilesResponse extends jspb.Message { 
+export class GetTilesResponse extends jspb.Message {
     clearTileContentsList(): void;
     getTileContentsList(): Array<TileContentsMessage>;
     setTileContentsList(value: Array<TileContentsMessage>): void;
@@ -235,8 +219,8 @@ export class GetTilesResponse extends jspb.Message {
 
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): GetTilesResponse.AsObject;
-    static toObject(includeInstance: boolean, msg: GetTilesResponse): GetTilesResponse.AsObject;
+    toObject(includeInstance?: boolean): GetTilesResponseObject;
+    static toObject(includeInstance: boolean, msg: GetTilesResponse): GetTilesResponseObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: GetTilesResponse, writer: jspb.BinaryWriter): void;
@@ -244,13 +228,11 @@ export class GetTilesResponse extends jspb.Message {
     static deserializeBinaryFromReader(message: GetTilesResponse, reader: jspb.BinaryReader): GetTilesResponse;
 }
 
-export namespace GetTilesResponse {
-    export type AsObject = {
-        tileContentsList: Array<TileContentsMessage.AsObject>,
-    }
+export type GetTilesResponseObject = {
+    tileContentsList: Array<TileContentsMessageObject>,
 }
 
-export class TileContentsMessage extends jspb.Message { 
+export class TileContentsMessage extends jspb.Message {
     getUrl(): string;
     setUrl(value: string): void;
 
@@ -261,8 +243,8 @@ export class TileContentsMessage extends jspb.Message {
 
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): TileContentsMessage.AsObject;
-    static toObject(includeInstance: boolean, msg: TileContentsMessage): TileContentsMessage.AsObject;
+    toObject(includeInstance?: boolean): TileContentsMessageObject;
+    static toObject(includeInstance: boolean, msg: TileContentsMessage): TileContentsMessageObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
     static serializeBinaryToWriter(message: TileContentsMessage, writer: jspb.BinaryWriter): void;
@@ -270,9 +252,7 @@ export class TileContentsMessage extends jspb.Message {
     static deserializeBinaryFromReader(message: TileContentsMessage, reader: jspb.BinaryReader): TileContentsMessage;
 }
 
-export namespace TileContentsMessage {
-    export type AsObject = {
-        url: string,
-        contents: Uint8Array | string,
-    }
+export type TileContentsMessageObject = {
+    url: string,
+    contents: Uint8Array | string,
 }

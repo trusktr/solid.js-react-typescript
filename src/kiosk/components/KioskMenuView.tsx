@@ -4,14 +4,11 @@
  */
 
 import * as React from 'react'
-// TODO JOE don't use webpack-specific syntax in the import statements
-import '!!css-loader!jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
-import '@/annotator/style.scss'
-import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
-import AnnotatedSceneState from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
+import {typedConnect} from '../../mapper-annotated-scene/src/styles/Themed'
+import AnnotatedSceneState from '../../mapper-annotated-scene/src/store/state/AnnotatedSceneState'
 import {createStructuredSelector} from 'reselect'
-import AnnotatedSceneActions from 'mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts'
-import FlyThroughManager from '@/kiosk/components/FlyThroughManager'
+import AnnotatedSceneActions from '../../mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
+import FlyThroughManager from '../../kiosk/components/FlyThroughManager'
 
 interface KioskViewProps {
 	isLiveMode?: boolean

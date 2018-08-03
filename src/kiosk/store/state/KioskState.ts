@@ -24,5 +24,5 @@
 //   flyThroughState: FlyThroughState
 //   isCarInitialized: boolean
 //   isInitialOriginSet: boolean
-//   carPose: Models.PoseMessage
+//   carPose: MapperProtos.mapper.models.PoseMessage
 // }

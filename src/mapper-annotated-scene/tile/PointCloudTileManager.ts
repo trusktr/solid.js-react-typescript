@@ -3,30 +3,29 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import config from '@/config'
+import config from '../../config'
 import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import {threeDStepSize} from './Constant'
 import {baseGeometryTileMessageToTileMessage} from './Conversion'
-import {PointCloudTileContents} from '@/mapper-annotated-scene/tile-model/TileContents'
-import {TileMessage} from '@/mapper-annotated-scene/tile-model/TileMessage'
+import {PointCloudTileContents} from '../tile-model/TileContents'
+import {TileMessage} from '../tile-model/TileMessage'
 import {UtmTile} from './UtmTile'
 import {SuperTile} from './SuperTile'
 import {PointCloudUtmTile} from './PointCloudUtmTile'
 import {PointCloudSuperTile} from './PointCloudSuperTile'
 import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from '../geometry/CoordinateFrame'
-import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {TileIndex} from '../tile-model/TileIndex'
 import {TileServiceClient} from './TileServiceClient'
-import {TileInstance} from '@/mapper-annotated-scene/tile-model/TileInstance'
-import Logger from '@/util/log'
-import {TileManager, TileManagerConfig} from '@/mapper-annotated-scene/tile/TileManager'
+import {TileInstance} from '../tile-model/TileInstance'
+import Logger from '../../util/log'
+import {TileManager, TileManagerConfig} from './TileManager'
 import {OrderedMap} from 'immutable'
-import {ScaleProvider} from '@/mapper-annotated-scene/tile/ScaleProvider'
+import {ScaleProvider} from './ScaleProvider'
 import {EventEmitter} from 'events'
-import StatusWindowActions from '@/mapper-annotated-scene/StatusWindowActions'
-import {StatusKey} from '@/mapper-annotated-scene/src/models/StatusKey'
-import Models = MapperProtos.mapper.models
+import StatusWindowActions from '../StatusWindowActions'
+import {StatusKey} from '../src/models/StatusKey'
 
 const log = Logger(__filename)
 const nullContents = new PointCloudTileContents([], [])
@@ -137,7 +136,7 @@ export class PointCloudTileManager extends TileManager {
 		let msg
 
 		try {
-			msg = Models.BaseGeometryTileMessage.decode(buffer)
+			msg = MapperProtos.mapper.models.BaseGeometryTileMessage.decode(buffer)
 		} catch (err) {
 			throw Error('protobuf read failed: ' + err.message)
 		}

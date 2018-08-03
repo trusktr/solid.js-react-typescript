@@ -25,20 +25,22 @@ export enum ConnectionType {
 	OTHER
 }
 
-namespace ConnectionRenderingProperties {
-	export const directionGeometry = new THREE.Geometry()
-	directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, 0.5))
-	directionGeometry.vertices.push(new THREE.Vector3(0.25, 0.25, 0))
-	directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, -0.5))
-	directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
-	directionGeometry.computeFaceNormals()
+const ConnectionRenderingProperties = new (class {
+	readonly directionGeometry = new THREE.Geometry()
+	readonly directionGeometryMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xff0000), side: THREE.DoubleSide})
+	readonly markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
+	readonly activeMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color('orange'), wireframe: true})
+	readonly conflictMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xff0000), transparent: true, opacity: 0.4, side: THREE.DoubleSide})
+	readonly inactiveMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0x443333), transparent: true, opacity: 0.4, side: THREE.DoubleSide})
 
-	export const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xff0000), side: THREE.DoubleSide})
-	export const markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
-	export const activeMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color('orange'), wireframe: true})
-	export const conflictMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xff0000), transparent: true, opacity: 0.4, side: THREE.DoubleSide})
-	export const inactiveMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0x443333), transparent: true, opacity: 0.4, side: THREE.DoubleSide})
-}
+	constructor() {
+		this.directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, 0.5))
+		this.directionGeometry.vertices.push(new THREE.Vector3(0.25, 0.25, 0))
+		this.directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, -0.5))
+		this.directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
+		this.directionGeometry.computeFaceNormals()
+	}
+})
 
 export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterface {
 	connectionType: string

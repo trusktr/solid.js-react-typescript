@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three'
-import * as $ from 'jquery'
+import $ from 'jquery'
 import * as lodash from 'lodash'
 import {
 	AnnotationUuid, Annotation, AnnotationRenderingProperties,
@@ -13,7 +13,7 @@ import {
 } from './AnnotationBase'
 import {AnnotationType} from './AnnotationType'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
-import Logger from '@/util/log'
+import Logger from '../../util/log'
 
 const log = Logger(__filename)
 const directionGeometry = new THREE.Geometry()

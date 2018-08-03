@@ -4,22 +4,20 @@
  */
 
 import * as React from 'react'
-import '!!css-loader!jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
-import '@/annotator/style.scss'
-import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
-import AnnotatedSceneState from '@/mapper-annotated-scene/src/store/state/AnnotatedSceneState'
+import {typedConnect} from '../../mapper-annotated-scene/src/styles/Themed'
+import AnnotatedSceneState from '../../mapper-annotated-scene/src/store/state/AnnotatedSceneState'
 import {createStructuredSelector} from 'reselect'
-import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
+import StatusWindowState from '../../mapper-annotated-scene/src/models/StatusWindowState'
 import {getValue} from 'typeguard'
-import {StatusKey} from '@/mapper-annotated-scene/src/models/StatusKey'
-import StatusWindowActions from '@/mapper-annotated-scene/StatusWindowActions'
+import {StatusKey} from '../../mapper-annotated-scene/src/models/StatusKey'
+import StatusWindowActions from '../../mapper-annotated-scene/StatusWindowActions'
 import {
 	LocationServerStatusClient,
 	LocationServerStatusLevel,
-} from '@/kiosk/clients/LocationServerStatusClient'
-import Logger from '@/util/log'
+} from '../../kiosk/clients/LocationServerStatusClient'
+import Logger from '../../util/log'
 import {EventEmitter} from 'events'
-import {Events} from '@/mapper-annotated-scene/src/models/Events'
+import {Events} from '../../mapper-annotated-scene/src/models/Events'
 
 const log = Logger(__filename)
 

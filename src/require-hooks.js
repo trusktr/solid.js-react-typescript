@@ -9,6 +9,7 @@ require("@babel/register")({
 	ignore: [
 
 		// When a file path matches this regex then it is **not** compiled
+		// TODO JOE when we make mapper-annotated-scene a library in node_modules, we need to handle it.
 		/node_modules/,
 
 		// The file's path is also passed to any ignore functions. It will

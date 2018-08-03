@@ -7,11 +7,10 @@ import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import {spatialTileScaleEnumToScaleVector} from './ScaleUtil'
-import {PointCloudTileContents} from '@/mapper-annotated-scene/tile-model/TileContents'
-import {TileMessage} from '@/mapper-annotated-scene/tile-model/TileMessage'
-import Models = MapperProtos.mapper.models
+import {PointCloudTileContents} from '../tile-model/TileContents'
+import {TileMessage} from '../tile-model/TileMessage'
 
-export function baseGeometryTileMessageToTileMessage(msg: Models.BaseGeometryTileMessage): TileMessage {
+export function baseGeometryTileMessageToTileMessage(msg: MapperProtos.mapper.models.BaseGeometryTileMessage): TileMessage {
 	const spatialIndex = msg.spatialIndex
 
 	if (
@@ -59,7 +58,7 @@ export function baseGeometryTileMessageToTileMessage(msg: Models.BaseGeometryTil
 const firstUtmZone = 6
 const utmZoneCount = 60
 
-function sridEnumToUtmZone(srid: Models.SpatialReferenceSystemIdentifier): [number, boolean] | null {
+function sridEnumToUtmZone(srid: MapperProtos.mapper.models.SpatialReferenceSystemIdentifier): [number, boolean] | null {
 	if (srid < firstUtmZone || srid >= firstUtmZone + utmZoneCount * 2) {
 		return null
 	} else {

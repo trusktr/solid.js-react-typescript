@@ -13,7 +13,7 @@ import {
 } from './AnnotationBase'
 import {AnnotationType} from './AnnotationType'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
-import Logger from '@/util/log'
+import Logger from '../../util/log'
 
 const log = Logger(__filename)
 const defaultLabel = 'NEW_TERRITORY'

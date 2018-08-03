@@ -8,7 +8,7 @@ import * as THREE from 'three'
 import * as UUID from 'uuid'
 import {AnnotationType} from './AnnotationType'
 import {isNumber} from 'util' // eslint-disable-line node/no-deprecated-api
-import Logger from '@/util/log'
+import Logger from '../../util/log'
 
 const log = Logger(__filename)
 
@@ -51,10 +51,10 @@ export interface AnnotationJsonOutputInterface {
 	uuid: AnnotationUuid
 	markers: Array<Object>
 }
-export namespace AnnotationRenderingProperties {
-	export const markerPointGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2)
-	export const markerHighlightPointGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
-}
+export const AnnotationRenderingProperties = new (class {
+	readonly markerPointGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2)
+	readonly markerHighlightPointGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
+})
 export abstract class Annotation {
 	abstract annotationType: AnnotationType // Its type, expressed as an enumeration for convenience
 	abstract geometryType: AnnotationGeometryType

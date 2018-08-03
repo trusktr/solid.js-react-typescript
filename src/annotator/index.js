@@ -3,4 +3,5 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import '@/annotator/annotator-image-lightbox/LightboxWindowUI'
+require('../require-hooks')
+module.exports = require( './entry' )

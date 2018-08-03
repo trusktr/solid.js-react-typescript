@@ -4,10 +4,8 @@
  */
 
 import * as React from 'react'
-import '!!css-loader!jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
-import './style.scss'
-import initUIControl from '@/annotator/annotator-control-ui/UIControl'
-import Help from '@/annotator/components/Help'
+import initUIControl from '../annotator/annotator-control-ui/UIControl'
+import Help from '../annotator/components/Help'
 
 interface AnnotatorMenuViewProps {
 	uiMenuVisible: boolean

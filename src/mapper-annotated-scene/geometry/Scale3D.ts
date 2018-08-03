@@ -5,9 +5,9 @@
 
 import * as THREE from 'three'
 import {vsprintf} from 'sprintf-js'
-import config from '@/config'
-import {isTupleOfNumbers} from '@/util/Validation'
-import {TileIndexDimension} from '@/types/TypeAlias'
+import config from '../../config'
+import {isTupleOfNumbers} from '../../util/Validation'
+import {TileIndexDimension} from '../../types/TypeAlias'
 
 const defaultSeparator = '_' // for generating serializable ID strings
 

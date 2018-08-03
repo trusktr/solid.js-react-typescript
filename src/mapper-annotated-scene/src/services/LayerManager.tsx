@@ -5,9 +5,9 @@
 
 import * as React from 'react'
 import * as lodash from 'lodash'
-import Logger from '@/util/log'
+import Logger from '../../../util/log'
 import EventEmitter from 'events'
-import {Events} from '@/mapper-annotated-scene/src/models/Events'
+import {Events} from '../models/Events'
 
 const log = Logger(__filename)
 

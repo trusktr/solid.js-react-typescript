@@ -5,18 +5,23 @@
 
 import * as React from 'react'
 import * as THREE from 'three'
-import * as carModelOBJ from '@/annotator-assets/models/BMW_X5_4.obj'
 import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame,
-} from '@/mapper-annotated-scene/geometry/CoordinateFrame'
-import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
+} from '../../mapper-annotated-scene/geometry/CoordinateFrame'
+import AnnotatedSceneActions from '../../mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
 import * as MapperProtos from '@mapperai/mapper-models'
-import AnnotatedSceneController from '@/mapper-annotated-scene/src/services/AnnotatedSceneController'
-import {createStructuredSelector} from 'reselect'
-import AnnotatedSceneState from '@/mapper-annotated-scene/src/store/state/AnnotatedSceneState'
-import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
-import Models = MapperProtos.mapper.models
+import AnnotatedSceneController from '../../mapper-annotated-scene/src/services/AnnotatedSceneController'
+import {typedConnect} from '../../mapper-annotated-scene/src/styles/Themed'
+import getFileUrl from '../../util/getFileUrl'
+import toProps from '../../util/toProps'
+
+// TODO JOE
+// if (webpack) {
+	// import * as carModelOBJ from '../../annotator-assets/models/BMW_X5_4.obj'
+// } else {
+	const carModelOBJ = getFileUrl('../../annotator-assets/models/BMW_X5_4.obj')
+// }
 
 export interface CarManagerProps {
 	annotatedScene: AnnotatedSceneController
@@ -26,9 +31,9 @@ export interface CarManagerState {
 	carModel: THREE.Object3D
 	rotationQuaternion: THREE.Quaternion
 }
-@typedConnect(createStructuredSelector({
-	isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
-	}))
+@typedConnect(toProps(
+	'isCarInitialized',
+))
 export default class CarManager extends React.Component<CarManagerProps, CarManagerState> {
 	constructor(props: CarManagerProps) {
 		super(props)
@@ -93,7 +98,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		})
 	}
 
-	updateCarWithPose(pose: Models.PoseMessage): void {
+	updateCarWithPose(pose: MapperProtos.mapper.models.PoseMessage): void {
 		const inputPosition = new THREE.Vector3(pose.x, pose.y, pose.z)
 		const standardPosition = convertToStandardCoordinateFrame(inputPosition, CoordinateFrameType.STANDARD)
 		const positionThreeJs = this.props.annotatedScene.utmCoordinateSystem.utmToThreeJs(standardPosition.x, standardPosition.y, standardPosition.z)

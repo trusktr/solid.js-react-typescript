@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import AnnotatedSceneState from '@/mapper-annotated-scene/src/store/state/AnnotatedSceneState'
+import AnnotatedSceneState from '../mapper-annotated-scene/src/store/state/AnnotatedSceneState'
 import {createStructuredSelector} from 'reselect'
 
 /* eslint-disable typescript/explicit-function-return-type */

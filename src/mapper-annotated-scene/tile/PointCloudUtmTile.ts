@@ -3,10 +3,10 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {UtmTile} from '@/mapper-annotated-scene/tile/UtmTile'
-import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {UtmTile} from './UtmTile'
+import {TileIndex} from '../tile-model/TileIndex'
 import {threeDStepSize} from './Constant'
-import {PointCloudTileContents} from '@/mapper-annotated-scene/tile-model/TileContents'
+import {PointCloudTileContents} from '../tile-model/TileContents'
 
 const minPointsToDefineGround = 20 // arbitrary setting to avoid creating ground loadTileGroundPlanes for sparse tiles
 const maxPointsToDefineGround = 1000 // arbitrary setting to shorten the estimation for very dense tiles

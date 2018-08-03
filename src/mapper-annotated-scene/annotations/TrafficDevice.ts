@@ -14,13 +14,26 @@ import {
 import {AnnotationType} from './AnnotationType'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import {QuaternionJsonInterface} from '../geometry/ThreeHelpers'
-import Logger from '@/util/log'
-import * as rygFrontUrl from '../../annotator-assets/images/TrafficDevice/ryg_front.png'
-import * as rygBackUrl from '../../annotator-assets/images/TrafficDevice/ryg_back.png'
-import * as stopFrontUrl from '../../annotator-assets/images/TrafficDevice/stop_front.png'
-import * as stopBackUrl from '../../annotator-assets/images/TrafficDevice/stop_back.png'
-import * as yieldFrontUrl from '../../annotator-assets/images/TrafficDevice/yield_front.png'
-import * as yieldBackUrl from '../../annotator-assets/images/TrafficDevice/yield_back.png'
+import Logger from '../../util/log'
+import getFileUrl from '../../util/getFileUrl'
+
+// TODO JOE
+// if (webpack) {
+	// import * as rygFrontUrl from '../../annotator-assets/images/TrafficDevice/ryg_front.png'
+	// import * as rygBackUrl from '../../annotator-assets/images/TrafficDevice/ryg_back.png'
+	// import * as stopFrontUrl from '../../annotator-assets/images/TrafficDevice/stop_front.png'
+	// import * as stopBackUrl from '../../annotator-assets/images/TrafficDevice/stop_back.png'
+	// import * as yieldFrontUrl from '../../annotator-assets/images/TrafficDevice/yield_front.png'
+	// import * as yieldBackUrl from '../../annotator-assets/images/TrafficDevice/yield_back.png'
+	// we can use `require()`, or otherwise ass a babel-register hook so import works in both cases
+// } else {
+	const rygFrontUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/ryg_front.png' )
+	const rygBackUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/ryg_back.png' )
+	const stopFrontUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/stop_front.png' )
+	const stopBackUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/stop_back.png' )
+	const yieldFrontUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/yield_front.png' )
+	const yieldBackUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/yield_back.png' )
+// }
 
 const log = Logger(__filename)
 
@@ -39,48 +52,51 @@ interface MaterialFaces {
 }
 
 // Some variables used for rendering
-namespace TrafficDeviceRenderingProperties {
-	export const markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
-	export const defaultMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0x008800), side: THREE.DoubleSide})
-	export const defaultContourMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0x00ff00), visible: false})
-	export const activeContourMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xffff00), linewidth: 2})
-	export const normalMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xff00ff)})
+const TrafficDeviceRenderingProperties = new (class {
+	readonly markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
+	readonly defaultMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0x008800), side: THREE.DoubleSide})
+	readonly defaultContourMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0x00ff00), visible: false})
+	readonly activeContourMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xffff00), linewidth: 2})
+	readonly normalMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xff00ff)})
 
 	// Set a default front and back face for each device type.
-	export const deviceFaceMaterials: MaterialFaces[] = []
-	for (const i in TrafficDeviceType) {
-		if (parseInt(i, 10) >= 0) {
-			deviceFaceMaterials[i] = {
-				front: defaultMaterial,
-				back: defaultMaterial,
+	readonly deviceFaceMaterials: MaterialFaces[] = []
+
+	constructor() {
+		for (const i in TrafficDeviceType) {
+			if (parseInt(i, 10) >= 0) {
+				this.deviceFaceMaterials[i] = {
+					front: this.defaultMaterial,
+					back: this.defaultMaterial,
+				}
 			}
 		}
-	}
 
-	// Load custom faces if we have them.
-	const tl = new THREE.TextureLoader()
-	deviceFaceMaterials[TrafficDeviceType.RYG_LEFT_ARROW_LIGHT] = {
-		front: new THREE.MeshBasicMaterial({map: tl.load(rygFrontUrl), side: THREE.FrontSide}),
-		back: new THREE.MeshBasicMaterial({map: tl.load(rygBackUrl), side: THREE.BackSide}),
-	}
-	deviceFaceMaterials[TrafficDeviceType.RYG_LIGHT] = {
-		front: new THREE.MeshBasicMaterial({map: tl.load(rygFrontUrl), side: THREE.FrontSide}),
-		back: new THREE.MeshBasicMaterial({map: tl.load(rygBackUrl), side: THREE.BackSide}),
-	}
-	deviceFaceMaterials[TrafficDeviceType.STOP] = {
-		front: new THREE.MeshBasicMaterial({map: tl.load(stopFrontUrl), side: THREE.FrontSide}),
-		back: new THREE.MeshBasicMaterial({map: tl.load(stopBackUrl), side: THREE.BackSide}),
-	}
-	deviceFaceMaterials[TrafficDeviceType.YIELD] = {
-		front: new THREE.MeshBasicMaterial({map: tl.load(yieldFrontUrl), side: THREE.FrontSide}),
-		back: new THREE.MeshBasicMaterial({map: tl.load(yieldBackUrl), side: THREE.BackSide}),
-	}
+		// Load custom faces if we have them.
+		const tl = new THREE.TextureLoader()
+		this.deviceFaceMaterials[TrafficDeviceType.RYG_LEFT_ARROW_LIGHT] = {
+			front: new THREE.MeshBasicMaterial({map: tl.load(rygFrontUrl), side: THREE.FrontSide}),
+			back: new THREE.MeshBasicMaterial({map: tl.load(rygBackUrl), side: THREE.BackSide}),
+		}
+		this.deviceFaceMaterials[TrafficDeviceType.RYG_LIGHT] = {
+			front: new THREE.MeshBasicMaterial({map: tl.load(rygFrontUrl), side: THREE.FrontSide}),
+			back: new THREE.MeshBasicMaterial({map: tl.load(rygBackUrl), side: THREE.BackSide}),
+		}
+		this.deviceFaceMaterials[TrafficDeviceType.STOP] = {
+			front: new THREE.MeshBasicMaterial({map: tl.load(stopFrontUrl), side: THREE.FrontSide}),
+			back: new THREE.MeshBasicMaterial({map: tl.load(stopBackUrl), side: THREE.BackSide}),
+		}
+		this.deviceFaceMaterials[TrafficDeviceType.YIELD] = {
+			front: new THREE.MeshBasicMaterial({map: tl.load(yieldFrontUrl), side: THREE.FrontSide}),
+			back: new THREE.MeshBasicMaterial({map: tl.load(yieldBackUrl), side: THREE.BackSide}),
+		}
 
-	deviceFaceMaterials.forEach(pair => {
-		pair.front.transparent = true
-		pair.back.transparent = true
-	})
-}
+		this.deviceFaceMaterials.forEach(pair => {
+			pair.front.transparent = true
+			pair.back.transparent = true
+		})
+	}
+})
 
 export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInterface {
 	trafficDeviceType: string

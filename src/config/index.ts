@@ -1,12 +1,12 @@
 // Copyright 2017 Mapper Inc.
 // CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
 
-import * as nconf from 'nconf'
+import nconf from 'nconf'
 import * as yaml from 'nconf-yaml'
 import * as path from 'path'
 import * as fs from 'fs'
 import * as Electron from 'electron'
-import createPromise from '@/util/createPromise'
+import createPromise from '../util/createPromise'
 
 const config = {}
 

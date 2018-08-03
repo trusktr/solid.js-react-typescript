@@ -42,7 +42,7 @@ module.exports = {
 		// 'typescript/no-empty-interface': , // — Disallow the declaration of empty interfaces (no-empty-interface from TSLint)
 		'typescript/no-explicit-any': 'error', // — Disallow usage of the any type (no-any from TSLint)
 		'typescript/no-inferrable-types': 'error', // — Disallows explicit type declarations for variables or parameters initialized to a number, string, or boolean. (no-inferrable-types from TSLint)
-		// 'typescript/no-namespace': 'error', // — Disallow the use of custom TypeScript modules and namespaces
+		'typescript/no-namespace': 'error', // — Disallow the use of custom TypeScript modules and namespaces
 		// 'typescript/no-non-null-assertion': , // — Disallows non-null assertions using the ! postfix operator (no-non-null-assertion from TSLint)
 		// 'typescript/no-parameter-properties': , // — Disallow the use of parameter properties in class constructors. (no-parameter-properties from TSLint)
 		'typescript/no-triple-slash-reference': 'error', // — Disallow /// <reference path="" /> comments (no-reference from TSLint)

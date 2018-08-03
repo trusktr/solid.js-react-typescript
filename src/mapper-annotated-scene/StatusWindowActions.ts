@@ -4,9 +4,9 @@
  */
 
 import {ActionFactory, ActionMessage, ActionReducer} from 'typedux'
-import AnnotatedSceneState from '@/mapper-annotated-scene/src/store/state/AnnotatedSceneState'
-import Logger from '@/util/log'
-import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
+import AnnotatedSceneState from './src/store/state/AnnotatedSceneState'
+import Logger from '../util/log'
+import StatusWindowState from './src/models/StatusWindowState'
 
 const log = Logger(__filename)
 

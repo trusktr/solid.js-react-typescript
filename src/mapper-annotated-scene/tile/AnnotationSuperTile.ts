@@ -4,12 +4,12 @@
  */
 
 import * as THREE from 'three'
-import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
-import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
-import {CoordinateFrameType} from '@/mapper-annotated-scene/geometry/CoordinateFrame'
-import {UtmCoordinateSystem} from '@/mapper-annotated-scene/UtmCoordinateSystem'
-import {AnnotationUtmTile} from '@/mapper-annotated-scene/tile/AnnotationUtmTile'
-import {Annotation} from '@/mapper-annotated-scene/annotations/AnnotationBase'
+import {SuperTile} from './SuperTile'
+import {TileIndex} from '../tile-model/TileIndex'
+import {CoordinateFrameType} from '../geometry/CoordinateFrame'
+import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
+import {AnnotationUtmTile} from './AnnotationUtmTile'
+import {Annotation} from '../annotations/AnnotationBase'
 
 export class AnnotationSuperTile extends SuperTile {
 	tiles: AnnotationUtmTile[]

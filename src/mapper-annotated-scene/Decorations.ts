@@ -4,8 +4,16 @@
  */
 
 import * as THREE from 'three'
-import * as mapperLogoObj from 'assets/models/Mapper_logo.obj'
-import * as hondaLogoObj from 'assets/models/Honda_logo.obj'
+import getFileUrl from '../util/getFileUrl'
+
+// TODO JOE
+// if (webpack) {
+	// import * as mapperLogoObj from 'assets/models/Mapper_logo.obj'
+	// import * as hondaLogoObj from 'assets/models/Honda_logo.obj'
+// } else {
+	const mapperLogoObj = getFileUrl('annotator-assets/models/Mapper_logo.obj')
+	const hondaLogoObj = getFileUrl('annotator-assets/models/Honda_logo.obj')
+// }
 
 interface DecorationConfig {
 	// eslint-disable-next-line typescript/no-explicit-any

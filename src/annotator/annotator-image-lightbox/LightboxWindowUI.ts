@@ -6,8 +6,8 @@
 import {channel} from 'electron-ipc/Channel'
 import * as IpcMessages from 'electron-ipc/Messages'
 import {toKeyboardEventHighlights} from 'electron-ipc/Serializaton'
-import WindowCommunicator from '@/util/WindowCommunicator'
-import Logger from '@/util/log'
+import WindowCommunicator from '../../util/WindowCommunicator'
+import Logger from '../../util/log'
 
 const log = Logger(__filename)
 

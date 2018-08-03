@@ -1,57 +1,38 @@
-
-$white: #fff;
-$white_50: rgba(255,255,255,.5);
-$color_forest_green: #0a0;
-$color_dandelion: #ffd260;
-$color_bright_red: #a00;
-$color_apple: #4caf50;
-$color_mountain_mist: #999;
-$color_goblin: #3e8e41;
-$color_pomegranate: #f4511e;
-$color_karry: #faebd7;
-$black: #000;
-
-$default_font: Verdana, Geneva, sans-serif;
-
-%defaultBox {
+body, #root, #root .scene-container, html {
 	height: 100%;
 	border: 0;
 	padding: 0;
 	margin: 0;
 	width: 100%;
 	box-sizing: border-box;
+	font-family: Verdana, Geneva, sans-serif;
+}
 
-	font-family: $default_font;
-
-	* {
-		box-sizing: border-box;
-	}
+body *, #root *, #root .scene-container *, html * {
+	box-sizing: border-box;
 }
 
 body {
 	overflow-x: hidden;
 	overflow-y: hidden;
-	@extend %defaultBox;
 }
+
 #root {
-	@extend %defaultBox;
 	width: auto;
-
-	.scene-container {
-		@extend %defaultBox;
-	}
 }
+
 html {
-	@extend %defaultBox;
+	box-sizing: border-box;
 }
 
-@if $__SAFFRON__ == false {
-	// ...styles for when in Saffron, if needed...
+*, *::after, *::before {
+	box-sizing: inherit;
 }
 
 .hidden {
 	display: none;
 }
+
 #logo {
 	position: fixed;
 	z-index: 2;
@@ -61,39 +42,46 @@ html {
 	padding-bottom: 0;
 	padding-left: 12px;
 }
+
 #menu {
 	position: fixed;
 	right: 0;
 	height: 100%;
 	width: 250px;
-	z-index: 10;
+	z-index: 1;
 	top: 50px;
 	background-color: transparent;
 	overflow-x: hidden;
 	padding-top: 0;
 	padding-right: 5px;
 	pointer-events: none;
-	* {
-		pointer-events: auto;
-	}
 }
+
+#menu * {
+	pointer-events: auto;
+}
+
 #status_window {
 	position: fixed;
 	right: 0;
 	bottom: 0;
-	background-color: $white_50;
+	background-color: rgba(255, 255, 255, 0.5);
 	padding: 5px;
 	z-index: 3;
 }
+
 .statusOk {
-	color: $color_forest_green;
+	color: #0a0;
 }
+
 .statusWarning {
-	color: $color_dandelion;
+	color: #ffd260;
 }
+
 .statusError {
-	color: $color_bright_red;
+	color: #a00;
 }
+
 #menu_control {
 	background-color: transparent;
 	position: fixed;
@@ -102,9 +90,11 @@ html {
 	right: 0;
 	padding-right: 5px;
 	text-align: right;
+	visibility: hidden;
 	height: 50px;
 	width: 150px;
 }
+
 .menu_btn {
 	background-color: transparent;
 	height: 40px;
@@ -112,50 +102,52 @@ html {
 	font-size: x-large;
 	border: 0;
 }
+
 button {
 	width: 100%;
 	text-decoration: none;
 	outline: 0;
-	color: $white;
-	background-color: $color_apple;
+	color: #fff;
+	background-color: #4caf50;
 	border: 0;
 	border-radius: 15px;
-	&.laneBtn {
-		width: 30px;
-	}
-	&.menu_btn {
-		&:hover {
-			font-size: xx-large;
-			background-color: transparent;
-		}
-		&:active {
-			font-size: xx-large;
-		}
-	}
-	&.button_inline {
-		&:disabled {
-			color: $color_mountain_mist;
-			border: 2px solid $color_mountain_mist;
-		}
-		&:hover {
-			background-color: $white;
-		}
-	}
-	&:active {
-		background-color: $color_goblin;
-		transform: translateY(4px);
-	}
-	&:hover {
-		background-color: $color_goblin;
-	}
 }
 
-.mdc-button {
-	.mdc-button__icon {
-		position: absolute;
-		left: 0;
-		margin-left: 10px;
-	}
+button.laneBtn {
+	width: 30px;
+}
+
+button.menu_btn:hover {
+	font-size: xx-large;
+	background-color: transparent;
+}
+
+button.menu_btn:active {
+	font-size: xx-large;
+}
+
+button.button_inline:disabled {
+	color: #999;
+	border: 2px solid #999;
+}
+
+button.button_inline:hover {
+	background-color: #fff;
+}
+
+button:active {
+	background-color: #3e8e41;
+	transform: translateY(4px);
+}
+
+button:hover {
+	background-color: #3e8e41;
+}
+
+.mdc-button .mdc-button__icon {
+	position: absolute;
+	left: 0;
+	margin-left: 10px;
 }
 
 .fieldset_content_style {
@@ -164,10 +156,12 @@ button {
 	margin-top: 2px;
 	text-align: center;
 }
+
 .div_buttons_group {
 	margin-top: 2px;
 	text-align: center;
 }
+
 .div_properties {
 	margin-top: 2px;
 	text-align: center;
@@ -189,16 +183,17 @@ button {
 	margin: 0;
 	font-size: x-small;
 	cursor: pointer;
-	background-color: $white;
-	color: $color_apple;
-	border: 2px solid $color_apple;
+	background-color: #fff;
+	color: #4caf50;
+	border: 2px solid #4caf50;
 	border-radius: 12px;
 }
+
 .ui-btn {
 	font-size: 12px;
 }
 
-%label-select {
+.label_style, .select_style {
 	text-align: left;
 	padding: 0;
 	margin: 0;
@@ -207,14 +202,12 @@ button {
 }
 
 .label_style {
-	@extend %label-select;
 	border: 0;
 	background-color: transparent;
 	width: 60%;
 }
 
 .select_style {
-	@extend %label-select;
 	width: 40%;
 }
 
@@ -222,37 +215,40 @@ button {
 	outline: 0;
 	border-radius: 10px;
 	margin-bottom: 2px;
-	background-color: $color_pomegranate;
+	background-color: #f4511e;
 	border: 0;
-	color: $white;
+	color: #fff;
 	text-align: left;
 	font-size: 15px;
 	padding: 0;
 	width: auto;
 	cursor: pointer;
 }
+
 .dropdown_head {
 	margin: 3px;
 	padding: 2px;
 	font-size: 12px;
-	&:after {
-		content: '\02795';
-		font-size: 10px;
-		padding-right: 5px;
-		padding-top: 2px;
-		float: right;
-	}
-	&:active:after {
-		content: '-';
-	}
 }
+
+.dropdown_head:after {
+	content: '\02795';
+	font-size: 10px;
+	padding-right: 5px;
+	padding-top: 2px;
+	float: right;
+}
+
+.dropdown_head:active:after {
+	content: '-';
+}
+
 .dropdown_body {
 	height: auto;
 	padding: 5px;
-	//Instead of the line below you could use @include border-radius($radius, $vertical-radius)
 	border-radius: 5px;
-	background-color: $color_karry;
-	color: $black;
+	background-color: #faebd7;
+	color: #000;
 	display: none;
 	overflow: auto;
 }
