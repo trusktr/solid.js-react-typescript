@@ -19,22 +19,21 @@ import getFileUrl from '../../util/getFileUrl'
 
 // TODO JOE
 // if (webpack) {
-	// import * as rygFrontUrl from '../../annotator-assets/images/TrafficDevice/ryg_front.png'
-	// import * as rygBackUrl from '../../annotator-assets/images/TrafficDevice/ryg_back.png'
-	// import * as stopFrontUrl from '../../annotator-assets/images/TrafficDevice/stop_front.png'
-	// import * as stopBackUrl from '../../annotator-assets/images/TrafficDevice/stop_back.png'
-	// import * as yieldFrontUrl from '../../annotator-assets/images/TrafficDevice/yield_front.png'
-	// import * as yieldBackUrl from '../../annotator-assets/images/TrafficDevice/yield_back.png'
-	// we can use `require()`, or otherwise ass a babel-register hook so import works in both cases
+// import * as rygFrontUrl from '../../annotator-assets/images/TrafficDevice/ryg_front.png'
+// import * as rygBackUrl from '../../annotator-assets/images/TrafficDevice/ryg_back.png'
+// import * as stopFrontUrl from '../../annotator-assets/images/TrafficDevice/stop_front.png'
+// import * as stopBackUrl from '../../annotator-assets/images/TrafficDevice/stop_back.png'
+// import * as yieldFrontUrl from '../../annotator-assets/images/TrafficDevice/yield_front.png'
+// import * as yieldBackUrl from '../../annotator-assets/images/TrafficDevice/yield_back.png'
+// we can use `require()`, or otherwise ass a babel-register hook so import works in both cases
 // } else {
-	const rygFrontUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/ryg_front.png' )
-	const rygBackUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/ryg_back.png' )
-	const stopFrontUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/stop_front.png' )
-	const stopBackUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/stop_back.png' )
-	const yieldFrontUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/yield_front.png' )
-	const yieldBackUrl = getFileUrl( 'annotator-assets/images/TrafficDevice/yield_back.png' )
+const rygFrontUrl = getFileUrl('annotator-assets/images/TrafficDevice/ryg_front.png')
+const rygBackUrl = getFileUrl('annotator-assets/images/TrafficDevice/ryg_back.png')
+const stopFrontUrl = getFileUrl('annotator-assets/images/TrafficDevice/stop_front.png')
+const stopBackUrl = getFileUrl('annotator-assets/images/TrafficDevice/stop_back.png')
+const yieldFrontUrl = getFileUrl('annotator-assets/images/TrafficDevice/yield_front.png')
+const yieldBackUrl = getFileUrl('annotator-assets/images/TrafficDevice/yield_back.png')
 // }
-
 const log = Logger(__filename)
 
 export enum TrafficDeviceType {
@@ -74,18 +73,22 @@ const TrafficDeviceRenderingProperties = new (class {
 
 		// Load custom faces if we have them.
 		const tl = new THREE.TextureLoader()
+
 		this.deviceFaceMaterials[TrafficDeviceType.RYG_LEFT_ARROW_LIGHT] = {
 			front: new THREE.MeshBasicMaterial({map: tl.load(rygFrontUrl), side: THREE.FrontSide}),
 			back: new THREE.MeshBasicMaterial({map: tl.load(rygBackUrl), side: THREE.BackSide}),
 		}
+
 		this.deviceFaceMaterials[TrafficDeviceType.RYG_LIGHT] = {
 			front: new THREE.MeshBasicMaterial({map: tl.load(rygFrontUrl), side: THREE.FrontSide}),
 			back: new THREE.MeshBasicMaterial({map: tl.load(rygBackUrl), side: THREE.BackSide}),
 		}
+
 		this.deviceFaceMaterials[TrafficDeviceType.STOP] = {
 			front: new THREE.MeshBasicMaterial({map: tl.load(stopFrontUrl), side: THREE.FrontSide}),
 			back: new THREE.MeshBasicMaterial({map: tl.load(stopBackUrl), side: THREE.BackSide}),
 		}
+
 		this.deviceFaceMaterials[TrafficDeviceType.YIELD] = {
 			front: new THREE.MeshBasicMaterial({map: tl.load(yieldFrontUrl), side: THREE.FrontSide}),
 			back: new THREE.MeshBasicMaterial({map: tl.load(yieldBackUrl), side: THREE.BackSide}),
@@ -96,7 +99,7 @@ const TrafficDeviceRenderingProperties = new (class {
 			pair.back.transparent = true
 		})
 	}
-})
+})()
 
 export interface TrafficDeviceJsonInputInterface extends AnnotationJsonInputInterface {
 	trafficDeviceType: string

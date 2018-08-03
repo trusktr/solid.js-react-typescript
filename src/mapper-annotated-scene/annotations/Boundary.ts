@@ -55,7 +55,7 @@ const BoundaryRenderingProperties = new (class {
 	readonly markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
 	readonly activeMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0xf0d06e)})
 	readonly inactiveMaterial = new THREE.LineBasicMaterial({color: new THREE.Color(0x00ffff)})
-})
+})()
 
 export interface BoundaryJsonInputInterface extends AnnotationJsonInputInterface {
 	boundaryType: string

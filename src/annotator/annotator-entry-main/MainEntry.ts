@@ -40,7 +40,7 @@ function createWindow(): void {
 	})
 
 	// and load the index.html of the app.
-	win.loadURL( getFileUrl( `${windowName}.html` ) )
+	win.loadURL(getFileUrl(`${windowName}.html`))
 
 	// Emitted when the window is closed.
 	win.on('closed', () => {

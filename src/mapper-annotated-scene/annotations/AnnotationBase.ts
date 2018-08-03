@@ -54,7 +54,7 @@ export interface AnnotationJsonOutputInterface {
 export const AnnotationRenderingProperties = new (class {
 	readonly markerPointGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2)
 	readonly markerHighlightPointGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
-})
+})()
 export abstract class Annotation {
 	abstract annotationType: AnnotationType // Its type, expressed as an enumeration for convenience
 	abstract geometryType: AnnotationGeometryType

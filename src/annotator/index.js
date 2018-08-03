@@ -4,4 +4,4 @@
  */
 
 require('../require-hooks')
-module.exports = require( './entry' )
+module.exports = require('./entry')

@@ -40,7 +40,7 @@ const ConnectionRenderingProperties = new (class {
 		this.directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
 		this.directionGeometry.computeFaceNormals()
 	}
-})
+})()
 
 export interface ConnectionJsonInputInterface extends AnnotationJsonInputInterface {
 	connectionType: string

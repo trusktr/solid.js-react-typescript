@@ -13,10 +13,10 @@ import Annotator from '../annotator/Annotator'
 
 // TODO JOE
 // if (webpack) {
-	// import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
-	// we can use `require()`, or otherwise ass a babel-register hook so import works in both cases
+// import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
+// we can use `require()`, or otherwise ass a babel-register hook so import works in both cases
 // } else {
-	const logo = getFileUrl( 'annotator-assets/images/signature_with_arrow_white.png' )
+const logo = getFileUrl('annotator-assets/images/signature_with_arrow_white.png')
 // }
 
 interface AppProps {}

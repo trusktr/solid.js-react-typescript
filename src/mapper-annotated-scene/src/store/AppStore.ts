@@ -84,11 +84,3 @@ export function loadAndInitStore(): ObservableStore<any> {
 function onError(err: Error, reducer?: ILeafReducer<any, any>): void {
 	log.error('Reducer error occurred', reducer, err, err.stack)
 }
-
-_.assign(global, {
-	getAnnotatedSceneStore,
-})
-
-declare global {
-	function getAnnotatedSceneStore(): ObservableStore<any>
-}

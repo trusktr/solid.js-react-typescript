@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-require("@babel/register")({
+require('@babel/register')({
 
 	// Array of ignore conditions, either a regex or a function. (Optional)
 	ignore: [
@@ -14,7 +14,7 @@ require("@babel/register")({
 
 		// The file's path is also passed to any ignore functions. It will
 		// **not** be compiled if `true` is returned.
-		filepath => filepath === "/path/to/some/file.js",
+		filepath => filepath === '/path/to/some/file.js',
 
 	],
 
@@ -24,7 +24,7 @@ require("@babel/register")({
 
 	// Setting this will remove the currently hooked extensions of `.es6`, `.es`, `.jsx`, `.mjs`
 	// and .js so you'll have to add them back if you want them to be used again.
-	extensions: [ ".ts", ".tsx" ],
+	extensions: ['.ts', '.tsx'],
 
 	// Setting this to false will force rebuild every time.
 	cache: true,
@@ -36,11 +36,9 @@ require("@babel/register")({
 require('css-modules-require-hook')({
 	extensions: ['.css'],
 
-	preprocessCss: function (cssCode, file) {
-
-		addStyleToHead( cssCode )
+	preprocessCss: function(cssCode, file) {
+		addStyleToHead(cssCode)
 		return ''
-
 	},
 })
 
@@ -62,13 +60,12 @@ require('css-modules-require-hook')({
 // 	},
 // })
 
-function addStyleToHead( cssCode ) {
-
+function addStyleToHead(cssCode) {
 	// defer to an animation frame, to not block import evaluation.
 	requestAnimationFrame(() => {
-		const style = document.createElement( 'style' )
-		style.textContent = cssCode
-		document.head.appendChild( style )
-	})
+		const style = document.createElement('style')
 
+		style.textContent = cssCode
+		document.head.appendChild(style)
+	})
 }

@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-/* eslint-disable typescript/no-explicit-any */
+/* eslint-disable typescript/no-explicit-any, import/export */
 
 // required by mapper-models/protobufjs
 type Long = number
@@ -18,12 +18,12 @@ declare module '*.json' {
 	export default value
 }
 
-declare module "*.scss" {
-	const value: any;
-	export default value;
+declare module '*.scss' {
+	const value: any
+	export default value
 }
 
-declare module "*.css" {
-	const value: any;
-	export default value;
+declare module '*.css' {
+	const value: any
+	export default value
 }

@@ -18,9 +18,9 @@ import toProps from '../../util/toProps'
 
 // TODO JOE
 // if (webpack) {
-	// import * as carModelOBJ from '../../annotator-assets/models/BMW_X5_4.obj'
+// import * as carModelOBJ from '../../annotator-assets/models/BMW_X5_4.obj'
 // } else {
-	const carModelOBJ = getFileUrl('../../annotator-assets/models/BMW_X5_4.obj')
+const carModelOBJ = getFileUrl('../../annotator-assets/models/BMW_X5_4.obj')
 // }
 
 export interface CarManagerProps {

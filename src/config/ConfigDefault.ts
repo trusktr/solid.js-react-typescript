@@ -5,4 +5,4 @@
 
 export const ConfigDefault = new (class {
 	readonly StartupPointCloudBoundingBox = [0, 0, 0, 0, 0, 0]
-})
+})()
