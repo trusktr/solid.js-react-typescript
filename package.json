@@ -67,6 +67,7 @@
     "@types/uuid": "3.4.3",
     "@types/webpack-env": "1.13.6",
     "@types/zmq": "0.0.22",
+    "babel-eslint": "^8.2.6",
     "electron-rebuild": "1.6.0",
     "eslint": "5.2.0",
     "eslint-config-standard": "11.0.0",
