@@ -4,24 +4,24 @@
  */
 
 import * as React from 'react'
-import AnnotatedSceneState from '../../mapper-annotated-scene/src/store/state/AnnotatedSceneState'
-import {FlyThroughState, FlyThroughTrajectory} from '../../mapper-annotated-scene/src/models/FlyThroughState'
-import StatusWindowActions from '../../mapper-annotated-scene/StatusWindowActions'
+import AnnotatedSceneState from '@mapperai/annotated-scene/src/store/state/AnnotatedSceneState'
+import {FlyThroughState, FlyThroughTrajectory} from '../FlyThroughState'
+import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
 import {ChildAnimationLoop} from 'animation-loop'
-import config from '../../config'
+const {default: config} = require(`${__base}/src/config`)
 import * as AsyncFile from 'async-file'
 import {dataSetNameFromPath} from '../../util/Perception'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Logger from '../../util/log'
 import * as Electron from 'electron'
-import {StatusKey} from '../../mapper-annotated-scene/src/models/StatusKey'
+import {StatusKey} from '@mapperai/annotated-scene/src/models/StatusKey'
 import CarManager from './CarManager'
 import * as zmq from 'zmq'
-import {typedConnect} from '../../mapper-annotated-scene/src/styles/Themed'
-import AnnotatedSceneActions from '../../mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
-import AnnotatedSceneController from '../../mapper-annotated-scene/src/services/AnnotatedSceneController'
-import {getAnnotatedSceneStore} from '../../mapper-annotated-scene/src/store/AppStore'
-import toProps from '../../util/toProps'
+import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
+import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
+import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
+import {getAnnotatedSceneStore} from '@mapperai/annotated-scene/src/store/AppStore'
+import toProps from '@mapperai/annotated-scene/src/util/toProps'
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)

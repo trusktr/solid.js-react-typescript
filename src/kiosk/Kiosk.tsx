@@ -5,19 +5,22 @@
 
 import * as React from 'react'
 import * as THREE from 'three'
-import config from '../config'
+const {default: config} = require(`${__base}/src/config`)
 import CarManager from '../kiosk/components/CarManager'
-import AnnotatedSceneState from '../mapper-annotated-scene/src/store/state/AnnotatedSceneState'
-import {typedConnect} from '../mapper-annotated-scene/src/styles/Themed'
+import AnnotatedSceneState from '@mapperai/annotated-scene/src/store/state/AnnotatedSceneState'
+import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
 import {createStructuredSelector} from 'reselect'
 import FlyThroughManager from '../kiosk/components/FlyThroughManager'
 import KioskMenuView from '../kiosk/components/KioskMenuView'
 import Logger from '../util/log'
-import AnnotatedSceneController from '../mapper-annotated-scene/src/services/AnnotatedSceneController'
+import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
 import * as watch from 'watch'
 import TrajectoryPicker from '../kiosk/TrajectoryPicker'
 import * as Electron from 'electron'
-import {ConfigDefault} from '../config/ConfigDefault'
+
+// TODO JOE
+// import {ConfigDefault} from '@/config/ConfigDefault'
+const {ConfigDefault} = require(`${__base}/src/config`)
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog

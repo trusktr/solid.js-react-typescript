@@ -7,16 +7,17 @@ import './env'
 import './disable-logger'
 import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
 import './style.css'
-import {configReady, getMeta} from '../config'
 import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import {AppContainer} from 'react-hot-loader'
 import App from './App'
 import * as packageDotJson from '../../package.json'
-import {getAnnotatedSceneReduxStore} from '../mapper-annotated-scene/src/store/AppStore'
-import * as services from '../mapper-annotated-scene/src/services'
+import {getAnnotatedSceneReduxStore} from '@mapperai/annotated-scene/src/store/AppStore'
+import * as services from '@mapperai/annotated-scene/src/services'
 import {Provider} from 'react-redux'
+
+const {getMeta, configReady} = require(`${__base}/src/config`)
 
 // This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {

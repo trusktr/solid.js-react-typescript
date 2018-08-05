@@ -8,13 +8,13 @@ import * as THREE from 'three'
 import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame,
-} from '../../mapper-annotated-scene/geometry/CoordinateFrame'
-import AnnotatedSceneActions from '../../mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
+} from '@mapperai/annotated-scene/src/geometry/CoordinateFrame'
+import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
 import * as MapperProtos from '@mapperai/mapper-models'
-import AnnotatedSceneController from '../../mapper-annotated-scene/src/services/AnnotatedSceneController'
-import {typedConnect} from '../../mapper-annotated-scene/src/styles/Themed'
+import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
+import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
 import getFileUrl from '../../util/getFileUrl'
-import toProps from '../../util/toProps'
+import toProps from '@mapperai/annotated-scene/src/util/toProps'
 
 // TODO JOE
 // if (webpack) {

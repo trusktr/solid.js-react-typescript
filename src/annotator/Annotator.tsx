@@ -3,40 +3,42 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import config from '../config'
+const {default: config} = require(`${__base}/src/config`)
 import * as $ from 'jquery'
 import * as Electron from 'electron'
-import MousePosition from '../mapper-annotated-scene/src/models/MousePosition'
-import mousePositionToGLSpace from '../util/mousePositionToGLSpace'
+import MousePosition from '@mapperai/annotated-scene/src/models/MousePosition'
+import mousePositionToGLSpace from '@mapperai/annotated-scene/src/util/mousePositionToGLSpace'
 import {GUI as DatGui, GUIParams} from 'dat.gui'
-import {AnnotationType} from '../mapper-annotated-scene/annotations/AnnotationType'
-import {AnnotationManager, OutputFormat} from '../mapper-annotated-scene/AnnotationManager'
-import {NeighborLocation, NeighborDirection} from '../mapper-annotated-scene/annotations/Lane'
+import {AnnotationType} from '@mapperai/annotated-scene/src/annotations/AnnotationType'
+import {AnnotationManager, OutputFormat} from '@mapperai/annotated-scene/src/AnnotationManager'
+import {Lane, NeighborLocation, NeighborDirection} from '@mapperai/annotated-scene/src/annotations/Lane'
 import Logger from '../util/log'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
 import {ImageManager} from './image/ImageManager'
 import {CalibratedImage} from './image/CalibratedImage'
-import toProps from '../util/toProps'
-import {KeyboardEventHighlights} from '../electron-ipc/Messages'
+import toProps from '@mapperai/annotated-scene/src/util/toProps'
+import KeyboardEventHighlights from '@mapperai/annotated-scene/src/models/KeyboardEventHighlights'
 import * as React from 'react'
-import {typedConnect} from '../mapper-annotated-scene/src/styles/Themed'
-import AnnotatedSceneActions from '../mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
-import StatusWindowState from '../mapper-annotated-scene/src/models/StatusWindowState'
-import {FlyThroughState} from '../mapper-annotated-scene/src/models/FlyThroughState'
-import AnnotatedSceneController from '../mapper-annotated-scene/src/services/AnnotatedSceneController'
-import {Events} from '../mapper-annotated-scene/src/models/Events'
-import {Layer as AnnotatedSceneLayer} from '../mapper-annotated-scene/src/services/LayerManager'
+import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
+import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
+import StatusWindowState from '@mapperai/annotated-scene/src/models/StatusWindowState'
+import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
+import {Events} from '@mapperai/annotated-scene/src/models/Events'
+import {Layer as AnnotatedSceneLayer} from '@mapperai/annotated-scene/src/services/LayerManager'
 import {v4 as UUID} from 'uuid'
-import Key from '../mapper-annotated-scene/src/models/Key'
+import Key from '@mapperai/annotated-scene/src/models/Key'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import {dateToString} from '../util/dateToString'
-import {scale3DToSpatialTileScale, spatialTileScaleToString} from '../mapper-annotated-scene/tile/ScaleUtil'
-import {ScaleProvider} from '../mapper-annotated-scene/tile/ScaleProvider'
-import {THREEColorValue} from '../mapper-annotated-scene/src/THREEColorValue-type'
+import {scale3DToSpatialTileScale, spatialTileScaleToString} from '@mapperai/annotated-scene/src/tiles/ScaleUtil'
+import {ScaleProvider} from '@mapperai/annotated-scene/src/tiles/ScaleProvider'
+import {THREEColorValue} from '@mapperai/annotated-scene/src/THREEColorValue-type'
 import {hexStringToHexadecimal} from '../util/Color'
-import {ConfigDefault} from '../config/ConfigDefault'
+
+// TODO JOE
+// import {ConfigDefault} from '@/config/ConfigDefault'
+const {ConfigDefault} = require(`${__base}/src/config`)
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -95,7 +97,6 @@ interface AnnotatorState {
 interface AnnotatorProps {
 	statusWindowState?: StatusWindowState
 	uiMenuVisible?: boolean
-	flyThroughState?: FlyThroughState
 	carPose?: MapperProtos.mapper.models.PoseMessage
 	isLiveMode?: boolean
 	rendererSize?: Electron.Size
@@ -118,7 +119,6 @@ interface AnnotatorProps {
 @typedConnect(toProps(
 	'uiMenuVisible',
 	'statusWindowState',
-	'flyThroughState',
 	'carPose',
 	'isLiveMode',
 	'rendererSize',
@@ -1132,7 +1132,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			lpId.textContent = activeAnnotation.id.toString()
 		else
 			log.warn('missing element lp_id_value')
-		activeAnnotation.updateLaneWidth()
+		this.uiUpdateLaneWidth(activeAnnotation)
 
 		const lpSelectType = $('#lp_select_type')
 
@@ -1303,6 +1303,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		} else {
 			log.warn('missing element lane_prop_1')
 		}
+	}
+
+	// TODO JOE Annotator should ask for getLaneWidth() and update #lp_width_value for itself
+	uiUpdateLaneWidth = (lane): void => {
+		const laneWidth = $('#lp_width_value')
+
+		laneWidth.text(lane.getLaneWidth().toFixed(3) + ' m')
 	}
 
 	/**
@@ -1565,6 +1572,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			channel.on('deactivateRightSideNeighbours', Annotator.deactivateRightSideNeighbours)
 			channel.on('deactivateAllAnnotationPropertiesMenus', this.deactivateAllAnnotationPropertiesMenus)
 			channel.on('resetAllAnnotationPropertiesMenuElements', this.resetAllAnnotationPropertiesMenuElements)
+
+			channel.on(Events.ANNOTATION_VISUAL_UPDATE, lane => {lane instanceof Lane && this.uiUpdateLaneWidth(lane)})
 
 			this.setKeys()
 		}

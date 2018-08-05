@@ -4,10 +4,10 @@
  */
 
 import * as React from 'react'
-import {typedConnect} from '../../mapper-annotated-scene/src/styles/Themed'
-import AnnotatedSceneState from '../../mapper-annotated-scene/src/store/state/AnnotatedSceneState'
+import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
+import AnnotatedSceneState from '@mapperai/annotated-scene/src/store/state/AnnotatedSceneState'
 import {createStructuredSelector} from 'reselect'
-import AnnotatedSceneActions from '../../mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
+import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
 import FlyThroughManager from '../../kiosk/components/FlyThroughManager'
 
 interface KioskViewProps {

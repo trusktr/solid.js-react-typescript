@@ -1,0 +1,785 @@
+/**
+ *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
+ *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
+ */
+
+import * as THREE from 'three'
+import * as lodash from 'lodash'
+import {
+	AnnotationUuid, Annotation, AnnotationRenderingProperties,
+	AnnotationJsonOutputInterface, AnnotationJsonInputInterface,
+	AnnotationGeometryType,
+} from './AnnotationBase'
+import {AnnotationType} from './AnnotationType'
+import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
+import Logger from '../util/log'
+import EventEmitter from 'events'
+
+const log = Logger(__filename)
+const directionGeometry = new THREE.Geometry()
+
+directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, 0.5))
+directionGeometry.vertices.push(new THREE.Vector3(0.25, 0.25, 0))
+directionGeometry.vertices.push(new THREE.Vector3(-0.25, 0.25, -0.5))
+directionGeometry.faces.push(new THREE.Face3(0, 1, 2))
+directionGeometry.computeFaceNormals()
+
+const directionGeometryMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xff0000), side: THREE.DoubleSide})
+
+export enum LaneType {
+	UNKNOWN = 0,
+	ALL_VEHICLES,
+	MOTOR_VEHICLES,
+	CAR_ONLY,
+	TRUCK_ONLY,
+	BUS_ONLY,
+	BIKE_ONLY,
+	PEDESTRIAN_ONLY,
+	PARKING,
+	CROSSWALK,
+	OTHER
+}
+export enum NeighborDirection {
+	SAME = 1,
+	REVERSE
+}
+export enum NeighborLocation {
+	FRONT = 1,
+	BACK,
+	LEFT,
+	RIGHT
+}
+export enum LaneLineType {
+	UNKNOWN = 0,
+	SOLID,
+	DASHED,
+	OTHER
+}
+export enum LaneLineColor {
+	UNKNOWN = 0,
+	WHITE,
+	YELLOW,
+	RED,
+	BLUE,
+	OTHER
+}
+export enum LaneEntryExitType {
+	UNKNOWN = 0,
+	CONTINUE,
+	STOP
+}
+export class LaneNeighborsIds {
+	right: Array<AnnotationUuid>
+	left: Array<AnnotationUuid>
+	front: Array<AnnotationUuid>
+	back: Array<AnnotationUuid>
+
+	constructor() {
+		this.right = []
+		this.left = []
+		this.front = []
+		this.back = []
+	}
+}
+
+class LaneRenderingProperties {
+	markerMaterial: THREE.MeshLambertMaterial
+	activeMaterial: THREE.MeshBasicMaterial
+	leftNeighborMaterial: THREE.MeshBasicMaterial
+	rightNeighborMaterial: THREE.MeshBasicMaterial
+	frontNeighborMaterial: THREE.MeshBasicMaterial
+	centerLineMaterial: THREE.LineDashedMaterial
+	inactiveMaterial: THREE.MeshLambertMaterial
+
+	constructor() {
+		this.markerMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide})
+		this.activeMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color('orange'), wireframe: true})
+		this.leftNeighborMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color(0xffff66), side: THREE.DoubleSide})
+		this.rightNeighborMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color(0x00ffff), side: THREE.DoubleSide})
+		this.frontNeighborMaterial = new THREE.MeshBasicMaterial({color: new THREE.Color(0x66ff99), side: THREE.DoubleSide})
+		this.centerLineMaterial = new THREE.LineDashedMaterial({color: new THREE.Color(0xffaa00), dashSize: 3, gapSize: 1, linewidth: 2})
+		this.inactiveMaterial = new THREE.MeshLambertMaterial({color: new THREE.Color(0x443333), transparent: true, opacity: 0.3, side: THREE.DoubleSide})
+	}
+}
+
+// support for legacy data files
+export interface LaneJsonInputInterfaceV1 {
+	uuid: AnnotationUuid
+	type: number
+	markerPositions: Array<THREE.Vector3>
+	neighborsIds: LaneNeighborsIds
+	leftSideType: LaneLineType
+	rightSideType: LaneLineType
+	entryType: LaneEntryExitType
+	exitType: LaneEntryExitType
+}
+export interface LaneJsonInputInterfaceV3 extends AnnotationJsonInputInterface {
+	laneType: string
+	neighborsIds: LaneNeighborsIds
+	leftLineType: string
+	leftLineColor: string
+	rightLineType: string
+	rightLineColor: string
+	entryType: string
+	exitType: string
+}
+export interface LaneJsonOutputInterfaceV3 extends AnnotationJsonOutputInterface {
+	laneType: string
+	neighborsIds: LaneNeighborsIds
+	leftLineType: string
+	leftLineColor: string
+	rightLineType: string
+	rightLineColor: string
+	entryType: string
+	exitType: string
+	// Waypoints are generated from markers. They are included in output for downstream
+	// convenience, but we don't read them back in.
+	waypoints: Array<Object>
+}
+/**
+ * LaneAnnotation class.
+ */
+export class Lane extends Annotation {
+	// Lane markers are stored in an array as [right, left, right, left, ...]
+	annotationType: AnnotationType
+	geometryType: AnnotationGeometryType
+	type: LaneType
+	minimumMarkerCount: number
+	allowNewMarkers: boolean
+	snapToGround: boolean
+	isRotatable: boolean
+	private renderingProperties: LaneRenderingProperties
+	waypoints: Array<THREE.Vector3>
+	laneCenterLine: THREE.Line
+	laneLeftLine: THREE.Line
+	laneRightLine: THREE.Line
+	laneDirectionMarkers: Array<THREE.Mesh>
+	mesh: THREE.Mesh
+	neighborsIds: LaneNeighborsIds
+	leftLineType: LaneLineType
+	leftLineColor: LaneLineColor
+	rightLineType: LaneLineType
+	rightLineColor: LaneLineColor
+	entryType: LaneEntryExitType
+	exitType: LaneEntryExitType
+
+	constructor(readonly channel: EventEmitter, obj?: LaneJsonInputInterfaceV3) {
+		super(obj)
+		this.annotationType = AnnotationType.LANE
+		this.geometryType = AnnotationGeometryType.PAIRED_LINEAR
+
+		if (obj) {
+			this.type = isNullOrUndefined(LaneType[obj.laneType]) ? LaneType.UNKNOWN : LaneType[obj.laneType]
+			this.neighborsIds = obj.neighborsIds
+			if (isNullOrUndefined(this.neighborsIds.right)) this.neighborsIds.right = []
+			if (isNullOrUndefined(this.neighborsIds.left)) this.neighborsIds.left = []
+			if (isNullOrUndefined(this.neighborsIds.front)) this.neighborsIds.front = []
+			if (isNullOrUndefined(this.neighborsIds.back)) this.neighborsIds.back = []
+			this.leftLineType = isNullOrUndefined(LaneLineType[obj.leftLineType]) ? LaneLineType.UNKNOWN : LaneLineType[obj.leftLineType]
+			this.rightLineType = isNullOrUndefined(LaneLineType[obj.rightLineType]) ? LaneLineType.UNKNOWN : LaneLineType[obj.rightLineType]
+			this.leftLineColor = isNullOrUndefined(LaneLineColor[obj.leftLineColor]) ? LaneLineColor.UNKNOWN : LaneLineColor[obj.leftLineColor]
+			this.rightLineColor = isNullOrUndefined(LaneLineColor[obj.rightLineColor]) ? LaneLineColor.UNKNOWN : LaneLineColor[obj.rightLineColor]
+			this.entryType = isNullOrUndefined(LaneEntryExitType[obj.entryType]) ? LaneEntryExitType.UNKNOWN : LaneEntryExitType[obj.entryType]
+			this.exitType = isNullOrUndefined(LaneEntryExitType[obj.exitType]) ? LaneEntryExitType.UNKNOWN : LaneEntryExitType[obj.exitType]
+		} else {
+			this.type = LaneType.UNKNOWN
+			this.neighborsIds = new LaneNeighborsIds()
+			this.leftLineType = LaneLineType.UNKNOWN
+			this.rightLineType = LaneLineType.UNKNOWN
+			this.leftLineColor = LaneLineColor.UNKNOWN
+			this.rightLineColor = LaneLineColor.UNKNOWN
+			this.entryType = LaneEntryExitType.UNKNOWN
+			this.exitType = LaneEntryExitType.UNKNOWN
+		}
+
+		this.minimumMarkerCount = 4
+		this.allowNewMarkers = true
+		this.snapToGround = true
+		this.isRotatable = false
+		this.renderingProperties = new LaneRenderingProperties()
+		this.mesh = new THREE.Mesh(new THREE.Geometry(), this.renderingProperties.activeMaterial)
+		this.laneCenterLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
+		this.laneLeftLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
+		this.laneRightLine = new THREE.Line(new THREE.Geometry(), this.renderingProperties.centerLineMaterial)
+		this.laneDirectionMarkers = []
+		this.waypoints = []
+
+		if (obj) {
+			if (obj.markers.length >= this.minimumMarkerCount) {
+				obj.markers.forEach(position => this.addRawMarker(new THREE.Vector3(position.x, position.y, position.z)))
+
+				if (!this.isValid()) throw Error(`can't load invalid lane with id ${obj.uuid}`)
+
+				this.updateVisualization()
+				this.makeInactive()
+			}
+		}
+
+		// Group display objects so we can easily add them to the screen
+		this.renderingObject.add(this.mesh)
+		this.renderingObject.add(this.laneCenterLine)
+		this.renderingObject.add(this.laneLeftLine)
+		this.renderingObject.add(this.laneRightLine)
+	}
+
+	isValid(): boolean {
+		if (this.markers.length < this.minimumMarkerCount) return false
+
+		// Check the lane has any length/area
+		const distance = this.markers[0].position.distanceTo(this.markers[2].position)
+
+		return distance > 0.10
+	}
+
+	/**
+	 * Add a single marker to the annotation and the scene.
+	 * Assume that the caller will execute this.updateVisualization() as appropriate after this method returns.
+	 */
+	addRawMarker(position: THREE.Vector3): void {
+		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, this.renderingProperties.markerMaterial)
+
+		marker.position.set(position.x, position.y, position.z)
+		this.markers.push(marker)
+		this.renderingObject.add(marker)
+	}
+
+	/**
+	 * Add marker. The behavior of this functions changes depending if this is the
+	 * first, second, or higher indexed marker.
+	 *	  - First marker: is equivalent as calling addRawMarker
+	 *	  - Second marker: has it's height modified to match the height of the first marker
+	 *	  - Third and onwards: Two markers are added using the passed position and the
+	 *						   position of the last two markers.
+	 */
+	addMarker(position: THREE.Vector3, updateVisualization: boolean): boolean {
+		if (this.markers.length < 2) {
+			// Add first 2 points in any order
+			this.addRawMarker(position)
+		} else {
+			// From the third marker onwards, add markers in pairs by estimating the position
+			// of the paired marker.
+			const nextMarker = this.computeNextMarkerEstimatedPosition(position)
+
+			this.addRawMarker(nextMarker)
+			this.addRawMarker(position)
+		}
+
+		if (updateVisualization) this.updateVisualization()
+		return true
+	}
+
+	/**
+	 * Delete last marker(s).
+	 */
+	deleteLastMarker(): boolean {
+		if (this.markers.length === 0)
+			return false
+
+		this.renderingObject.remove(this.markers.pop()!)
+
+		if (this.markers.length > 2)
+			this.renderingObject.remove(this.markers.pop()!)
+
+		this.updateVisualization()
+
+		return true
+	}
+
+	complete(): boolean {
+		return true
+	}
+
+	/**
+	 * Revers markers (=change lane direction)
+	 */
+	reverseMarkers(): boolean {
+		// if less than 2 markers --> nothing to reverse
+		if (this.markers.length < 2)
+			return false
+
+		// block reverse if lane connected with a front neighbour
+		if (this.neighborsIds.front.length > 0) {
+			log.error('Unable to reverse lane with connected front neighbour.')
+			return false
+		}
+
+		// in place markers reverse
+		this.markers.reverse()
+
+		// flip left-right neighbours
+		const aux = this.neighborsIds.left
+
+		this.neighborsIds.left = this.neighborsIds.right
+		this.neighborsIds.right = aux
+
+		// update rendering
+		this.updateVisualization()
+
+		return true
+	}
+
+	/**
+	 * Join this lane with given lane by copying it's content
+	 */
+	join(lane: Lane): boolean {
+		if (!lane) {
+			log.error('Can not join an empty lane.')
+			return false
+		}
+
+		if (lane.uuid === this.uuid) {
+			log.error('Lane can not join with itself.')
+			return false
+		}
+
+		// add markers
+		this.markers = this.markers.concat(lane.markers)
+		lane.markers.forEach(marker => this.renderingObject.add(marker))
+
+		// add neighbors:
+		// - merge left-right neighbours
+		// - replace front neighbours
+		// - no modifications to back neighbours
+		this.neighborsIds.front = lane.neighborsIds.front
+		this.neighborsIds.left = lodash.uniq(this.neighborsIds.left.concat(lane.neighborsIds.left))
+		this.neighborsIds.right = lodash.uniq(this.neighborsIds.right.concat(lane.neighborsIds.right))
+
+		// solve properties conflicts
+		// - replace exit type
+		// - replace left/right line properties if not already set
+		this.exitType = lane.exitType
+		if (!this.leftLineType) this.leftLineType = lane.leftLineType
+		if (!this.leftLineColor) this.leftLineColor = lane.leftLineColor
+		if (!this.rightLineType) this.rightLineType = lane.rightLineType
+		if (!this.rightLineColor) this.rightLineColor = lane.rightLineColor
+
+		// update rendering
+		this.updateVisualization()
+
+		return true
+	}
+
+	/**
+	 * Make this annotation active. This changes the displayed material.
+	 */
+	makeActive(): void {
+		this.mesh.material = this.renderingProperties.activeMaterial
+		this.laneCenterLine.visible = false
+		this.showMarkers()
+	}
+
+	/**
+	 * Make this annotation inactive. This changes the displayed material.
+	 */
+	makeInactive(): void {
+		switch (this.type) {
+			case LaneType.BIKE_ONLY:
+				this.setBikeLaneInactiveRendering()
+				break
+			case LaneType.CROSSWALK:
+				this.setCrosswalkInactiveRendering()
+				break
+			case LaneType.PARKING:
+				this.setParkingInactiveRendering()
+				break
+			default:
+				this.setAllVehiclesInactiveRendering()
+		}
+
+		if (this.type !== LaneType.CROSSWALK) this.showDirectionMarkers()
+
+		this.mesh.material = this.renderingProperties.inactiveMaterial
+		this.laneCenterLine.visible = true
+		this.unhighlightMarkers()
+		this.hideMarkers()
+	}
+
+	/**
+	 * Change this annotation to "neighbor" rendering mode, using given type of neighbor
+	 */
+	setNeighborMode(location: NeighborLocation): void {
+		if (location === NeighborLocation.LEFT)
+			this.mesh.material = this.renderingProperties.leftNeighborMaterial
+		else if (location === NeighborLocation.RIGHT)
+			this.mesh.material = this.renderingProperties.rightNeighborMaterial
+		else if (location === NeighborLocation.FRONT)
+			this.mesh.material = this.renderingProperties.frontNeighborMaterial
+		else
+			log.warn('Neighbor location not supported for coloring.')
+
+		this.laneCenterLine.visible = true
+		this.unhighlightMarkers()
+	}
+
+	/**
+	 * Recompute lane rendering components from marker positions and current lane properties.
+	 */
+	updateVisualization(): void {
+		// There is no mesh or side lines to compute if we don't have enough markers
+		if (!this.isValid())
+			return
+
+		super.updateVisualization()
+
+		// Update side lines first
+		this.updateLaneSideLinesMaterial()
+		this.updateLaneSideLinesGeometry()
+
+		// Update lane mesh
+		const newGeometry = new THREE.Geometry()
+
+		// Add all vertices
+		this.markers.forEach((marker) => {
+			newGeometry.vertices.push(marker.position.clone())
+		})
+
+		// Add faces
+		for (let i = 0; i < this.markers.length - 2; i++) {
+			if (i % 2 === 0)
+				newGeometry.faces.push(new THREE.Face3(i + 2, i + 1, i))
+			else
+				newGeometry.faces.push(new THREE.Face3(i, i + 1, i + 2))
+		}
+
+		newGeometry.computeFaceNormals()
+		this.mesh.geometry = newGeometry
+		this.mesh.geometry.verticesNeedUpdate = true
+
+		// Generate center lane indication and direction markers
+		this.computeWaypoints()
+
+		if (this.type === LaneType.CROSSWALK) {
+			this.hideDirectionMarkers()
+			this.laneCenterLine.visible = false
+		}
+	}
+
+	/**
+	 * Add neighbor to our list of neighbors
+	 */
+	addNeighbor(neighborId: AnnotationUuid, neighborLocation: NeighborLocation): void {
+		switch (neighborLocation) {
+			case NeighborLocation.FRONT:
+				this.neighborsIds.front.push(neighborId)
+				this.neighborsIds.front = lodash.uniq(this.neighborsIds.front)
+				break
+			case NeighborLocation.BACK:
+				this.neighborsIds.back.push(neighborId)
+				this.neighborsIds.back = lodash.uniq(this.neighborsIds.back)
+				break
+			case NeighborLocation.LEFT:
+				this.neighborsIds.left.push(neighborId)
+				this.neighborsIds.left = lodash.uniq(this.neighborsIds.left)
+				break
+			case NeighborLocation.RIGHT:
+				this.neighborsIds.right.push(neighborId)
+				this.neighborsIds.right = lodash.uniq(this.neighborsIds.right)
+				break
+			default:
+				log.warn('Neighbor location not recognized')
+		}
+	}
+
+	/*
+	 * Delete the neighbor if it exists on either side.
+	 */
+	deleteNeighbor(neighborId: AnnotationUuid): boolean {
+		return this.deleteLeftOrRightNeighbor(neighborId) ||
+			this.deleteFrontNeighbor(neighborId) ||
+			this.deleteBackNeighbor(neighborId)
+	}
+
+	deleteLeftOrRightNeighbor(neighborId: AnnotationUuid): boolean {
+		let index = this.neighborsIds.right.indexOf(neighborId, 0)
+
+		if (index > -1) {
+			this.neighborsIds.right.splice(index, 1)
+			return true
+		}
+
+		index = this.neighborsIds.left.indexOf(neighborId, 0)
+
+		if (index > -1) {
+			this.neighborsIds.left.splice(index, 1)
+			return true
+		}
+
+		return false
+	}
+
+	deleteFrontNeighbor(neighborId: AnnotationUuid): boolean {
+		const index = this.neighborsIds.front.findIndex((uuid) => {
+			return uuid === neighborId
+		})
+
+		if (index >= 0) {
+			this.neighborsIds.front.splice(index, 1)
+			return true
+		}
+
+		return false
+	}
+
+	deleteBackNeighbor(neighborId: AnnotationUuid): boolean {
+		const index = this.neighborsIds.back.findIndex((uuid) => {
+			return uuid === neighborId
+		})
+
+		if (index >= 0) {
+			this.neighborsIds.back.splice(index, 1)
+			return true
+		}
+
+		return false
+	}
+
+	toJSON(pointConverter?: (p: THREE.Vector3) => Object): LaneJsonOutputInterfaceV3 {
+		// Create data structure to export (this is the min amount of data
+		// needed to reconstruct this object from scratch)
+		const data: LaneJsonOutputInterfaceV3 = {
+			annotationType: AnnotationType[AnnotationType.LANE],
+			uuid: this.uuid,
+			laneType: LaneType[this.type],
+			leftLineType: LaneLineType[this.leftLineType],
+			leftLineColor: LaneLineColor[this.leftLineColor],
+			rightLineType: LaneLineType[this.rightLineType],
+			rightLineColor: LaneLineColor[this.rightLineColor],
+			entryType: LaneEntryExitType[this.entryType],
+			exitType: LaneEntryExitType[this.exitType],
+			neighborsIds: this.neighborsIds,
+			markers: [],
+			waypoints: [],
+		}
+
+		this.markers.forEach((marker) => {
+			if (pointConverter)
+				data.markers.push(pointConverter(marker.position))
+			else
+				data.markers.push(marker.position)
+		})
+
+		this.waypoints.forEach((waypoint) => {
+			if (pointConverter)
+				data.waypoints.push(pointConverter(waypoint))
+			else
+				data.waypoints.push(waypoint)
+		})
+
+		return data
+	}
+
+	getLaneWidth(): number {
+		// If just one point or non --> lane width is 0
+		if (this.markers.length < 2)
+			return 0.0
+
+		let sum = 0.0
+
+		const markers = this.markers
+
+		for (let i = 0; i < markers.length - 1; i += 2)
+			sum += markers[i].position.distanceTo(markers[i + 1].position)
+
+		return sum / (markers.length / 2)
+	}
+
+	// Estimate the trajectory of the final stretch of the lane.
+	// TODO CLYDE This should work from the center line when we decide that the center line defines the lane.
+	// TODO CLYDE For now using the markers along an edge will be close enough.
+	finalTrajectory(): THREE.Ray | null {
+		if (this.markers.length < 4) return null
+
+		const ultimate = this.markers[this.markers.length - 1].position
+		const penultimate = this.markers[this.markers.length - 3].position // next point on the same edge
+		const trajectory = new THREE.Ray(penultimate.clone())
+
+		trajectory.lookAt(ultimate)
+		trajectory.set(ultimate, trajectory.direction)
+		return trajectory
+	}
+
+	/**
+	 *  Use the last two points and a new "clicked" one to create a guess of
+	 *  the location of the next marker
+	 */
+	private computeNextMarkerEstimatedPosition(P3: THREE.Vector3): THREE.Vector3 {
+		// P3	 ?	 ?	P3
+		// P1 -> P2 or P2 <- P1
+		const lastIndex = this.markers.length
+		const P1 = this.markers[lastIndex - 2].position
+		const P2 = this.markers[lastIndex - 1].position
+		const vectorP1ToP2 = new THREE.Vector3()
+
+		vectorP1ToP2.subVectors(P1, P2)
+
+		// P4 = P3 + V(P1,P2)
+		const P4 = P3.clone()
+
+		P4.add(vectorP1ToP2)
+
+		return P4
+	}
+
+	private computeWaypoints(): void {
+		// There must be at least 4 markers to compute waypoints
+		if (this.markers.length < 4)
+			return
+
+		const points: Array<THREE.Vector3> = []
+
+		for (let i = 0; i < this.markers.length - 1; i += 2) {
+			const waypoint = this.markers[i].position.clone()
+
+			waypoint.add(this.markers[i + 1].position).divideScalar(2)
+			points.push(waypoint)
+		}
+
+		const distanceBetweenMarkers = 3.0 // in meters
+		const spline = new THREE.CatmullRomCurve3(points)
+
+		if (spline.getLength() < 1e-5) {
+			log.warn("This lane has no length. Can't compute waypoints")
+			return
+		}
+
+		const numPoints = spline.getLength() / distanceBetweenMarkers
+
+		this.waypoints = spline.getSpacedPoints(numPoints)
+
+		this.updateLaneDirectionMarkers()
+
+		// Change the line geometry
+		const lineGeometry = new THREE.Geometry()
+		const centerPoints = spline.getPoints(100)
+
+		for (let i = 0; i < centerPoints.length; i++) {
+			lineGeometry.vertices[i] = centerPoints[i]
+			lineGeometry.vertices[i].y += 0.02
+		}
+
+		lineGeometry.computeLineDistances()
+		this.laneCenterLine.geometry = lineGeometry
+		this.laneCenterLine.geometry.verticesNeedUpdate = true
+	}
+
+	private updateLaneDirectionMarkers(): void {
+		// Remove points from lineDirection object
+		this.laneDirectionMarkers.forEach((marker) => {
+			this.renderingObject.remove(marker)
+		})
+
+		if (this.waypoints.length < 3)
+			return
+
+		for (let i = 1; i < this.waypoints.length - 1; i++) {
+			const angle = Math.atan2(
+				this.waypoints[i + 1].z - this.waypoints[i].z,
+				this.waypoints[i + 1].x - this.waypoints[i].x
+			)
+			const marker = new THREE.Mesh(directionGeometry, directionGeometryMaterial)
+
+			marker.position.set(this.waypoints[i].x, this.waypoints[i].y, this.waypoints[i].z)
+			marker.rotateY(-angle)
+			this.renderingObject.add(marker)
+			this.laneDirectionMarkers.push(marker)
+		}
+	}
+
+	private hideDirectionMarkers(): void {
+		this.laneDirectionMarkers.forEach(m => {
+			m.visible = false
+		})
+	}
+
+	private showDirectionMarkers(): void {
+		this.laneDirectionMarkers.forEach(m => {
+			m.visible = true
+		})
+	}
+
+	private setCrosswalkInactiveRendering(): void {
+		// No direction markers, no center line, no side lines and yellow color
+		this.hideDirectionMarkers()
+		this.laneCenterLine.visible = false
+		this.laneRightLine.visible = false
+		this.laneLeftLine.visible = false
+		this.renderingProperties.inactiveMaterial.color.setHex(0xaa6600)
+	}
+
+	private setParkingInactiveRendering(): void {
+		// No direction markers, no center line, no side lines and blue color
+		this.hideDirectionMarkers()
+		this.laneCenterLine.visible = false
+		this.laneRightLine.visible = false
+		this.laneLeftLine.visible = false
+		this.renderingProperties.inactiveMaterial.color.setHex(0x3cb371)
+	}
+
+	private setBikeLaneInactiveRendering(): void {
+		// No direction markers, no center line, no side lines and green color
+		this.hideDirectionMarkers()
+		this.laneCenterLine.visible = false
+		this.laneRightLine.visible = false
+		this.laneLeftLine.visible = false
+		this.renderingProperties.inactiveMaterial.color.setHex(0x33d720)
+	}
+
+	private setAllVehiclesInactiveRendering(): void {
+		this.laneCenterLine.visible = false
+		this.laneRightLine.visible = true
+		this.laneLeftLine.visible = true
+		this.renderingProperties.inactiveMaterial.color.setHex(0x443333)
+	}
+
+	private updateLaneSideLinesGeometry(): void {
+		const leftLineGeometry = new THREE.Geometry()
+		const rightLineGeometry = new THREE.Geometry()
+
+		for (let i = 0; i < this.markers.length; i += 2) {
+			rightLineGeometry.vertices.push(this.markers[i].position.clone())
+			rightLineGeometry.vertices[rightLineGeometry.vertices.length - 1].y += 0.02
+			leftLineGeometry.vertices.push(this.markers[i + 1].position.clone())
+			leftLineGeometry.vertices[leftLineGeometry.vertices.length - 1].y += 0.02
+		}
+
+		leftLineGeometry.computeLineDistances()
+		rightLineGeometry.computeLineDistances()
+		this.laneLeftLine.geometry = leftLineGeometry
+		this.laneRightLine.geometry = rightLineGeometry
+		this.laneLeftLine.geometry.verticesNeedUpdate = true
+		this.laneRightLine.geometry.verticesNeedUpdate = true
+	}
+
+	private updateLaneSideLinesMaterial(): void {
+		const leftColor = this.lineColorToHex(this.leftLineColor)
+		const rightColor = this.lineColorToHex(this.rightLineColor)
+
+		if (this.leftLineType === LaneLineType.DASHED)
+			this.laneLeftLine.material = new THREE.LineDashedMaterial({color: new THREE.Color(leftColor), dashSize: 1, gapSize: 5, linewidth: 2})
+		else
+			this.laneLeftLine.material = new THREE.LineBasicMaterial({color: new THREE.Color(leftColor)})
+
+		if (this.rightLineType === LaneLineType.DASHED)
+			this.laneRightLine.material = new THREE.LineDashedMaterial({color: new THREE.Color(rightColor), dashSize: 1, gapSize: 5, linewidth: 2})
+		else
+			this.laneRightLine.material = new THREE.LineBasicMaterial({color: new THREE.Color(rightColor)})
+
+		this.laneLeftLine.material.needsUpdate = true
+		this.laneRightLine.material.needsUpdate = true
+	}
+
+	private lineColorToHex(color: LaneLineColor): THREE.Color {
+		switch (color) {
+			case LaneLineColor.WHITE:
+				return new THREE.Color(0xffffff)
+			case LaneLineColor.YELLOW:
+				return new THREE.Color(0xffaa00)
+			case LaneLineColor.BLUE:
+				return new THREE.Color(0x4682b4)
+			case LaneLineColor.RED:
+				return new THREE.Color(0xdc143c)
+			default:
+				return new THREE.Color(0x333333)
+		}
+	}
+}

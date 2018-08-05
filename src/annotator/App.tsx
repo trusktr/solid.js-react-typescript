@@ -4,10 +4,10 @@
  */
 
 import * as React from 'react'
-import config from '../config'
+const {default: config} = require(`${__base}/src/config`)
 import getFileUrl from '../util/getFileUrl'
-import StatusWindowActions from '../mapper-annotated-scene/StatusWindowActions'
-import AnnotatedSceneActions from '../mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
+import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
+import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
 import Kiosk from '../kiosk/Kiosk'
 import Annotator from '../annotator/Annotator'
 

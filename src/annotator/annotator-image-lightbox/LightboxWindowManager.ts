@@ -8,13 +8,15 @@ import * as Path from 'path'
 import * as Electron from 'electron'
 import {windowStateKeeperOptions} from '../../util/WindowStateKeeperOptions'
 import {channel as ipcChannel} from '../../electron-ipc/Channel'
-import * as IpcMessages from '../../electron-ipc/Messages'
-import config, {getMeta} from '../../config'
+import * as IPCMessages from './IPCMessages'
 import WindowCommunicator from '../../util/WindowCommunicator'
 import createPromise, {Resolve} from '../../util/createPromise'
 import {EventEmitter} from 'events'
-import {Events} from '../../mapper-annotated-scene/src/models/Events'
+import {Events} from '@mapperai/annotated-scene/src/models/Events'
 import windowStateKeeper from 'electron-window-state'
+import KeyboardEventHighlights from '@mapperai/annotated-scene/src/models/KeyboardEventHighlights'
+
+const {default: config, getMeta} = require(`${__base}/src/config`)
 
 interface LightboxWindowManagerSettings {
 	backgroundColor: string
@@ -113,7 +115,7 @@ export class LightboxWindowManager {
 		this.lightboxCommunicator.off(ipcChannel.keyUpEvent, this.handleOnKeyUp)
 	}
 
-	windowSetState(state: IpcMessages.LightboxState): Promise<void> {
+	windowSetState(state: IPCMessages.LightboxState): Promise<void> {
 		if (!state.images.length) return Promise.resolve()
 
 		return this.createWindow()
@@ -125,26 +127,26 @@ export class LightboxWindowManager {
 			})
 	}
 
-	imageSetState(state: IpcMessages.ImageEditState): void {
+	imageSetState(state: IPCMessages.ImageEditState): void {
 		if (this.window)
 			this.lightboxCommunicator.send(ipcChannel.imageEditState, state)
 		else
 			console.warn('missing window')
 	}
 
-	private handleOnImageEditState = (state: IpcMessages.ImageEditState): void => {
+	private handleOnImageEditState = (state: IPCMessages.ImageEditState): void => {
 		this.channel.emit(Events.IMAGE_EDIT_STATE, state)
 	}
 
-	private handleOnImageClick = (click: IpcMessages.ImageClick): void => {
+	private handleOnImageClick = (click: IPCMessages.ImageClick): void => {
 		this.channel.emit(Events.IMAGE_CLICK, click)
 	}
 
-	private handleOnKeyDown = (event: IpcMessages.KeyboardEventHighlights): void => {
+	private handleOnKeyDown = (event: KeyboardEventHighlights): void => {
 		this.channel.emit(Events.KEYDOWN, event)
 	}
 
-	private handleOnKeyUp = (event: IpcMessages.KeyboardEventHighlights): void => {
+	private handleOnKeyUp = (event: KeyboardEventHighlights): void => {
 		this.channel.emit(Events.KEYUP, event)
 	}
 }

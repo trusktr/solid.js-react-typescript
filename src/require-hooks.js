@@ -3,10 +3,17 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+const path = require('path')
+global.__base = path.resolve(__dirname, '..')
+
 require('ts-node').register({
 	typeCheck: false,
 	transpileOnly: true,
 	files: true,
+	ignore: [
+		// ignore all node_modules except @mapperai/annotated-scene
+		/node_modules(?!\/@mapperai\/annotated-scene)/,
+	],
 })
 
 // require('@babel/register')({

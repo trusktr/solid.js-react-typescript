@@ -4,7 +4,7 @@
  */
 
 import './TrajectoryPicker.css'
-import config from '../config'
+const {default: config} = require(`${__base}/src/config`)
 import * as lodash from 'lodash'
 import * as React from 'react'
 import * as Modal from 'react-modal'

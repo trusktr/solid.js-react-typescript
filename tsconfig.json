@@ -17,20 +17,26 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "outDir": "./dist/out",
-        "paths": {
-			"*": [ "*" ],
-			"assets/*": [ "annotator-assets/*" ],
-			"@/*": [ "*" ]
-		},
         "preserveConstEnums": true,
         "pretty": true,
         "sourceMap": true,
 		"strictNullChecks": true,
 		"target": "es6",
-		"skipLibCheck": true
+		"skipLibCheck": true,
+        "paths": {
+			"*": [ "*" ],
+			"assets/*": [ "annotator-assets/*" ],
+			"@/*": [ "*" ]
+		},
     },
     "compileOnSave": true,
+	"files": [
+		"./src/annotator/entry.tsx",
+		"./src/annotator/annotator-entry-main/MainEntry.ts",
+		"./src/annotator/annotator-image-lightbox/LightboxWindowUI.ts"
+	],
     "include": [
-        "src"
+        "src/**/*",
+        "node_modules/@mapperai/annotated-scene/src/**/*"
     ]
 }
