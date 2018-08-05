@@ -31,22 +31,5 @@
     "compileOnSave": true,
     "include": [
         "src"
-    ],
-    "awesomeTypescriptLoaderOptions": {
-        "useBabel": false,
-        "forkChecker": true,
-        "useCache": true,
-        "cacheDirectory": "dist/.awcache",
-        "babelOptions": {
-            "sourceMaps": "both",
-            "env": {
-                "development": {
-                    "plugins": [
-                        "react-hot-loader/babel"
-                    ]
-                }
-            }
-        }
-    }
-
+    ]
 }
