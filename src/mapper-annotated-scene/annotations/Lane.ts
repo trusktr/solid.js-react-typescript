@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three'
-import $ from 'jquery'
+import * as $ from 'jquery'
 import * as lodash from 'lodash'
 import {
 	AnnotationUuid, Annotation, AnnotationRenderingProperties,

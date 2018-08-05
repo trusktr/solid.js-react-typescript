@@ -10,7 +10,6 @@ import {compose, Store as ReduxStore, StoreEnhancer} from 'redux'
 import {ILeafReducer, ObservableStore, setStoreProvider} from 'typedux'
 import {loadReducers} from './Reducers'
 import {loadActions} from './Actions'
-import * as _ from 'lodash'
 import {getHot} from '../util/HotUtil'
 import Logger from '../../../util/log'
 

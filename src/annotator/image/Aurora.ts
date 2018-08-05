@@ -4,7 +4,7 @@
  */
 
 import * as AsyncFile from 'async-file'
-import sizeOf from 'image-size'
+import * as sizeOf from 'image-size'
 import {AuroraCameraParameters} from './CameraParameters'
 import {UtmCoordinateSystem} from '../../mapper-annotated-scene/UtmCoordinateSystem'
 import config from '../../config'

@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
-        "allowSyntheticDefaultImports": true,
+        "allowSyntheticDefaultImports": false,
+		"esModuleInterop": false,
         "alwaysStrict": true,
         "baseUrl": "./src",
         "declaration": false,

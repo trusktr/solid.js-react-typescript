@@ -16,7 +16,7 @@ import GroundPlaneManager from './GroundPlaneManager'
 import TileManagerBase from '../../tile/TileManagerBase'
 import {AxesHelper} from './controls/AxesHelper'
 import toProps from '../../../util/toProps'
-import EventEmitter from 'events'
+import * as EventEmitter from 'events'
 import {Events} from '../../src/models/Events'
 import {throttle} from 'lodash'
 

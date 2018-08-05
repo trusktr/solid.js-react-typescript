@@ -1,7 +1,7 @@
 // Copyright 2017 Mapper Inc.
 // CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
 
-import nconf from 'nconf'
+import * as nconf from 'nconf'
 import * as yaml from 'nconf-yaml'
 import * as path from 'path'
 import * as fs from 'fs'

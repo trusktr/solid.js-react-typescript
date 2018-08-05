@@ -7,7 +7,7 @@ import {BrowserWindow, BrowserWindowConstructorOptions} from 'electron'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import {windowStateKeeperOptions} from '../../util/WindowStateKeeperOptions'
 import config from '../../config'
-import windowStateKeeper from 'electron-window-state'
+import windowStateKeeper = require('electron-window-state')
 
 export default
 function restoreWindowState(win: BrowserWindow, windowName: string): void {

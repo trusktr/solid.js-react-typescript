@@ -4,7 +4,7 @@
  */
 
 import config from '../config'
-import $ from 'jquery'
+import * as $ from 'jquery'
 import * as Electron from 'electron'
 import MousePosition from '../mapper-annotated-scene/src/models/MousePosition'
 import mousePositionToGLSpace from '../util/mousePositionToGLSpace'

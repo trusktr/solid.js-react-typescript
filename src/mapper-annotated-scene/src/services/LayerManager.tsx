@@ -6,7 +6,7 @@
 import * as React from 'react'
 import * as lodash from 'lodash'
 import Logger from '../../../util/log'
-import EventEmitter from 'events'
+import * as EventEmitter from 'events'
 import {Events} from '../models/Events'
 
 const log = Logger(__filename)

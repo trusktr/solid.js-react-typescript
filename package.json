@@ -131,6 +131,7 @@
     "stats.js": "0.17.0",
     "three": "0.84.0",
     "three-obj-loader": "1.1.2",
+    "ts-node": "^7.0.0",
     "ts-option": "1.1.4",
     "typedux": "0.1.20",
     "typeguard": "0.0.12",

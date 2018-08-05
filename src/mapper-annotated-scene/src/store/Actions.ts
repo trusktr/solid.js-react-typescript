@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import requireContext from 'require-context'
+import * as requireContext from 'require-context'
 import * as path from 'path'
 
 /**

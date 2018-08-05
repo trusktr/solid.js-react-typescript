@@ -17,7 +17,7 @@ import {typedConnect} from '../styles/Themed'
 import toProps from '../../../util/toProps'
 import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
 import {UtmCoordinateSystem} from '../../UtmCoordinateSystem'
-import EventEmitter from 'events'
+import * as EventEmitter from 'events'
 import {Events} from '../models/Events'
 import {PointCloudSuperTile} from '../../tile/PointCloudSuperTile'
 
