@@ -288,7 +288,6 @@ function initUIControl(): void {
 		'#menu_lane',
 		'#menu_connection',
 		'#menu_territory',
-		'#menu_trajectory',
 		'#menu_traffic_device',
 	]
 
