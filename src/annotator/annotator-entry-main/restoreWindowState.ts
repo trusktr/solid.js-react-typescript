@@ -17,7 +17,7 @@ function restoreWindowState(win: BrowserWindow, windowName: string): void {
 	savedState.manage(win)
 
 	// Deal with window dimensions. Kiosk mode overrides all other settings.
-	const setFullScreen = false //! !config['startup.kiosk_mode']
+	const setFullScreen = false // TODO JOE should this come from config? !!config['startup.kiosk_mode']
 	const options = {} as BrowserWindowConstructorOptions
 
 	if (!setFullScreen) {
