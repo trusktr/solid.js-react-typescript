@@ -94,8 +94,14 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	private registeredKeyUpEvents: Map<string, Set<(e: KeyboardEvent | KeyboardEventHighlights) => void>> = new Map() // mapping between KeyboardEvent.key and function to execute
 	private heldKeys: Set<Key> = new Set()
 
+	private tileServerStatusTimeout: number
+	private tileServerStatusMessageDuration: number
+
 	constructor(props: AnnotatedSceneControllerProps) {
 		super(props)
+
+		this.tileServerStatusTimeout = 0
+		this.tileServerStatusMessageDuration = 10000
 
 		this.state = {
 			cameraState: {
@@ -110,6 +116,10 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.utmCoordinateSystem = new UtmCoordinateSystem()
 		this.scaleProvider = new ScaleProvider()
 		this.tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel)
+
+		this.channel.on(Events.TILE_SERVICE_STATUS_UPDATE, (status) => {
+			this.onTileServiceStatusUpdate(status)
+		})
 
 		this.pointCloudTileManager = new PointCloudTileManager(
 			this.scaleProvider,
@@ -171,6 +181,42 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.state.container!.addEventListener('mouseup', this.state.annotationManager!.addLaneConnection)
 		this.state.container!.addEventListener('mouseup', this.state.annotationManager!.connectNeighbor)
 		this.state.container!.addEventListener('mouseup', this.state.annotationManager!.joinAnnotationsEventHandler)
+	}
+
+	// Display a UI element to tell the user what is happening with tile server. Error messages persist,
+	// and success messages disappear after a time-out.
+	onTileServiceStatusUpdate = (tileServiceStatus: boolean): void => {
+		let className = ''
+		let msg = ''
+
+		if (tileServiceStatus) {
+			className = 'statusOk'
+			msg = 'Available'
+			this.delayHideTileServiceStatus()
+		} else {
+			className = 'statusOk'
+			msg = 'Unavailable'
+			this.cancelHideTileServiceStatus()
+		}
+
+		const message = <div> Tile server status: <span className={className}> {msg} </span></div>
+
+		new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, message)
+	}
+
+	private delayHideTileServiceStatus = (): void => {
+		this.cancelHideTileServiceStatus()
+		this.hideTileServiceStatus()
+	}
+
+	private cancelHideTileServiceStatus = (): void => {
+		if (this.tileServerStatusTimeout) window.clearTimeout(this.tileServerStatusTimeout)
+	}
+
+	private hideTileServiceStatus = (): void => {
+		this.tileServerStatusTimeout = window.setTimeout(() => {
+			new StatusWindowActions().setMessage(StatusKey.TILE_SERVER, '')
+		}, this.tileServerStatusMessageDuration)
 	}
 
 	/**
@@ -514,7 +560,6 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 
 				<StatusWindow
 					ref={this.getStatusWindowRef}
-					eventEmitter={this.channel}
 				/>
 
 				{ container && areaOfInterestManager &&

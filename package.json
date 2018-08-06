@@ -106,6 +106,7 @@
     "electron": "1.7.9",
     "electron-unhandled": "1.1.0",
     "electron-window-state": "4.1.1",
+    "events": "^3.0.0",
     "executable": "4.1.1",
     "google-protobuf": "3.5.0",
     "gtran-kml": "1.2.1",

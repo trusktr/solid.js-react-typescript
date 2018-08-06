@@ -9,7 +9,7 @@ import * as UUID from 'uuid'
 import {AnnotationType} from './AnnotationType'
 import {isNumber} from 'util' // eslint-disable-line node/no-deprecated-api
 import Logger from '../util/log'
-import EventEmitter from 'events'
+import {EventEmitter} from 'events'
 import {Events} from '../models/Events'
 
 const log = Logger(__filename)

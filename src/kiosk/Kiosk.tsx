@@ -7,9 +7,7 @@ import * as React from 'react'
 import * as THREE from 'three'
 const {default: config} = require(`${__base}/src/config`)
 import CarManager from '../kiosk/components/CarManager'
-import AnnotatedSceneState from '@mapperai/annotated-scene/src/store/state/AnnotatedSceneState'
 import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
-import {createStructuredSelector} from 'reselect'
 import FlyThroughManager from '../kiosk/components/FlyThroughManager'
 import KioskMenuView from '../kiosk/components/KioskMenuView'
 import Logger from '../util/log'
@@ -17,6 +15,13 @@ import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/Ann
 import * as watch from 'watch'
 import TrajectoryPicker from '../kiosk/TrajectoryPicker'
 import * as Electron from 'electron'
+import toProps from '@mapperai/annotated-scene/src/util/toProps'
+import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
+import {
+	LocationServerStatusClient,
+	LocationServerStatusLevel,
+} from './clients/LocationServerStatusClient'
+import StatusKey from './StatusKey'
 
 // TODO JOE
 // import {ConfigDefault} from '@/config/ConfigDefault'
@@ -40,16 +45,25 @@ export interface KioskState {
 	isChildLoopAdded: boolean
 	trajectoryPicker?: TrajectoryPicker
 }
-@typedConnect(createStructuredSelector({
-	isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
-	isInitialOriginSet: (state) => state.get(AnnotatedSceneState.Key).isInitialOriginSet,
-	isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
-	isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
-	flyThroughEnabled: (state) => state.get(AnnotatedSceneState.Key).flyThroughEnabled,
-	}))
+@typedConnect(toProps(
+	'isCarInitialized',
+	'isInitialOriginSet',
+	'isLiveMode',
+	'isPlayMode',
+	'flyThroughEnabled',
+))
 export default class Kiosk extends React.Component<KioskProps, KioskState> {
+	private locationServerStatusClient: LocationServerStatusClient
+	private locationServerStatusMessageTimeout: number
+	private locationServeStatusMessageDuration: number
+
 	constructor(props: KioskProps) {
 		super(props)
+
+		this.locationServeStatusMessageDuration = 10000 // milliseconds
+		this.locationServerStatusMessageTimeout = 0
+		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
+		this.locationServerStatusClient.connect()
 
 		this.state = {
 			hasCalledSetup: false,
@@ -89,6 +103,49 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 	exitApp(): void {
 		Electron.remote.getCurrentWindow().close()
+	}
+
+	// Display a UI element to tell the user what is happening with the location server.
+	// Error messages persist, and success messages disappear after a time-out.
+	onLocationServerStatusUpdate = (level: LocationServerStatusLevel, serverStatus: string): void => {
+		let className = ''
+
+		switch (level) {
+			case LocationServerStatusLevel.INFO:
+				className = 'statusOk'
+				this.delayLocationServerStatus()
+				break
+			case LocationServerStatusLevel.WARNING:
+				className = 'statusWarning'
+				this.cancelHideLocationServerStatus()
+				break
+			case LocationServerStatusLevel.ERROR:
+				className = 'statusError'
+				this.cancelHideLocationServerStatus()
+				break
+			default:
+				log.error('unknown LocationServerStatusLevel ' + LocationServerStatusLevel.ERROR)
+		}
+
+		const message = <div> Location status: <span className={className}> {serverStatus} </span> </div>
+
+		new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, message)
+	}
+
+	private delayLocationServerStatus = (): void => {
+		this.cancelHideLocationServerStatus()
+		this.hideLocationServerStatus()
+	}
+
+	private cancelHideLocationServerStatus = (): void => {
+		if (this.locationServerStatusMessageTimeout)
+			window.clearTimeout(this.locationServerStatusMessageTimeout)
+	}
+
+	private hideLocationServerStatus = (): void => {
+		this.locationServerStatusMessageTimeout = window.setTimeout(() => {
+			new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, '')
+		}, this.locationServeStatusMessageDuration)
 	}
 
 	async componentWillReceiveProps(newProps: KioskProps) {

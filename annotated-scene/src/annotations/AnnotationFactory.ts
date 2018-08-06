@@ -10,7 +10,7 @@ import {Connection, ConnectionJsonInputInterface} from './Connection'
 import {Lane, LaneJsonInputInterfaceV3} from './Lane'
 import {Territory, TerritoryJsonInputInterface} from './Territory'
 import {TrafficDevice, TrafficDeviceJsonInputInterface} from './TrafficDevice'
-import EventEmitter from 'events'
+import {EventEmitter} from 'events'
 
 export function construct(annotationType: AnnotationType, channel: EventEmitter, obj?: AnnotationJsonInputInterface): Annotation | null {
 	try {

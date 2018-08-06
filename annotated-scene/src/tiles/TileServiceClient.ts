@@ -55,21 +55,16 @@ export class TileServiceClient {
 	private scale: SpatialTileScale
 	private tileServiceAddress: string
 	private client: GrpcClient | null
-	private eventEmitter: EventEmitter
-	// private onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void
 	private serverStatus: boolean | null // null == untested; true == available; false == unavailable
 	private pingInFlight: boolean // semaphore for pingServer()
 	private healthCheckInterval: number // configuration for pinging the server
 
 	constructor(
 		scaleProvider: ScaleProvider,
-		eventEmitter: EventEmitter,
-		// onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
+		private channel: EventEmitter,
 	) {
 		this.serverStatus = null
 		this.pingInFlight = false
-		this.eventEmitter = eventEmitter
-		// this.onTileServiceStatusUpdate = onTileServiceStatusUpdate
 		this.healthCheckInterval = config['tile_client.service.health_check.interval.seconds'] * 1000
 
 		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO CLYDE config: UTM_10N (and make the server aware of UTM zones)
@@ -140,8 +135,7 @@ export class TileServiceClient {
 	private setServerStatus(newStatus: boolean): void {
 		if (this.serverStatus === null || this.serverStatus !== newStatus) {
 			this.serverStatus = newStatus
-			this.eventEmitter.emit(Events.TILE_SERVICE_STATUS_UPDATE, newStatus)
-			// this.onTileServiceStatusUpdate(newStatus)
+			this.channel.emit(Events.TILE_SERVICE_STATUS_UPDATE, newStatus)
 		}
 	}
 

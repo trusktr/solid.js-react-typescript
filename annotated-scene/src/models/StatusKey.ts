@@ -3,14 +3,13 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-export enum StatusKey {
-	CURRENT_LOCATION_LLA = 'currentLocationLla',
-	CURRENT_LOCATION_UTM = 'currentLocationUtm',
-	FLY_THROUGH_TRAJECTORY = 'flyThroughTrajectory',
-	FLY_THROUGH_POSE = 'flyThroughPose',
-	TILE_SERVER = 'tileServer',
-	LOCATION_SERVER = 'locationServer',
-	CAMERA_TYPE = 'cameraType',
-	TILE_MANAGER_POINT_STATS = 'tileManagerStats',
-	TILE_MANAGER_ANNOTATION_STATS = 'tileManagerAnnotationStats',
+import * as UUID from 'uuid'
+
+export const StatusKey = {
+	CURRENT_LOCATION_LLA: UUID(),
+	CURRENT_LOCATION_UTM: UUID(),
+	TILE_SERVER: UUID(),
+	CAMERA_TYPE: UUID(),
+	TILE_MANAGER_POINT_STATS: UUID(),
+	TILE_MANAGER_ANNOTATION_STATS: UUID(),
 }

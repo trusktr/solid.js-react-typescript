@@ -13,7 +13,7 @@ import {
 import {AnnotationType} from './AnnotationType'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import Logger from '../util/log'
-import EventEmitter from 'events'
+import {EventEmitter} from 'events'
 
 const log = Logger(__filename)
 const directionGeometry = new THREE.Geometry()

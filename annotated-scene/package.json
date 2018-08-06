@@ -63,6 +63,7 @@
     "css-modules-require-hook": "4.2.3",
     "electron": "1.7.9",
     "electron-unhandled": "1.1.0",
+    "events": "^3.0.0",
     "executable": "4.1.1",
     "google-protobuf": "3.5.0",
     "gtran-kml": "1.2.1",
