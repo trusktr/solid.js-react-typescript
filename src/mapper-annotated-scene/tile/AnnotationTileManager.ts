@@ -26,7 +26,7 @@ export class AnnotationTileManager extends TileManager {
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
 		tileServiceClient: MapperTileServiceClient,
-        channel: EventEmitter,
+		channel: EventEmitter,
 		private annotationManager: AnnotationManager,
 	) {
 		super(

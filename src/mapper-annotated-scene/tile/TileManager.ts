@@ -4,7 +4,7 @@
  */
 
 import {OrderedMap, OrderedSet} from 'immutable'
-import * as lodash from "lodash"
+import * as lodash from 'lodash'
 import * as THREE from 'three'
 import TileManagerBase from '@/mapper-annotated-scene/tile/TileManagerBase'
 import {TileMessage} from '@/mapper-annotated-scene/tile-model/TileMessage'
@@ -262,29 +262,36 @@ export abstract class TileManager implements TileManagerBase {
 			.then(() => {
 				// Create records for all SuperTiles in the request, even if they prove to be empty--since that's useful to know for statistics.
 				filteredStIndexes.forEach(stIndex => this.getOrCreateSuperTile(stIndex, coordinateFrame))
+
 				let allTilesPromise: Promise<void>
+
 				const tsc = this.tileServiceClient
+
 				if (tsc instanceof GrpcTileServiceClient) {
 					const tileLoadResults = filteredStIndexes.map(stIndex => {
 						const superTileSearch = {
 							minPoint: stIndex.boundingBox.min,
-							maxPoint: stIndex.boundingBox.max
+							maxPoint: stIndex.boundingBox.max,
 						}
 						// TODO clyde merge these into fewer API requests
 						const tileInstancesPromise = tsc.getTilesByCoordinateRange(this.config.layerId, superTileSearch)
+
 						return tileInstancesPromise
 							.then(tileInstances => this.loadTileInstancesToSuperTiles(coordinateFrame, tileInstances))
 					})
+
 					allTilesPromise = Promise.all(tileLoadResults)
-						.then(() => {return})
+						.then(() => {})
 				} else if (tsc instanceof RestTileServiceClient) {
 					const tileIds = this.superTileIndexesToTileIndexes(filteredStIndexes)
 					const tileInstancesPromise = tsc.getTilesByTileIds(this.config.layerId, tileIds)
+
 					allTilesPromise = tileInstancesPromise
 						.then(tileInstances => this.loadTileInstancesToSuperTiles(coordinateFrame, tileInstances))
 				} else {
 					throw TypeError(`unknown tileServiceClient: ${this.tileServiceClient}`)
 				}
+
 				return allTilesPromise
 			})
 
@@ -302,6 +309,7 @@ export abstract class TileManager implements TileManagerBase {
 	private loadTileInstancesToSuperTiles(coordinateFrame: CoordinateFrameType, tileInstances: TileInstance[]): void {
 		tileInstances.forEach(tileInstance => {
 			const utmTile = this.tileInstanceToUtmTile(tileInstance, coordinateFrame)
+
 			this.addTileToSuperTile(utmTile, coordinateFrame, tileInstance.url)
 		})
 	}

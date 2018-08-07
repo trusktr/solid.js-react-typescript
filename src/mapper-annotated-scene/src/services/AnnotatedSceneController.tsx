@@ -87,12 +87,12 @@ export interface AnnotatedSceneControllerState {
 	'numberKeyPressed',
 ))
 export default class AnnotatedSceneController extends React.Component<AnnotatedSceneControllerProps, AnnotatedSceneControllerState> {
-    public utmCoordinateSystem: UtmCoordinateSystem
+	public utmCoordinateSystem: UtmCoordinateSystem
 	private settings: AnnotatedSceneControllerSettings
-    private scaleProvider: ScaleProvider
+	private scaleProvider: ScaleProvider
 	private tileServiceClient: MapperTileServiceClient
-    private pointCloudTileManager: PointCloudTileManager
-    channel: EventEmitter
+	private pointCloudTileManager: PointCloudTileManager
+	channel: EventEmitter
 	lastPointCloudLoadedErrorModalMs: number
 	private isAllSet: boolean
 
@@ -100,33 +100,36 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	private registeredKeyUpEvents: Map<string, Set<(e: KeyboardEvent | KeyboardEventHighlights) => void>> = new Map() // mapping between KeyboardEvent.key and function to execute
 	private heldKeys: Set<Key> = new Set()
 
-    constructor(props: AnnotatedSceneControllerProps) {
-        super(props)
-	    this.settings = {
-		    useGrpcClient: !!config['tile_client.service.use_grpc'],
-	    }
+	constructor(props: AnnotatedSceneControllerProps) {
+		super(props)
 
-        this.state = {
-            cameraState: {
-                lastCameraCenterPoint: null,
-            },
-            componentWidth: 1000,
-            componentHeight: 1000,
-        }
+		this.settings = {
+			useGrpcClient: !!config['tile_client.service.use_grpc'],
+		}
 
-        // These don't need to be state, because these references don't change
-        this.channel = new EventEmitter()
-        this.utmCoordinateSystem = new UtmCoordinateSystem()
-        this.scaleProvider = new ScaleProvider()
-	    this.tileServiceClient = this.settings.useGrpcClient
-		    ? new GrpcTileServiceClient(this.scaleProvider, this.channel)
-		    : new RestTileServiceClient(this.scaleProvider, this.channel)
-	    this.pointCloudTileManager = new PointCloudTileManager(
-            this.scaleProvider,
-            this.utmCoordinateSystem,
-            this.tileServiceClient,
-            this.channel
-        )
+		this.state = {
+			cameraState: {
+				lastCameraCenterPoint: null,
+			},
+			componentWidth: 1000,
+			componentHeight: 1000,
+		}
+
+		// These don't need to be state, because these references don't change
+		this.channel = new EventEmitter()
+		this.utmCoordinateSystem = new UtmCoordinateSystem()
+		this.scaleProvider = new ScaleProvider()
+
+		this.tileServiceClient = this.settings.useGrpcClient
+			? new GrpcTileServiceClient(this.scaleProvider, this.channel)
+			: new RestTileServiceClient(this.scaleProvider, this.channel)
+
+		this.pointCloudTileManager = new PointCloudTileManager(
+			this.scaleProvider,
+			this.utmCoordinateSystem,
+			this.tileServiceClient,
+			this.channel
+		)
 
 		this.lastPointCloudLoadedErrorModalMs = 0
 

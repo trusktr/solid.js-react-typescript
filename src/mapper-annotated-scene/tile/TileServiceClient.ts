@@ -44,11 +44,11 @@ function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undef
 }
 
 const pingRequest = new PingRequest()
+
 // We generate tile searches using the boundaries of super tiles. Tile boundaries are inclusive on the
 // lower faces and exclusive on the upper faces. Apply an offset from the upper boundaries to avoid
 // retrieving a bunch of extra tiles there.
 export const tileSearchOffset = -0.001
-
 export abstract class MapperTileServiceClient {
 	protected scale: SpatialTileScale
 	protected eventEmitter: EventEmitter
@@ -56,7 +56,9 @@ export abstract class MapperTileServiceClient {
 	constructor(scaleProvider: ScaleProvider, eventEmitter: EventEmitter) {
 		if (config['tile_client.tile_scale'])
 			log.warn('Config option tile_client.tile_scale is deprecated. Use tile_manager.utm_tile_scale.')
+
 		const scale = scale3DToSpatialTileScale(scaleProvider.utmTileScale)
+
 		if (isNullOrUndefined(scale))
 			throw Error(`invalid utmTileScale: ${scaleProvider.utmTileScale}`)
 		this.scale = scale
@@ -66,7 +68,6 @@ export abstract class MapperTileServiceClient {
 
 	abstract getTileContents(url: string): Promise<Uint8Array>
 }
-
 export class GrpcTileServiceClient extends MapperTileServiceClient {
 	private srid: SpatialReferenceSystemIdentifier
 	private tileServiceAddress: string
@@ -240,7 +241,6 @@ export class GrpcTileServiceClient extends MapperTileServiceClient {
 		})
 	}
 }
-
 export class RestTileServiceClient extends MapperTileServiceClient {
 	private srid: SpatialReferenceSystemIdentifier
 
