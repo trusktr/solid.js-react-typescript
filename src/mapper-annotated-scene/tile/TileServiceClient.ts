@@ -25,6 +25,8 @@ import {ScaleProvider} from '@/mapper-annotated-scene/tile/ScaleProvider'
 import {EventEmitter} from 'events'
 import {Events} from '@/mapper-annotated-scene/src/models/Events'
 import {LayerId} from '@/types/TypeAlias'
+import {TilesRequest, TilesRequestRequestsItem} from '@mapperai/mapper-cloud-tiles-typescript-sdk/api'
+import S3, {GetObjectRequest} from 'aws-sdk/clients/s3'
 
 const log = Logger(__filename)
 
@@ -247,21 +249,44 @@ export class RestTileServiceClient extends MapperTileServiceClient {
 	constructor(scaleProvider: ScaleProvider, eventEmitter: EventEmitter) {
 		super(scaleProvider, eventEmitter)
 		this.srid = SpatialReferenceSystemIdentifier.UTM_10N // TODO clyde make this configurable
-		log.info('this.srid', this.srid)
 	}
 
 	// Get all tiles in the list.
 	getTilesByTileIds(layerId: LayerId, tileIds: TileIndex[]): Promise<TileInstance[]> {
 		// TODO clyde implement
 		log.info('layerId', layerId, 'tileIds', tileIds.length)
-		// return Promise.resolve([])
+		const tableName: string = "bla-bla" // Calculate table name
+		const token: string = "bla-bla-token"
+		const apiVersion = "1"
+
+		const requestItems = tileIds.map(id => RestTileServiceClient.convertToRequestItem(tableName, id.toString()))
+		const tilesRequest: TilesRequest = {requests: requestItems}
+
+		// return this.tilesClient.tilesVersionTilePost(apiVersion, "annotator", token, tilesRequest)
+
 		return Promise.reject(Error('getTilesByTileIds() not implemented'))
 	}
 
 	getTileContents(url: string): Promise<Uint8Array> {
 		// TODO clyde implement
 		log.info('url', url)
+
+		const r: GetObjectRequest = {} as GetObjectRequest
+
+		const s3 = new S3()
+		s3.getObject(r)
+
 		return Promise.reject(Error('getTileContents() not implemented'))
+	}
+
+	private static convertToRequestItem(tableName: string, id: string): TilesRequestRequestsItem {
+		return {
+			fromEpochMillis: 0,
+			toEpochMillis: Number.MAX_VALUE,
+			limit: 1,
+			id: id,
+			tableName: tableName,
+		}
 	}
 
 	// TODO clyde implement some version of setServerStatus()
