@@ -5,6 +5,7 @@
 
 import * as React from 'react'
 import * as THREE from 'three'
+import * as OBJLoader from 'three-obj-loader'
 import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame,
@@ -13,15 +14,10 @@ import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/A
 import * as MapperProtos from '@mapperai/mapper-models'
 import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
 import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
-import getFileUrl from '../../util/getFileUrl'
 import toProps from '@mapperai/annotated-scene/src/util/toProps'
+import carModelOBJ from '../models/BMW_X5_4.obj'
 
-// TODO JOE
-// if (webpack) {
-// import * as carModelOBJ from '../../annotator-assets/models/BMW_X5_4.obj'
-// } else {
-const carModelOBJ = getFileUrl('../../annotator-assets/models/BMW_X5_4.obj')
-// }
+OBJLoader(THREE)
 
 export interface CarManagerProps {
 	annotatedScene: AnnotatedSceneController
