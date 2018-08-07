@@ -7,16 +7,16 @@
 //   static Key = 'KioskState'
 //
 //   /**
-//    * Create state from JS (method required to comply with by IStateConstructor on the reducer)
-//    * @param o
-//    * @returns {KioskState}
-//    */
+//	* Create state from JS (method required to comply with by IStateConstructor on the reducer)
+//	* @param o
+//	* @returns {KioskState}
+//	*/
 //   static fromJS(o: any = {}): KioskState {
-//     return new KioskState(o)
+//	 return new KioskState(o)
 //   }
 //
 //   constructor(o: any = {}) {
-//     Object.assign(this, o)
+//	 Object.assign(this, o)
 //   }
 //   isLiveMode: boolean // toggles between live mode and recorded mode
 //   isPlayMode: boolean // toggles between play and pause modes

@@ -6,26 +6,26 @@
 import {LaneType, LaneLineType, LaneLineColor, LaneEntryExitType} from '@/mapper-annotated-scene/annotations/Lane'
 import {TrafficDeviceType} from '@/mapper-annotated-scene/annotations/TrafficDevice'
 import {BoundaryType, BoundaryColor} from '@/mapper-annotated-scene/annotations/Boundary'
-import {ConnectionType} from "@/mapper-annotated-scene/annotations/Connection";
+import {ConnectionType} from '@/mapper-annotated-scene/annotations/Connection'
 
 export default
 function initUIControl(): void {
-
 	// Get html elements
-	///////////////////////////////////////////////////////////////////////////////
+	/// ////////////////////////////////////////////////////////////////////////////
 	const boundaryProp = document.getElementById('boundary_prop')
 	const laneProp = document.getElementById('lane_prop_1')
 	const trafficDeviceProp = document.getElementById('traffic_device_prop_1')
 	const connectionProp = document.getElementById('connection_prop')
-
 	// Define new elements
-	///////////////////////////////////////////////////////////////////////////////
+	/// ////////////////////////////////////////////////////////////////////////////
 	const bpLabelsText = ['Boundary ID:', 'Boundary Type:', 'Boundary Color']
 	const bpLabelsId = ['bp_id', 'bp_type', 'bp_color']
 	const bpLabels: Array<HTMLElement> = []
+
 	for (const i in bpLabelsText) {
 		if (bpLabelsText.hasOwnProperty(i)) {
 			const e = document.createElement('text')
+
 			e.textContent = bpLabelsText[i]
 			e.id = bpLabelsId[i]
 			e.className = 'label_style'
@@ -44,9 +44,9 @@ function initUIControl(): void {
 		[BoundaryColor.UNKNOWN.toString(), BoundaryColor.NONE.toString(), BoundaryColor.WHITE.toString(),
 			BoundaryColor.YELLOW.toString(), BoundaryColor.RED.toString(), BoundaryColor.BLUE.toString(),
 			BoundaryColor.GREEN.toString(), BoundaryColor.OTHER.toString()]]
-
 	const bpSelects: Array<HTMLElement> = []
 	const eBoundaryId = document.createElement('text')
+
 	eBoundaryId.textContent = 'UNKNOWN'
 	eBoundaryId.id = 'bp_id_value'
 	eBoundaryId.className = 'select_style'
@@ -55,14 +55,18 @@ function initUIControl(): void {
 	for (const i in bpSelectsId) {
 		if (bpSelectsId.hasOwnProperty(i)) {
 			const element = document.createElement('select')
+
 			element.id = bpSelectsId[i]
 			element.className = 'select_style'
+
 			for (let j = 0; j < bpSelectsText[i].length; ++j) {
-				const option = document.createElement("option")
+				const option = document.createElement('option')
+
 				option.value = bpSelectsValue[i][j]
 				option.text = bpSelectsText[i][j]
 				element.appendChild(option)
 			}
+
 			bpSelects.push(element)
 		}
 	}
@@ -72,11 +76,12 @@ function initUIControl(): void {
 		'Right Line Type:', 'Right Line Color', 'Entry Type:', 'Exit Type:']
 	const lpLabelsId = ['lp_id', 'lp_width', 'lp_lane_type', 'lp_left_line', 'lp_left_color',
 		'lp_right_line', 'lp_right_color', 'lp_entry', 'lp_exit']
-
 	const lpLabels: Array<HTMLElement> = []
+
 	for (const i in lpLabelsText) {
 		if (lpLabelsText.hasOwnProperty(i)) {
 			const elm = document.createElement('text')
+
 			elm.textContent = lpLabelsText[i]
 			elm.id = lpLabelsId[i]
 			elm.className = 'label_style'
@@ -96,8 +101,8 @@ function initUIControl(): void {
 		['UNKNOWN', 'continue ––»»»––', 'stop ––||––']]
 	const lpSelectValue = [
 		[LaneType.UNKNOWN.toString(), LaneType.ALL_VEHICLES.toString(), LaneType.MOTOR_VEHICLES.toString(), LaneType.CAR_ONLY.toString(),
-		LaneType.TRUCK_ONLY.toString(), LaneType.BUS_ONLY.toString(), LaneType.BIKE_ONLY.toString(), LaneType.PEDESTRIAN_ONLY.toString(),
-		LaneType.PARKING.toString(), LaneType.CROSSWALK.toString(), LaneType.OTHER.toString()],
+			LaneType.TRUCK_ONLY.toString(), LaneType.BUS_ONLY.toString(), LaneType.BIKE_ONLY.toString(), LaneType.PEDESTRIAN_ONLY.toString(),
+			LaneType.PARKING.toString(), LaneType.CROSSWALK.toString(), LaneType.OTHER.toString()],
 		[LaneLineType.UNKNOWN.toString(), LaneLineType.SOLID.toString(), LaneLineType.DASHED.toString()],
 		[LaneLineColor.UNKNOWN.toString(), LaneLineColor.WHITE.toString(), LaneLineColor.YELLOW.toString(),
 			LaneLineColor.RED.toString(), LaneLineColor.BLUE.toString(), LaneLineColor.OTHER.toString()],
@@ -106,14 +111,16 @@ function initUIControl(): void {
 			LaneLineColor.RED.toString(), LaneLineColor.BLUE.toString(), LaneLineColor.OTHER.toString()],
 		[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()],
 		[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()]]
-
 	const lpSelects: Array<HTMLElement> = []
 	const eLaneId = document.createElement('text')
+
 	eLaneId.textContent = 'UNKNOWN'
 	eLaneId.id = 'lp_id_value'
 	eLaneId.className = 'select_style'
 	lpSelects.push(eLaneId)
+
 	const eLaneWidth = document.createElement('text')
+
 	eLaneWidth.textContent = 'UNKNOWN'
 	eLaneWidth.id = 'lp_width_value'
 	eLaneWidth.className = 'select_style'
@@ -122,14 +129,18 @@ function initUIControl(): void {
 	for (const i in lpSelectsId) {
 		if (lpSelectsId.hasOwnProperty(i)) {
 			const element = document.createElement('select')
+
 			element.id = lpSelectsId[i]
 			element.className = 'select_style'
+
 			for (let j = 0; j < lpSelectsText[i].length; ++j) {
-				const option = document.createElement("option")
+				const option = document.createElement('option')
+
 				option.value = lpSelectValue[i][j]
 				option.text = lpSelectsText[i][j]
 				element.appendChild(option)
 			}
+
 			lpSelects.push(element)
 		}
 	}
@@ -142,6 +153,7 @@ function initUIControl(): void {
 	for (const i in cpLabelsText) {
 		if (cpLabelsText.hasOwnProperty(i)) {
 			const element = document.createElement('text')
+
 			element.textContent = cpLabelsText[i]
 			element.id = cpLabelsId[i]
 			element.className = 'label_style'
@@ -155,9 +167,9 @@ function initUIControl(): void {
 	const cpSelectsValue = [
 		[ConnectionType.UNKNOWN.toString(), ConnectionType.YIELD.toString(), ConnectionType.ALTERNATE.toString(),
 			ConnectionType.RYG_LIGHT.toString(), ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(), ConnectionType.OTHER.toString()]]
-
 	const cpSelects: Array<HTMLElement> = []
 	const eConnectionId = document.createElement('text')
+
 	eConnectionId.textContent = 'UNKNOWN'
 	eConnectionId.id = 'cp_id_value'
 	eConnectionId.className = 'select_style'
@@ -166,25 +178,31 @@ function initUIControl(): void {
 	for (const i in cpSelectsId) {
 		if (cpSelectsId.hasOwnProperty(i)) {
 			const element = document.createElement('select')
+
 			element.id = cpSelectsId[i]
 			element.className = 'select_style'
+
 			for (let j = 0; j < cpSelectsText[i].length; ++j) {
-				const option = document.createElement("option")
+				const option = document.createElement('option')
+
 				option.value = cpSelectsValue[i][j]
 				option.text = cpSelectsText[i][j]
 				element.appendChild(option)
 			}
+
 			cpSelects.push(element)
 		}
 	}
 
 	// ------------------------------------------------------------------------------------------------------------------
-	const tpLabelsText = ["Traffic device ID:", "Type:"]
-	const tpLabelsId = ["tp_id", "tp_type"]
+	const tpLabelsText = ['Traffic device ID:', 'Type:']
+	const tpLabelsId = ['tp_id', 'tp_type']
 	const tpLabels: Array<HTMLElement> = []
+
 	for (const i in tpLabelsText) {
 		if (tpLabelsText.hasOwnProperty(i)) {
 			const element = document.createElement('text')
+
 			element.textContent = tpLabelsText[i]
 			element.id = tpLabelsId[i]
 			element.className = 'select_style'
@@ -193,15 +211,14 @@ function initUIControl(): void {
 	}
 
 	const tpSelectsId = ['tp_select_type']
-	const tpSelectsText = [ ['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER']]
+	const tpSelectsText = [['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER']]
 	const tpSelectsValue = [
 		[TrafficDeviceType.UNKNOWN.toString(), TrafficDeviceType.STOP.toString(), TrafficDeviceType.YIELD.toString(),
 			TrafficDeviceType.RYG_LIGHT.toString(), TrafficDeviceType.RYG_LEFT_ARROW_LIGHT.toString(),
 			TrafficDeviceType.OTHER.toString()]]
-
 	const tpSelects: Array<HTMLElement> = []
-
 	const elementTrafficDeviceId = document.createElement('text')
+
 	elementTrafficDeviceId.textContent = 'UNKNOWN'
 	elementTrafficDeviceId.id = 'tp_id_value'
 	elementTrafficDeviceId.className = 'select_style'
@@ -210,53 +227,61 @@ function initUIControl(): void {
 	for (const i in tpSelectsId) {
 		if (tpSelectsId.hasOwnProperty(i)) {
 			const element = document.createElement('select')
+
 			element.id = tpSelectsId[i]
 			element.className = 'select_style'
+
 			for (let j = 0; j < tpSelectsText[i].length; ++j) {
-				const option = document.createElement("option")
+				const option = document.createElement('option')
+
 				option.value = tpSelectsValue[i][j]
 				option.text = tpSelectsText[i][j]
 				element.appendChild(option)
 			}
+
 			tpSelects.push(element)
 		}
 	}
 
 	// Add elements to the menu panel
-	///////////////////////////////////////////////////////////////////////////////
-	if (boundaryProp)
+	/// ////////////////////////////////////////////////////////////////////////////
+	if (boundaryProp) {
 		for (const i in bpSelects) {
 			if (bpSelects.hasOwnProperty(i)) {
 				boundaryProp.appendChild(bpLabels[i])
 				boundaryProp.appendChild(bpSelects[i])
 			}
 		}
+	}
 
-	if (laneProp)
+	if (laneProp) {
 		for (const i in lpSelects) {
 			if (lpSelects.hasOwnProperty(i)) {
 				laneProp.appendChild(lpLabels[i])
 				laneProp.appendChild(lpSelects[i])
 			}
 		}
+	}
 
-	if (connectionProp)
+	if (connectionProp) {
 		for (const i in cpSelects) {
 			if (cpSelects.hasOwnProperty(i)) {
 				connectionProp.appendChild(cpLabels[i])
 				connectionProp.appendChild(cpSelects[i])
 			}
 		}
+	}
 
-	if (trafficDeviceProp)
+	if (trafficDeviceProp) {
 		for (const i in tpSelects) {
 			if (tpSelects.hasOwnProperty(i)) {
 				trafficDeviceProp.appendChild(tpLabels[i])
 				trafficDeviceProp.appendChild(tpSelects[i])
 			}
 		}
+	}
 
-	const accordionOptions = {collapsible: true, active: false, heightStyle: "content"}
+	const accordionOptions = {collapsible: true, active: false, heightStyle: 'content'}
 	const menuIds = [
 		'#menu_boundary',
 		'#menu_help',
@@ -265,5 +290,6 @@ function initUIControl(): void {
 		'#menu_territory',
 		'#menu_traffic_device',
 	]
+
 	menuIds.forEach(domId => $(domId).accordion(accordionOptions))
 }

@@ -13,7 +13,7 @@
         "moduleResolution": "node",
         "noFallthroughCasesInSwitch": true,
         "noImplicitReturns": true,
-        "noUnusedLocals": false,
+        "noUnusedLocals": true,
         "noUnusedParameters": true,
         "outDir": "./dist/out",
         "paths": {
@@ -25,7 +25,8 @@
         "pretty": true,
         "sourceMap": true,
 		"strictNullChecks": true,
-		"target": "es6"
+		"target": "es6",
+		"skipLibCheck": true
     },
     "compileOnSave": true,
     "include": [

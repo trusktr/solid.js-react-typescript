@@ -3,10 +3,10 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {UtmTile} from "@/mapper-annotated-scene/tile/UtmTile"
-import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
-import {threeDStepSize} from "./Constant"
-import {PointCloudTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
+import {UtmTile} from '@/mapper-annotated-scene/tile/UtmTile'
+import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {threeDStepSize} from './Constant'
+import {PointCloudTileContents} from '@/mapper-annotated-scene/tile-model/TileContents'
 
 const minPointsToDefineGround = 20 // arbitrary setting to avoid creating ground loadTileGroundPlanes for sparse tiles
 const maxPointsToDefineGround = 1000 // arbitrary setting to shorten the estimation for very dense tiles
@@ -26,8 +26,7 @@ export class PointCloudUtmTile extends UtmTile {
 	}
 
 	load(): Promise<PointCloudTileContents> {
-		if (this.contents)
-			return Promise.resolve<PointCloudTileContents>(this.contents)
+		if (this.contents) return Promise.resolve<PointCloudTileContents>(this.contents)
 
 		return this.pointCloudLoader()
 			.then(result => {
@@ -44,11 +43,11 @@ export class PointCloudUtmTile extends UtmTile {
 	// has passed through RoadFilter, configured with --above_road_coloring_scheme=HEIGHT and
 	// --road_coloring_scheme=INTENSITY.
 	groundAverageYIndex(): number | null {
-		if (!this.contents)
-			return null
+		if (!this.contents) return null
 
 		let totalYValues = 0
 		let countGrayPoints = 0
+
 		for (let i = 0; i < this.contents.points.length && countGrayPoints < maxPointsToDefineGround; i += threeDStepSize) {
 			// If the point has gray color, assume it is part of the ground.
 			if (this.contents.colors[i] === this.contents.colors[i + 1] && this.contents.colors[i + 1] === this.contents.colors[i + 2]) {

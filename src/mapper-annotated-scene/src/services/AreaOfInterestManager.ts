@@ -6,18 +6,18 @@
 import * as THREE from 'three'
 import * as React from 'react'
 import config from '@/config'
-import {isTupleOfNumbers} from "@/util/Validation"
-import Logger from "@/util/log"
-import AnnotatedSceneActions from "../store/actions/AnnotatedSceneActions"
-import {RangeSearch} from "../../tile-model/RangeSearch"
-import {UtmCoordinateSystem} from "@/mapper-annotated-scene/UtmCoordinateSystem"
-import {typedConnect} from "@/mapper-annotated-scene/src/styles/Themed"
-import GroundPlaneManager from "@/mapper-annotated-scene/src/services/GroundPlaneManager"
-import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
-import {AxesHelper} from "@/mapper-annotated-scene/src/services/controls/AxesHelper"
+import {isTupleOfNumbers} from '@/util/Validation'
+import Logger from '@/util/log'
+import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
+import {RangeSearch} from '../../tile-model/RangeSearch'
+import {UtmCoordinateSystem} from '@/mapper-annotated-scene/UtmCoordinateSystem'
+import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
+import GroundPlaneManager from '@/mapper-annotated-scene/src/services/GroundPlaneManager'
+import TileManagerBase from '@/mapper-annotated-scene/tile/TileManagerBase'
+import {AxesHelper} from '@/mapper-annotated-scene/src/services/controls/AxesHelper'
 import toProps from '@/util/toProps'
 import EventEmitter from 'events'
-import {Events} from "@/mapper-annotated-scene/src/models/Events"
+import {Events} from '@/mapper-annotated-scene/src/models/Events'
 import {throttle} from 'lodash'
 
 const log = Logger(__filename)
@@ -29,8 +29,8 @@ interface AreaOfInterestManagerProps {
 	getCurrentRotation?: () => THREE.Quaternion
 	utmCoordinateSystem: UtmCoordinateSystem
 	groundPlaneManager: GroundPlaneManager
-	camera ?: THREE.Camera
-	loadingTileManagers ?: Set<TileManagerBase>
+	camera?: THREE.Camera
+	loadingTileManagers?: Set<TileManagerBase>
 	sceneStage?: THREE.Vector3
 	channel: EventEmitter
 }
@@ -38,7 +38,7 @@ interface AreaOfInterestManagerProps {
 // Area of Interest: where to load point clouds
 interface AreaOfInterestManagerState {
 	enabled: boolean // enable auto-loading points around the AOI
-	aoiFocalPoint: THREE.Vector3 | null, // cached value for the center of the AOI
+	aoiFocalPoint: THREE.Vector3 | null // cached value for the center of the AOI
 	boundingBoxes: THREE.BoxHelper[] // boxes drawn around the current area of interest
 	currentHeading: THREE.Vector3 | null // in fly-through mode: where the vehicle is heading
 	bBoxColor: THREE.Color
@@ -48,13 +48,12 @@ interface AreaOfInterestManagerState {
 }
 
 @typedConnect(toProps(
-  'camera',
-  'loadingTileManagers',
-  'sceneStage',
+	'camera',
+	'loadingTileManagers',
+	'sceneStage',
 ))
-export default class AreaOfInterestManager extends React.Component<AreaOfInterestManagerProps, AreaOfInterestManagerState>{
+export default class AreaOfInterestManager extends React.Component<AreaOfInterestManagerProps, AreaOfInterestManagerState> {
 	private raycaster: THREE.Raycaster
-	private estimateGroundPlane: boolean
 	plane: THREE.Mesh
 	private grid?: THREE.GridHelper
 	private axis?: THREE.Group
@@ -74,18 +73,13 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 
 			shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],
 		}
-
 		const aoiSize: [number, number, number] = config['annotator.area_of_interest.size']
 
 		if (isTupleOfNumbers(aoiSize, 3)) {
-
 			state.fullSize = new THREE.Vector3().fromArray(aoiSize)
 			state.halfSize = state.fullSize.clone().divideScalar(2)
-
 		} else if (aoiSize) {
-
 			log.warn(`invalid annotator.area_of_interest.size config: ${aoiSize}`)
-
 		}
 
 		this.state = state
@@ -93,12 +87,10 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 		this.raycaster = new THREE.Raycaster()
 		this.raycaster.params.Points!.threshold = 0.1
 
-		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
-
 		this.props.channel.on(Events.SCENE_WILL_RENDER, this.updateAoi)
 	}
 
-	private updateAoi = throttle( (): void => {
+	private updateAoi = throttle((): void => {
 		if (!this.state.enabled) return
 
 		// TileManager will only handle one IO request at time. Pause AOI updates if it is busy.
@@ -106,19 +98,19 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 
 		this.updateAoiHeading()
 		this.updatePointCloudAoi()
-	}, 200 )
+	}, 200)
 
-    /**
+	/**
 	 * Update the AOI Heading.  Currently (7/18) this is Kiosk-only logic but may expand
-     */
+	 */
 	private updateAoiHeading(): void {
-
 		const rotationThreeJs = this.props.getCurrentRotation ? this.props.getCurrentRotation() : null
 
 		if (this.state.enabled) {
 			const newHeading = rotationThreeJs
 				? new THREE.Vector3(-1, 0, 0).applyQuaternion(rotationThreeJs)
 				: null
+
 			this.setState({currentHeading: newHeading})
 		}
 	}
@@ -147,33 +139,23 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 	}
 
 	private getPointOfInterest(): THREE.Vector3 | null {
-
 		// if the app supplies a way to get the point of interest, use it (f.e. Kiosk sets it based on the Car position)
-        if ( this.props.getPointOfInterest ) {
-
+		if (this.props.getPointOfInterest)
 			return this.props.getPointOfInterest()
 
-        }
-
 		// otherwise default to where the camera line of sight intersects the ground.
-		else {
-
+		else
 			return this.getDefaultPointOfInterest()
-
-		}
 	}
 
 	// Find the point in the scene that is most interesting to a human user.
-    private getDefaultPointOfInterest(): THREE.Vector3 | null {
+	private getDefaultPointOfInterest(): THREE.Vector3 | null {
 		const middleOfTheViewport = new THREE.Vector2(0, 0)
+		const intersections = this.props.groundPlaneManager.intersectWithGround(middleOfTheViewport)
 
-		const intersections = this.props.groundPlaneManager.intersectWithGround( middleOfTheViewport )
-
-        if (intersections.length)
-            return intersections[0].point
-        else
-            return null
-    }
+		if (intersections.length) return intersections[0].point
+		else return null
+	}
 
 	// Create a bounding box around the current AOI and optionally display it.
 	// Then load the points in and around the AOI. If we have a current heading,
@@ -183,6 +165,7 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			this.state.boundingBoxes.forEach(bbox => {
 				new AnnotatedSceneActions().removeObjectFromScene(bbox)
 			})
+
 			this.setState({boundingBoxes: []})
 		}
 
@@ -196,6 +179,7 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			if (this.state.currentHeading) {
 				const extendedFocalPoint = aoiFocalPoint.clone()
 					.add(this.state.fullSize.clone().multiply(this.state.currentHeading))
+
 				threeJsAOI.push({
 					minPoint: extendedFocalPoint.clone().sub(this.state.halfSize),
 					maxPoint: extendedFocalPoint.clone().add(this.state.halfSize),
@@ -205,10 +189,13 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			if (this.state.shouldDrawBoundingBox) {
 				threeJsAOI.forEach(search => {
 					const geom = new THREE.Geometry()
+
 					geom.vertices.push(search.minPoint, search.maxPoint)
+
 					const bbox = new THREE.BoxHelper(new THREE.Points(geom), this.state.bBoxColor)
-					bbox.name = "AOI Bounding Box"
-					this.setState({ boundingBoxes: this.state.boundingBoxes.concat(bbox) })
+
+					bbox.name = 'AOI Bounding Box'
+					this.setState({boundingBoxes: this.state.boundingBoxes.concat(bbox)})
 					new AnnotatedSceneActions().addObjectToScene(bbox)
 				})
 			}
@@ -221,15 +208,13 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 				}
 			})
 
-			new AnnotatedSceneActions().setAreaOfInterest( areaOfInterest )
-			return
+			new AnnotatedSceneActions().setAreaOfInterest(areaOfInterest)
 		}
 	}
 
 	removeAxisFromScene(): void {
-		if (this.axis) {
+		if (this.axis)
 			this.axis.visible = false
-		}
 	}
 
 	hideGridVisibility(): void {
@@ -238,15 +223,17 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 
 	componentDidMount(): void {
 		const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
+
 		planeGeometry.rotateX(-Math.PI / 2)
 
 		const planeMaterial = new THREE.ShadowMaterial()
+
 		planeMaterial.side = THREE.DoubleSide // enable raycaster intersections from both sides
 
 		this.plane = new THREE.Mesh(planeGeometry, planeMaterial)
 		this.plane.visible = true
 
-		new AnnotatedSceneActions().addObjectToScene( this.plane )
+		new AnnotatedSceneActions().addObjectToScene(this.plane)
 
 		// Add grid to visualize where the plane is.
 		// Add an axes helper to visualize the origin and orientation of the primary directions.
@@ -262,26 +249,21 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			this.grid.visible = true
 			this.grid.material.opacity = 0.25
 			this.grid.material.transparent = true
-			this.plane.add( this.grid )
 
-            ;(window as any).plane = this.plane
+			this.plane.add(this.grid)
 
 			this.axis = AxesHelper(axesHelperLength)
-			this.grid.add( this.axis )
+			this.grid.add(this.axis)
 		}
 	}
 
 	componentDidUpdate(oldProps: AreaOfInterestManagerProps): void {
-
 		if (oldProps.sceneStage !== this.props.sceneStage) {
-
 			const {x, y, z} = this.props.sceneStage!
 
 			this.plane.geometry.center()
 			this.plane.geometry.translate(x, y, z)
-
 		}
-
 	}
 
 	render(): JSX.Element | null {

@@ -7,9 +7,9 @@ import * as THREE from 'three'
 
 export enum CoordinateFrameType {
 	CAMERA = 0, // [northing, -altitude, easting]
-	INERTIAL,   // [northing, easting, -altitude]
-	LIDAR,      // [northing, easting, altitude]
-	STANDARD,   // [easting, northing, altitude]
+	INERTIAL, // [northing, easting, -altitude]
+	LIDAR, // [northing, easting, altitude]
+	STANDARD, // [easting, northing, altitude]
 }
 
 /**

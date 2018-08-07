@@ -2,39 +2,31 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
-//
-// import config, { configReady } from '../config'
-//
-// async function main() {
-// 	await configReady()
-// 	console.log( 'got config ?????', config )
-// }
-//
-// main()
 
 import './disable-logger'
-import { configReady, getMeta } from '../config'
+import {configReady, getMeta} from '../config'
 import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { AppContainer } from "react-hot-loader"
+import {AppContainer} from 'react-hot-loader'
 import App from './App'
 import * as packageDotJson from '../../package.json'
 import {getAnnotatedSceneReduxStore} from '@/mapper-annotated-scene/src/store/AppStore'
+import * as services from '@/mapper-annotated-scene/src/services'
+import {Provider} from 'react-redux'
 
 // This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {
 	jQuery: $,
-	$: $
+	$: $,
 })
 
 import('jquery-ui-dist/jquery-ui')
 
 // otherwise, Saffron will mount the exported App for us.
-export async function start() {
-
+export async function start(): Promise<void> {
 	// if we're not in Saffron, then we manually mount our component into the DOM
-	const { IN_SAFFRON } = await getMeta()
+	const {IN_SAFFRON} = await getMeta()
 
 	await configReady()
 
@@ -44,18 +36,15 @@ export async function start() {
 		!IN_SAFFRON ||
 
 		// or we're in saffron but we're running inside of a <webview>
-		IN_SAFFRON && typeof ( packageDotJson as any ).htmlEntry !== 'undefined'
+		/* eslint-disable-next-line typescript/no-explicit-any */
+		(IN_SAFFRON && typeof (packageDotJson as any).htmlEntry !== 'undefined')
 
 	) {
-
-		await require( 'mapper-annotated-scene/src/services' ).loadStore()
-		// await require('@/mapper-annotated-scene/FlyThroughManager').init()
+		await services.loadStore()
 
 		const root = $('#root')[0]
 
-		const doRender = () => {
-			const {Provider} = require("react-redux")
-
+		const doRender = (): void => {
 			ReactDOM.render(
 				<AppContainer>
 					<Provider store={getAnnotatedSceneReduxStore()}>
@@ -66,14 +55,13 @@ export async function start() {
 			)
 		}
 
-		$( doRender )
-
+		$(doRender)
 	}
 
 	// otherwise we're running in Saffron as a React component like how the
 	// other existing Saffron apps do, so we don't need to do anything because
 	// Saffron handles mounting the component.
-
 }
-export async function stop() {}
+
+export async function stop(): Promise<void> {}
 export const component = App

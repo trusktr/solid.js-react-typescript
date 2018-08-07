@@ -4,10 +4,10 @@
  */
 
 import * as THREE from 'three'
-import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
-import {UtmTile} from "./UtmTile"
-import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
-import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
+import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {UtmTile} from './UtmTile'
+import {convertToStandardCoordinateFrame, CoordinateFrameType} from '../geometry/CoordinateFrame'
+import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
 
 /*
  * A collection of zero or more tiles within a unique, contiguous 3D volume.
@@ -32,6 +32,7 @@ export abstract class SuperTile {
 		const utmBoundingBox = index.boundingBox
 		const min = convertToStandardCoordinateFrame(utmBoundingBox.min, coordinateFrame)
 		const max = convertToStandardCoordinateFrame(utmBoundingBox.max, coordinateFrame)
+
 		this.threeJsBoundingBox = new THREE.Box3(
 			this.utmCoordinateSystem.utmToThreeJs(min.x, min.y, min.z),
 			this.utmCoordinateSystem.utmToThreeJs(max.x, max.y, max.z),
@@ -46,13 +47,12 @@ export abstract class SuperTile {
 
 	// SuperTile doesn't have to be filled densely with tiles. Add tiles only if they are not empty.
 	addTile(tile: UtmTile): boolean {
-		if (this.isLoaded)
-			return false
+		if (this.isLoaded) return false
 
 		// Ignore duplicates.
 		const newKey = tile.index.toString()
-		if (this.tiles.find(t => t.index.toString() === newKey))
-			return false
+
+		if (this.tiles.find(t => t.index.toString() === newKey)) return false
 
 		// Validate that the tile exists in the volume described by this super tile.
 		if (this.index.equals(tile.superTileIndex(this.index.scale))) {

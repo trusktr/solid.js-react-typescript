@@ -3,13 +3,14 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-export default class StatusWindowState {
+/* eslint-disable-next-line no-use-before-define */
+type Args = Partial<StatusWindowState>
 
-	constructor(o:any = {}) {
+export default class StatusWindowState {
+	constructor(o: Args = {}) {
 		Object.assign(this, o)
 	}
 
-	enabled:boolean
+	enabled: boolean
 	messages: Map<string, string | JSX.Element>
-
 }

@@ -5,7 +5,7 @@
 
 import * as THREE from 'three'
 import * as utmConverter from 'utm'
-import AnnotatedSceneActions from "@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts"
+import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts'
 
 /**
  * UtmCoordinateSystem has two states: it has a zone or not. Zone can be set one time.
@@ -25,7 +25,6 @@ export class UtmCoordinateSystem {
 	// private onSetOrigin: (() => void) | null
 
 	constructor() {
-
 		this.zoneAsString = ''
 		this.utmZoneNumber = 0
 		this.utmZoneNorthernHemisphere = false
@@ -41,11 +40,12 @@ export class UtmCoordinateSystem {
 
 	toString(): string {
 		let offsetStr: string
-		if (!this.offset) {
+
+		if (!this.offset)
 			offsetStr = 'null'
-		} else {
+		else
 			offsetStr = this.offset.x + ',' + this.offset.y + ',' + this.offset.z
-		}
+
 		return 'UtmCoordinateSystem(UTM Zone: ' + this.utmZoneNumber + this.utmZoneNorthernHemisphere + ', offset: [' + offsetStr + '])'
 	}
 
@@ -80,6 +80,7 @@ export class UtmCoordinateSystem {
 				this.zoneMatch(num, northernHemisphere)
 		} else {
 			this.offset = offset.clone()
+
 			if (UtmCoordinateSystem.isValidUtmZone(num, northernHemisphere)) {
 				this.utmZoneNumber = num
 				this.utmZoneNorthernHemisphere = northernHemisphere
@@ -90,7 +91,7 @@ export class UtmCoordinateSystem {
 			}
 
 			// NOTE JOE this is only triggered once, but in the future the origin will be able to be changed or reset
-			new AnnotatedSceneActions().setInitialOriginSet( true )
+			new AnnotatedSceneActions().setInitialOriginSet(true)
 
 			return true
 		}
@@ -99,6 +100,7 @@ export class UtmCoordinateSystem {
 	threeJsToUtm(p: THREE.Vector3): THREE.Vector3 {
 		// Convert ThreeJS point to (easting, northing, altitude)
 		const utmPoint = new THREE.Vector3(p.x, -p.z, p.y)
+
 		utmPoint.add(this.offset)
 		return utmPoint
 	}
@@ -109,6 +111,7 @@ export class UtmCoordinateSystem {
 
 	utmToThreeJs(easting: number, northing: number, altitude: number): THREE.Vector3 {
 		const tmp = new THREE.Vector3(easting, northing, altitude)
+
 		tmp.sub(this.offset)
 		// In ThreeJS x=easting, y=altitude, z=-northing
 		return new THREE.Vector3(tmp.x, tmp.z, -tmp.y)
@@ -118,16 +121,19 @@ export class UtmCoordinateSystem {
 		// First change coordinate frame from THREE js to UTM
 		const utm = this.threeJsToUtm(p)
 		const lngLat = utmConverter.toLatLon(utm.x, utm.y, this.utmZoneNumber, undefined, this.utmZoneNorthernHemisphere, true)
+
 		return new THREE.Vector3(lngLat.longitude, lngLat.latitude, utm.z)
 	}
 
 	lngLatAltToThreeJs(lngLatAlt: THREE.Vector3): THREE.Vector3 {
 		const utm = utmConverter.fromLatLon(lngLatAlt.y, lngLatAlt.x, this.utmZoneNumber)
+
 		return this.utmToThreeJs(utm.easting, utm.northing, lngLatAlt.z)
 	}
 
 	utmVectorToLngLatAlt(utm: THREE.Vector3): THREE.Vector3 {
 		const lngLat = utmConverter.toLatLon(utm.x, utm.y, this.utmZoneNumber, undefined, this.utmZoneNorthernHemisphere, true)
+
 		return new THREE.Vector3(lngLat.longitude, lngLat.latitude, utm.z)
 	}
 }

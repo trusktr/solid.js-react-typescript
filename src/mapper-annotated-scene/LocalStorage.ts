@@ -20,24 +20,24 @@ export default class LocalStorage {
 				this.writeCache.set(key, value)
 				return localStorage.setItem(key, value)
 			}
-		} else
-			return
+		} else {}
 	}
 
 	getItem(key: string, defaultValue: string | null = null): string | null {
 		if (this.isAvailable) {
 			const item = localStorage.getItem(key)
-			if (item !== null)
-				return item
-			else
-				return defaultValue
-		} else
+
+			if (item !== null) return item
+			else return defaultValue
+		} else {
 			return null
+		}
 	}
 
 	private static storageAvailable(): boolean {
 		try {
 			const x = '__storage_test__'
+
 			localStorage.setItem(x, x)
 			localStorage.removeItem(x)
 			return true

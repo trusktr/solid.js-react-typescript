@@ -6,30 +6,29 @@
 import config from '@/config'
 import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
+import {threeDStepSize} from './Constant'
+import {baseGeometryTileMessageToTileMessage} from './Conversion'
+import {PointCloudTileContents} from '@/mapper-annotated-scene/tile-model/TileContents'
+import {TileMessage} from '@/mapper-annotated-scene/tile-model/TileMessage'
+import {UtmTile} from './UtmTile'
+import {SuperTile} from './SuperTile'
+import {PointCloudUtmTile} from './PointCloudUtmTile'
+import {PointCloudSuperTile} from './PointCloudSuperTile'
+import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
+import {convertToStandardCoordinateFrame, CoordinateFrameType} from '../geometry/CoordinateFrame'
+import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
+import {MapperTileServiceClient} from './TileServiceClient'
+import {TileInstance} from '@/mapper-annotated-scene/tile-model/TileInstance'
+import Logger from '@/util/log'
+import {TileManager, TileManagerConfig} from '@/mapper-annotated-scene/tile/TileManager'
+import {OrderedMap} from 'immutable'
+import {ScaleProvider} from '@/mapper-annotated-scene/tile/ScaleProvider'
+import {EventEmitter} from 'events'
+import StatusWindowActions from '@/mapper-annotated-scene/StatusWindowActions'
+import {StatusKey} from '@/mapper-annotated-scene/src/models/StatusKey'
 import Models = MapperProtos.mapper.models
-import {threeDStepSize} from "./Constant"
-import {baseGeometryTileMessageToTileMessage} from "./Conversion"
-import {PointCloudTileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
-import {TileMessage} from "@/mapper-annotated-scene/tile-model/TileMessage"
-import {UtmTile} from "./UtmTile"
-import {SuperTile} from "./SuperTile"
-import {PointCloudUtmTile} from "./PointCloudUtmTile"
-import {PointCloudSuperTile} from "./PointCloudSuperTile"
-import {UtmCoordinateSystem} from "../UtmCoordinateSystem"
-import {convertToStandardCoordinateFrame, CoordinateFrameType} from "../geometry/CoordinateFrame"
-import {TileIndex} from "@/mapper-annotated-scene/tile-model/TileIndex"
-import {MapperTileServiceClient} from "./TileServiceClient"
-import {TileInstance} from "@/mapper-annotated-scene/tile-model/TileInstance"
-import Logger from "@/util/log"
-import {TileManager, TileManagerConfig} from "@/mapper-annotated-scene/tile/TileManager"
-import {OrderedMap} from "immutable"
-import {ScaleProvider} from "@/mapper-annotated-scene/tile/ScaleProvider"
-import {EventEmitter} from "events";
-import StatusWindowActions from "@/mapper-annotated-scene/StatusWindowActions";
-import {StatusKey} from "@/mapper-annotated-scene/src/models/StatusKey";
 
 const log = Logger(__filename)
-
 const nullContents = new PointCloudTileContents([], [])
 
 function isGray(r: number, g: number, b: number): boolean {
@@ -41,10 +40,10 @@ function isOrange(r: number, g: number, b: number): boolean {
 }
 
 interface PointCloudTileManagerConfig extends TileManagerConfig {
-	pointsSize: number,
-	samplingStep: number,
-	maxPointsDensity: number,
-	trimByColor: boolean,
+	pointsSize: number
+	samplingStep: number
+	maxPointsDensity: number
+	trimByColor: boolean
 }
 
 // This handles loading and unloading point cloud data (for read only). Each SuperTile has a point cloud,
@@ -68,8 +67,7 @@ export class PointCloudTileManager extends TileManager {
 			channel
 		)
 
-		if (config['tile_manager.tile_message_format'])
-			log.warn('config option tile_manager.tile_message_format has been removed.')
+		if (config['tile_manager.tile_message_format']) log.warn('config option tile_manager.tile_message_format has been removed.')
 
 		this.config = {
 			layerId: 'base1', // a layer which contains instances of `BaseGeometryTileMessage`
@@ -82,8 +80,7 @@ export class PointCloudTileManager extends TileManager {
 			trimByColor: !!config['tile_manager.trim_points_above_ground.height'],
 		}
 
-		if (this.config.samplingStep <= 0)
-			throw Error(`Bad config 'tile_manager.sampling_step' = ${this.config.samplingStep}. Step should be > 0.`)
+		if (this.config.samplingStep <= 0) throw Error(`Bad config 'tile_manager.sampling_step' = ${this.config.samplingStep}. Step should be > 0.`)
 
 		this.pointsMaterial = new THREE.PointsMaterial({
 			size: this.config.pointsSize,
@@ -96,19 +93,22 @@ export class PointCloudTileManager extends TileManager {
 		return new PointCloudSuperTile(index, coordinateFrame, utmCoordinateSystem, this.pointsMaterial)
 	}
 
-    /**
-     * Calculate points loaded and dispatch an action
-     */
-    protected setStatsMessage(): void {
+	/**
+	 * Calculate points loaded and dispatch an action
+	 */
+	protected setStatsMessage(): void {
 		if (!this.enableTileManagerStats) return
 
-        let points = 0
+		let points = 0
 
-        this.superTiles.forEach(st => points += st!.objectCount)
+		this.superTiles.forEach(st => {
+			points += st!.objectCount
+		})
 
-        const message = `Loaded ${this.superTiles.size} point tiles; ${points} points`
-        new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
-    }
+		const message = `Loaded ${this.superTiles.size} point tiles; ${points} points`
+
+		new StatusWindowActions().setMessage(StatusKey.TILE_MANAGER_POINT_STATS, message)
+	}
 
 	// Get all populated point clouds from all the super tiles.
 	getPointClouds(): THREE.Points[] {
@@ -135,11 +135,13 @@ export class PointCloudTileManager extends TileManager {
 
 	private static parseBaseGeometryTileMessage(buffer: Uint8Array): TileMessage {
 		let msg
+
 		try {
 			msg = Models.BaseGeometryTileMessage.decode(buffer)
 		} catch (err) {
 			throw Error('protobuf read failed: ' + err.message)
 		}
+
 		return baseGeometryTileMessageToTileMessage(msg)
 	}
 
@@ -168,6 +170,7 @@ export class PointCloudTileManager extends TileManager {
 					} else {
 						const [sampledPoints, sampledColors]: Array<Array<number>> = this.sampleData(msg.contents, tileInstance.tileIndex.scale.volume)
 						const positions = this.rawDataToPositions(sampledPoints, coordinateFrame)
+
 						return new PointCloudTileContents(positions, sampledColors)
 					}
 				})
@@ -176,29 +179,31 @@ export class PointCloudTileManager extends TileManager {
 	// Some point clouds are too dense to be useful. Thin them out and discard excess points. Better late than never.
 	private sampleData(contents: PointCloudTileContents, tileVolume: number): Array<Array<number>> {
 		if (!contents.points) {
-			log.error("tile message is missing points")
+			log.error('tile message is missing points')
 			return [[], []]
 		}
+
 		if (!contents.colors) {
-			log.error("tile message is missing colors")
+			log.error('tile message is missing colors')
 			return [[], []]
 		}
 
 		// Take the more restrictive of two config settings. One is a linear sampling rate. The other
 		// is a variable sampling rate based on the local density of each tile.
 		let samplingStep = this.config.samplingStep
+
 		if (this.config.maxPointsDensity > 0) {
 			const pointCount = contents.points.length / threeDStepSize
 			const pointDensity = pointCount / tileVolume
+
 			if (pointDensity > this.config.maxPointsDensity) {
 				const densitySamplingStep = Math.ceil(pointDensity / this.config.maxPointsDensity)
-				if (densitySamplingStep > samplingStep)
-					samplingStep = densitySamplingStep
+
+				if (densitySamplingStep > samplingStep) samplingStep = densitySamplingStep
 			}
 		}
 
-		if (samplingStep <= 1 && !this.config.trimByColor)
-			return [contents.points, contents.colors]
+		if (samplingStep <= 1 && !this.config.trimByColor) return [contents.points, contents.colors]
 
 		const sampledPoints: Array<number> = []
 		const sampledColors: Array<number> = []
@@ -222,6 +227,7 @@ export class PointCloudTileManager extends TileManager {
 				sampledColors.push(contents.colors[i + 2])
 			}
 		}
+
 		return [sampledPoints, sampledColors]
 	}
 
@@ -237,6 +243,7 @@ export class PointCloudTileManager extends TileManager {
 			const inputPoint = new THREE.Vector3(points[i], points[i + 1], points[i + 2])
 			const standardPoint = convertToStandardCoordinateFrame(inputPoint, coordinateFrame)
 			const threePoint = this.utmCoordinateSystem.utmToThreeJs(standardPoint.x, standardPoint.y, standardPoint.z)
+
 			newPositions[i] = threePoint.x
 			newPositions[i + 1] = threePoint.y
 			newPositions[i + 2] = threePoint.z
