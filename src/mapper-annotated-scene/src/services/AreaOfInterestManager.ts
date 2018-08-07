@@ -151,7 +151,6 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 	// Find the point in the scene that is most interesting to a human user.
 	private getDefaultPointOfInterest(): THREE.Vector3 | null {
 		const middleOfTheViewport = new THREE.Vector2(0, 0)
-
 		const intersections = this.props.groundPlaneManager.intersectWithGround(undefined, middleOfTheViewport)
 
 		if (intersections.length)

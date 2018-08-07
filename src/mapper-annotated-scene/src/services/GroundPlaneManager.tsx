@@ -168,6 +168,7 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 				return intersections
 
 			raycaster = this.raycaster
+
 			raycaster.setFromCamera(
 				pointInGLSpace || mousePositionToGLSpace(this.props.mousePosition, this.props.rendererSize!),
 				this.props.camera

@@ -1722,16 +1722,20 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		if (intersections.length) {
 			const newPoint = intersections[0].point
+
 			if (this.activeAnnotation.snapToGround) {
 				// TODO clyde move this logic to AnnotationBase?
 				const minimumMarkersForInterpolation = this.activeAnnotation instanceof Lane ? 2 : 1 // TODO clyde maybe make this an abstract attribute on Annotation
+
 				if (this.activeAnnotation.markers.length >= minimumMarkersForInterpolation) {
 					const markers = this.activeAnnotation.markers
 					const previousPoint = markers[markers.length - 1]
+
 					this.interpolateOverGroundPlane(previousPoint.position, newPoint)
 						.forEach(p => this.addMarkerToActiveAnnotation(p))
 				}
 			}
+
 			this.addMarkerToActiveAnnotation(newPoint)
 		}
 	}
@@ -1744,14 +1748,19 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		// Find the midpoint of the start-end line segment, and cast it straight down (or up) to the ground.
 		const midPointLinear = start.clone().add(end).divideScalar(2)
+
 		this.raycasterPlane.set(midPointLinear.clone().setY(midPointLinear.y + snapToGroundConfig.reallyHigh), snapToGroundConfig.lookDown)
+
 		const intersections = this.props.groundPlaneManager!.intersectWithGround(this.raycasterPlane)
+
 		if (!intersections.length)
 			return []
+
 		const midPointInterpolated = intersections[0].point
 
 		// Create two new line segments, and subdivide recursively.
 		let newPoints: THREE.Vector3[] = []
+
 		if (Math.abs(midPointLinear.y - midPointInterpolated.y) > snapToGroundConfig.snapDistance) {
 			const firstHalfInterpolated = this.interpolateOverGroundPlane(start, midPointInterpolated)
 			const secondHalfInterpolated = this.interpolateOverGroundPlane(midPointInterpolated, end)
@@ -1762,6 +1771,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			if (secondHalfInterpolated.length)
 				newPoints = newPoints.concat(secondHalfInterpolated)
 		}
+
 		return newPoints
 	}
 
