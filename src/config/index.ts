@@ -13,8 +13,7 @@ const config = {}
 export default config
 
 // see https://github.com/jprichardson/is-electron-renderer
-function detectRenderer() {
-
+function detectRenderer(): boolean {
 	// running in a web browser
 	if (typeof process === 'undefined') return true
 
@@ -25,66 +24,55 @@ function detectRenderer() {
 	if (!process.type) return false
 
 	return process.type === 'renderer'
-
 }
 
 const isRenderer = detectRenderer()
 const isMain = !isRenderer
-
 const envInput = (process.env.MAPPER_ENV || '').toLowerCase()
+
 let deployEnv
-if (envInput === 'prod' || envInput === 'production') {
+
+if (envInput === 'prod' || envInput === 'production')
 	deployEnv = 'prod'
-} else if (envInput === 'dev' || envInput === 'development' || envInput === '') {
+else if (envInput === 'dev' || envInput === 'development' || envInput === '')
 	deployEnv = 'dev'
-} else if (envInput === 'test') {
+else if (envInput === 'test')
 	deployEnv = 'test'
-} else {
+else
 	throw new Error('Unknown environment name: MAPPER_ENV=' + envInput)
-}
 
 interface IMeta {
 	APP_PATH: string
 	IN_SAFFRON: boolean
 }
 
-// tslint:disable-next-line:no-any
-const { promise: metaPromise, resolve: resolveMeta, reject: rejectMeta } = createPromise<IMeta, Error>()
+// eslint-disable-next-line typescript/no-explicit-any
+const {promise: metaPromise, resolve: resolveMeta, reject: rejectMeta} = createPromise<IMeta, Error>()
 
-export async function getMeta() {
+export async function getMeta(): Promise<IMeta> {
 	return metaPromise
 }
 
-async function connect() {
-
-	if ( isMain ) {
-
-		resolveMeta( {
+async function connect(): Promise<void> {
+	if (isMain) {
+		resolveMeta({
 			APP_PATH: process.cwd(),
 			IN_SAFFRON: false,
-		} )
-
-		const { APP_PATH, IN_SAFFRON } = await getMeta()
-
-		Electron.ipcMain.on('connect', (event) => {
-
-			event.sender.send('connect', { APP_PATH, IN_SAFFRON })
-
 		})
 
-	}
+		const {APP_PATH, IN_SAFFRON} = await getMeta()
 
-	else if ( isRenderer ) {
-
+		Electron.ipcMain.on('connect', (event) => {
+			event.sender.send('connect', {APP_PATH, IN_SAFFRON})
+		})
+	} else if (isRenderer) {
 		// otherwise we're in Saffron and in a renderer process
 
-		Electron.ipcRenderer.once('connect', (event, { APP_PATH, IN_SAFFRON }) => {
-
-			resolveMeta( { APP_PATH, IN_SAFFRON } )
+		Electron.ipcRenderer.once('connect', (event, {APP_PATH, IN_SAFFRON}) => {
+			resolveMeta({APP_PATH, IN_SAFFRON})
 
 			// pointless return to silence unused-parameter TypeScript error
 			return event
-
 		})
 
 		// we're either running in a <webview> in Saffron (so sendToHost() connects
@@ -93,34 +81,28 @@ async function connect() {
 		Electron.ipcRenderer.sendToHost('connect')
 		Electron.ipcRenderer.send('connect')
 
-		setTimeout( () => {
-
-			rejectMeta( new Error('Unable to connect') )
-
-		}, 5000 )
-
+		setTimeout(() => {
+			rejectMeta(new Error('Unable to connect'))
+		}, 5000)
 	}
-
 }
 
 connect()
 
-const { promise: configPromise, resolve: resolveConfig } = createPromise()
+const {promise: configPromise, resolve: resolveConfig} = createPromise()
 
-export function configReady() {
+// eslint-disable-next-line typescript/no-explicit-any
+export function configReady(): any {
 	return configPromise
 }
 
-async function setupConfig() {
-
-	const { APP_PATH } = await getMeta()
-
-	const dirName = path.join( APP_PATH, 'src', 'config' )
+async function setupConfig(): Promise<void> {
+	const {APP_PATH} = await getMeta()
+	const dirName = path.join(APP_PATH, 'src', 'config')
 	const envFile = path.join(dirName, deployEnv + '.yaml')
 
-	if (!fs.existsSync(envFile)) {
+	if (!fs.existsSync(envFile))
 		throw new Error(`Bad environment variable MAPPER_ENV=${deployEnv}. Missing required config file ${envFile}.`)
-	}
 
 	const required = [
 		'tile_manager.utm_tile_scale',
@@ -128,7 +110,6 @@ async function setupConfig() {
 		'output.annotations.json.path',
 		'output.annotations.kml.path',
 	]
-
 	const localFile = path.join(dirName, 'local.yaml')
 
 	nconf
@@ -142,17 +123,13 @@ async function setupConfig() {
 		.defaults({})
 
 	required.forEach((key) => {
-
-		if (!nconf.get(key)) {
+		if (!nconf.get(key))
 			throw new Error(`missing required configuration key: ${key}`)
-		}
-
 	})
 
-	Object.assign( config, nconf.get() )
+	Object.assign(config, nconf.get())
 
-	resolveConfig( config )
-
+	resolveConfig(config)
 }
 
 setupConfig()

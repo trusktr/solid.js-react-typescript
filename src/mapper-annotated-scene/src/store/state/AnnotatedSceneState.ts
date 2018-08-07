@@ -3,19 +3,21 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import UIMessage from "mapper-annotated-scene/src/models/UIMessage"
-import StatusWindowState from "@/mapper-annotated-scene/src/models/StatusWindowState";
+import UIMessage from 'mapper-annotated-scene/src/models/UIMessage'
+import StatusWindowState from '@/mapper-annotated-scene/src/models/StatusWindowState'
 import * as MapperProtos from '@mapperai/mapper-models'
-import Models = MapperProtos.mapper.models
-import {CameraType} from "@/mapper-annotated-scene/src/models/CameraType";
-import {OrderedMap, Set} from "immutable";
-import {SuperTile} from "@/mapper-annotated-scene/tile/SuperTile";
-import {RangeSearch} from "@/mapper-annotated-scene/tile-model/RangeSearch";
-import TileManagerBase from "@/mapper-annotated-scene/tile/TileManagerBase"
+import {CameraType} from '@/mapper-annotated-scene/src/models/CameraType'
+import {OrderedMap, Set} from 'immutable'
+import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
+import {RangeSearch} from '@/mapper-annotated-scene/tile-model/RangeSearch'
+import TileManagerBase from '@/mapper-annotated-scene/tile/TileManagerBase'
 import MousePosition from '@/mapper-annotated-scene/src/models/MousePosition'
+import Models = MapperProtos.mapper.models
 
+/* eslint-disable-next-line no-use-before-define */
+export type InitialState = Partial<AnnotatedSceneState>
+export type TransformMode = 'translate' | 'rotate' | 'scale'
 export default class AnnotatedSceneState {
-
 	static Key = 'AnnotatedSceneState'
 
 	/**
@@ -23,11 +25,11 @@ export default class AnnotatedSceneState {
 	* @param o
 	* @returns {AnnotatedSceneState}
 	*/
-	static fromJS(o: any = {}): AnnotatedSceneState {
+	static fromJS(o: InitialState = {}): AnnotatedSceneState {
 		return new AnnotatedSceneState(o)
 	}
 
-	constructor(o: any = {}) {
+	constructor(o: InitialState = {}) {
 		Object.assign(this, o)
 	}
 
@@ -37,7 +39,7 @@ export default class AnnotatedSceneState {
 	isLiveMode: boolean // toggles between live mode and recorded mode
 	isPlayMode: boolean // toggles between play and pause modes
 
-    flyThroughEnabled: boolean
+	flyThroughEnabled: boolean
 	statusWindowState: StatusWindowState
 
 	uiMenuVisible: boolean
@@ -83,11 +85,20 @@ export default class AnnotatedSceneState {
 	isHoveringOnMarker: boolean
 
 	transformedObjects: Array<THREE.Object3D> | null
-	transformControlsMode: 'translate' | 'rotate' | 'scale'
+	transformControlsMode: TransformMode
 
 	cameraIsOrbiting: boolean
 	camera: THREE.Camera
+	pointOfInterest: THREE.Vector3 | null
 	areaOfInterest: RangeSearch[]
-	rendererSize: any
+	rendererSize: {
+		width: number
+		height: number
+	}
 	loadingTileManagers: Set<TileManagerBase>
+
+	lockBoundaries: boolean
+	lockLanes: boolean
+	lockTerritories: boolean
+	lockTrafficDevices: boolean
 }

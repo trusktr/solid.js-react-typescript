@@ -7,10 +7,11 @@ const
 		'../app',
 		'..',
 		'.',
-		'../../../app'
+		'../../../app',
 	]
 
 let resolvedAppPath = null
+
 const fs = require('fs')
 
 for (let appPath of APP_SEARCH_PATHS) {
@@ -19,17 +20,17 @@ for (let appPath of APP_SEARCH_PATHS) {
 
 		if (fs.existsSync(appPath)) {
 			resolvedAppPath = appPath
-            console.log(`Found at ${resolvedAppPath}`)
+			console.log(`Found at ${resolvedAppPath}`)
 			break
 		}
 	} catch (err) {
-        console.log(`Failed to find at path ${appPath} ${err.message} ${err}`)
+		console.log(`Failed to find at path ${appPath} ${err.message} ${err}`)
 	}
 }
 
 console.log(`Loading main`)
-if (resolvedAppPath) {
+
+if (resolvedAppPath)
 	require(resolvedAppPath)
-} else {
+else
 	require('../annotator-entry-main')
-}

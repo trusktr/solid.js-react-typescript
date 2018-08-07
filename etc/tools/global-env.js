@@ -1,30 +1,25 @@
 require('shelljs/global')
 
-const
-	tsc = require('typescript'),
-	fs = require('fs'),
-	assert = require('assert'),
-	path = require('path'),
-	semver = require('semver'),
-	_ = require('lodash'),
-	log = global.log = console,
-	{readJSONFileSync} = require('./helpers')
+const tsc = require('typescript')
+const assert = require('assert')
+const path = require('path')
+const semver = require('semver')
+const _ = require('lodash')
+const {readJSONFileSync} = require('./helpers')
+const baseDir = global.baseDir = global.baseDir || path.resolve(__dirname, '../..')
 
-global.baseDir = global.baseDir || path.resolve(__dirname, '../..')
+global.log = console
 
 process.argv.forEach(arg => {
-	if (arg == '--dev')
-		process.env.NODE_ENV = 'development'
+	if (arg === '--dev') process.env.NODE_ENV = 'development'
 })
 
 /**
  * Global modules and
  */
-const
-	TypeScriptEnabled = true,
-	env = process.env.NODE_ENV || 'development',
-	isDev = env === 'development'
-
+const TypeScriptEnabled = true
+const env = process.env.NODE_ENV || 'development'
+const isDev = env === 'development'
 
 Object.assign(global, {
 	tsc,
@@ -35,13 +30,12 @@ Object.assign(global, {
 	isSaffron: typeof process.env.SAFFRON !== 'undefined',
 	basePackageJson: readJSONFileSync(`${baseDir}/package.json`),
 	srcRootDir: path.resolve(baseDir, TypeScriptEnabled ? 'src' : 'dist/out'),
-	assert
+	assert,
 }, require('./helpers'))
-
 
 // Config for release and versioning
 Object.assign(global, {
-	nextMinorVersion: semver.inc(basePackageJson.version, 'patch'),
+	nextMinorVersion: semver.inc(global.basePackageJson.version, 'patch'),
 	releaseFiles: [],
-	releaseDir: `${baseDir}/target/releases`
+	releaseDir: `${baseDir}/target/releases`,
 })

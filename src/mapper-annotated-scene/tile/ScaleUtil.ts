@@ -4,15 +4,15 @@
  */
 
 import * as MapperProtos from '@mapperai/mapper-models'
+import {Scale3D} from '../geometry/Scale3D'
+import {SpatialTileScale} from '@/mapper-annotated-scene/grpc-compiled-protos/CoordinateReferenceSystem_pb'
+import * as THREE from 'three'
 import Models = MapperProtos.mapper.models
-import {Scale3D} from "../geometry/Scale3D"
-import {SpatialTileScale} from "@/mapper-annotated-scene/grpc-compiled-protos/CoordinateReferenceSystem_pb"
-import * as THREE from "three"
 
 // tslint:disable:variable-name
+/* eslint-disable camelcase */
 const scale3D_008_008_008 = new Scale3D([8, 8, 8])
 const scale3D_010_010_010 = new Scale3D([10, 10, 10])
-
 const scaleVector_008_008_008 = new THREE.Vector3(8, 8, 8)
 const scaleVector_010_010_010 = new THREE.Vector3(10, 10, 10)
 
@@ -68,3 +68,4 @@ export function spatialTileScaleEnumToScaleVector(scale: Models.SpatialTileScale
 			return null
 	}
 }
+/* eslint-enable camelcase */

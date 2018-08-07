@@ -4,10 +4,10 @@
  */
 
 import * as THREE from 'three'
-import {coordToIndex, indexToCoord, Scale3D} from "../geometry/Scale3D"
-import {TileIndexDimension} from "@/types/TypeAlias"
+import {coordToIndex, indexToCoord, Scale3D} from '../geometry/Scale3D'
+import {TileIndexDimension} from '@/types/TypeAlias'
 
-const defaultSeparator = "," // for generating serializable ID strings
+const defaultSeparator = ',' // for generating serializable ID strings
 
 // Represents an address for a voxel in three-dimensional space.
 // TileIndex can be serialized and deserialized using the String methods,
@@ -27,15 +27,18 @@ export class TileIndex {
 		this.xIndex = xIndex
 		this.yIndex = yIndex
 		this.zIndex = zIndex
+
 		this.origin = new THREE.Vector3(
 			indexToCoord(this.xIndex, this.scale.xSize),
 			indexToCoord(this.yIndex, this.scale.ySize),
 			indexToCoord(this.zIndex, this.scale.zSize)
 		)
+
 		this.boundingBox = new THREE.Box3(
 			this.origin,
 			this.origin.clone().add(this.scale.toVector())
 		)
+
 		this.cachedString = null
 	}
 
@@ -46,6 +49,7 @@ export class TileIndex {
 					this.yIndex.toString() + separator +
 					this.zIndex.toString()
 			}
+
 			return this.cachedString
 		} else {
 			return this.xIndex.toString() + separator +
@@ -55,10 +59,10 @@ export class TileIndex {
 	}
 
 	equals(that: TileIndex): boolean {
-		return this.xIndex === that.xIndex
-			&& this.yIndex === that.yIndex
-			&& this.zIndex === that.zIndex
-			&& this.scale.equals(that.scale)
+		return this.xIndex === that.xIndex &&
+			this.yIndex === that.yIndex &&
+			this.zIndex === that.zIndex &&
+			this.scale.equals(that.scale)
 	}
 
 	copy(xIndex: TileIndexDimension, yIndex: TileIndexDimension, zIndex: TileIndexDimension): TileIndex {

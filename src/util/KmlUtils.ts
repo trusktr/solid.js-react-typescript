@@ -25,26 +25,30 @@ export class SimpleKML {
 
 	constructor() {
 		this.header =
-			"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-			"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n" +
-			"  <Document>\n"
-		this.tail = "  </Document>\n</kml>\n"
-		this.content = ""
+			'<?xml version="1.0" encoding="UTF-8"?>\n' +
+			'<kml xmlns="http://www.opengis.net/kml/2.2">\n' +
+			'  <Document>\n'
+
+		this.tail = '  </Document>\n</kml>\n'
+		this.content = ''
 	}
 
 	addPath(points: Array<THREE.Vector3>): void {
 		let path =
-			"    <Placemark>\n " +
-			"      <LineString>\n" +
-			"        <altitudeMode>clampToGround</altitudeMode>\n" +
-			"        <coordinates>\n"
+			'	<Placemark>\n ' +
+			'	  <LineString>\n' +
+			'		<altitudeMode>clampToGround</altitudeMode>\n' +
+			'		<coordinates>\n'
+
 		points.forEach((point) => {
-			path += "          " + point.x.toString() + "," + point.y.toString() + "," + point.z.toString() + "\n"
+			path += '		  ' + point.x.toString() + ',' + point.y.toString() + ',' + point.z.toString() + '\n'
 		})
+
 		path +=
-			"        </coordinates>\n" + "" +
-			"      </LineString>\n" +
-			"    </Placemark>\n"
+			'		</coordinates>\n' + '' +
+			'	  </LineString>\n' +
+			'	</Placemark>\n'
+
 		this.content += path
 	}
 

@@ -3,8 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {UtmJson} from "./AnnotationBase"
-import {LaneEntryExitType, LaneJsonInputInterfaceV1, LaneJsonInputInterfaceV3, LaneLineType} from "./Lane"
+import {UtmJson} from './AnnotationBase'
+import {LaneEntryExitType, LaneJsonInputInterfaceV1, LaneJsonInputInterfaceV3, LaneLineType} from './Lane'
 
 // tslint:disable:no-string-literal
 
@@ -18,10 +18,10 @@ function annotationsFileVersion(data: Object): number {
 	} else {
 		// All other versions are sequential integers.
 		const version = parseInt(data['version'], 10)
+
 		if (isNaN(version) || version < 2 || version > currentAnnotationFileVersion)
 			throw Error(`invalid annotations file version ${data['version']}`)
-		else
-			return version
+		else return version
 	}
 }
 
@@ -38,15 +38,15 @@ function oneToTwo(data: Object): Object {
 function twoToFour(data: Object): Object {
 	data['annotations'] = data['annotations'].map((v1: LaneJsonInputInterfaceV1) => {
 		return {
-			annotationType: "LANE",
+			annotationType: 'LANE',
 			uuid: v1.uuid,
-			laneType: "UNKNOWN",
+			laneType: 'UNKNOWN',
 			markers: v1.markerPositions,
 			neighborsIds: v1.neighborsIds,
 			leftLineType: LaneLineType[v1.leftSideType],
-			leftLineColor: "UNKNOWN",
+			leftLineColor: 'UNKNOWN',
 			rightLineType: LaneLineType[v1.rightSideType],
-			rightLineColor: "UNKNOWN",
+			rightLineColor: 'UNKNOWN',
 			entryType: LaneEntryExitType[v1.entryType],
 			exitType: LaneEntryExitType[v1.exitType],
 		} as LaneJsonInputInterfaceV3
@@ -58,8 +58,9 @@ function twoToFour(data: Object): Object {
 // This version had a flipped coordinate system with negative UTM values.
 function threeToFour(data: Object): Object {
 	const flipUtmV3 = (utm: UtmJson): UtmJson => {
-		return {'E': -utm['N'], 'N': utm['E'], 'alt': utm['alt']}
+		return {E: -utm['N'], N: utm['E'], alt: utm['alt']}
 	}
+
 	data['annotations'].forEach((v3: Object) => {
 		v3['markers'] = v3['markers'].map(m => flipUtmV3(m))
 	})
@@ -74,37 +75,44 @@ function threeToFour(data: Object): Object {
 // Warning: this will destroy the input data (and return it to you as output).
 export function toCurrentAnnotationVersion(data: Object): Object {
 	const startVersion = annotationsFileVersion(data)
+
 	delete data['version']
 
 	// Each update moves data forward from one state to the next.
 	let updaters: ((_: Object) => Object)[]
+
 	switch (startVersion) {
 		case 1:
 			updaters = [
 				oneToTwo,
 				twoToFour,
 			]
+
 			break
 		case 2:
 			updaters = [
 				twoToFour,
 			]
+
 			break
 		case 3:
 			updaters = [
 				threeToFour,
 			]
+
 			break
 		case 4:
 			updaters = [
 			]
+
 			break
 		default:
 			throw Error(`SerializedVersion is missing an updater for file version (${startVersion})`)
 	}
 
-	updaters.forEach(updater =>
+	updaters.forEach(updater => {
 		data = updater(data)
-	)
+	})
+
 	return data
 }

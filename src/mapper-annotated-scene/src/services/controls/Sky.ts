@@ -9,6 +9,7 @@ import * as THREE from 'three'
 // https://github.com/mrdoob/three.js/blob/master/examples/webgl_lights_hemisphere.html
 export function Sky(groundColor: THREE.Color, skyColor: THREE.Color, radius: number): THREE.Object3D {
 	const hemisphereLight = new THREE.HemisphereLight(skyColor, 0x000000, 1)
+
 	hemisphereLight.position.set(0, 500, 0)
 
 	const vertexShader = `varying vec3 vWorldPosition;
@@ -26,7 +27,6 @@ export function Sky(groundColor: THREE.Color, skyColor: THREE.Color, radius: num
 			float h = normalize( vWorldPosition + offset ).y;
 			gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h , 0.0), exponent ), 0.0 ) ), 1.0 );
 		}`
-
 	// BottomColor fades gradually to topColor starting from the horizon.
 	const uniforms = {
 		topColor: {value: skyColor},
@@ -37,13 +37,12 @@ export function Sky(groundColor: THREE.Color, skyColor: THREE.Color, radius: num
 		vertexShader: vertexShader,
 		fragmentShader: fragmentShader,
 		uniforms: uniforms,
-		side: THREE.BackSide
+		side: THREE.BackSide,
 	})
-
 	const geometry = new THREE.SphereBufferGeometry(radius, 8, 5)
 	const sky = new THREE.Mesh(geometry, material)
-
 	const group = new THREE.Group()
+
 	group.add(hemisphereLight)
 	group.add(sky)
 	return group

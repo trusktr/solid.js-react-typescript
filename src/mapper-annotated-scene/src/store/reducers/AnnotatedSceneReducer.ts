@@ -3,17 +3,17 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {ActionMessage, DefaultLeafReducer} from "typedux"
+/* eslint-disable typescript/no-explicit-any */
 
-import AnnotatedSceneState from "mapper-annotated-scene/src/store/state/AnnotatedSceneState"
+import {ActionMessage, DefaultLeafReducer} from 'typedux'
+import AnnotatedSceneState from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
 
 export class AnnotatedSceneReducer extends DefaultLeafReducer<AnnotatedSceneState, ActionMessage<AnnotatedSceneState>> {
+	constructor() {
+		super(AnnotatedSceneState.Key, AnnotatedSceneState)
+	}
 
-  constructor(){
-    super(AnnotatedSceneState.Key, AnnotatedSceneState)
-  }
-
-  defaultState(o = {}):any {
-    return AnnotatedSceneState.fromJS(o)
-  }
+	defaultState(o = {}): any {
+		return AnnotatedSceneState.fromJS(o)
+	}
 }

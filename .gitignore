@@ -19,7 +19,6 @@ jspm_packages/
 .idea/**/tasks.xml
 .idea/codeStyles
 .idea/dictionaries
-.idea/inspectionProfiles
 
 # Sensitive or high-churn files:
 .idea/**/dataSources/

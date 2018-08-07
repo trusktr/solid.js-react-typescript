@@ -3,8 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as THREE from "three"
-import {TileContents} from "@/mapper-annotated-scene/tile-model/TileContents"
+import * as THREE from 'three'
+import {TileContents} from '@/mapper-annotated-scene/tile-model/TileContents'
 
 export class TileMessage {
 	constructor(

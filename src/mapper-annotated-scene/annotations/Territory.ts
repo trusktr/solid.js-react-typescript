@@ -4,21 +4,24 @@
  */
 
 import * as THREE from 'three'
-import {Annotation, AnnotationRenderingProperties} from './AnnotationBase'
-import {AnnotationGeometryType, AnnotationJsonInputInterface, AnnotationJsonOutputInterface} from "./AnnotationBase"
-import {AnnotationType} from "./AnnotationType"
-import {isNullOrUndefined} from "util"
-import Logger from "@/util/log"
+import {
+	Annotation,
+	AnnotationRenderingProperties,
+	AnnotationGeometryType,
+	AnnotationJsonInputInterface,
+	AnnotationJsonOutputInterface,
+} from './AnnotationBase'
+import {AnnotationType} from './AnnotationType'
+import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
+import Logger from '@/util/log'
 
 const log = Logger(__filename)
-
 const defaultLabel = 'NEW_TERRITORY'
-
 // Some variables used for rendering
 const renderingProperties = {
-	markerMaterial: new THREE.MeshBasicMaterial({color: new THREE.Color( 0xffffff ), side: THREE.DoubleSide}),
+	markerMaterial: new THREE.MeshBasicMaterial({color: new THREE.Color(0xffffff), side: THREE.DoubleSide}),
 	meshMaterialParameters: {side: THREE.DoubleSide, transparent: true, opacity: 0.5} as THREE.MeshBasicMaterialParameters,
-	contourMaterial: new THREE.LineBasicMaterial({color: new THREE.Color( 0x0000ff )}),
+	contourMaterial: new THREE.LineBasicMaterial({color: new THREE.Color(0x0000ff)}),
 }
 // Map a rectangular, repeating texture onto triangular faces of a mesh geometry.
 // This configuration will include the lower right half of the rectangle.
@@ -43,12 +46,14 @@ function generateTextureWithLabel(label: string): THREE.CanvasTexture | null {
 	const textMargin = 50
 	// Display the text string a few times on each face of the mesh geometry.
 	const repeat = new THREE.Vector2(3, 3)
-
 	const canvas = document.createElement('canvas')
 	const context = canvas.getContext('2d')
+
 	if (context) {
 		context.font = textHeight + 'px sans-serif'
+
 		const textWidth = context.measureText(label).width
+
 		// THREE.WebGLRenderer will round off the canvas dimensions without asking. Do it now to prevent a warning.
 		canvas.width = THREE.Math.nextPowerOfTwo(textWidth + textPadding * 2 + textMargin * 2)
 		canvas.height = THREE.Math.nextPowerOfTwo(textHeight + textPadding * 2 + textMargin * 2)
@@ -67,6 +72,7 @@ function generateTextureWithLabel(label: string): THREE.CanvasTexture | null {
 			THREE.RepeatWrapping,
 			THREE.RepeatWrapping,
 		)
+
 		texture.repeat = repeat
 
 		return texture
@@ -79,11 +85,9 @@ function generateTextureWithLabel(label: string): THREE.CanvasTexture | null {
 export interface TerritoryJsonInputInterface extends AnnotationJsonInputInterface {
 	label: string
 }
-
 export interface TerritoryJsonOutputInterface extends AnnotationJsonOutputInterface {
 	label: string
 }
-
 export class Territory extends Annotation {
 	annotationType: AnnotationType
 	geometryType: AnnotationGeometryType
@@ -100,8 +104,8 @@ export class Territory extends Annotation {
 		super(obj)
 		this.annotationType = AnnotationType.TERRITORY
 		this.geometryType = AnnotationGeometryType.RING
-		if (!(obj && this.setLabel(obj.label)))
-			this.setLabel(defaultLabel)
+
+		if (!(obj && this.setLabel(obj.label))) this.setLabel(defaultLabel)
 
 		this.minimumMarkerCount = 3
 		this.allowNewMarkers = true
@@ -120,8 +124,9 @@ export class Territory extends Annotation {
 			if (obj.markers.length >= this.minimumMarkerCount) {
 				obj.markers.forEach(marker => this.addMarker(marker, false))
 				this.isComplete = true
-				if (!this.isValid())
-					throw Error(`can't load invalid territory with id ${obj.uuid}`)
+
+				if (!this.isValid()) throw Error(`can't load invalid territory with id ${obj.uuid}`)
+
 				this.updateVisualization()
 				this.makeInactive()
 			}
@@ -136,8 +141,8 @@ export class Territory extends Annotation {
 		if (!this.mesh) return
 
 		const texture = generateTextureWithLabel(this.label)
-		if (texture)
-			(this.mesh.material as THREE.MeshBasicMaterial).map = texture
+
+		if (texture) (this.mesh.material as THREE.MeshBasicMaterial).map = texture
 	}
 
 	getLabel(): string {
@@ -162,6 +167,7 @@ export class Territory extends Annotation {
 		}
 
 		const marker = new THREE.Mesh(AnnotationRenderingProperties.markerPointGeometry, renderingProperties.markerMaterial)
+
 		marker.position.set(position.x, position.y, position.z)
 		marker.scale.setScalar(markerSettings.activeScale)
 		this.markers.push(marker)
@@ -181,9 +187,9 @@ export class Territory extends Annotation {
 
 		// Check if the deleted marker was marked as the last in the annotation. If so, reset the
 		// isComplete flag
-		if (this.isComplete) {
+		if (this.isComplete)
 			this.isComplete = false
-		}
+
 		this.updateVisualization()
 
 		return true
@@ -191,7 +197,7 @@ export class Territory extends Annotation {
 
 	complete(): boolean {
 		if (this.isComplete) {
-			log.warn("Annotation is already complete. Delete a marker to re-open it.")
+			log.warn('Annotation is already complete. Delete a marker to re-open it.')
 			return false
 		}
 
@@ -216,9 +222,8 @@ export class Territory extends Annotation {
 
 	updateVisualization(): void {
 		// Check if there are at least two markers
-		if (this.markers.length < 2) {
+		if (this.markers.length < 2)
 			return
-		}
 
 		const newContourGeometry = new THREE.Geometry()
 		const contourMean = new THREE.Vector3(0, 0, 0)
@@ -249,10 +254,12 @@ export class Territory extends Annotation {
 		// NOTE CLYDE We assume that the contour of the annotation is convex
 		if (newContourGeometry.vertices.length > 2) {
 			// Add all vertices
-			newContourGeometry.vertices.forEach( (v) => {
+			newContourGeometry.vertices.forEach((v) => {
 				newMeshGeometry.vertices.push(v.clone())
 			})
-			newMeshGeometry.vertices.push( contourMean )
+
+			newMeshGeometry.vertices.push(contourMean)
+
 			const centerIndex = newMeshGeometry.vertices.length - 1
 
 			for (let i = 0; i < newMeshGeometry.vertices.length - 2; ++i) {
@@ -260,6 +267,7 @@ export class Territory extends Annotation {
 				newMeshGeometry.faceVertexUvs[0].push(meshGeometryUvs)
 			}
 		}
+
 		newMeshGeometry.computeFaceNormals()
 		this.mesh.geometry = newMeshGeometry
 		this.mesh.geometry.verticesNeedUpdate = true
@@ -278,11 +286,10 @@ export class Territory extends Annotation {
 
 		if (this.markers) {
 			this.markers.forEach((marker) => {
-				if (pointConverter) {
+				if (pointConverter)
 					data.markers.push(pointConverter(marker.position))
-				} else {
+				else
 					data.markers.push(marker.position)
-				}
 			})
 		}
 
