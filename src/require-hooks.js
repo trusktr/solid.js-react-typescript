@@ -4,6 +4,9 @@
  */
 
 const path = require('path')
+const Module = require('module')
+const url = require('url')
+
 global.__base = path.resolve(__dirname, '..')
 
 require('ts-node').register({
@@ -81,4 +84,43 @@ function addStyleToHead(cssCode) {
 		style.textContent = cssCode
 		document.head.appendChild(style)
 	})
+}
+
+// Import OBJ and PNGfiles. The import returns a valid URL, which works with
+// things like window.Image or THREE.OBJLoader.
+//
+// In this case it returns a file:// URL, while a Webpack build would return a
+// data URL. Either type of URL works in Electron, but we already have access to
+// the filesystem so we don't need to bother with making data URLs.
+//
+// This works with relative paths only, for now.
+function toFileURL(filePath) {
+	return url.format({
+		pathname: filePath,
+		protocol: 'file:',
+		slashes: true,
+	})
+}
+
+const oldRequire = Module.prototype.require
+
+Module.prototype.require = function(moduleIdentifier) {
+
+	if (
+		moduleIdentifier.endsWith('.obj') ||
+		moduleIdentifier.endsWith('.png')
+		// ...add more as needed...
+	) {
+
+		return {
+			// Return an object with a default property so we can do `import objFile from './path/to/file.obj'` in ES6 modules (or TypeScript)
+			default: toFileURL( path.resolve(path.dirname(this.filename), moduleIdentifier) ),
+		}
+
+	} else {
+
+		return oldRequire.call(this, moduleIdentifier)
+
+	}
+
 }
