@@ -3,12 +3,9 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as THREE from 'three'
-import * as OBJLoader from 'three-obj-loader'
+import THREE from '@mapperai/annotated-scene/src/services/THREE'
 import mapperLogoObj from './Mapper_logo.obj'
 import hondaLogoObj from './Honda_logo.obj'
-
-OBJLoader(THREE)
 
 interface DecorationConfig {
 	// eslint-disable-next-line typescript/no-explicit-any
