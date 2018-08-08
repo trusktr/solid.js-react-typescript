@@ -38,15 +38,19 @@ import {Events} from '../models/Events'
 
 const log = Logger(__filename)
 
-OBJLoader(THREE)
-
 const dialog = Electron.remote.dialog
 const timeBetweenErrorDialogsMs = 30000
+
+// TODO JOE we can optionally expand on this to define specific keys and their types.
+interface Config {
+	[key: string]: any
+}
 
 export interface CameraState {
 	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
 }
 export interface AnnotatedSceneControllerProps {
+	config?: Config,
 	backgroundColor?: THREEColorValue
 	onPointOfInterestCall?: () => THREE.Vector3
 	onCurrentRotation?: () => THREE.Quaternion
@@ -57,7 +61,6 @@ export interface AnnotatedSceneControllerProps {
 	camera?: THREE.Camera
 	numberKeyPressed?: number | null
 	isHoveringOnMarker?: boolean
-
 	initialBoundingBox: [ number, number, number, number, number, number ]
 }
 export interface AnnotatedSceneControllerState {
@@ -312,8 +315,8 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.state.sceneManager!.adjustCameraYOffset(value)
 	}
 
-	addChildAnimationLoop(childLoop: ChildAnimationLoop) {
-		this.state.sceneManager!.addChildAnimationLoop(childLoop)
+	addChildAnimationLoop() {
+		return this.state.sceneManager!.addChildAnimationLoop()
 	}
 
 	getCamera(): THREE.Camera {
@@ -457,6 +460,8 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 			this.isAllSet = true
 
 			this.setup()
+
+			this.channel.emit(Events.ANNOTATED_SCENE_READY)
 		}
 
 		if (!prevState.annotationManager && this.state.annotationManager)

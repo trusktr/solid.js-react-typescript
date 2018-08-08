@@ -7,7 +7,6 @@ import * as React from 'react'
 import AnnotatedSceneState from '@mapperai/annotated-scene/src/store/state/AnnotatedSceneState'
 import {FlyThroughState, FlyThroughTrajectory} from '../FlyThroughState'
 import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
-import {ChildAnimationLoop} from 'animation-loop'
 const {default: config} = require(`${__base}/src/config`)
 import * as AsyncFile from 'async-file'
 import {dataSetNameFromPath} from '../../util/Perception'
@@ -22,6 +21,8 @@ import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/A
 import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
 import {getAnnotatedSceneStore} from '@mapperai/annotated-scene/src/store/AppStore'
 import toProps from '@mapperai/annotated-scene/src/util/toProps'
+import {Events} from '@mapperai/annotated-scene/src/models/Events'
+import AnimationLoop from 'animation-loop'
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -36,7 +37,6 @@ export interface FlyThroughManagerProps {
 	flyThroughEnabled?: boolean
 }
 export interface FlyThroughManagerState {
-	flyThroughLoop: ChildAnimationLoop
 	liveSubscribeSocket: zmq.Socket | null
 	flyThroughState: FlyThroughState
 }
@@ -48,14 +48,21 @@ export interface FlyThroughManagerState {
 	'flyThroughEnabled',
 ))
 export default class FlyThroughManager extends React.Component<FlyThroughManagerProps, FlyThroughManagerState> {
+	private flyThroughLoop: AnimationLoop | undefined
+
 	constructor(props: FlyThroughManagerProps) {
 		super(props)
 
-		const loop = new ChildAnimationLoop()
-		const flyThroughFps = config['fly_through.animation.fps']
-		const flyThroughInterval = flyThroughFps === 'device' ? 0 : 1 / (flyThroughFps || 10)
+		props.annotatedSceneController.channel.once(Events.ANNOTATED_SCENE_READY, () => {
+			this.flyThroughLoop = props.annotatedSceneController.addChildAnimationLoop()
+			const flyThroughFps = config['fly_through.animation.fps']
+			const flyThroughInterval = flyThroughFps === 'device' ? 0 : 1 / (flyThroughFps || 10)
 
-		loop.interval = flyThroughInterval
+			this.flyThroughLoop.interval = flyThroughInterval
+
+			this.startLoop()
+			this.init()
+		})
 
 		const flyThroughState = new FlyThroughState({
 			trajectories: [],
@@ -65,11 +72,9 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 		})
 
 		this.state = {
-			flyThroughLoop: loop,
 			liveSubscribeSocket: null,
 			flyThroughState: flyThroughState,
 		}
-		// new AnnotatedSceneActions().updateFlyThroughState(this.flyThroughState)
 	}
 
 	componentWillReceiveProps(newProps) {
@@ -104,23 +109,15 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 		return trajectoryResult
 	}
 
-	componentDidMount() {
-		this.init().then()
-	}
+	private init() {
+		getAnnotatedSceneStore().observe([AnnotatedSceneState.Key, 'isPlayMode'], (newValue: Boolean, __oldValue: Boolean, __observer) => {
+			log.info('isPlayMode changed, new value is', newValue)
 
-	async init() {
-		try {
-			log.info('Setting up FlyThroughManager')
+			console.log(' ######################################################################################### ', newValue)
 
-			getAnnotatedSceneStore().observe([AnnotatedSceneState.Key, 'isPlayMode'], (newValue: Boolean, __oldValue: Boolean, __observer) => {
-				log.info('isPlayMode changed, new value is', newValue)
-
-				if (newValue) this.startLoop()
-				else this.pauseLoop()
-			})
-		} catch (err) {
-			console.log('ERROR OCCURRED ON FLY THROUGH LISTEN')
-		}
+			if (newValue) this.startLoop()
+			else this.pauseLoop()
+		})
 	}
 
 	getCurrentFlyThroughTrajectory(): FlyThroughTrajectory {
@@ -153,25 +150,19 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 		new StatusWindowActions().setMessage(StatusKey.FLY_THROUGH_TRAJECTORY, message)
 	}
 
-	getAnimationLoop() {
-		return this.state.flyThroughLoop
-	}
-
 	startLoop() {
-		this.state.flyThroughLoop.start()
+		this.flyThroughLoop.start()
 	}
 
 	pauseLoop() {
-		this.state.flyThroughLoop.pause()
+		this.flyThroughLoop.pause()
 	}
 
 	startFlyThrough(): void {
 		log.info('Starting flyThrough')
 		this.setFlyThroughMessage()
 
-		const flyThroughLoop = this.state.flyThroughLoop
-
-		flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
+		this.flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
 	}
 
 	private flyThroughAnimation = (): boolean => {

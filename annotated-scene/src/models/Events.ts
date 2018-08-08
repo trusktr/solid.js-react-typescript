@@ -38,4 +38,7 @@ export const Events = {
 	// triggered when an annotation has been visually updated (geometry,
 	// material, etc), but not yet re-rendered
 	ANNOTATION_VISUAL_UPDATE: UUID(),
+
+	// fired when the annotated-scene lib APIs are ready to be used
+	ANNOTATED_SCENE_READY: UUID(),
 }

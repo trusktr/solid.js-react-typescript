@@ -22,6 +22,7 @@ import {
 	LocationServerStatusLevel,
 } from './clients/LocationServerStatusClient'
 import StatusKey from './StatusKey'
+import {Events} from '@mapperai/annotated-scene/src/models/Events'
 
 // TODO JOE
 // import {ConfigDefault} from '@/config/ConfigDefault'
@@ -42,8 +43,8 @@ export interface KioskState {
 	carManager?: CarManager
 	flyThroughManager?: FlyThroughManager
 	hasCalledSetup: boolean
-	isChildLoopAdded: boolean
 	trajectoryPicker?: TrajectoryPicker
+	controllerReady: boolean
 }
 @typedConnect(toProps(
 	'isCarInitialized',
@@ -67,7 +68,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 
 		this.state = {
 			hasCalledSetup: false,
-			isChildLoopAdded: false,
+			controllerReady: false,
 		}
 
 		const watchForRebuilds: boolean = config['startup.watch_for_rebuilds.enable'] || false
@@ -148,35 +149,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		}, this.locationServeStatusMessageDuration)
 	}
 
-	async componentWillReceiveProps(newProps: KioskProps) {
-		if (!this.state.isChildLoopAdded && this.state.annotatedSceneController && this.state.flyThroughManager) {
-			// this is the transition from the Scene not being setup to when it is
-			// Since it's setup now let's setup the fly through manager
-			const flyThroughManager = this.state.flyThroughManager
-			// flyThroughManager.init() -- called on componentDidMount within FlyThroughManager
-			const controller = this.state.annotatedSceneController
-
-			controller.addChildAnimationLoop(flyThroughManager.getAnimationLoop())
-
-			flyThroughManager.startLoop()
-
-			// Register key events
-			this.registerKeyDownEvents()
-
-			this.setState({isChildLoopAdded: true})
-		}
-
-		if (newProps.isCarInitialized && newProps.isInitialOriginSet && !this.state.hasCalledSetup &&
-			this.state.annotatedSceneController && this.state.carManager && this.state.flyThroughManager
-		) {
-			await this.state.flyThroughManager.loadUserData()
-
-			// At this point the car model has been loaded and user data has also been loaded, we're ready for listen()
-			// this only gets called once because then state.hasCalledSetup is set to True
-			this.listen()
-		}
-	}
-
 	private registerKeyDownEvents(): void {
 		const cameraOffsetDelta = 1
 
@@ -202,7 +174,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	}
 
 	// this gets called after the CarManager is instantiated
-	private listen(): void {
+	private beginFlyThrough(): void {
 		if (this.state.hasCalledSetup) return
 
 		log.info('Listening for messages...')
@@ -229,7 +201,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			this.state.flyThroughManager.resumePlayMode()
 			this.state.flyThroughManager.initClient()
 		} else {
-			log.error('Error in listen() - flyThroughManager expected, but not found')
+			log.error('Error in beginFlyThrough() - flyThroughManager expected, but not found')
 		}
 
 		this.state.annotatedSceneController!.shouldRender()
@@ -281,11 +253,32 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	onPointOfInterestCall = (): THREE.Vector3 => new THREE.Vector3(0, 0, 0)
 	onCurrentRotation = (): THREE.Quaternion => new THREE.Quaternion()
 
-	componentDidUpdate(oldProps) {
+	async componentDidUpdate(oldProps, oldState) {
+
+		if (!oldState.annotatedSceneController && this.state.annotatedSceneController) {
+			console.log( '!!!!!!!!!!!!!!!!!!!!!!! set ready listener' )
+			this.state.annotatedSceneController.channel.once(Events.ANNOTATED_SCENE_READY, () => {
+				console.log( ' )))))))))))))))))))))))))))))))) READY! ' )
+				this.setState({ controllerReady: true })
+				this.registerKeyDownEvents()
+			})
+		}
+
 		if (!oldProps.isCarInitialized && this.props.isCarInitialized) {
 			this.onPointOfInterestCall = () => this.state.carManager!.getCarModelPosition()
 			this.onCurrentRotation = () => this.state.carManager!.getCarModelRotation()
 			this.forceUpdate()
+		}
+
+		if (
+			!this.state.hasCalledSetup && this.state.controllerReady &&
+			this.props.isCarInitialized && this.props.isInitialOriginSet &&
+			this.state.carManager && this.state.flyThroughManager
+		) {
+			await this.state.flyThroughManager.loadUserData()
+
+			console.log( ' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% beginFlyThrough!' )
+			this.beginFlyThrough()
 		}
 	}
 

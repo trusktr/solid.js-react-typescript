@@ -1,21 +1,14 @@
-# user local preferences
-preferences.directory: mapper-annotator
+#######################################################
+### SHARED LIB (ANY APP CAN CONFIGURE) ################
+#######################################################
 
 # application initialization
-startup.electron.window.default.width: 800
-startup.electron.window.default.height: 600
+startup.point_cloud_bounding_box:
 startup.camera_offset: [0, 400, 200]
 startup.render.fps: 'device' # 'device' means maximum for the device. Specify a number for custom fps.
-startup.kiosk_mode: false
 startup.background_color: '#444444'
-startup.show_control_panel: true
 startup.show_stats_module: true
 startup.show_status_panel: true
-startup.show_menu: true
-startup.show_dev_tools: true
-startup.point_cloud_bounding_box:
-startup.annotations_path:
-startup.watch_for_rebuilds.enable: false
 
 # parameters for loading a tile
 tile_manager.utm_tile_scale: [8, 8, 8] # conversion from tile index numbers to physical dimensions
@@ -46,12 +39,32 @@ annotator.area_of_interest.size: [50, 50, 50]
 annotator.grid_size: 1000
 annotator.grid_unit: 100
 
-# persistence of a data file
-output.annotations.json.path: ./data/annotations.json
-output.annotations.kml.path: ./data/waypoints.kml
-output.annotations.autosave.directory.path: ./data/autosave
-output.annotations.autosave.interval.seconds: 300
-output.annotations.tiles_dir: ./data/tiles
+#######################################################
+### ANNOTATOR-AND-KIOSK ###############################
+#######################################################
+
+# user local preferences
+preferences.directory: mapper-annotator
+
+# application initialization
+startup.electron.window.default.width: 800
+startup.electron.window.default.height: 600
+startup.show_menu: true
+startup.show_dev_tools: true
+
+# TODO JOE apps can manualy set annotations to be rendered by the lib, and where apps get the annotations (f.e. the filesystem) is app-specific
+startup.annotations_path:
+
+#######################################################
+### KIOSK-APP #########################################
+#######################################################
+
+# application initialization
+
+# TODO JOE to be removed
+startup.kiosk_mode: false
+
+startup.watch_for_rebuilds.enable: false
 
 # Perception integration
 perception.offline_localizer_path: # if set, the fly_through.trajectory_picker paths are also required
@@ -65,15 +78,29 @@ fly_through.animation.fps: 10
 fly_through.trajectory_picker.processed_trajectories_dir:
 fly_through.trajectory_picker.unprocessed_trajectories_dir:
 
+# Location server info
+location_server.status.health_check.interval.seconds: 5
+location_server.host: localhost
+location_server.port: 5564
+location_server.status.port: 26600
+
+#######################################################
+### ANNOTATOR-APP #####################################
+#######################################################
+
+# application initialization
+startup.show_control_panel: true
+
+# persistence of a data file
+output.annotations.json.path: ./data/annotations.json
+output.annotations.kml.path: ./data/waypoints.kml
+output.annotations.autosave.directory.path: ./data/autosave
+output.annotations.autosave.interval.seconds: 300
+output.annotations.tiles_dir: ./data/tiles
+
 # for photos displayed within the 3D scene
 image_manager.image_screen.width: 3
 image_manager.image_screen.height: 2
 image_manager.image.opacity: 0.5
 image_manager.image.wireframe.visible: false
 image_manager.image.distance_from_camera: 0.1 # distance in meters, approximate, must be > 0
-
-# Location server info
-location_server.status.health_check.interval.seconds: 5
-location_server.host: localhost
-location_server.port: 5564
-location_server.status.port: 26600

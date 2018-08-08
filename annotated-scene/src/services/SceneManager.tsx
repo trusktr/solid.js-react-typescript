@@ -411,8 +411,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		return this.camera
 	}
 
-	addChildAnimationLoop(childLoop: ChildAnimationLoop): void {
-		this.loop.addChildLoop(childLoop)
+	addChildAnimationLoop() {
+		return this.loop.addChildLoop()
 	}
 
 	getRendererDOMElement() {
