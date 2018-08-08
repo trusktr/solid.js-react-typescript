@@ -22,7 +22,6 @@ import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
 import {EventEmitter} from 'events'
 import Logger from '../util/log'
 import {LayerId} from '../TypeAlias'
-const {default: config} = require(`${__base}/src/config`)
 import {Events} from '../models/Events'
 
 const log = Logger(__filename)
@@ -50,7 +49,7 @@ export interface TileManagerConfig {
 // All objects are stored with reference to UTM origin and offset, but using the local coordinate
 // system which has different axes.
 export abstract class TileManager implements TileManagerBase {
-	protected config: TileManagerConfig
+	protected tileConfig: TileManagerConfig
 	protected coordinateSystemInitialized: boolean // indicates that this TileManager passed checkCoordinateSystem() and set an origin // todo ?
 	superTiles: OrderedMap<string, SuperTile> // all super tiles which we are aware of
 	// Keys to super tiles which have objects loaded in memory. It is ordered so that it works as a least-recently-used
@@ -68,7 +67,8 @@ export abstract class TileManager implements TileManagerBase {
 		scaleProvider: ScaleProvider,
 		protected utmCoordinateSystem: UtmCoordinateSystem,
 		protected tileServiceClient: TileServiceClient,
-		protected channel: EventEmitter
+		protected channel: EventEmitter,
+		config: any,
 	) {
 		this.coordinateSystemInitialized = false
 		this.superTiles = OrderedMap()
@@ -223,7 +223,7 @@ export abstract class TileManager implements TileManagerBase {
 
 		if (!filteredStIndexes.length) return Promise.resolve(false)
 
-		if (!loadAllObjects && filteredStIndexes.length > this.config.initialSuperTilesToLoad) filteredStIndexes.length = this.config.initialSuperTilesToLoad
+		if (!loadAllObjects && filteredStIndexes.length > this.tileConfig.initialSuperTilesToLoad) filteredStIndexes.length = this.tileConfig.initialSuperTilesToLoad
 
 		// Ensure that we have a valid coordinate system before doing anything else.
 		let firstTilePromise: Promise<void>
@@ -256,7 +256,7 @@ export abstract class TileManager implements TileManagerBase {
 					}
 
 					// TODO CLYDE merge these into fewer API requests
-					return this.tileServiceClient.getTilesByCoordinateRange(this.config.layerId, superTileSearch)
+					return this.tileServiceClient.getTilesByCoordinateRange(this.tileConfig.layerId, superTileSearch)
 						.then(tileInstances => {
 							if (tileInstances.length === 0) {
 								this.getOrCreateSuperTile(stIndex, coordinateFrame)
@@ -343,7 +343,7 @@ export abstract class TileManager implements TileManagerBase {
 
 		while (
 			superTilesCount > 1 &&
-			(superTilesCount > this.config.maximumSuperTilesToLoad || currentObjectCount > this.config.maximumObjectsToLoad)
+			(superTilesCount > this.tileConfig.maximumSuperTilesToLoad || currentObjectCount > this.tileConfig.maximumObjectsToLoad)
 		) {
 			const oldestKey = this.loadedSuperTileKeys.first()
 			const foundSuperTile = this.superTiles.get(oldestKey)

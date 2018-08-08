@@ -3,7 +3,6 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const {default: config} = require(`${__base}/src/config`)
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import * as grpc from 'grpc'
 import {TileServiceClient as GrpcClient} from '../grpc-compiled-protos/TileService_grpc_pb'
@@ -62,6 +61,7 @@ export class TileServiceClient {
 	constructor(
 		scaleProvider: ScaleProvider,
 		private channel: EventEmitter,
+		config: any
 	) {
 		this.serverStatus = null
 		this.pingInFlight = false

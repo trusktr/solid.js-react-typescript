@@ -8,7 +8,6 @@ import * as THREE from 'three'
 import {PointCloudTileManager} from '../tiles/PointCloudTileManager'
 import {SceneManager} from './SceneManager'
 import Logger from '../util/log'
-const {default: config} = require(`${__base}/src/config`)
 import LayerManager, {Layer} from './LayerManager'
 import {RangeSearch} from '../tiles/tile-model/RangeSearch'
 import {CoordinateFrameType} from '../geometry/CoordinateFrame'
@@ -24,6 +23,7 @@ import {PointCloudSuperTile} from '../tiles/PointCloudSuperTile'
 const log = Logger(__filename)
 
 export interface PointCloudManagerProps {
+	config: any
 
 	// redux props
 	areaOfInterest?: RangeSearch[]
@@ -53,7 +53,7 @@ export default class PointCloudManager extends React.Component<PointCloudManager
 
 		this.state = {
 			pointCloudBoundingBox: null,
-			shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],
+			shouldDrawBoundingBox: !!props.config['annotator.draw_bounding_box'],
 			pointCloudBboxColor: new THREE.Color(0xff0000),
 		}
 

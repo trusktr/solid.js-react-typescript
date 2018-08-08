@@ -13,7 +13,6 @@ import toProps from '../util/toProps'
 import {OrderedMap} from 'immutable'
 import {SuperTile} from '../tiles/SuperTile'
 import {PointCloudSuperTile} from '../tiles/PointCloudSuperTile'
-const {default: config} = require(`${__base}/src/config`)
 import {isNull} from 'util' // eslint-disable-line node/no-deprecated-api
 import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
 import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
@@ -26,6 +25,7 @@ import LayerManager, {Layer} from './LayerManager'
 import {Events} from '../models/Events'
 
 export interface GroundPlaneManagerProps {
+	config: any
 	utmCoordinateSystem: UtmCoordinateSystem
 	camera?: THREE.Camera
 	mousePosition?: MousePosition
@@ -63,8 +63,8 @@ class GroundPlaneManager extends React.Component<GroundPlaneManagerProps, Ground
 		this.raycaster = new THREE.Raycaster()
 		this.raycaster.params.Points!.threshold = 0.1
 
-		this.estimateGroundPlane = !!config['annotator.add_points_to_estimated_ground_plane']
-		this.groundPlaneOpacityOnHover = parseFloat(config['annotator.ground_plane_opacity_on_hover']) || 0.0
+		this.estimateGroundPlane = !!props.config['annotator.add_points_to_estimated_ground_plane']
+		this.groundPlaneOpacityOnHover = parseFloat(props.config['annotator.ground_plane_opacity_on_hover']) || 0.0
 		this.groundPlaneMaterial = new THREE.MeshNormalMaterial({wireframe: true, transparent: true, opacity: this.groundPlaneOpacityOnHover})
 
 		this.allGroundPlanes = []

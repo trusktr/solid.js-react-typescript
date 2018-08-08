@@ -32,6 +32,8 @@ export default class AnnotatedSceneState {
 		Object.assign(this, o)
 	}
 
+	config?: any
+
 	messages: Array<UIMessage>
 
 	// ANNOTATOR SPECIFIC STATE

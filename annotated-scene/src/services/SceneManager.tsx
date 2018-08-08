@@ -8,7 +8,6 @@ import * as React from 'react'
 import {AnimationLoop, ChildAnimationLoop} from 'animation-loop'
 import {CameraType} from '../models/CameraType'
 import {Sky} from './controls/Sky'
-const {default: config} = require(`${__base}/src/config`)
 import {CompassRose} from './controls/CompassRose'
 import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
 import Logger from '../util/log'
@@ -36,6 +35,7 @@ export interface SceneManagerProps {
 	// TODO JOE We need to handle background color changes, currently backgroundColor is used only in constructor
 	backgroundColor?: THREEColorValue
 
+	config: any,
 	width: number
 	height: number
 	areaOfInterestManager: AreaOfInterestManager
@@ -98,7 +98,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		const {width, height} = this.props
 		const loop = new AnimationLoop()
-		const animationFps = config['startup.render.fps']
+		const animationFps = props.config['startup.render.fps']
 
 		loop.interval = animationFps === 'device' || animationFps === 'max'
 			? false
@@ -156,8 +156,8 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 
 		let cameraOffset = new THREE.Vector3(0, 400, 200)
 
-		if (config['startup.camera_offset']) {
-			const configCameraOffset: [number, number, number] = config['startup.camera_offset']
+		if (props.config['startup.camera_offset']) {
+			const configCameraOffset: [number, number, number] = props.config['startup.camera_offset']
 
 			if (isTupleOfNumbers(configCameraOffset, 3))
 				cameraOffset = new THREE.Vector3().fromArray(configCameraOffset)
@@ -181,7 +181,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		// Add some lights
 		scene.add(new THREE.AmbientLight(new THREE.Color(0xffffff)))
 
-		const compassRoseLength = parseFloat(config['annotator.compass_rose_length']) || 0
+		const compassRoseLength = parseFloat(props.config['annotator.compass_rose_length']) || 0
 
 		let compassRose
 
@@ -332,7 +332,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	private makeStats(): Stats | null {
-		if (!config['startup.show_stats_module']) return null
+		if (!this.props.config['startup.show_stats_module']) return null
 
 		// Create stats widget to display frequency of rendering
 		const stats = new Stats()

@@ -8,9 +8,6 @@ import {vsprintf} from 'sprintf-js'
 import {isTupleOfNumbers} from '../util/Validation'
 import {TileIndexDimension} from '../TypeAlias'
 
-// TODO JOE PACKAGE provide config as a prop
-const {default: config} = require(`${__base}/src/config`)
-
 const defaultSeparator = '_' // for generating serializable ID strings
 
 function numberToString(n: number): string {
@@ -87,7 +84,7 @@ export function indexToCoord(index: TileIndexDimension, size: number): number {
 	return index * size
 }
 
-export function configToScale3D(key: string): Scale3D {
+export function configToScale3D(key: string, config: any): Scale3D {
 	const tileScaleConfig: [number, number, number] = config[key] || [10, 10, 10]
 
 	if (!isTupleOfNumbers(tileScaleConfig, 3)) throw Error(`invalid ${key} configuration '${tileScaleConfig}'`)

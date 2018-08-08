@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three'
-const {default: config} = require(`${__base}/src/config`)
+import DefaultConfig from '../../DefaultConfig'
 import {ActionFactory, ActionMessage, ActionReducer} from 'typedux'
 import AnnotatedSceneState, {InitialState, TransformMode} from '../state/AnnotatedSceneState'
 import UIMessage from '../../models/UIMessage'
@@ -41,6 +41,8 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	@ActionReducer()
 	loadAppState() {
 		const defaultState: InitialState = {
+			config: undefined,
+
 			messages: [],
 
 			isLiveMode: false,
@@ -48,11 +50,11 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 			flyThroughEnabled: true,
 
 			statusWindowState: new StatusWindowState({
-				enabled: !!config['startup.show_status_panel'],
+				enabled: !!DefaultConfig['startup.show_status_panel'],
 				messages: new Map<string, string>(),
 			}),
 
-			uiMenuVisible: config['startup.show_menu'],
+			uiMenuVisible: DefaultConfig['startup.show_menu'],
 			shouldAnimate: false,
 			carPose: undefined,
 			isCarInitialized: false,
@@ -112,6 +114,16 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 		}
 
 		return (__annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState(defaultState)
+	}
+
+	@ActionReducer()
+	setConfig(config: any) {
+		return (annotatedSceneState: AnnotatedSceneState) => {
+			if (annotatedSceneState.config) throw new Error('config can only be set once')
+			return new AnnotatedSceneState({
+				...annotatedSceneState, config
+			})
+		}
 	}
 
 	@ActionReducer()

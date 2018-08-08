@@ -5,7 +5,6 @@
 
 import * as THREE from 'three'
 import * as React from 'react'
-const {default: config} = require(`${__base}/src/config`)
 import {isTupleOfNumbers} from '../util/Validation'
 import Logger from '../util/log'
 import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
@@ -25,6 +24,7 @@ const log = Logger(__filename)
 type AreaOfInterest = RangeSearch[]
 
 interface AreaOfInterestManagerProps {
+	config: any
 	getPointOfInterest?: () => THREE.Vector3
 	getCurrentRotation?: () => THREE.Quaternion
 	utmCoordinateSystem: UtmCoordinateSystem
@@ -62,7 +62,7 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 		super(props)
 
 		const state = {
-			enabled: !!config['annotator.area_of_interest.enable'],
+			enabled: !!props.config['annotator.area_of_interest.enable'],
 			aoiFocalPoint: null,
 			boundingBoxes: [],
 			currentHeading: null,
@@ -71,9 +71,9 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 			fullSize: new THREE.Vector3(30, 30, 30),
 			halfSize: new THREE.Vector3(15, 15, 15),
 
-			shouldDrawBoundingBox: !!config['annotator.draw_bounding_box'],
+			shouldDrawBoundingBox: !!props.config['annotator.draw_bounding_box'],
 		}
-		const aoiSize: [number, number, number] = config['annotator.area_of_interest.size']
+		const aoiSize: [number, number, number] = props.config['annotator.area_of_interest.size']
 
 		if (isTupleOfNumbers(aoiSize, 3)) {
 			state.fullSize = new THREE.Vector3().fromArray(aoiSize)
@@ -238,11 +238,11 @@ export default class AreaOfInterestManager extends React.Component<AreaOfInteres
 		// Add grid to visualize where the plane is.
 		// Add an axes helper to visualize the origin and orientation of the primary directions.
 
-		const axesHelperLength = parseFloat(config['annotator.axes_helper_length']) || 0
+		const axesHelperLength = parseFloat(this.props.config['annotator.axes_helper_length']) || 0
 
 		if (axesHelperLength > 0) {
-			const gridSize = parseFloat(config['annotator.grid_size']) || 200
-			const gridUnit = parseFloat(config['annotator.grid_unit']) || 10
+			const gridSize = parseFloat(this.props.config['annotator.grid_size']) || 200
+			const gridUnit = parseFloat(this.props.config['annotator.grid_unit']) || 10
 			const gridDivisions = gridSize / gridUnit
 
 			this.grid = new THREE.GridHelper(gridSize, gridDivisions, new THREE.Color('white'))

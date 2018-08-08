@@ -7,7 +7,6 @@ import {TileManager} from './TileManager'
 import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
 import {SuperTile} from './SuperTile'
 import {TileServiceClient} from './TileServiceClient'
-const {default: config} = require(`${__base}/src/config`)
 import {CoordinateFrameType} from '../geometry/CoordinateFrame'
 import {TileIndex} from '../tiles/tile-model/TileIndex'
 import {AnnotationSuperTile} from './AnnotationSuperTile'
@@ -28,15 +27,17 @@ export class AnnotationTileManager extends TileManager {
 		tileServiceClient: TileServiceClient,
 		channel: EventEmitter,
 		private annotationManager: AnnotationManager,
+		config: any,
 	) {
 		super(
 			scaleProvider,
 			utmCoordinateSystem,
 			tileServiceClient,
 			channel,
+			config,
 		)
 
-		this.config = {
+		this.tileConfig = {
 			layerId: 'anot1', // a layer which contains miniature annotator JSON files
 			initialSuperTilesToLoad: parseInt(config['tile_manager.initial_super_tiles_to_load'], 10) || 4,
 			maximumSuperTilesToLoad: parseInt(config['tile_manager.maximum_super_tiles_to_load'], 10) || 10000,
@@ -85,7 +86,7 @@ export class AnnotationTileManager extends TileManager {
 
 	// Load an annotations JSON object from a file.
 	private loadTile(tileInstance: TileInstance): Promise<Object> {
-		if (tileInstance.layerId === this.config.layerId) {
+		if (tileInstance.layerId === this.tileConfig.layerId) {
 			return this.tileServiceClient.getTileContents(tileInstance.url)
 				.then(buffer => JSON.parse(String.fromCharCode.apply(null, buffer)))
 		} else {

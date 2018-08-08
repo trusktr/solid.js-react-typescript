@@ -3,7 +3,6 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const {default: config} = require(`${__base}/src/config`)
 import * as THREE from 'three'
 import * as MapperProtos from '@mapperai/mapper-models'
 import {threeDStepSize} from './Constant'
@@ -49,7 +48,7 @@ interface PointCloudTileManagerConfig extends TileManagerConfig {
 // consolidated from its constituent Tiles, which when loaded is merged into a single data structure for
 // three.js rendering.
 export class PointCloudTileManager extends TileManager {
-	protected readonly config: PointCloudTileManagerConfig
+	protected readonly tileConfig: PointCloudTileManagerConfig
 	superTiles: OrderedMap<string, PointCloudSuperTile> // all super tiles which we are aware of
 	private pointsMaterial: THREE.PointsMaterial
 
@@ -57,18 +56,20 @@ export class PointCloudTileManager extends TileManager {
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
 		tileServiceClient: TileServiceClient,
-		channel: EventEmitter
+		channel: EventEmitter,
+		config: any,
 	) {
 		super(
 			scaleProvider,
 			utmCoordinateSystem,
 			tileServiceClient,
-			channel
+			channel,
+			config,
 		)
 
 		if (config['tile_manager.tile_message_format']) log.warn('config option tile_manager.tile_message_format has been removed.')
 
-		this.config = {
+		this.tileConfig = {
 			layerId: 'base1', // a layer which contains instances of `BaseGeometryTileMessage`
 			pointsSize: parseFloat(config['annotator.point_render_size']) || 1,
 			initialSuperTilesToLoad: parseInt(config['tile_manager.initial_super_tiles_to_load'], 10) || 4,
@@ -79,10 +80,10 @@ export class PointCloudTileManager extends TileManager {
 			trimByColor: !!config['tile_manager.trim_points_above_ground.height'],
 		}
 
-		if (this.config.samplingStep <= 0) throw Error(`Bad config 'tile_manager.sampling_step' = ${this.config.samplingStep}. Step should be > 0.`)
+		if (this.tileConfig.samplingStep <= 0) throw Error(`Bad config 'tile_manager.sampling_step' = ${this.tileConfig.samplingStep}. Step should be > 0.`)
 
 		this.pointsMaterial = new THREE.PointsMaterial({
-			size: this.config.pointsSize,
+			size: this.tileConfig.pointsSize,
 			sizeAttenuation: false,
 			vertexColors: THREE.VertexColors,
 		})
@@ -122,7 +123,7 @@ export class PointCloudTileManager extends TileManager {
 		let loader: Promise<Uint8Array>
 		let parser: (buffer: Uint8Array) => TileMessage
 
-		if (tileInstance.layerId === this.config.layerId) {
+		if (tileInstance.layerId === this.tileConfig.layerId) {
 			loader = this.tileServiceClient.getTileContents(tileInstance.url)
 			parser = PointCloudTileManager.parseBaseGeometryTileMessage
 		} else {
@@ -189,20 +190,20 @@ export class PointCloudTileManager extends TileManager {
 
 		// Take the more restrictive of two config settings. One is a linear sampling rate. The other
 		// is a variable sampling rate based on the local density of each tile.
-		let samplingStep = this.config.samplingStep
+		let samplingStep = this.tileConfig.samplingStep
 
-		if (this.config.maxPointsDensity > 0) {
+		if (this.tileConfig.maxPointsDensity > 0) {
 			const pointCount = contents.points.length / threeDStepSize
 			const pointDensity = pointCount / tileVolume
 
-			if (pointDensity > this.config.maxPointsDensity) {
-				const densitySamplingStep = Math.ceil(pointDensity / this.config.maxPointsDensity)
+			if (pointDensity > this.tileConfig.maxPointsDensity) {
+				const densitySamplingStep = Math.ceil(pointDensity / this.tileConfig.maxPointsDensity)
 
 				if (densitySamplingStep > samplingStep) samplingStep = densitySamplingStep
 			}
 		}
 
-		if (samplingStep <= 1 && !this.config.trimByColor) return [contents.points, contents.colors]
+		if (samplingStep <= 1 && !this.tileConfig.trimByColor) return [contents.points, contents.colors]
 
 		const sampledPoints: Array<number> = []
 		const sampledColors: Array<number> = []
@@ -213,7 +214,7 @@ export class PointCloudTileManager extends TileManager {
 		// TODO CLYDE And it might be better to apply this in a first pass, before the density check.
 		for (let i = 0; i < contents.points.length; i += stride) {
 			if (
-				!this.config.trimByColor ||
+				!this.tileConfig.trimByColor ||
 				isGray(contents.colors[i], contents.colors[i + 1], contents.colors[i + 2]) ||
 				isOrange(contents.colors[i], contents.colors[i + 1], contents.colors[i + 2])
 			) {

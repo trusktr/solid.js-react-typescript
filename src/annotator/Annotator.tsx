@@ -36,10 +36,6 @@ import {ScaleProvider} from '@mapperai/annotated-scene/src/tiles/ScaleProvider'
 import {THREEColorValue} from '@mapperai/annotated-scene/src/THREEColorValue-type'
 import {hexStringToHexadecimal} from '../util/Color'
 
-// TODO JOE
-// import {ConfigDefault} from '@/config/ConfigDefault'
-const {ConfigDefault} = require(`${__base}/src/config`)
-
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 const Layers = {
@@ -1604,7 +1600,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					ref={this.getAnnotatedSceneRef}
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
-					initialBoundingBox={config['startup.point_cloud_bounding_box'] || ConfigDefault.StartupPointCloudBoundingBox}
+					config={{
+						// required
+						'startup.point_cloud_bounding_box': config['startup.point_cloud_bounding_box'],
+
+						// other ones optional
+						...config
+					}}
 				/>
 				<AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!}/>
 			</React.Fragment>

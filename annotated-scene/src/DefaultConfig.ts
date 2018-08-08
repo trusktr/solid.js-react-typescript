@@ -2,7 +2,7 @@ type BoundingBox = [number, number, number, number, number, number]
 type Vector3 = [number, number, number]
 type FPS = 'device' | number
 
-class AnnotatedSceneConfig {
+class AnnotatedSceneDefaultConfig {
 
 	// application initialization
 	'startup.point_cloud_bounding_box': BoundingBox = [0, 0, 0, 0, 0, 0]
@@ -43,4 +43,4 @@ class AnnotatedSceneConfig {
 
 }
 
-export default new AnnotatedSceneConfig()
+export default new AnnotatedSceneDefaultConfig()

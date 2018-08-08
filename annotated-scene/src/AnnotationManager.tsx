@@ -52,9 +52,6 @@ import {Events} from './models/Events'
 // TODO JOE PACKAGE remove filesystem stuff
 import {kmlToTerritories} from './util/KmlToTerritories'
 
-// TODO JOE PACKAGE provide config as a prop
-const {default: config} = require(`${__base}/src/config`)
-
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
 
@@ -72,6 +69,7 @@ export interface AnnotationManagerJsonOutputInterface {
 }
 
 interface IProps {
+	config: any
 
 	handleTileManagerLoadError: (msg: string, err: Error) => void
 
@@ -153,7 +151,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	connectionAnnotations: Array<Connection> = []
 	annotationObjects: Array<THREE.Object3D> = []
 	activeAnnotation: Annotation | null = null
-	private metadataState: AnnotationState = new AnnotationState(this) // eslint-disable-line no-use-before-define
+	private metadataState: AnnotationState
 	bezierScaleFactor = 6 // Used when creating connections
 	private raycasterPlane: THREE.Raycaster = new THREE.Raycaster()
 	private raycasterMarker: THREE.Raycaster = new THREE.Raycaster()
@@ -163,6 +161,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 	constructor(props: IProps) {
 		super(props)
+
+		this.metadataState = new AnnotationState(this, props.config) // eslint-disable-line no-use-before-define
 
 		this.raycasterPlane.params.Points!.threshold = 0.1
 
@@ -176,7 +176,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		new AnnotatedSceneActions().addObjectToScene(this.annotationGroup)
 		this.props.layerManager.addLayer(Layer.ANNOTATIONS, this.showAnnotations)
 
-		const annotationsPath = config['startup.annotations_path']
+		const annotationsPath = this.props.config['startup.annotations_path']
 
 		if (annotationsPath) this.loadAnnotations(annotationsPath).then()
 	}
@@ -894,7 +894,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (!annotations.length)
 			return Promise.reject(Error('failed to save empty set of annotations'))
 
-		if (!this.props.utmCoordinateSystem.hasOrigin && !config['output.annotations.debug.allow_annotations_without_utm_origin'])
+		if (!this.props.utmCoordinateSystem.hasOrigin && !this.props.config['output.annotations.debug.allow_annotations_without_utm_origin'])
 			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
 
 		const self = this
@@ -916,7 +916,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (!annotations.length)
 			return Promise.reject(Error('failed to save empty set of annotations'))
 
-		if (!this.props.utmCoordinateSystem.hasOrigin && !config['output.annotations.debug.allow_annotations_without_utm_origin'])
+		if (!this.props.utmCoordinateSystem.hasOrigin && !this.props.config['output.annotations.debug.allow_annotations_without_utm_origin'])
 			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
 
 		if (format !== OutputFormat.UTM)
@@ -2192,7 +2192,7 @@ export class AnnotationState {
 	private autoSaveEnabled: boolean
 	private autoSaveDirectory: string
 
-	constructor(annotationManager: AnnotationManager) {
+	constructor(annotationManager: AnnotationManager, config: any) {
 		const self = this
 
 		this.annotationManager = annotationManager

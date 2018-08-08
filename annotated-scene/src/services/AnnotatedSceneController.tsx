@@ -8,7 +8,6 @@ import * as React from 'react'
 import {getValue} from 'typeguard'
 import * as THREE from 'three'
 import {sprintf} from 'sprintf-js'
-import {ChildAnimationLoop} from 'animation-loop'
 import {typedConnect} from '../styles/Themed'
 import StatusWindow from '../components/StatusWindow'
 import Logger from '../util/log'
@@ -35,6 +34,7 @@ import toProps from '../util/toProps'
 import StatusWindowState from '../models/StatusWindowState'
 import Key from '../models/Key'
 import {Events} from '../models/Events'
+import DefaultConfig from '../DefaultConfig'
 
 const log = Logger(__filename)
 
@@ -61,7 +61,6 @@ export interface AnnotatedSceneControllerProps {
 	camera?: THREE.Camera
 	numberKeyPressed?: number | null
 	isHoveringOnMarker?: boolean
-	initialBoundingBox: [ number, number, number, number, number, number ]
 }
 export interface AnnotatedSceneControllerState {
 	cameraState: CameraState // isolating camera state in case we decide to migrate it to a Camera Manager down the road
@@ -99,8 +98,12 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	private tileServerStatusTimeout: number
 	private tileServerStatusMessageDuration: number
 
+	private config: Config
+
 	constructor(props: AnnotatedSceneControllerProps) {
 		super(props)
+
+		this.normalizeConfig(props.config)
 
 		this.tileServerStatusTimeout = 0
 		this.tileServerStatusMessageDuration = 10000
@@ -116,8 +119,8 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		// These don't need to be state, because these references don't change
 		this.channel = new EventEmitter()
 		this.utmCoordinateSystem = new UtmCoordinateSystem()
-		this.scaleProvider = new ScaleProvider()
-		this.tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel)
+		this.scaleProvider = new ScaleProvider(this.config)
+		this.tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel, this.config)
 
 		this.channel.on(Events.TILE_SERVICE_STATUS_UPDATE, (status) => {
 			this.onTileServiceStatusUpdate(status)
@@ -127,7 +130,8 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 			this.scaleProvider,
 			this.utmCoordinateSystem,
 			this.tileServiceClient,
-			this.channel
+			this.channel,
+			this.config,
 		)
 
 		this.lastPointCloudLoadedErrorModalMs = 0
@@ -135,6 +139,17 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		// TODO JOE clean up event listeners on unmount
 		window.addEventListener('keydown', this.onKeyDown)
 		window.addEventListener('keyup', this.onKeyUp)
+	}
+
+	normalizeConfig(config) {
+		config = config || {}
+
+		this.config = {
+			...DefaultConfig,
+			...config,
+		}
+
+		new AnnotatedSceneActions().setConfig(this.config)
 	}
 
 	updateCurrentLocationStatusMessage(positionUtm: THREE.Vector3): void {
@@ -441,6 +456,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 
 				// TODO JOE remove this reference, see TODO in AnnotationTileManager
 				this.state.annotationManager!,
+				this.config,
 			),
 		})
 
@@ -448,7 +464,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	}
 
 	loadInitialPointCloudTiles(): Promise<void> {
-		return this.state.pointCloudManager!.loadPointCloudDataFromConfigBoundingBox(this.props.initialBoundingBox)
+		return this.state.pointCloudManager!.loadPointCloudDataFromConfigBoundingBox(this.config['startup.point_cloud_bounding_box'])
 	}
 
 	shouldRender() {
@@ -532,6 +548,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 			utmCoordinateSystem,
 			handleTileManagerLoadError,
 			channel,
+			config,
 		} = this
 		const {
 			layerManager,
@@ -570,6 +587,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 					<SceneManager
 						ref={this.getSceneManagerRef}
 
+						config={config}
 						backgroundColor={this.props.backgroundColor}
 						width={this.state.componentWidth}
 						height={this.state.componentHeight}
@@ -585,6 +603,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 				{ groundPlaneManager &&
 					<AreaOfInterestManager
 						ref={this.getAreaOfInterestManagerRef}
+						config={config}
 						getPointOfInterest={this.props.onPointOfInterestCall}
 						getCurrentRotation={this.props.onCurrentRotation}
 						utmCoordinateSystem={this.utmCoordinateSystem}
@@ -598,6 +617,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 				{ layerManager && sceneManager &&
 					<PointCloudManager
 						ref={this.getPointCloudManagerRef}
+						config={config}
 						utmCoordinateSystem={this.utmCoordinateSystem}
 						sceneManager={sceneManager}
 						pointCloudTileManager={this.pointCloudTileManager}
@@ -611,6 +631,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 					<AnnotationManager
 						ref={this.getAnnotationManagerRef}
 						{...{
+							config,
 							scaleProvider,
 							utmCoordinateSystem,
 							handleTileManagerLoadError,
@@ -629,6 +650,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 				{ layerManager &&
 					<GroundPlaneManager
 						ref={this.getGroundPlaneManagerRef}
+						config={config}
 						utmCoordinateSystem={this.utmCoordinateSystem}
 						areaOfInterestManager={areaOfInterestManager!}
 						channel={this.channel}

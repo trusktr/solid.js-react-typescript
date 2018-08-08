@@ -24,10 +24,6 @@ import {
 import StatusKey from './StatusKey'
 import {Events} from '@mapperai/annotated-scene/src/models/Events'
 
-// TODO JOE
-// import {ConfigDefault} from '@/config/ConfigDefault'
-const {ConfigDefault} = require(`${__base}/src/config`)
-
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
 
@@ -291,7 +287,13 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 					ref={this.getAnnotatedSceneControllerRef}
 					onPointOfInterestCall={this.onPointOfInterestCall}
 					onCurrentRotation={this.onCurrentRotation}
-					initialBoundingBox={config['startup.point_cloud_bounding_box'] || ConfigDefault.StartupPointCloudBoundingBox}
+					config={{
+						// required
+						'startup.point_cloud_bounding_box': config['startup.point_cloud_bounding_box'],
+
+						// other ones optional
+						...config
+					}}
 				/>
 
 				{this.state.annotatedSceneController &&
