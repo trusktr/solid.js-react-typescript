@@ -1,93 +1,147 @@
-# Annotator
+# annotated-scene
 
-This is a web-based GUI to allow humans to visualize point cloud data sets and to mark up vector features on top of them.
+This is a library that renders an annotated scene, and has functions for
+manipulating annotations.
 
-## Prerequisites
-- [Node.js (includes npm)](https://nodejs.org/en/download/)
+An App can import this and, for example, add UI and keyboard/mouse listeners
+that hook into this lib's annotation manipulation functions. Another app might
+only care to render a scene, and not provide any UI for manipulation.
 
-> **NOTE:** If you are using Node.js v10, you may get [this
-> error](https://github.com/nodejs/nan/issues/763) when installing dependencies
-> in the following steps. In this case, you can downgrade to v9 using the `n`
-> package as follows:
->
-> ```
-> sudo npm install --global n
-> n 9
-> ```
-
-### Private NPM repository
-Set up a [personal NPM account](https://www.npmjs.com/signup).
-
-Authenticate your local NPM CLI with your npmjs.com credentials:
+## install
 
 ```sh
-npm login
+npm install @mapperai/annotated-scene
 ```
 
-Get access to the [`@mapperai` org on NPM](https://www.npmjs.com/org/mapperai) by giving your NPM username to [Alonso](alonso@mapper.ai).
+## Use
 
-You can now successfully install project dependencies, including private dependencies from the `@mapperai` org.
+In your React component:
 
-### Install OS dependencies
+```js
+import * as React from 'react'
+import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
+import {Events} from '@mapperai/annotated-scene/src/models/Events'
 
-#### macOS
+class MyComponent extends React.Component {
+	constructor() {
+		this.state = {
+			sceneController: null,
+		}
+	}
 
-    brew install zeromq
-    brew install pkgconfig
+	// set up a method to retrieve the instance
+	getAnnotatedSceneRef = ref => {
+		ref && this.setState({sceneController: ref.getWrappedInstance()})
+	}
 
-#### Debian/Ubuntu
+    render() {
+        return (
+			<AnnotatedSceneController
+				ref={this.getAnnotatedSceneRef}
+				backgroundColor={this.state.background}
+				config={{
+					// pass a config object
 
-```sh
-sudo apt-get install libzmq-dev
+					// this one is required. It tells the scene what part of the world to initially show
+					'startup.point_cloud_bounding_box': config['startup.point_cloud_bounding_box'],
+
+					// other ones are optional (see src/DefaultConfig.ts)
+					// ...
+				}}
+			/>
+		)
+    }
+
+	componentDidUpdate(oldProps, oldState) {
+
+		// wait until you have a reference to the controller:
+		if (!oldState.sceneController && this.state.sceneController) {
+
+			this.state.sceneController.channel.once(Events.ANNOTATED_SCENE_READY, () => {
+
+				// ...do anything you want with the scene controller once it's
+				// ready, like call API methods or set up event listeners...
+
+				// for example put the camera somewhere.
+				this.sceneController.setStage(30, 30, 30)
+
+			})
+
+		}
+
+	}
+}
 ```
 
-### Install application dependencies (any OS)
+## Dev
 
-```sh
-npm install
+`npm link` the package into your project to dev with it.
+
+You can `npm run typecheck && npm run lint` to verify code correctness.
+
+## Build
+
+This lib currently ships only TypeScript source files, so you're project will
+have to build these files (f.e. in your Webpack, @babel/register, or TypeScript
+build config).
+
+If you'd like to add a build system to this package, please open a pull request.
+
+At the moment the Annotator and Kiosk apps simply compile these files as part of
+their build system. Have a look [over
+there](https://github.com/Signafy/mapper-annotator) to get an idea of how those
+apps do it.
+
+### With Babel (Webpack)
+
+If you're building a project with Babel (directly, or indirectly via Webpack,
+not using the TypeScript compiler) the recommended Babel plugins that are known
+to successfully compile this source code are:
+
+```json
+"devDependencies": {
+	"@babel/core": "7.0.0-beta.51",
+	"@babel/plugin-proposal-decorators": "7.0.0-beta.55",
+	"@babel/plugin-proposal-object-rest-spread": "7.0.0-beta.55",
+	"@babel/plugin-transform-modules-commonjs": "7.0.0-beta.51",
+	"@babel/plugin-transform-react-jsx": "7.0.0-beta.51",
+	"@babel/preset-typescript": "7.0.0-beta.51",
+	"@babel/register": "7.0.0-beta.51",
+	"babel-plugin-transform-class-properties": "6.24.1"
+}
 ```
 
-## Configure
-The application uses [nconf](https://www.npmjs.com/package/nconf) for configuration. It is set up to read configs from [yaml files](src/config), from environment variables, or from the command line. The command line switch is formatted as `--CONFIG_NAME=CONFIG_VALUE`.
+#### assets
 
-See [the docs](documentation/configuration.md) for details.
+If you're using Babel in Webpack, you'll need loaders for CSS, PNG, and OBJ files.
 
-## Run the app
+### With ts-node
 
-#### With NPM
+For Node/Electron projects, you can set up a require hook for importing TypeScript files directly:
 
-This starts the Electron app. There's no build required, just run it
-(`@babel/register` handles TypeScript code on the fly):
-
-    npm start
-
-If you'd like linting and typechecks while developing, run
-
-    npm run dev
-
-#### With IntelliJ IDEA
-
- - Open the project in IntelliJ IDEA.
- - Under Run>Run…, select the Mapper Annotator configuration and run it.
-
-## Rebuild
-
-If you pull down the latest version of the code base and things stop working, try one or more of the following to clear out the caches.
-
-```sh
-npm install
-npm rebuild
-./node_modules/.bin/electron-rebuild
-npm start # or npm run dev
+```js
+require('ts-node').register({
+	typeCheck: false,
+	transpileOnly: true,
+	files: true,
+	ignore: [
+		// ignore all node_modules except @mapperai/annotated-scene
+		/node_modules(?!\/@mapperai\/annotated-scene)/,
+	],
+})
 ```
 
-## Manipulating data
+#### assets
 
-### Point cloud tiles
-Point clouds are the foundation of both live visualization and creating annotations. They can be loaded in a batch or streamed in on demand. See [the docs](documentation/point_cloud_tiles.md).
+You'll also need to import (require) CSS, PNG, and OBJ files. See for example
+[Annotator's
+require-hooks.js](https://github.com/Signafy/mapper-annotator/blob/91c9807cc3fd7fd52cb79a01c465bca10b7d267d/src/require-hooks.js)
+for ideas of how to set it up.
 
-### Annotations
-Annotation data is saved locally within this project by default, in `./data`. A set of annotations can be loaded or saved to disk using the menus in the application. There are some shortcuts in [configuration](documentation/configuration.md). Annotation files on disk can be merged in memory by loading them sequentially in the annotator. The application runs an auto-save process for annotations. Those files are in `./data/autosave` if you need them.
+## Tests
 
-### Trajectory play-back
-The application can play back a sequence of trajectories to fly through the point cloud. Trajectories are stored in a sequence of [TrajectoryMessage](https://github.com/Signafy/mapper-models/blob/master/src/main/proto/TrajectoryMessage.proto) protobufs, usually found in a `trajectory_lidar.md` file. Trajectory files must be pre-loaded in a [configuration](documentation/configuration.md) setting.
+- [ ] Tests are TODO
+
+## API
+
+- [ ] API docs are TODO
