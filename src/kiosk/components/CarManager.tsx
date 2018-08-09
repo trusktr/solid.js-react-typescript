@@ -4,7 +4,8 @@
  */
 
 import * as React from 'react'
-import THREE from '@mapperai/annotated-scene/src/services/THREE'
+import OBJLoader from '@mapperai/annotated-scene/src/services/OBJLoader'
+import * as THREE from 'three'
 import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame,
@@ -59,7 +60,7 @@ export default class CarManager extends React.Component<CarManagerProps, CarMana
 		return new Promise((resolve: (carModel: THREE.Object3D) => void, reject: (reason?: Error) => void): void => {
 			try {
 				const manager = new THREE.LoadingManager()
-				const loader = new THREE.OBJLoader(manager)
+				const loader = new OBJLoader(manager)
 
 				loader.load(carModelOBJ, (carModel: THREE.Object3D) => {
 					const boundingBox = new THREE.Box3().setFromObject(carModel)

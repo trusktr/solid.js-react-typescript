@@ -3,7 +3,8 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import THREE from '@mapperai/annotated-scene/src/services/THREE'
+import OBJLoader from '@mapperai/annotated-scene/src/services/OBJLoader'
+import * as THREE from 'three'
 import mapperLogoObj from './Mapper_logo.obj'
 import hondaLogoObj from './Honda_logo.obj'
 
@@ -33,7 +34,7 @@ const configs: DecorationConfig[] = [
 // Get some extras to display along with the point cloud.
 export function getDecorations(): Promise<THREE.Object3D[]> {
 	const manager = new THREE.LoadingManager()
-	const loader = new THREE.OBJLoader(manager)
+	const loader = new OBJLoader(manager)
 	const promises = configs.map(config =>
 		new Promise((resolve: (object: THREE.Object3D) => void, reject: (reason?: Error) => void): void => {
 			try {
