@@ -23,6 +23,7 @@ import {
 } from './clients/LocationServerStatusClient'
 import StatusKey from './StatusKey'
 import {Events} from '@mapperai/annotated-scene/src/models/Events'
+import loadAnnotations from '../util/loadAnnotations'
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
@@ -257,7 +258,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 				this.registerKeyDownEvents()
 
 				const annotationsPath = config['startup.annotations_path']
-				if (annotationsPath) await this.loadAnnotations(annotationsPath)
+				if (annotationsPath) await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
 			})
 		}
 

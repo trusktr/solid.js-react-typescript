@@ -47,6 +47,7 @@ import {hexStringToHexadecimal} from '../util/Color'
 import SaveState from './SaveState'
 import {kmlToTerritories} from '../util/KmlToTerritories'
 import {Annotation} from '@mapperai/annotated-scene/src/annotations/AnnotationBase'
+import loadAnnotations from '../util/loadAnnotations'
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -524,7 +525,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 *   there will be something to look at there
 	 */
 	loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
-		// TODO JOE PACKAGE remove filesystem stuff
 		return kmlToTerritories(this.state.annotatedSceneController.utmCoordinateSystem, fileName).then(territories => {
 			if (!territories)
 				throw Error(`territories KML file ${fileName} has no territories`)
@@ -532,42 +532,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.info(`found ${territories.length} territories`)
 			this.saveState!.immediateAutoSave()
 			const result = this.state.annotatedSceneController!.addAnnotations(territories)
-			this.saveState!.clean()
-			return result
-		})
-	}
-
-	/**
-	 * Load annotations from file. Add all annotations to the annotation manager
-	 * and to the scene.
-	 * Center the stage and the camera on the annotations model.
-	 */
-	loadAnnotations(fileName: string): Promise<void> {
-		log.info('Loading annotations from ' + fileName)
-		this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
-
-		return this.loadAnnotationsFromFile(fileName).then(focalPoint => {
-			if (focalPoint)
-				this.state.annotatedSceneController!.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
-		}).catch(err => {
-			log.error(err.message)
-			dialog.showErrorBox('Annotation Load Error', err.message)
-		})
-	}
-
-	/**
-	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
-	 *   there will be something to look at there
-	 */
-	loadAnnotationsFromFile(fileName: string): Promise<THREE.Vector3 | null> {
-		return AsyncFile.readFile(fileName, 'ascii').then((text: string) => {
-			const annotations = this.state.annotatedSceneController!.objectToAnnotations(JSON.parse(text))
-
-			if (!annotations)
-				throw Error(`annotation file ${fileName} has no annotations`)
-
-			this.saveState!.immediateAutoSave()
-			const result = this.state.annotatedSceneController!.addAnnotations(annotations)
 			this.saveState!.clean()
 			return result
 		})
@@ -1194,7 +1158,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				const handler = async (paths: string[]) => {
 					if (paths && paths.length) {
 						try {
-							await this.loadAnnotations(paths[0])
+							await loadAnnotations.call(this, paths[0], this.state.annotatedSceneController!)
 						} catch(err) {
 							log.warn('loadAnnotations failed: ' + err.message)
 						}
@@ -1734,7 +1698,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				this.addImageScreenLayer()
 
 				const annotationsPath = config['startup.annotations_path']
-				if (annotationsPath) await this.loadAnnotations(annotationsPath)
+				if (annotationsPath) await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
 			})
 
 			this.setKeys()
