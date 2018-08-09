@@ -9,7 +9,6 @@ import {Map as IMMap} from 'immutable'
 import {compose, Store as ReduxStore, StoreEnhancer} from 'redux'
 import {ILeafReducer, ObservableStore, setStoreProvider} from 'typedux'
 import {loadReducers} from './Reducers'
-import {loadActions} from './Actions'
 import {getHot} from '../util/HotUtil'
 import Logger from '../util/log'
 
@@ -48,14 +47,12 @@ function initStore(): ObservableStore<any> {
 		return store
 	}
 
-	loadActions()
-
 	const reducers = loadReducers()
 	const newObservableStore: ObservableStore<any> = ObservableStore.createObservableStore(
 		reducers,
-	compose.call(null) as StoreEnhancer<any>, // eslint-disable-line no-useless-call
-	undefined,
-	null,
+		compose.call(null) as StoreEnhancer<any>, // eslint-disable-line no-useless-call
+		undefined,
+		null,
 	)
 
 	newObservableStore.rootReducer.onError = onError

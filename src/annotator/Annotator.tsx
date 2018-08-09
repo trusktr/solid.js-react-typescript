@@ -12,6 +12,10 @@ const {default: config} = require(`${__base}/src/config`)
 import * as $ from 'jquery'
 import * as Electron from 'electron'
 import * as AsyncFile from 'async-file'
+import * as mkdirp from 'mkdirp'
+import {flatten} from 'lodash'
+import {SimpleKML} from '../util/KmlUtils'
+import {tileIndexFromVector3} from '@mapperai/annotated-scene/src/tiles/tile-model/TileIndex'
 import MousePosition from '@mapperai/annotated-scene/src/models/MousePosition'
 import mousePositionToGLSpace from '@mapperai/annotated-scene/src/util/mousePositionToGLSpace'
 import {GUI as DatGui, GUIParams} from 'dat.gui'
@@ -42,6 +46,7 @@ import {THREEColorValue} from '@mapperai/annotated-scene/src/THREEColorValue-typ
 import {hexStringToHexadecimal} from '../util/Color'
 import SaveState from './SaveState'
 import {kmlToTerritories} from '../util/KmlToTerritories'
+import {Annotation} from '@mapperai/annotated-scene/src/annotations/AnnotationBase'
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -720,20 +725,88 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		log.info(`Exporting annotations tiles to ${dir}`)
 
-		// TODO JOE exportAnnotationsTiles should come out of the library and into Annotor
 		return this.state.annotationManager!.exportAnnotationsTiles(dir, format)
 			.catch(error => log.warn('export failed: ' + error.message))
 	}
 
+	// Parcel out the annotations to tile files. This produces output similar to the Perception
+	// TileManager, which conveniently is ready to be consumed by the Strabo LoadTiles script.
+	// https://github.com/Signafy/mapper-annotator/blob/develop/documentation/tile_service.md
+	exportAnnotationsTiles(directory: string, format: OutputFormat): Promise<void[]> {
+		const {utmCoordinateSystem, scaleProvider} = this.state.annotatedSceneController!
+
+		const annotations = this.state.annotationManager!.allAnnotations()
+			.filter(a => a.isValid())
+
+		if (!annotations.length)
+			return Promise.reject(Error('failed to save empty set of annotations'))
+
+		if (!utmCoordinateSystem.hasOrigin && !config['output.annotations.debug.allow_annotations_without_utm_origin'])
+			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
+
+		if (format !== OutputFormat.UTM)
+			return Promise.reject(Error('exportAnnotationsTiles() is implemented only for UTM'))
+
+		mkdirp.sync(directory)
+
+		// Repeat the entire annotation record in each tile that is intersected by the annotation.
+		// TODO CLYDE For now the intersection algorithm only checks the markers (vertices) of the annotation
+		// TODO CLYDE   geometry. It might be nice to interpolate between markers to find all intersections.
+		const groups: Map<string, Set<Annotation>> = new Map()
+
+		annotations.forEach(annotation => {
+			annotation.markers.forEach(marker => {
+				const utmPosition = utmCoordinateSystem.threeJsToUtm(marker.position)
+				const key = tileIndexFromVector3(scaleProvider.utmTileScale, utmPosition).toString('_')
+				const existing = groups.get(key)
+
+				if (existing)
+					groups.set(key, existing.add(annotation))
+				else
+					groups.set(key, new Set<Annotation>().add(annotation))
+			})
+		})
+
+		// Generate a file for each tile.
+		const promises: Promise<void>[] = []
+
+		groups.forEach((tileAnnotations, key) => {
+			const fileName = directory + '/' + key + '.json'
+
+			promises.push(AsyncFile.writeTextFile(fileName,
+				JSON.stringify(this.state.annotationManager!.toJSON(format, Array.from(tileAnnotations)))
+			))
+		})
+
+		return Promise.all(promises)
+	}
+
 	// Save lane waypoints only.
-	private uiSaveWaypointsKml(): Promise<void> {
+	private async uiSaveWaypointsKml(): Promise<void> {
 		const basePath = config['output.annotations.kml.path']
 
 		log.info(`Saving waypoints KML to ${basePath}`)
 
-		// TODO JOE saveToKML should come out of the library and into Annotor
-		return this.state.annotationManager!.saveToKML(basePath)
+		return this.saveToKML(basePath)
 			.catch(err => log.warn('saveToKML failed: ' + err.message))
+	}
+
+	/**
+	 * 	Save lane waypoints (only) to KML.
+	 */
+	saveToKML(fileName: string): Promise<void> {
+		const {utmCoordinateSystem} = this.state.annotatedSceneController!
+		// Get all the points and convert to lat lon
+		const geopoints: Array<THREE.Vector3> = flatten(
+			this.state.annotationManager!.laneAnnotations.map(lane =>
+				lane.waypoints.map(p => utmCoordinateSystem.threeJsToLngLatAlt(p))
+			)
+		)
+		// Save file
+		const kml = new SimpleKML()
+
+		kml.addPath(geopoints)
+		return kml.saveToFile(fileName)
 	}
 
 	private addFront(): void {

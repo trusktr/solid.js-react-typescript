@@ -54,8 +54,6 @@ startup.electron.window.default.height: 600
 startup.show_menu: true
 startup.show_dev_tools: true
 
-CONTINUE: move loading out of the lib, into the apps.
-
 # TODO JOE apps can manualy set annotations to be rendered by the lib, and where apps get the annotations (f.e. the filesystem) is app-specific
 startup.annotations_path:
 

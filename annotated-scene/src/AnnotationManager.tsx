@@ -5,7 +5,6 @@
 
 import * as React from 'react'
 import * as Electron from 'electron'
-import * as lodash from 'lodash'
 import * as THREE from 'three'
 import {getClosestPoints} from './geometry/ThreeHelpers'
 import mousePositionToGLSpace from './util/mousePositionToGLSpace'
@@ -25,15 +24,10 @@ import {TrafficDevice} from './annotations/TrafficDevice'
 import {Territory} from './annotations/Territory'
 import {Connection} from './annotations/Connection'
 import {Boundary} from './annotations/Boundary'
-import {SimpleKML} from './util/KmlUtils'
 import * as EM from './ErrorMessages'
-import * as AsyncFile from 'async-file'
-// TODO JOE PACKAGE remove filesystem stuff
-import * as mkdirp from 'mkdirp'
 import {UtmCoordinateSystem} from './UtmCoordinateSystem'
 import * as CRS from './CoordinateReferenceSystem'
 import Logger from './util/log'
-import {tileIndexFromVector3} from './tiles/tile-model/TileIndex'
 import {ScaleProvider} from './tiles/ScaleProvider'
 import LayerManager, {Layer} from './services/LayerManager'
 import AnnotatedSceneActions from './store/actions/AnnotatedSceneActions'
@@ -835,57 +829,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.allAnnotations().forEach(a => this.deleteAnnotation(a))
 	}
 
-	// Parcel out the annotations to tile files. This produces output similar to the Perception
-	// TileManager, which conveniently is ready to be consumed by the Strabo LoadTiles script.
-	// https://github.com/Signafy/mapper-annotator/blob/develop/documentation/tile_service.md
-	exportAnnotationsTiles(directory: string, format: OutputFormat): Promise<void[]> {
-		const annotations = this.allAnnotations()
-			.filter(a => a.isValid())
-
-		if (!annotations.length)
-			return Promise.reject(Error('failed to save empty set of annotations'))
-
-		if (!this.props.utmCoordinateSystem.hasOrigin && !this.props.config['output.annotations.debug.allow_annotations_without_utm_origin'])
-			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
-
-		if (format !== OutputFormat.UTM)
-			return Promise.reject(Error('exportAnnotationsTiles() is implemented only for UTM'))
-
-		// TODO JOE PACKAGE remove filesystem stuff
-		mkdirp.sync(directory)
-
-		// Repeat the entire annotation record in each tile that is intersected by the annotation.
-		// TODO CLYDE For now the intersection algorithm only checks the markers (vertices) of the annotation
-		// TODO CLYDE   geometry. It might be nice to interpolate between markers to find all intersections.
-		const groups: Map<string, Set<Annotation>> = new Map()
-
-		annotations.forEach(annotation => {
-			annotation.markers.forEach(marker => {
-				const utmPosition = this.props.utmCoordinateSystem.threeJsToUtm(marker.position)
-				const key = tileIndexFromVector3(this.props.scaleProvider.utmTileScale, utmPosition).toString('_')
-				const existing = groups.get(key)
-
-				if (existing)
-					groups.set(key, existing.add(annotation))
-				else
-					groups.set(key, new Set<Annotation>().add(annotation))
-			})
-		})
-
-		// Generate a file for each tile.
-		const promises: Promise<void>[] = []
-
-		groups.forEach((tileAnnotations, key) => {
-			const fileName = directory + '/' + key + '.json'
-
-			promises.push(AsyncFile.writeTextFile(fileName,
-				JSON.stringify(this.toJSON(format, Array.from(tileAnnotations)))
-			))
-		})
-
-		return Promise.all(promises)
-	}
-
 	toJSON(format: OutputFormat, annotations: Annotation[]): AnnotationManagerJsonOutputInterface {
 		const crs = this.outputFormatToCoordinateReferenceSystem(format)
 		const pointConverter = this.outputFormatToPointConverter(format)
@@ -932,24 +875,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			default:
 				throw Error('unknown OutputFormat: ' + format)
 		}
-	}
-
-	/**
-	 * 	Save lane waypoints (only) to KML.
-	 */
-	saveToKML(fileName: string): Promise<void> {
-		// Get all the points and convert to lat lon
-		const geopoints: Array<THREE.Vector3> =
-			lodash.flatten(
-				this.laneAnnotations.map(lane =>
-					lane.waypoints.map(p => this.props.utmCoordinateSystem.threeJsToLngLatAlt(p))
-				)
-			)
-		// Save file
-		const kml = new SimpleKML()
-
-		kml.addPath(geopoints)
-		return kml.saveToFile(fileName)
 	}
 
 	private findAnnotationByUuid(uuid: AnnotationUuid): Annotation | null {
