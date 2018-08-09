@@ -32,7 +32,6 @@ import Key from '@mapperai/annotated-scene/src/models/Key'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import {dateToString} from '../util/dateToString'
 import {scale3DToSpatialTileScale, spatialTileScaleToString} from '@mapperai/annotated-scene/src/tiles/ScaleUtil'
-import {ScaleProvider} from '@mapperai/annotated-scene/src/tiles/ScaleProvider'
 import {THREEColorValue} from '@mapperai/annotated-scene/src/THREEColorValue-type'
 import {hexStringToHexadecimal} from '../util/Color'
 
@@ -135,7 +134,6 @@ interface AnnotatorProps {
 ))
 export default class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 	private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
-	private scaleProvider: ScaleProvider
 	private imageManager: ImageManager
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
@@ -155,7 +153,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('Config option startup.animation.fps has been removed. Use startup.render.fps.')
 
 		this.raycasterImageScreen = new THREE.Raycaster()
-		this.scaleProvider = new ScaleProvider()
 		this.highlightedImageScreenBox = null
 		this.highlightedLightboxImage = null
 		this.lightboxImageRays = []
@@ -627,15 +624,15 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	private uiExportAnnotationsTiles(format: OutputFormat): Promise<void> {
 		const basePath = config['output.annotations.tiles_dir']
-		const scale = scale3DToSpatialTileScale(this.scaleProvider.utmTileScale)
+		const scale = scale3DToSpatialTileScale(this.state.annotatedSceneController.scaleProvider.utmTileScale)
 
 		if (isNullOrUndefined(scale))
-			return Promise.reject(Error(`can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
+			return Promise.reject(Error(`can't create export path because of a bad scale: ${this.state.annotatedSceneController.scaleProvider.utmTileScale}`))
 
 		const scaleString = spatialTileScaleToString(scale)
 
 		if (isNullOrUndefined(scaleString))
-			return Promise.reject(Error(`can't create export path because of a bad scale: ${this.scaleProvider.utmTileScale}`))
+			return Promise.reject(Error(`can't create export path because of a bad scale: ${this.state.annotatedSceneController.scaleProvider.utmTileScale}`))
 
 		const dir = basePath + '/' + dateToString(new Date()) + scaleString
 
