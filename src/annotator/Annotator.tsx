@@ -1159,7 +1159,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 				const handler = async (paths: string[]) => {
 					if (paths && paths.length) {
 						try {
+							this.saveState!.immediateAutoSave()
 							await loadAnnotations.call(this, paths[0], this.state.annotatedSceneController!)
+							this.saveState!.clean()
 						} catch(err) {
 							log.warn('loadAnnotations failed: ' + err.message)
 						}

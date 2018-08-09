@@ -40,9 +40,6 @@ function loadAnnotationsFromFile(fileName: string, sceneController: AnnotatedSce
 		if (!annotations)
 			throw Error(`annotation file ${fileName} has no annotations`)
 
-		this.saveState!.immediateAutoSave()
-		const result = sceneController.addAnnotations(annotations)
-		this.saveState!.clean()
-		return result
+		return sceneController.addAnnotations(annotations)
 	})
 }
