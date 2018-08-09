@@ -85,11 +85,11 @@ export interface AnnotatedSceneControllerState {
 export default class AnnotatedSceneController extends React.Component<AnnotatedSceneControllerProps, AnnotatedSceneControllerState> {
 	public utmCoordinateSystem: UtmCoordinateSystem
 
-	private scaleProvider: ScaleProvider
+	readonly scaleProvider: ScaleProvider
 	private tileServiceClient: TileServiceClient
 	private pointCloudTileManager: PointCloudTileManager
-	channel: EventEmitter
-	lastPointCloudLoadedErrorModalMs: number
+	readonly channel: EventEmitter
+	private lastPointCloudLoadedErrorModalMs: number
 	private isAllSet: boolean
 
 	private registeredKeyDownEvents: Map<string, Set<(e: KeyboardEvent | KeyboardEventHighlights) => void>> = new Map() // mapping between KeyboardEvent.key and function to execute

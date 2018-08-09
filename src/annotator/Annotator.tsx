@@ -525,7 +525,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 *   there will be something to look at there
 	 */
 	loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
-		return kmlToTerritories(this.state.annotatedSceneController.utmCoordinateSystem, fileName).then(territories => {
+		return kmlToTerritories(this.state.annotatedSceneController!.utmCoordinateSystem, fileName).then(territories => {
 			if (!territories)
 				throw Error(`territories KML file ${fileName} has no territories`)
 
@@ -641,7 +641,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.saveState!.immediateAutoSave()
 			.then(() => {
 				this.state.annotationManager!.unloadAllAnnotations()
-				this.saveState.clean()
+				this.saveState!.clean()
 			})
 	}
 
@@ -669,28 +669,29 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		log.info(`Saving annotations JSON to ${formattedPath}`)
 
 		// TODO JOE saveAnnotationsToFile should come out of the library and into Annotor
-		return this.state.annotationManager!.saveAnnotationsToFile(formattedPath, format)
+		return this.saveState!.saveAnnotationsToFile(formattedPath, format)
 			.catch(error => log.warn('save to file failed: ' + error.message))
 	}
 
-	private uiExportAnnotationsTiles(format: OutputFormat): Promise<void> {
+	private async uiExportAnnotationsTiles(format: OutputFormat): Promise<void> {
 		const basePath = config['output.annotations.tiles_dir']
-		const scale = scale3DToSpatialTileScale(this.state.annotatedSceneController.scaleProvider.utmTileScale)
+		const scale = scale3DToSpatialTileScale(this.state.annotatedSceneController!.scaleProvider.utmTileScale)
 
 		if (isNullOrUndefined(scale))
-			return Promise.reject(Error(`can't create export path because of a bad scale: ${this.state.annotatedSceneController.scaleProvider.utmTileScale}`))
+			return Promise.reject(Error(`can't create export path because of a bad scale: ${this.state.annotatedSceneController!.scaleProvider.utmTileScale}`))
 
 		const scaleString = spatialTileScaleToString(scale)
 
 		if (isNullOrUndefined(scaleString))
-			return Promise.reject(Error(`can't create export path because of a bad scale: ${this.state.annotatedSceneController.scaleProvider.utmTileScale}`))
+			return Promise.reject(Error(`can't create export path because of a bad scale: ${this.state.annotatedSceneController!.scaleProvider.utmTileScale}`))
 
 		const dir = basePath + '/' + dateToString(new Date()) + scaleString
 
 		log.info(`Exporting annotations tiles to ${dir}`)
 
-		return this.state.annotationManager!.exportAnnotationsTiles(dir, format)
-			.catch(error => log.warn('export failed: ' + error.message))
+		try {
+			await this.exportAnnotationsTiles(dir, format)
+		} catch(error) { log.warn('export failed: ' + error.message) }
 	}
 
 	// Parcel out the annotations to tile files. This produces output similar to the Perception
