@@ -35,6 +35,7 @@ import StatusWindowState from '../models/StatusWindowState'
 import Key from '../models/Key'
 import {Events} from '../models/Events'
 import DefaultConfig from '../DefaultConfig'
+import {Annotation} from '../annotations/AnnotationBase'
 
 const log = Logger(__filename)
 
@@ -298,6 +299,14 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.state.annotationManager!.cleanTransformControls()
 	}
 
+	objectToAnnotations(json: Object): Annotation[] {
+		return this.state.annotationManager!.objectToAnnotations(json)
+	}
+
+	addAnnotations(annotations: Annotation[]): THREE.Vector3 | null {
+		return this.state.annotationManager!.addAnnotationsList(annotations)
+	}
+
 	/**
 	 *  Set the camera directly above the current target, looking down.
 	 */
@@ -336,6 +345,10 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 
 	getCamera(): THREE.Camera {
 		return this.state.sceneManager!.getCamera()
+	}
+
+	setStage(x: number, y: number, z: number, resetCamera = true): void {
+		this.state.sceneManager!.setStage(x, y, z, resetCamera)
 	}
 
 	/**

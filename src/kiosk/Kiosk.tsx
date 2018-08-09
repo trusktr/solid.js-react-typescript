@@ -252,11 +252,12 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	async componentDidUpdate(oldProps, oldState) {
 
 		if (!oldState.annotatedSceneController && this.state.annotatedSceneController) {
-			console.log( '!!!!!!!!!!!!!!!!!!!!!!! set ready listener' )
-			this.state.annotatedSceneController.channel.once(Events.ANNOTATED_SCENE_READY, () => {
-				console.log( ' )))))))))))))))))))))))))))))))) READY! ' )
+			this.state.annotatedSceneController.channel.once(Events.ANNOTATED_SCENE_READY, async () => {
 				this.setState({ controllerReady: true })
 				this.registerKeyDownEvents()
+
+				const annotationsPath = config['startup.annotations_path']
+				if (annotationsPath) await this.loadAnnotations(annotationsPath)
 			})
 		}
 
@@ -273,7 +274,6 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		) {
 			await this.state.flyThroughManager.loadUserData()
 
-			console.log( ' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% beginFlyThrough!' )
 			this.beginFlyThrough()
 		}
 	}

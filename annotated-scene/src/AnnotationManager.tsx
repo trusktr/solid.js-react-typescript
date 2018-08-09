@@ -8,7 +8,6 @@ import * as Electron from 'electron'
 import * as lodash from 'lodash'
 import * as THREE from 'three'
 import {getClosestPoints} from './geometry/ThreeHelpers'
-import {dateToString} from './util/dateToString'
 import mousePositionToGLSpace from './util/mousePositionToGLSpace'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import {AnnotationType} from './annotations/AnnotationType'
@@ -49,8 +48,6 @@ import {AnnotationTileManager} from './tiles/AnnotationTileManager'
 import {SceneManager} from './services/SceneManager'
 import {EventEmitter} from 'events'
 import {Events} from './models/Events'
-// TODO JOE PACKAGE remove filesystem stuff
-import {kmlToTerritories} from './util/KmlToTerritories'
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
@@ -151,7 +148,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	connectionAnnotations: Array<Connection> = []
 	annotationObjects: Array<THREE.Object3D> = []
 	activeAnnotation: Annotation | null = null
-	private metadataState: AnnotationState
 	bezierScaleFactor = 6 // Used when creating connections
 	private raycasterPlane: THREE.Raycaster = new THREE.Raycaster()
 	private raycasterMarker: THREE.Raycaster = new THREE.Raycaster()
@@ -162,23 +158,21 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	constructor(props: IProps) {
 		super(props)
 
-		this.metadataState = new AnnotationState(this, props.config) // eslint-disable-line no-use-before-define
-
 		this.raycasterPlane.params.Points!.threshold = 0.1
 
 		this.props.channel.on(Events.SUPER_TILE_CREATED, this.addSuperTile)
 		this.props.channel.on(Events.SUPER_TILE_REMOVED, this.removeSuperTile)
 
-		this.props.channel.on('transformUpdate', this.updateActiveAnnotationMesh)
+		this.props.channel.on(Events.TRANSFORM_UPDATE, this.onAnnotationTransformed)
+
+		this.props.channel.on(Events.ANNOTATIONS_MODIFIED, () => {
+			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+		})
 	}
 
 	componentDidMount(): void {
 		new AnnotatedSceneActions().addObjectToScene(this.annotationGroup)
 		this.props.layerManager.addLayer(Layer.ANNOTATIONS, this.showAnnotations)
-
-		const annotationsPath = this.props.config['startup.annotations_path']
-
-		if (annotationsPath) this.loadAnnotations(annotationsPath).then()
 	}
 
 	componentWillUnmount(): void {
@@ -336,7 +330,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		similarAnnotations.push(annotation)
 		this.annotationObjects.push(annotation.renderingObject)
 		this.annotationGroup.add(annotation.renderingObject)
-		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
+
 		if (activate)
 			this.setActiveAnnotation(annotation)
 
@@ -434,7 +430,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				return false
 		}
 
-		this.metadataState.dirty()
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 		return true
 	}
 
@@ -495,9 +491,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		this.setActiveAnnotation(annotation1)
 		this.deleteAnnotation(annotation2)
 
-		this.metadataState.dirty()
-
-		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 		return true
 	}
 
@@ -590,7 +584,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return {result: false, existLeftNeighbour: false, existRightNeighbour: false}
 		}
 
-		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 
 		return {result: true,
 			existLeftNeighbour: activeLane.neighborsIds.left.length > 0,
@@ -613,7 +607,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		this.unsetActiveAnnotation()
-		this.metadataState.dirty()
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 
 		return true
 	}
@@ -625,8 +619,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		if (this.activeAnnotation.addMarker(position, true)) {
-			this.metadataState.dirty()
-			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+			this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 		}
 	}
 
@@ -640,7 +633,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		if (this.activeAnnotation.complete()) {
-			this.metadataState.dirty()
+			this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 			return true
 		} else {
 			return false
@@ -655,7 +648,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		this.activeAnnotation.deleteLastMarker()
 
-		this.metadataState.dirty()
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 		this.hideTransform()
 		return true
 	}
@@ -818,13 +811,14 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 * Update the mesh of the active annotation. This is used if the lane marker positions
 	 * where changed externally (e.g. by the transform controls)
 	 */
-	updateActiveAnnotationMesh = (): void => {
+	onAnnotationTransformed = (): void => {
 		if (!this.activeAnnotation) {
 			log.warn("No active annotation. Can't update mesh")
 			return
 		}
 
 		this.activeAnnotation.updateVisualization()
+        this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 	}
 
 	/**
@@ -835,81 +829,16 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			this.activeAnnotation.highlightMarkers(markers)
 	}
 
-	/**
-	 * Load territories from KML which is generated elsewhere. Build the objects and add them to the Annotator scene.
-	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
-	 *   there will be something to look at there
-	 */
-	loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
-		// TODO JOE PACKAGE remove filesystem stuff
-		return kmlToTerritories(this.props.utmCoordinateSystem, fileName)
-			.then(territories => {
-				if (!territories)
-					throw Error(`territories KML file ${fileName} has no territories`)
-				log.info(`found ${territories.length} territories`)
-				return this.addAnnotationsList(territories)
-			})
-	}
-
-	/**
-	 * Load annotations from file. Store all annotations and add them to the Annotator scene.
-	 * This requires UTM as the input format.
-	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
-	 *   there will be something to look at there
-	 */
-	loadAnnotationsFromFile(fileName: string): Promise<THREE.Vector3 | null> {
-		return AsyncFile.readFile(fileName, 'ascii')
-			.then((text: string) => {
-				const annotations = this.objectToAnnotations(JSON.parse(text))
-
-				if (!annotations)
-					throw Error(`annotation file ${fileName} has no annotations`)
-				return this.addAnnotationsList(annotations)
-			})
-	}
-
 	unloadAllAnnotations(): void {
 		log.info('deleting all annotations')
 		this.unsetActiveAnnotation()
 		this.allAnnotations().forEach(a => this.deleteAnnotation(a))
-		this.metadataState.clean()
-	}
-
-	enableAutoSave(): void {
-		this.metadataState.enableAutoSave()
-	}
-
-	disableAutoSave(): void {
-		this.metadataState.disableAutoSave()
-	}
-
-	immediateAutoSave(): Promise<void> {
-		return this.metadataState.immediateAutoSave()
-	}
-
-	saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
-		const annotations = this.allAnnotations()
-			.filter(a => a.isValid())
-
-		if (!annotations.length)
-			return Promise.reject(Error('failed to save empty set of annotations'))
-
-		if (!this.props.utmCoordinateSystem.hasOrigin && !this.props.config['output.annotations.debug.allow_annotations_without_utm_origin'])
-			return Promise.reject(Error('failed to save annotations: UTM origin is not set'))
-
-		const self = this
-		const dirName = fileName.substring(0, fileName.lastIndexOf('/'))
-
-		// TODO JOE PACKAGE remove filesystem stuff
-		return Promise.resolve(mkdirp.sync(dirName))
-			.then(() => AsyncFile.writeTextFile(fileName, JSON.stringify(self.toJSON(format, annotations), null, 2)))
-			.then(() => self.metadataState.clean())
 	}
 
 	// Parcel out the annotations to tile files. This produces output similar to the Perception
 	// TileManager, which conveniently is ready to be consumed by the Strabo LoadTiles script.
 	// https://github.com/Signafy/mapper-annotator/blob/develop/documentation/tile_service.md
-	exportAnnotationsTiles(directory: string, format: OutputFormat): Promise<void> {
+	exportAnnotationsTiles(directory: string, format: OutputFormat): Promise<void[]> {
 		const annotations = this.allAnnotations()
 			.filter(a => a.isValid())
 
@@ -955,7 +884,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		})
 
 		return Promise.all(promises)
-			.then(() => {})
 	}
 
 	toJSON(format: OutputFormat, annotations: Annotation[]): AnnotationManagerJsonOutputInterface {
@@ -1079,7 +1007,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		return annotations
 	}
 
-	private addAnnotationsList(annotations: Annotation[]): THREE.Vector3 | null {
+	addAnnotationsList(annotations: Annotation[]): THREE.Vector3 | null {
 		// Unset active, to pass a validation check in addAnnotation().
 		this.unsetActiveAnnotation()
 
@@ -1108,8 +1036,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		errors.forEach((v: number, k: string) =>
 			log.warn(`discarding ${v} annotations with error ${k}`)
 		)
-
-		this.metadataState.clean()
 
 		if (boundingBox.isEmpty())
 			return null
@@ -1170,9 +1096,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		newAnnotation.updateVisualization()
 		newAnnotation.makeInactive()
 
-		this.metadataState.dirty()
-
-		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 		return true
 	}
 
@@ -1235,8 +1159,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		newAnnotation.updateVisualization()
 		newAnnotation.makeInactive()
 
-		this.metadataState.dirty()
-		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 		return true
 	}
 
@@ -1299,8 +1222,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		newAnnotation.updateVisualization()
 		newAnnotation.makeInactive()
 
-		this.metadataState.dirty()
-		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 		return true
 	}
 
@@ -1369,7 +1291,9 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 		}
 
-		if (modifications) this.metadataState.dirty()
+		if (modifications) {
+			this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
+		}
 	}
 
 	/**
@@ -1436,9 +1360,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 		connection.makeInactive()
 		connection.updateVisualization()
-		this.metadataState.dirty()
 
-		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 	}
 
 	/**
@@ -1448,7 +1371,10 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// Get data structures appropriate to the type.
 		const similarAnnotations = this.annotationTypeToSimilarAnnotationsList(annotation.annotationType)
 
-		if (!similarAnnotations) return false
+		if (!similarAnnotations) {
+			log.warn(`invalid annotation type ${annotation.annotationType}`)
+			return false
+		}
 
 		// Side effect: remove references to this annotation from its neighbors
 		if (annotation instanceof Lane) {
@@ -1464,7 +1390,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		similarAnnotations.splice(eraseIndex, 1)
 		this.removeRenderingObjectFromArray(this.annotationObjects, annotation.renderingObject)
 		this.annotationGroup.remove(annotation.renderingObject)
-		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 
 		return true
 	}
@@ -1578,33 +1505,39 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	private removeUuidFromLaneNeighbors(laneUuid: AnnotationUuid, uuidToRemove: AnnotationUuid): boolean {
 		const lane = this.laneAnnotations.find(a => a.uuid === laneUuid)
 
+		let modified = false
+
 		if (!lane) {
 			log.error("Couldn't remove neighbor. Requested lane uuid doesn't exist")
-			return false
+			return modified
 		}
 
 		// Check on all directions for the uuid to remove
 		if (this.removeUuidFromArray(lane.neighborsIds.back, uuidToRemove))
-			return true
+			modified = true
 
 		if (this.removeUuidFromArray(lane.neighborsIds.front, uuidToRemove))
-			return true
+			modified = true
 
 		let index = lane.neighborsIds.left.indexOf(uuidToRemove, 0)
 
 		if (index > -1) {
 			lane.neighborsIds.left.splice(index, 1)
-			return true
+			modified = true
 		}
 
 		index = lane.neighborsIds.right.indexOf(uuidToRemove, 0)
 
 		if (index > -1) {
 			lane.neighborsIds.right.splice(index, 1)
-			return true
+			modified = true
 		}
 
-		return false
+		if (modified) {
+			this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
+		}
+
+		return modified
 	}
 
 	// Load tiles within a bounding box and add them to the scene.
@@ -1619,42 +1552,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 	private annotationLoadedSideEffects(): void {
 		// nothing here at the moment
-	}
-
-	// TODO JOE PACKAGE remove filesystem stuff
-	loadTerritoriesKml(fileName: string): Promise<void> {
-		log.info('Loading KML Territories from ' + fileName)
-		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS])
-
-		return this.loadKmlTerritoriesFromFile(fileName)
-			.then(focalPoint => {
-				if (focalPoint)
-					this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
-			})
-			.catch(err => {
-				log.error(err.message)
-				dialog.showErrorBox('Territories Load Error', err.message)
-			})
-	}
-
-	/**
-	 * Load annotations from file. Add all annotations to the annotation manager
-	 * and to the scene.
-	 * Center the stage and the camera on the annotations model.
-	 */
-	loadAnnotations(fileName: string): Promise<void> {
-		log.info('Loading annotations from ' + fileName)
-		this.props.layerManager!.setLayerVisibility([Layer.ANNOTATIONS])
-
-		return this.loadAnnotationsFromFile(fileName)
-			.then(focalPoint => {
-				if (focalPoint)
-					this.props.sceneManager.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
-			})
-			.catch(err => {
-				log.error(err.message)
-				dialog.showErrorBox('Annotation Load Error', err.message)
-			})
 	}
 
 	private intersectWithLightboxImageRay(mousePosition: THREE.Vector2, lightboxImageRays: THREE.Line[]): THREE.Intersection[] {
@@ -1826,7 +1723,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		if (activeLane.deleteNeighbor(inactive.uuid)) {
 			if (inactive.deleteNeighbor(activeLane.uuid)) {
 				inactive.makeInactive()
-				this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+				this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 			} else {
 				log.error('Non-reciprocal neighbor relation detected. This should never happen.')
 			}
@@ -1841,7 +1738,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			inactive.addNeighbor(activeLane.uuid, NeighborLocation.BACK)
 
 			this.props.channel.emit('deactivateFrontSideNeighbours')
-			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+			this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 
 			return
 		}
@@ -1906,7 +1803,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				inactive.addNeighbor(activeLane.uuid, NeighborLocation.RIGHT)
 		}
 
-		this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 	}
 
 	/**
@@ -2059,7 +1956,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				dstAnnotation.makeInactive()
 			}
 
-			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+			this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 
 		// If we clicked a traffic device, add it or remove it from the connection's set of associated devices.
 		} else if (dstAnnotation instanceof TrafficDevice) {
@@ -2089,7 +1986,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				dstAnnotation.makeInactive()
 			}
 
-			this.props.channel.emit(Events.SCENE_SHOULD_RENDER)
+			this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 		}
 	}
 
@@ -2181,76 +2078,6 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		// if (!( this.activeAnnotation && this.activeAnnotation.isRotatable) ) return
 
 		new AnnotatedSceneActions().toggleRotationModeActive()
-	}
-}
-/**
- * This tracks transient metadata for the data model, for the duration of a user session.
- */
-export class AnnotationState {
-	private annotationManager: AnnotationManager
-	private isDirty: boolean
-	private autoSaveEnabled: boolean
-	private autoSaveDirectory: string
-
-	constructor(annotationManager: AnnotationManager, config: any) {
-		const self = this
-
-		this.annotationManager = annotationManager
-		this.isDirty = false
-		this.autoSaveEnabled = false
-		this.autoSaveDirectory = config['output.annotations.autosave.directory.path']
-
-		const autoSaveEventInterval = config['output.annotations.autosave.interval.seconds'] * 1000
-
-		if (this.annotationManager && this.autoSaveDirectory && autoSaveEventInterval) {
-			setInterval((): void => {
-				if (self.doPeriodicSave()) self.saveAnnotations().then()
-			}, autoSaveEventInterval)
-		}
-	}
-
-	// Mark dirty if the in-memory model has information which is not recorded on disk.
-	dirty(): void {
-		this.isDirty = true
-	}
-
-	// Mark clean if the in-memory model is current with a saved file. Auto-saves don't count.
-	clean(): void {
-		this.isDirty = false
-	}
-
-	enableAutoSave(): void {
-		this.autoSaveEnabled = true
-	}
-
-	disableAutoSave(): void {
-		this.autoSaveEnabled = false
-	}
-
-	immediateAutoSave(): Promise<void> {
-		if (this.doImmediateSave())
-			return this.saveAnnotations()
-		else
-			return Promise.resolve()
-	}
-
-	private doPeriodicSave(): boolean {
-		return this.autoSaveEnabled &&
-			this.isDirty &&
-			!!this.annotationManager.allAnnotations()
-	}
-
-	private doImmediateSave(): boolean {
-		return this.isDirty &&
-			!!this.annotationManager.allAnnotations()
-	}
-
-	private saveAnnotations(): Promise<void> {
-		const savePath = this.autoSaveDirectory + '/' + dateToString(new Date()) + '.json'
-
-		log.info('auto-saving annotations to: ' + savePath)
-		return this.annotationManager.saveAnnotationsToFile(savePath, OutputFormat.UTM)
-			.catch(error => log.warn('save annotations failed: ' + error.message))
 	}
 }
 

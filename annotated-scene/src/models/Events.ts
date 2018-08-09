@@ -5,6 +5,9 @@
 
 import * as UUID from 'uuid'
 
+// TODO JOE some of these events should not be publicly exposed, and some should.
+// they are all public at the moment.
+
 // TODO JOE give types to event arguments. Right now event payloads are `any`
 export const Events = {
 	ORIGIN_UPDATE: UUID(),
@@ -39,6 +42,12 @@ export const Events = {
 	// material, etc), but not yet re-rendered
 	ANNOTATION_VISUAL_UPDATE: UUID(),
 
-	// fired when the annotated-scene lib APIs are ready to be used
+	// fired when the annotated-scene lib APIs are ready to be used. Currently no payload.
 	ANNOTATED_SCENE_READY: UUID(),
+
+	// fired any time any annotations have been modified. Currently no payload.
+	ANNOTATIONS_MODIFIED: UUID(),
+
+	// fired when transformControls have modified an object or set of Objects
+	TRANSFORM_UPDATE: UUID(),
 }

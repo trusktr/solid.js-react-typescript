@@ -258,7 +258,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 		this.transformControls.addEventListener('mouseUp', this.delayHideTransform)
 
 		// If the object attached to the transform object has changed, do something.
-		this.transformControls.addEventListener('objectChange', () => this.props.channel.emit('transformUpdate'))
+		this.transformControls.addEventListener('objectChange', () => this.props.channel.emit(Events.TRANSFORM_UPDATE))
 	}
 
 	delayHideTransform = (): void => {

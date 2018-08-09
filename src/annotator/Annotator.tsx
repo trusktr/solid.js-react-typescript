@@ -3,9 +3,15 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+// TODO JOE
+// - move app-specific events out of shared lib Events object
+// - move filesystem stuff out
+// - move app actions out of shared lib actions
+
 const {default: config} = require(`${__base}/src/config`)
 import * as $ from 'jquery'
 import * as Electron from 'electron'
+import * as AsyncFile from 'async-file'
 import MousePosition from '@mapperai/annotated-scene/src/models/MousePosition'
 import mousePositionToGLSpace from '@mapperai/annotated-scene/src/util/mousePositionToGLSpace'
 import {GUI as DatGui, GUIParams} from 'dat.gui'
@@ -34,6 +40,8 @@ import {dateToString} from '../util/dateToString'
 import {scale3DToSpatialTileScale, spatialTileScaleToString} from '@mapperai/annotated-scene/src/tiles/ScaleUtil'
 import {THREEColorValue} from '@mapperai/annotated-scene/src/THREEColorValue-type'
 import {hexStringToHexadecimal} from '../util/Color'
+import SaveState from './SaveState'
+import {kmlToTerritories} from '../util/KmlToTerritories'
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -139,6 +147,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
 	private gui: DatGui | null
+	private saveState: SaveState | null = null
 
 	constructor(props: AnnotatorProps) {
 		super(props)
@@ -474,18 +483,90 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	 * promise will complete, but it seems to work in practice.
 	 */
 	private onBeforeUnload: (e: BeforeUnloadEvent) => void = (_: BeforeUnloadEvent) => {
-		this.state.annotationManager!.immediateAutoSave()
+		this.saveState!.immediateAutoSave()
 	}
 
 	private onFocus = (): void => {
-		this.state.annotationManager!.enableAutoSave()
+		this.saveState!.enableAutoSave()
 	}
 	private onBlur = (): void => {
 		this.setLastMousePosition(null)
-		this.state.annotationManager!.disableAutoSave()
+		this.saveState!.disableAutoSave()
 	}
 
 	// }}
+
+	/**
+	 * Load territories from KML which is generated elsewhere. Build the objects and add them to the Annotator scene.
+	 */
+	loadTerritoriesKml(fileName: string): Promise<void> {
+		log.info('Loading KML Territories from ' + fileName)
+
+		return this.loadKmlTerritoriesFromFile(fileName).then(newAnnotationsFocalPoint => {
+			if (newAnnotationsFocalPoint) {
+				this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
+				const {x, y, z} = newAnnotationsFocalPoint
+				this.state.annotatedSceneController!.setStage(x, y, z)
+			}
+		}).catch(err => {
+			log.error(err.message)
+			dialog.showErrorBox('Territories Load Error', err.message)
+		})
+	}
+
+	/**
+	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
+	 *   there will be something to look at there
+	 */
+	loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
+		// TODO JOE PACKAGE remove filesystem stuff
+		return kmlToTerritories(this.state.annotatedSceneController.utmCoordinateSystem, fileName).then(territories => {
+			if (!territories)
+				throw Error(`territories KML file ${fileName} has no territories`)
+
+			log.info(`found ${territories.length} territories`)
+			this.saveState!.immediateAutoSave()
+			const result = this.state.annotatedSceneController!.addAnnotations(territories)
+			this.saveState!.clean()
+			return result
+		})
+	}
+
+	/**
+	 * Load annotations from file. Add all annotations to the annotation manager
+	 * and to the scene.
+	 * Center the stage and the camera on the annotations model.
+	 */
+	loadAnnotations(fileName: string): Promise<void> {
+		log.info('Loading annotations from ' + fileName)
+		this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
+
+		return this.loadAnnotationsFromFile(fileName).then(focalPoint => {
+			if (focalPoint)
+				this.state.annotatedSceneController!.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
+		}).catch(err => {
+			log.error(err.message)
+			dialog.showErrorBox('Annotation Load Error', err.message)
+		})
+	}
+
+	/**
+	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
+	 *   there will be something to look at there
+	 */
+	loadAnnotationsFromFile(fileName: string): Promise<THREE.Vector3 | null> {
+		return AsyncFile.readFile(fileName, 'ascii').then((text: string) => {
+			const annotations = this.state.annotatedSceneController!.objectToAnnotations(JSON.parse(text))
+
+			if (!annotations)
+				throw Error(`annotation file ${fileName} has no annotations`)
+
+			this.saveState!.immediateAutoSave()
+			const result = this.state.annotatedSceneController!.addAnnotations(annotations)
+			this.saveState!.clean()
+			return result
+		})
+	}
 
 	mapKey(key: Key, fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void): void {
 		this.state.annotatedSceneController!.mapKey(key, fn)
@@ -588,9 +669,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	private uiDeleteAllAnnotations(): void {
-		this.state.annotationManager!.immediateAutoSave()
+		this.saveState!.immediateAutoSave()
 			.then(() => {
 				this.state.annotationManager!.unloadAllAnnotations()
+				this.saveState.clean()
 			})
 	}
 
@@ -1015,7 +1097,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 				const handler = (paths: string[]): void => {
 					if (paths && paths.length) {
-						this.state.annotationManager!.loadTerritoriesKml(paths[0])
+						this.loadTerritoriesKml(paths[0])
 							.catch(err => log.warn('loadTerritoriesKml failed: ' + err.message))
 					}
 				}
@@ -1036,10 +1118,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					filters: [{name: 'json', extensions: ['json']}],
 				}
 
-				const handler = (paths: string[]): void => {
+				const handler = async (paths: string[]) => {
 					if (paths && paths.length) {
-						this.state.annotationManager!.loadAnnotations(paths[0])
-							.catch(err => log.warn('loadAnnotations failed: ' + err.message))
+						try {
+							await this.loadAnnotations(paths[0])
+						} catch(err) {
+							log.warn('loadAnnotations failed: ' + err.message)
+						}
 					}
 				}
 
@@ -1537,8 +1622,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	componentDidUpdate(_oldProps: AnnotatorProps, oldState: AnnotatorState): void {
-		if (!oldState.annotationManager && this.state.annotationManager)
+		if (!oldState.annotationManager && this.state.annotationManager) {
 			this.createControlsGui()
+			this.saveState = new SaveState(this.state.annotationManager, config) // eslint-disable-line no-use-before-define
+		}
 
 		if (!oldState.annotatedSceneController && this.state.annotatedSceneController) {
 			const {utmCoordinateSystem, channel} = this.state.annotatedSceneController
@@ -1556,8 +1643,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			channel.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
 			channel.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
 
-			this.addImageScreenLayer()
-
 			// UI updates
 			// TODO JOE move UI logic to React/JSX, and get state from Redux
 			channel.on('deactivateFrontSideNeighbours', Annotator.deactivateFrontSideNeighbours)
@@ -1567,6 +1652,17 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			channel.on('resetAllAnnotationPropertiesMenuElements', this.resetAllAnnotationPropertiesMenuElements)
 
 			channel.on(Events.ANNOTATION_VISUAL_UPDATE, lane => {lane instanceof Lane && this.uiUpdateLaneWidth(lane)})
+
+			channel.on(Events.ANNOTATIONS_MODIFIED, () => {
+				this.saveState!.dirty()
+			})
+
+			channel.once(Events.ANNOTATED_SCENE_READY, async () => {
+				this.addImageScreenLayer()
+
+				const annotationsPath = config['startup.annotations_path']
+				if (annotationsPath) await this.loadAnnotations(annotationsPath)
+			})
 
 			this.setKeys()
 		}
