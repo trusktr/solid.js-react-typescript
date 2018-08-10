@@ -20,7 +20,6 @@ import AreaOfInterestManager from './AreaOfInterestManager'
 import {EventEmitter} from 'events'
 import mousePositionToGLSpace from '../util/mousePositionToGLSpace'
 import MousePosition from '../models/MousePosition'
-import * as Electron from 'electron'
 import LayerManager, {Layer} from './LayerManager'
 import {Events} from '../models/Events'
 
@@ -31,7 +30,7 @@ export interface GroundPlaneManagerProps {
 	mousePosition?: MousePosition
 	areaOfInterestManager: AreaOfInterestManager | null
 	channel: EventEmitter
-	rendererSize?: Electron.Size
+	rendererSize?: {width: number, height: number}
 	isAddMarkerMode?: boolean
 	layerManager: LayerManager
 }

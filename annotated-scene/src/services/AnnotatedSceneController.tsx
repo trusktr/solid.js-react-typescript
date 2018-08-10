@@ -3,7 +3,6 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as Electron from 'electron'
 import * as React from 'react'
 import * as THREE from 'three'
 import {sprintf} from 'sprintf-js'
@@ -37,7 +36,6 @@ import DefaultConfig from '../DefaultConfig'
 import {Annotation} from '../annotations/AnnotationBase'
 
 const log = Logger(__filename)
-const dialog = Electron.remote.dialog
 const timeBetweenErrorDialogsMs = 30000
 
 // TODO JOE we can optionally expand on this to define specific keys and their types.
@@ -466,7 +464,8 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 				log.warn(err.message)
 			} else {
 				log.error(err.message)
-				dialog.showErrorBox(`${dataType} Load Error`, err.message)
+				// dialog.showErrorBox(`${dataType} Load Error`, err.message)
+				log.error(`${dataType} Load Error`, err.message) // TODO JOE web-based dialog
 				this.lastPointCloudLoadedErrorModalMs = now
 			}
 		}

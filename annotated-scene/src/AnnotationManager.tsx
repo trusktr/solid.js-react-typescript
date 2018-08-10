@@ -4,7 +4,6 @@
  */
 
 import * as React from 'react'
-import * as Electron from 'electron'
 import * as THREE from 'three'
 import {getClosestPoints} from './geometry/ThreeHelpers'
 import mousePositionToGLSpace from './util/mousePositionToGLSpace'
@@ -44,7 +43,6 @@ import {EventEmitter} from 'events'
 import {Events} from './models/Events'
 
 const log = Logger(__filename)
-const dialog = Electron.remote.dialog
 
 export enum OutputFormat {
 	UTM = 1,
@@ -93,7 +91,7 @@ interface IProps {
 	numberKeyPressed?: number | null
 
 	areaOfInterest?: RangeSearch[]
-	rendererSize?: Electron.Size
+	rendererSize?: {width: number, height: number}
 	camera?: THREE.Camera
 
 	lockBoundaries?: boolean
@@ -373,7 +371,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		if (laneTo === null || laneFrom === null) {
-			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, 'Given lane ids are not valid.')
+			// dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, 'Given lane ids are not valid.')
+			log.error(EM.ET_RELATION_ADD_FAIL, 'Given lane ids are not valid.') // TODO JOE replace with web-compatible dialog
 			return false
 		}
 
@@ -419,13 +418,15 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 						this.addConnectionWithBezier(laneFrom, laneTo)
 					}
 				} else {
-					dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, `${relation} relation already exists`)
+					// dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, `${relation} relation already exists`)
+					log.error(EM.ET_RELATION_ADD_FAIL, `${relation} relation already exists`) // TODO JOE replace with web-compatible dialog
 					return false
 				}
 
 				break
 			default:
-				dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, 'Unknown relation to be added: ' + relation)
+				// dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, 'Unknown relation to be added: ' + relation)
+				log.error(EM.ET_RELATION_ADD_FAIL, 'Unknown relation to be added: ' + relation) // TODO JOE replace with web-compatible dialog
 				return false
 		}
 
@@ -1230,8 +1231,10 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 	 */
 	private addConnectionWithBezier(laneFrom: Lane, laneTo: Lane): void {
 		if (laneFrom.markers.length < 4 || laneTo.markers.length < 4) {
-			dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, 'Unable to generate forward relation.' +
-				'Possible reasons: one of the two lanes connected does not have at least 4 markers.')
+			// dialog.showErrorBox(EM.ET_RELATION_ADD_FAIL, 'Unable to generate forward relation.' +
+			// 	'Possible reasons: one of the two lanes connected does not have at least 4 markers.')
+			log.error(EM.ET_RELATION_ADD_FAIL, 'Unable to generate forward relation.' +
+				'Possible reasons: one of the two lanes connected does not have at least 4 markers.') // TODO JOE web-based dialog
 
 			return
 		}

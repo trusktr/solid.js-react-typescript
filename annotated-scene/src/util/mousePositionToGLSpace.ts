@@ -5,10 +5,9 @@
 
 import * as THREE from 'three'
 import MousePosition from '../models/MousePosition'
-import * as Electron from 'electron'
 
 export default
-function mousePositionToGLSpace(mousePosition: MousePosition, rendererSize: Electron.Size): THREE.Vector2 {
+function mousePositionToGLSpace(mousePosition: MousePosition, rendererSize: {width: number, height: number}): THREE.Vector2 {
 	const mouse = new THREE.Vector2()
 
 	mouse.x = (mousePosition.x / rendererSize.width) * 2 - 1

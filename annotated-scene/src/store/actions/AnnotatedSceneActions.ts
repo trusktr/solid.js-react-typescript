@@ -14,7 +14,6 @@ import {SuperTile} from '../../tiles/SuperTile'
 import {RangeSearch} from '../../tiles/tile-model/RangeSearch'
 import TileManagerBase from '../../tiles/TileManagerBase'
 import MousePosition from '../../models/MousePosition'
-import * as Electron from 'electron'
 import LocalStorage from '../../LocalStorage'
 import StatusWindowState from '../../models/StatusWindowState'
 
@@ -375,7 +374,7 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	}
 
 	@ActionReducer()
-	setRendererSize(rendererSize: Electron.Size) {
+	setRendererSize(rendererSize: {width: number, height: number}) { // TODO JOE define a type for rendererSize
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, rendererSize,
 		})
