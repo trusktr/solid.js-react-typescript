@@ -56,7 +56,7 @@
     "typescript-eslint-parser": "17.0.1"
   },
   "dependencies": {
-    "@mapperai/annotated-scene": "file:./annotated-scene",
+    "@mapperai/annotated-scene": "0.0.1",
     "@mapperai/mapper-models": "1.9.8",
     "animation-loop": "1.4.0",
     "async-file": "2.0.2",
