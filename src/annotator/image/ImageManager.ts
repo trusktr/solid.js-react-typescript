@@ -13,7 +13,7 @@ import * as IPCMessages from '../annotator-image-lightbox/IPCMessages'
 import {readImageMetadataFile} from './Aurora'
 import {UtmCoordinateSystem} from '@mapperai/annotated-scene/src/UtmCoordinateSystem'
 import {AuroraCameraParameters} from './CameraParameters'
-const {default: config} = require(`${__base}/src/config`)
+import config from '@src/config'
 import Logger from '../../util/log'
 import {EventEmitter} from 'events'
 import {Events} from '@mapperai/annotated-scene/src/models/Events'

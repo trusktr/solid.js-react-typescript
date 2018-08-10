@@ -3,7 +3,6 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import UIMessage from '../../models/UIMessage'
 import StatusWindowState from '../../models/StatusWindowState'
 import * as MapperProtos from '@mapperai/mapper-models'
 import {CameraType} from '../../models/CameraType'
@@ -33,8 +32,6 @@ export default class AnnotatedSceneState {
 	}
 
 	config?: any
-
-	messages: Array<UIMessage>
 
 	// ANNOTATOR SPECIFIC STATE
 	isLiveMode: boolean // toggles between live mode and recorded mode

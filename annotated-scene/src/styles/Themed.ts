@@ -19,6 +19,8 @@ import * as SaffronSDK from '@mapperai/mapper-saffron-sdk'
 import * as React from 'react'
 import {connect} from 'react-redux'
 
+// TODO JOE Themed and related logic/types should be in a separate package, because this shared
+// lib isn't a Saffron app so it doesn't need to know about Saffron SDK
 export interface IThemedProperties extends SaffronSDK.Style.IThemedProperties { }
 export interface IReactComponentConstructor<P, S> {
 	new(props?: P, context?: any): React.Component<P, S>

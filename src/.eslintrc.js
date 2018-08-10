@@ -3,15 +3,6 @@ console.log('ESLint TypeScript config')
 module.exports = {
 	parser: 'typescript-eslint-parser',
 
-	// with the tslintplugin
-	//
-	// plugins: [
-	// 	'tslint',
-	// ],
-	// rules: {},
-
-	// with the typescript plugin
-	//
 	plugins: [
 		'typescript',
 	],

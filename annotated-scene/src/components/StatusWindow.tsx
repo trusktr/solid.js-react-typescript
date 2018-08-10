@@ -6,7 +6,6 @@
 import * as React from 'react'
 import {typedConnect} from '../styles/Themed'
 import StatusWindowState from '../models/StatusWindowState'
-import {getValue} from 'typeguard'
 import toProps from '../util/toProps'
 
 interface StatusWindowProps {
@@ -22,7 +21,7 @@ interface IStatusWindowState {
 export default class StatusWindow extends React.Component<StatusWindowProps, IStatusWindowState> {
 	render(): JSX.Element {
 		const {statusWindowState} = this.props
-		const messages = getValue(() => statusWindowState && statusWindowState.messages, new Map<string, string>()) as Map<string, string>
+		const messages = (statusWindowState && statusWindowState.messages) || new Map<string, string | JSX.Element>()
 
 		return (
 			<div>

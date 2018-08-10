@@ -7,7 +7,7 @@ import * as React from 'react'
 import AnnotatedSceneState from '@mapperai/annotated-scene/src/store/state/AnnotatedSceneState'
 import {FlyThroughState, FlyThroughTrajectory} from '../FlyThroughState'
 import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
-const {default: config} = require(`${__base}/src/config`)
+import config from '@src/config'
 import * as AsyncFile from 'async-file'
 import {dataSetNameFromPath} from '../../util/Perception'
 import * as MapperProtos from '@mapperai/mapper-models'
@@ -55,6 +55,7 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
 		props.annotatedSceneController.channel.once(Events.ANNOTATED_SCENE_READY, () => {
 			this.flyThroughLoop = props.annotatedSceneController.addChildAnimationLoop()
+
 			const flyThroughFps = config['fly_through.animation.fps']
 			const flyThroughInterval = flyThroughFps === 'device' ? 0 : 1 / (flyThroughFps || 10)
 

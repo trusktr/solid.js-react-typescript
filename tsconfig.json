@@ -14,6 +14,7 @@
         "moduleResolution": "node",
         "noFallthroughCasesInSwitch": true,
         "noImplicitReturns": true,
+        "noImplicitAny": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "outDir": "./dist/out",
@@ -25,16 +26,10 @@
 		"skipLibCheck": true,
         "paths": {
 			"*": [ "*" ],
-			"assets/*": [ "annotator-assets/*" ],
-			"@/*": [ "*" ]
-		},
+			"@src/*": [ "*" ]
+		}
     },
     "compileOnSave": true,
-	"files": [
-		"./src/annotator/entry.tsx",
-		"./src/annotator/annotator-entry-main/MainEntry.ts",
-		"./src/annotator/annotator-image-lightbox/LightboxWindowUI.ts"
-	],
     "include": [
         "src/**/*",
         "node_modules/@mapperai/annotated-scene/src/**/*"

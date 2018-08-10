@@ -9,34 +9,19 @@ import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
 
 const log = Logger(__filename)
 
-/**
- * Load all the services
- */
-export function loadServices(): void {
-	log.info('Loading services')
-	require('./UIMessageService')
-}
-
-/**
- * Load offline data for initial state
- */
 function loadInitialState(): void {
 	new AnnotatedSceneActions().loadAppState()
 }
 
-export async function loadStore(): Promise<void> {
-	console.log('Starting to load store')
+export function loadStore(): void {
+	log.debug('Starting to load store')
 
 	try {
 		annotatedSceneStore.loadAndInitStore()
-
-		// Update state with data persisted offline
 		loadInitialState()
-
-		loadServices()
 	} catch (err) {
 		log.error('Failed to load store', err)
 	}
 
-	console.log('Finished loading store')
+	log.debug('Finished loading store')
 }

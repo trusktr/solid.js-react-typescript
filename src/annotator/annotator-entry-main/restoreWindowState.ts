@@ -6,7 +6,7 @@
 import {BrowserWindow, BrowserWindowConstructorOptions} from 'electron'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import {windowStateKeeperOptions} from '../../util/WindowStateKeeperOptions'
-const {default: config} = require(`${__base}/src/config`)
+import config from '@src/config'
 import windowStateKeeper = require('electron-window-state')
 
 export default

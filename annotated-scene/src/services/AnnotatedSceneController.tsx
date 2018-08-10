@@ -5,7 +5,6 @@
 
 import * as Electron from 'electron'
 import * as React from 'react'
-import {getValue} from 'typeguard'
 import * as THREE from 'three'
 import {sprintf} from 'sprintf-js'
 import {typedConnect} from '../styles/Themed'
@@ -250,7 +249,9 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 	// IDEA JOE long term move orbit controls to Camera Manger
 	// Display some info in the UI about where the camera is pointed.
 	private displayCameraInfo = (): void => {
-		if (!getValue(() => this.props.statusWindowState!.enabled, false)) return
+		const status = this.props.statusWindowState
+
+		if (!status || !status.enabled) return
 
 		// const currentPoint = this.currentPointOfInterest()
 		const currentPoint = this.props.pointOfInterest

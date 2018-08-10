@@ -20,7 +20,7 @@ class AnnotationState {
 	private autoSaveEnabled: boolean
 	private autoSaveDirectory: string
 
-	constructor(private annotationManager: AnnotationManager, private config: any) {
+	constructor(private annotationManager: AnnotationManager, private config: any) { // eslint-disable-line typescript/no-explicit-any
 		this.isDirty = false
 		this.autoSaveEnabled = false
 		this.autoSaveDirectory = this.config['output.annotations.autosave.directory.path']
@@ -28,7 +28,7 @@ class AnnotationState {
 		const autoSaveEventInterval = this.config['output.annotations.autosave.interval.seconds'] * 1000
 
 		if (this.autoSaveDirectory && autoSaveEventInterval) {
-			setInterval(async () => {
+			setInterval(async() => {
 				if (this.doPeriodicSave()) await this.saveAnnotations()
 			}, autoSaveEventInterval)
 		}

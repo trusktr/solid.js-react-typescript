@@ -12,7 +12,6 @@ import {CompassRose} from './controls/CompassRose'
 import AnnotatedSceneActions from '../store/actions/AnnotatedSceneActions'
 import Logger from '../util/log'
 import {OrbitControls} from './controls/OrbitControls'
-import {getValue} from 'typeguard'
 import {typedConnect} from '../styles/Themed'
 import toProps from '../util/toProps'
 import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
@@ -471,7 +470,7 @@ export class SceneManager extends React.Component<SceneManagerProps, SceneManage
 	}
 
 	private getSize = (): Array<number> => {
-		return getValue(() => [this.props.width, this.props.height], [0, 0])
+		return [this.props.width, this.props.height]
 	}
 
 	private onResize = (): void => {

@@ -15,8 +15,7 @@ import {EventEmitter} from 'events'
 import {Events} from '@mapperai/annotated-scene/src/models/Events'
 import windowStateKeeper from 'electron-window-state'
 import KeyboardEventHighlights from '@mapperai/annotated-scene/src/models/KeyboardEventHighlights'
-
-const {default: config, getMeta} = require(`${__base}/src/config`)
+import config, {getMeta} from '@src/config'
 
 interface LightboxWindowManagerSettings {
 	backgroundColor: string

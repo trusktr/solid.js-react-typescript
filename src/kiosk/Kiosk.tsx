@@ -5,7 +5,7 @@
 
 import * as React from 'react'
 import * as THREE from 'three'
-const {default: config} = require(`${__base}/src/config`)
+import config from '@src/config'
 import CarManager from '../kiosk/components/CarManager'
 import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
 import FlyThroughManager from '../kiosk/components/FlyThroughManager'
@@ -174,7 +174,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	private beginFlyThrough(): void {
 		if (this.state.hasCalledSetup) return
 
-		log.info('Listening for messages...')
+		log.info('Listening for location updates...')
 
 		this.setState({
 			hasCalledSetup: true,
@@ -251,13 +251,13 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	onCurrentRotation = (): THREE.Quaternion => new THREE.Quaternion()
 
 	async componentDidUpdate(oldProps, oldState) {
-
 		if (!oldState.annotatedSceneController && this.state.annotatedSceneController) {
-			this.state.annotatedSceneController.channel.once(Events.ANNOTATED_SCENE_READY, async () => {
-				this.setState({ controllerReady: true })
+			this.state.annotatedSceneController.channel.once(Events.ANNOTATED_SCENE_READY, async() => {
+				this.setState({controllerReady: true})
 				this.registerKeyDownEvents()
 
 				const annotationsPath = config['startup.annotations_path']
+
 				if (annotationsPath) await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
 			})
 		}
@@ -293,7 +293,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 						'startup.point_cloud_bounding_box': config['startup.point_cloud_bounding_box'],
 
 						// other ones optional
-						...config
+						...config,
 					}}
 				/>
 

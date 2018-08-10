@@ -4,11 +4,12 @@
  */
 
 // TODO JOE
-// - move app-specific events out of shared lib Events object
-// - move filesystem stuff out
-// - move app actions out of shared lib actions
+// - [ ] move app-specific events out of shared lib Events object
+// - [x] move filesystem stuff out
+// - [ ] move app actions out of shared lib actions
+// - [ ] fix window state keeper
 
-const {default: config} = require(`${__base}/src/config`)
+import config from '@src/config'
 import * as $ from 'jquery'
 import * as Electron from 'electron'
 import * as AsyncFile from 'async-file'
@@ -511,7 +512,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return this.loadKmlTerritoriesFromFile(fileName).then(newAnnotationsFocalPoint => {
 			if (newAnnotationsFocalPoint) {
 				this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
+
 				const {x, y, z} = newAnnotationsFocalPoint
+
 				this.state.annotatedSceneController!.setStage(x, y, z)
 			}
 		}).catch(err => {
@@ -531,7 +534,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 			log.info(`found ${territories.length} territories`)
 			this.saveState!.immediateAutoSave()
+
 			const result = this.state.annotatedSceneController!.addAnnotations(territories)
+
 			this.saveState!.clean()
 			return result
 		})
@@ -691,7 +696,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		try {
 			await this.exportAnnotationsTiles(dir, format)
-		} catch(error) { log.warn('export failed: ' + error.message) }
+		} catch (error) {
+			log.warn('export failed: ' + error.message)
+		}
 	}
 
 	// Parcel out the annotations to tile files. This produces output similar to the Perception
@@ -699,7 +706,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// https://github.com/Signafy/mapper-annotator/blob/develop/documentation/tile_service.md
 	exportAnnotationsTiles(directory: string, format: OutputFormat): Promise<void[]> {
 		const {utmCoordinateSystem, scaleProvider} = this.state.annotatedSceneController!
-
 		const annotations = this.state.annotationManager!.allAnnotations()
 			.filter(a => a.isValid())
 
@@ -1156,13 +1162,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					filters: [{name: 'json', extensions: ['json']}],
 				}
 
-				const handler = async (paths: string[]) => {
+				const handler = async(paths: string[]): Promise<void> => {
 					if (paths && paths.length) {
 						try {
 							this.saveState!.immediateAutoSave()
 							await loadAnnotations.call(this, paths[0], this.state.annotatedSceneController!)
 							this.saveState!.clean()
-						} catch(err) {
+						} catch (err) {
 							log.warn('loadAnnotations failed: ' + err.message)
 						}
 					}
@@ -1691,16 +1697,19 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			channel.on('deactivateAllAnnotationPropertiesMenus', this.deactivateAllAnnotationPropertiesMenus)
 			channel.on('resetAllAnnotationPropertiesMenuElements', this.resetAllAnnotationPropertiesMenuElements)
 
-			channel.on(Events.ANNOTATION_VISUAL_UPDATE, lane => {lane instanceof Lane && this.uiUpdateLaneWidth(lane)})
+			channel.on(Events.ANNOTATION_VISUAL_UPDATE, lane => {
+				lane instanceof Lane && this.uiUpdateLaneWidth(lane)
+			})
 
 			channel.on(Events.ANNOTATIONS_MODIFIED, () => {
 				this.saveState!.dirty()
 			})
 
-			channel.once(Events.ANNOTATED_SCENE_READY, async () => {
+			channel.once(Events.ANNOTATED_SCENE_READY, async() => {
 				this.addImageScreenLayer()
 
 				const annotationsPath = config['startup.annotations_path']
+
 				if (annotationsPath) await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
 			})
 
@@ -1738,7 +1747,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 						'startup.point_cloud_bounding_box': config['startup.point_cloud_bounding_box'],
 
 						// other ones optional
-						...config
+						...config,
 					}}
 				/>
 				<AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!}/>

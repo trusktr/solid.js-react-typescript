@@ -5,10 +5,9 @@
 
 import * as React from 'react'
 import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
-import AnnotatedSceneState from '@mapperai/annotated-scene/src/store/state/AnnotatedSceneState'
-import {createStructuredSelector} from 'reselect'
 import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
 import FlyThroughManager from '../../kiosk/components/FlyThroughManager'
+import toProps from '@mapperai/annotated-scene/src/util/toProps'
 
 interface KioskViewProps {
 	isLiveMode?: boolean
@@ -20,11 +19,11 @@ interface KioskViewProps {
 
 interface KioskViewState {}
 
-@typedConnect(createStructuredSelector({
-	isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
-	isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
-	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
-	}))
+@typedConnect(toProps(
+	'isLiveMode',
+	'isPlayMode',
+	'uiMenuVisible',
+))
 export default class KioskMenuView extends React.Component<KioskViewProps, KioskViewState> {
 	constructor(props: KioskViewProps) {
 		super(props)

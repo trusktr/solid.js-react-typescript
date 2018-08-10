@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const {default: config} = require(`${__base}/src/config`)
+import config from '@src/config'
 import * as zmq from 'zmq'
 import * as MapperProtos from '@mapperai/mapper-models'
 import Logger from '../../util/log'

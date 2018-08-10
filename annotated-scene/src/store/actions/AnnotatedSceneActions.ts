@@ -7,7 +7,6 @@ import * as THREE from 'three'
 import DefaultConfig from '../../DefaultConfig'
 import {ActionFactory, ActionMessage, ActionReducer} from 'typedux'
 import AnnotatedSceneState, {InitialState, TransformMode} from '../state/AnnotatedSceneState'
-import UIMessage from '../../models/UIMessage'
 import * as MapperProtos from '@mapperai/mapper-models'
 import {CameraType} from '../../models/CameraType'
 import {OrderedMap, Set} from 'immutable'
@@ -42,8 +41,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	loadAppState() {
 		const defaultState: InitialState = {
 			config: undefined,
-
-			messages: [],
 
 			isLiveMode: false,
 			isPlayMode: false,
@@ -269,26 +266,6 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 		return (annotatedSceneState: AnnotatedSceneState) => new AnnotatedSceneState({
 			...annotatedSceneState, sceneStage,
 		})
-	}
-
-	@ActionReducer()
-	addMessage(message: UIMessage) {
-		return (annotatedSceneState: AnnotatedSceneState) => {
-			const messages = [...annotatedSceneState.messages, message]
-
-			return new AnnotatedSceneState({...annotatedSceneState, messages: messages})
-		}
-	}
-
-	@ActionReducer()
-	removeMessage(messageId: string) {
-		return (annotatedSceneState: AnnotatedSceneState) => {
-			let messages = [...annotatedSceneState.messages]
-
-			messages = messages.filter(it => it.id !== messageId)
-
-			return new AnnotatedSceneState({...annotatedSceneState, messages: messages})
-		}
 	}
 
 	@ActionReducer()

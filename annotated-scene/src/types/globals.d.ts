@@ -3,5 +3,5 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-require('../../../require-hooks')
-module.exports = require('./MainEntry')
+// required by mapper-models/protobufjs
+type Long = number

@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const {default: config} = require(`${__base}/src/config`)
+import config from '@src/config'
 
 const windowStateDirectory = 'window-state'
 
