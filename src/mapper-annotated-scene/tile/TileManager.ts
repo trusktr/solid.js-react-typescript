@@ -4,6 +4,7 @@
  */
 
 import {OrderedMap, OrderedSet} from 'immutable'
+import * as lodash from 'lodash'
 import * as THREE from 'three'
 import TileManagerBase from '@/mapper-annotated-scene/tile/TileManagerBase'
 import {TileMessage} from '@/mapper-annotated-scene/tile-model/TileMessage'
@@ -15,7 +16,7 @@ import {convertToStandardCoordinateFrame, CoordinateFrameType} from '../geometry
 import {Scale3D} from '../geometry/Scale3D'
 import {ScaleProvider} from '@/mapper-annotated-scene/tile/ScaleProvider'
 import {TileIndex, tileIndexFromVector3} from '@/mapper-annotated-scene/tile-model/TileIndex'
-import {TileServiceClient} from './TileServiceClient'
+import {tileSearchOffset, MapperTileServiceClient, GrpcTileServiceClient, RestTileServiceClient} from './TileServiceClient'
 import {RangeSearch} from '@/mapper-annotated-scene/tile-model/RangeSearch'
 import {TileInstance} from '@/mapper-annotated-scene/tile-model/TileInstance'
 import AnnotatedSceneActions from '../src/store/actions/AnnotatedSceneActions'
@@ -67,7 +68,7 @@ export abstract class TileManager implements TileManagerBase {
 	constructor(
 		scaleProvider: ScaleProvider,
 		protected utmCoordinateSystem: UtmCoordinateSystem,
-		protected tileServiceClient: TileServiceClient,
+		protected tileServiceClient: MapperTileServiceClient,
 		protected channel: EventEmitter
 	) {
 		this.coordinateSystemInitialized = false
@@ -82,9 +83,9 @@ export abstract class TileManager implements TileManagerBase {
 		this.enableTileManagerStats = !!config['tile_manager.stats_display.enable']
 	}
 
-	private enumerateOneRange(search: RangeSearch): TileIndex[] {
-		const min = tileIndexFromVector3(this.superTileScale, search.minPoint)
-		const max = tileIndexFromVector3(this.superTileScale, search.maxPoint)
+	private enumerateOneRange(scale: Scale3D, search: RangeSearch): TileIndex[] {
+		const min = tileIndexFromVector3(scale, search.minPoint)
+		const max = tileIndexFromVector3(scale, search.maxPoint)
 		const indexes: TileIndex[] = []
 		const minX = min.xIndex < max.xIndex ? min.xIndex : max.xIndex
 		const maxX = min.xIndex < max.xIndex ? max.xIndex : min.xIndex
@@ -108,14 +109,14 @@ export abstract class TileManager implements TileManagerBase {
 	// tiles up front. Then we can treat a SuperTile as the basic unit of cache within TileManager.
 	// This expands the input range searches to cover the entire volume of the SuperTiles that are
 	// intersected by the searches, and it converts the ranges to an array of all those SuperTiles.
-	enumerateIntersectingSuperTileIndexes(searches: RangeSearch[]): TileIndex[] {
+	private enumerateIntersectingSuperTileIndexes(searches: RangeSearch[]): TileIndex[] {
 		switch (searches.length) {
 			case 0:
 				return []
 			case 1:
-				return this.enumerateOneRange(searches[0])
+				return this.enumerateOneRange(this.superTileScale, searches[0])
 			default:
-				const enumerations = searches.map(search => this.enumerateOneRange(search))
+				const enumerations = searches.map(search => this.enumerateOneRange(this.superTileScale, search))
 				const uniqueTileIndexes = enumerations[0]
 				const seen: Set<string> = new Set(uniqueTileIndexes.map(ti => ti.toString()))
 
@@ -130,6 +131,16 @@ export abstract class TileManager implements TileManagerBase {
 
 				return uniqueTileIndexes
 		}
+	}
+
+	// Enumerate the tiles contained within a SuperTile.
+	private superTileIndexesToTileIndexes(superTilesIndexes: TileIndex[]): TileIndex[] {
+		return lodash.flatten(superTilesIndexes.map(stIndex =>
+			this.enumerateOneRange(this.utmTileScale, {
+				minPoint: stIndex.boundingBox.min,
+				maxPoint: stIndex.boundingBox.max.clone().addScalar(tileSearchOffset),
+			})
+		))
 	}
 
 	protected abstract constructSuperTile(index: TileIndex, coordinateFrame: CoordinateFrameType, utmCoordinateSystem: UtmCoordinateSystem): SuperTile
@@ -249,28 +260,39 @@ export abstract class TileManager implements TileManagerBase {
 		// Break the super tiles into tiles, get tile metadata from the API client, and pack it all back into super tiles.
 		const allTilesLoaded = firstTilePromise
 			.then(() => {
-				const tileLoadResults = filteredStIndexes.map(stIndex => {
-					const superTileSearch = {
-						minPoint: stIndex.boundingBox.min,
-						maxPoint: stIndex.boundingBox.max,
-					}
+				// Create records for all SuperTiles in the request, even if they prove to be empty--since that's useful to know for statistics.
+				filteredStIndexes.forEach(stIndex => this.getOrCreateSuperTile(stIndex, coordinateFrame))
 
-					// TODO CLYDE merge these into fewer API requests
-					return this.tileServiceClient.getTilesByCoordinateRange(this.config.layerId, superTileSearch)
-						.then(tileInstances => {
-							if (tileInstances.length === 0) {
-								this.getOrCreateSuperTile(stIndex, coordinateFrame)
-							} else {
-								tileInstances.forEach(tileInstance => {
-									const utmTile = this.tileInstanceToUtmTile(tileInstance, coordinateFrame)
+				let allTilesPromise: Promise<void>
 
-									this.addTileToSuperTile(utmTile, coordinateFrame, tileInstance.url)
-								})
-							}
-						})
-				})
+				const tsc = this.tileServiceClient
 
-				return Promise.all(tileLoadResults)
+				if (tsc instanceof GrpcTileServiceClient) {
+					const tileLoadResults = filteredStIndexes.map(stIndex => {
+						const superTileSearch = {
+							minPoint: stIndex.boundingBox.min,
+							maxPoint: stIndex.boundingBox.max,
+						}
+						// TODO clyde merge these into fewer API requests
+						const tileInstancesPromise = tsc.getTilesByCoordinateRange(this.config.layerId, superTileSearch)
+
+						return tileInstancesPromise
+							.then(tileInstances => this.loadTileInstancesToSuperTiles(coordinateFrame, tileInstances))
+					})
+
+					allTilesPromise = Promise.all(tileLoadResults)
+						.then(() => {})
+				} else if (tsc instanceof RestTileServiceClient) {
+					const tileIds = this.superTileIndexesToTileIndexes(filteredStIndexes)
+					const tileInstancesPromise = tsc.getTilesByTileIds(this.config.layerId, tileIds)
+
+					allTilesPromise = tileInstancesPromise
+						.then(tileInstances => this.loadTileInstancesToSuperTiles(coordinateFrame, tileInstances))
+				} else {
+					throw TypeError(`unknown tileServiceClient: ${this.tileServiceClient}`)
+				}
+
+				return allTilesPromise
 			})
 
 		// Load the contents of the new tiles.
@@ -282,6 +304,14 @@ export abstract class TileManager implements TileManagerBase {
 		})
 			.then(() => this.pruneSuperTiles())
 			.then(() => true) // true because we loaded some SuperTiles
+	}
+
+	private loadTileInstancesToSuperTiles(coordinateFrame: CoordinateFrameType, tileInstances: TileInstance[]): void {
+		tileInstances.forEach(tileInstance => {
+			const utmTile = this.tileInstanceToUtmTile(tileInstance, coordinateFrame)
+
+			this.addTileToSuperTile(utmTile, coordinateFrame, tileInstance.url)
+		})
 	}
 
 	// Finish packing up a TileInstance so that it can load its own data and attach to a SuperTile.

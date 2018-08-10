@@ -6,7 +6,7 @@
 import {TileManager} from '@/mapper-annotated-scene/tile/TileManager'
 import {UtmCoordinateSystem} from '@/mapper-annotated-scene/UtmCoordinateSystem'
 import {SuperTile} from '@/mapper-annotated-scene/tile/SuperTile'
-import {TileServiceClient} from '@/mapper-annotated-scene/tile/TileServiceClient'
+import {MapperTileServiceClient} from '@/mapper-annotated-scene/tile/TileServiceClient'
 import config from '@/config'
 import {CoordinateFrameType} from '@/mapper-annotated-scene/geometry/CoordinateFrame'
 import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
@@ -25,7 +25,7 @@ export class AnnotationTileManager extends TileManager {
 	constructor(
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
-		tileServiceClient: TileServiceClient,
+		tileServiceClient: MapperTileServiceClient,
 		channel: EventEmitter,
 		private annotationManager: AnnotationManager,
 	) {

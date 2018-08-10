@@ -16,7 +16,6 @@ import {
 	GeographicPoint3DMessage, SpatialReferenceSystemIdentifier, SpatialTileIndexMessage,
 	SpatialTileScale,
 } from '@/mapper-annotated-scene/grpc-compiled-protos/CoordinateReferenceSystem_pb'
-import {TileRangeSearch} from '@/mapper-annotated-scene/tile-model/TileRangeSearch'
 import {RangeSearch} from '@/mapper-annotated-scene/tile-model/RangeSearch'
 import {TileIndex} from '@/mapper-annotated-scene/tile-model/TileIndex'
 import {TileInstance} from '@/mapper-annotated-scene/tile-model/TileInstance'
@@ -26,6 +25,8 @@ import {ScaleProvider} from '@/mapper-annotated-scene/tile/ScaleProvider'
 import {EventEmitter} from 'events'
 import {Events} from '@/mapper-annotated-scene/src/models/Events'
 import {LayerId} from '@/types/TypeAlias'
+import {TilesRequest, TilesRequestRequestsItem} from '@mapperai/mapper-cloud-tiles-typescript-sdk/api'
+import S3, {GetObjectRequest} from 'aws-sdk/clients/s3'
 
 const log = Logger(__filename)
 
@@ -45,42 +46,46 @@ function spatialTileIndexMessageToTileIndex(msg: SpatialTileIndexMessage | undef
 }
 
 const pingRequest = new PingRequest()
+
 // We generate tile searches using the boundaries of super tiles. Tile boundaries are inclusive on the
 // lower faces and exclusive on the upper faces. Apply an offset from the upper boundaries to avoid
 // retrieving a bunch of extra tiles there.
-const tileSearchOffset = -0.001
+export const tileSearchOffset = -0.001
+export abstract class MapperTileServiceClient {
+	protected scale: SpatialTileScale
+	protected eventEmitter: EventEmitter
 
-export class TileServiceClient {
+	constructor(scaleProvider: ScaleProvider, eventEmitter: EventEmitter) {
+		if (config['tile_client.tile_scale'])
+			log.warn('Config option tile_client.tile_scale is deprecated. Use tile_manager.utm_tile_scale.')
+
+		const scale = scale3DToSpatialTileScale(scaleProvider.utmTileScale)
+
+		if (isNullOrUndefined(scale))
+			throw Error(`invalid utmTileScale: ${scaleProvider.utmTileScale}`)
+		this.scale = scale
+
+		this.eventEmitter = eventEmitter
+	}
+
+	abstract getTileContents(url: string): Promise<Uint8Array>
+}
+export class GrpcTileServiceClient extends MapperTileServiceClient {
 	private srid: SpatialReferenceSystemIdentifier
-	private scale: SpatialTileScale
 	private tileServiceAddress: string
 	private client: GrpcClient | null
-	private eventEmitter: EventEmitter
-	// private onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void
 	private serverStatus: boolean | null // null == untested; true == available; false == unavailable
 	private pingInFlight: boolean // semaphore for pingServer()
 	private healthCheckInterval: number // configuration for pinging the server
 
-	constructor(
-		scaleProvider: ScaleProvider,
-		eventEmitter: EventEmitter,
-		// onTileServiceStatusUpdate: (tileServiceStatus: boolean) => void,
-	) {
+	constructor(scaleProvider: ScaleProvider, eventEmitter: EventEmitter) {
+		super(scaleProvider, eventEmitter)
+
 		this.serverStatus = null
 		this.pingInFlight = false
-		this.eventEmitter = eventEmitter
-		// this.onTileServiceStatusUpdate = onTileServiceStatusUpdate
 		this.healthCheckInterval = config['tile_client.service.health_check.interval.seconds'] * 1000
 
 		this.srid = SpatialReferenceSystemIdentifier.ECEF // TODO CLYDE config: UTM_10N (and make the server aware of UTM zones)
-
-		if (config['tile_client.tile_scale']) log.warn('Config option tile_client.tile_scale is deprecated. Use tile_manager.utm_tile_scale.')
-
-		const scale = scale3DToSpatialTileScale(scaleProvider.utmTileScale)
-
-		if (isNullOrUndefined(scale)) throw Error(`invalid utmTileScale: ${scaleProvider.utmTileScale}`)
-
-		this.scale = scale
 
 		const tileServiceHost = config['tile_client.service.host'] || 'localhost'
 		const tileServicePort = config['tile_client.service.port'] || '50051'
@@ -141,7 +146,6 @@ export class TileServiceClient {
 		if (this.serverStatus === null || this.serverStatus !== newStatus) {
 			this.serverStatus = newStatus
 			this.eventEmitter.emit(Events.TILE_SERVICE_STATUS_UPDATE, newStatus)
-			// this.onTileServiceStatusUpdate(newStatus)
 		}
 	}
 
@@ -160,26 +164,6 @@ export class TileServiceClient {
 		corner2.setX(search.maxPoint.x + tileSearchOffset)
 		corner2.setY(search.maxPoint.y + tileSearchOffset)
 		corner2.setZ(search.maxPoint.z + tileSearchOffset)
-
-		return this.connect()
-			.then(() => this.getTiles(layerId, corner1, corner2))
-	}
-
-	// Get all available tiles within a rectangular region specified by minimum and maximum corner tiles.
-	getTilesByTileRange(layerId: LayerId, search: TileRangeSearch): Promise<TileInstance[]> {
-		const corner1 = new GeographicPoint3DMessage()
-
-		corner1.setSrid(this.srid)
-		corner1.setX(search.minTileIndex.origin.x)
-		corner1.setY(search.minTileIndex.origin.y)
-		corner1.setZ(search.minTileIndex.origin.z)
-
-		const corner2 = new GeographicPoint3DMessage()
-
-		corner2.setSrid(this.srid)
-		corner2.setX(search.maxTileIndex.origin.x + search.maxTileIndex.scale.xSize + tileSearchOffset)
-		corner2.setY(search.maxTileIndex.origin.y + search.maxTileIndex.scale.ySize + tileSearchOffset)
-		corner2.setZ(search.maxTileIndex.origin.z + search.maxTileIndex.scale.zSize + tileSearchOffset)
 
 		return this.connect()
 			.then(() => this.getTiles(layerId, corner1, corner2))
@@ -258,4 +242,52 @@ export class TileServiceClient {
 			})
 		})
 	}
+}
+export class RestTileServiceClient extends MapperTileServiceClient {
+	private srid: SpatialReferenceSystemIdentifier
+
+	constructor(scaleProvider: ScaleProvider, eventEmitter: EventEmitter) {
+		super(scaleProvider, eventEmitter)
+		this.srid = SpatialReferenceSystemIdentifier.UTM_10N // TODO clyde make this configurable
+	}
+
+	// Get all tiles in the list.
+	getTilesByTileIds(layerId: LayerId, tileIds: TileIndex[]): Promise<TileInstance[]> {
+		// TODO clyde implement
+		log.info('layerId', layerId, 'tileIds', tileIds.length)
+		const tableName: string = "bla-bla" // Calculate table name
+		const token: string = "bla-bla-token"
+		const apiVersion = "1"
+
+		const requestItems = tileIds.map(id => RestTileServiceClient.convertToRequestItem(tableName, id.toString()))
+		const tilesRequest: TilesRequest = {requests: requestItems}
+
+		// return this.tilesClient.tilesVersionTilePost(apiVersion, "annotator", token, tilesRequest)
+
+		return Promise.reject(Error('getTilesByTileIds() not implemented'))
+	}
+
+	getTileContents(url: string): Promise<Uint8Array> {
+		// TODO clyde implement
+		log.info('url', url)
+
+		const r: GetObjectRequest = {} as GetObjectRequest
+
+		const s3 = new S3()
+		s3.getObject(r)
+
+		return Promise.reject(Error('getTileContents() not implemented'))
+	}
+
+	private static convertToRequestItem(tableName: string, id: string): TilesRequestRequestsItem {
+		return {
+			fromEpochMillis: 0,
+			toEpochMillis: Number.MAX_VALUE,
+			limit: 1,
+			id: id,
+			tableName: tableName,
+		}
+	}
+
+	// TODO clyde implement some version of setServerStatus()
 }
