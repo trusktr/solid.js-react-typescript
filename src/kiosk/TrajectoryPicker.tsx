@@ -4,7 +4,7 @@
  */
 
 import './TrajectoryPicker.css'
-import config from '../config'
+import config from '@src/config'
 import * as lodash from 'lodash'
 import * as React from 'react'
 import * as Modal from 'react-modal'

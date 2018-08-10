@@ -7,16 +7,15 @@ import './env'
 import './disable-logger'
 import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
 import './style.css'
-import {configReady, getMeta} from '../config'
 import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import {AppContainer} from 'react-hot-loader'
 import App from './App'
 import * as packageDotJson from '../../package.json'
-import {getAnnotatedSceneReduxStore} from '../mapper-annotated-scene/src/store/AppStore'
-import * as services from '../mapper-annotated-scene/src/services'
+import {getAnnotatedSceneReduxStore} from '@mapperai/annotated-scene/src/store/AppStore'
+import * as services from '@mapperai/annotated-scene/src/services'
 import {Provider} from 'react-redux'
+import {getMeta, configReady} from '@src/config'
 
 // This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {
@@ -34,6 +33,7 @@ export async function start(): Promise<void> {
 	await configReady()
 
 	if (
+		// TODO JOE this will change, the webview will be loaded in a React app inside Saffron
 
 		// if we're running Annotator standlone, outside of Saffron
 		!IN_SAFFRON ||
@@ -43,17 +43,15 @@ export async function start(): Promise<void> {
 		(IN_SAFFRON && typeof (packageDotJson as any).htmlEntry !== 'undefined')
 
 	) {
-		await services.loadStore()
+		services.loadStore()
 
 		const root = $('#root')[0]
 
 		const doRender = (): void => {
 			ReactDOM.render(
-				<AppContainer>
-					<Provider store={getAnnotatedSceneReduxStore()}>
-						<App />
-					</Provider>
-				</AppContainer>,
+				<Provider store={getAnnotatedSceneReduxStore()}>
+					<App />
+				</Provider>,
 				root
 			)
 		}

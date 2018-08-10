@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import config from '../config'
+import config from '@src/config'
 
 const windowStateDirectory = 'window-state'
 

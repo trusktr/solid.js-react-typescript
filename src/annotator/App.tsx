@@ -4,20 +4,13 @@
  */
 
 import * as React from 'react'
-import config from '../config'
-import getFileUrl from '../util/getFileUrl'
-import StatusWindowActions from '../mapper-annotated-scene/StatusWindowActions'
-import AnnotatedSceneActions from '../mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
+import config from '@src/config'
+import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
+import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
 import Kiosk from '../kiosk/Kiosk'
 import Annotator from '../annotator/Annotator'
-
-// TODO JOE
-// if (webpack) {
-// import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
-// we can use `require()`, or otherwise ass a babel-register hook so import works in both cases
-// } else {
-const logo = getFileUrl('annotator-assets/images/signature_with_arrow_white.png')
-// }
+// TODO JOE eventually move this into the shared lib
+import logo from '../annotator-assets/images/signature_with_arrow_white.png'
 
 interface AppProps {}
 

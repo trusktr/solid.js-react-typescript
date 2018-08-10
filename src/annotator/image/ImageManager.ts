@@ -9,15 +9,15 @@ import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
 import {CalibratedImage} from './CalibratedImage'
 import {LightboxWindowManager} from '../annotator-image-lightbox/LightboxWindowManager'
-import * as IpcMessages from 'electron-ipc/Messages'
+import * as IPCMessages from '../annotator-image-lightbox/IPCMessages'
 import {readImageMetadataFile} from './Aurora'
-import {UtmCoordinateSystem} from '../../mapper-annotated-scene/UtmCoordinateSystem'
+import {UtmCoordinateSystem} from '@mapperai/annotated-scene/src/UtmCoordinateSystem'
 import {AuroraCameraParameters} from './CameraParameters'
-import config from '../../config'
+import config from '@src/config'
 import Logger from '../../util/log'
 import {EventEmitter} from 'events'
-import {Events} from '../../mapper-annotated-scene/src/models/Events'
-import AnnotatedSceneActions from '../../mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
+import {Events} from '@mapperai/annotated-scene/src/models/Events'
+import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
@@ -159,19 +159,19 @@ export class ImageManager {
 		if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
 	}
 
-	private toLightboxStateMessage(): IpcMessages.LightboxState {
+	private toLightboxStateMessage(): IPCMessages.LightboxState {
 		return {
 			images:
 				this.loadedImageDetails.reverse().toArray().map(i => {
 					return {
 						uuid: i.imageScreen.uuid,
 						path: i.path,
-					} as IpcMessages.LightboxImageDescription
+					} as IPCMessages.LightboxImageDescription
 				}),
 		}
 	}
 
-	private onImageEditState = (state: IpcMessages.ImageEditState): void => {
+	private onImageEditState = (state: IPCMessages.ImageEditState): void => {
 		let updated = 0
 
 		this.loadedImageDetails
@@ -181,7 +181,7 @@ export class ImageManager {
 		if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
 	}
 
-	private onImageClick = (click: IpcMessages.ImageClick): void => {
+	private onImageClick = (click: IPCMessages.ImageClick): void => {
 		this.loadedImageDetails
 			.filter(i => i!.imageScreen.uuid === click.uuid)
 			.forEach(i => {
@@ -222,7 +222,7 @@ export class ImageManager {
 			this.lightboxWindow.imageSetState({
 				uuid: image.imageScreen.uuid,
 				active: active,
-			} as IpcMessages.ImageEditState)
+			} as IPCMessages.ImageEditState)
 
 			return true
 		} else {

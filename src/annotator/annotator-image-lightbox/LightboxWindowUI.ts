@@ -3,9 +3,9 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {channel} from 'electron-ipc/Channel'
-import * as IpcMessages from 'electron-ipc/Messages'
-import {toKeyboardEventHighlights} from 'electron-ipc/Serializaton'
+import {channel} from '../../electron-ipc/Channel'
+import * as IPCMessages from './IPCMessages'
+import {toKeyboardEventHighlights} from '@mapperai/annotated-scene/src/util/toKeyboardEventHighlights'
 import WindowCommunicator from '../../util/WindowCommunicator'
 import Logger from '../../util/log'
 
@@ -53,7 +53,7 @@ class LightboxWindowUI {
 	}
 
 	// Throw away the old state. Rebuild the UI based on the new state.
-	private onLightboxState = (state: IpcMessages.LightboxState): void => {
+	private onLightboxState = (state: IPCMessages.LightboxState): void => {
 		const imageListElement = document.getElementById('image_list')
 
 		if (imageListElement) {
@@ -72,7 +72,7 @@ class LightboxWindowUI {
 	}
 
 	// Update UI for one image.
-	private onImageEditState = (state: IpcMessages.ImageEditState): void => {
+	private onImageEditState = (state: IPCMessages.ImageEditState): void => {
 		this.imageChildren
 			.filter(img => img.id === state.uuid)
 			.forEach(img => {
@@ -81,7 +81,7 @@ class LightboxWindowUI {
 	}
 
 	private imageSetState(uuid: string, active: boolean): void {
-		this.communicator.send(channel.imageEditState, {uuid: uuid, active: active} as IpcMessages.ImageEditState)
+		this.communicator.send(channel.imageEditState, {uuid: uuid, active: active} as IPCMessages.ImageEditState)
 	}
 
 	// Notify listeners when the pointer hovers over an image.
@@ -103,7 +103,7 @@ class LightboxWindowUI {
 		const ratioX = pixelX / img.width
 		const ratioY = pixelY / img.height
 
-		this.communicator.send(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as IpcMessages.ImageClick)
+		this.communicator.send(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as IPCMessages.ImageClick)
 	}
 
 	// Scale it to fit the width of its parent.
@@ -122,7 +122,7 @@ class LightboxWindowUI {
 		}
 	}
 
-	private createLightboxImage(imageDescription: IpcMessages.LightboxImageDescription): HTMLImageElement {
+	private createLightboxImage(imageDescription: IPCMessages.LightboxImageDescription): HTMLImageElement {
 		const img = document.createElement('img')
 
 		img.src = imageDescription.path
