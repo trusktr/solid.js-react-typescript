@@ -54,8 +54,6 @@ import {kmlToTerritories} from '@/util/KmlToTerritories'
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
 
-// tslint:disable:no-string-literal
-
 export enum OutputFormat {
 	UTM = 1,
 	LLA = 2,
@@ -65,6 +63,13 @@ export interface AnnotationManagerJsonOutputInterface {
 	created: string
 	coordinateReferenceSystem: CRS.CoordinateReferenceSystem
 	annotations: Array<AnnotationJsonOutputInterface>
+}
+
+const snapToGroundConfig = {
+	lookDown: new THREE.Vector3(0, -1, 0), // Look straight down at the ground, assuming gravity is aligned with Y-axis.
+	reallyHigh: 1000, // meters, should always be above all the nearby annotations and ground planes
+	snapDistance: 0.3, // meters, maximum distance from ground before generating more points
+	sampleDistance: 3, // meters, implies rate at which to test for snapDistance
 }
 
 interface IProps {
@@ -1715,15 +1720,65 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 				intersections = this.props.pointCloudManager.intersectWithPointCloud(this.raycasterPlane)
 		}
 
-		if (intersections.length)
-			this.addMarkerToActiveAnnotation(intersections[0].point)
+		if (intersections.length) {
+			const newPoint = intersections[0].point
+
+			if (this.activeAnnotation.snapToGround) {
+				// TODO clyde move this logic to AnnotationBase?
+				const minimumMarkersForInterpolation = this.activeAnnotation instanceof Lane ? 2 : 1 // TODO clyde maybe make this an abstract attribute on Annotation
+
+				if (this.activeAnnotation.markers.length >= minimumMarkersForInterpolation) {
+					const markers = this.activeAnnotation.markers
+					const previousPoint = markers[markers.length - 1]
+
+					this.interpolateOverGroundPlane(previousPoint.position, newPoint)
+						.forEach(p => this.addMarkerToActiveAnnotation(p))
+				}
+			}
+
+			this.addMarkerToActiveAnnotation(newPoint)
+		}
+	}
+
+	// Fill in points between start and end, adding only what is necessary to make the start-end line segment
+	// conform with the ground planes in the Y-dimension.
+	private interpolateOverGroundPlane(start: THREE.Vector3, end: THREE.Vector3): THREE.Vector3[] {
+		if (start.distanceTo(end) < snapToGroundConfig.sampleDistance)
+			return []
+
+		// Find the midpoint of the start-end line segment, and cast it straight down (or up) to the ground.
+		const midPointLinear = start.clone().add(end).divideScalar(2)
+
+		this.raycasterPlane.set(midPointLinear.clone().setY(midPointLinear.y + snapToGroundConfig.reallyHigh), snapToGroundConfig.lookDown)
+
+		const intersections = this.props.groundPlaneManager!.intersectWithGround(this.raycasterPlane)
+
+		if (!intersections.length)
+			return []
+
+		const midPointInterpolated = intersections[0].point
+
+		// Create two new line segments, and subdivide recursively.
+		let newPoints: THREE.Vector3[] = []
+
+		if (Math.abs(midPointLinear.y - midPointInterpolated.y) > snapToGroundConfig.snapDistance) {
+			const firstHalfInterpolated = this.interpolateOverGroundPlane(start, midPointInterpolated)
+			const secondHalfInterpolated = this.interpolateOverGroundPlane(midPointInterpolated, end)
+
+			if (firstHalfInterpolated.length)
+				newPoints = firstHalfInterpolated
+			newPoints.push(midPointInterpolated)
+			if (secondHalfInterpolated.length)
+				newPoints = newPoints.concat(secondHalfInterpolated)
+		}
+
+		return newPoints
 	}
 
 	/**
 	 * If the mouse was clicked while pressing the "c" key, add new lane connection
 	 * between current active lane and the "clicked" lane
 	 */
-	// ANNOTATOR ONLY
 	addLaneConnection = (event: MouseEvent): void => {
 		if (!this.props.isAddConnectionMode || this.props.isMouseDragging) return
 
