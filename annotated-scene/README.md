@@ -65,7 +65,7 @@ class MyComponent extends React.Component {
 				// ready, like call API methods or set up event listeners...
 
 				// for example put the camera somewhere.
-				this.sceneController.setStage(30, 30, 30)
+				this.state.sceneController.setStage(30, 30, 30)
 
 			})
 
