@@ -26,7 +26,6 @@ import {Events} from '../models/Events'
 import {LayerId} from '../TypeAlias'
 import {TilesRequest, TilesRequestRequestsItem} from '@mapperai/mapper-cloud-tiles-typescript-sdk/api'
 import * as S3 from 'aws-sdk/clients/s3'
-import {GetObjectRequest} from 'aws-sdk/clients/s3'
 
 const log = Logger(__filename)
 
@@ -55,7 +54,7 @@ export abstract class MapperTileServiceClient {
 	protected scale: SpatialTileScale
 	protected eventEmitter: EventEmitter
 
-	constructor(scaleProvider: ScaleProvider, protected channel: EventEmitter, config: any) {
+	constructor(scaleProvider: ScaleProvider, protected channel: EventEmitter, config: any) { // eslint-disable-line typescript/no-explicit-any
 		if (config['tile_client.tile_scale'])
 			log.warn('Config option tile_client.tile_scale is deprecated. Use tile_manager.utm_tile_scale.')
 
@@ -247,7 +246,7 @@ export class GrpcTileServiceClient extends MapperTileServiceClient {
 export class RestTileServiceClient extends MapperTileServiceClient {
 	private srid: SpatialReferenceSystemIdentifier
 
-	constructor(scaleProvider: ScaleProvider, channel: EventEmitter, config: any) {
+	constructor(scaleProvider: ScaleProvider, channel: EventEmitter, config: any) { // eslint-disable-line typescript/no-explicit-any
 		super(scaleProvider, channel, config)
 		this.srid = SpatialReferenceSystemIdentifier.UTM_10N // TODO clyde make this configurable
 	}
@@ -274,7 +273,7 @@ export class RestTileServiceClient extends MapperTileServiceClient {
 		// TODO clyde implement
 		log.info('url', url)
 
-		const r: GetObjectRequest = {} as GetObjectRequest
+		const r: S3.GetObjectRequest = {} as S3.GetObjectRequest
 		const s3 = new S3()
 
 		s3.getObject(r)
