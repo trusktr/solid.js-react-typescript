@@ -274,7 +274,7 @@ export abstract class TileManager implements TileManagerBase {
 							maxPoint: stIndex.boundingBox.max,
 						}
 						// TODO clyde merge these into fewer API requests
-						const tileInstancesPromise = tsc.getTilesByCoordinateRange(this.config.layerId, superTileSearch)
+						const tileInstancesPromise = tsc.getTilesByCoordinateRange(this.tileConfig.layerId, superTileSearch)
 
 						return tileInstancesPromise
 							.then(tileInstances => this.loadTileInstancesToSuperTiles(coordinateFrame, tileInstances))
@@ -284,7 +284,7 @@ export abstract class TileManager implements TileManagerBase {
 						.then(() => {})
 				} else if (tsc instanceof RestTileServiceClient) {
 					const tileIds = this.superTileIndexesToTileIndexes(filteredStIndexes)
-					const tileInstancesPromise = tsc.getTilesByTileIds(this.config.layerId, tileIds)
+					const tileInstancesPromise = tsc.getTilesByTileIds(this.tileConfig.layerId, tileIds)
 
 					allTilesPromise = tileInstancesPromise
 						.then(tileInstances => this.loadTileInstancesToSuperTiles(coordinateFrame, tileInstances))

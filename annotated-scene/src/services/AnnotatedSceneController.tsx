@@ -3,7 +3,6 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import config from '../../../config'
 import * as Electron from 'electron'
 import * as React from 'react'
 import * as THREE from 'three'
@@ -115,7 +114,7 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.tileServerStatusMessageDuration = 10000
 
 		this.settings = {
-			useGrpcClient: !!config['tile_client.service.use_grpc'],
+			useGrpcClient: !!this.config['tile_client.service.use_grpc'],
 		}
 
 		this.state = {
