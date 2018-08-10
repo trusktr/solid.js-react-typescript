@@ -1,6 +1,6 @@
 {
   "name": "@mapperai/annotated-scene",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Mapper.ai Annotated Scene",
   "scripts": {
     "dev": "npm run lint-watch & p1=$!; npm run typecheck-watch & p2=$!; wait $p1 $p2",
