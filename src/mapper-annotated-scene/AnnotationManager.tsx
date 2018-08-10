@@ -1742,6 +1742,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 
 	// Fill in points between start and end, adding only what is necessary to make the start-end line segment
 	// conform with the ground planes in the Y-dimension.
+	// TODO clyde This could fail on a road with a "W" shaped profile where the midpoint happens to be on the line segment
+	// TODO clyde   between start and end. If that ever happens in practice, test more points.
 	private interpolateOverGroundPlane(start: THREE.Vector3, end: THREE.Vector3): THREE.Vector3[] {
 		if (start.distanceTo(end) < snapToGroundConfig.sampleDistance)
 			return []
