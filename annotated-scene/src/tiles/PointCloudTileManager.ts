@@ -57,7 +57,7 @@ export class PointCloudTileManager extends TileManager {
 		utmCoordinateSystem: UtmCoordinateSystem,
 		tileServiceClient: TileServiceClient,
 		channel: EventEmitter,
-		config: any,
+		config: any /* eslint-disable-line typescript/no-explicit-any */,
 	) {
 		super(
 			scaleProvider,

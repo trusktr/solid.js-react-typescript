@@ -37,13 +37,12 @@ import DefaultConfig from '../DefaultConfig'
 import {Annotation} from '../annotations/AnnotationBase'
 
 const log = Logger(__filename)
-
 const dialog = Electron.remote.dialog
 const timeBetweenErrorDialogsMs = 30000
 
 // TODO JOE we can optionally expand on this to define specific keys and their types.
 interface Config {
-	[key: string]: any
+	[key: string]: any // eslint-disable-line typescript/no-explicit-any
 }
 
 export interface CameraState {

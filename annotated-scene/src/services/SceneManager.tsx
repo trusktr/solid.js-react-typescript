@@ -34,7 +34,7 @@ export interface SceneManagerProps {
 	// TODO JOE We need to handle background color changes, currently backgroundColor is used only in constructor
 	backgroundColor?: THREEColorValue
 
-	config: any,
+	config: any /* eslint-disable-line typescript/no-explicit-any */,
 	width: number
 	height: number
 	areaOfInterestManager: AreaOfInterestManager

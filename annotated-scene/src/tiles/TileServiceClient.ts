@@ -61,7 +61,7 @@ export class TileServiceClient {
 	constructor(
 		scaleProvider: ScaleProvider,
 		private channel: EventEmitter,
-		config: any
+		config: any /* eslint-disable-line typescript/no-explicit-any */
 	) {
 		this.serverStatus = null
 		this.pingInFlight = false

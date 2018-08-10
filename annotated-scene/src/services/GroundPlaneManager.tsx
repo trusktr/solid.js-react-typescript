@@ -25,7 +25,7 @@ import LayerManager, {Layer} from './LayerManager'
 import {Events} from '../models/Events'
 
 export interface GroundPlaneManagerProps {
-	config: any
+	config: any /* eslint-disable-line typescript/no-explicit-any */
 	utmCoordinateSystem: UtmCoordinateSystem
 	camera?: THREE.Camera
 	mousePosition?: MousePosition

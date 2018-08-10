@@ -114,11 +114,11 @@ export default class AnnotatedSceneActions extends ActionFactory<AnnotatedSceneS
 	}
 
 	@ActionReducer()
-	setConfig(config: any) {
+	setConfig(config: any /* eslint-disable-line typescript/no-explicit-any */) {
 		return (annotatedSceneState: AnnotatedSceneState) => {
 			if (annotatedSceneState.config) throw new Error('config can only be set once')
 			return new AnnotatedSceneState({
-				...annotatedSceneState, config
+				...annotatedSceneState, config,
 			})
 		}
 	}

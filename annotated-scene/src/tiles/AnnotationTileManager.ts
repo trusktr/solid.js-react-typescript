@@ -27,7 +27,7 @@ export class AnnotationTileManager extends TileManager {
 		tileServiceClient: TileServiceClient,
 		channel: EventEmitter,
 		private annotationManager: AnnotationManager,
-		config: any,
+		config: any /* eslint-disable-line typescript/no-explicit-any */,
 	) {
 		super(
 			scaleProvider,

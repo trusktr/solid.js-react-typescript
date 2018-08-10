@@ -23,7 +23,7 @@ import {PointCloudSuperTile} from '../tiles/PointCloudSuperTile'
 const log = Logger(__filename)
 
 export interface PointCloudManagerProps {
-	config: any
+	config: any /* eslint-disable-line typescript/no-explicit-any */
 
 	// redux props
 	areaOfInterest?: RangeSearch[]

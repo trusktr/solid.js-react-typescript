@@ -84,7 +84,7 @@ export function indexToCoord(index: TileIndexDimension, size: number): number {
 	return index * size
 }
 
-export function configToScale3D(key: string, config: any): Scale3D {
+export function configToScale3D(key: string, config: any /* eslint-disable-line typescript/no-explicit-any */): Scale3D {
 	const tileScaleConfig: [number, number, number] = config[key] || [10, 10, 10]
 
 	if (!isTupleOfNumbers(tileScaleConfig, 3)) throw Error(`invalid ${key} configuration '${tileScaleConfig}'`)

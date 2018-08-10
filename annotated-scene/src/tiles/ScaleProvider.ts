@@ -10,7 +10,7 @@ export class ScaleProvider {
 	readonly utmTileScale: Scale3D
 	readonly superTileScale: Scale3D
 
-	constructor(private config: any) {
+	constructor(private config: any /* eslint-disable-line typescript/no-explicit-any */) {
 		// Set the dimensions of tiles and super tiles.
 		// Super tile boundaries coincide with tile boundaries, with no overlap.
 		this.utmTileScale = configToScale3D('tile_manager.utm_tile_scale', this.config)

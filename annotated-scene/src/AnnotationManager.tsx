@@ -60,7 +60,7 @@ export interface AnnotationManagerJsonOutputInterface {
 }
 
 interface IProps {
-	config: any
+	config: any /* eslint-disable-line typescript/no-explicit-any */
 
 	handleTileManagerLoadError: (msg: string, err: Error) => void
 
@@ -612,9 +612,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			return
 		}
 
-		if (this.activeAnnotation.addMarker(position, true)) {
+		if (this.activeAnnotation.addMarker(position, true))
 			this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
-		}
 	}
 
 	/**
@@ -812,7 +811,7 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 		}
 
 		this.activeAnnotation.updateVisualization()
-        this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
+		this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
 	}
 
 	/**
@@ -1216,9 +1215,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			}
 		}
 
-		if (modifications) {
+		if (modifications)
 			this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
-		}
 	}
 
 	/**
@@ -1458,9 +1456,8 @@ export class AnnotationManager extends React.Component<IProps, IState> {
 			modified = true
 		}
 
-		if (modified) {
+		if (modified)
 			this.props.channel.emit(Events.ANNOTATIONS_MODIFIED)
-		}
 
 		return modified
 	}

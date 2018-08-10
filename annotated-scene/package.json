@@ -8,8 +8,8 @@
     "typecheck-watch": "npm run typecheck -- -w",
     "lint": "npm run lint-js && npm run lint-ts",
     "lint-watch": "npm run lint-js -- --watch & $p5=$!; npm run lint-ts -- --watch & p6=$!; wait $p5 $p6",
-    "lint-js": "esw --format codeframe '{src,etc}/**/*.{js,json}' '.eslintrc*' 'package.json'",
-    "lint-ts": "esw --format codeframe '{src,etc}/**/*.{ts,tsx}'",
+    "lint-js": "esw --format codeframe --no-eslintrc --config ./.eslintrc.js './**/{.,}*.{js,json}'",
+    "lint-ts": "esw --format codeframe --config ./src/.eslintrc.js 'src/**/*.{ts,tsx}'",
     "lint-fix": "npm run lint-js -- --fix; npm run lint-ts -- --fix"
   },
   "license": "UNLICENSED",

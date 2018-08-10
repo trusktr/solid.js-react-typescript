@@ -31,7 +31,7 @@ export default class AnnotatedSceneState {
 		Object.assign(this, o)
 	}
 
-	config?: any
+	config?: any // eslint-disable-line typescript/no-explicit-any
 
 	// ANNOTATOR SPECIFIC STATE
 	isLiveMode: boolean // toggles between live mode and recorded mode

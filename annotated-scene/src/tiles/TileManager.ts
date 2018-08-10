@@ -68,7 +68,7 @@ export abstract class TileManager implements TileManagerBase {
 		protected utmCoordinateSystem: UtmCoordinateSystem,
 		protected tileServiceClient: TileServiceClient,
 		protected channel: EventEmitter,
-		config: any,
+		config: any /* eslint-disable-line typescript/no-explicit-any */,
 	) {
 		this.coordinateSystemInitialized = false
 		this.superTiles = OrderedMap()

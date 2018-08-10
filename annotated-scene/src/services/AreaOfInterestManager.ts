@@ -24,7 +24,7 @@ const log = Logger(__filename)
 type AreaOfInterest = RangeSearch[]
 
 interface AreaOfInterestManagerProps {
-	config: any
+	config: any /* eslint-disable-line typescript/no-explicit-any */
 	getPointOfInterest?: () => THREE.Vector3
 	getCurrentRotation?: () => THREE.Quaternion
 	utmCoordinateSystem: UtmCoordinateSystem
