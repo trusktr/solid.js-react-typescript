@@ -5,19 +5,25 @@
 
 import * as React from 'react'
 import * as THREE from 'three'
-import config from '@/config'
-import CarManager from '@/kiosk/components/CarManager'
-import AnnotatedSceneState from '@/mapper-annotated-scene/src/store/state/AnnotatedSceneState'
-import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
-import {createStructuredSelector} from 'reselect'
-import FlyThroughManager from '@/kiosk/components/FlyThroughManager'
-import KioskMenuView from '@/kiosk/components/KioskMenuView'
-import Logger from '@/util/log'
-import AnnotatedSceneController from '@/mapper-annotated-scene/src/services/AnnotatedSceneController'
+import config from '@src/config'
+import CarManager from '../kiosk/components/CarManager'
+import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
+import FlyThroughManager from '../kiosk/components/FlyThroughManager'
+import KioskMenuView from '../kiosk/components/KioskMenuView'
+import Logger from '../util/log'
+import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
 import * as watch from 'watch'
-import TrajectoryPicker from '@/kiosk/TrajectoryPicker'
+import TrajectoryPicker from '../kiosk/TrajectoryPicker'
 import * as Electron from 'electron'
-import {ConfigDefault} from '@/config/ConfigDefault'
+import toProps from '@mapperai/annotated-scene/src/util/toProps'
+import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
+import {
+	LocationServerStatusClient,
+	LocationServerStatusLevel,
+} from './clients/LocationServerStatusClient'
+import StatusKey from './StatusKey'
+import {Events} from '@mapperai/annotated-scene/src/models/Events'
+import loadAnnotations from '../util/loadAnnotations'
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
@@ -34,23 +40,32 @@ export interface KioskState {
 	carManager?: CarManager
 	flyThroughManager?: FlyThroughManager
 	hasCalledSetup: boolean
-	isChildLoopAdded: boolean
 	trajectoryPicker?: TrajectoryPicker
+	controllerReady: boolean
 }
-@typedConnect(createStructuredSelector({
-	isCarInitialized: (state) => state.get(AnnotatedSceneState.Key).isCarInitialized,
-	isInitialOriginSet: (state) => state.get(AnnotatedSceneState.Key).isInitialOriginSet,
-	isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
-	isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
-	flyThroughEnabled: (state) => state.get(AnnotatedSceneState.Key).flyThroughEnabled,
-	}))
+@typedConnect(toProps(
+	'isCarInitialized',
+	'isInitialOriginSet',
+	'isLiveMode',
+	'isPlayMode',
+	'flyThroughEnabled',
+))
 export default class Kiosk extends React.Component<KioskProps, KioskState> {
+	private locationServerStatusClient: LocationServerStatusClient
+	private locationServerStatusMessageTimeout: number
+	private locationServeStatusMessageDuration: number
+
 	constructor(props: KioskProps) {
 		super(props)
 
+		this.locationServeStatusMessageDuration = 10000 // milliseconds
+		this.locationServerStatusMessageTimeout = 0
+		this.locationServerStatusClient = new LocationServerStatusClient(this.onLocationServerStatusUpdate)
+		this.locationServerStatusClient.connect()
+
 		this.state = {
 			hasCalledSetup: false,
-			isChildLoopAdded: false,
+			controllerReady: false,
 		}
 
 		const watchForRebuilds: boolean = config['startup.watch_for_rebuilds.enable'] || false
@@ -88,33 +103,47 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 		Electron.remote.getCurrentWindow().close()
 	}
 
-	async componentWillReceiveProps(newProps: KioskProps) {
-		if (!this.state.isChildLoopAdded && this.state.annotatedSceneController && this.state.flyThroughManager) {
-			// this is the transition from the Scene not being setup to when it is
-			// Since it's setup now let's setup the fly through manager
-			const flyThroughManager = this.state.flyThroughManager
-			// flyThroughManager.init() -- called on componentDidMount within FlyThroughManager
-			const controller = this.state.annotatedSceneController
+	// Display a UI element to tell the user what is happening with the location server.
+	// Error messages persist, and success messages disappear after a time-out.
+	onLocationServerStatusUpdate = (level: LocationServerStatusLevel, serverStatus: string): void => {
+		let className = ''
 
-			controller.addChildAnimationLoop(flyThroughManager.getAnimationLoop())
-
-			flyThroughManager.startLoop()
-
-			// Register key events
-			this.registerKeyDownEvents()
-
-			this.setState({isChildLoopAdded: true})
+		switch (level) {
+			case LocationServerStatusLevel.INFO:
+				className = 'statusOk'
+				this.delayLocationServerStatus()
+				break
+			case LocationServerStatusLevel.WARNING:
+				className = 'statusWarning'
+				this.cancelHideLocationServerStatus()
+				break
+			case LocationServerStatusLevel.ERROR:
+				className = 'statusError'
+				this.cancelHideLocationServerStatus()
+				break
+			default:
+				log.error('unknown LocationServerStatusLevel ' + LocationServerStatusLevel.ERROR)
 		}
 
-		if (newProps.isCarInitialized && newProps.isInitialOriginSet && !this.state.hasCalledSetup &&
-			this.state.annotatedSceneController && this.state.carManager && this.state.flyThroughManager
-		) {
-			await this.state.flyThroughManager.loadUserData()
+		const message = <div> Location status: <span className={className}> {serverStatus} </span> </div>
 
-			// At this point the car model has been loaded and user data has also been loaded, we're ready for listen()
-			// this only gets called once because then state.hasCalledSetup is set to True
-			this.listen()
-		}
+		new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, message)
+	}
+
+	private delayLocationServerStatus = (): void => {
+		this.cancelHideLocationServerStatus()
+		this.hideLocationServerStatus()
+	}
+
+	private cancelHideLocationServerStatus = (): void => {
+		if (this.locationServerStatusMessageTimeout)
+			window.clearTimeout(this.locationServerStatusMessageTimeout)
+	}
+
+	private hideLocationServerStatus = (): void => {
+		this.locationServerStatusMessageTimeout = window.setTimeout(() => {
+			new StatusWindowActions().setMessage(StatusKey.LOCATION_SERVER, '')
+		}, this.locationServeStatusMessageDuration)
 	}
 
 	private registerKeyDownEvents(): void {
@@ -142,10 +171,10 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	}
 
 	// this gets called after the CarManager is instantiated
-	private listen(): void {
+	private beginFlyThrough(): void {
 		if (this.state.hasCalledSetup) return
 
-		log.info('Listening for messages...')
+		log.info('Listening for location updates...')
 
 		this.setState({
 			hasCalledSetup: true,
@@ -169,7 +198,7 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 			this.state.flyThroughManager.resumePlayMode()
 			this.state.flyThroughManager.initClient()
 		} else {
-			log.error('Error in listen() - flyThroughManager expected, but not found')
+			log.error('Error in beginFlyThrough() - flyThroughManager expected, but not found')
 		}
 
 		this.state.annotatedSceneController!.shouldRender()
@@ -221,11 +250,32 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 	onPointOfInterestCall = (): THREE.Vector3 => new THREE.Vector3(0, 0, 0)
 	onCurrentRotation = (): THREE.Quaternion => new THREE.Quaternion()
 
-	componentDidUpdate(oldProps) {
+	async componentDidUpdate(oldProps, oldState) {
+		if (!oldState.annotatedSceneController && this.state.annotatedSceneController) {
+			this.state.annotatedSceneController.channel.once(Events.ANNOTATED_SCENE_READY, async() => {
+				this.setState({controllerReady: true})
+				this.registerKeyDownEvents()
+
+				const annotationsPath = config['startup.annotations_path']
+
+				if (annotationsPath) await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
+			})
+		}
+
 		if (!oldProps.isCarInitialized && this.props.isCarInitialized) {
 			this.onPointOfInterestCall = () => this.state.carManager!.getCarModelPosition()
 			this.onCurrentRotation = () => this.state.carManager!.getCarModelRotation()
 			this.forceUpdate()
+		}
+
+		if (
+			!this.state.hasCalledSetup && this.state.controllerReady &&
+			this.props.isCarInitialized && this.props.isInitialOriginSet &&
+			this.state.carManager && this.state.flyThroughManager
+		) {
+			await this.state.flyThroughManager.loadUserData()
+
+			this.beginFlyThrough()
 		}
 	}
 
@@ -238,7 +288,13 @@ export default class Kiosk extends React.Component<KioskProps, KioskState> {
 					ref={this.getAnnotatedSceneControllerRef}
 					onPointOfInterestCall={this.onPointOfInterestCall}
 					onCurrentRotation={this.onCurrentRotation}
-					initialBoundingBox={config['startup.point_cloud_bounding_box'] || ConfigDefault.StartupPointCloudBoundingBox}
+					config={{
+						// required
+						'startup.point_cloud_bounding_box': config['startup.point_cloud_bounding_box'],
+
+						// other ones optional
+						...config,
+					}}
 				/>
 
 				{this.state.annotatedSceneController &&

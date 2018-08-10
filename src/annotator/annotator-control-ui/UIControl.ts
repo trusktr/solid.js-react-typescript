@@ -3,10 +3,10 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {LaneType, LaneLineType, LaneLineColor, LaneEntryExitType} from '@/mapper-annotated-scene/annotations/Lane'
-import {TrafficDeviceType} from '@/mapper-annotated-scene/annotations/TrafficDevice'
-import {BoundaryType, BoundaryColor} from '@/mapper-annotated-scene/annotations/Boundary'
-import {ConnectionType} from '@/mapper-annotated-scene/annotations/Connection'
+import {LaneType, LaneLineType, LaneLineColor, LaneEntryExitType} from '@mapperai/annotated-scene/src/annotations/Lane'
+import {TrafficDeviceType} from '@mapperai/annotated-scene/src/annotations/TrafficDevice'
+import {BoundaryType, BoundaryColor} from '@mapperai/annotated-scene/src/annotations/Boundary'
+import {ConnectionType} from '@mapperai/annotated-scene/src/annotations/Connection'
 
 export default
 function initUIControl(): void {

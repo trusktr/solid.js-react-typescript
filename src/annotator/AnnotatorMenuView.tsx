@@ -4,10 +4,8 @@
  */
 
 import * as React from 'react'
-import '!!css-loader!jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
-import './style.scss'
-import initUIControl from '@/annotator/annotator-control-ui/UIControl'
-import Help from '@/annotator/components/Help'
+import initUIControl from '../annotator/annotator-control-ui/UIControl'
+import Help from '../annotator/components/Help'
 
 interface AnnotatorMenuViewProps {
 	uiMenuVisible: boolean
@@ -80,22 +78,6 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
 						<div id="property_1_territory" className="fieldset_content_style">
 							<span className="label_style"> Label </span>
 							<input id="input_label_territory" />
-						</div>
-					</div>
-				</div>
-				<div id="menu_trajectory" className="accordion">
-					<h3 id="exp_head_5" className="dropdown_head"> Trajectory </h3>
-					<div id="exp_body_5" className="dropdown_body">
-						<div id="trajectory_1" className="fieldset_content_style">
-							<span id="tr_add_text" className="label_style"> Add to trajectory </span>
-							<button id="tr_add" className="button_inline"> Add </button>
-						</div>
-						<div id="trajectory_2" className="fieldset_content_style">
-							<span id="tr_show_text" className="label_style"> Show trajectory </span>
-							<button id="tr_show" className="button_inline"> Show </button>
-						</div>
-						<div id="trajectory_3" className="fieldset_content_style">
-							<button id="save_path" className="button_inline"> Save To File </button>
 						</div>
 					</div>
 				</div>

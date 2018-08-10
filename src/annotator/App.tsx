@@ -4,14 +4,13 @@
  */
 
 import * as React from 'react'
-import '!!css-loader!jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
-import './style.scss'
-import config from '@/config'
-import * as logo from '../annotator-assets/images/signature_with_arrow_white.png'
-import StatusWindowActions from '@/mapper-annotated-scene/StatusWindowActions'
-import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts'
-import Kiosk from '@/kiosk/Kiosk'
-import Annotator from '@/annotator/Annotator'
+import config from '@src/config'
+import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
+import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
+import Kiosk from '../kiosk/Kiosk'
+import Annotator from '../annotator/Annotator'
+// TODO JOE eventually move this into the shared lib
+import logo from '../annotator-assets/images/signature_with_arrow_white.png'
 
 interface AppProps {}
 

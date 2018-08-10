@@ -67,7 +67,7 @@
 //   }
 //
 //   @ActionReducer()
-//   setCarPose(pose:Models.PoseMessage) {
+//   setCarPose(pose:MapperProtos.mapper.models.PoseMessage) {
 //	 // log.info("Setting car pose", pose)
 //	 return (kioskState: KioskState) => new KioskState({
 //	   ...kioskState, carPose: pose

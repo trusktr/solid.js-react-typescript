@@ -4,25 +4,25 @@
  */
 
 import * as React from 'react'
-import AnnotatedSceneState from '@/mapper-annotated-scene/src/store/state/AnnotatedSceneState'
-import {FlyThroughState, FlyThroughTrajectory} from '@/mapper-annotated-scene/src/models/FlyThroughState'
-import StatusWindowActions from '@/mapper-annotated-scene/StatusWindowActions'
-import {ChildAnimationLoop} from 'animation-loop'
-import config from '@/config'
+import AnnotatedSceneState from '@mapperai/annotated-scene/src/store/state/AnnotatedSceneState'
+import {FlyThroughState, FlyThroughTrajectory} from '../FlyThroughState'
+import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
+import config from '@src/config'
 import * as AsyncFile from 'async-file'
-import {dataSetNameFromPath} from '@/util/Perception'
+import {dataSetNameFromPath} from '../../util/Perception'
 import * as MapperProtos from '@mapperai/mapper-models'
-import Logger from '@/util/log'
+import Logger from '../../util/log'
 import * as Electron from 'electron'
-import {StatusKey} from '@/mapper-annotated-scene/src/models/StatusKey'
-import CarManager from '@/kiosk/components/CarManager'
+import StatusKey from '../StatusKey'
+import CarManager from './CarManager'
 import * as zmq from 'zmq'
-import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
-import AnnotatedSceneActions from '@/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
-import AnnotatedSceneController from '@/mapper-annotated-scene/src/services/AnnotatedSceneController'
-import {getAnnotatedSceneStore} from '@/mapper-annotated-scene/src/store/AppStore'
-import toProps from '@/util/toProps'
-import Models = MapperProtos.mapper.models
+import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
+import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
+import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
+import {getAnnotatedSceneStore} from '@mapperai/annotated-scene/src/store/AppStore'
+import toProps from '@mapperai/annotated-scene/src/util/toProps'
+import {Events} from '@mapperai/annotated-scene/src/models/Events'
+import AnimationLoop from 'animation-loop'
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -37,7 +37,6 @@ export interface FlyThroughManagerProps {
 	flyThroughEnabled?: boolean
 }
 export interface FlyThroughManagerState {
-	flyThroughLoop: ChildAnimationLoop
 	liveSubscribeSocket: zmq.Socket | null
 	flyThroughState: FlyThroughState
 }
@@ -49,14 +48,22 @@ export interface FlyThroughManagerState {
 	'flyThroughEnabled',
 ))
 export default class FlyThroughManager extends React.Component<FlyThroughManagerProps, FlyThroughManagerState> {
+	private flyThroughLoop: AnimationLoop | undefined
+
 	constructor(props: FlyThroughManagerProps) {
 		super(props)
 
-		const loop = new ChildAnimationLoop()
-		const flyThroughFps = config['fly_through.animation.fps']
-		const flyThroughInterval = flyThroughFps === 'device' ? 0 : 1 / (flyThroughFps || 10)
+		props.annotatedSceneController.channel.once(Events.ANNOTATED_SCENE_READY, () => {
+			this.flyThroughLoop = props.annotatedSceneController.addChildAnimationLoop()
 
-		loop.interval = flyThroughInterval
+			const flyThroughFps = config['fly_through.animation.fps']
+			const flyThroughInterval = flyThroughFps === 'device' ? 0 : 1 / (flyThroughFps || 10)
+
+			this.flyThroughLoop.interval = flyThroughInterval
+
+			this.startLoop()
+			this.init()
+		})
 
 		const flyThroughState = new FlyThroughState({
 			trajectories: [],
@@ -66,11 +73,9 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 		})
 
 		this.state = {
-			flyThroughLoop: loop,
 			liveSubscribeSocket: null,
 			flyThroughState: flyThroughState,
 		}
-		// new AnnotatedSceneActions().updateFlyThroughState(this.flyThroughState)
 	}
 
 	componentWillReceiveProps(newProps) {
@@ -105,23 +110,15 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 		return trajectoryResult
 	}
 
-	componentDidMount() {
-		this.init().then()
-	}
+	private init() {
+		getAnnotatedSceneStore().observe([AnnotatedSceneState.Key, 'isPlayMode'], (newValue: Boolean, __oldValue: Boolean, __observer) => {
+			log.info('isPlayMode changed, new value is', newValue)
 
-	async init() {
-		try {
-			log.info('Setting up FlyThroughManager')
+			console.log(' ######################################################################################### ', newValue)
 
-			getAnnotatedSceneStore().observe([AnnotatedSceneState.Key, 'isPlayMode'], (newValue: Boolean, __oldValue: Boolean, __observer) => {
-				log.info('isPlayMode changed, new value is', newValue)
-
-				if (newValue) this.startLoop()
-				else this.pauseLoop()
-			})
-		} catch (err) {
-			console.log('ERROR OCCURRED ON FLY THROUGH LISTEN')
-		}
+			if (newValue) this.startLoop()
+			else this.pauseLoop()
+		})
 	}
 
 	getCurrentFlyThroughTrajectory(): FlyThroughTrajectory {
@@ -154,25 +151,19 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 		new StatusWindowActions().setMessage(StatusKey.FLY_THROUGH_TRAJECTORY, message)
 	}
 
-	getAnimationLoop() {
-		return this.state.flyThroughLoop
-	}
-
 	startLoop() {
-		this.state.flyThroughLoop.start()
+		this.flyThroughLoop.start()
 	}
 
 	pauseLoop() {
-		this.state.flyThroughLoop.pause()
+		this.flyThroughLoop.pause()
 	}
 
 	startFlyThrough(): void {
 		log.info('Starting flyThrough')
 		this.setFlyThroughMessage()
 
-		const flyThroughLoop = this.state.flyThroughLoop
-
-		flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
+		this.flyThroughLoop.addAnimationFn(this.flyThroughAnimation)
 	}
 
 	private flyThroughAnimation = (): boolean => {
@@ -235,14 +226,14 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 
 			if (this.props.flyThroughEnabled) return
 
-			const state = Models.InertialStateMessage.decode(msg)
+			const state = MapperProtos.mapper.models.InertialStateMessage.decode(msg)
 
 			if (
 				state.pose &&
 				state.pose.x != null && state.pose.y != null && state.pose.z != null &&
 				state.pose.q0 != null && state.pose.q1 != null && state.pose.q2 != null && state.pose.q3 != null
 			)
-				this.props.carManager.updateCarWithPose(state.pose as Models.PoseMessage)
+				this.props.carManager.updateCarWithPose(state.pose as MapperProtos.mapper.models.PoseMessage)
 			else
 				log.warn('got an InertialStateMessage without a pose')
 		})
@@ -281,14 +272,14 @@ export default class FlyThroughManager extends React.Component<FlyThroughManager
 				const trajectories = tuples.map(tuple => {
 					const path = tuple[0]
 					const buffer = tuple[1]
-					const msg = Models.TrajectoryMessage.decode(buffer)
+					const msg = MapperProtos.mapper.models.TrajectoryMessage.decode(buffer)
 					const poses = msg.states
 						.filter(state =>
 							state && state.pose &&
 							state.pose.x !== null && state.pose.y !== null && state.pose.z !== null &&
 							state.pose.q0 !== null && state.pose.q1 !== null && state.pose.q2 !== null && state.pose.q3 !== null
 						)
-						.map(state => state.pose! as Models.PoseMessage)
+						.map(state => state.pose! as MapperProtos.mapper.models.PoseMessage)
 					const dataSetName = dataSetNameFromPath(path)
 
 					return {

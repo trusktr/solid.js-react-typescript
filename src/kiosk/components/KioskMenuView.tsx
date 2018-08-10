@@ -4,14 +4,10 @@
  */
 
 import * as React from 'react'
-// TODO JOE don't use webpack-specific syntax in the import statements
-import '!!css-loader!jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
-import '@/annotator/style.scss'
-import {typedConnect} from '@/mapper-annotated-scene/src/styles/Themed'
-import AnnotatedSceneState from 'mapper-annotated-scene/src/store/state/AnnotatedSceneState'
-import {createStructuredSelector} from 'reselect'
-import AnnotatedSceneActions from 'mapper-annotated-scene/src/store/actions/AnnotatedSceneActions.ts'
-import FlyThroughManager from '@/kiosk/components/FlyThroughManager'
+import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
+import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
+import FlyThroughManager from '../../kiosk/components/FlyThroughManager'
+import toProps from '@mapperai/annotated-scene/src/util/toProps'
 
 interface KioskViewProps {
 	isLiveMode?: boolean
@@ -23,11 +19,11 @@ interface KioskViewProps {
 
 interface KioskViewState {}
 
-@typedConnect(createStructuredSelector({
-	isLiveMode: (state) => state.get(AnnotatedSceneState.Key).isLiveMode,
-	isPlayMode: (state) => state.get(AnnotatedSceneState.Key).isPlayMode,
-	uiMenuVisible: (state) => state.get(AnnotatedSceneState.Key).uiMenuVisible,
-	}))
+@typedConnect(toProps(
+	'isLiveMode',
+	'isPlayMode',
+	'uiMenuVisible',
+))
 export default class KioskMenuView extends React.Component<KioskViewProps, KioskViewState> {
 	constructor(props: KioskViewProps) {
 		super(props)

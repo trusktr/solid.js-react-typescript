@@ -6,7 +6,7 @@ import * as yaml from 'nconf-yaml'
 import * as path from 'path'
 import * as fs from 'fs'
 import * as Electron from 'electron'
-import createPromise from '@/util/createPromise'
+import createPromise from '../util/createPromise'
 
 const config = {}
 

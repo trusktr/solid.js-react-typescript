@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
-        "allowSyntheticDefaultImports": true,
+        "allowSyntheticDefaultImports": false,
+		"esModuleInterop": false,
         "alwaysStrict": true,
         "baseUrl": "./src",
         "declaration": false,
@@ -13,40 +14,24 @@
         "moduleResolution": "node",
         "noFallthroughCasesInSwitch": true,
         "noImplicitReturns": true,
+        "noImplicitAny": false,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "outDir": "./dist/out",
-        "paths": {
-			"*": [ "*" ],
-			"assets/*": [ "annotator-assets/*" ],
-			"@/*": [ "*" ]
-		},
         "preserveConstEnums": true,
         "pretty": true,
         "sourceMap": true,
 		"strictNullChecks": true,
 		"target": "es6",
-		"skipLibCheck": true
+		"skipLibCheck": true,
+        "paths": {
+			"*": [ "*" ],
+			"@src/*": [ "*" ]
+		}
     },
     "compileOnSave": true,
     "include": [
-        "src"
-    ],
-    "awesomeTypescriptLoaderOptions": {
-        "useBabel": false,
-        "forkChecker": true,
-        "useCache": true,
-        "cacheDirectory": "dist/.awcache",
-        "babelOptions": {
-            "sourceMaps": "both",
-            "env": {
-                "development": {
-                    "plugins": [
-                        "react-hot-loader/babel"
-                    ]
-                }
-            }
-        }
-    }
-
+        "src/**/*",
+        "node_modules/@mapperai/annotated-scene/src/**/*"
+    ]
 }

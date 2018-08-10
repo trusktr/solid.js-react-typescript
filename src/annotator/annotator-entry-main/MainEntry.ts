@@ -3,8 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import * as Url from 'url'
-import * as Path from 'path'
+import getFileUrl from '../../util/getFileUrl'
 import * as Electron from 'electron'
 import restoreWindowState from './restoreWindowState'
 
@@ -24,7 +23,7 @@ const isSecondInstance = app.makeSingleInstance(() => {
 if (isSecondInstance) app.quit()
 
 function createWindow(): void {
-	const windowName = 'browser-entry'
+	const windowName = 'annotator/BrowserEntry'
 
 	win = new Electron.BrowserWindow({
 		show: false,
@@ -41,11 +40,7 @@ function createWindow(): void {
 	})
 
 	// and load the index.html of the app.
-	win.loadURL(Url.format({
-		pathname: Path.join(process.cwd(), `dist/app/${windowName}.html`),
-		protocol: 'file:',
-		slashes: true,
-	}))
+	win.loadURL(getFileUrl(`${windowName}.html`))
 
 	// Emitted when the window is closed.
 	win.on('closed', () => {
