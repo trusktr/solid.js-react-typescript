@@ -255,10 +255,10 @@ export class RestTileServiceClient extends MapperTileServiceClient {
 	getTilesByTileIds(layerId: LayerId, tileIds: TileIndex[]): Promise<TileInstance[]> {
 		// TODO clyde implement
 		log.info('layerId', layerId, 'tileIds', tileIds.length)
-		const tableName: string = "bla-bla" // Calculate table name
-		const token: string = "bla-bla-token"
-		const apiVersion = "1"
 
+		const tableName = 'bla-bla' // Calculate table name
+		const token = 'bla-bla-token'
+		const apiVersion = '1'
 		const requestItems = tileIds.map(id => RestTileServiceClient.convertToRequestItem(tableName, id.toString()))
 		const tilesRequest: TilesRequest = {requests: requestItems}
 
@@ -272,8 +272,8 @@ export class RestTileServiceClient extends MapperTileServiceClient {
 		log.info('url', url)
 
 		const r: GetObjectRequest = {} as GetObjectRequest
-
 		const s3 = new S3()
+
 		s3.getObject(r)
 
 		return Promise.reject(Error('getTileContents() not implemented'))
