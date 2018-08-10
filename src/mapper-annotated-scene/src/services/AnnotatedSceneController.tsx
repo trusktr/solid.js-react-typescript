@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+import config from '../../../config'
 import * as Electron from 'electron'
 import * as React from 'react'
 import {getValue} from 'typeguard'
@@ -19,7 +20,7 @@ import LayerManager, {Layer, LayerToggle} from '../../src/services/LayerManager'
 import {UtmCoordinateSystem} from '../../UtmCoordinateSystem'
 import {EventEmitter} from 'events'
 import {PointCloudTileManager} from '../../tile/PointCloudTileManager'
-import {TileServiceClient} from '../../tile/TileServiceClient'
+import {GrpcTileServiceClient, RestTileServiceClient, MapperTileServiceClient} from '../../tile/TileServiceClient'
 import {ScaleProvider} from '../../tile/ScaleProvider'
 import * as OBJLoader from 'three-obj-loader'
 import {AnnotationTileManager} from '../../tile/AnnotationTileManager'
@@ -44,9 +45,14 @@ OBJLoader(THREE)
 const dialog = Electron.remote.dialog
 const timeBetweenErrorDialogsMs = 30000
 
-export interface CameraState {
+interface CameraState {
 	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
 }
+
+interface AnnotatedSceneControllerSettings {
+	useGrpcClient: boolean // Old style uses a gRPC client; new style uses a Swagger auto-generated REST client.
+}
+
 export interface AnnotatedSceneControllerProps {
 	backgroundColor?: THREEColorValue
 	onPointOfInterestCall?: () => THREE.Vector3
@@ -82,9 +88,9 @@ export interface AnnotatedSceneControllerState {
 ))
 export default class AnnotatedSceneController extends React.Component<AnnotatedSceneControllerProps, AnnotatedSceneControllerState> {
 	public utmCoordinateSystem: UtmCoordinateSystem
-
+	private settings: AnnotatedSceneControllerSettings
 	private scaleProvider: ScaleProvider
-	private tileServiceClient: TileServiceClient
+	private tileServiceClient: MapperTileServiceClient
 	private pointCloudTileManager: PointCloudTileManager
 	channel: EventEmitter
 	lastPointCloudLoadedErrorModalMs: number
@@ -96,6 +102,10 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 
 	constructor(props: AnnotatedSceneControllerProps) {
 		super(props)
+
+		this.settings = {
+			useGrpcClient: !!config['tile_client.service.use_grpc'],
+		}
 
 		this.state = {
 			cameraState: {
@@ -109,7 +119,10 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.channel = new EventEmitter()
 		this.utmCoordinateSystem = new UtmCoordinateSystem()
 		this.scaleProvider = new ScaleProvider()
-		this.tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel)
+
+		this.tileServiceClient = this.settings.useGrpcClient
+			? new GrpcTileServiceClient(this.scaleProvider, this.channel)
+			: new RestTileServiceClient(this.scaleProvider, this.channel)
 
 		this.pointCloudTileManager = new PointCloudTileManager(
 			this.scaleProvider,

@@ -28,7 +28,7 @@ function detectRenderer(): boolean {
 
 const isRenderer = detectRenderer()
 const isMain = !isRenderer
-const envInput = (process.env.MAPPER_ENV || '').toLowerCase()
+const envInput = (process.env.NODE_ENV || '').toLowerCase()
 
 let deployEnv
 
@@ -39,7 +39,7 @@ else if (envInput === 'dev' || envInput === 'development' || envInput === '')
 else if (envInput === 'test')
 	deployEnv = 'test'
 else
-	throw new Error('Unknown environment name: MAPPER_ENV=' + envInput)
+	throw new Error('Unknown environment name: NODE_ENV=' + envInput)
 
 interface IMeta {
 	APP_PATH: string
@@ -102,7 +102,7 @@ async function setupConfig(): Promise<void> {
 	const envFile = path.join(dirName, deployEnv + '.yaml')
 
 	if (!fs.existsSync(envFile))
-		throw new Error(`Bad environment variable MAPPER_ENV=${deployEnv}. Missing required config file ${envFile}.`)
+		throw new Error(`Bad environment variable NODE_ENV=${deployEnv}. Missing required config file ${envFile}.`)
 
 	const required = [
 		'tile_manager.utm_tile_scale',
@@ -132,4 +132,5 @@ async function setupConfig(): Promise<void> {
 	resolveConfig(config)
 }
 
+// TODO clyde tie this to connect()?
 setupConfig()

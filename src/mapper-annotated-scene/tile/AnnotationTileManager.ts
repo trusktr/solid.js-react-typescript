@@ -6,7 +6,7 @@
 import {TileManager} from './TileManager'
 import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
 import {SuperTile} from './SuperTile'
-import {TileServiceClient} from './TileServiceClient'
+import {MapperTileServiceClient} from './TileServiceClient'
 import config from '../../config'
 import {CoordinateFrameType} from '../geometry/CoordinateFrame'
 import {TileIndex} from '../tile-model/TileIndex'
@@ -25,7 +25,7 @@ export class AnnotationTileManager extends TileManager {
 	constructor(
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
-		tileServiceClient: TileServiceClient,
+		tileServiceClient: MapperTileServiceClient,
 		channel: EventEmitter,
 		private annotationManager: AnnotationManager,
 	) {
