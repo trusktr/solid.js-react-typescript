@@ -23,7 +23,9 @@ import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/Ann
 import {Events} from '@mapperai/annotated-scene/src/models/Events'
 
 class MyComponent extends React.Component {
-	constructor() {
+	constructor(props) {
+		super(props)
+
 		this.state = {
 			sceneController: null,
 		}
