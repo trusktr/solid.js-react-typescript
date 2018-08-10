@@ -16,7 +16,7 @@ import {PointCloudSuperTile} from './PointCloudSuperTile'
 import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
 import {convertToStandardCoordinateFrame, CoordinateFrameType} from '../geometry/CoordinateFrame'
 import {TileIndex} from '../tiles/tile-model/TileIndex'
-import {TileServiceClient} from './TileServiceClient'
+import {MapperTileServiceClient} from './TileServiceClient'
 import {TileInstance} from '../tiles/tile-model/TileInstance'
 import Logger from '../util/log'
 import {TileManager, TileManagerConfig} from './TileManager'
@@ -55,7 +55,7 @@ export class PointCloudTileManager extends TileManager {
 	constructor(
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
-		tileServiceClient: TileServiceClient,
+		tileServiceClient: MapperTileServiceClient,
 		channel: EventEmitter,
 		config: any /* eslint-disable-line typescript/no-explicit-any */,
 	) {

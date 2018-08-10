@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+import config from '../../../config'
 import * as Electron from 'electron'
 import * as React from 'react'
 import * as THREE from 'three'
@@ -17,7 +18,7 @@ import LayerManager, {Layer, LayerToggle} from '../services/LayerManager'
 import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
 import {EventEmitter} from 'events'
 import {PointCloudTileManager} from '../tiles/PointCloudTileManager'
-import {TileServiceClient} from '../tiles/TileServiceClient'
+import {GrpcTileServiceClient, RestTileServiceClient, MapperTileServiceClient} from '../tiles/TileServiceClient'
 import {ScaleProvider} from '../tiles/ScaleProvider'
 import {AnnotationTileManager} from '../tiles/AnnotationTileManager'
 import StatusWindowActions from '../StatusWindowActions'
@@ -45,9 +46,14 @@ interface Config {
 	[key: string]: any // eslint-disable-line typescript/no-explicit-any
 }
 
-export interface CameraState {
+interface CameraState {
 	lastCameraCenterPoint: THREE.Vector3 | null // point in three.js coordinates where camera center line has recently intersected ground plane
 }
+
+interface AnnotatedSceneControllerSettings {
+	useGrpcClient: boolean // Old style uses a gRPC client; new style uses a Swagger auto-generated REST client.
+}
+
 export interface AnnotatedSceneControllerProps {
 	config?: Config,
 	backgroundColor?: THREEColorValue
@@ -83,8 +89,9 @@ export interface AnnotatedSceneControllerState {
 export default class AnnotatedSceneController extends React.Component<AnnotatedSceneControllerProps, AnnotatedSceneControllerState> {
 	public utmCoordinateSystem: UtmCoordinateSystem
 
+	private settings: AnnotatedSceneControllerSettings
 	readonly scaleProvider: ScaleProvider
-	private tileServiceClient: TileServiceClient
+	private tileServiceClient: MapperTileServiceClient
 	private pointCloudTileManager: PointCloudTileManager
 	readonly channel: EventEmitter
 	private lastPointCloudLoadedErrorModalMs: number
@@ -107,6 +114,10 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.tileServerStatusTimeout = 0
 		this.tileServerStatusMessageDuration = 10000
 
+		this.settings = {
+			useGrpcClient: !!config['tile_client.service.use_grpc'],
+		}
+
 		this.state = {
 			cameraState: {
 				lastCameraCenterPoint: null,
@@ -119,7 +130,10 @@ export default class AnnotatedSceneController extends React.Component<AnnotatedS
 		this.channel = new EventEmitter()
 		this.utmCoordinateSystem = new UtmCoordinateSystem()
 		this.scaleProvider = new ScaleProvider(this.config)
-		this.tileServiceClient = new TileServiceClient(this.scaleProvider, this.channel, this.config)
+
+		this.tileServiceClient = this.settings.useGrpcClient
+			? new GrpcTileServiceClient(this.scaleProvider, this.channel, this.config)
+			: new RestTileServiceClient(this.scaleProvider, this.channel, this.config)
 
 		this.channel.on(Events.TILE_SERVICE_STATUS_UPDATE, (status) => {
 			this.onTileServiceStatusUpdate(status)

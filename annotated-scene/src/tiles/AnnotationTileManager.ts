@@ -6,7 +6,7 @@
 import {TileManager} from './TileManager'
 import {UtmCoordinateSystem} from '../UtmCoordinateSystem'
 import {SuperTile} from './SuperTile'
-import {TileServiceClient} from './TileServiceClient'
+import {MapperTileServiceClient} from './TileServiceClient'
 import {CoordinateFrameType} from '../geometry/CoordinateFrame'
 import {TileIndex} from '../tiles/tile-model/TileIndex'
 import {AnnotationSuperTile} from './AnnotationSuperTile'
@@ -24,7 +24,7 @@ export class AnnotationTileManager extends TileManager {
 	constructor(
 		scaleProvider: ScaleProvider,
 		utmCoordinateSystem: UtmCoordinateSystem,
-		tileServiceClient: TileServiceClient,
+		tileServiceClient: MapperTileServiceClient,
 		channel: EventEmitter,
 		private annotationManager: AnnotationManager,
 		config: any /* eslint-disable-line typescript/no-explicit-any */,

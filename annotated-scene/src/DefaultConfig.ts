@@ -27,6 +27,7 @@ class AnnotatedSceneDefaultConfig {
 	'tile_client.service.health_check.interval.seconds' = 3
 	'tile_client.service.host' = 'localhost'
 	'tile_client.service.port' = 30123
+	'tile_client.service.use_grpc' = true
 
 	// annotator controls
 	'annotator.add_points_to_estimated_ground_plane' = true
