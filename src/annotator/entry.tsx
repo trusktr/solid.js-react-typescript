@@ -13,7 +13,8 @@ import * as ReactDOM from 'react-dom'
 import App from './App'
 import * as packageDotJson from '../../package.json'
 import {getAnnotatedSceneReduxStore} from '@mapperai/annotated-scene/src/store/AppStore'
-import * as services from '@mapperai/annotated-scene/src/services'
+import {loadAnnotatedSceneStore} from '@mapperai/annotated-scene/src/services'
+// import * as services from '@mapperai/annotated-scene/src/services'
 import {Provider} from 'react-redux'
 import {getMeta, configReady} from '@src/config'
 
@@ -43,7 +44,8 @@ export async function start(): Promise<void> {
 		(IN_SAFFRON && typeof (packageDotJson as any).htmlEntry !== 'undefined')
 
 	) {
-		services.loadStore()
+		// services.loadStore()
+		loadAnnotatedSceneStore()
 
 		const root = $('#root')[0]
 
