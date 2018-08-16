@@ -4,7 +4,7 @@
   "appID": "Annotator",
   "version": "1.0.0",
   "description": "Mapper.ai Point Cloud Annotator",
-  "main": "TODO dist/app/annotator-entry-ui.js",
+  "htmlEntry": "src/annotator/BrowserEntry.html",
   "scripts": {
     "start": "electron src/annotator/annotator-entry-main/index.js",
     "dev": "npm run lint-watch & p1=$!; npm run typecheck-watch & p2=$!; npm start & p3=$!; wait $p1 $p2 $p3",
