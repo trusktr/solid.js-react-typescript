@@ -21,6 +21,10 @@ require('ts-node').register({
 		// ignore all node_modules except @mapperai/annotated-scene
 		/node_modules(?!\/@mapperai\/annotated-scene)/,
 	],
+	// manually supply our own compilerOptions, otherwise if we run this file
+	// from another project's location (f.e. from Saffron) then ts-node will use
+	// the compilerOptions from that other location, which may not work.
+	compilerOptions: require('./tsconfig.json').compilerOptions
 })
 
 // css files straight to document head (assumes that the browser `document` API
