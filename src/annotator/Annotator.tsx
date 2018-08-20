@@ -52,9 +52,24 @@ import loadAnnotations from '../util/loadAnnotations'
 
 import makeS3TileServiceClientFactory from "@mapperai/annotated-scene/src/tiles/S3TileServiceClient"
 
-const credentialProvider = async () => ({accessKeyId: process.env["AWS_ACCESS_KEY_ID"] || '', secretAccessKey: process.env["AWS_SECRET_ACCESS_KEY"] || ''})
-const bucketProvider = () => 'jglanz-mapper-tiles'
-const S3TileServiceClientFactory = makeS3TileServiceClientFactory(credentialProvider, bucketProvider)
+// const credentialProvider = async () => ({
+// 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+// 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+// })
+
+// const credentialProvider = async () => ({
+// 	accessKeyId: 'AKIAJ327GOEKSAPADRDA',
+// 	secretAccessKey: '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'
+// })
+
+// readonly credentials for map tiles
+const credentialProvider = async () => ({
+	accessKeyId: 'AKIAJST3KIWMFTLEL6WA',
+	secretAccessKey: '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'
+})
+
+const bucketProvider = () => 'mapper-jglanz-tiles'
+// const bucketProvider = () => 'dexmonicus-mapper-tiles'
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -1748,7 +1763,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 					ref={this.getAnnotatedSceneRef}
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
-					tileServiceClientFactory={S3TileServiceClientFactory}
+					tileServiceClientFactory={makeS3TileServiceClientFactory(credentialProvider, bucketProvider)}
 					config={{
 						// required
 						'startup.point_cloud_bounding_box': config['startup.point_cloud_bounding_box'],
