@@ -49,7 +49,7 @@ export class LightboxWindowManager {
 
 		this.loadingWindow = true
 
-		const windowName = 'image-lightbox'
+		const windowName = 'imageLightbox'
 		const {promise, resolve}: {promise: Promise<void>, resolve: Resolve<void>} = createPromise<void, void>()
 		const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
 		const options = `${objectToFeatureString(savedState)},_blank`
