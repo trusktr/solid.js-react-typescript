@@ -57,11 +57,6 @@ import makeS3TileServiceClientFactory from "@mapperai/mapper-annotated-scene/src
 // 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
 // })
 
-// const credentialProvider = async () => ({
-// 	accessKeyId: 'AKIAJ327GOEKSAPADRDA',
-// 	secretAccessKey: '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'
-// })
-
 // readonly credentials for map tiles
 const credentialProvider = async () => ({
 	accessKeyId: 'AKIAJST3KIWMFTLEL6WA',
