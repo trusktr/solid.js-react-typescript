@@ -4,17 +4,17 @@
  */
 
 import * as React from 'react'
-import OBJLoader from '@mapperai/annotated-scene/src/services/OBJLoader'
+import OBJLoader from '@mapperai/mapper-annotated-scene/src/services/OBJLoader'
 import * as THREE from 'three'
 import {
 	convertToStandardCoordinateFrame, CoordinateFrameType,
 	cvtQuaternionToStandardCoordinateFrame,
 } from '@mapperai/annotated-scene/src/geometry/CoordinateFrame'
-import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
+import AnnotatedSceneActions from '@mapperai/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
 import * as MapperProtos from '@mapperai/mapper-models'
-import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
-import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
-import toProps from '@mapperai/annotated-scene/src/util/toProps'
+import AnnotatedSceneController from '@mapperai/mapper-annotated-scene/src/services/AnnotatedSceneController'
+import {typedConnect} from '@mapperai/mapper-annotated-scene/src/styles/Themed'
+import toProps from '@mapperai/mapper-annotated-scene/src/util/toProps'
 import carModelOBJ from '../models/BMW_X5_4.obj'
 
 export interface CarManagerProps {

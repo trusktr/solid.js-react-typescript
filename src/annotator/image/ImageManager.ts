@@ -11,13 +11,13 @@ import {CalibratedImage} from './CalibratedImage'
 import {LightboxWindowManager} from '../annotator-image-lightbox/LightboxWindowManager'
 import * as IPCMessages from '../annotator-image-lightbox/IPCMessages'
 import {readImageMetadataFile} from './Aurora'
-import {UtmCoordinateSystem} from '@mapperai/annotated-scene/src/UtmCoordinateSystem'
+import {UtmCoordinateSystem} from '@mapperai/mapper-annotated-scene/src/UtmCoordinateSystem'
 import {AuroraCameraParameters} from './CameraParameters'
 import config from '@src/config'
 import Logger from '../../util/log'
 import {EventEmitter} from 'events'
-import {Events} from '@mapperai/annotated-scene/src/models/Events'
-import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
+import {Events} from '@mapperai/mapper-annotated-scene/src/models/Events'
+import AnnotatedSceneActions from '@mapperai/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog

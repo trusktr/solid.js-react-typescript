@@ -19,8 +19,8 @@ In your React component:
 
 ```js
 import * as React from 'react'
-import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
-import {Events} from '@mapperai/annotated-scene/src/models/Events'
+import AnnotatedSceneController from '@mapperai/mapper-annotated-scene/src/services/AnnotatedSceneController'
+import {Events} from '@mapperai/mapper-annotated-scene/src/models/Events'
 
 class MyComponent extends React.Component {
 	constructor(props) {
