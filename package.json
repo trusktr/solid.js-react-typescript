@@ -60,7 +60,6 @@
     "@mapperai/mapper-models": "1.9.8",
     "animation-loop": "1.4.0",
     "async-file": "2.0.2",
-    "aws-sdk": "2.279.1",
     "css-modules-require-hook": "4.2.3",
     "dat.gui": "0.7.1",
     "electron": "1.7.9",
