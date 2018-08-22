@@ -4,10 +4,10 @@
  */
 
 import * as React from 'react'
-import config from '@src/config'
-import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
-import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
-import Kiosk from '../kiosk/Kiosk'
+// import config from '@src/config'
+import StatusWindowActions from '@mapperai/mapper-annotated-scene/src/StatusWindowActions'
+import AnnotatedSceneActions from '@mapperai/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
+// import Kiosk from '../kiosk/Kiosk'
 import Annotator from '../annotator/Annotator'
 // TODO JOE eventually move this into the shared lib
 import logo from '../annotator-assets/images/signature_with_arrow_white.png'
@@ -32,10 +32,11 @@ export default class App extends React.Component<AppProps, AppState> {
 	render(): JSX.Element {
 		return <React.Fragment>
 
-			{ config['startup.kiosk_mode']
+			{/* config['startup.kiosk_mode']
 				? <Kiosk />
 				: <Annotator />
-			}
+			*/}
+			<Annotator />
 
 			<div id="logo">
 				<img

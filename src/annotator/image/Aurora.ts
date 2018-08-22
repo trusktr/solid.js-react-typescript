@@ -6,7 +6,7 @@
 import * as AsyncFile from 'async-file'
 import * as sizeOf from 'image-size'
 import {AuroraCameraParameters} from './CameraParameters'
-import {UtmCoordinateSystem} from '@mapperai/annotated-scene/src/UtmCoordinateSystem'
+import {UtmCoordinateSystem} from '@mapperai/mapper-annotated-scene/src/UtmCoordinateSystem'
 import config from '@src/config'
 
 // Convenience functions for Aurora data

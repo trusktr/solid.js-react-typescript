@@ -12,10 +12,10 @@ import * as IPCMessages from './IPCMessages'
 import WindowCommunicator from '../../util/WindowCommunicator'
 import createPromise, {Resolve} from '../../util/createPromise'
 import {EventEmitter} from 'events'
-import {Events} from '@mapperai/annotated-scene/src/models/Events'
+import {Events} from '@mapperai/mapper-annotated-scene/src/models/Events'
 import windowStateKeeper from 'electron-window-state'
-import KeyboardEventHighlights from '@mapperai/annotated-scene/src/models/KeyboardEventHighlights'
-import config, {getMeta} from '@src/config'
+import KeyboardEventHighlights from '@mapperai/mapper-annotated-scene/src/models/KeyboardEventHighlights'
+import config from '@src/config'
 
 interface LightboxWindowManagerSettings {
 	backgroundColor: string
@@ -49,7 +49,7 @@ export class LightboxWindowManager {
 
 		this.loadingWindow = true
 
-		const windowName = 'image-lightbox'
+		const windowName = 'imageLightbox'
 		const {promise, resolve}: {promise: Promise<void>, resolve: Resolve<void>} = createPromise<void, void>()
 		const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
 		const options = `${objectToFeatureString(savedState)},_blank`
@@ -85,7 +85,7 @@ export class LightboxWindowManager {
 		if (this.settings.openDevTools) win.webContents.openDevTools()
 
 		win.loadURL(Url.format({
-			pathname: Path.join((await getMeta()).APP_PATH, `dist/app/${windowName}.html`),
+			pathname: Path.resolve(__dirname, `${windowName}.html`),
 			protocol: 'file:',
 			slashes: true,
 		}))

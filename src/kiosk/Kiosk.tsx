@@ -7,22 +7,22 @@ import * as React from 'react'
 import * as THREE from 'three'
 import config from '@src/config'
 import CarManager from '../kiosk/components/CarManager'
-import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
+import {typedConnect} from '@mapperai/mapper-annotated-scene/src/styles/Themed'
 import FlyThroughManager from '../kiosk/components/FlyThroughManager'
 import KioskMenuView from '../kiosk/components/KioskMenuView'
 import Logger from '../util/log'
-import AnnotatedSceneController from '@mapperai/annotated-scene/src/services/AnnotatedSceneController'
+import AnnotatedSceneController from '@mapperai/mapper-annotated-scene/src/services/AnnotatedSceneController'
 import * as watch from 'watch'
 import TrajectoryPicker from '../kiosk/TrajectoryPicker'
 import * as Electron from 'electron'
-import toProps from '@mapperai/annotated-scene/src/util/toProps'
-import StatusWindowActions from '@mapperai/annotated-scene/src/StatusWindowActions'
+import toProps from '@mapperai/mapper-annotated-scene/src/util/toProps'
+import StatusWindowActions from '@mapperai/mapper-annotated-scene/src/StatusWindowActions'
 import {
 	LocationServerStatusClient,
 	LocationServerStatusLevel,
 } from './clients/LocationServerStatusClient'
 import StatusKey from './StatusKey'
-import {Events} from '@mapperai/annotated-scene/src/models/Events'
+import {Events} from '@mapperai/mapper-annotated-scene/src/models/Events'
 import loadAnnotations from '../util/loadAnnotations'
 
 const log = Logger(__filename)

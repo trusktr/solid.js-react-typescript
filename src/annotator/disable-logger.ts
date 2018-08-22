@@ -1,6 +1,6 @@
 /* eslint-disable typescript/no-explicit-any */
 
-const disableLogger = false
+const disableLogger = true
 
 if (disableLogger) {
 	const typelogger = require('typelogger') as any

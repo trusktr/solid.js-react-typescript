@@ -1,5 +1,5 @@
 import * as UUID from 'uuid'
-import {StatusKey as AnnotatedSceneStatusKey} from '@mapperai/annotated-scene/src/models/StatusKey'
+import {StatusKey as AnnotatedSceneStatusKey} from '@mapperai/mapper-annotated-scene/src/models/StatusKey'
 
 const StatusKey = {
 	...AnnotatedSceneStatusKey,
