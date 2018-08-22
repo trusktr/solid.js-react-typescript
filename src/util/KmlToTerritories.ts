@@ -5,9 +5,9 @@
 
 import * as THREE from 'three'
 import * as KML from 'gtran-kml'
-import {Territory} from '@mapperai/annotated-scene/src/annotations/Territory'
+import {Territory} from '@mapperai/mapper-annotated-scene/src/annotations/Territory'
 import * as lodash from 'lodash'
-import {UtmCoordinateSystem} from '@mapperai/annotated-scene/src/UtmCoordinateSystem'
+import {UtmCoordinateSystem} from '@mapperai/mapper-annotated-scene/src/UtmCoordinateSystem'
 
 // TODO CLYDE gtran-kml drops altitude data, which is totally lame. Find a library which doesn't do that, and get
 // TODO CLYDE   a better number from the KML. This one just tries to place territories below everything else.

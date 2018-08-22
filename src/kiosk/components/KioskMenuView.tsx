@@ -4,10 +4,10 @@
  */
 
 import * as React from 'react'
-import {typedConnect} from '@mapperai/annotated-scene/src/styles/Themed'
-import AnnotatedSceneActions from '@mapperai/annotated-scene/src/store/actions/AnnotatedSceneActions'
+import {typedConnect} from '@mapperai/mapper-annotated-scene/src/styles/Themed'
+import AnnotatedSceneActions from '@mapperai/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
 import FlyThroughManager from '../../kiosk/components/FlyThroughManager'
-import toProps from '@mapperai/annotated-scene/src/util/toProps'
+import toProps from '@mapperai/mapper-annotated-scene/src/util/toProps'
 
 interface KioskViewProps {
 	isLiveMode?: boolean

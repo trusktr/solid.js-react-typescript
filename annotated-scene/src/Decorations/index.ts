@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import OBJLoader from '@mapperai/annotated-scene/src/services/OBJLoader'
+import OBJLoader from '@mapperai/mapper-annotated-scene/src/services/OBJLoader'
 import * as THREE from 'three'
 import mapperLogoObj from './Mapper_logo.obj'
 import hondaLogoObj from './Honda_logo.obj'

@@ -12,9 +12,9 @@ import * as IPCMessages from './IPCMessages'
 import WindowCommunicator from '../../util/WindowCommunicator'
 import createPromise, {Resolve} from '../../util/createPromise'
 import {EventEmitter} from 'events'
-import {Events} from '@mapperai/annotated-scene/src/models/Events'
+import {Events} from '@mapperai/mapper-annotated-scene/src/models/Events'
 import windowStateKeeper from 'electron-window-state'
-import KeyboardEventHighlights from '@mapperai/annotated-scene/src/models/KeyboardEventHighlights'
+import KeyboardEventHighlights from '@mapperai/mapper-annotated-scene/src/models/KeyboardEventHighlights'
 import config from '@src/config'
 
 interface LightboxWindowManagerSettings {
