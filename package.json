@@ -54,8 +54,7 @@
     "typescript-eslint-parser": "17.0.1"
   },
   "dependencies": {
-    "@mapperai/mapper-annotated-scene": "0.0.4",
-    "@mapperai/mapper-cloud-tiles-typescript-sdk": "evgenyzava",
+    "@mapperai/mapper-annotated-scene": "0.0.7",
     "@mapperai/mapper-models": "1.9.8",
     "animation-loop": "1.4.0",
     "async-file": "2.0.2",

@@ -11,9 +11,8 @@ import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import App from './App'
-import {getAnnotatedSceneReduxStore} from '@mapperai/mapper-annotated-scene/src/store/AppStore'
-import {loadAnnotatedSceneStore} from '@mapperai/mapper-annotated-scene/src/services'
-// import * as services from '@mapperai/mapper-annotated-scene/src/services'
+import {loadAnnotatedSceneStore,getAnnotatedSceneReduxStore} from '@mapperai/mapper-annotated-scene'
+
 import {Provider} from 'react-redux'
 import {configReady} from '@src/config'
 

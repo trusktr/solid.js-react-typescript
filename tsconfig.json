@@ -31,7 +31,6 @@
     },
     "compileOnSave": true,
     "include": [
-        "src/**/*",
-        "node_modules/@mapperai/mapper-annotated-scene/src/**/*"
+        "src/**/*"
     ]
 }

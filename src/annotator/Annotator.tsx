@@ -16,41 +16,58 @@ import * as AsyncFile from 'async-file'
 import * as mkdirp from 'mkdirp'
 import {flatten} from 'lodash'
 import {SimpleKML} from '../util/KmlUtils'
-import {tileIndexFromVector3} from '@mapperai/mapper-annotated-scene/src/tiles/tile-model/TileIndex'
-import MousePosition from '@mapperai/mapper-annotated-scene/src/models/MousePosition'
-import mousePositionToGLSpace from '@mapperai/mapper-annotated-scene/src/util/mousePositionToGLSpace'
+
+
 import {GUI as DatGui, GUIParams} from 'dat.gui'
-import {AnnotationType} from '@mapperai/mapper-annotated-scene/src/annotations/AnnotationType'
-import {AnnotationManager, OutputFormat} from '@mapperai/mapper-annotated-scene/src/AnnotationManager'
-import {Lane, NeighborLocation, NeighborDirection} from '@mapperai/mapper-annotated-scene/src/annotations/Lane'
-import Logger from '@mapperai/mapper-annotated-scene/src/util/log'
+
+
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
 import {ImageManager} from './image/ImageManager'
 import {CalibratedImage} from './image/CalibratedImage'
-import toProps from '@mapperai/mapper-annotated-scene/src/util/toProps'
-import KeyboardEventHighlights from '@mapperai/mapper-annotated-scene/src/models/KeyboardEventHighlights'
+
 import * as React from 'react'
-import {typedConnect} from '@mapperai/mapper-annotated-scene/src/styles/Themed'
-import AnnotatedSceneActions from '@mapperai/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
-import StatusWindowState from '@mapperai/mapper-annotated-scene/src/models/StatusWindowState'
-import {AnnotatedSceneController} from '@mapperai/mapper-annotated-scene/src/services/AnnotatedSceneController'
-import {Events} from '@mapperai/mapper-annotated-scene/src/models/Events'
-import {Layer as AnnotatedSceneLayer} from '@mapperai/mapper-annotated-scene/src/services/LayerManager'
+
+
 import {v4 as UUID} from 'uuid'
-import Key from '@mapperai/mapper-annotated-scene/src/models/Key'
+
 import AnnotatorMenuView from './AnnotatorMenuView'
 import {dateToString} from '../util/dateToString'
-import {scale3DToSpatialTileScale, spatialTileScaleToString} from '@mapperai/mapper-annotated-scene/src/tiles/ScaleUtil'
-import {THREEColorValue} from '@mapperai/mapper-annotated-scene/src/THREEColorValue-type'
+
+
 import {hexStringToHexadecimal} from '../util/Color'
 import SaveState from './SaveState'
 import {kmlToTerritories} from '../util/KmlToTerritories'
-import {Annotation} from '@mapperai/mapper-annotated-scene/src/annotations/AnnotationBase'
+
 import loadAnnotations from '../util/loadAnnotations'
 
-import makeS3TileServiceClientFactory from "@mapperai/mapper-annotated-scene/src/tiles/S3TileServiceClient"
+import {
+	AnnotatedSceneState,
+	tileIndexFromVector3,
+	MousePosition,
+	mousePositionToGLSpace,
+	AnnotationType,
+	AnnotationManager, OutputFormat,
+	Lane, NeighborLocation, NeighborDirection,
+	Key,
+	StatusWindowState,
+	AnnotatedSceneController,
+	THREEColorValue,
+	getLogger as Logger,
+	toProps,
+	typedConnect,
+	Events,
+	Layer as AnnotatedSceneLayer,
+	AnnotatedSceneActions,
+	MapperTileServiceClientFactory,
+	Annotation,
+	KeyboardEventHighlights,
+	makeS3TileServiceClientFactory,
+	scale3DToSpatialTileScale,
+	spatialTileScaleToString, IAnnotatedSceneConfig
+} from "@mapperai/mapper-annotated-scene"
+
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -58,13 +75,19 @@ import makeS3TileServiceClientFactory from "@mapperai/mapper-annotated-scene/src
 // })
 
 // readonly credentials for map tiles
-const credentialProvider = async () => ({
-	accessKeyId: 'AKIAJST3KIWMFTLEL6WA',
-	secretAccessKey: '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'
-})
+const sceneConfig = {
+	credentialProvider: async () => ({
+		accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'AKIAJST3KIWMFTLEL6WA',
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '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'
+	}),
+	
+	//bucketProvider: () => 'mapper-jglanz-tiles',
+	bucketProvider: () => 'mapper-jglanz-device-sessions',
+	
+	sessionId: "58FCDB407765_20180802-171140434"
+}
 
-const bucketProvider = () => 'mapper-jglanz-tiles'
-// const bucketProvider = () => 'dexmonicus-mapper-tiles'
+
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -118,6 +141,10 @@ interface AnnotatorState {
 	lockTerritories: boolean
 	lockTrafficDevices: boolean
 	isImageScreensVisible: boolean
+	
+	annotatedSceneConfig?: IAnnotatedSceneConfig
+	tileServiceClientFactory?:MapperTileServiceClientFactory
+	
 }
 
 interface AnnotatorProps {
@@ -143,6 +170,7 @@ interface AnnotatorProps {
 }
 
 @typedConnect(toProps(
+	AnnotatedSceneState,
 	'uiMenuVisible',
 	'statusWindowState',
 	'carPose',
@@ -631,7 +659,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			setTimeout(() => {
 				this.state.annotatedSceneController!.cleanTransformControls()
 			}, 0)
-		} else if (this.state.annotationManager!.activeAnnotation) {
+		} else if (this.state.annotationManager!.state.activeAnnotation) {
 			this.state.annotationManager!.unsetActiveAnnotation()
 			this.deactivateAllAnnotationPropertiesMenus()
 		}
@@ -785,7 +813,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		const {utmCoordinateSystem} = this.state.annotatedSceneController!.state
 		// Get all the points and convert to lat lon
 		const geopoints: Array<THREE.Vector3> = flatten(
-			this.state.annotationManager!.laneAnnotations.map(lane =>
+			this.state.annotationManager!.state.laneAnnotations.map(lane =>
 				lane.waypoints.map(p => utmCoordinateSystem!.threeJsToLngLatAlt(p))
 			)
 		)
@@ -1664,8 +1692,30 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.state.annotatedSceneController!.setLayerVisibility(layerGroups[layerGroupIndex], true)
 		this.setState({layerGroupIndex})
 	}
-
+	
+	/**
+	 * Create scene config
+	 *
+	 * @returns {{"startup.background_color":string; "startup.point_cloud_bounding_box":number[]; "startup.camera_offset":number[]; "tile_manager.maximum_points_to_load":number; "tile_manager.maximum_point_density":number; "tile_manager.maximum_super_tiles_to_load":number; "tile_manager.initial_super_tiles_to_load":number; "tile_manager.super_tile_scale":number[]; "annotator.area_of_interest.size":number[]; "tile_manager.stats_display.enable":boolean; "annotator.draw_bounding_box":boolean; "annotator.area_of_interest.enable":boolean}}
+	 */
+	private makeAnnotatedSceneConfig = () => {
+		return {
+			'startup.camera_offset': [0, 20, 20],
+			'tile_manager.maximum_points_to_load': 20000000,
+			'tile_manager.maximum_point_density': 100,
+			'tile_manager.maximum_super_tiles_to_load': 150,
+			'tile_manager.initial_super_tiles_to_load': 100,
+			'tile_manager.super_tile_scale': [24, 8, 24], // ditto; must contain multiples of utm_tile_scale
+			'annotator.area_of_interest.size': [60, 20, 60],
+			'tile_manager.stats_display.enable': true,
+			'annotator.draw_bounding_box': false,
+			'annotator.area_of_interest.enable': true
+		} as IAnnotatedSceneConfig
+	}
+	
+	
 	componentDidMount(): void {
+		
 		window.addEventListener('focus', this.onFocus)
 		window.addEventListener('blur', this.onBlur)
 		window.addEventListener('beforeunload', this.onBeforeUnload)
@@ -1675,6 +1725,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		document.addEventListener('mouseup', this.clickImageScreenBox)
 
 		this.bind()
+		
+		this.setState({
+			tileServiceClientFactory: makeS3TileServiceClientFactory(sceneConfig.credentialProvider, sceneConfig.bucketProvider, sceneConfig.sessionId),
+			annotatedSceneConfig: this.makeAnnotatedSceneConfig()
+		})
 	}
 
 	componentWillUnmount(): void {
@@ -1704,9 +1759,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			channel!.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
 			channel!.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
 			channel!.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
-
+			
 			// UI updates
 			// TODO JOE move UI logic to React/JSX, and get state from Redux
+			
 			channel!.on('deactivateFrontSideNeighbours', Annotator.deactivateFrontSideNeighbours)
 			channel!.on('deactivateLeftSideNeighbours', Annotator.deactivateLeftSideNeighbours)
 			channel!.on('deactivateRightSideNeighbours', Annotator.deactivateRightSideNeighbours)
@@ -1752,20 +1808,15 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	render(): JSX.Element {
-		return (
+		const {tileServiceClientFactory,annotatedSceneConfig} = this.state
+		return !tileServiceClientFactory || !annotatedSceneConfig ? <div/> : (
 			<React.Fragment>
 				<AnnotatedSceneController
 					ref={this.getAnnotatedSceneRef}
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
-					tileServiceClientFactory={makeS3TileServiceClientFactory(credentialProvider, bucketProvider)}
-					config={{
-						// required
-						'startup.point_cloud_bounding_box': config['startup.point_cloud_bounding_box'],
-
-						// other ones optional
-						...config,
-					}}
+					tileServiceClientFactory={tileServiceClientFactory}
+					config={annotatedSceneConfig}
 				/>
 				<AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!}/>
 			</React.Fragment>

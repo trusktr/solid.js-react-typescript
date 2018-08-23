@@ -1,8 +1,8 @@
 import * as mkdirp from 'mkdirp'
 import * as AsyncFile from 'async-file'
-import Logger from '@mapperai/mapper-annotated-scene/src/util/log'
+import {AnnotationManager,getLogger as Logger }from '@mapperai/mapper-annotated-scene'
 import {dateToString} from '../util/dateToString'
-import {AnnotationManager} from '@mapperai/mapper-annotated-scene/src/AnnotationManager'
+
 
 const log = Logger(__filename)
 

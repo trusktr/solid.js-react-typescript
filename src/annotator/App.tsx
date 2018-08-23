@@ -4,10 +4,8 @@
  */
 
 import * as React from 'react'
-// import config from '@src/config'
-import StatusWindowActions from '@mapperai/mapper-annotated-scene/src/StatusWindowActions'
-import AnnotatedSceneActions from '@mapperai/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
-// import Kiosk from '../kiosk/Kiosk'
+import {StatusWindowActions,AnnotatedSceneActions} from '@mapperai/mapper-annotated-scene'
+
 import Annotator from '../annotator/Annotator'
 // TODO JOE eventually move this into the shared lib
 import logo from '../annotator-assets/images/signature_with_arrow_white.png'

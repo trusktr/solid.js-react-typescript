@@ -38,8 +38,8 @@ async function setupConfig(): Promise<void> {
 		throw new Error(`Bad environment variable NODE_ENV=${deployEnv}. Missing required config file ${envFile}.`)
 
 	const required = [
-		'tile_manager.utm_tile_scale',
-		'tile_manager.super_tile_scale',
+		// 'tile_manager.utm_tile_scale',
+		// 'tile_manager.super_tile_scale',
 		'output.annotations.json.path',
 		'output.annotations.kml.path',
 	]
