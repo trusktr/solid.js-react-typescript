@@ -3,7 +3,7 @@ import * as Electron from 'electron'
 import * as THREE from 'three'
 import AnnotatedSceneController from '@mapperai/mapper-annotated-scene/src/services/AnnotatedSceneController'
 import {Layer} from '@mapperai/mapper-annotated-scene/src/services/LayerManager'
-import Logger from '../util/log'
+import Logger from '@mapperai/mapper-annotated-scene/src/util/log'
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
