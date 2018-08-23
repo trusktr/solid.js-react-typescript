@@ -6,7 +6,7 @@
 import config from '@src/config'
 import * as zmq from 'zmq'
 import * as MapperProtos from '@mapperai/mapper-models'
-import Logger from '../../util/log'
+import Logger from '@mapperai/mapper-annotated-scene/src/util/log'
 
 const log = Logger(__filename)
 

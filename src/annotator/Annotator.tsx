@@ -23,7 +23,7 @@ import {GUI as DatGui, GUIParams} from 'dat.gui'
 import {AnnotationType} from '@mapperai/mapper-annotated-scene/src/annotations/AnnotationType'
 import {AnnotationManager, OutputFormat} from '@mapperai/mapper-annotated-scene/src/AnnotationManager'
 import {Lane, NeighborLocation, NeighborDirection} from '@mapperai/mapper-annotated-scene/src/annotations/Lane'
-import Logger from '../util/log'
+import Logger from '@mapperai/mapper-annotated-scene/src/util/log'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
