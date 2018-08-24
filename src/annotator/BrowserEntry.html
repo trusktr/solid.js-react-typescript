@@ -21,24 +21,38 @@
 			</form>
 		</div>
  		<script>
-		  function startAnnotator() {
-		  	const
-					  $ = require("jquery"),
-					  _ = require("lodash"),
-					  sessionId = $("#sessionIdField").val(),
-					  env = $("#envField").val()
+		  function startAnnotator(isSaffron = false) {
+		  	if (!isSaffron) {
+				  const
+						  $ = require("jquery"),
+						  _ = require("lodash"),
+						  sessionId = $("#sessionIdField").val(),
+						  env = $("#envField").val()
 
-			  if (_.isEmpty(sessionId) || _.isEmpty(env)) {
-			    alert("You must provide both a session id and env to proceed")
-				  return
+				  if (_.isEmpty(sessionId) || _.isEmpty(env)) {
+					  alert("You must provide both a session id and env to proceed")
+					  return
+				  }
+
+				  Object.assign(window, {
+					  mapperEnv: env,
+					  mapperSessionId: sessionId
+				  })
 			  }
 
-				Object.assign(window, {
-					mapperEnv: env,
-					mapperSessionId: sessionId
-				})
 			  $("#form").remove()
 			  require("./").start()
+		  }
+
+
+		  try {
+			  const isSaffron = window.location.hash.indexOf("saffron") > -1
+		  	console.log("Window hash",window.location.hash,"isSaffron=",isSaffron)
+			  if (isSaffron) {
+			  	startAnnotator(isSaffron)
+			  }
+		  } catch (err) {
+		  	console.log("Unable to find saffron details",err)
 		  }
 		</script>
 	</body>

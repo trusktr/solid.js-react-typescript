@@ -1,4 +1,4 @@
-body, #root, #root .scene-container, html {
+.scene-container {
 	height: 100%;
 	border: 0;
 	padding: 0;
@@ -8,33 +8,38 @@ body, #root, #root .scene-container, html {
 	font-family: Verdana, Geneva, sans-serif;
 }
 
-body *, #root *, #root .scene-container *, html * {
+.scene-container * {
 	box-sizing: border-box;
 }
 
-body {
+.scene-container {
 	overflow-x: hidden;
 	overflow-y: hidden;
 }
 
-#root {
+.scene-container #root {
 	width: auto;
 }
 
-html {
-	box-sizing: border-box;
+.scene-container canvas {
+	width: 100% !important;
+	max-width: 100%  !important;
+	min-width: 100%  !important;
+	height: 100%  !important;
+	max-height: 100%  !important;
+	min-height: 100%  !important;
+	
 }
-
-*, *::after, *::before {
+.scene-container *, .scene-container *::after,.scene-container  *::before {
 	box-sizing: inherit;
 }
 
-.hidden {
+.scene-container .hidden {
 	display: none;
 }
 
-#logo {
-	position: fixed;
+.scene-container #logo {
+	position: absolute;
 	z-index: 2;
 	bottom: 0;
 	left: 0;
@@ -43,8 +48,8 @@ html {
 	padding-left: 12px;
 }
 
-#menu {
-	position: fixed;
+.scene-container #menu {
+	position: absolute;
 	right: 0;
 	height: 100%;
 	width: 250px;
@@ -57,12 +62,12 @@ html {
 	pointer-events: none;
 }
 
-#menu * {
+.scene-container #menu * {
 	pointer-events: auto;
 }
 
-#status_window {
-	position: fixed;
+.scene-container #status_window {
+	position: absolute;
 	right: 0;
 	bottom: 0;
 	background-color: rgba(255, 255, 255, 0.5);
@@ -70,21 +75,21 @@ html {
 	z-index: 3;
 }
 
-.statusOk {
+.scene-container .statusOk {
 	color: #0a0;
 }
 
-.statusWarning {
+.scene-container .statusWarning {
 	color: #ffd260;
 }
 
-.statusError {
+.scene-container .statusError {
 	color: #a00;
 }
 
-#menu_control {
+.scene-container #menu_control {
 	background-color: transparent;
-	position: fixed;
+	position: absolute;
 	z-index: 1;
 	top: 0;
 	right: 0;
@@ -95,7 +100,7 @@ html {
 	width: 150px;
 }
 
-.menu_btn {
+.scene-container .menu_btn {
 	background-color: transparent;
 	height: 40px;
 	width: 40px;
@@ -103,7 +108,7 @@ html {
 	border: 0;
 }
 
-button {
+.scene-container button {
 	width: 100%;
 	text-decoration: none;
 	outline: 0;
@@ -113,71 +118,71 @@ button {
 	border-radius: 15px;
 }
 
-button.laneBtn {
+.scene-container button.laneBtn {
 	width: 30px;
 }
 
-button.menu_btn:hover {
+.scene-container button.menu_btn:hover {
 	font-size: xx-large;
 	background-color: transparent;
 }
 
-button.menu_btn:active {
+.scene-container button.menu_btn:active {
 	font-size: xx-large;
 }
 
-button.button_inline:disabled {
+.scene-container button.button_inline:disabled {
 	color: #999;
 	border: 2px solid #999;
 }
 
-button.button_inline:hover {
+.scene-container button.button_inline:hover {
 	background-color: #fff;
 }
 
-button:active {
+.scene-container button:active {
 	background-color: #3e8e41;
 	transform: translateY(4px);
 }
 
-button:hover {
+.scene-container button:hover {
 	background-color: #3e8e41;
 }
 
-.mdc-button .mdc-button__icon {
+.scene-container .mdc-button .mdc-button__icon {
 	position: absolute;
 	left: 0;
 	margin-left: 10px;
 }
 
-.fieldset_content_style {
+.scene-container .fieldset_content_style {
 	width: 100%;
 	height: 100%;
 	margin-top: 2px;
 	text-align: center;
 }
 
-.div_buttons_group {
+.scene-container .div_buttons_group {
 	margin-top: 2px;
 	text-align: center;
 }
 
-.div_properties {
+.scene-container .div_properties {
 	margin-top: 2px;
 	text-align: center;
 }
 
-.div_glue, .div_help {
+.scene-container .div_glue, .div_help {
 	margin-top: 2px;
 	text-align: left;
 	font-size: x-small;
 }
 
-.div_help {
+.scene-container .div_help {
 	margin-top: 0;
 }
 
-.button_inline {
+.scene-container .button_inline {
 	width: 90px;
 	text-align: center;
 	margin: 0;
@@ -189,11 +194,11 @@ button:hover {
 	border-radius: 12px;
 }
 
-.ui-btn {
+.scene-container .ui-btn {
 	font-size: 12px;
 }
 
-.label_style, .select_style {
+.scene-container .label_style, .scene-container .select_style {
 	text-align: left;
 	padding: 0;
 	margin: 0;
@@ -201,17 +206,17 @@ button:hover {
 	font-size: x-small;
 }
 
-.label_style {
+.scene-container .label_style {
 	border: 0;
 	background-color: transparent;
 	width: 60%;
 }
 
-.select_style {
+.scene-container .select_style {
 	width: 40%;
 }
 
-.accordion {
+.scene-container .accordion {
 	outline: 0;
 	border-radius: 10px;
 	margin-bottom: 2px;
@@ -225,13 +230,13 @@ button:hover {
 	cursor: pointer;
 }
 
-.dropdown_head {
+.scene-container .dropdown_head {
 	margin: 3px;
 	padding: 2px;
 	font-size: 12px;
 }
 
-.dropdown_head:after {
+.scene-container .dropdown_head:after {
 	content: '\02795';
 	font-size: 10px;
 	padding-right: 5px;
@@ -239,11 +244,11 @@ button:hover {
 	float: right;
 }
 
-.dropdown_head:active:after {
+.scene-container .dropdown_head:active:after {
 	content: '-';
 }
 
-.dropdown_body {
+.scene-container .dropdown_body {
 	height: auto;
 	padding: 5px;
 	border-radius: 5px;
