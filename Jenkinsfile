@@ -42,12 +42,12 @@ node("master") {
 			echo("ENV VERSION bumped to ${env.VERSION}")
 
 			// zip repo and push to s3
-			def zipFolderName = "mapper-saffron-annotator-${env.VERSION}.zip"
+			def zipFolderName = "mapper-annotator-${env.VERSION}.zip"
 			sh """
       zip -r ${zipFolderName} .
       aws s3 cp ${zipFolderName} s3://${saffronAppsS3Bucket}/${zipFolderName}
       rm ${zipFolderName}
-      github-release release -u signafy -r mapper-saffron-annotator  \
+      github-release release -u signafy -r mapper-annotator  \
         --tag v${env.VERSION}   \
         --name "release ${env.VERSION}"
       """
