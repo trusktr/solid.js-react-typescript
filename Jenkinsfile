@@ -5,56 +5,28 @@ node("master") {
 	def branchName = env.BRANCH_NAME
 	def saffronAppsS3Bucket = "mapper-saffron-apps"
 
-	stages {
-		stage("Checkout") {
-			checkout scm
+	stage("Checkout") {
+		checkout scm
 
-		}
-
-		// This is here to stop Jenkins from constantly rebuilding
-		// (otherwise the Github updates that Jenkins creates would subsequently create a new Jenkins build, aka a cycle)
-		if (ciSkip(action: 'should-skip')) {
-			return
-		}
-
-		stage("Cleanup") {
-			sh """
-		rm -Rf ./build
-		rm -Rf ./node_modules
-		"""
-		}
-
-		stage("Prep and Build") {
-			sh """
-		npm install
-		"""
-		}
 	}
 
-	post {
-		always {
-			cleanWs(cleanWhenSuccess: true, cleanWhenUnstable: true, cleanWhenNotBuilt: true, cleanWhenAborted: true, deleteDirs: true, cleanWhenFailure: true)
-		}
+	// This is here to stop Jenkins from constantly rebuilding
+	// (otherwise the Github updates that Jenkins creates would subsequently create a new Jenkins build, aka a cycle)
+	if (ciSkip(action: 'should-skip')) {
+		return
+	}
 
-		failure {
-			slackSend(channel: "#sw-build", color: 'D81A09', message: "Failed: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
-		}
+	stage("Cleanup") {
+		sh """
+	rm -Rf ./build
+	rm -Rf ./node_modules
+	"""
+	}
 
-		unstable {
-			slackSend(channel: "#sw-build", color: 'C1C104', message: "Unstable: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
-		}
-
-		changed {
-			script {
-				if (currentBuild.currentResult == 'SUCCESS') {
-					// send to Slack
-					slackSend (channel: "#sw-build", color: '25A553', message: "Success: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]. (${env.BUILD_URL})")
-				}
-			}
-
-
-		}
-
+	stage("Prep and Build") {
+		sh """
+	npm install
+	"""
 	}
 
 	/**
