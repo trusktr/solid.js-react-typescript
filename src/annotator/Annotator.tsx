@@ -82,9 +82,9 @@ const sceneConfig = {
 	}),
 	
 	//bucketProvider: () => 'mapper-jglanz-tiles',
-	bucketProvider: () => 'mapper-jglanz-device-sessions',
+	bucketProvider: () => `mapper-${(window as any).mapperEnv || 'prod'}-device-sessions`,
 	
-	sessionId: "58FCDB407765_20180802-171140434"
+	sessionId: (window as any).mapperSessionId || "58FCDB407765_20180802-171140434"
 }
 
 

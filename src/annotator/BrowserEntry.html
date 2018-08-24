@@ -9,9 +9,37 @@
 		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
 	</head>
  	<body>
-		<div id="root"></div>
+		<div id="root">
+		</div>
+		<div id="form">
+			<form onsubmit="startAnnotator()">
+				<div>ENV</div>
+				<div><input type="text" id="envField" value="dev"/></div>
+				<div>Session Id</div>
+				<div><input type="text" id="sessionIdField" value="58FCDB407765_20180802-171140434"/></div>
+				<button type="submit">Annotate</button>
+			</form>
+		</div>
  		<script>
-		  require("./").start()
+		  function startAnnotator() {
+		  	const
+					  $ = require("jquery"),
+					  _ = require("lodash"),
+					  sessionId = $("#sessionIdField").val(),
+					  env = $("#envField").val()
+
+			  if (_.isEmpty(sessionId) || _.isEmpty(env)) {
+			    alert("You must provide both a session id and env to proceed")
+				  return
+			  }
+
+				Object.assign(window, {
+					mapperEnv: env,
+					mapperSessionId: sessionId
+				})
+			  $("#form").remove()
+			  require("./").start()
+		  }
 		</script>
 	</body>
 </html>
