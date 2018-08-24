@@ -63,7 +63,6 @@ import {
 	MapperTileServiceClientFactory,
 	Annotation,
 	KeyboardEventHighlights,
-	makeS3TileServiceClientFactory,
 	scale3DToSpatialTileScale,
 	spatialTileScaleToString, IAnnotatedSceneConfig
 } from "@mapperai/mapper-annotated-scene"
@@ -74,18 +73,6 @@ import {
 // 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
 // })
 
-// readonly credentials for map tiles
-const sceneConfig = {
-	credentialProvider: async () => ({
-		accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'AKIAJST3KIWMFTLEL6WA',
-		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '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'
-	}),
-	
-	//bucketProvider: () => 'mapper-jglanz-tiles',
-	bucketProvider: () => `mapper-${(window as any).mapperEnv || 'prod'}-device-sessions`,
-	
-	sessionId: (window as any).mapperSessionId || "58FCDB407765_20180802-171140434"
-}
 
 
 
@@ -143,8 +130,6 @@ interface AnnotatorState {
 	isImageScreensVisible: boolean
 	
 	annotatedSceneConfig?: IAnnotatedSceneConfig
-	tileServiceClientFactory?:MapperTileServiceClientFactory
-	
 }
 
 interface AnnotatorProps {
@@ -154,7 +139,8 @@ interface AnnotatorProps {
 	isLiveMode?: boolean
 	rendererSize?: Electron.Size
 	camera?: THREE.Camera
-
+	
+	tileServiceClientFactory:MapperTileServiceClientFactory
 	isShiftKeyPressed?: boolean
 	isAddMarkerMode?: boolean
 	isAddConnectionMode?: boolean
@@ -1729,7 +1715,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.bind()
 		
 		this.setState({
-			tileServiceClientFactory: makeS3TileServiceClientFactory(sceneConfig.credentialProvider, sceneConfig.bucketProvider, sceneConfig.sessionId),
 			annotatedSceneConfig: this.makeAnnotatedSceneConfig()
 		})
 	}
@@ -1810,7 +1795,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	render(): JSX.Element {
-		const {tileServiceClientFactory,annotatedSceneConfig} = this.state
+		const
+			{annotatedSceneConfig} = this.state,
+			{tileServiceClientFactory} = this.props
+		
 		return !tileServiceClientFactory || !annotatedSceneConfig ? <div/> : (
 			<React.Fragment>
 				<AnnotatedSceneController

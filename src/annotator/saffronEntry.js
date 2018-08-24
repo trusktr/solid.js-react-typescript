@@ -1,11 +1,22 @@
+
+const SaffronSDK = require("@mapperai/mapper-saffron-sdk")
+
+Object.assign(window,{
+	SaffronSDK
+})
+
 require('../../require-hooks')
 
 const React = require('react')
-const path = require('path')
 const entry = require('./entry')
 
-const h = (...args) => React.createElement(...args)
+Object.assign(window, {
+	isSaffron: true
+})
 
+/**
+ * Annotator root component
+ */
 class Annotator extends React.Component {
 	
 	constructor(props, context) {
@@ -31,13 +42,6 @@ class Annotator extends React.Component {
 		const {component} = this.state
 		
 		return component ? component : React.createElement('div',{},'loading')
-		// h('webview', {
-		// 	src: `file://${ path.join(__dirname, 'BrowserEntry.html') }#saffron`,
-		// 	style: { width: '100%', height: '100%' },
-		// 	nodeintegration: 'true',
-		// 	allowpopups: 'true',
-		// 	disablewebsecurity: 'true',
-		// }, null)
 	}
 
 }
