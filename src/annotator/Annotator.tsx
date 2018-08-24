@@ -18,7 +18,7 @@ import {flatten} from 'lodash'
 import {SimpleKML} from '../util/KmlUtils'
 
 
-//import {GUI as DatGui, GUIParams} from 'dat.gui'
+import {GUI as DatGui, GUIParams} from 'dat.gui'
 
 
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
@@ -197,7 +197,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
-	//private gui: DatGui | null
+	private gui: DatGui | null
 	private saveState: SaveState | null = null
 
 	constructor(props: AnnotatorProps) {
@@ -244,99 +244,99 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
 
 		if (!config['startup.show_control_panel']) {
-			//this.gui = null
+			this.gui = null
 			return
 		}
-		//
-		// const gui = this.gui = new DatGui({
-		// 	hideable: false,
-		// 	closeOnTop: true,
-		// } as GUIParams)
-		//
-		// $(".scene-container").append(gui.domElement)
-		//
-		// gui.domElement.className = 'threeJs_gui'
-		//
-		// gui.domElement.setAttribute('style', `
-		// 	width: 245px;
-		// 	position: absolute;
-		// 	top: 13px;
-		// 	left: 13px;
-		// 	right: initial;
-		// 	bottom: initial;
-		// 	background: rgba(0,0,0,0.5);
-		// 	padding: 10px;
-		// `)
-		//
-		// const closeButton = gui.domElement.querySelector('.close-button')
-		//
-		// closeButton!.setAttribute('style', `
-		// 	padding-bottom: 5px;
-		// 	cursor: pointer;
-		// `)
-		//
-		// gui.addColor(this.state, 'background').name('Background').onChange(() => {
-		// 	this.forceUpdate()
-		// })
-		//
-		// gui.add(this.state, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
-		// 	this.imageManager.setOpacity(value)
-		// })
-		//
-		// new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
-		// new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
-		// new AnnotatedSceneActions().setLockTerritories(this.state.lockTerritories)
-		// new AnnotatedSceneActions().setLockTrafficDevices(this.state.lockTrafficDevices)
-		//
-		// const folderLock = gui.addFolder('Lock')
-		//
-		// folderLock.add(this.state, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
-		// 	if (value && this.state.annotationManager!.getActiveBoundaryAnnotation()) {
-		// 		this.state.annotatedSceneController!.cleanTransformControls()
-		// 		this.uiEscapeSelection()
-		// 	}
-		//
-		// 	new AnnotatedSceneActions().setLockBoundaries(value)
-		// })
-		//
-		// folderLock.add(this.state, 'lockLanes').name('Lanes').onChange((value: boolean) => {
-		// 	if (value && (this.state.annotationManager!.getActiveLaneAnnotation() || this.state.annotationManager!.getActiveConnectionAnnotation())) {
-		// 		this.state.annotatedSceneController!.cleanTransformControls()
-		// 		this.uiEscapeSelection()
-		// 	}
-		//
-		// 	new AnnotatedSceneActions().setLockLanes(value)
-		// })
-		//
-		// folderLock.add(this.state, 'lockTerritories').name('Territories').onChange((value: boolean) => {
-		// 	if (value && this.state.annotationManager!.getActiveTerritoryAnnotation()) {
-		// 		this.state.annotatedSceneController!.cleanTransformControls()
-		// 		this.uiEscapeSelection()
-		// 	}
-		//
-		// 	new AnnotatedSceneActions().setLockTerritories(value)
-		// })
-		//
-		// folderLock.add(this.state, 'lockTrafficDevices').name('Traffic Devices').onChange((value: boolean) => {
-		// 	if (value && (this.state.annotationManager!.getActiveTrafficDeviceAnnotation())) {
-		// 		this.state.annotatedSceneController!.cleanTransformControls()
-		// 		this.uiEscapeSelection()
-		// 	}
-		//
-		// 	new AnnotatedSceneActions().setLockTrafficDevices(value)
-		// })
-		//
-		// folderLock.open()
-		//
-		// const folderConnection = gui.addFolder('Connection params')
-		//
-		// folderConnection.add(this.state.annotationManager!.state, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
-		// folderConnection.open()
+
+		const gui = this.gui = new DatGui({
+			hideable: false,
+			closeOnTop: true,
+		} as GUIParams)
+
+		$(".scene-container").append(gui.domElement)
+		
+		gui.domElement.className = 'threeJs_gui'
+
+		gui.domElement.setAttribute('style', `
+			width: 245px;
+			position: absolute;
+			top: 13px;
+			left: 13px;
+			right: initial;
+			bottom: initial;
+			background: rgba(0,0,0,0.5);
+			padding: 10px;
+		`)
+
+		const closeButton = gui.domElement.querySelector('.close-button')
+
+		closeButton!.setAttribute('style', `
+			padding-bottom: 5px;
+			cursor: pointer;
+		`)
+
+		gui.addColor(this.state, 'background').name('Background').onChange(() => {
+			this.forceUpdate()
+		})
+
+		gui.add(this.state, 'imageScreenOpacity', 0, 1).name('Image Opacity').onChange((value: number) => {
+			this.imageManager.setOpacity(value)
+		})
+
+		new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
+		new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
+		new AnnotatedSceneActions().setLockTerritories(this.state.lockTerritories)
+		new AnnotatedSceneActions().setLockTrafficDevices(this.state.lockTrafficDevices)
+
+		const folderLock = gui.addFolder('Lock')
+
+		folderLock.add(this.state, 'lockBoundaries').name('Boundaries').onChange((value: boolean) => {
+			if (value && this.state.annotationManager!.getActiveBoundaryAnnotation()) {
+				this.state.annotatedSceneController!.cleanTransformControls()
+				this.uiEscapeSelection()
+			}
+
+			new AnnotatedSceneActions().setLockBoundaries(value)
+		})
+
+		folderLock.add(this.state, 'lockLanes').name('Lanes').onChange((value: boolean) => {
+			if (value && (this.state.annotationManager!.getActiveLaneAnnotation() || this.state.annotationManager!.getActiveConnectionAnnotation())) {
+				this.state.annotatedSceneController!.cleanTransformControls()
+				this.uiEscapeSelection()
+			}
+
+			new AnnotatedSceneActions().setLockLanes(value)
+		})
+
+		folderLock.add(this.state, 'lockTerritories').name('Territories').onChange((value: boolean) => {
+			if (value && this.state.annotationManager!.getActiveTerritoryAnnotation()) {
+				this.state.annotatedSceneController!.cleanTransformControls()
+				this.uiEscapeSelection()
+			}
+
+			new AnnotatedSceneActions().setLockTerritories(value)
+		})
+
+		folderLock.add(this.state, 'lockTrafficDevices').name('Traffic Devices').onChange((value: boolean) => {
+			if (value && (this.state.annotationManager!.getActiveTrafficDeviceAnnotation())) {
+				this.state.annotatedSceneController!.cleanTransformControls()
+				this.uiEscapeSelection()
+			}
+
+			new AnnotatedSceneActions().setLockTrafficDevices(value)
+		})
+
+		folderLock.open()
+
+		const folderConnection = gui.addFolder('Connection params')
+
+		folderConnection.add(this.state.annotationManager!.state, 'bezierScaleFactor', 1, 30).step(1).name('Bezier factor')
+		folderConnection.open()
 	}
 
 	private destroyControlsGui(): void {
 		if (!config['startup.show_control_panel']) return
-		//if (this.gui) this.gui.destroy()
+		if (this.gui) this.gui.destroy()
 	}
 
 	private setLastMousePosition = (event: MouseEvent | null): void => {
