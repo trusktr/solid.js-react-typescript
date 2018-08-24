@@ -65,6 +65,7 @@ function toFileURL(filePath) {
 const oldRequire = Module.prototype.require
 
 Module.prototype.require = function(moduleIdentifier) {
+	
 	if (
 		moduleIdentifier.endsWith('.obj') ||
 		moduleIdentifier.endsWith('.png')
@@ -75,6 +76,12 @@ Module.prototype.require = function(moduleIdentifier) {
 			default: toFileURL(path.resolve(path.dirname(this.filename), moduleIdentifier)),
 		}
 	} else {
-		return oldRequire.call(this, moduleIdentifier)
+		// return oldRequire.call(this, moduleIdentifier)
+		try {
+			return oldRequire(moduleIdentifier)
+		} catch (err) {
+			//log.debug("Default require failed")
+			console.log("Default require failed 2")
+		}
 	}
 }

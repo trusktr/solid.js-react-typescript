@@ -18,13 +18,13 @@ Object.assign(window, {
  * Annotator root component
  */
 class Annotator extends React.Component {
-	
+
 	constructor(props, context) {
 		super(props, context)
-		
+
 		this.state = {}
 	}
-	
+
 	componentDidMount() {
 		if (!this.state.componentPromise) {
 			this.setState({
@@ -36,15 +36,16 @@ class Annotator extends React.Component {
 			})
 		}
 	}
-	
-	
+
+
 	render() {
 		const {component} = this.state
-		
+
 		return component ? component : React.createElement('div',{},'loading')
 	}
 
 }
+
 
 module.exports = {
 	component: Annotator,
