@@ -3,4 +3,5 @@
 # Exit if there is an error
 set -e
 
-$(aws ecr get-login --no-include-email --region us-east-1)
+#--no-include-email
+eval $(aws ecr get-login --region us-east-1)
