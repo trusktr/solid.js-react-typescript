@@ -40,8 +40,8 @@ async function credentialProvider():Promise<IAWSCredentials> {
 	
 	credentialPromise = new Promise<IAWSCredentials>(async (resolve, reject) => {
 		try {
-			debugger
-			const response = await new SaffronSDK.CloudService.default().makeAPIRequest(SaffronSDK.CloudConstants.API.Tiles, SaffronSDK.CloudConstants.HttpMethod.GET, "tiles/0/credentials", "annotator")
+			
+			const response = (await new SaffronSDK.CloudService.default().makeAPIRequest(SaffronSDK.CloudConstants.API.Tiles, SaffronSDK.CloudConstants.HttpMethod.GET, "tiles/0/credentials", "annotator")).get("data")
 			
 			// SET THE BUCKET
 			sessionBucket = response.sessionBucket

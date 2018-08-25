@@ -9,7 +9,7 @@
 // - [ ] move app actions out of shared lib actions
 // - [ ] fix window state keeper
 
-import config from '@src/config'
+import config from 'annotator-config'
 import * as $ from 'jquery'
 import * as Electron from 'electron'
 import * as AsyncFile from 'async-file'

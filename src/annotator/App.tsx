@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {S3TileServiceClientFactory} from "@src/annotator/SaffronTileServiceFactory"
+import {S3TileServiceClientFactory} from "../annotator/SaffronTileServiceFactory"
 import * as React from 'react'
 import * as _ from 'lodash'
 import {

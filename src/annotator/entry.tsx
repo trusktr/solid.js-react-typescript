@@ -14,7 +14,7 @@ import App from './App'
 import {Deferred,loadAnnotatedSceneStore,getAnnotatedSceneReduxStore} from '@mapperai/mapper-annotated-scene'
 
 import {Provider} from 'react-redux'
-import {configReady} from '@src/config'
+import {configReady} from 'annotator-config'
 
 // This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {

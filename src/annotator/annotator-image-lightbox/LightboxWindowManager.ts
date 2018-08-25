@@ -14,7 +14,7 @@ import createPromise, {Resolve} from '../../util/createPromise'
 import {EventEmitter} from 'events'
 import {KeyboardEventHighlights,Events} from '@mapperai/mapper-annotated-scene'
 import windowStateKeeper from 'electron-window-state'
-import config from '@src/config'
+import config from 'annotator-config'
 
 interface LightboxWindowManagerSettings {
 	backgroundColor: string
@@ -50,7 +50,7 @@ export class LightboxWindowManager {
 
 		const windowName = 'imageLightbox'
 		const {promise, resolve}: {promise: Promise<void>, resolve: Resolve<void>} = createPromise<void, void>()
-		const savedState = windowStateKeeper(windowStateKeeperOptions(windowName))
+		const savedState = windowStateKeeper(await windowStateKeeperOptions(windowName))
 		const options = `${objectToFeatureString(savedState)},_blank`
 		const lightboxWindow = window.open(
 			'about:blank',

@@ -1,18 +1,7 @@
 
-const SaffronSDK = require("@mapperai/mapper-saffron-sdk")
-
-Object.assign(window,{
-	SaffronSDK
-})
-
-require('../../require-hooks')
 
 const React = require('react')
 const entry = require('./entry')
-
-Object.assign(window, {
-	isSaffron: true
-})
 
 /**
  * Annotator root component
@@ -37,13 +26,10 @@ class Annotator extends React.Component {
 		}
 	}
 
-
 	render() {
 		const {component} = this.state
-
 		return component ? component : React.createElement('div',{},'loading')
 	}
-
 }
 
 

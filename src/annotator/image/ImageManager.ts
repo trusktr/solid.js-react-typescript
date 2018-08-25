@@ -13,7 +13,7 @@ import * as IPCMessages from '../annotator-image-lightbox/IPCMessages'
 import {readImageMetadataFile} from './Aurora'
 import {getLogger as Logger, AnnotatedSceneActions,Events,UtmCoordinateSystem} from '@mapperai/mapper-annotated-scene'
 import {AuroraCameraParameters} from './CameraParameters'
-import config from '@src/config'
+import config from 'annotator-config'
 
 import {EventEmitter} from 'events'
 
