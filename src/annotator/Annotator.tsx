@@ -1684,7 +1684,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	/**
 	 * Create scene config
 	 *
-	 * @returns {{"startup.background_color":string; "startup.point_cloud_bounding_box":number[]; "startup.camera_offset":number[]; "tile_manager.maximum_points_to_load":number; "tile_manager.maximum_point_density":number; "tile_manager.maximum_super_tiles_to_load":number; "tile_manager.initial_super_tiles_to_load":number; "tile_manager.super_tile_scale":number[]; "annotator.area_of_interest.size":number[]; "tile_manager.stats_display.enable":boolean; "annotator.draw_bounding_box":boolean; "annotator.area_of_interest.enable":boolean}}
+	 * @returns Object
 	 */
 	private makeAnnotatedSceneConfig = () => {
 		return {
