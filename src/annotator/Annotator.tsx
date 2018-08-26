@@ -229,7 +229,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (!isNullOrUndefined(config['startup.show_color_picker']))
 			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
 
-		if (!config['startup.show_control_panel']) {
+		if (!config['startup.show_control_panel'] || process.env.WEBPACK) {
 			this.gui = null
 			return
 		}
