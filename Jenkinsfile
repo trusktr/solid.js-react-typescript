@@ -34,7 +34,7 @@ node("master") {
 	 * zip repo and push to s3 bucket
 	 *
 	 */
-	def pushToS3 = branchName == "feature/push-to-s3"
+	def pushToS3 = branchName == "saffron-release"
 
 	if(pushToS3) {
 		stage("Upload to S3") {
