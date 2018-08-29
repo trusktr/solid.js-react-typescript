@@ -1,38 +1,56 @@
-pipeline {
-	agent any
-	stages {
-		stage('Build') {
-			steps {
-				sh '''./build-scripts/get-ecr-auth.sh'''
-				sh '''./build-scripts/build.sh'''
-				sh '''./build-scripts/hdk-push.sh'''
-			}
-		}
+@Library("mapper-jenkins-libs")_
+
+node("master") {
+
+	def branchName = env.BRANCH_NAME
+	def saffronAppsS3Bucket = "mapper-saffron-apps"
+
+	stage("Checkout") {
+		checkout scm
+
 	}
-	post {
-		always {
-			cleanWs(cleanWhenSuccess: true, cleanWhenUnstable: true, cleanWhenNotBuilt: true, cleanWhenAborted: true, deleteDirs: true, cleanWhenFailure: true)
 
+	// This is here to stop Jenkins from constantly rebuilding
+	// (otherwise the Github updates that Jenkins creates would subsequently create a new Jenkins build, aka a cycle)
+	if (ciSkip(action: 'should-skip')) {
+		return
+	}
+
+	stage("Cleanup") {
+		sh """
+	rm -Rf ./build
+	rm -Rf ./node_modules
+	"""
+	}
+
+	stage("Prep and Build") {
+		sh """
+	npm install
+	"""
+	}
+
+	/**
+	 * ONLY CERTAIN BRANCHES
+	 * zip repo and push to s3 bucket
+	 *
+	 */
+	def pushToS3 = branchName == "saffron-release"
+
+	if(pushToS3) {
+		stage("Upload to S3") {
+			versionBump()
+			echo("ENV VERSION bumped to ${env.VERSION}")
+
+			// zip repo and push to s3
+			def zipFolderName = "mapper-annotator-${env.VERSION}.zip"
+			sh """
+      zip -r ${zipFolderName} .
+      aws s3 cp ${zipFolderName} s3://${saffronAppsS3Bucket}/${zipFolderName}
+      rm ${zipFolderName}
+      github-release release -u signafy -r mapper-annotator  \
+        --tag v${env.VERSION}   \
+        --name "release ${env.VERSION}"
+      """
 		}
-
-		failure {
-			slackSend(channel: "#sw-build", color: 'D81A09', message: "Failed: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
-		}
-
-		unstable {
-			slackSend(channel: "#sw-build", color: 'C1C104', message: "Unstable: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
-		}
-
-		changed {
-			script {
-				if (currentBuild.currentResult == 'SUCCESS') {
-					// send to Slack
-					slackSend (channel: "#sw-build", color: '25A553', message: "Success: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]. (${env.BUILD_URL})")
-				}
-			}
-
-
-		}
-
 	}
 }
