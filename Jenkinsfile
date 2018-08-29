@@ -30,7 +30,7 @@ node("master") {
 	}
 
 	/**
-	 * ONLY MASTER OR DEVELOP BRANCHES
+	 * ONLY CERTAIN BRANCHES
 	 * zip repo and push to s3 bucket
 	 *
 	 */
