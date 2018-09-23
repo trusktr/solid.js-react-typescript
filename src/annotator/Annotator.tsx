@@ -1720,8 +1720,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		document.addEventListener('mousemove', this.checkForImageScreenSelection)
 		document.addEventListener('mouseup', this.clickImageScreenBox)
 
-		this.bind()
-		
 		this.setState({
 			annotatedSceneConfig: this.makeAnnotatedSceneConfig()
 		})
@@ -1789,6 +1787,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			if (annotationsPath) await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
 		})
 		
+		this.bind()
 		this.setKeys()
 	}
 	

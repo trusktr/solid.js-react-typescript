@@ -75,7 +75,7 @@
     "webpack-sources": "1.1.0"
   },
   "dependencies": {
-    "@mapperai/mapper-annotated-scene": "0.0.12",
+    "@mapperai/mapper-annotated-scene": "0.0.17",
     "@mapperai/mapper-models": "1.9.8",
     "@mapperai/mapper-saffron-sdk": "1.1.1",
     "animation-loop": "1.4.0",
