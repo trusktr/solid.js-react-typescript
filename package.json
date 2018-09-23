@@ -24,7 +24,6 @@
     "url": "https://github.com/Signafy/mapper-annotator"
   },
   "devDependencies": {
-    "@types/dat.gui": "0.6.0",
     "@types/electron-window-state": "2.0.31",
     "@types/image-size": "0.0.29",
     "@types/jquery": "2.0.33",

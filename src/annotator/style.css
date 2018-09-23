@@ -38,7 +38,7 @@
 	display: none;
 }
 
-.scene-container #logo {
+#logo {
 	position: absolute;
 	z-index: 2;
 	bottom: 0;
@@ -48,7 +48,7 @@
 	padding-left: 12px;
 }
 
-.scene-container #menu {
+#menu {
 	position: absolute;
 	right: 0;
 	height: 100%;
@@ -62,11 +62,11 @@
 	pointer-events: none;
 }
 
-.scene-container #menu * {
+#menu * {
 	pointer-events: auto;
 }
 
-.scene-container #status_window {
+#status_window {
 	position: absolute;
 	right: 0;
 	bottom: 0;
@@ -87,7 +87,7 @@
 	color: #a00;
 }
 
-.scene-container #menu_control {
+#menu_control {
 	background-color: transparent;
 	position: absolute;
 	z-index: 1;
@@ -100,7 +100,7 @@
 	width: 150px;
 }
 
-.scene-container .menu_btn {
+.menu_btn {
 	background-color: transparent;
 	height: 40px;
 	width: 40px;

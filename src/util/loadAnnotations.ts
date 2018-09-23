@@ -2,7 +2,7 @@ import * as AsyncFile from 'async-file'
 import * as Electron from 'electron'
 import * as THREE from 'three'
 
-import {Layer,AnnotatedSceneController,getLogger as Logger} from '@mapperai/mapper-annotated-scene'
+import {AnnotatedSceneController,getLogger as Logger} from '@mapperai/mapper-annotated-scene'
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
@@ -17,7 +17,7 @@ const dialog = Electron.remote.dialog
 export default
 function loadAnnotations(fileName: string, sceneController: AnnotatedSceneController): Promise<void> {
 	log.info('Loading annotations from ' + fileName)
-	sceneController.setLayerVisibility([Layer.ANNOTATIONS])
+//	sceneController.setLayerVisibility([Layer.ANNOTATIONS])
 
 	return loadAnnotationsFromFile.call(this, fileName, sceneController).then(focalPoint => {
 		if (focalPoint)

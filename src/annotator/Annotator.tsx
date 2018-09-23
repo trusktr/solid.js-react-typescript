@@ -18,7 +18,8 @@ import {flatten} from 'lodash'
 import {SimpleKML} from '../util/KmlUtils'
 
 
-import {GUI as DatGui, GUIParams} from 'dat.gui'
+//import {GUIParams} from 'dat.gui'
+import DatGui from 'dat.gui'
 
 
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
@@ -30,7 +31,7 @@ import {CalibratedImage} from './image/CalibratedImage'
 import * as React from 'react'
 
 
-import {v4 as UUID} from 'uuid'
+//import {v4 as UUID} from 'uuid'
 
 import AnnotatorMenuView from './AnnotatorMenuView'
 import {dateToString} from '../util/dateToString'
@@ -58,7 +59,7 @@ import {
 	toProps,
 	typedConnect,
 	Events,
-	Layer as AnnotatedSceneLayer,
+	//Layer as AnnotatedSceneLayer,
 	AnnotatedSceneActions,
 	MapperTileServiceClientFactory,
 	Annotation,
@@ -78,32 +79,32 @@ import {
 
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
-const Layers = {
-	...AnnotatedSceneLayer,
-	IMAGE_SCREENS: UUID(),
-}
-
-type Layer = string
-
-const allLayers: Layer[] = []
-
-for (const key in Layers) {
-	if (Layers.hasOwnProperty(key)) {
-		const layer = Layers[key]
-
-		allLayers.push(layer)
-	}
-}
+// const Layers = {
+// 	...AnnotatedSceneLayer,
+// 	IMAGE_SCREENS: UUID(),
+// }
+//
+// type Layer = string
+//
+// const allLayers: Layer[] = []
+//
+// for (const key in Layers) {
+// 	if (Layers.hasOwnProperty(key)) {
+// 		const layer = Layers[key]
+//
+// 		allLayers.push(layer)
+// 	}
+// }
 
 // Groups of layers which are visible together. They are toggled on/off with the 'show/hide' command.
 // - all visible
 // - annotations hidden
 // - everything but annotations hidden
-const layerGroups: Layer[][] = [
-	allLayers,
-	[Layers.POINT_CLOUD, Layers.IMAGE_SCREENS],
-	[Layers.ANNOTATIONS],
-]
+// const layerGroups: Layer[][] = [
+// 	allLayers,
+// 	[Layers.POINT_CLOUD, Layers.IMAGE_SCREENS],
+// 	[Layers.ANNOTATIONS],
+// ]
 const defaultLayerGroupIndex = 0
 
 /**
@@ -183,7 +184,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
-	private gui: DatGui | null
+	private gui: any | null
 	private saveState: SaveState | null = null
 
 	constructor(props: AnnotatorProps) {
@@ -229,17 +230,24 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (!isNullOrUndefined(config['startup.show_color_picker']))
 			log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
 
-		if (!config['startup.show_control_panel'] || process.env.WEBPACK) {
-			this.gui = null
-			return
-		}
-
-		const gui = this.gui = new DatGui({
+		// if (!config['startup.show_control_panel'] || process.env.WEBPACK) {
+		// 	this.gui = null
+		// 	return
+		// }
+		log.info("DatGui",DatGui)
+		const gui = this.gui = new DatGui.GUI({
 			hideable: false,
 			closeOnTop: true,
-		} as GUIParams)
+		})
 
-		$(".scene-container").append(gui.domElement)
+		const datContainer = $('<div class="dg ac"></div>')
+		$(".scene-container").append(datContainer.append(gui.domElement))
+		
+		datContainer.css({
+			position: "absolute",
+			top: 0,
+			left: 0
+		})
 		
 		gui.domElement.className = 'threeJs_gui'
 
@@ -331,20 +339,20 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 	// When ImageManager loads an image, add it to the scene.
 	// IDEA JOE The UI can have check boxes for showing/hiding layers.
-	private onImageScreenLoad = (): void => {
-		this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
-	}
+	// private onImageScreenLoad = (): void => {
+	// 	this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
+	// }
 
 	// When a lightbox ray is created, add it to the scene.
 	// On null, remove all rays.
-	private onLightboxImageRay = (ray: THREE.Line): void => {
-		// Accumulate rays while shift is pressed, otherwise clear old ones.
-		if (!this.props.isShiftKeyPressed) this.clearLightboxImageRays()
-
-		this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
-		this.lightboxImageRays.push(ray)
-		new AnnotatedSceneActions().addObjectToScene(ray)
-	}
+	// private onLightboxImageRay = (ray: THREE.Line): void => {
+	// 	// Accumulate rays while shift is pressed, otherwise clear old ones.
+	// 	if (!this.props.isShiftKeyPressed) this.clearLightboxImageRays()
+	//
+	// 	this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
+	// 	this.lightboxImageRays.push(ray)
+	// 	new AnnotatedSceneActions().addObjectToScene(ray)
+	// }
 
 	private clearLightboxImageRays = (): void => {
 		if (!this.lightboxImageRays.length) return
@@ -543,7 +551,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		return this.loadKmlTerritoriesFromFile(fileName).then(newAnnotationsFocalPoint => {
 			if (newAnnotationsFocalPoint) {
-				this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
+				//this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
 
 				const {x, y, z} = newAnnotationsFocalPoint
 
@@ -629,11 +637,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	}
 
 	addImageScreenLayer(): void {
-		const imagesToggle = (visible: boolean): void => {
-			this.setState({isImageScreensVisible: visible})
-		}
+		// const imagesToggle = (visible: boolean): void => {
+		// 	this.setState({isImageScreensVisible: visible})
+		// }
 
-		this.state.annotatedSceneController!.addLayer(Layers.IMAGE_SCREENS, imagesToggle)
+		//this.state.annotatedSceneController!.addLayer(Layers.IMAGE_SCREENS, imagesToggle)
 	}
 
 	/**
@@ -1675,9 +1683,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		layerGroupIndex++
 
-		if (!layerGroups[layerGroupIndex]) layerGroupIndex = defaultLayerGroupIndex
-
-		this.state.annotatedSceneController!.setLayerVisibility(layerGroups[layerGroupIndex], true)
+		// if (!layerGroups[layerGroupIndex]) layerGroupIndex = defaultLayerGroupIndex
+		//
+		// this.state.annotatedSceneController!.setLayerVisibility(layerGroups[layerGroupIndex], true)
 		this.setState({layerGroupIndex})
 	}
 	
@@ -1731,50 +1739,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			this.saveState = new SaveState(this.state.annotationManager, config) // eslint-disable-line no-use-before-define
 		}
 
-		if (!oldState.annotatedSceneController && this.state.annotatedSceneController) {
-			const {utmCoordinateSystem, channel} = this.state.annotatedSceneController.state
-
-			this.imageManager = new ImageManager(utmCoordinateSystem!, channel!)
-
-			// events from ImageManager
-			channel!.on(Events.KEYDOWN, this.state.annotatedSceneController.onKeyDown)
-			channel!.on(Events.KEYUP, this.state.annotatedSceneController.onKeyUp)
-			channel!.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
-			channel!.on(Events.LIGHTBOX_CLOSE, this.clearLightboxImageRays)
-
-			// IDEA JOE maybe we need a separate LightBoxRayManager? Or at least move to ImageManager
-			channel!.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
-			channel!.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
-			channel!.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
-			
-			// UI updates
-			// TODO JOE move UI logic to React/JSX, and get state from Redux
-			
-			channel!.on('deactivateFrontSideNeighbours', Annotator.deactivateFrontSideNeighbours)
-			channel!.on('deactivateLeftSideNeighbours', Annotator.deactivateLeftSideNeighbours)
-			channel!.on('deactivateRightSideNeighbours', Annotator.deactivateRightSideNeighbours)
-			channel!.on('deactivateAllAnnotationPropertiesMenus', this.deactivateAllAnnotationPropertiesMenus)
-			channel!.on('resetAllAnnotationPropertiesMenuElements', this.resetAllAnnotationPropertiesMenuElements)
-
-			channel!.on(Events.ANNOTATION_VISUAL_UPDATE, lane => {
-				lane instanceof Lane && this.uiUpdateLaneWidth(lane)
-			})
-
-			channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
-				this.saveState!.dirty()
-			})
-
-			channel!.once(Events.ANNOTATED_SCENE_READY, async() => {
-				this.addImageScreenLayer()
-
-				const annotationsPath = config['startup.annotations_path']
-
-				if (annotationsPath) await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
-			})
-
-			this.setKeys()
-		}
-
 		if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
 			if (this.state.isImageScreensVisible)
 				this.imageManager.showImageScreens()
@@ -1783,14 +1747,61 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		}
 	}
 
+	private attachScene = () => {
+		const annotatedSceneController = this.state.annotatedSceneController!
+		const {utmCoordinateSystem, channel} = annotatedSceneController.state
+		
+		this.imageManager = new ImageManager(utmCoordinateSystem!, channel!)
+		
+		// events from ImageManager
+		channel!.on(Events.KEYDOWN, annotatedSceneController.onKeyDown)
+		channel!.on(Events.KEYUP, annotatedSceneController.onKeyUp)
+		//channel!.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
+		channel!.on(Events.LIGHTBOX_CLOSE, this.clearLightboxImageRays)
+		
+		// IDEA JOE maybe we need a separate LightBoxRayManager? Or at least move to ImageManager
+		//channel!.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
+		channel!.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
+		channel!.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
+		
+		// UI updates
+		// TODO JOE move UI logic to React/JSX, and get state from Redux
+		
+		channel!.on('deactivateFrontSideNeighbours', Annotator.deactivateFrontSideNeighbours)
+		channel!.on('deactivateLeftSideNeighbours', Annotator.deactivateLeftSideNeighbours)
+		channel!.on('deactivateRightSideNeighbours', Annotator.deactivateRightSideNeighbours)
+		channel!.on('deactivateAllAnnotationPropertiesMenus', this.deactivateAllAnnotationPropertiesMenus)
+		channel!.on('resetAllAnnotationPropertiesMenuElements', this.resetAllAnnotationPropertiesMenuElements)
+		
+		channel!.on(Events.ANNOTATION_VISUAL_UPDATE, lane => {
+			lane instanceof Lane && this.uiUpdateLaneWidth(lane)
+		})
+		
+		channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
+			this.saveState!.dirty()
+		})
+		
+		channel!.once(Events.ANNOTATED_SCENE_READY, async() => {
+			this.addImageScreenLayer()
+			
+			const annotationsPath = config['startup.annotations_path']
+			
+			if (annotationsPath) await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
+		})
+		
+		this.setKeys()
+	}
+	
 	/* eslint-disable typescript/no-explicit-any */
-	getAnnotatedSceneRef = (ref: any) => {
-		ref && this.setState({annotatedSceneController: ref.getWrappedInstance() as AnnotatedSceneController})
+	private getAnnotatedSceneRef = (ref: any) => {
+		ref && this.setState({
+			annotatedSceneController: ref as AnnotatedSceneController
+		}, this.attachScene)
 	}
 	/* eslint-enable typescript/no-explicit-any */
 
 	// TODO JOE don't get refs directly, proxy functionality through AnnotatedSceneController
-	getAnnotationManagerRef = (ref: AnnotationManager) => {
+	private getAnnotationManagerRef = (ref: AnnotationManager) => {
 		ref && this.setState({annotationManager: ref})
 	}
 
@@ -1802,7 +1813,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		return !tileServiceClientFactory || !annotatedSceneConfig ? <div/> : (
 			<React.Fragment>
 				<AnnotatedSceneController
-					ref={this.getAnnotatedSceneRef}
+					sceneRef={this.getAnnotatedSceneRef}
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
 					tileServiceClientFactory={tileServiceClientFactory}
