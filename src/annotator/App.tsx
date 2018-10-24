@@ -106,7 +106,7 @@ export default class App extends React.Component<AppProps, AppState> {
 	 *
 	 * @returns {any}
 	 */
-	private renderAnnotator() {
+	private AnnotatorUI = () => {
 		const {tileServiceClientFactory} = this.state
 		return <React.Fragment>
 			<Annotator tileServiceClientFactory={tileServiceClientFactory!}/>
@@ -126,7 +126,7 @@ export default class App extends React.Component<AppProps, AppState> {
 	}
 	
 	
-	private renderSetupForm() {
+	private SetupForm = () => {
 		const {isSaffron, sessionId, env} = this.state
 		return <form onSubmit={this.startAnnotator}>
 			{/* ENV ONLY NON SAFFRON */}
@@ -146,8 +146,8 @@ export default class App extends React.Component<AppProps, AppState> {
 		return <React.Fragment>
 			
 			{!tileServiceClientFactory ?
-				this.renderSetupForm():
-				this.renderAnnotator()
+				<this.SetupForm />:
+				<this.AnnotatorUI />
 			}
 		</React.Fragment>
 	}
