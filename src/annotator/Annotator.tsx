@@ -117,8 +117,6 @@ interface AnnotatorState {
 	background: THREEColorValue
 	layerGroupIndex: number
 
-	lastMousePosition: MousePosition | null
-
 	imageScreenOpacity: number
 
 	annotationManager: AnnotationManager | null
@@ -153,6 +151,7 @@ interface AnnotatorProps {
 	isRotationModeActive?: boolean
 	isMouseDown?: boolean
 	isMouseDragging?: boolean
+	mousePosition?: MousePosition
 	isTransformControlsAttached?: boolean
 }
 
@@ -176,6 +175,7 @@ interface AnnotatorProps {
 	'isRotationModeActive',
 	'isMouseDown',
 	'isMouseDragging',
+	'mousePosition',
 	'isTransformControlsAttached',
 ))
 export default class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
@@ -208,7 +208,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			background: hexStringToHexadecimal(config['startup.background_color'] || '#442233'),
 			layerGroupIndex: defaultLayerGroupIndex,
 
-			lastMousePosition: null,
 			imageScreenOpacity: parseFloat(config['image_manager.image.opacity']) || 0.5,
 
 			annotationManager: null,
@@ -333,10 +332,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		if (this.gui) this.gui.destroy()
 	}
 
-	private setLastMousePosition = (event: MouseEvent | null): void => {
-		this.setState({lastMousePosition: event})
-	}
-
 	// When ImageManager loads an image, add it to the scene.
 	// IDEA JOE The UI can have check boxes for showing/hiding layers.
 	// private onImageScreenLoad = (): void => {
@@ -365,7 +360,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		callback(this.lightboxImageRays)
 	}
 
-	private checkForImageScreenSelection = (mousePosition: MousePosition): void => {
+	private checkForImageScreenSelection = (): void => {
 		if (this.props.isLiveMode) return
 		if (!this.props.isShiftKeyPressed) return
 		if (this.props.isMouseDown) return
@@ -379,7 +374,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		if (!this.imageManager.imageScreenMeshes.length) return this.unHighlightImageScreenBox()
 
-		const mouse = mousePositionToGLSpace(mousePosition, this.props.rendererSize!)
+		const mouse = mousePositionToGLSpace(this.props.mousePosition, this.props.rendererSize!)
 
 		this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 
@@ -414,7 +409,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			case 0: {
 				if (!this.highlightedImageScreenBox) return
 
-				const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+				const mouse = mousePositionToGLSpace(this.props.mousePosition, this.props.rendererSize!)
 
 				this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 
@@ -440,7 +435,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			case 2: {
 				if (this.props.isShiftKeyPressed) return
 
-				const mouse = mousePositionToGLSpace(event, this.props.rendererSize!)
+				const mouse = mousePositionToGLSpace(this.props.mousePosition, this.props.rendererSize!)
 
 				this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 
@@ -537,7 +532,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		this.saveState!.enableAutoSave()
 	}
 	private onBlur = (): void => {
-		this.setLastMousePosition(null)
 		this.saveState!.disableAutoSave()
 	}
 
@@ -664,9 +658,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			(document.activeElement as HTMLInputElement).blur()
 	}
 
+	// TODO JOE I don't think we need this because checkForImageScreenSelection is
+	// already triggered on mousemove, and checkForImageScreenSelection checks
+	// if Shift key is pressed, so this may be redundant.
 	private onShiftKeyDown = (): void => {
-		if (this.state.lastMousePosition)
-			this.checkForImageScreenSelection(this.state.lastMousePosition)
+		this.checkForImageScreenSelection(this.props.mousePosition)
 	}
 
 	private onShiftKeyUp = (): void => {
@@ -1716,7 +1712,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		window.addEventListener('blur', this.onBlur)
 		window.addEventListener('beforeunload', this.onBeforeUnload)
 
-		document.addEventListener('mousemove', this.setLastMousePosition)
 		document.addEventListener('mousemove', this.checkForImageScreenSelection)
 		document.addEventListener('mouseup', this.clickImageScreenBox)
 
