@@ -9,12 +9,7 @@
 		"experimentalDecorators": true,
 		"forceConsistentCasingInFileNames": true,
 		"jsx": "react",
-		"lib": [
-			"es6",
-			"es7",
-			"dom",
-			"esnext.asynciterable"
-		],
+		"lib": ["es6", "es7", "dom", "esnext.asynciterable"],
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"noFallthroughCasesInSwitch": true,
@@ -30,13 +25,9 @@
 		"target": "es6",
 		"skipLibCheck": true,
 		"paths": {
-			"*": [
-				"*"
-			]
+			"*": ["*"]
 		}
 	},
 	"compileOnSave": false,
-	"include": [
-		"src/**/*"
-	]
+	"include": ["src/**/*"]
 }
