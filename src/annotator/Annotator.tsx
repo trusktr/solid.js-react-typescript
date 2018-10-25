@@ -240,8 +240,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 		})
 
 		const datContainer = $('<div class="dg ac"></div>')
-		$(".scene-container").append(datContainer.append(gui.domElement))
-		
+		$(".annotated-scene-container").append(datContainer.append(gui.domElement))
+
 		datContainer.css({
 			position: "absolute",
 			top: 0,
@@ -374,7 +374,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
 		if (!this.imageManager.imageScreenMeshes.length) return this.unHighlightImageScreenBox()
 
-		const mouse = mousePositionToGLSpace(this.props.mousePosition, this.props.rendererSize!)
+		const mouse = mousePositionToGLSpace(this.props.mousePosition!, this.props.rendererSize!)
 
 		this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 
@@ -409,7 +409,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			case 0: {
 				if (!this.highlightedImageScreenBox) return
 
-				const mouse = mousePositionToGLSpace(this.props.mousePosition, this.props.rendererSize!)
+				const mouse = mousePositionToGLSpace(this.props.mousePosition!, this.props.rendererSize!)
 
 				this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 
@@ -435,7 +435,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 			case 2: {
 				if (this.props.isShiftKeyPressed) return
 
-				const mouse = mousePositionToGLSpace(this.props.mousePosition, this.props.rendererSize!)
+				const mouse = mousePositionToGLSpace(this.props.mousePosition!, this.props.rendererSize!)
 
 				this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 
@@ -662,7 +662,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 	// already triggered on mousemove, and checkForImageScreenSelection checks
 	// if Shift key is pressed, so this may be redundant.
 	private onShiftKeyDown = (): void => {
-		this.checkForImageScreenSelection(this.props.mousePosition)
+		this.checkForImageScreenSelection()
 	}
 
 	private onShiftKeyUp = (): void => {
