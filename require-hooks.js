@@ -11,7 +11,7 @@ const fs = require('fs')
 // creates import aliases, f.e. import config from '@src/config'
 require('module-alias').addAliases({
 	'@src': path.resolve(__dirname, 'src'),
-	'annotator-config': path.resolve(__dirname, 'src','annotator-config'),
+	'annotator-config': path.resolve(__dirname, 'src', 'annotator-config'),
 })
 
 // ability to require/import TypeScript files
@@ -19,12 +19,11 @@ require('ts-node').register({
 	typeCheck: false,
 	transpileOnly: true,
 	files: true,
-	
-	
+
 	// manually supply our own compilerOptions, otherwise if we run this file
 	// from another project's location (f.e. from Saffron) then ts-node will use
 	// the compilerOptions from that other location, which may not work.
-	compilerOptions: require('./tsconfig.json').compilerOptions
+	compilerOptions: require('./tsconfig.json').compilerOptions,
 })
 
 // css files straight to document head (assumes that the browser `document` API
@@ -69,12 +68,11 @@ const oldRequire = Module.prototype.require
 function requireContext(directory, recursive, regExp) {
 	var dir = require('node-dir')
 	var path = require('path')
-	
+
 	// Assume absolute path by default
 	var basepath = directory
-	if (!directory)
-		return null
-	
+	if (!directory) return null
+
 	if (directory[0] === '.') {
 		// Relative path
 		basepath = path.join(__dirname, directory)
@@ -82,11 +80,11 @@ function requireContext(directory, recursive, regExp) {
 		// Module path
 		basepath = require.resolve(directory)
 	}
-	
+
 	var keys = dir
 		.files(basepath, {
 			sync: true,
-			recursive: recursive || false
+			recursive: recursive || false,
 		})
 		.filter(function(file) {
 			return file.match(regExp || /\.(json|js)$/)
@@ -94,31 +92,32 @@ function requireContext(directory, recursive, regExp) {
 		.map(function(file) {
 			return path.join('.', file.slice(basepath.length + 1))
 		})
-	
+
 	var context = function(key) {
 		return require(context.resolve(key))
 	}
-	
+
 	context.resolve = function(key) {
 		return path.join(directory, key)
 	}
-	
+
 	context.keys = function() {
 		return keys
 	}
-	
+
 	return context
 }
 
-
 Module.prototype.require = function(moduleIdentifier) {
-	if (['.yaml','.yml'].some(ext => moduleIdentifier.endsWith(ext))) {
-		const o = require('js-yaml').safeLoad(fs.readFileSync(
-			path.resolve(path.dirname(this.filename + ''),moduleIdentifier + ''),
-			'utf8'
-		))
-		return Object.assign({},o,{
-			default: o
+	if (['.yaml', '.yml'].some(ext => moduleIdentifier.endsWith(ext))) {
+		const o = require('js-yaml').safeLoad(
+			fs.readFileSync(
+				path.resolve(path.dirname(this.filename + ''), moduleIdentifier + ''),
+				'utf8',
+			),
+		)
+		return Object.assign({}, o, {
+			default: o,
 		})
 	} else if (
 		moduleIdentifier.endsWith('.obj') ||
@@ -127,18 +126,19 @@ Module.prototype.require = function(moduleIdentifier) {
 	) {
 		return {
 			// Return an object with a default property so we can do `import objFile from './path/to/file.obj'` in ES6 modules (or TypeScript)
-			default: toFileURL(path.resolve(path.dirname(this.filename), moduleIdentifier)),
+			default: toFileURL(
+				path.resolve(path.dirname(this.filename), moduleIdentifier),
+			),
 		}
 	} else {
 		// return oldRequire.call(this, moduleIdentifier)
 		try {
 			return oldRequire.call(this, moduleIdentifier)
 		} catch (err) {
-			console.log("Default require failed",err)
+			console.log('Default require failed', err)
 		}
 	}
 }
-
 
 Module.prototype.require.context = requireContext
 process.mainModule.require.context = requireContext

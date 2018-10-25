@@ -14,12 +14,9 @@ export function dataSetNameFromPath(path: string): string | null {
 	const pieces = path.split('/').filter(piece => piece !== '')
 	const count = pieces.length
 
-	if (count < 2)
-		return null
-	else if (pieces[count - 1].endsWith('.md'))
-		return pieces[count - 2]
-	else
-		return null
+	if (count < 2) return null
+	else if (pieces[count - 1].endsWith('.md')) return pieces[count - 2]
+	else return null
 }
 
 // This magic file is created by the S1 capture pipeline.

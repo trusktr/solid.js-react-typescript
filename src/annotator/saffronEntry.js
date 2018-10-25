@@ -1,5 +1,3 @@
-
-
 const React = require('react')
 const entry = require('./entry')
 
@@ -7,7 +5,6 @@ const entry = require('./entry')
  * Annotator root component
  */
 class Annotator extends React.Component {
-
 	constructor(props, context) {
 		super(props, context)
 
@@ -19,22 +16,21 @@ class Annotator extends React.Component {
 			this.setState({
 				componentPromise: entry.start(true).then(component => {
 					this.setState({
-						component
+						component,
 					})
-				})
+				}),
 			})
 		}
 	}
 
 	render() {
-		const {component} = this.state
-		return component ? component : React.createElement('div',{},'loading')
+		const { component } = this.state
+		return component ? component : React.createElement('div', {}, 'loading')
 	}
 }
-
 
 module.exports = {
 	component: Annotator,
 	start: async () => {},
-	stop: async () => {}
+	stop: async () => {},
 }
