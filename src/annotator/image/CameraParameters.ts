@@ -71,32 +71,17 @@ export class AuroraCameraParameters implements CameraParameters {
 
 		// https://en.wikipedia.org/wiki/Camera_resectioning
 		// https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
-		const cameraOrigin = new THREE.Vector4(
-			translation[0],
-			translation[1],
-			translation[2],
-			1,
-		)
+		// prettier-ignore
+		const cameraOrigin = new THREE.Vector4(translation[0], translation[1], translation[2], 1)
 		const screenPosition = new THREE.Vector4(0, 0, screenDistanceFromOrigin, 1)
 		const screenRotation = new THREE.Matrix4()
 
+		// prettier-ignore
 		screenRotation.set(
-			rotation[0],
-			rotation[1],
-			rotation[2],
-			translation[0],
-			rotation[3],
-			rotation[4],
-			rotation[5],
-			translation[1],
-			rotation[6],
-			rotation[7],
-			rotation[8],
-			translation[2],
-			0,
-			0,
-			0,
-			1,
+			rotation[0], rotation[1], rotation[2], translation[0],
+			rotation[3], rotation[4], rotation[5], translation[1],
+			rotation[6], rotation[7], rotation[8], translation[2],
+			0, 0, 0, 1,
 		)
 
 		screenPosition.applyMatrix4(screenRotation)
@@ -135,23 +120,12 @@ export class AuroraCameraParameters implements CameraParameters {
 		)
 		const endRotation = new THREE.Matrix4()
 
+		// prettier-ignore
 		endRotation.set(
-			this.rotation[0],
-			this.rotation[1],
-			this.rotation[2],
-			this.translation[0],
-			this.rotation[3],
-			this.rotation[4],
-			this.rotation[5],
-			this.translation[1],
-			this.rotation[6],
-			this.rotation[7],
-			this.rotation[8],
-			this.translation[2],
-			0,
-			0,
-			0,
-			1,
+			this.rotation[0], this.rotation[1], this.rotation[2], this.translation[0],
+			this.rotation[3], this.rotation[4], this.rotation[5], this.translation[1],
+			this.rotation[6], this.rotation[7], this.rotation[8], this.translation[2],
+			0, 0, 0, 1,
 		)
 
 		endPosition.applyMatrix4(endRotation)

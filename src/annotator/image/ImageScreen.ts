@@ -33,7 +33,13 @@ const textureLoader = new THREE.TextureLoader()
 // Extend lines from the corners of the base to a central point, forming the top of a pyramid.
 // Assume four corners in the base.
 function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
-	const vertices = [tip, base[0], tip, base[1], tip, base[2], tip, base[3]]
+	// prettier-ignore
+	const vertices = [
+		tip, base[0],
+		tip, base[1],
+		tip, base[2],
+		tip, base[3],
+	]
 
 	return lineGeometry(
 		vertices,
