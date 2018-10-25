@@ -103,6 +103,7 @@
     "electron": "1.7.9",
     "electron-unhandled": "1.1.0",
     "electron-window-state": "4.1.1",
+    "eslint-config-prettier": "^3.1.0",
     "events": "^3.0.0",
     "executable": "4.1.1",
     "gtran-kml": "1.2.1",
