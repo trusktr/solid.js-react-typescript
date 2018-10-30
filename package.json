@@ -14,7 +14,7 @@
 		"lib:dev": "cross-env MAPPER_ENV=dev NODE_ENV=development ./node_modules/.bin/webpack --config etc/webpack/webpack.config.saffron.js --mode development --env development --watch",
 		"start": "electron src/annotator/annotator-entry-main/index.js",
 		"dev": "NODE_ENV=development MAPPER_ENV=dev npm run lint-watch & p1=$!; npm run typecheck-watch & p2=$!; npm start & p3=$!; wait $p1 $p2 $p3",
-		"typecheck": "./node_modules/.bin/tsc -p ./tsconfig.json --noEmit",
+		"typecheck": "tsc -p ./tsconfig.json --noEmit",
 		"typecheck-watch": "npm run typecheck -- -w",
 		"electron-rebuild": "electron-rebuild",
 		"prettier": "npm run prettier-js -- --write && npm run prettier-ts -- --write && npm run prettier-md -- --write",
@@ -25,11 +25,13 @@
 		"prettier-js-list": "prettier './**/*.{js,json}' --list-different || true",
 		"prettier-ts-list": "prettier './**/*.{ts,tsx}' --list-different || true",
 		"prettier-md-list": "prettier './**/*.md' --list-different || true",
-		"lint": "npm run lint-js && npm run lint-ts",
+		"lint": "esw --format codeframe --config ./.eslintrc.js",
+		"lint-fix": "npm run lint -- --fix",
+		"lint-all": "npm run lint-js && npm run lint-ts",
+		"lint-fix-all": "npm run lint-js -- --fix && npm run lint-ts -- --fix",
 		"lint-watch": "npm run lint-js -- --watch & $p5=$!; npm run lint-ts -- --watch & p6=$!; wait $p5 $p6",
-		"lint-js": "esw --format codeframe --config ./.eslintrc.js './**/{.,}*.{js,json,html}'",
-		"lint-ts": "esw --format codeframe --config ./.eslintrc.js './**/*.{ts,tsx}'",
-		"lint-fix": "npm run lint-js -- --fix; npm run lint-ts -- --fix"
+		"lint-js": "npm run lint -- './**/{.,}*.{js,json,html}'",
+		"lint-ts": "npm run lint -- './**/*.{ts,tsx}'"
 	},
 	"husky": {
 		"hooks": {
@@ -38,8 +40,12 @@
 	},
 	"lint-staged": {
 		"*.{js,ts,tsx,json,md}": [
-			"npm run lint-fix",
+			"npm run lint-fix --",
 			"prettier --write",
+			"git add"
+		],
+		"*.{html}": [
+			"npm run lint-fix --",
 			"git add"
 		]
 	},
@@ -63,7 +69,6 @@
 		"electron-rebuild": "1.6.0",
 		"eslint": "5.2.0",
 		"eslint-config-prettier": "^3.1.0",
-		"eslint-config-standard": "11.0.0",
 		"eslint-friendly-formatter": "4.0.1",
 		"eslint-loader": "2.1.0",
 		"eslint-plugin-html": "4.0.5",
