@@ -16,6 +16,7 @@ export async function windowStateKeeperOptions(
 	if (!windowName) throw Error('missing windowName')
 
 	await configReady()
+
 	const applicationDirectory =
 		config['preferences.directory'] || 'mapper-annotator'
 	const windowStatePrefsFile =

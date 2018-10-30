@@ -19,7 +19,6 @@ import {
 } from '@mapperai/mapper-annotated-scene'
 import { AuroraCameraParameters } from './CameraParameters'
 import config from 'annotator-config'
-
 import { EventEmitter } from 'events'
 
 const log = Logger(__filename)
@@ -168,6 +167,7 @@ export class ImageManager {
 		this.loadedImageDetails.forEach(
 			i => i!.imageScreen.setHighlight(false) && updated++,
 		)
+
 		this.loadedImageDetails = OrderedSet()
 
 		if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER, null)

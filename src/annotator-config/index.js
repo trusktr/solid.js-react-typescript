@@ -3,7 +3,6 @@
 
 const _ = require('lodash')
 const createPromise = require('../util/createPromise').default
-
 const config = {}
 const envInput = (process.env.NODE_ENV || '').toLowerCase()
 
@@ -20,7 +19,6 @@ const {
 	reject: rejectConfig,
 	resolve: resolveConfig,
 } = createPromise()
-//const deferredConfig = new Deferred()
 
 // eslint-disable-next-line typescript/no-explicit-any
 function configReady() {
@@ -30,21 +28,24 @@ function configReady() {
 function setupConfig() {
 	if (process.env.WEBPACK) {
 		try {
-			const confMods = require.context('.', true, /yaml$/),
-				confKeys = confMods.keys(),
-				envFilename = `${deployEnv}.yaml`
+			const confMods = require.context('.', true, /yaml$/)
+			const confKeys = confMods.keys()
+			const envFilename = `${deployEnv}.yaml`
 
 			console.log('Available env configs', confKeys, 'desired', envFilename)
 
-			const testConfKeys = [envFilename, 'local.yaml'],
-				conf = testConfKeys.reduce((conf, nextKey) => {
-					const key = confKeys.find(key => key.includes(nextKey))
-					if (key) {
-						const confMod = confMods(key)
-						_.merge(conf, confMod)
-					}
-					return conf
-				}, {})
+			const testConfKeys = [envFilename, 'local.yaml']
+			const conf = testConfKeys.reduce((conf, nextKey) => {
+				const key = confKeys.find(key => key.includes(nextKey))
+
+				if (key) {
+					const confMod = confMods(key)
+
+					_.merge(conf, confMod)
+				}
+
+				return conf
+			}, {})
 
 			console.log(
 				'Available env configs',
@@ -80,10 +81,11 @@ function setupConfig() {
 		const yaml = require('nconf-yaml')
 		const envFile = path.resolve(__dirname, deployEnv + '.yaml')
 
-		if (!fs.existsSync(envFile))
+		if (!fs.existsSync(envFile)) {
 			throw new Error(
 				`Bad environment variable NODE_ENV=${deployEnv}. Missing required config file ${envFile}.`,
 			)
+		}
 
 		const required = [
 			// 'tile_manager.utm_tile_scale',

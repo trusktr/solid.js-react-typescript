@@ -16,7 +16,6 @@ import {
 	loadAnnotatedSceneStore,
 	getAnnotatedSceneReduxStore,
 } from '@mapperai/mapper-annotated-scene'
-
 import { Provider } from 'react-redux'
 import { configReady } from 'annotator-config'
 
@@ -31,10 +30,8 @@ require('jquery-ui-dist/jquery-ui')
 let deferred: Deferred<React.Component>
 
 // otherwise, Saffron will mount the exported App for us.
-async function start(isSaffron: boolean = false): Promise<React.Component> {
-	if (deferred) {
-		return deferred.promise
-	}
+async function start(isSaffron = false): Promise<React.Component> {
+	if (deferred) return deferred.promise
 
 	deferred = new Deferred<React.Component>()
 
@@ -45,23 +42,21 @@ async function start(isSaffron: boolean = false): Promise<React.Component> {
 
 	const root = $('#root')[0]
 
-	const doRender = () => {
+	const doRender = (): void => {
 		const component = (
 			<Provider store={getAnnotatedSceneReduxStore()}>
 				<App />
 			</Provider>
 		)
 
-		if (!isSaffron) {
-			ReactDOM.render(component, root)
-		}
+		if (!isSaffron) ReactDOM.render(component, root)
 
-		deferred.resolve(component as any)
+		deferred.resolve(component)
 	}
 
 	$(doRender)
 
-	return await deferred.promise
+	return deferred.promise
 }
 
 async function stop(): Promise<void> {}
