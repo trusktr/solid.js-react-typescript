@@ -17,7 +17,7 @@ import * as mkdirp from 'mkdirp'
 import { flatten } from 'lodash'
 import { SimpleKML } from '../util/KmlUtils'
 //import {GUIParams} from 'dat.gui'
-import DatGui from 'dat.gui'
+import { GUI } from 'dat.gui'
 import { isNullOrUndefined } from 'util' // eslint-disable-line node/no-deprecated-api
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
@@ -176,7 +176,7 @@ export default class Annotator extends React.Component<
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
-	private gui?: DatGui.GUI
+	private gui?: GUI
 	private saveState: SaveState | null = null
 
 	constructor(props: AnnotatorProps) {
@@ -237,9 +237,9 @@ export default class Annotator extends React.Component<
 		// 	this.gui = null
 		// 	return
 		// }
-		log.info('DatGui', DatGui)
+		log.info('dat.GUI', GUI)
 
-		const gui = (this.gui = new DatGui.GUI({
+		const gui = (this.gui = new GUI({
 			hideable: false,
 			closeOnTop: true,
 		}))
@@ -774,7 +774,7 @@ export default class Annotator extends React.Component<
 			this.deactivateAllAnnotationPropertiesMenus()
 		}
 
-		if (document.activeElement.tagName === 'INPUT')
+		if (document.activeElement && document.activeElement.tagName === 'INPUT')
 			(document.activeElement as HTMLInputElement).blur()
 	}
 
@@ -1746,8 +1746,8 @@ export default class Annotator extends React.Component<
 			const selects = laneProp1.getElementsByTagName('select')
 
 			for (let i = 0; i < selects.length; ++i) {
-				selects.item(i).selectedIndex = 0
-				selects.item(i).setAttribute('disabled', 'disabled')
+				selects.item(i)!.selectedIndex = 0
+				selects.item(i)!.setAttribute('disabled', 'disabled')
 			}
 		} else {
 			log.warn('missing element lane_prop_1')
@@ -1788,8 +1788,8 @@ export default class Annotator extends React.Component<
 			const selects = boundaryProp.getElementsByTagName('select')
 
 			for (let i = 0; i < selects.length; ++i) {
-				selects.item(i).selectedIndex = 0
-				selects.item(i).setAttribute('disabled', 'disabled')
+				selects.item(i)!.selectedIndex = 0
+				selects.item(i)!.setAttribute('disabled', 'disabled')
 			}
 		} else {
 			log.warn('missing element boundary_prop')
@@ -1818,8 +1818,8 @@ export default class Annotator extends React.Component<
 			const selects = connectionProp.getElementsByTagName('select')
 
 			for (let i = 0; i < selects.length; ++i) {
-				selects.item(i).selectedIndex = 0
-				selects.item(i).setAttribute('disabled', 'disabled')
+				selects.item(i)!.selectedIndex = 0
+				selects.item(i)!.setAttribute('disabled', 'disabled')
 			}
 		} else {
 			log.warn('missing element boundary_prop')
