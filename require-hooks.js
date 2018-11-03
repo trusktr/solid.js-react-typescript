@@ -66,11 +66,12 @@ function toFileURL(filePath) {
 const oldRequire = Module.prototype.require
 
 function requireContext(directory, recursive, regExp) {
-	var dir = require('node-dir')
-	var path = require('path')
+	const dir = require('node-dir')
+	const path = require('path')
 
 	// Assume absolute path by default
-	var basepath = directory
+	let basepath = directory
+
 	if (!directory) return null
 
 	if (directory[0] === '.') {
@@ -81,7 +82,7 @@ function requireContext(directory, recursive, regExp) {
 		basepath = require.resolve(directory)
 	}
 
-	var keys = dir
+	const keys = dir
 		.files(basepath, {
 			sync: true,
 			recursive: recursive || false,
@@ -93,7 +94,7 @@ function requireContext(directory, recursive, regExp) {
 			return path.join('.', file.slice(basepath.length + 1))
 		})
 
-	var context = function(key) {
+	const context = function(key) {
 		return require(context.resolve(key))
 	}
 
@@ -116,6 +117,7 @@ Module.prototype.require = function(moduleIdentifier) {
 				'utf8',
 			),
 		)
+
 		return Object.assign({}, o, {
 			default: o,
 		})

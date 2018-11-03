@@ -76,7 +76,7 @@ module.exports = {
 		],
 
 		// from https://github.com/xjamundx/eslint-plugin-promise
-		'promise/always-return': 'error',
+		'promise/always-return': 'off',
 		'promise/no-return-wrap': 'error',
 		'promise/param-names': 'error',
 		'promise/catch-or-return': 'error',

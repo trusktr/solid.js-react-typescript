@@ -19,15 +19,15 @@ export type PromiseReturn<A, B> = {
 export default function createPromise<A, B>(): PromiseReturn<A, B> {
 	// These two default function values aren't needed if we upgrade to TS ^2.7.1
 	// https://github.com/Microsoft/TypeScript/pull/20166
-	let resolve: Resolve<A> = (): void => {} // tslint:disable-line:no-empty
-	let reject: Reject<B> = (): void => {} // tslint:disable-line:no-empty
+	let res: Resolve<A> = (): void => {} // tslint:disable-line:no-empty
+	let rej: Reject<B> = (): void => {} // tslint:disable-line:no-empty
 
 	const promise = new Promise<A>(
-		(res, rej): void => {
-			resolve = res
-			reject = rej
+		(resolve, reject): void => {
+			res = resolve
+			rej = reject
 		},
 	)
 
-	return { promise, resolve, reject }
+	return { promise, resolve: res, reject: rej }
 }

@@ -45,11 +45,12 @@ class LightboxWindowUI {
 		if (event.defaultPrevented) return
 
 		// Annotator ignores repeating events, and streaming them through IPC probably wouldn't perform well.
-		if (!event.repeat)
-			this.communicator.send(
+		if (!event.repeat) {
+this.communicator.send(
 				channel.keyDownEvent,
 				toKeyboardEventHighlights(event),
 			)
+}
 	}
 
 	private onKeyUp = (event: KeyboardEvent): void => {
