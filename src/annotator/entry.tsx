@@ -27,13 +27,15 @@ Object.assign(global, {
 
 require('jquery-ui-dist/jquery-ui')
 
-let deferred: Deferred<React.Component>
+type ElementOrComponent = JSX.Element | React.Component
+
+let deferred: Deferred<ElementOrComponent>
 
 // otherwise, Saffron will mount the exported App for us.
-async function start(isSaffron = false): Promise<React.Component> {
+async function start(isSaffron = false): Promise<ElementOrComponent> {
 	if (deferred) return deferred.promise
 
-	deferred = new Deferred<React.Component>()
+	deferred = new Deferred<ElementOrComponent>()
 
 	await configReady()
 

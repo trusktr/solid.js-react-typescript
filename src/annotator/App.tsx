@@ -106,7 +106,7 @@ export default class App extends React.Component<AppProps, AppState> {
 	 *
 	 * @returns {any}
 	 */
-	private AnnotatorUI = () => {
+	private AnnotatorUI = (): JSX.Element => {
 		const { tileServiceClientFactory } = this.state
 
 		return (

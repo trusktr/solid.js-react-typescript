@@ -1,8 +1,6 @@
 import {
 	IAWSCredentials,
 	makeS3TileServiceClientFactory,
-	IAnnotatedSceneConfig,
-	S3TileServiceClient,
 	S3TileServiceClientFactory,
 } from '@mapperai/mapper-annotated-scene'
 import * as SaffronSDKType from '@mapperai/mapper-saffron-sdk'
@@ -16,8 +14,6 @@ import { isNumber } from 'lodash'
 
 /**
  * Tile service client factory for meridian
- *
- * @type {(scaleProvider: ScaleProvider, channel: EventEmitter, config: any) => S3TileServiceClient}
  */
 export function S3tileServiceClientFactoryFactory(
 	sessionId: string,
