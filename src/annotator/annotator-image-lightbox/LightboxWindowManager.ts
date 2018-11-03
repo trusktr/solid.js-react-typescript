@@ -115,6 +115,7 @@ export class LightboxWindowManager {
 			ipcChannel.imageEditState,
 			this.handleOnImageEditState,
 		)
+
 		this.lightboxCommunicator.on(ipcChannel.imageClick, this.handleOnImageClick)
 		this.lightboxCommunicator.on(ipcChannel.keyDownEvent, this.handleOnKeyDown)
 		this.lightboxCommunicator.on(ipcChannel.keyUpEvent, this.handleOnKeyUp)
@@ -125,10 +126,12 @@ export class LightboxWindowManager {
 			ipcChannel.imageEditState,
 			this.handleOnImageEditState,
 		)
+
 		this.lightboxCommunicator.off(
 			ipcChannel.imageClick,
 			this.handleOnImageClick,
 		)
+
 		this.lightboxCommunicator.off(ipcChannel.keyDownEvent, this.handleOnKeyDown)
 		this.lightboxCommunicator.off(ipcChannel.keyUpEvent, this.handleOnKeyUp)
 	}

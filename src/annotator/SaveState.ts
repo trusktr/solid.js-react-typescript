@@ -3,6 +3,7 @@ import * as AsyncFile from 'async-file'
 import {
 	AnnotationManager,
 	getLogger as Logger,
+	IAnnotatedSceneConfig,
 } from '@mapperai/mapper-annotated-scene'
 import { dateToString } from '../util/dateToString'
 
@@ -23,11 +24,12 @@ export default class AnnotationState {
 
 	constructor(
 		private annotationManager: AnnotationManager,
-		private config: any,
+		private config: IAnnotatedSceneConfig,
 	) {
 		// eslint-disable-line typescript/no-explicit-any
 		this.isDirty = false
 		this.autoSaveEnabled = false
+
 		this.autoSaveDirectory = this.config[
 			'output.annotations.autosave.directory.path'
 		]
@@ -100,10 +102,11 @@ export default class AnnotationState {
 			!this.config[
 				'output.annotations.debug.allow_annotations_without_utm_origin'
 			]
-		)
+		) {
 			return Promise.reject(
 				Error('failed to save annotations: UTM origin is not set'),
 			)
+		}
 
 		const dirName = fileName.substring(0, fileName.lastIndexOf('/'))
 

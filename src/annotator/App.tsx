@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import { S3TileServiceClientFactory } from '../annotator/SaffronTileServiceFactory'
+import { S3tileServiceClientFactoryFactory } from '../annotator/SaffronTileServiceFactory'
 import * as React from 'react'
 import * as _ from 'lodash'
 import { withStyles } from '@material-ui/core'
@@ -13,7 +13,6 @@ import {
 	AnnotatedSceneActions,
 	MapperTileServiceClientFactory,
 } from '@mapperai/mapper-annotated-scene'
-
 import Annotator from '../annotator/Annotator'
 // TODO JOE eventually move this into the shared lib
 import logo from '../annotator-assets/images/signature_with_arrow_white.png'
@@ -30,8 +29,7 @@ const defaultConfig = {
 	//bucketProvider: () => 'mapper-jglanz-tiles',
 	makeBucketProvider: env => () => `mapper-${env || 'prod'}-device-sessions`,
 
-	sessionId:
-		(window as any).mapperSessionId || '58FCDB407765_20180802-171140434',
+	sessionId: window.mapperSessionId || '58FCDB407765_20180802-171140434',
 }
 
 interface AppProps {}
@@ -53,7 +51,7 @@ export default class App extends React.Component<AppProps, AppState> {
 			tileServiceClientFactory: null,
 			sessionId: defaultConfig.sessionId,
 			env: 'prod',
-			isSaffron: (window as any).isSaffron === true,
+			isSaffron: window.isSaffron === true,
 		}
 	}
 
@@ -88,6 +86,7 @@ export default class App extends React.Component<AppProps, AppState> {
 	 */
 	private startAnnotator = () => {
 		const { isSaffron, sessionId, env } = this.state
+
 		if (_.isEmpty(sessionId) || (isSaffron && _.isEmpty(env))) {
 			alert('You must provide all fields')
 			return
@@ -95,7 +94,7 @@ export default class App extends React.Component<AppProps, AppState> {
 
 		this.setState({
 			tileServiceClientFactory: isSaffron
-				? S3TileServiceClientFactory(sessionId)
+				? S3tileServiceClientFactoryFactory(sessionId)
 				: makeS3TileServiceClientFactory(
 						defaultConfig.credentialProvider,
 						defaultConfig.makeBucketProvider(env),
@@ -109,8 +108,9 @@ export default class App extends React.Component<AppProps, AppState> {
 	 *
 	 * @returns {any}
 	 */
-	private AnnotatorUI = () => {
+	private AnnotatorUI = (): JSX.Element => {
 		const { tileServiceClientFactory } = this.state
+
 		return (
 			<React.Fragment>
 				<Annotator tileServiceClientFactory={tileServiceClientFactory!} />
@@ -141,6 +141,7 @@ export default class App extends React.Component<AppProps, AppState> {
 
 	private SetupForm = () => {
 		const { isSaffron, sessionId, env } = this.state
+
 		return (
 			<form onSubmit={this.startAnnotator}>
 				{/* ENV ONLY NON SAFFRON */}
@@ -174,6 +175,7 @@ export default class App extends React.Component<AppProps, AppState> {
 
 	render(): JSX.Element {
 		const { tileServiceClientFactory } = this.state
+
 		return (
 			<React.Fragment>
 				{!tileServiceClientFactory ? <this.SetupForm /> : <this.AnnotatorUI />}

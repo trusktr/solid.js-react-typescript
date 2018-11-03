@@ -53,12 +53,14 @@ export default class WindowCommunicator {
 
 		if (!callbacks) this._eventMap.set(eventName, (callbacks = []))
 
-		if (typeof callback === 'function') callbacks.push([callback, context])
-		// save callback associated with context
-		else
+		if (typeof callback === 'function') {
+			// save callback associated with context
+			callbacks.push([callback, context])
+		} else {
 			throw new Error(
 				'Expected a function in callback argument of MessageEmitter#on.',
 			)
+		}
 	}
 
 	off(eventName: string, callback: Function): void {

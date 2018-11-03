@@ -1,7 +1,6 @@
 import * as AsyncFile from 'async-file'
 import * as Electron from 'electron'
 import * as THREE from 'three'
-
 import {
 	AnnotatedSceneController,
 	getLogger as Logger,

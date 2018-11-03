@@ -1,32 +1,31 @@
 // GET SHELL JS
-const Webpack = require('webpack'),
-	{ DefinePlugin, HotModuleReplacementPlugin } = Webpack,
-	Path = require('path'),
-	Fs = require('fs'),
-	ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin'),
-	_ = require('lodash'),
-	baseDir = Path.resolve(__dirname, '..', '..'),
-	srcRootDir = Path.resolve(baseDir, 'src'),
-	pkgJson = JSON.parse(
-		Fs.readFileSync(Path.resolve(baseDir, 'package.json'), 'utf-8'),
-	),
-	isDev = process.env.NODE_ENV !== 'production',
-	// EXTERNALS / makes all node_modules external
-	WebpackStatsConfig = {
-		colors: true,
-		errors: true,
-		warnings: true,
-		timings: true,
-		cached: false,
-		errorDetails: true,
-		assets: false, //true - shows all output assets
-		chunks: false,
-		chunkModules: false,
-		hash: false,
-		reasons: false,
-		modules: false,
-		chunkOrigins: false,
-	}
+const Webpack = require('webpack')
+const { DefinePlugin, HotModuleReplacementPlugin } = Webpack
+const Path = require('path')
+const Fs = require('fs')
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
+const _ = require('lodash')
+const baseDir = Path.resolve(__dirname, '..', '..')
+const srcRootDir = Path.resolve(baseDir, 'src')
+const pkgJson = JSON.parse(
+	Fs.readFileSync(Path.resolve(baseDir, 'package.json'), 'utf-8'),
+)
+const isDev = process.env.NODE_ENV !== 'production'
+const WebpackStatsConfig = {
+	colors: true,
+	errors: true,
+	warnings: true,
+	timings: true,
+	cached: false,
+	errorDetails: true,
+	assets: false, //true - shows all output assets
+	chunks: false,
+	chunkModules: false,
+	hash: false,
+	reasons: false,
+	modules: false,
+	chunkOrigins: false,
+}
 
 /**
  * Resolves directories and maps to ram disk
@@ -42,10 +41,8 @@ function resolveDirs(...dirs) {
 	})
 }
 
-const // Module Directories
-	moduleDirs = resolveDirs('src', 'node_modules'),
-	// Output Directory
-	distDir = `${baseDir}/dist/`
+const moduleDirs = resolveDirs('src', 'node_modules')
+const distDir = `${baseDir}/dist/`
 
 function tsAlias(tsFilename) {
 	return Path.resolve(srcRootDir, tsFilename)
@@ -179,9 +176,7 @@ function makeModuleConfig() {
  */
 function makeHotEntry(entry, devEntries) {
 	// HMR ENTRY ADDITION
-	if (isDev) {
-		entry.unshift('react-hot-loader/patch')
-	}
+	if (isDev) entry.unshift('react-hot-loader/patch')
 
 	if (devEntries) entry.unshift(...devEntries)
 
@@ -266,7 +261,7 @@ function getDevTool() {
 
 // Webpack Config
 function makeConfig(name, dependencies, entry, configFn) {
-	let config = {
+	const config = {
 		name,
 		dependencies,
 

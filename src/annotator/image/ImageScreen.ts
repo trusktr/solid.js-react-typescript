@@ -84,6 +84,7 @@ export class ImageScreen extends THREE.Object3D {
 		this.highlighted = false
 
 		this.imageGeometry = new THREE.PlaneGeometry(width, height)
+
 		this.imageMesh = new THREE.Mesh(
 			this.imageGeometry,
 			inactiveMaterial.clone(),
@@ -121,6 +122,7 @@ export class ImageScreen extends THREE.Object3D {
 				: this.visibleWireframe
 					? unhighlightedBorderMaterial
 					: invisibleBorderMaterial
+
 			this.highlighted = highlight
 			return true
 		}
