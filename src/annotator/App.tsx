@@ -41,7 +41,6 @@ interface AppState {
 	isSaffron: boolean
 }
 
-// @withStyles(styles)
 class App extends React.Component<AppProps, AppState> {
 	constructor(props: AppProps) {
 		super(props)
