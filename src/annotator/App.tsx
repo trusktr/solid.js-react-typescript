@@ -41,8 +41,7 @@ interface AppState {
 	isSaffron: boolean
 }
 
-@withStyles(styles)
-export default class App extends React.Component<AppProps, AppState> {
+class App extends React.Component<AppProps, AppState> {
 	constructor(props: AppProps) {
 		super(props)
 
@@ -184,7 +183,12 @@ export default class App extends React.Component<AppProps, AppState> {
 	}
 }
 
-function styles() {
+// TODO FIXME how do we use the material-ui types instead of the following `any` hack?
+// Question on SO: https://stackoverflow.com/questions/53138167
+// eslint-disable-next-line typescript/no-explicit-any
+export default (withStyles(styles)(App) as any) as typeof App
+
+function styles(): { [key: string]: React.CSSProperties } {
 	return {
 		'@global': {
 			'.annotated-scene-container': {
