@@ -90,9 +90,9 @@ export class LightboxWindowManager {
 
 		this.lightboxCommunicator.on('connect', onConnect)
 
-		if (this.settings.openDevTools) win.webContents.openDevTools()
+		if (this.settings.openDevTools) win!.webContents.openDevTools()
 
-		win.loadURL(
+		win!.loadURL(
 			Url.format({
 				pathname: Path.resolve(__dirname, `${windowName}.html`),
 				protocol: 'file:',
@@ -100,7 +100,7 @@ export class LightboxWindowManager {
 			}),
 		)
 
-		win.on('closed', () => {
+		win!.on('closed', () => {
 			this.window = null
 			this.loadingWindow = false
 			this.closeChannels()
