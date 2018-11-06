@@ -133,12 +133,7 @@ Module.prototype.require = function(moduleIdentifier) {
 			),
 		}
 	} else {
-		// return oldRequire.call(this, moduleIdentifier)
-		try {
-			return oldRequire.call(this, moduleIdentifier)
-		} catch (err) {
-			console.log('Default require failed', err)
-		}
+		return oldRequire.call(this, moduleIdentifier)
 	}
 }
 
