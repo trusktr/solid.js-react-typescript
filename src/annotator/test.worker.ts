@@ -1,8 +1,6 @@
-console.log('worker!!!!', self)
-
 import * as _ from 'lodash'
-// import _ = require('lodash')
-// const _ = require('lodash')
+
+console.debug('worker!!!!', self)
 
 async function sleep(duration: number): Promise<void> {
 	return new Promise<void>(resolve => {
@@ -12,7 +10,7 @@ async function sleep(duration: number): Promise<void> {
 
 ~(async function main() {
 	while (true) {
-		console.log('lodash map exists:', !!_.map)
+		console.debug('lodash map exists:', !!_.map)
 		await sleep(1000)
 	}
 })()
