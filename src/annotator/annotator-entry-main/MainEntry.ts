@@ -13,14 +13,16 @@ const app = Electron.app
 // be closed automatically when the JavaScript object is garbage collected.
 let win: Electron.BrowserWindow | null
 
-const isSecondInstance = app.makeSingleInstance(() => {
+const isFirstInstance = app.requestSingleInstanceLock()
+
+app.on('second-instance', () => {
 	if (win) {
 		if (win.isMinimized()) win.restore()
 		win.focus()
 	}
 })
 
-if (isSecondInstance) app.quit()
+if (!isFirstInstance) app.quit()
 
 function createWindow(): void {
 	const windowName = 'annotator/BrowserEntry'
@@ -30,6 +32,7 @@ function createWindow(): void {
 		webPreferences: {
 			// allow code inside this window to use use native window.open()
 			nativeWindowOpen: true,
+			nodeIntegrationInWorker: true,
 		},
 	})
 
