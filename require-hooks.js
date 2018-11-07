@@ -3,6 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
+const ts = require('typescript')
 const path = require('path')
 const Module = require('module')
 const url = require('url')
@@ -12,6 +13,14 @@ const fs = require('fs')
 require('module-alias').addAliases({
 	'@src': path.resolve(__dirname, 'src'),
 	'annotator-config': path.resolve(__dirname, 'src', 'annotator-config'),
+
+	// typescript imports typescript instead of JS in Annotator Standalone mode
+	// (annotated-scene's package.json main field points to the .js compiled
+	// output which we'll otherwise import without this line)
+	'@mapperai/mapper-annotated-scene': (fromPath, moduleIdentifier, alias) => {
+		if (moduleIdentifier === alias) return alias + '/src'
+		return alias
+	},
 })
 
 // ability to require/import TypeScript files
