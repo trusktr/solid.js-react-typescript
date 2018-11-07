@@ -49,12 +49,9 @@ export function S3tileServiceClientFactoryFactory(
 			async (resolve, reject) => {
 				try {
 					const response = (await new SaffronSDK.CloudService.default().makeAPIRequest(
-						SaffronSDK.CloudConstants.API.Device,
+						SaffronSDK.CloudConstants.API.Identity,
 						SaffronSDK.CloudConstants.HttpMethod.GET,
-						`device/0/device/${sessionId.substring(
-							0,
-							12,
-						)}/session/${sessionId}/credentials`,
+						`identity/1/viewer/${sessionId}/credentials`,
 						'annotator',
 					)).get('data')
 
