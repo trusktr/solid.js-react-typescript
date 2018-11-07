@@ -17,6 +17,9 @@ import {
 } from '@mapperai/mapper-annotated-scene'
 import { Provider } from 'react-redux'
 import { configReady } from 'annotator-config'
+import TestWorker from './test.worker'
+
+new TestWorker() // see output in the console
 
 // This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {
