@@ -17,7 +17,7 @@ import * as mkdirp from 'mkdirp'
 import { flatten } from 'lodash'
 import { SimpleKML } from '../util/KmlUtils'
 //import {GUIParams} from 'dat.gui'
-import { GUI } from 'dat.gui'
+import * as Dat from 'dat.gui'
 import { isNullOrUndefined } from 'util' // eslint-disable-line node/no-deprecated-api
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
@@ -65,6 +65,10 @@ import {
 // 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
 // })
 
+// TODO FIXME JOE tell webpack not to do synthetic default exports
+// eslint-disable-next-line typescript/no-explicit-any
+const dat: typeof Dat = (Dat as any).default as typeof Dat
+//
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 // const Layers = {
@@ -176,7 +180,7 @@ export default class Annotator extends React.Component<
 	private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
 	private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
 	private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
-	private gui?: GUI
+	private gui?: dat.GUI
 	private saveState: SaveState | null = null
 
 	constructor(props: AnnotatorProps) {
@@ -237,9 +241,9 @@ export default class Annotator extends React.Component<
 		// 	this.gui = null
 		// 	return
 		// }
-		log.info('dat.GUI', GUI)
+		log.info('dat.GUI', dat.GUI)
 
-		const gui = (this.gui = new GUI({
+		const gui = (this.gui = new dat.GUI({
 			hideable: false,
 			closeOnTop: true,
 		}))
