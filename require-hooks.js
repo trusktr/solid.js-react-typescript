@@ -120,27 +120,90 @@ function requireContext(directory, recursive, regExp) {
 
 Module.prototype.require = function(moduleIdentifier) {
 	if (['.yaml', '.yml'].some(ext => moduleIdentifier.endsWith(ext))) {
-		const o = require('js-yaml').safeLoad(
+		const data = require('js-yaml').safeLoad(
 			fs.readFileSync(
-				path.resolve(path.dirname(this.filename + ''), moduleIdentifier + ''),
+				path.resolve(path.dirname(this.filename + ''), moduleIdentifier),
 				'utf8',
 			),
 		)
+		const result = Object.assign({}, data)
 
-		return Object.assign({}, o, {
-			default: o,
-		})
-	} else if (
-		moduleIdentifier.endsWith('.obj') ||
-		moduleIdentifier.endsWith('.png')
-		// ...add more as needed...
-	) {
-		return {
-			// Return an object with a default property so we can do `import objFile from './path/to/file.obj'` in ES6 modules (or TypeScript)
-			default: toFileURL(
-				path.resolve(path.dirname(this.filename), moduleIdentifier),
-			),
+		result.default = result
+		return result
+	} else if (['.obj', '.png'].some(ext => moduleIdentifier.endsWith(ext))) {
+		const result = String(
+			toFileURL(path.resolve(path.dirname(this.filename), moduleIdentifier)),
+		)
+
+		result.default = result
+		return result
+	} else if (moduleIdentifier.endsWith('.worker')) {
+		if (typeof window === 'undefined')
+			throw new Error('Workers may only be imported in a renderer process')
+
+		const workerScriptFile = Module._resolveFilename(
+			moduleIdentifier,
+			this,
+			false,
+		)
+		const ext = path.extname(workerScriptFile)
+
+		if (!(ext === '.ts' || ext === '.js'))
+			throw new Error('expected a TypeScript or JavaScript file')
+
+		// let source = fs.readFileSync(workerScriptFile, 'utf8')
+
+		// if (ext === '.ts') {
+		// 	source = ts.transpileModule(source, {
+		// 		compilerOptions: { module: ts.ModuleKind.CommonJS },
+		// 	}).outputText
+		// }
+
+		// assuming we are compiling to CommonJS format, we need these vars because
+		// they aren't normally available in workers, so the code will fail
+		// otherwise.
+		// source = 'var module = {}; var exports = module.exports = {}; ' + source
+		// source = 'var exports = {}; ' + source
+		// const lines = source.split('\n')
+		// const lineToRemove = lines.find(line => line.startsWith('exports'))
+		// lines.splice(lines.indexOf(lineToRemove), 1)
+		// source = lines.join('\n')
+
+		const source = `
+			require('${__filename}') // load require-hooks in the worker
+			require('${workerScriptFile}') // run the worker entry point
+
+			// provide a Worker reference (Chrome bug, missing WOrker
+			// constructor inside workers, added in v69,
+			// https://bugs.chromium.org/p/chromium/issues/detail?id=31666)
+			if (typeof global.Worker === 'undefined') {
+
+				// this allows the default export in the worker to work
+				// (although the export does nothing, the purpose is solely to
+				// trick TypeScript about the type)
+				global.Worker = class {
+					constructor() {
+						throw new Error(\`
+							This version of Electron doesn't have sub-workers yet.
+							Electron needs a Blink engine update.
+							https://bugs.chromium.org/p/chromium/issues/detail?id=31666
+						\`)
+					}
+				}
+			}
+		`
+		const sourceUrl = URL.createObjectURL(
+			new Blob([source], { type: 'text/javascript' }),
+		)
+
+		class ModuleWorker {
+			constructor() {
+				return new Worker(sourceUrl)
+			}
 		}
+
+		ModuleWorker.default = ModuleWorker
+		return ModuleWorker
 	} else {
 		return oldRequire.call(this, moduleIdentifier)
 	}
