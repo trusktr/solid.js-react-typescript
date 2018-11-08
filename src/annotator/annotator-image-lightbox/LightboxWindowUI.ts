@@ -3,11 +3,13 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {channel} from '../../electron-ipc/Channel'
+import { channel } from '../../electron-ipc/Channel'
 import * as IPCMessages from './IPCMessages'
-import {toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene/src/util/toKeyboardEventHighlights'
+import {
+	getLogger as Logger,
+	toKeyboardEventHighlights,
+} from '@mapperai/mapper-annotated-scene'
 import WindowCommunicator from '../../util/WindowCommunicator'
-import Logger from '@mapperai/mapper-annotated-scene/src/util/log'
 
 const log = Logger(__filename)
 
@@ -43,8 +45,12 @@ class LightboxWindowUI {
 		if (event.defaultPrevented) return
 
 		// Annotator ignores repeating events, and streaming them through IPC probably wouldn't perform well.
-		if (!event.repeat)
-			this.communicator.send(channel.keyDownEvent, toKeyboardEventHighlights(event))
+		if (!event.repeat) {
+this.communicator.send(
+				channel.keyDownEvent,
+				toKeyboardEventHighlights(event),
+			)
+}
 	}
 
 	private onKeyUp = (event: KeyboardEvent): void => {
@@ -73,25 +79,28 @@ class LightboxWindowUI {
 
 	// Update UI for one image.
 	private onImageEditState = (state: IPCMessages.ImageEditState): void => {
-		this.imageChildren
-			.filter(img => img.id === state.uuid)
-			.forEach(img => {
-				img.className = state.active ? 'image_highlighted' : 'image_default'
-			})
+		this.imageChildren.filter(img => img.id === state.uuid).forEach(img => {
+			img.className = state.active ? 'image_highlighted' : 'image_default'
+		})
 	}
 
 	private imageSetState(uuid: string, active: boolean): void {
-		this.communicator.send(channel.imageEditState, {uuid: uuid, active: active} as IPCMessages.ImageEditState)
+		this.communicator.send(channel.imageEditState, {
+			uuid: uuid,
+			active: active,
+		} as IPCMessages.ImageEditState)
 	}
 
 	// Notify listeners when the pointer hovers over an image.
 	private onImageMouseEnter = (ev: MouseEvent): void => {
-		if ((ev.target as HTMLImageElement).id) this.imageSetState((ev.target as HTMLImageElement).id, true)
+		if ((ev.target as HTMLImageElement).id)
+			this.imageSetState((ev.target as HTMLImageElement).id, true)
 	}
 
 	// Notify listeners when the pointer stops hovering over an image.
 	private onImageMouseLeave = (ev: MouseEvent): void => {
-		if ((ev.target as HTMLImageElement).id) this.imageSetState((ev.target as HTMLImageElement).id, false)
+		if ((ev.target as HTMLImageElement).id)
+			this.imageSetState((ev.target as HTMLImageElement).id, false)
 	}
 
 	// Notify listeners of the coordinates of a click on an image.
@@ -103,7 +112,11 @@ class LightboxWindowUI {
 		const ratioX = pixelX / img.width
 		const ratioY = pixelY / img.height
 
-		this.communicator.send(channel.imageClick, {uuid: img.id, ratioX: ratioX, ratioY: ratioY} as IPCMessages.ImageClick)
+		this.communicator.send(channel.imageClick, {
+			uuid: img.id,
+			ratioX: ratioX,
+			ratioY: ratioY,
+		} as IPCMessages.ImageClick)
 	}
 
 	// Scale it to fit the width of its parent.
@@ -122,7 +135,9 @@ class LightboxWindowUI {
 		}
 	}
 
-	private createLightboxImage(imageDescription: IPCMessages.LightboxImageDescription): HTMLImageElement {
+	private createLightboxImage(
+		imageDescription: IPCMessages.LightboxImageDescription,
+	): HTMLImageElement {
 		const img = document.createElement('img')
 
 		img.src = imageDescription.path

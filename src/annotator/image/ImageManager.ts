@@ -5,19 +5,21 @@
 
 import * as Electron from 'electron'
 import * as THREE from 'three'
-import {OrderedSet} from 'immutable'
-import {ImageScreen} from './ImageScreen'
-import {CalibratedImage} from './CalibratedImage'
-import {LightboxWindowManager} from '../annotator-image-lightbox/LightboxWindowManager'
+import { OrderedSet } from 'immutable'
+import { ImageScreen } from './ImageScreen'
+import { CalibratedImage } from './CalibratedImage'
+import { LightboxWindowManager } from '../annotator-image-lightbox/LightboxWindowManager'
 import * as IPCMessages from '../annotator-image-lightbox/IPCMessages'
-import {readImageMetadataFile} from './Aurora'
-import {UtmCoordinateSystem} from '@mapperai/mapper-annotated-scene/src/UtmCoordinateSystem'
-import {AuroraCameraParameters} from './CameraParameters'
-import config from '@src/config'
-import Logger from '@mapperai/mapper-annotated-scene/src/util/log'
-import {EventEmitter} from 'events'
-import {Events} from '@mapperai/mapper-annotated-scene/src/models/Events'
-import AnnotatedSceneActions from '@mapperai/mapper-annotated-scene/src/store/actions/AnnotatedSceneActions'
+import { readImageMetadataFile } from './Aurora'
+import {
+	getLogger as Logger,
+	AnnotatedSceneActions,
+	Events,
+	UtmCoordinateSystem,
+} from '@mapperai/mapper-annotated-scene'
+import { AuroraCameraParameters } from './CameraParameters'
+import config from 'annotator-config'
+import { EventEmitter } from 'events'
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
@@ -77,27 +79,29 @@ export class ImageManager {
 
 	// Get a list of interesting images from the user.
 	loadImagesFromOpenDialog(): Promise<void> {
-		return new Promise((resolve: () => void, reject: (reason?: Error) => void): void => {
-			const options: Electron.OpenDialogOptions = {
-				message: 'Load Image Files',
-				properties: ['openFile', 'multiSelections'],
-				filters: [{name: 'images', extensions: ['jpeg', 'jpg', 'png']}],
-			}
-
-			const handler = (paths: string[]): void => {
-				if (paths && paths.length) {
-					const promises = paths.map(path => this.loadImageFromPath(path))
-
-					Promise.all(promises)
-						.then(() => resolve())
-						.catch(err => reject(err))
-				} else {
-					reject(Error('no path selected'))
+		return new Promise(
+			(resolve: () => void, reject: (reason?: Error) => void): void => {
+				const options: Electron.OpenDialogOptions = {
+					message: 'Load Image Files',
+					properties: ['openFile', 'multiSelections'],
+					filters: [{ name: 'images', extensions: ['jpeg', 'jpg', 'png'] }],
 				}
-			}
 
-			dialog.showOpenDialog(options, handler)
-		})
+				const handler = (paths: string[]): void => {
+					if (paths && paths.length) {
+						const promises = paths.map(path => this.loadImageFromPath(path))
+
+						Promise.all(promises)
+							.then(() => resolve())
+							.catch(err => reject(err))
+					} else {
+						reject(Error('no path selected'))
+					}
+				}
+
+				dialog.showOpenDialog(options, handler)
+			},
+		)
 	}
 
 	// Load an image and its metadata.
@@ -106,7 +110,12 @@ export class ImageManager {
 			.then(cameraParameters => {
 				this.setUpScreen({
 					path: path,
-					imageScreen: new ImageScreen(path, this.settings.imageScreenWidth, this.settings.imageScreenHeight, this.settings.visibleWireframe),
+					imageScreen: new ImageScreen(
+						path,
+						this.settings.imageScreenWidth,
+						this.settings.imageScreenHeight,
+						this.settings.visibleWireframe,
+					),
 					parameters: cameraParameters,
 				} as CalibratedImage)
 			})
@@ -138,7 +147,8 @@ export class ImageManager {
 	loadImageIntoWindow(image: CalibratedImage): void {
 		if (this.loadedImageDetails.has(image)) return
 
-		if (!this.lightboxWindow) this.lightboxWindow = new LightboxWindowManager(this.channel)
+		if (!this.lightboxWindow)
+			this.lightboxWindow = new LightboxWindowManager(this.channel)
 
 		this.channel.on(Events.IMAGE_EDIT_STATE, this.onImageEditState)
 		this.channel.on(Events.IMAGE_CLICK, this.onImageClick)
@@ -146,14 +156,18 @@ export class ImageManager {
 
 		this.loadedImageDetails = this.loadedImageDetails.add(image)
 
-		this.lightboxWindow.windowSetState(this.toLightboxStateMessage())
+		this.lightboxWindow
+			.windowSetState(this.toLightboxStateMessage())
 			.catch(err => console.warn('loadImageIntoWindow() failed:', err))
 	}
 
 	private onLightboxWindowClose = (): void => {
 		let updated = 0
 
-		this.loadedImageDetails.forEach(i => i!.imageScreen.setHighlight(false) && updated++)
+		this.loadedImageDetails.forEach(
+			i => i!.imageScreen.setHighlight(false) && updated++,
+		)
+
 		this.loadedImageDetails = OrderedSet()
 
 		if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
@@ -161,8 +175,10 @@ export class ImageManager {
 
 	private toLightboxStateMessage(): IPCMessages.LightboxState {
 		return {
-			images:
-				this.loadedImageDetails.reverse().toArray().map(i => {
+			images: this.loadedImageDetails
+				.reverse()
+				.toArray()
+				.map(i => {
 					return {
 						uuid: i.imageScreen.uuid,
 						path: i.path,
@@ -188,11 +204,17 @@ export class ImageManager {
 				const parameters = i!.parameters
 
 				if (parameters instanceof AuroraCameraParameters) {
-					const ray = parameters.imageCoordinatesToRay(click.ratioX, click.ratioY, this.settings.clickedRayLength)
+					const ray = parameters.imageCoordinatesToRay(
+						click.ratioX,
+						click.ratioY,
+						this.settings.clickedRayLength,
+					)
 
 					this.channel.emit(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, ray)
 				} else {
-					log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)
+					log.error(
+						`found CalibratedImage with unknown type of parameters: ${parameters}`,
+					)
 				}
 			})
 	}

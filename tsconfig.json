@@ -1,37 +1,33 @@
 {
-    "compilerOptions": {
-        "allowSyntheticDefaultImports": false,
+	"compilerOptions": {
+		"allowSyntheticDefaultImports": false,
 		"esModuleInterop": false,
-        "alwaysStrict": true,
-        "baseUrl": "./src",
-        "declaration": false,
-        "emitDecoratorMetadata": true,
-        "experimentalDecorators": true,
-        "forceConsistentCasingInFileNames": true,
-        "jsx": "react",
-		"lib": ["es7", "dom", "esnext.asynciterable"],
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "noFallthroughCasesInSwitch": true,
-        "noImplicitReturns": true,
-        "noImplicitAny": false,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "outDir": "./dist/out",
-        "preserveConstEnums": true,
-        "pretty": true,
-        "sourceMap": true,
+		"alwaysStrict": true,
+		"baseUrl": "./src",
+		"declaration": false,
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"forceConsistentCasingInFileNames": true,
+		"jsx": "react",
+		"lib": ["es6", "es7", "dom", "esnext.asynciterable"],
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true,
+		"noImplicitAny": false,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"outDir": "./dist/out",
+		"preserveConstEnums": true,
+		"pretty": true,
+		"sourceMap": true,
 		"strictNullChecks": true,
 		"target": "es6",
 		"skipLibCheck": true,
-        "paths": {
-			"*": [ "*" ],
-			"@src/*": [ "*" ]
+		"paths": {
+			"*": ["*"]
 		}
-    },
-    "compileOnSave": true,
-    "include": [
-        "src/**/*",
-        "node_modules/@mapperai/mapper-annotated-scene/src/**/*"
-    ]
+	},
+	"compileOnSave": false,
+	"include": ["src/**/*"]
 }

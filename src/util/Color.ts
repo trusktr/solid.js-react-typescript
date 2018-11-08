@@ -8,8 +8,7 @@ export function hexStringToHexadecimal(hex: String): number {
 
 	if (colors && colors.length === 3)
 		return 0x10000 * colors[0] + 0x100 * colors[1] + colors[2]
-	else
-		return Number.NaN
+	else return Number.NaN
 }
 
 // borrowed from https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb

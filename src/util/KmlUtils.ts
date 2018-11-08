@@ -40,19 +40,26 @@ export class SimpleKML {
 			'		<altitudeMode>clampToGround</altitudeMode>\n' +
 			'		<coordinates>\n'
 
-		points.forEach((point) => {
-			path += '		  ' + point.x.toString() + ',' + point.y.toString() + ',' + point.z.toString() + '\n'
+		points.forEach(point => {
+			path +=
+				'		  ' +
+				point.x.toString() +
+				',' +
+				point.y.toString() +
+				',' +
+				point.z.toString() +
+				'\n'
 		})
 
-		path +=
-			'		</coordinates>\n' + '' +
-			'	  </LineString>\n' +
-			'	</Placemark>\n'
+		path += '		</coordinates>\n' + '' + '	  </LineString>\n' + '	</Placemark>\n'
 
 		this.content += path
 	}
 
 	saveToFile(fileName: string): Promise<void> {
-		return AsyncFile.writeTextFile(fileName, this.header + this.content + this.tail)
+		return AsyncFile.writeTextFile(
+			fileName,
+			this.header + this.content + this.tail,
+		)
 	}
 }

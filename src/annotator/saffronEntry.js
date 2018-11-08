@@ -1,25 +1,37 @@
 const React = require('react')
-const path = require('path')
+const entry = require('./entry')
 
-const h = (...args) => React.createElement(...args)
-
+/**
+ * Annotator root component
+ */
 class Annotator extends React.Component {
+	constructor(props, context) {
+		super(props, context)
 
-	render() {
-		// return h('div', null, 'hello')
-		return h('webview', {
-			src: `file://${ path.join(__dirname, 'BrowserEntry.html') }`,
-			style: { width: '100%', height: '100%' },
-			nodeintegration: 'true',
-			allowpopups: 'true',
-			disablewebsecurity: 'true',
-		}, null)
+		this.state = {}
 	}
 
+	componentDidMount() {
+		if (!this.state.componentPromise) {
+			this.setState({
+				componentPromise: entry.start(true).then(component => {
+					return this.setState({
+						component,
+					})
+				}),
+			})
+		}
+	}
+
+	render() {
+		const { component } = this.state
+
+		return component ? component : React.createElement('div', {}, 'loading')
+	}
 }
 
 module.exports = {
 	component: Annotator,
-	async start() {},
-	async stop() {},
+	start: async () => {},
+	stop: async () => {},
 }

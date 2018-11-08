@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {vsprintf} from 'sprintf-js'
+import { vsprintf } from 'sprintf-js'
 
 // Convert input to a string that is safe for URLs, file names, and who knows what else.
 export function dateToString(date: Date): string {

@@ -3,13 +3,18 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import {LaneType, LaneLineType, LaneLineColor, LaneEntryExitType} from '@mapperai/mapper-annotated-scene/src/annotations/Lane'
-import {TrafficDeviceType} from '@mapperai/mapper-annotated-scene/src/annotations/TrafficDevice'
-import {BoundaryType, BoundaryColor} from '@mapperai/mapper-annotated-scene/src/annotations/Boundary'
-import {ConnectionType} from '@mapperai/mapper-annotated-scene/src/annotations/Connection'
+import {
+	ConnectionType,
+	BoundaryType,
+	BoundaryColor,
+	TrafficDeviceType,
+	LaneType,
+	LaneLineType,
+	LaneLineColor,
+	LaneEntryExitType,
+} from '@mapperai/mapper-annotated-scene'
 
-export default
-function initUIControl(): void {
+export default function initUIControl(): void {
 	// Get html elements
 	/// ////////////////////////////////////////////////////////////////////////////
 	const boundaryProp = document.getElementById('boundary_prop')
@@ -35,15 +40,42 @@ function initUIControl(): void {
 
 	const bpSelectsId = ['bp_select_type', 'bp_select_color']
 	const bpSelectsText = [
-		['UNKNOWN', 'CURB', 'SOLID', 'DASHED', 'DOUBLE_SOLID', 'DOUBLE_DASHED', 'SOLID_DASHED', 'DASHED_SOLID', 'OTHER'],
-		['UNKNOWN', 'NONE', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'GREEN', 'OTHER']]
+		[
+			'UNKNOWN',
+			'CURB',
+			'SOLID',
+			'DASHED',
+			'DOUBLE_SOLID',
+			'DOUBLE_DASHED',
+			'SOLID_DASHED',
+			'DASHED_SOLID',
+			'OTHER',
+		],
+		['UNKNOWN', 'NONE', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'GREEN', 'OTHER'],
+	]
 	const bpSelectsValue = [
-		[BoundaryType.UNKNOWN.toString(), BoundaryType.CURB.toString(), BoundaryType.SOLID.toString(),
-			BoundaryType.DASHED.toString(), BoundaryType.DOUBLE_SOLID.toString(), BoundaryType.DOUBLE_DASHED.toString(),
-			BoundaryType.SOLID_DASHED.toString(), BoundaryType.DASHED_SOLID.toString(), BoundaryType.OTHER.toString()],
-		[BoundaryColor.UNKNOWN.toString(), BoundaryColor.NONE.toString(), BoundaryColor.WHITE.toString(),
-			BoundaryColor.YELLOW.toString(), BoundaryColor.RED.toString(), BoundaryColor.BLUE.toString(),
-			BoundaryColor.GREEN.toString(), BoundaryColor.OTHER.toString()]]
+		[
+			BoundaryType.UNKNOWN.toString(),
+			BoundaryType.CURB.toString(),
+			BoundaryType.SOLID.toString(),
+			BoundaryType.DASHED.toString(),
+			BoundaryType.DOUBLE_SOLID.toString(),
+			BoundaryType.DOUBLE_DASHED.toString(),
+			BoundaryType.SOLID_DASHED.toString(),
+			BoundaryType.DASHED_SOLID.toString(),
+			BoundaryType.OTHER.toString(),
+		],
+		[
+			BoundaryColor.UNKNOWN.toString(),
+			BoundaryColor.NONE.toString(),
+			BoundaryColor.WHITE.toString(),
+			BoundaryColor.YELLOW.toString(),
+			BoundaryColor.RED.toString(),
+			BoundaryColor.BLUE.toString(),
+			BoundaryColor.GREEN.toString(),
+			BoundaryColor.OTHER.toString(),
+		],
+	]
 	const bpSelects: Array<HTMLElement> = []
 	const eBoundaryId = document.createElement('text')
 
@@ -72,10 +104,28 @@ function initUIControl(): void {
 	}
 
 	// ------------------------------------------------------------------------------------------------------------------
-	const lpLabelsText = ['Lane ID:', 'Lane Width:', 'Type:', 'Left Line Type:', 'Left Line Color:',
-		'Right Line Type:', 'Right Line Color', 'Entry Type:', 'Exit Type:']
-	const lpLabelsId = ['lp_id', 'lp_width', 'lp_lane_type', 'lp_left_line', 'lp_left_color',
-		'lp_right_line', 'lp_right_color', 'lp_entry', 'lp_exit']
+	const lpLabelsText = [
+		'Lane ID:',
+		'Lane Width:',
+		'Type:',
+		'Left Line Type:',
+		'Left Line Color:',
+		'Right Line Type:',
+		'Right Line Color',
+		'Entry Type:',
+		'Exit Type:',
+	]
+	const lpLabelsId = [
+		'lp_id',
+		'lp_width',
+		'lp_lane_type',
+		'lp_left_line',
+		'lp_left_color',
+		'lp_right_line',
+		'lp_right_color',
+		'lp_entry',
+		'lp_exit',
+	]
 	const lpLabels: Array<HTMLElement> = []
 
 	for (const i in lpLabelsText) {
@@ -89,28 +139,87 @@ function initUIControl(): void {
 		}
 	}
 
-	const lpSelectsId = ['lp_select_type', 'lp_select_left_type', 'lp_select_left_color',
-		'lp_select_right_type', 'lp_select_right_color', 'lp_select_entry', 'lp_select_exit']
+	const lpSelectsId = [
+		'lp_select_type',
+		'lp_select_left_type',
+		'lp_select_left_color',
+		'lp_select_right_type',
+		'lp_select_right_color',
+		'lp_select_entry',
+		'lp_select_exit',
+	]
 	const lpSelectsText = [
-		['UNKNOWN', 'ALL_VEHICLES', 'MOTOR_VEHICLES', 'CAR_ONLY', 'TRUCK_ONLY', 'BUS_ONLY', 'BIKE_ONLY', 'PEDESTRIAN_ONLY', 'PARKING', 'CROSSWALK', 'OTHER'],
+		[
+			'UNKNOWN',
+			'ALL_VEHICLES',
+			'MOTOR_VEHICLES',
+			'CAR_ONLY',
+			'TRUCK_ONLY',
+			'BUS_ONLY',
+			'BIKE_ONLY',
+			'PEDESTRIAN_ONLY',
+			'PARKING',
+			'CROSSWALK',
+			'OTHER',
+		],
 		['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –'],
 		['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
 		['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –'],
 		['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
 		['UNKNOWN', 'continue ––»»»––', 'stop ––||––'],
-		['UNKNOWN', 'continue ––»»»––', 'stop ––||––']]
+		['UNKNOWN', 'continue ––»»»––', 'stop ––||––'],
+	]
 	const lpSelectValue = [
-		[LaneType.UNKNOWN.toString(), LaneType.ALL_VEHICLES.toString(), LaneType.MOTOR_VEHICLES.toString(), LaneType.CAR_ONLY.toString(),
-			LaneType.TRUCK_ONLY.toString(), LaneType.BUS_ONLY.toString(), LaneType.BIKE_ONLY.toString(), LaneType.PEDESTRIAN_ONLY.toString(),
-			LaneType.PARKING.toString(), LaneType.CROSSWALK.toString(), LaneType.OTHER.toString()],
-		[LaneLineType.UNKNOWN.toString(), LaneLineType.SOLID.toString(), LaneLineType.DASHED.toString()],
-		[LaneLineColor.UNKNOWN.toString(), LaneLineColor.WHITE.toString(), LaneLineColor.YELLOW.toString(),
-			LaneLineColor.RED.toString(), LaneLineColor.BLUE.toString(), LaneLineColor.OTHER.toString()],
-		[LaneLineType.UNKNOWN.toString(), LaneLineType.SOLID.toString(), LaneLineType.DASHED.toString()],
-		[LaneLineColor.UNKNOWN.toString(), LaneLineColor.WHITE.toString(), LaneLineColor.YELLOW.toString(),
-			LaneLineColor.RED.toString(), LaneLineColor.BLUE.toString(), LaneLineColor.OTHER.toString()],
-		[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()],
-		[LaneEntryExitType.UNKNOWN.toString(), LaneEntryExitType.CONTINUE.toString(), LaneEntryExitType.STOP.toString()]]
+		[
+			LaneType.UNKNOWN.toString(),
+			LaneType.ALL_VEHICLES.toString(),
+			LaneType.MOTOR_VEHICLES.toString(),
+			LaneType.CAR_ONLY.toString(),
+			LaneType.TRUCK_ONLY.toString(),
+			LaneType.BUS_ONLY.toString(),
+			LaneType.BIKE_ONLY.toString(),
+			LaneType.PEDESTRIAN_ONLY.toString(),
+			LaneType.PARKING.toString(),
+			LaneType.CROSSWALK.toString(),
+			LaneType.OTHER.toString(),
+		],
+		[
+			LaneLineType.UNKNOWN.toString(),
+			LaneLineType.SOLID.toString(),
+			LaneLineType.DASHED.toString(),
+		],
+		[
+			LaneLineColor.UNKNOWN.toString(),
+			LaneLineColor.WHITE.toString(),
+			LaneLineColor.YELLOW.toString(),
+			LaneLineColor.RED.toString(),
+			LaneLineColor.BLUE.toString(),
+			LaneLineColor.OTHER.toString(),
+		],
+		[
+			LaneLineType.UNKNOWN.toString(),
+			LaneLineType.SOLID.toString(),
+			LaneLineType.DASHED.toString(),
+		],
+		[
+			LaneLineColor.UNKNOWN.toString(),
+			LaneLineColor.WHITE.toString(),
+			LaneLineColor.YELLOW.toString(),
+			LaneLineColor.RED.toString(),
+			LaneLineColor.BLUE.toString(),
+			LaneLineColor.OTHER.toString(),
+		],
+		[
+			LaneEntryExitType.UNKNOWN.toString(),
+			LaneEntryExitType.CONTINUE.toString(),
+			LaneEntryExitType.STOP.toString(),
+		],
+		[
+			LaneEntryExitType.UNKNOWN.toString(),
+			LaneEntryExitType.CONTINUE.toString(),
+			LaneEntryExitType.STOP.toString(),
+		],
+	]
 	const lpSelects: Array<HTMLElement> = []
 	const eLaneId = document.createElement('text')
 
@@ -163,10 +272,25 @@ function initUIControl(): void {
 
 	const cpSelectsId = ['cp_select_type']
 	const cpSelectsText = [
-		['UNKNOWN', 'YIELD', 'ALTERNATE', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER']]
+		[
+			'UNKNOWN',
+			'YIELD',
+			'ALTERNATE',
+			'RYG_LIGHT',
+			'RYG_LEFT_ARROW_LIGHT',
+			'OTHER',
+		],
+	]
 	const cpSelectsValue = [
-		[ConnectionType.UNKNOWN.toString(), ConnectionType.YIELD.toString(), ConnectionType.ALTERNATE.toString(),
-			ConnectionType.RYG_LIGHT.toString(), ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(), ConnectionType.OTHER.toString()]]
+		[
+			ConnectionType.UNKNOWN.toString(),
+			ConnectionType.YIELD.toString(),
+			ConnectionType.ALTERNATE.toString(),
+			ConnectionType.RYG_LIGHT.toString(),
+			ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(),
+			ConnectionType.OTHER.toString(),
+		],
+	]
 	const cpSelects: Array<HTMLElement> = []
 	const eConnectionId = document.createElement('text')
 
@@ -211,11 +335,19 @@ function initUIControl(): void {
 	}
 
 	const tpSelectsId = ['tp_select_type']
-	const tpSelectsText = [['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER']]
+	const tpSelectsText = [
+		['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER'],
+	]
 	const tpSelectsValue = [
-		[TrafficDeviceType.UNKNOWN.toString(), TrafficDeviceType.STOP.toString(), TrafficDeviceType.YIELD.toString(),
-			TrafficDeviceType.RYG_LIGHT.toString(), TrafficDeviceType.RYG_LEFT_ARROW_LIGHT.toString(),
-			TrafficDeviceType.OTHER.toString()]]
+		[
+			TrafficDeviceType.UNKNOWN.toString(),
+			TrafficDeviceType.STOP.toString(),
+			TrafficDeviceType.YIELD.toString(),
+			TrafficDeviceType.RYG_LIGHT.toString(),
+			TrafficDeviceType.RYG_LEFT_ARROW_LIGHT.toString(),
+			TrafficDeviceType.OTHER.toString(),
+		],
+	]
 	const tpSelects: Array<HTMLElement> = []
 	const elementTrafficDeviceId = document.createElement('text')
 
@@ -281,7 +413,11 @@ function initUIControl(): void {
 		}
 	}
 
-	const accordionOptions = {collapsible: true, active: false, heightStyle: 'content'}
+	const accordionOptions = {
+		collapsible: true,
+		active: false,
+		heightStyle: 'content',
+	}
 	const menuIds = [
 		'#menu_boundary',
 		'#menu_help',
