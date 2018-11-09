@@ -32,7 +32,9 @@
 		"lint-fix-all": "npm run lint-js -- --fix && npm run lint-ts -- --fix",
 		"lint-watch": "npm run lint-js -- --watch & $p5=$!; npm run lint-ts -- --watch & p6=$!; wait $p5 $p6",
 		"lint-js": "npm run lint -- './**/{.,}*.{js,json,html}'",
-		"lint-ts": "npm run lint -- './**/*.{ts,tsx}'"
+		"lint-ts": "npm run lint -- './**/*.{ts,tsx}'",
+		"COMMENT about dev-or-master": "exits non-zero if we're not on develop or master branches",
+		"dev-or-master": "git branch | grep \\* | cut -d ' ' -f2 | grep -E 'develop|master' > /dev/null"
 	},
 	"husky": {
 		"hooks": {
@@ -41,15 +43,15 @@
 	},
 	"lint-staged": {
 		"*.{ts,tsx}": [
-			"npm run typecheck"
+			"./scripts/typecheck-if-develop-or-master.sh"
 		],
 		"*.{js,ts,tsx,json,md}": [
-			"npm run lint-fix --",
-			"prettier --write",
+			"./scripts/eslint-if-develop-or-master.sh",
+			"./scripts/prettier-if-develop-or-master.sh",
 			"git add"
 		],
 		"*.{html}": [
-			"npm run lint-fix --",
+			"./scripts/eslint-if-develop-or-master.sh",
 			"git add"
 		]
 	},
