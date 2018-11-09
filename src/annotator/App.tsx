@@ -148,12 +148,7 @@ class App extends React.Component<AppProps, AppState> {
 					<React.Fragment>
 						<div>ENV</div>
 						<div>
-							<input
-								type="text"
-								onChange={this.onEnvChange}
-								value={env}
-								defaultValue="dev"
-							/>
+							<input type="text" onChange={this.onEnvChange} value={env} />
 						</div>
 					</React.Fragment>
 				)}
@@ -164,7 +159,6 @@ class App extends React.Component<AppProps, AppState> {
 						id="sessionId"
 						value={sessionId}
 						onChange={this.onSessionIdChange}
-						defaultValue={'58FCDB407765_20180802-171140434'}
 					/>
 				</div>
 				<button type="submit">Annotate</button>
