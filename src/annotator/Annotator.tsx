@@ -65,10 +65,12 @@ import {
 // 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
 // })
 
-// TODO FIXME JOE tell webpack not to do synthetic default exports
+let dat: typeof Dat = Dat
+
+// dat.GUI is packaged wrong, this small hack makes it work with Webpack and with @babel/register.
 // eslint-disable-next-line typescript/no-explicit-any
-const dat: typeof Dat = (Dat as any).default as typeof Dat
-//
+if (process.env.WEBPACK) dat = (Dat as any).default as typeof Dat
+
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 // const Layers = {
@@ -228,7 +230,6 @@ export default class Annotator extends React.Component<
 	}
 
 	// Create a UI widget to adjust application settings on the fly.
-	// JOE, this is Annotator app-specific
 	createControlsGui(): void {
 		// Add panel to change the settings
 		if (!isNullOrUndefined(config['startup.show_color_picker'])) {
