@@ -29,7 +29,7 @@ const defaultConfig = {
 	//bucketProvider: () => 'mapper-jglanz-tiles',
 	makeBucketProvider: env => () => `mapper-${env || 'prod'}-device-sessions`,
 
-	sessionId: window.mapperSessionId || '58FCDB407765_20180802-171140434',
+	sessionId: window.mapperSessionId || 'EC9365000007_20181012-112254138',
 }
 
 interface AppProps extends WithStyles<typeof styles> {}
