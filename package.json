@@ -11,9 +11,8 @@
 		"url": "https://github.com/Signafy/mapper-annotator"
 	},
 	"scripts": {
-		"lib:dev": "cross-env MAPPER_ENV=dev NODE_ENV=development ./node_modules/.bin/webpack --config etc/webpack/webpack.config.saffron.js --mode development --env development --watch",
+		"dev": "cross-env MAPPER_ENV=dev NODE_ENV=development ./node_modules/.bin/webpack --config etc/webpack/webpack.config.saffron.js --mode development --env development --watch",
 		"start": "electron src/annotator/annotator-entry-main/index.js",
-		"dev": "NODE_ENV=development MAPPER_ENV=dev npm run lint-watch & p1=$!; npm run typecheck-watch & p2=$!; npm start & p3=$!; wait $p1 $p2 $p3",
 		"COMMENT about typecheck:": " the '&& :' makes it so specific files are not passed to typecheck in the below lint-staged invocation, otherwise it will have an error.",
 		"typecheck": "tsc -p ./tsconfig.json --noEmit && :",
 		"typecheck-watch": "npm run typecheck -- -w",

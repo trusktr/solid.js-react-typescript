@@ -326,7 +326,7 @@ function styles() {
 					padding: '2px',
 					fontSize: '12px',
 					'&:after': {
-						content: "'\\02795'", // TODO? it was '\02795' in the CSS
+						content: "'\\02795'", // TODO JOE? it was '\02795' in the CSS
 						fontSize: '10px',
 						paddingRight: '5px',
 						paddingTop: '2px',
