@@ -200,10 +200,6 @@ function styles() {
 					height: '100%',
 				},
 
-				'& .hidden': {
-					display: 'none',
-				},
-
 				'&, & *, & *::after, & *::before': {
 					boxSizing: 'border-box',
 				},
@@ -231,6 +227,10 @@ function styles() {
 				paddingTop: 0,
 				paddingRight: '5px',
 				pointerEvents: 'none',
+
+				'&.hidden': {
+					display: 'none',
+				},
 
 				'& *': {
 					pointerEvents: 'auto',
