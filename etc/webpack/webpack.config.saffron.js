@@ -155,13 +155,29 @@ function makeModuleConfig() {
 			// ASSETS / FONTS
 			{
 				test: /\.(eot|svg|ttf|woff|woff2)\w*/,
-				loaders: ['file-loader?name=assets/fonts/[name].[hash].[ext]'],
+				use: [
+					{
+						loader: 'url-loader',
+						options: {
+							// include assets smaller than this inside the bundle as data URLs
+							limit: Infinity,
+						},
+					},
+				],
 			},
 
 			// ASSETS / IMAGES & ICONS
 			{
 				test: /\.(png|jpg|gif|ico)$/,
-				loaders: ['file-loader?name=assets/images/[name].[hash].[ext]'],
+				use: [
+					{
+						loader: 'url-loader',
+						options: {
+							// include assets smaller than this inside the bundle as data URLs
+							limit: Infinity,
+						},
+					},
+				],
 			},
 		],
 	}
