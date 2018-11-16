@@ -29,7 +29,7 @@ const defaultConfig = {
 	//bucketProvider: () => 'mapper-jglanz-tiles',
 	makeBucketProvider: env => () => `mapper-${env || 'prod'}-device-sessions`,
 
-	sessionId: window.mapperSessionId || '58FCDB407765_20180802-171140434',
+	sessionId: window.mapperSessionId || 'EC9365000007_20181012-112254138',
 }
 
 interface AppProps extends WithStyles<typeof styles> {}
@@ -326,7 +326,7 @@ function styles() {
 					padding: '2px',
 					fontSize: '12px',
 					'&:after': {
-						content: "'\\02795'", // TODO? it was '\02795' in the CSS
+						content: "'\\02795'", // TODO JOE? it was '\02795' in the CSS
 						fontSize: '10px',
 						paddingRight: '5px',
 						paddingTop: '2px',

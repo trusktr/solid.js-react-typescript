@@ -30,20 +30,7 @@ Get access to the [`@mapperai` org on NPM](https://www.npmjs.com/org/mapperai) b
 
 You can now successfully install project dependencies, including private dependencies from the `@mapperai` org.
 
-### Install OS dependencies
-
-#### macOS
-
-    brew install zeromq
-    brew install pkgconfig
-
-#### Debian/Ubuntu
-
-```sh
-sudo apt-get install libzmq-dev
-```
-
-### Install application dependencies (any OS)
+### Install application dependencies
 
 ```sh
 npm install
@@ -57,18 +44,38 @@ See [the docs](documentation/configuration.md) for details.
 
 ## Run the app
 
-#### With NPM
+### With NPM
+
+#### Running in standalone mode
 
 This starts the Electron app. There's no build required, just run it
 (`@babel/register` handles TypeScript code on the fly):
 
     npm start
 
-If you'd like linting and typechecks while developing, run
+#### Running within Saffron
 
     npm run dev
 
-#### With IntelliJ IDEA
+*TODO* publish latest annotated-scene and test this
+
+#### Running within Saffron, with local Annotated Scene library
+
+- Check out and install [mapper-annotated-scene](https://github.com/Signafy/mapper-annotated-scene).
+- Read the docs there to export/link compiled artifacts to your personal npm repository.
+- `npm link @mapperai/mapper-annotated-scene`
+- `npm run dev`
+- Check out and install Saffron.
+- In Saffron, `npm run dev`.
+- When the Saffron app opens:
+  - click the menu icon (looks like a 3x3 grid)
+  - click `App Settings`
+  - click `Add Directory`
+  - navigate to the `mapper-annotator` directory and click `Open`
+  - click the menu icon
+  - click `Annotator`
+
+### With IntelliJ IDEA
 
 - Open the project in IntelliJ IDEA.
 - Under Run>Run…, select the Mapper Annotator configuration and run it.
@@ -77,23 +84,24 @@ If you'd like linting and typechecks while developing, run
 
 If you pull down the latest version of the code base and things stop working, try one or more of the following to clear out the caches.
 
-```sh
-npm install
-npm rebuild
-./node_modules/.bin/electron-rebuild
-npm start # or npm run dev
-```
+    rm -rf dist/
+    rm -rf node_modules/
+    npm install
+    npm link @mapperai/mapper-annotated-scene 
+    npm run dev
+
+## Code sanity
+
+For linting, typechecks, formatting etc, try
+
+    npm run typecheck
+    npm run lint-all
+    npm run prettier
+    
+See `package.json` for more options.
 
 ## Manipulating data
-
-### Point cloud tiles
-
-Point clouds are the foundation of both live visualization and creating annotations. They can be loaded in a batch or streamed in on demand. See [the docs](documentation/point_cloud_tiles.md).
 
 ### Annotations
 
 Annotation data is saved locally within this project by default, in `./data`. A set of annotations can be loaded or saved to disk using the menus in the application. There are some shortcuts in [configuration](documentation/configuration.md). Annotation files on disk can be merged in memory by loading them sequentially in the annotator. The application runs an auto-save process for annotations. Those files are in `./data/autosave` if you need them.
-
-### Trajectory play-back
-
-The application can play back a sequence of trajectories to fly through the point cloud. Trajectories are stored in a sequence of [TrajectoryMessage](https://github.com/Signafy/mapper-models/blob/master/src/main/proto/TrajectoryMessage.proto) protobufs, usually found in a `trajectory_lidar.md` file. Trajectory files must be pre-loaded in a [configuration](documentation/configuration.md) setting.
