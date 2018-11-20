@@ -194,8 +194,8 @@ function objectToFeatureString(obj: object): string {
 				? val === 'yes'
 					? true
 					: val === 'no'
-						? false
-						: val
+					? false
+					: val
 				: val
 
 		val = typeof val === 'boolean' ? +!!val : val

@@ -46,11 +46,11 @@ class LightboxWindowUI {
 
 		// Annotator ignores repeating events, and streaming them through IPC probably wouldn't perform well.
 		if (!event.repeat) {
-this.communicator.send(
+			this.communicator.send(
 				channel.keyDownEvent,
 				toKeyboardEventHighlights(event),
 			)
-}
+		}
 	}
 
 	private onKeyUp = (event: KeyboardEvent): void => {
@@ -79,9 +79,11 @@ this.communicator.send(
 
 	// Update UI for one image.
 	private onImageEditState = (state: IPCMessages.ImageEditState): void => {
-		this.imageChildren.filter(img => img.id === state.uuid).forEach(img => {
-			img.className = state.active ? 'image_highlighted' : 'image_default'
-		})
+		this.imageChildren
+			.filter(img => img.id === state.uuid)
+			.forEach(img => {
+				img.className = state.active ? 'image_highlighted' : 'image_default'
+			})
 	}
 
 	private imageSetState(uuid: string, active: boolean): void {

@@ -120,8 +120,8 @@ export class ImageScreen extends THREE.Object3D {
 			this.border.material = highlight
 				? borderMaterial
 				: this.visibleWireframe
-					? unhighlightedBorderMaterial
-					: invisibleBorderMaterial
+				? unhighlightedBorderMaterial
+				: invisibleBorderMaterial
 
 			this.highlighted = highlight
 			return true

@@ -12,10 +12,12 @@ import {
 	StatusWindowActions,
 	AnnotatedSceneActions,
 	MapperTileServiceClientFactory,
+	S3AnnotationServiceClientFactory,
 } from '@mapperai/mapper-annotated-scene'
 import Annotator from '../annotator/Annotator'
 // TODO JOE eventually move this into the shared lib
 import logo from '../annotator-assets/images/signature_with_arrow_white.png'
+import { S3AnnotationServiceClientFactoryFactory } from '../annotator/SaffronAnnotationServiceFactory'
 
 // readonly credentials for map tiles
 const defaultConfig = {
@@ -29,13 +31,14 @@ const defaultConfig = {
 	//bucketProvider: () => 'mapper-jglanz-tiles',
 	makeBucketProvider: env => () => `mapper-${env || 'prod'}-device-sessions`,
 
-	sessionId: window.mapperSessionId || 'EC9365000007_20181012-112254138',
+	sessionId: window.mapperSessionId || 'EC9365000006_20181004-114824227',
 }
 
 interface AppProps extends WithStyles<typeof styles> {}
 
 interface AppState {
 	tileServiceClientFactory: MapperTileServiceClientFactory | null
+	annotationServiceClientFactory: S3AnnotationServiceClientFactory | null
 	sessionId: string
 	env: string
 	isSaffron: boolean
@@ -48,6 +51,7 @@ class App extends React.Component<AppProps, AppState> {
 		// noinspection PointlessBooleanExpressionJS
 		this.state = {
 			tileServiceClientFactory: null,
+			annotationServiceClientFactory: null,
 			sessionId: defaultConfig.sessionId,
 			env: 'prod',
 			isSaffron: window.isSaffron === true,
@@ -99,6 +103,9 @@ class App extends React.Component<AppProps, AppState> {
 						defaultConfig.makeBucketProvider(env),
 						sessionId,
 				  ),
+			annotationServiceClientFactory: S3AnnotationServiceClientFactoryFactory(
+				sessionId,
+			),
 		})
 	}
 
@@ -108,11 +115,17 @@ class App extends React.Component<AppProps, AppState> {
 	 * @returns {any}
 	 */
 	private AnnotatorUI = (): JSX.Element => {
-		const { tileServiceClientFactory } = this.state
+		const {
+			tileServiceClientFactory,
+			annotationServiceClientFactory,
+		} = this.state
 
 		return (
 			<React.Fragment>
-				<Annotator tileServiceClientFactory={tileServiceClientFactory!} />
+				<Annotator
+					tileServiceClientFactory={tileServiceClientFactory!}
+					annotationServiceClientFactory={annotationServiceClientFactory!}
+				/>
 				<div id="logo">
 					<img src={logo} height="30px" width="auto" />
 				</div>

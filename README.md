@@ -57,7 +57,7 @@ This starts the Electron app. There's no build required, just run it
 
     npm run dev
 
-*TODO* publish latest annotated-scene and test this
+_TODO_ publish latest annotated-scene and test this
 
 #### Running within Saffron, with local Annotated Scene library
 
@@ -87,7 +87,7 @@ If you pull down the latest version of the code base and things stop working, tr
     rm -rf dist/
     rm -rf node_modules/
     npm install
-    npm link @mapperai/mapper-annotated-scene 
+    npm link @mapperai/mapper-annotated-scene
     npm run dev
 
 ## Code sanity
@@ -97,7 +97,7 @@ For linting, typechecks, formatting etc, try
     npm run typecheck
     npm run lint-all
     npm run prettier
-    
+
 See `package.json` for more options.
 
 ## Manipulating data

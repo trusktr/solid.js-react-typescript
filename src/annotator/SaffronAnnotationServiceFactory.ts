@@ -1,7 +1,7 @@
 import {
 	IAWSCredentials,
-	makeS3TileServiceClientFactory,
-	S3TileServiceClientFactory,
+	makeS3AnnotationServiceClientFactory,
+	S3AnnotationServiceClientFactory,
 } from '@mapperai/mapper-annotated-scene'
 import * as SaffronSDKType from '@mapperai/mapper-saffron-sdk'
 
@@ -11,15 +11,16 @@ declare global {
 }
 
 import { isNumber } from 'lodash'
+
 /**
- * Tile service client factory for meridian
+ * Annotation service client factory
  */
-export function S3tileServiceClientFactoryFactory(
+export function S3AnnotationServiceClientFactoryFactory(
 	sessionId: string,
-): S3TileServiceClientFactory {
+): S3AnnotationServiceClientFactory {
 	/**
 	 * Holds the credentials that will be used
-	 * to get tokens from S3
+	 * to write annotations to S3
 	 */
 	let credentialPromise: Promise<IAWSCredentials>
 	/**
@@ -50,7 +51,7 @@ export function S3tileServiceClientFactoryFactory(
 					const response = (await new SaffronSDK.CloudService.default().makeAPIRequest(
 						SaffronSDK.CloudConstants.API.Identity,
 						SaffronSDK.CloudConstants.HttpMethod.GET,
-						`identity/1/viewer/${sessionId}/credentials`,
+						`identity/1/writer/${sessionId}/credentials`,
 						'annotator',
 					)).get('data')
 
@@ -82,9 +83,10 @@ export function S3tileServiceClientFactoryFactory(
 		return sessionBucket
 	}
 
-	return makeS3TileServiceClientFactory(
+	return makeS3AnnotationServiceClientFactory(
 		credentialProvider,
 		bucketProvider,
 		sessionId,
+		new SaffronSDK.CloudService.default().makeAPIRequest,
 	)
 }
