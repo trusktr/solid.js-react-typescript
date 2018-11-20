@@ -52,8 +52,7 @@ import {
 	Events,
 	//Layer as AnnotatedSceneLayer,
 	AnnotatedSceneActions,
-	MapperTileServiceClientFactory,
-	S3AnnotationServiceClientFactory,
+	S3PersistentServiceClientFactory,
 	Annotation,
 	KeyboardEventHighlights,
 	scale3DToSpatialTileScale,
@@ -133,8 +132,7 @@ interface AnnotatorProps {
 	rendererSize?: Electron.Size
 	camera?: THREE.Camera
 
-	tileServiceClientFactory: MapperTileServiceClientFactory
-	annotationServiceClientFactory: S3AnnotationServiceClientFactory
+	persistentServiceClientFactory: S3PersistentServiceClientFactory
 	isShiftKeyPressed?: boolean
 	isAddMarkerMode?: boolean
 	isAddConnectionMode?: boolean
@@ -2091,14 +2089,9 @@ export default class Annotator extends React.Component<
 
 	render(): JSX.Element {
 		const { annotatedSceneConfig } = this.state
-		const {
-			tileServiceClientFactory,
-			annotationServiceClientFactory,
-		} = this.props
+		const { persistentServiceClientFactory } = this.props
 
-		return !tileServiceClientFactory ||
-			!annotationServiceClientFactory ||
-			!annotatedSceneConfig ? (
+		return !persistentServiceClientFactory || !annotatedSceneConfig ? (
 			<div />
 		) : (
 			<React.Fragment>
@@ -2106,8 +2099,7 @@ export default class Annotator extends React.Component<
 					sceneRef={this.getAnnotatedSceneRef}
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
-					tileServiceClientFactory={tileServiceClientFactory}
-					annotationServiceClientFactory={annotationServiceClientFactory}
+					persistentServiceClientFactory={persistentServiceClientFactory}
 					config={annotatedSceneConfig}
 				/>
 				<AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!} />

@@ -1,7 +1,7 @@
 import {
 	IAWSCredentials,
-	makeS3AnnotationServiceClientFactory,
-	S3AnnotationServiceClientFactory,
+	makeS3PersistentServiceClientFactory,
+	S3PersistentServiceClientFactory,
 } from '@mapperai/mapper-annotated-scene'
 import * as SaffronSDKType from '@mapperai/mapper-saffron-sdk'
 
@@ -13,14 +13,14 @@ declare global {
 import { isNumber } from 'lodash'
 
 /**
- * Annotation service client factory
+ * Persistent service client factory for meridian
  */
-export function S3AnnotationServiceClientFactoryFactory(
+export function S3PersistentServiceClientFactoryFactory(
 	sessionId: string,
-): S3AnnotationServiceClientFactory {
+): S3PersistentServiceClientFactory {
 	/**
 	 * Holds the credentials that will be used
-	 * to write annotations to S3
+	 * to get tokens from S3
 	 */
 	let credentialPromise: Promise<IAWSCredentials>
 	/**
@@ -83,7 +83,7 @@ export function S3AnnotationServiceClientFactoryFactory(
 		return sessionBucket
 	}
 
-	return makeS3AnnotationServiceClientFactory(
+	return makeS3PersistentServiceClientFactory(
 		credentialProvider,
 		bucketProvider,
 		sessionId,

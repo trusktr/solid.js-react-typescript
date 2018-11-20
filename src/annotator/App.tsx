@@ -3,21 +3,18 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import { S3tileServiceClientFactoryFactory } from '../annotator/SaffronTileServiceFactory'
+import { S3PersistentServiceClientFactoryFactory } from './SaffronPersistentServiceFactory'
 import * as React from 'react'
 import * as _ from 'lodash'
 import { withStyles, WithStyles, createStyles } from '@material-ui/core'
 import {
-	makeS3TileServiceClientFactory,
 	StatusWindowActions,
 	AnnotatedSceneActions,
-	MapperTileServiceClientFactory,
-	S3AnnotationServiceClientFactory,
+	S3PersistentServiceClientFactory,
 } from '@mapperai/mapper-annotated-scene'
 import Annotator from '../annotator/Annotator'
 // TODO JOE eventually move this into the shared lib
 import logo from '../annotator-assets/images/signature_with_arrow_white.png'
-import { S3AnnotationServiceClientFactoryFactory } from '../annotator/SaffronAnnotationServiceFactory'
 
 // readonly credentials for map tiles
 const defaultConfig = {
@@ -37,8 +34,7 @@ const defaultConfig = {
 interface AppProps extends WithStyles<typeof styles> {}
 
 interface AppState {
-	tileServiceClientFactory: MapperTileServiceClientFactory | null
-	annotationServiceClientFactory: S3AnnotationServiceClientFactory | null
+	persistentServiceClientFactory: S3PersistentServiceClientFactory | null
 	sessionId: string
 	env: string
 	isSaffron: boolean
@@ -50,8 +46,7 @@ class App extends React.Component<AppProps, AppState> {
 
 		// noinspection PointlessBooleanExpressionJS
 		this.state = {
-			tileServiceClientFactory: null,
-			annotationServiceClientFactory: null,
+			persistentServiceClientFactory: null,
 			sessionId: defaultConfig.sessionId,
 			env: 'prod',
 			isSaffron: window.isSaffron === true,
@@ -96,14 +91,7 @@ class App extends React.Component<AppProps, AppState> {
 		}
 
 		this.setState({
-			tileServiceClientFactory: isSaffron
-				? S3tileServiceClientFactoryFactory(sessionId)
-				: makeS3TileServiceClientFactory(
-						defaultConfig.credentialProvider,
-						defaultConfig.makeBucketProvider(env),
-						sessionId,
-				  ),
-			annotationServiceClientFactory: S3AnnotationServiceClientFactoryFactory(
+			persistentServiceClientFactory: S3PersistentServiceClientFactoryFactory(
 				sessionId,
 			),
 		})
@@ -115,16 +103,12 @@ class App extends React.Component<AppProps, AppState> {
 	 * @returns {any}
 	 */
 	private AnnotatorUI = (): JSX.Element => {
-		const {
-			tileServiceClientFactory,
-			annotationServiceClientFactory,
-		} = this.state
+		const { persistentServiceClientFactory } = this.state
 
 		return (
 			<React.Fragment>
 				<Annotator
-					tileServiceClientFactory={tileServiceClientFactory!}
-					annotationServiceClientFactory={annotationServiceClientFactory!}
+					persistentServiceClientFactory={persistentServiceClientFactory!}
 				/>
 				<div id="logo">
 					<img src={logo} height="30px" width="auto" />
@@ -180,11 +164,15 @@ class App extends React.Component<AppProps, AppState> {
 	}
 
 	render(): JSX.Element {
-		const { tileServiceClientFactory } = this.state
+		const { persistentServiceClientFactory } = this.state
 
 		return (
 			<React.Fragment>
-				{!tileServiceClientFactory ? <this.SetupForm /> : <this.AnnotatorUI />}
+				{!persistentServiceClientFactory ? (
+					<this.SetupForm />
+				) : (
+					<this.AnnotatorUI />
+				)}
 			</React.Fragment>
 		)
 	}
