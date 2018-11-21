@@ -197,14 +197,14 @@ let Threshold = LogLevel.info
 /**
  * Get a logger
  *
- * @param name
- * @returns {string}
  */
+/* eslint-disable typescript/no-explicit-any */
 export function getLogger(name: string): any {
 	name = name.split('/').pop() as string
 	return LogLevelNames.reduce(
 		(logger, level) => {
 			logger[level as any] = (...args: any[]) => {
+				/* eslint-disable typescript/no-explicit-any */
 				const msgLevel = (LogLevel as any)[level as any] as LogLevel
 
 				if (msgLevel < Threshold) return
@@ -225,6 +225,7 @@ export function getLogger(name: string): any {
 
 			return logger
 		},
+		/* eslint-disable typescript/no-explicit-any */
 		{
 			isDebugEnabled,
 		} as any,
