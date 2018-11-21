@@ -17,7 +17,7 @@ const log = getLogger(__filename)
 /**
  * Tile service client factory for meridian
  */
-export function S3tileServiceClientFactoryFactory(
+export default function SaffronSessionDataPersistenceProvider(
 	organizationId: string,
 	sessionId: string,
 ): S3PersistentServiceClientFactory {
@@ -56,7 +56,7 @@ export function S3tileServiceClientFactoryFactory(
 					SaffronSDK.CloudConstants.HttpMethod.GET,
 					`identity/1/credentials/${sessionId}/annotator`,
 					'annotator',
-				)).get('data')
+				)).data
 
 				// SET THE BUCKET
 				sessionBucket = response.sessionBucket

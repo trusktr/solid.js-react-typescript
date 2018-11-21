@@ -3,7 +3,7 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import { S3tileServiceClientFactoryFactory } from '../annotator/SaffronTileServiceFactory'
+import SaffronSessionDataPersistenceProvider from './SaffronSessionDataPersistenceProvider'
 import * as React from 'react'
 import * as _ from 'lodash'
 import { withStyles, WithStyles, createStyles } from '@material-ui/core'
@@ -102,7 +102,7 @@ class App extends React.Component<AppProps, AppState> {
 
 		this.setState({
 			tileServiceClientFactory: isSaffron
-				? S3tileServiceClientFactoryFactory(organizationId, sessionId)
+				? SaffronSessionDataPersistenceProvider(organizationId, sessionId)
 				: makeS3PersistentServiceClientFactory(
 						defaultConfig.credentialProvider,
 						defaultConfig.makeBucketProvider(env),
