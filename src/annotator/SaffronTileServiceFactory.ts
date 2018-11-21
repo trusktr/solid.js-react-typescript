@@ -1,28 +1,30 @@
 import {
 	IAWSCredentials,
-	makeS3TileServiceClientFactory,
-	S3TileServiceClientFactory,
+	makeS3PersistentServiceClientFactory,
+	S3PersistentServiceClientFactory,
 } from '@mapperai/mapper-annotated-scene'
 import * as SaffronSDKType from '@mapperai/mapper-saffron-sdk'
+import { isNumber } from 'lodash'
+import getLogger from 'util/Logger'
 
 // eslint-disable-next-line typescript/no-namespace
 declare global {
 	const SaffronSDK: typeof SaffronSDKType
 }
 
-import { isNumber } from 'lodash'
+const log = getLogger(__filename)
 
 /**
  * Tile service client factory for meridian
  */
 export function S3tileServiceClientFactoryFactory(
 	sessionId: string,
-): S3TileServiceClientFactory {
+): S3PersistentServiceClientFactory {
 	/**
 	 * Holds the credentials that will be used
 	 * to get tokens from S3
 	 */
-	let credentialPromise: Promise<IAWSCredentials>
+	let credentialPromise: Promise<IAWSCredentials | null> | null = null
 	/**
 	 * Session bucket name
 	 */
@@ -33,11 +35,12 @@ export function S3tileServiceClientFactoryFactory(
 	 *
 	 * @returns {Promise<IAWSCredentials>}
 	 */
-	async function credentialProvider(): Promise<IAWSCredentials> {
+	async function credentialProvider(): Promise<IAWSCredentials | null> {
 		if (credentialPromise) {
 			const credentials = await credentialPromise
 
 			if (
+				credentials != null &&
 				sessionBucket &&
 				(!isNumber(credentials.expiration) ||
 					credentials.expiration > Date.now())
@@ -45,33 +48,33 @@ export function S3tileServiceClientFactoryFactory(
 				return credentials
 		}
 
-		credentialPromise = new Promise<IAWSCredentials>(
-			async (resolve, reject) => {
-				try {
-					const response = (await new SaffronSDK.CloudService.default().makeAPIRequest(
-						SaffronSDK.CloudConstants.API.Identity,
-						SaffronSDK.CloudConstants.HttpMethod.GET,
-						`identity/1/viewer/${sessionId}/credentials`,
-						'annotator',
-					)).get('data')
+		credentialPromise = (async () => {
+			try {
+				const response = (await new SaffronSDK.CloudService.default().makeAPIRequest(
+					SaffronSDK.CloudConstants.API.Identity,
+					SaffronSDK.CloudConstants.HttpMethod.GET,
+					`identity/1/viewer/${sessionId}/credentials`,
+					'annotator',
+				)).get('data')
 
-					// SET THE BUCKET
-					sessionBucket = response.sessionBucket
+				// SET THE BUCKET
+				sessionBucket = response.sessionBucket
 
-					// ENSURE EXPIRATION
-					const credentials = { ...response.credentials }
+				// ENSURE EXPIRATION
+				const credentials = { ...response.credentials }
 
-					if (!credentials.expiration)
-						credentials.expiration = Date.now() + 1000 * 60 * 60 * 24
+				if (!credentials.expiration)
+					credentials.expiration = Date.now() + 1000 * 60 * 60 * 24
 
-					resolve(credentials as IAWSCredentials)
-				} catch (err) {
-					reject(err)
-				}
-			},
-		)
+				return credentials as IAWSCredentials
+			} catch (err) {
+				log.error('Unable to get credentials', err)
+				credentialPromise = null
+				return null
+			}
+		})()
 
-		return await credentialPromise
+		return credentialPromise == null ? null : await credentialPromise
 	}
 
 	/**
@@ -83,9 +86,11 @@ export function S3tileServiceClientFactoryFactory(
 		return sessionBucket
 	}
 
-	return makeS3TileServiceClientFactory(
+	return makeS3PersistentServiceClientFactory(
 		credentialProvider,
 		bucketProvider,
 		sessionId,
+		null,
+		false,
 	)
 }

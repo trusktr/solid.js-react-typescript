@@ -8,10 +8,10 @@ import * as React from 'react'
 import * as _ from 'lodash'
 import { withStyles, WithStyles, createStyles } from '@material-ui/core'
 import {
-	makeS3TileServiceClientFactory,
+	makeS3PersistentServiceClientFactory,
 	StatusWindowActions,
 	AnnotatedSceneActions,
-	MapperTileServiceClientFactory,
+	S3PersistentServiceClientFactory,
 } from '@mapperai/mapper-annotated-scene'
 import Annotator from '../annotator/Annotator'
 // TODO JOE eventually move this into the shared lib
@@ -35,7 +35,7 @@ const defaultConfig = {
 interface AppProps extends WithStyles<typeof styles> {}
 
 interface AppState {
-	tileServiceClientFactory: MapperTileServiceClientFactory | null
+	tileServiceClientFactory: S3PersistentServiceClientFactory | null
 	sessionId: string
 	env: string
 	isSaffron: boolean
@@ -94,10 +94,11 @@ class App extends React.Component<AppProps, AppState> {
 		this.setState({
 			tileServiceClientFactory: isSaffron
 				? S3tileServiceClientFactoryFactory(sessionId)
-				: makeS3TileServiceClientFactory(
+				: makeS3PersistentServiceClientFactory(
 						defaultConfig.credentialProvider,
 						defaultConfig.makeBucketProvider(env),
 						sessionId,
+						null,
 				  ),
 		})
 	}

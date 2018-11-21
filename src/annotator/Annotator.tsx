@@ -15,6 +15,7 @@ import * as Electron from 'electron'
 import * as AsyncFile from 'async-file'
 import * as mkdirp from 'mkdirp'
 import { flatten } from 'lodash'
+import { guard } from 'typeguard'
 import { SimpleKML } from '../util/KmlUtils'
 //import {GUIParams} from 'dat.gui'
 import * as Dat from 'dat.gui'
@@ -52,7 +53,7 @@ import {
 	Events,
 	//Layer as AnnotatedSceneLayer,
 	AnnotatedSceneActions,
-	MapperTileServiceClientFactory,
+	AbstractPersistentServiceClientFactory,
 	Annotation,
 	KeyboardEventHighlights,
 	scale3DToSpatialTileScale,
@@ -130,7 +131,7 @@ interface AnnotatorProps {
 	rendererSize?: Electron.Size
 	camera?: THREE.Camera
 
-	tileServiceClientFactory: MapperTileServiceClientFactory
+	tileServiceClientFactory: AbstractPersistentServiceClientFactory
 	isShiftKeyPressed?: boolean
 	isAddMarkerMode?: boolean
 	isAddConnectionMode?: boolean
@@ -381,8 +382,10 @@ export default class Annotator extends React.Component<
 	}
 
 	private destroyControlsGui(): void {
-		if (!config['startup.show_control_panel']) return
-		if (this.gui) this.gui.destroy()
+		guard(() => {
+			if (!config['startup.show_control_panel']) return
+			if (this.gui) this.gui.destroy()
+		})
 	}
 
 	// When ImageManager loads an image, add it to the scene.
@@ -623,9 +626,7 @@ export default class Annotator extends React.Component<
 	private onFocus = (): void => {
 		this.saveState!.enableAutoSave()
 	}
-	private onBlur = (): void => {
-		this.saveState!.disableAutoSave()
-	}
+	private onBlur = (): void => guard(() => this.saveState!.disableAutoSave())
 
 	// }}
 
@@ -2098,7 +2099,7 @@ export default class Annotator extends React.Component<
 					sceneRef={this.getAnnotatedSceneRef}
 					backgroundColor={this.state.background}
 					getAnnotationManagerRef={this.getAnnotationManagerRef}
-					tileServiceClientFactory={tileServiceClientFactory}
+					persistentServiceClientFactory={tileServiceClientFactory}
 					config={annotatedSceneConfig}
 				/>
 				<AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!} />
