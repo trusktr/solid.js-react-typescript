@@ -27,9 +27,11 @@ const defaultConfig = {
 	}),
 
 	//bucketProvider: () => 'mapper-jglanz-tiles',
-	makeBucketProvider: env => () => `mapper-${env || 'prod'}-device-sessions`,
+	makeBucketProvider: env => () => `mapper-${env || 'prod'}-session-data`,
 
 	sessionId: window.mapperSessionId || '58FCDB407765_20180802-171140434',
+	organizationId:
+		window.mapperOrganizationId || 'fb1a22ff-5796-49f3-be8b-2aa311974872',
 }
 
 interface AppProps extends WithStyles<typeof styles> {}
@@ -37,6 +39,7 @@ interface AppProps extends WithStyles<typeof styles> {}
 interface AppState {
 	tileServiceClientFactory: S3PersistentServiceClientFactory | null
 	sessionId: string
+	organizationId: string
 	env: string
 	isSaffron: boolean
 }
@@ -48,6 +51,7 @@ class App extends React.Component<AppProps, AppState> {
 		// noinspection PointlessBooleanExpressionJS
 		this.state = {
 			tileServiceClientFactory: null,
+			organizationId: defaultConfig.organizationId,
 			sessionId: defaultConfig.sessionId,
 			env: 'prod',
 			isSaffron: window.isSaffron === true,
@@ -70,6 +74,11 @@ class App extends React.Component<AppProps, AppState> {
 			sessionId: event.target.value,
 		})
 
+	private onOrganizationIdChange = event =>
+		this.setState({
+			organizationId: event.target.value,
+		})
+
 	/**
 	 * On env change
 	 *
@@ -84,7 +93,7 @@ class App extends React.Component<AppProps, AppState> {
 	 * Start annotator
 	 */
 	private startAnnotator = () => {
-		const { isSaffron, sessionId, env } = this.state
+		const { isSaffron, organizationId, sessionId, env } = this.state
 
 		if (_.isEmpty(sessionId) || (isSaffron && _.isEmpty(env))) {
 			alert('You must provide all fields')
@@ -93,10 +102,11 @@ class App extends React.Component<AppProps, AppState> {
 
 		this.setState({
 			tileServiceClientFactory: isSaffron
-				? S3tileServiceClientFactoryFactory(sessionId)
+				? S3tileServiceClientFactoryFactory(organizationId, sessionId)
 				: makeS3PersistentServiceClientFactory(
 						defaultConfig.credentialProvider,
 						defaultConfig.makeBucketProvider(env),
+						organizationId,
 						sessionId,
 						null,
 				  ),
@@ -140,7 +150,7 @@ class App extends React.Component<AppProps, AppState> {
 	}
 
 	private SetupForm = () => {
-		const { isSaffron, sessionId, env } = this.state
+		const { isSaffron, organizationId, sessionId, env } = this.state
 
 		return (
 			<form onSubmit={this.startAnnotator}>
@@ -158,7 +168,15 @@ class App extends React.Component<AppProps, AppState> {
 						</div>
 					</React.Fragment>
 				)}
-
+				<div>Org ID</div>
+				<div>
+					<input
+						id="organizationId"
+						value={organizationId}
+						onChange={this.onOrganizationIdChange}
+						defaultValue={'58FCDB407765_20180802-171140434'}
+					/>
+				</div>
 				<div>Session ID</div>
 				<div>
 					<input

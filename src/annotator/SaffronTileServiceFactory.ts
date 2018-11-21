@@ -18,6 +18,7 @@ const log = getLogger(__filename)
  * Tile service client factory for meridian
  */
 export function S3tileServiceClientFactoryFactory(
+	organizationId: string,
 	sessionId: string,
 ): S3PersistentServiceClientFactory {
 	/**
@@ -53,7 +54,7 @@ export function S3tileServiceClientFactoryFactory(
 				const response = (await new SaffronSDK.CloudService.default().makeAPIRequest(
 					SaffronSDK.CloudConstants.API.Identity,
 					SaffronSDK.CloudConstants.HttpMethod.GET,
-					`identity/1/viewer/${sessionId}/credentials`,
+					`identity/1/credentials/${sessionId}/annotator`,
 					'annotator',
 				)).get('data')
 
@@ -89,6 +90,7 @@ export function S3tileServiceClientFactoryFactory(
 	return makeS3PersistentServiceClientFactory(
 		credentialProvider,
 		bucketProvider,
+		organizationId,
 		sessionId,
 		null,
 		false,

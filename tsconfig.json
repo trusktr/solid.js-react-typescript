@@ -9,7 +9,7 @@
 		"experimentalDecorators": true,
 		"forceConsistentCasingInFileNames": true,
 		"jsx": "react",
-		"lib": ["es5", "es2015", "es6", "es7", "dom", "esnext.asynciterable"],
+		"lib": ["es2015", "es6", "es7", "dom", "esnext.asynciterable"],
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"noFallthroughCasesInSwitch": true,
