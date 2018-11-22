@@ -19,6 +19,7 @@ import { configReady } from 'annotator-config'
 import TestWorker from './test.worker'
 
 new TestWorker() // see output in the console
+console.info('NEW NEW NEW')
 
 // This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {

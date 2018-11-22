@@ -14,7 +14,7 @@ if (envInput === 'prod' || envInput === 'production') deployEnv = 'prod'
 else if (envInput === 'dev' || envInput === 'development' || envInput === '')
 	deployEnv = 'dev'
 else if (envInput === 'test') deployEnv = 'test'
-else throw new Error('Unknown environment name: NODE_ENV=' + envInput)
+else throw new Error('Unknown  environment name: NODE_ENV=' + envInput)
 
 const {
 	promise: configPromise,

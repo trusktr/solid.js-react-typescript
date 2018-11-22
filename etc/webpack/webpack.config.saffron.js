@@ -84,6 +84,7 @@ function makeExternals() {
 		'react-mapbox-gl',
 		'gtran-kml',
 		'config',
+		'source-map-support',
 	]
 	// return {
 	// 	'react': 'commonjs react', // this line is just to use the React dependency of the parent Saffron platform

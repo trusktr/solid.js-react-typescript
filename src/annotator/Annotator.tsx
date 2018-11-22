@@ -30,7 +30,7 @@ import AnnotatorMenuView from './AnnotatorMenuView'
 import { dateToString } from '../util/dateToString'
 import { hexStringToHexadecimal } from '../util/Color'
 import SaveState from './SaveState'
-import { kmlToTerritories } from '../util/KmlToTerritories'
+//import { kmlToTerritories } from '../util/KmlToTerritories'
 import loadAnnotations from '../util/loadAnnotations'
 import {
 	AnnotatedSceneState,
@@ -617,64 +617,64 @@ export default class Annotator extends React.Component<
 	 * Make a best effort to save annotations before exiting. There is no guarantee the
 	 * promise will complete, but it seems to work in practice.
 	 */
-	private onBeforeUnload: (e: BeforeUnloadEvent) => void = (
-		_: BeforeUnloadEvent,
-	) => {
-		this.saveState!.immediateAutoSave()
-	}
-
-	private onFocus = (): void => {
-		this.saveState!.enableAutoSave()
-	}
-	private onBlur = (): void => guard(() => this.saveState!.disableAutoSave())
+	// private onBeforeUnload: (e: BeforeUnloadEvent) => void = (
+	// 	_: BeforeUnloadEvent,
+	// ) => {
+	// 	this.saveState!.immediateAutoSave()
+	// }
+	//
+	// private onFocus = (): void => {
+	// 	this.saveState!.enableAutoSave()
+	// }
+	// private onBlur = (): void => guard(() => this.saveState!.disableAutoSave())
 
 	// }}
 
 	/**
 	 * Load territories from KML which is generated elsewhere. Build the objects and add them to the Annotator scene.
 	 */
-	loadTerritoriesKml(fileName: string): Promise<void> {
-		log.info('Loading KML Territories from ' + fileName)
-
-		return this.loadKmlTerritoriesFromFile(fileName)
-			.then(newAnnotationsFocalPoint => {
-				if (newAnnotationsFocalPoint) {
-					//this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
-
-					const { x, y, z } = newAnnotationsFocalPoint
-
-					this.state.annotatedSceneController!.setStage(x, y, z)
-				}
-			})
-			.catch(err => {
-				log.error(err.message)
-				dialog.showErrorBox('Territories Load Error', err.message)
-			})
-	}
+	// loadTerritoriesKml(fileName: string): Promise<void> {
+	// 	log.info('Loading KML Territories from ' + fileName)
+	//
+	// 	return this.loadKmlTerritoriesFromFile(fileName)
+	// 		.then(newAnnotationsFocalPoint => {
+	// 			if (newAnnotationsFocalPoint) {
+	// 				//this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
+	//
+	// 				const { x, y, z } = newAnnotationsFocalPoint
+	//
+	// 				this.state.annotatedSceneController!.setStage(x, y, z)
+	// 			}
+	// 		})
+	// 		.catch(err => {
+	// 			log.error(err.message)
+	// 			dialog.showErrorBox('Territories Load Error', err.message)
+	// 		})
+	// }
 
 	/**
 	 * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
 	 *   there will be something to look at there
 	 */
-	loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
-		return kmlToTerritories(
-			this.state.annotatedSceneController!.state.utmCoordinateSystem!,
-			fileName,
-		).then(territories => {
-			if (!territories)
-				throw Error(`territories KML file ${fileName} has no territories`)
-
-			log.info(`found ${territories.length} territories`)
-			this.saveState!.immediateAutoSave()
-
-			const result = this.state.annotatedSceneController!.addAnnotations(
-				territories,
-			)
-
-			this.saveState!.clean()
-			return result
-		})
-	}
+	// loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
+	// 	return kmlToTerritories(
+	// 		this.state.annotatedSceneController!.state.utmCoordinateSystem!,
+	// 		fileName,
+	// 	).then(territories => {
+	// 		if (!territories)
+	// 			throw Error(`territories KML file ${fileName} has no territories`)
+	//
+	// 		log.info(`found ${territories.length} territories`)
+	// 		this.saveState!.immediateAutoSave()
+	//
+	// 		const result = this.state.annotatedSceneController!.addAnnotations(
+	// 			territories,
+	// 		)
+	//
+	// 		this.saveState!.clean()
+	// 		return result
+	// 	})
+	// }
 
 	mapKey(
 		key: Key,
@@ -1459,31 +1459,30 @@ export default class Annotator extends React.Component<
 			log.warn('missing element tools_load_images')
 		}
 
-		const toolsLoadTerritoriesKml = document.getElementById(
-			'tools_load_territories_kml',
-		)
-
-		if (toolsLoadTerritoriesKml) {
-			toolsLoadTerritoriesKml.addEventListener('click', () => {
-				const options: Electron.OpenDialogOptions = {
-					message: 'Load Territories KML File',
-					properties: ['openFile'],
-					filters: [{ name: 'kml', extensions: ['kml'] }],
-				}
-
-				const handler = (paths: string[]): void => {
-					if (paths && paths.length) {
-						this.loadTerritoriesKml(paths[0]).catch(err =>
-							log.warn('loadTerritoriesKml failed: ' + err.message),
-						)
-					}
-				}
-
-				dialog.showOpenDialog(options, handler)
-			})
-		} else {
-			log.warn('missing element tools_load_territories_kml')
-		}
+		// const toolsLoadTerritoriesKml = document.getElementById(
+		// 	'tools_load_territories_kml',
+		// )
+		// if (toolsLoadTerritoriesKml) {
+		// 	toolsLoadTerritoriesKml.addEventListener('click', () => {
+		// 		const options: Electron.OpenDialogOptions = {
+		// 			message: 'Load Territories KML File',
+		// 			properties: ['openFile'],
+		// 			filters: [{ name: 'kml', extensions: ['kml'] }],
+		// 		}
+		//
+		// 		const handler = (paths: string[]): void => {
+		// 			if (paths && paths.length) {
+		// 				this.loadTerritoriesKml(paths[0]).catch(err =>
+		// 					log.warn('loadTerritoriesKml failed: ' + err.message),
+		// 				)
+		// 			}
+		// 		}
+		//
+		// 		dialog.showOpenDialog(options, handler)
+		// 	})
+		// } else {
+		// 	log.warn('missing element tools_load_territories_kml')
+		// }
 
 		const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 
@@ -1966,9 +1965,9 @@ export default class Annotator extends React.Component<
 	}
 
 	componentDidMount(): void {
-		window.addEventListener('focus', this.onFocus)
-		window.addEventListener('blur', this.onBlur)
-		window.addEventListener('beforeunload', this.onBeforeUnload)
+		// window.addEventListener('focus', this.onFocus)
+		// window.addEventListener('blur', this.onBlur)
+		// window.addEventListener('beforeunload', this.onBeforeUnload)
 
 		document.addEventListener('mousemove', this.checkForImageScreenSelection)
 		document.addEventListener('mouseup', this.clickImageScreenBox)

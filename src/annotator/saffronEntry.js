@@ -1,5 +1,18 @@
+require('source-map-support').install()
+
+const SaffronSDK = require('@mapperai/mapper-saffron-sdk')
+
+console.info('LEVEL3')
+
+Object.assign(window, {
+	SaffronSDK,
+	isSaffron: true,
+})
+
 const React = require('react')
 const entry = require('./entry')
+
+console.info('HELL10')
 
 /**
  * Annotator root component
