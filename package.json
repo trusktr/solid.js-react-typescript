@@ -4,7 +4,7 @@
 	"appID": "Annotator",
 	"version": "1.0.0",
 	"description": "Mapper.ai Point Cloud Annotator",
-	"main": "dist/package/bundle.js",
+	"main": "saffron.js",
 	"license": "UNLICENSED",
 	"repository": {
 		"type": "git",

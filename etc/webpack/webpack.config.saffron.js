@@ -227,7 +227,7 @@ function patchConfig(config) {
 		_.merge(config, {
 			// In development specify absolute path - better debugger support
 			output: {
-				// devtoolModuleFilenameTemplate: "file://[absolute-resource-path]",
+				devtoolModuleFilenameTemplate: 'file://[absolute-resource-path]',
 				// devtoolFallbackModuleFilenameTemplate: "file://[absolute-resource-path]"
 			},
 		})
@@ -253,8 +253,8 @@ function patchConfig(config) {
  */
 function getDevTool() {
 	const DevTools = {
-		development: 'source-map',
-		production: 'source-map',
+		development: 'inline-source-map',
+		production: 'inline-source-map',
 	}
 
 	return DevTools[process.env.NODE_ENV] || DevTools.development

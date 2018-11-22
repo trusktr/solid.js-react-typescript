@@ -26,7 +26,6 @@ const defaultConfig = {
 			'AKag4+2zmFZVp12/IolytQLVZ1r1yNec1GEHq4Lo',
 	}),
 
-	//bucketProvider: () => 'mapper-jglanz-tiles',
 	makeBucketProvider: env => () => `mapper-${env || 'prod'}-session-data`,
 
 	sessionId: window.mapperSessionId || '58FCDB407765_20180802-171140434',
@@ -196,7 +195,7 @@ class App extends React.Component<AppProps, AppState> {
 
 		return (
 			<React.Fragment>
-				{!tileServiceClientFactory ? <this.SetupForm /> : <this.AnnotatorUI />}
+				{!tileServiceClientFactory ? this.SetupForm() : this.AnnotatorUI()}
 			</React.Fragment>
 		)
 	}
@@ -212,10 +211,14 @@ function styles() {
 		'@global': {
 			'.annotated-scene-container': {
 				height: '100%',
+				maxHeight: '100%',
+				minHeight: '100%',
 				border: 0,
 				padding: 0,
 				margin: 0,
 				width: '100%',
+				maxWidth: '100%',
+				minWidth: '100%',
 				fontFamily: 'Verdana, Geneva, sans-serif',
 				overflowX: 'hidden',
 				overflowY: 'hidden',
@@ -244,13 +247,17 @@ function styles() {
 				paddingLeft: '12px',
 			},
 
+			'#menu.hidden': {
+				display: 'none',
+			},
+
 			'#menu': {
 				position: 'absolute',
 				right: 0,
 				height: '100%',
 				width: '250px',
 				zIndex: 1,
-				top: '50px',
+				top: 100,
 				backgroundColor: 'transparent',
 				overflowX: 'hidden',
 				paddingTop: 0,
@@ -387,7 +394,7 @@ function styles() {
 				backgroundColor: 'transparent',
 				position: 'absolute',
 				zIndex: 1,
-				top: 0,
+				top: 100,
 				right: 0,
 				paddingRight: '5px',
 				textAlign: 'right',
