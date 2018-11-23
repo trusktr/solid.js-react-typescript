@@ -73,6 +73,7 @@ function makeExternals() {
 		'electron',
 		'react',
 		'react-dom',
+		'@mapperai/mapper-annotated-scene',
 		'@mapperai/mapper-saffron-sdk',
 		'material-ui',
 		'material-ui-icons',
@@ -143,7 +144,7 @@ function makeModuleConfig() {
 				loader: 'ts-loader',
 				options: {
 					transpileOnly: true,
-					experimentalWatchApi: true,
+					//experimentalWatchApi: true,
 				},
 			},
 
@@ -177,7 +178,7 @@ function makeModuleConfig() {
  */
 function makeHotEntry(entry, devEntries) {
 	// HMR ENTRY ADDITION
-	if (isDev) entry.unshift('react-hot-loader/patch')
+	//if (isDev) entry.unshift('react-hot-loader/patch')
 
 	if (devEntries) entry.unshift(...devEntries)
 
@@ -227,13 +228,13 @@ function patchConfig(config) {
 		_.merge(config, {
 			// In development specify absolute path - better debugger support
 			output: {
-				devtoolModuleFilenameTemplate: 'file://[absolute-resource-path]',
+				//devtoolModuleFilenameTemplate: 'file://[absolute-resource-path]',
 				// devtoolFallbackModuleFilenameTemplate: "file://[absolute-resource-path]"
 			},
 		})
 
 		// IF ENTRY & DEV THEN HMR
-		config.plugins.splice(1, 0, new HotModuleReplacementPlugin())
+		//config.plugins.splice(1, 0, new HotModuleReplacementPlugin())
 	} else {
 		config.plugins.push(
 			new Webpack.LoaderOptionsPlugin({
@@ -253,8 +254,8 @@ function patchConfig(config) {
  */
 function getDevTool() {
 	const DevTools = {
-		development: 'inline-source-map',
-		production: 'inline-source-map',
+		development: 'source-map',
+		production: 'source-map',
 	}
 
 	return DevTools[process.env.NODE_ENV] || DevTools.development

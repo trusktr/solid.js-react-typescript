@@ -28,7 +28,7 @@ class Annotator extends React.Component {
 	render() {
 		const { component } = this.state
 
-		return component ? component : React.createElement('div', {}, 'loading')
+		return component ? component : React.createElement('div', {}, 'loading4')
 	}
 }
 
