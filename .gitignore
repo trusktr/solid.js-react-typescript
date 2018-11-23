@@ -39,3 +39,4 @@ data
 # developer config file
 local*.yaml
 test*.yaml
+/.idea/MapperAnnotatorApp.iml
