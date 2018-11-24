@@ -49,7 +49,6 @@ import {
 	THREEColorValue,
 	getLogger as Logger,
 	toProps,
-	typedConnect,
 	Events,
 	//Layer as AnnotatedSceneLayer,
 	AnnotatedSceneActions,
@@ -60,6 +59,7 @@ import {
 	spatialTileScaleToString,
 	IAnnotatedSceneConfig,
 } from '@mapperai/mapper-annotated-scene'
+import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -147,7 +147,7 @@ interface AnnotatorProps {
 	isTransformControlsAttached?: boolean
 }
 
-@typedConnect(
+@ReactUtil.typedConnect(
 	toProps(
 		AnnotatedSceneState,
 		'uiMenuVisible',
