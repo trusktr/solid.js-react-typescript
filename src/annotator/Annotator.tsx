@@ -10,7 +10,6 @@
 // - [ ] fix window state keeper
 
 import config from 'annotator-config'
-import * as $ from 'jquery'
 import * as Electron from 'electron'
 import * as AsyncFile from 'async-file'
 import * as mkdirp from 'mkdirp'
@@ -52,7 +51,7 @@ import {
 	Events,
 	//Layer as AnnotatedSceneLayer,
 	AnnotatedSceneActions,
-	AbstractPersistentServiceClientFactory,
+	DataProviderFactory,
 	Annotation,
 	KeyboardEventHighlights,
 	scale3DToSpatialTileScale,
@@ -60,6 +59,7 @@ import {
 	IAnnotatedSceneConfig,
 } from '@mapperai/mapper-annotated-scene'
 import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
+import { IThemedProperties } from '../../../mapper-saffron/src/renderer/styles'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -69,6 +69,7 @@ import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
 const dat: typeof Dat = (Dat as any).default as typeof Dat
+const $ = require('jquery')
 //
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
@@ -123,7 +124,7 @@ interface AnnotatorState {
 	annotatedSceneConfig?: IAnnotatedSceneConfig
 }
 
-interface AnnotatorProps {
+interface AnnotatorProps extends IThemedProperties {
 	statusWindowState?: StatusWindowState
 	uiMenuVisible?: boolean
 	carPose?: MapperProtos.mapper.models.PoseMessage
@@ -131,7 +132,7 @@ interface AnnotatorProps {
 	rendererSize?: Electron.Size
 	camera?: THREE.Camera
 
-	tileServiceClientFactory: AbstractPersistentServiceClientFactory
+	dataProviderFactory: DataProviderFactory
 	isShiftKeyPressed?: boolean
 	isAddMarkerMode?: boolean
 	isAddConnectionMode?: boolean
@@ -209,7 +210,7 @@ export default class Annotator extends React.Component<
 
 		this.state = {
 			background: hexStringToHexadecimal(
-				config['startup.background_color'] || '#442233',
+				config['startup.background_color'] || '#1d232a',
 			),
 			layerGroupIndex: defaultLayerGroupIndex,
 
@@ -1978,8 +1979,17 @@ export default class Annotator extends React.Component<
 	}
 
 	componentWillUnmount(): void {
-		this.destroyControlsGui()
+		try {
+			this.destroyControlsGui()
+		} catch (err) {
+			log.error('Unable to remove controls, gui, etc')
+		}
 
+		try {
+			this.state.annotatedSceneController!.cleanup()
+		} catch (err) {
+			log.error('Unable to remove controls, gui, etc')
+		}
 		// TODO JOE  - remove event listeners  - clean up child windows
 	}
 
@@ -2048,7 +2058,7 @@ export default class Annotator extends React.Component<
 		})
 
 		channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
-			this.saveState!.dirty()
+			guard(() => this.saveState!.dirty())
 		})
 
 		channel!.once(Events.ANNOTATED_SCENE_READY, async () => {
@@ -2070,35 +2080,34 @@ export default class Annotator extends React.Component<
 	}
 
 	/* eslint-disable typescript/no-explicit-any */
-	private getAnnotatedSceneRef = (ref: any) => {
-		ref &&
-			this.setState(
-				{
-					annotatedSceneController: ref as AnnotatedSceneController,
-				},
-				this.attachScene,
-			)
+	private setAnnotatedSceneRef = (ref: any) => {
+		this.setState(
+			{
+				annotatedSceneController: ref as AnnotatedSceneController,
+			},
+			this.attachScene,
+		)
 	}
 	/* eslint-enable typescript/no-explicit-any */
 
 	// TODO JOE don't get refs directly, proxy functionality through AnnotatedSceneController
-	private getAnnotationManagerRef = (ref: AnnotationManager) => {
+	private setAnnotationManagerRef = (ref: AnnotationManager) => {
 		ref && this.setState({ annotationManager: ref })
 	}
 
 	render(): JSX.Element {
 		const { annotatedSceneConfig } = this.state
-		const { tileServiceClientFactory } = this.props
+		const { dataProviderFactory } = this.props
 
-		return !tileServiceClientFactory || !annotatedSceneConfig ? (
+		return !dataProviderFactory || !annotatedSceneConfig ? (
 			<div />
 		) : (
 			<React.Fragment>
 				<AnnotatedSceneController
-					sceneRef={this.getAnnotatedSceneRef}
+					sceneRef={this.setAnnotatedSceneRef}
 					backgroundColor={this.state.background}
-					getAnnotationManagerRef={this.getAnnotationManagerRef}
-					persistentServiceClientFactory={tileServiceClientFactory}
+					annotationManagerRef={this.setAnnotationManagerRef}
+					dataProviderFactory={dataProviderFactory}
 					config={annotatedSceneConfig}
 				/>
 				<AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!} />

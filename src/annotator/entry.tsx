@@ -2,13 +2,19 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
+import * as SaffronSDKType from '@mapperai/mapper-saffron-sdk'
+
+declare global {
+	/* eslint-disable-line */
+	const SaffronSDK: typeof SaffronSDKType
+}
 
 import './env'
 import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
 import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import App from './App'
+import { App } from './App'
 import {
 	Deferred,
 	loadAnnotatedSceneStore,
@@ -16,9 +22,6 @@ import {
 } from '@mapperai/mapper-annotated-scene'
 import { Provider } from 'react-redux'
 import { configReady } from 'annotator-config'
-import TestWorker from './test.worker'
-
-new TestWorker() // see output in the console
 
 // This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {

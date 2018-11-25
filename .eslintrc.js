@@ -26,53 +26,53 @@ module.exports = {
 			process.env.NODE_ENV && process.env.NODE_ENV.startsWith('dev') ? 0 : 2,
 
 		'prefer-const': 'error',
-		'one-var': ['error', 'never'],
+		'one-var': ['off'],
 		'no-var': 'error',
 		'no-return-assign': ['error', 'except-parens'],
 		'brace-style': ['error', '1tbs', { allowSingleLine: false }],
 		'quote-props': ['error', 'as-needed'],
-		curly: ['error', 'multi-or-nest', 'consistent'],
+		curly: ['off', 'multi-or-nest', 'consistent'],
 
 		'padding-line-between-statements': [
-			'error',
-
-			{
-				blankLine: 'always',
-				prev: '*',
-				next: ['block', 'const', 'let', 'var', 'import', 'export'],
-			},
-			{
-				blankLine: 'always',
-				next: '*',
-				prev: ['block', 'const', 'let', 'var', 'import', 'export'],
-			},
-
-			{ blankLine: 'never', prev: 'const', next: 'const' },
-			{ blankLine: 'never', prev: 'let', next: 'let' },
-			{ blankLine: 'never', prev: 'var', next: 'var' },
-			{ blankLine: 'never', prev: 'import', next: 'import' },
-			{ blankLine: 'never', prev: 'export', next: 'export' },
-
-			{
-				blankLine: 'always',
-				prev: '*',
-				next: [
-					'multiline-block-like',
-					'multiline-expression',
-					'class',
-					'function',
-				],
-			},
-			{
-				blankLine: 'always',
-				next: '*',
-				prev: [
-					'multiline-block-like',
-					'multiline-expression',
-					'class',
-					'function',
-				],
-			},
+			'off',
+			//
+			// {
+			//   blankLine: 'always',
+			//   prev: '*',
+			//   next: ['block', 'const', 'let', 'var', 'import', 'export'],
+			// },
+			// {
+			//   blankLine: 'always',
+			//   next: '*',
+			//   prev: ['block', 'const', 'let', 'var', 'import', 'export'],
+			// },
+			//
+			// { blankLine: 'never', prev: 'const', next: 'const' },
+			// { blankLine: 'never', prev: 'let', next: 'let' },
+			// { blankLine: 'never', prev: 'var', next: 'var' },
+			// { blankLine: 'never', prev: 'import', next: 'import' },
+			// { blankLine: 'never', prev: 'export', next: 'export' },
+			//
+			// {
+			//   blankLine: 'always',
+			//   prev: '*',
+			//   next: [
+			//     'multiline-block-like',
+			//     'multiline-expression',
+			//     'class',
+			//     'function',
+			//   ],
+			// },
+			// {
+			//   blankLine: 'always',
+			//   next: '*',
+			//   prev: [
+			//     'multiline-block-like',
+			//     'multiline-expression',
+			//     'class',
+			//     'function',
+			//   ],
+			// },
 		],
 
 		// from https://github.com/xjamundx/eslint-plugin-promise
@@ -147,8 +147,8 @@ module.exports = {
 				'typescript/no-angle-bracket-type-assertion': 'error', // — Enforces the use of as Type assertions instead of <Type> assertions (no-angle-bracket-type-assertion from TSLint)
 				'typescript/no-array-constructor': 'error', // — Disallow generic Array constructors
 				// 'typescript/no-empty-interface': , // — Disallow the declaration of empty interfaces (no-empty-interface from TSLint)
-				'typescript/no-explicit-any': 'error', // — Disallow usage of the any type (no-any from TSLint)
-				'typescript/no-inferrable-types': 'error', // — Disallows explicit type declarations for variables or parameters initialized to a number, string, or boolean. (no-inferrable-types from TSLint)
+				'typescript/no-explicit-any': 'off', // — Disallow usage of the any type (no-any from TSLint)
+				'typescript/no-inferrable-types': 'off', // — Disallows explicit type declarations for variables or parameters initialized to a number, string, or boolean. (no-inferrable-types from TSLint)
 				'typescript/no-namespace': 'error', // — Disallow the use of custom TypeScript modules and namespaces
 				// 'typescript/no-non-null-assertion': , // — Disallows non-null assertions using the ! postfix operator (no-non-null-assertion from TSLint)
 				// 'typescript/no-parameter-properties': , // — Disallow the use of parameter properties in class constructors. (no-parameter-properties from TSLint)
@@ -156,9 +156,9 @@ module.exports = {
 				// 'typescript/no-type-alias': , // — Disallow the use of type aliases (interface-over-type-literal from TSLint)
 				'typescript/no-unused-vars': 'error', // — Prevent TypeScript-specific constructs from being erroneously flagged as unused
 				// 'typescript/no-use-before-define': , // — Disallow the use of variables before they are defined
-				'typescript/no-var-requires': 'error', // — Disallows the use of require statements except in import statements (no-var-requires from TSLint)
+				'typescript/no-var-requires': 'off', // — Disallows the use of require statements except in import statements (no-var-requires from TSLint)
 				// 'typescript/prefer-namespace-keyword': , // — Require the use of the namespace keyword instead of the module keyword to declare custom TypeScript modules. (no-internal-module from TSLint)
-				'typescript/type-annotation-spacing': ['error', {}], // — Require consistent spacing around type annotations
+				'typescript/type-annotation-spacing': ['off', {}], // — Require consistent spacing around type annotations
 			},
 		},
 	],

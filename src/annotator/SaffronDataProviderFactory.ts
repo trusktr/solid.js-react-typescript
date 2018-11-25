@@ -1,26 +1,26 @@
 import {
 	IAWSCredentials,
-	makeS3PersistentServiceClientFactory,
-	S3PersistentServiceClientFactory,
+	makeDataCloudProviderFactory,
+	DataProviderFactory,
+	PusherConfig,
 } from '@mapperai/mapper-annotated-scene'
-import * as SaffronSDKType from '@mapperai/mapper-saffron-sdk'
+import SaffronSDK, {
+	getPusherConnectionParams,
+	getOrganizationId,
+} from '@mapperai/mapper-saffron-sdk'
+
 import { isNumber } from 'lodash'
 import getLogger from 'util/Logger'
-
-// eslint-disable-next-line typescript/no-namespace
-declare global {
-	const SaffronSDK: typeof SaffronSDKType
-}
 
 const log = getLogger(__filename)
 
 /**
  * Tile service client factory for meridian
  */
-export default function SaffronSessionDataPersistenceProvider(
-	organizationId: string,
-	sessionId: string,
-): S3PersistentServiceClientFactory {
+export function makeSaffronDataProviderFactory(
+	sessionId: string | null,
+	organizationId: string = getOrganizationId()!,
+): DataProviderFactory {
 	/**
 	 * Holds the credentials that will be used
 	 * to get tokens from S3
@@ -36,7 +36,7 @@ export default function SaffronSessionDataPersistenceProvider(
 	 *
 	 * @returns {Promise<IAWSCredentials>}
 	 */
-	async function credentialProvider(): Promise<IAWSCredentials | null> {
+	const credentialProvider = async (): Promise<IAWSCredentials | null> => {
 		if (credentialPromise) {
 			const credentials = await credentialPromise
 
@@ -51,10 +51,10 @@ export default function SaffronSessionDataPersistenceProvider(
 
 		credentialPromise = (async () => {
 			try {
-				const response = (await new SaffronSDK.CloudService.default().makeAPIRequest(
+				const response = (await new SaffronSDK.CloudService.CloudService().makeAPIRequest(
 					SaffronSDK.CloudConstants.API.Identity,
 					SaffronSDK.CloudConstants.HttpMethod.GET,
-					`identity/1/credentials/${sessionId}/annotator`,
+					`identity/1/credentials/${organizationId}/annotator`,
 					'annotator',
 				)).data
 
@@ -83,16 +83,47 @@ export default function SaffronSessionDataPersistenceProvider(
 	 *
 	 * @returns {string}
 	 */
-	function bucketProvider(_: string): string {
+	const bucketProvider = (_: string): string => {
 		return sessionBucket
 	}
 
-	return makeS3PersistentServiceClientFactory(
+	const pusherParams = getPusherConnectionParams(),
+		{ CloudService, CloudConstants } = SaffronSDK,
+		{ API, HttpMethod } = CloudConstants,
+		cloudService = new CloudService.CloudService()
+
+	return makeDataCloudProviderFactory(
 		credentialProvider,
 		bucketProvider,
 		organizationId,
 		sessionId,
-		null,
+		true,
+		{
+			key: pusherParams.key,
+			cluster: pusherParams.cluster,
+			authEndpoint: CloudService.makeAPIURL(
+				API.Identity,
+				'identity/1/pusher/auth',
+			),
+			authorizer: async (
+				channelName: string,
+				socketId: string,
+				_options: any,
+			): Promise<any> => {
+				try {
+					return (await cloudService.makeAPIRequest(
+						API.Identity,
+						HttpMethod.POST,
+						'identity/1/pusher/auth',
+						'annotator',
+						{ channelName, socketId },
+					)).data
+				} catch (err) {
+					log.error('Unable to authenticate for pusher', err)
+					throw err
+				}
+			},
+		} as PusherConfig,
 		false,
 	)
 }

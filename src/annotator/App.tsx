@@ -5,117 +5,89 @@
 
 //import SaffronSessionDataPersistenceProvider from './SaffronSessionDataPersistenceProvider'
 import * as React from 'react'
-import * as _ from 'lodash'
-import { Style } from '@mapperai/mapper-saffron-sdk'
+import {
+	IThemedProperties,
+	withStatefulStyles,
+	FillHeight,
+	FillWidth,
+	mergeStyles,
+	PositionAbsolute,
+} from '@mapperai/mapper-themes'
 import {
 	SessionPicker,
 	SessionPickerHeight,
-} from '@mapperai/mapper-annotated-scene'
-import {
-	//makeS3PersistentServiceClientFactory,
+	ISessionInfo,
 	StatusWindowActions,
 	AnnotatedSceneActions,
-	S3PersistentServiceClientFactory,
+	DataProviderFactory,
 } from '@mapperai/mapper-annotated-scene'
+import { makeSaffronDataProviderFactory } from './SaffronDataProviderFactory'
 import Annotator from '../annotator/Annotator'
-// TODO JOE eventually move this into the shared lib
-import logo from '../annotator-assets/images/signature_with_arrow_white.png'
 import createStyles from '@material-ui/core/styles/createStyles'
 
-// readonly credentials for map tiles
-const defaultConfig = {
-	credentialProvider: async () => ({
-		accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'AKIAJST3KIWMFTLEL6WA',
-		secretAccessKey:
-			process.env.AWS_SECRET_ACCESS_KEY ||
-			'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',
-	}),
+export interface AppProps extends IThemedProperties {}
 
-	makeBucketProvider: env => () => `mapper-${env || 'prod'}-session-data`,
-
-	sessionId: window.mapperSessionId || '58FCDB407765_20180802-171140434',
-	organizationId:
-		window.mapperOrganizationId || 'fb1a22ff-5796-49f3-be8b-2aa311974872',
-}
-
-interface AppProps extends Style.IThemedProperties {}
-
-interface AppState {
-	tileServiceClientFactory: S3PersistentServiceClientFactory | null
-	sessionId: string
-	organizationId: string
+export interface AppState {
+	dataProviderFactories: Array<DataProviderFactory>
+	dataProviderFactory: DataProviderFactory | null
+	session: ISessionInfo | null
 	env: string
+	reset: boolean
 	isSaffron: boolean
 }
 
-class App extends React.Component<AppProps, AppState> {
+@withStatefulStyles(styles)
+export class App extends React.Component<AppProps, AppState> {
+	private static createDataProviderFactory(
+		sessionId: string | null = null,
+	): DataProviderFactory {
+		return makeSaffronDataProviderFactory(sessionId)
+	}
+
+	private statusWindowActions = new StatusWindowActions()
+	private sceneActions = new AnnotatedSceneActions()
+
 	constructor(props: AppProps) {
 		super(props)
 
 		// noinspection PointlessBooleanExpressionJS
 		this.state = {
-			tileServiceClientFactory: null,
-			organizationId: defaultConfig.organizationId,
-			sessionId: defaultConfig.sessionId,
+			dataProviderFactories: [App.createDataProviderFactory()],
+			dataProviderFactory: null,
+			session: null,
 			env: 'prod',
+			reset: false,
 			isSaffron: window.isSaffron === true,
 		}
 	}
 
 	private makeOnStatusWindowClick = () => () => {
-		new StatusWindowActions().toggleEnabled()
+		this.statusWindowActions.toggleEnabled()
 	}
 
 	private makeOnMenuClick = () => () => {
-		new AnnotatedSceneActions().toggleUIMenuVisible()
+		this.sceneActions.toggleUIMenuVisible()
 	}
 
 	/**
-	 * Update sessionId
+	 * Update session
 	 */
-	// private onSessionIdChange = event =>
-	// 	this.setState({
-	// 		sessionId: event.target.value,
-	// 	})
-	//
-	// private onOrganizationIdChange = event =>
-	// 	this.setState({
-	// 		organizationId: event.target.value,
-	// 	})
-	//
-	// /**
-	//  * On env change
-	//  *
-	//  * @param event
-	//  */
-	// private onEnvChange = event =>
-	// 	this.setState({
-	// 		env: event.target.value,
-	// 	})
-	//
-	// /**
-	//  * Start annotator
-	//  */
-	// private startAnnotator = () => {
-	// 	const { isSaffron, organizationId, sessionId, env } = this.state
-	//
-	// 	if (_.isEmpty(sessionId) || (isSaffron && _.isEmpty(env))) {
-	// 		alert('You must provide all fields')
-	// 		return
-	// 	}
-	//
-	// 	this.setState({
-	// 		tileServiceClientFactory: isSaffron
-	// 			? SaffronSessionDataPersistenceProvider(organizationId, sessionId)
-	// 			: makeS3PersistentServiceClientFactory(
-	// 					defaultConfig.credentialProvider,
-	// 					defaultConfig.makeBucketProvider(env),
-	// 					organizationId,
-	// 					sessionId,
-	// 					null,
-	// 			  ),
-	// 	})
-	// }
+	private onSessionSelected = (session: ISessionInfo) =>
+		this.setState({
+			session,
+			dataProviderFactory: App.createDataProviderFactory(session.id),
+			reset: true,
+		})
+
+	componentDidUpdate(
+		_prevProps: Readonly<AppProps>,
+		_prevState: Readonly<AppState>,
+		_snapshot?: any,
+	): void {
+		if (this.state.reset) {
+			this.setState({ reset: false })
+		}
+	}
 
 	/**
 	 * Render annotator
@@ -123,14 +95,11 @@ class App extends React.Component<AppProps, AppState> {
 	 * @returns {any}
 	 */
 	private AnnotatorUI = (): JSX.Element => {
-		const { tileServiceClientFactory } = this.state
+		const { dataProviderFactory } = this.state
 
 		return (
-			<React.Fragment>
-				<Annotator tileServiceClientFactory={tileServiceClientFactory!} />
-				<div id="logo">
-					<img src={logo} height="30px" width="auto" />
-				</div>
+			<>
+				<Annotator dataProviderFactory={dataProviderFactory!} />
 				<div id="menu_control">
 					<button
 						id="status_window_control_btn"
@@ -149,86 +118,51 @@ class App extends React.Component<AppProps, AppState> {
 						&#9776;{' '}
 					</button>
 				</div>
-			</React.Fragment>
+			</>
 		)
 	}
 
-	// private SetupForm = () => {
-	// 	const { isSaffron, organizationId, sessionId, env } = this.state
-	//
-	// 	return (
-	// 		<form onSubmit={this.startAnnotator}>
-	// 			{/* ENV ONLY NON SAFFRON */}
-	// 			{!isSaffron && (
-	// 				<React.Fragment>
-	// 					<div>ENV</div>
-	// 					<div>
-	// 						<input
-	// 							type="text"
-	// 							onChange={this.onEnvChange}
-	// 							value={env}
-	// 							defaultValue="dev"
-	// 						/>
-	// 					</div>
-	// 				</React.Fragment>
-	// 			)}
-	// 			<div>Org ID</div>
-	// 			<div>
-	// 				<input
-	// 					id="organizationId"
-	// 					value={organizationId}
-	// 					onChange={this.onOrganizationIdChange}
-	// 					defaultValue={'58FCDB407765_20180802-171140434'}
-	// 				/>
-	// 			</div>
-	// 			<div>Session ID</div>
-	// 			<div>
-	// 				<input
-	// 					id="sessionId"
-	// 					value={sessionId}
-	// 					onChange={this.onSessionIdChange}
-	// 					defaultValue={'58FCDB407765_20180802-171140434'}
-	// 				/>
-	// 			</div>
-	// 			<button type="submit">Annotate</button>
-	// 		</form>
-	// 	)
-	// }
-
 	render(): JSX.Element {
-		const { classes } = this.props
-		// ,
-		// { tileServiceClientFactory } = this.state // eslint-disable-line
+		const { classes } = this.props,
+			{
+				reset,
+				session,
+				dataProviderFactory,
+				dataProviderFactories,
+			} = this.state
 
 		return (
 			<div className={classes!.root}>
-				{/*this.SetupForm()*/}
-				<SessionPicker />
-				<div className="annotatorPane">
-					{this.AnnotatorUI()}
-					{/*{!tileServiceClientFactory ?  : }*/}
-				</div>
+				{dataProviderFactories && (
+					<>
+						{/*this.SetupForm()*/}
+						<SessionPicker
+							onSessionSelected={this.onSessionSelected}
+							session={session}
+							dataProviderFactories={dataProviderFactories}
+						/>
+						<div className="annotatorPane">
+							{!reset && dataProviderFactory && this.AnnotatorUI()}
+						</div>
+					</>
+				)}
 			</div>
 		)
 	}
 }
 
-export default Style.withStatefulStyles(styles)(App)
-
 // return type disabled here because it is dynamically generated by the call to createStyles.
 // SO in this case we must hover on `styles` to see the return type.
 // eslint-disable-next-line typescript/explicit-function-return-type
-function styles() {
-	const theme = Style.getTheme()
-
+function styles(theme) {
 	return createStyles(
-		Style.mergeStyles({
+		mergeStyles({
 			root: [
-				Style.FillWidth,
-				Style.FillHeight,
+				FillWidth,
+				FillHeight,
 				{
 					'& > .annotatorPane': [
-						Style.PositionAbsolute,
+						PositionAbsolute,
 						{
 							backgroundColor: theme.palette.primary['800'],
 							top: SessionPickerHeight,

@@ -113,7 +113,7 @@ function makeModuleConfig() {
 			// SOURCE MAPS
 			{
 				test: /\.js$/,
-				exclude: /(typelogger|async-file)/,
+				exclude: /(typelogger|async-file|node_modules)/,
 				use: ['source-map-loader'],
 				enforce: 'pre',
 			},
