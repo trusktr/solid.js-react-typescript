@@ -1,5 +1,5 @@
-import * as mkdirp from 'mkdirp'
-import * as AsyncFile from 'async-file'
+// import * as mkdirp from 'mkdirp'
+// import * as AsyncFile from 'async-file'
 import {
 	AnnotationManager,
 	getLogger as Logger,
@@ -89,38 +89,42 @@ export default class AnnotationState {
 		)
 	}
 
-	saveAnnotationsToFile(fileName: string, format: OutputFormat): Promise<void> {
-		const annotations = this.annotationManager
-			.allAnnotations()
-			.filter(a => a.isValid())
+	saveAnnotationsToFile(
+		_fileName: string,
+		_format: OutputFormat,
+	): Promise<void> {
+		return Promise.resolve()
+		// const annotations = this.annotationManager
+		// 	.allAnnotations()
+		// 	.filter(a => a.isValid())
+		//
+		// if (!annotations.length)
+		// 	return Promise.reject(Error('failed to save empty set of annotations'))
+		//
+		// if (
+		// 	!this.annotationManager.props.utmCoordinateSystem.hasOrigin &&
+		// 	!this.config[
+		// 		'output.annotations.debug.allow_annotations_without_utm_origin'
+		// 	]
+		// ) {
+		// 	return Promise.reject(
+		// 		Error('failed to save annotations: UTM origin is not set'),
+		// 	)
+		// }
 
-		if (!annotations.length)
-			return Promise.reject(Error('failed to save empty set of annotations'))
+		//const dirName = fileName.substring(0, fileName.lastIndexOf('/'))
 
-		if (
-			!this.annotationManager.props.utmCoordinateSystem.hasOrigin &&
-			!this.config[
-				'output.annotations.debug.allow_annotations_without_utm_origin'
-			]
-		) {
-			return Promise.reject(
-				Error('failed to save annotations: UTM origin is not set'),
-			)
-		}
-
-		const dirName = fileName.substring(0, fileName.lastIndexOf('/'))
-
-		return Promise.resolve(mkdirp.sync(dirName))
-			.then(() =>
-				AsyncFile.writeTextFile(
-					fileName,
-					JSON.stringify(
-						this.annotationManager.toJSON(format, annotations),
-						null,
-						2,
-					),
-				),
-			)
-			.then(() => this.clean())
+		// return Promise.resolve(mkdirp.sync(dirName))
+		// 	.then(() =>
+		// 		AsyncFile.writeTextFile(
+		// 			fileName,
+		// 			JSON.stringify(
+		// 				this.annotationManager.toJSON(format, annotations),
+		// 				null,
+		// 				2,
+		// 			),
+		// 		),
+		// 	)
+		// 	.then(() => this.clean())
 	}
 }

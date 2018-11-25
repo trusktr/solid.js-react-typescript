@@ -6,10 +6,18 @@ import * as SaffronSDKType from '@mapperai/mapper-saffron-sdk'
 
 declare global {
 	/* eslint-disable-line */
+	/* eslint-disable-line */
 	const SaffronSDK: typeof SaffronSDKType
 }
 
 import './env'
+
+// import {setGuardErrorHandler} from "typeguard"
+//
+// if (SaffronSDK.getEnv() !== "prod") {
+// 	setGuardErrorHandler()
+// }
+
 import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
 import * as $ from 'jquery'
 import * as React from 'react'

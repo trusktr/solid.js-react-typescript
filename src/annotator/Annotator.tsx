@@ -15,6 +15,7 @@ import * as AsyncFile from 'async-file'
 import * as mkdirp from 'mkdirp'
 import { flatten } from 'lodash'
 import { guard } from 'typeguard'
+
 import { SimpleKML } from '../util/KmlUtils'
 //import {GUIParams} from 'dat.gui'
 import * as Dat from 'dat.gui'
@@ -39,6 +40,8 @@ import {
 	AnnotationType,
 	AnnotationManager,
 	OutputFormat,
+	UtmCoordinateSystem,
+	toJSON,
 	Lane,
 	NeighborLocation,
 	NeighborDirection,
@@ -961,7 +964,9 @@ export default class Annotator extends React.Component<
 				AsyncFile.writeTextFile(
 					fileName,
 					JSON.stringify(
-						this.state.annotationManager!.toJSON(
+						toJSON(
+							this.state.annotatedSceneController!
+								.utmCoordinateSystem! as UtmCoordinateSystem,
 							format,
 							Array.from(tileAnnotations),
 						),
@@ -2056,7 +2061,7 @@ export default class Annotator extends React.Component<
 		channel!.on(Events.ANNOTATION_VISUAL_UPDATE, lane => {
 			lane instanceof Lane && this.uiUpdateLaneWidth(lane)
 		})
-		
+
 		// BEFORE DATA PROVIDERS
 		// channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
 		// 	guard(() => this.saveState!.dirty())
@@ -2082,9 +2087,12 @@ export default class Annotator extends React.Component<
 
 	/* eslint-disable typescript/no-explicit-any */
 	private setAnnotatedSceneRef = (ref: any) => {
-		this.setState({
-			annotatedSceneController: ref as AnnotatedSceneController,
-		},this.attachScene)
+		this.setState(
+			{
+				annotatedSceneController: ref as AnnotatedSceneController,
+			},
+			this.attachScene,
+		)
 	}
 	/* eslint-enable typescript/no-explicit-any */
 
