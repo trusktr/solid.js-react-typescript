@@ -2056,10 +2056,11 @@ export default class Annotator extends React.Component<
 		channel!.on(Events.ANNOTATION_VISUAL_UPDATE, lane => {
 			lane instanceof Lane && this.uiUpdateLaneWidth(lane)
 		})
-
-		channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
-			guard(() => this.saveState!.dirty())
-		})
+		
+		// BEFORE DATA PROVIDERS
+		// channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
+		// 	guard(() => this.saveState!.dirty())
+		// })
 
 		channel!.once(Events.ANNOTATED_SCENE_READY, async () => {
 			this.addImageScreenLayer()
@@ -2081,12 +2082,9 @@ export default class Annotator extends React.Component<
 
 	/* eslint-disable typescript/no-explicit-any */
 	private setAnnotatedSceneRef = (ref: any) => {
-		this.setState(
-			{
-				annotatedSceneController: ref as AnnotatedSceneController,
-			},
-			this.attachScene,
-		)
+		this.setState({
+			annotatedSceneController: ref as AnnotatedSceneController,
+		},this.attachScene)
 	}
 	/* eslint-enable typescript/no-explicit-any */
 
