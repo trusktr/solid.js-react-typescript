@@ -4,20 +4,19 @@
  */
 import * as SaffronSDKType from '@mapperai/mapper-saffron-sdk'
 
+/* eslint-disable-next-line */
 declare global {
-	/* eslint-disable-line */
-	/* eslint-disable-line */
+	/* eslint-disable-next-line */
 	const SaffronSDK: typeof SaffronSDKType
 }
 
+import { setGuardErrorHandler } from 'typeguard'
+
+if (SaffronSDK.getEnv() !== 'prod') {
+	setGuardErrorHandler(err => console.warn(`GUARD ERROR: `, err))
+}
+
 import './env'
-
-// import {setGuardErrorHandler} from "typeguard"
-//
-// if (SaffronSDK.getEnv() !== "prod") {
-// 	setGuardErrorHandler()
-// }
-
 import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
 import * as $ from 'jquery'
 import * as React from 'react'
