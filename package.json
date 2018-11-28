@@ -11,9 +11,9 @@
 		"url": "https://github.com/Signafy/mapper-annotator"
 	},
 	"scripts": {
-		"lib:dev": "cross-env NODE_ENV=development ./node_modules/.bin/webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.saffron.js --mode development --env development --watch",
-		"lib:build": "cross-env NODE_ENV=development ./node_modules/.bin/webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.saffron.js --mode development --env development",
-		"lib:package": "npm run lib:build && ./build-scripts/build.js",
+		"dev": "cross-env NODE_ENV=development ./node_modules/.bin/webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.saffron.js --mode development --env development --watch",
+		"build": "cross-env NODE_ENV=development ./node_modules/.bin/webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.saffron.js --mode development --env development",
+		"package": "npm run build && ./build-scripts/build.js",
 		"COMMENT about typecheck:": " the '&& :' makes it so specific files are not passed to typecheck in the below lint-staged invocation, otherwise it will have an error.",
 		"typecheck": "tsc -p ./tsconfig.json --noEmit && :",
 		"typecheck-watch": "npm run typecheck -- -w",
@@ -32,7 +32,9 @@
 		"lint-fix-all": "npm run lint-js -- --fix && npm run lint-ts -- --fix",
 		"lint-watch": "npm run lint-js -- --watch & $p5=$!; npm run lint-ts -- --watch & p6=$!; wait $p5 $p6",
 		"lint-js": "npm run lint -- './**/{.,}*.{js,json,html}'",
-		"lint-ts": "npm run lint -- './**/*.{ts,tsx}'"
+		"lint-ts": "npm run lint -- './**/*.{ts,tsx}'",
+		"COMMENT about dev-or-master": "exits non-zero if we're not on develop or master branches",
+		"dev-or-master": "git branch | grep \\* | cut -d ' ' -f2 | grep -E 'develop|master' > /dev/null"
 	},
 	"husky": {
 		"hooks": {
@@ -41,15 +43,15 @@
 	},
 	"lint-staged": {
 		"*.{ts,tsx}": [
-			"npm run typecheck"
+			"./scripts/typecheck-if-develop-or-master.sh"
 		],
-		"*.{js,ts,tsx,json,md}": [
-			"npm run lint-fix --",
-			"prettier --write",
+		"*.{js,ts,tsx,json}": [
+			"./scripts/eslint-if-develop-or-master.sh",
+			"./scripts/prettier-if-develop-or-master.sh",
 			"git add"
 		],
 		"*.{html}": [
-			"npm run lint-fix --",
+			"./scripts/eslint-if-develop-or-master.sh",
 			"git add"
 		]
 	},
