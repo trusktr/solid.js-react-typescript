@@ -53,7 +53,7 @@ import {
   IAnnotatedSceneConfig
 } from '@mapperai/mapper-annotated-scene'
 import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
-import { IThemedProperties } from '../../../mapper-saffron/src/renderer/styles'
+import { IThemedProperties } from '@mapperai/mapper-themes'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',

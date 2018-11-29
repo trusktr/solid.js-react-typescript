@@ -46,13 +46,6 @@ See [the docs](documentation/configuration.md) for details.
 
 ### With NPM
 
-#### Running in standalone mode
-
-This starts the Electron app. There's no build required, just run it
-(`@babel/register` handles TypeScript code on the fly):
-
-    npm start
-
 #### Running within Saffron
 
     npm run dev
@@ -66,7 +59,7 @@ _TODO_ publish latest annotated-scene and test this
 - `npm link @mapperai/mapper-annotated-scene`
 - `npm run dev`
 - Check out and install Saffron.
-- In Saffron, `npm run dev`.
+- In Saffron, `npm run dev:dev`.
 - When the Saffron app opens:
   - click the menu icon (looks like a 3x3 grid)
   - click `App Settings`
