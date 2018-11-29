@@ -45,7 +45,7 @@
     "*.{ts,tsx}": [
       "./scripts/typecheck-if-develop-or-master.sh"
     ],
-    "*.{js,ts,tsx,json}": [
+    "*.{js,ts,tsx,json,md}": [
       "./scripts/eslint-if-develop-or-master.sh",
       "./scripts/prettier-if-develop-or-master.sh",
       "git add"
