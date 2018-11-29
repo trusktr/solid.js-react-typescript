@@ -11,49 +11,49 @@ const fs = require('fs')
 
 // creates import aliases, f.e. import config from '@src/config'
 require('module-alias').addAliases({
-	'@src': path.resolve(__dirname, 'src'),
-	'annotator-config': path.resolve(__dirname, 'src', 'annotator-config'),
+  '@src': path.resolve(__dirname, 'src'),
+  'annotator-config': path.resolve(__dirname, 'src', 'annotator-config'),
 
-	// typescript imports typescript instead of JS in Annotator Standalone mode
-	// (annotated-scene's package.json main field points to the .js compiled
-	// output which we'll otherwise import without this line)
-	'@mapperai/mapper-annotated-scene': (fromPath, moduleIdentifier, alias) => {
-		if (moduleIdentifier === alias) return alias + '/src'
-		return alias
-	},
+  // typescript imports typescript instead of JS in Annotator Standalone mode
+  // (annotated-scene's package.json main field points to the .js compiled
+  // output which we'll otherwise import without this line)
+  '@mapperai/mapper-annotated-scene': (fromPath, moduleIdentifier, alias) => {
+    if (moduleIdentifier === alias) return alias + '/src'
+    return alias
+  }
 })
 
 // ability to require/import TypeScript files
 require('ts-node').register({
-	typeCheck: false,
-	transpileOnly: true,
-	files: true,
+  typeCheck: false,
+  transpileOnly: true,
+  files: true,
 
-	// manually supply our own compilerOptions, otherwise if we run this file
-	// from another project's location (f.e. from Saffron) then ts-node will use
-	// the compilerOptions from that other location, which may not work.
-	compilerOptions: require('./tsconfig.json').compilerOptions,
+  // manually supply our own compilerOptions, otherwise if we run this file
+  // from another project's location (f.e. from Saffron) then ts-node will use
+  // the compilerOptions from that other location, which may not work.
+  compilerOptions: require('./tsconfig.json').compilerOptions
 })
 
 // css files straight to document head (assumes that the browser `document` API
 // exists)
 require('css-modules-require-hook')({
-	extensions: ['.css'],
+  extensions: ['.css'],
 
-	preprocessCss: function(cssCode, file) {
-		addStyleToHead(cssCode)
-		return ''
-	},
+  preprocessCss: function(cssCode, file) {
+    addStyleToHead(cssCode)
+    return ''
+  }
 })
 
 function addStyleToHead(cssCode) {
-	// defer to an animation frame, to not block import evaluation.
-	requestAnimationFrame(() => {
-		const style = document.createElement('style')
+  // defer to an animation frame, to not block import evaluation.
+  requestAnimationFrame(() => {
+    const style = document.createElement('style')
 
-		style.textContent = cssCode
-		document.head.appendChild(style)
-	})
+    style.textContent = cssCode
+    document.head.appendChild(style)
+  })
 }
 
 // Import OBJ and PNGfiles. The import returns a valid URL, which works with
@@ -65,111 +65,111 @@ function addStyleToHead(cssCode) {
 //
 // This works with relative paths only, for now.
 function toFileURL(filePath) {
-	return url.format({
-		pathname: filePath,
-		protocol: 'file:',
-		slashes: true,
-	})
+  return url.format({
+    pathname: filePath,
+    protocol: 'file:',
+    slashes: true
+  })
 }
 
 const oldRequire = Module.prototype.require
 
 function requireContext(directory, recursive, regExp) {
-	const dir = require('node-dir')
-	const path = require('path')
+  const dir = require('node-dir')
+  const path = require('path')
 
-	// Assume absolute path by default
-	let basepath = directory
+  // Assume absolute path by default
+  let basepath = directory
 
-	if (!directory) return null
+  if (!directory) return null
 
-	if (directory[0] === '.') {
-		// Relative path
-		basepath = path.join(__dirname, directory)
-	} else if (!path.isAbsolute(directory)) {
-		// Module path
-		basepath = require.resolve(directory)
-	}
+  if (directory[0] === '.') {
+    // Relative path
+    basepath = path.join(__dirname, directory)
+  } else if (!path.isAbsolute(directory)) {
+    // Module path
+    basepath = require.resolve(directory)
+  }
 
-	const keys = dir
-		.files(basepath, {
-			sync: true,
-			recursive: recursive || false,
-		})
-		.filter(function(file) {
-			return file.match(regExp || /\.(json|js)$/)
-		})
-		.map(function(file) {
-			return path.join('.', file.slice(basepath.length + 1))
-		})
+  const keys = dir
+    .files(basepath, {
+      sync: true,
+      recursive: recursive || false
+    })
+    .filter(function(file) {
+      return file.match(regExp || /\.(json|js)$/)
+    })
+    .map(function(file) {
+      return path.join('.', file.slice(basepath.length + 1))
+    })
 
-	const context = function(key) {
-		return require(context.resolve(key))
-	}
+  const context = function(key) {
+    return require(context.resolve(key))
+  }
 
-	context.resolve = function(key) {
-		return path.join(directory, key)
-	}
+  context.resolve = function(key) {
+    return path.join(directory, key)
+  }
 
-	context.keys = function() {
-		return keys
-	}
+  context.keys = function() {
+    return keys
+  }
 
-	return context
+  return context
 }
 
 Module.prototype.require = function(moduleIdentifier) {
-	if (['.yaml', '.yml'].some(ext => moduleIdentifier.endsWith(ext))) {
-		const data = require('js-yaml').safeLoad(
-			fs.readFileSync(
-				path.resolve(path.dirname(this.filename + ''), moduleIdentifier),
-				'utf8',
-			),
-		)
-		const result = Object.assign({}, data)
+  if (['.yaml', '.yml'].some(ext => moduleIdentifier.endsWith(ext))) {
+    const data = require('js-yaml').safeLoad(
+      fs.readFileSync(
+        path.resolve(path.dirname(this.filename + ''), moduleIdentifier),
+        'utf8'
+      )
+    )
+    const result = Object.assign({}, data)
 
-		result.default = result
-		return result
-	} else if (['.obj', '.png'].some(ext => moduleIdentifier.endsWith(ext))) {
-		const result = String(
-			toFileURL(path.resolve(path.dirname(this.filename), moduleIdentifier)),
-		)
+    result.default = result
+    return result
+  } else if (['.obj', '.png'].some(ext => moduleIdentifier.endsWith(ext))) {
+    const result = String(
+      toFileURL(path.resolve(path.dirname(this.filename), moduleIdentifier))
+    )
 
-		result.default = result
-		return result
-	} else if (moduleIdentifier.endsWith('.worker')) {
-		if (typeof window === 'undefined')
-			throw new Error('Workers may only be imported in a renderer process')
+    result.default = result
+    return result
+  } else if (moduleIdentifier.endsWith('.worker')) {
+    if (typeof window === 'undefined')
+      throw new Error('Workers may only be imported in a renderer process')
 
-		const workerScriptFile = Module._resolveFilename(
-			moduleIdentifier,
-			this,
-			false,
-		)
-		const ext = path.extname(workerScriptFile)
+    const workerScriptFile = Module._resolveFilename(
+      moduleIdentifier,
+      this,
+      false
+    )
+    const ext = path.extname(workerScriptFile)
 
-		if (!(ext === '.ts' || ext === '.js'))
-			throw new Error('expected a TypeScript or JavaScript file')
+    if (!(ext === '.ts' || ext === '.js'))
+      throw new Error('expected a TypeScript or JavaScript file')
 
-		// let source = fs.readFileSync(workerScriptFile, 'utf8')
+    // let source = fs.readFileSync(workerScriptFile, 'utf8')
 
-		// if (ext === '.ts') {
-		// 	source = ts.transpileModule(source, {
-		// 		compilerOptions: { module: ts.ModuleKind.CommonJS },
-		// 	}).outputText
-		// }
+    // if (ext === '.ts') {
+    // 	source = ts.transpileModule(source, {
+    // 		compilerOptions: { module: ts.ModuleKind.CommonJS },
+    // 	}).outputText
+    // }
 
-		// assuming we are compiling to CommonJS format, we need these vars because
-		// they aren't normally available in workers, so the code will fail
-		// otherwise.
-		// source = 'var module = {}; var exports = module.exports = {}; ' + source
-		// source = 'var exports = {}; ' + source
-		// const lines = source.split('\n')
-		// const lineToRemove = lines.find(line => line.startsWith('exports'))
-		// lines.splice(lines.indexOf(lineToRemove), 1)
-		// source = lines.join('\n')
+    // assuming we are compiling to CommonJS format, we need these vars because
+    // they aren't normally available in workers, so the code will fail
+    // otherwise.
+    // source = 'var module = {}; var exports = module.exports = {}; ' + source
+    // source = 'var exports = {}; ' + source
+    // const lines = source.split('\n')
+    // const lineToRemove = lines.find(line => line.startsWith('exports'))
+    // lines.splice(lines.indexOf(lineToRemove), 1)
+    // source = lines.join('\n')
 
-		const source = `
+    const source = `
 			require('${__filename}') // load require-hooks in the worker
 			require('${workerScriptFile}') // run the worker entry point
 
@@ -192,21 +192,21 @@ Module.prototype.require = function(moduleIdentifier) {
 				}
 			}
 		`
-		const sourceUrl = URL.createObjectURL(
-			new Blob([source], { type: 'text/javascript' }),
-		)
+    const sourceUrl = URL.createObjectURL(
+      new Blob([source], { type: 'text/javascript' })
+    )
 
-		class ModuleWorker {
-			constructor() {
-				return new Worker(sourceUrl)
-			}
-		}
+    class ModuleWorker {
+      constructor() {
+        return new Worker(sourceUrl)
+      }
+    }
 
-		ModuleWorker.default = ModuleWorker
-		return ModuleWorker
-	} else {
-		return oldRequire.call(this, moduleIdentifier)
-	}
+    ModuleWorker.default = ModuleWorker
+    return ModuleWorker
+  } else {
+    return oldRequire.call(this, moduleIdentifier)
+  }
 }
 
 Module.prototype.require.context = requireContext

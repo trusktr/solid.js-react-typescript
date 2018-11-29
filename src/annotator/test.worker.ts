@@ -3,16 +3,16 @@ import * as _ from 'lodash'
 console.debug('worker!!!!', self)
 
 async function sleep(duration: number): Promise<void> {
-	return new Promise<void>(resolve => {
-		setTimeout(resolve, duration)
-	})
+  return new Promise<void>(resolve => {
+    setTimeout(resolve, duration)
+  })
 }
 
 ~(async function main() {
-	while (true) {
-		console.debug('lodash map exists:', !!_.map)
-		await sleep(1000)
-	}
+  while (true) {
+    console.debug('lodash map exists:', !!_.map)
+    await sleep(1000)
+  }
 })()
 
 // The rest is a hack, required for types to work in any file that imports this worker.
@@ -21,10 +21,10 @@ async function sleep(duration: number): Promise<void> {
 // `class extends Worker` will not fail if Worker is otherwise undefined.
 /* eslint-disable typescript/no-explicit-any */
 if (typeof (global as any).Worker === 'undefined')
-	(global as any).Worker = class {}
+  (global as any).Worker = class {}
 
 export default class extends Worker {
-	constructor() {
-		super('')
-	}
+  constructor() {
+    super('')
+  }
 }

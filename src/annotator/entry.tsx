@@ -6,14 +6,14 @@ import * as SaffronSDKType from '@mapperai/mapper-saffron-sdk'
 
 /* eslint-disable-next-line */
 declare global {
-	/* eslint-disable-next-line */
-	const SaffronSDK: typeof SaffronSDKType
+  /* eslint-disable-next-line */
+  const SaffronSDK: typeof SaffronSDKType
 }
 
 import { setGuardErrorHandler } from 'typeguard'
 
 if (SaffronSDK.getEnv() !== 'prod') {
-	setGuardErrorHandler(err => console.warn(`GUARD ERROR: `, err))
+  setGuardErrorHandler(err => console.warn(`GUARD ERROR: `, err))
 }
 
 import './env'
@@ -23,17 +23,17 @@ import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { App } from './App'
 import {
-	Deferred,
-	loadAnnotatedSceneStore,
-	getAnnotatedSceneReduxStore,
+  Deferred,
+  loadAnnotatedSceneStore,
+  getAnnotatedSceneReduxStore
 } from '@mapperai/mapper-annotated-scene'
 import { Provider } from 'react-redux'
 import { configReady } from 'annotator-config'
 
 // This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {
-	jQuery: $,
-	$: $,
+  jQuery: $,
+  $: $
 })
 
 require('jquery-ui-dist/jquery-ui')
@@ -44,37 +44,37 @@ let deferred: Deferred<ElementOrComponent>
 
 // otherwise, Saffron will mount the exported App for us.
 async function start(isSaffron = false): Promise<ElementOrComponent> {
-	if (deferred) return deferred.promise
+  if (deferred) return deferred.promise
 
-	deferred = new Deferred<ElementOrComponent>()
+  deferred = new Deferred<ElementOrComponent>()
 
-	await configReady()
+  await configReady()
 
-	// services.loadStore()
-	loadAnnotatedSceneStore()
+  // services.loadStore()
+  loadAnnotatedSceneStore()
 
-	const root = $('#root')[0]
+  const root = $('#root')[0]
 
-	const doRender = (): void => {
-		const component = (
-			<Provider store={getAnnotatedSceneReduxStore()}>
-				<App />
-			</Provider>
-		)
+  const doRender = (): void => {
+    const component = (
+      <Provider store={getAnnotatedSceneReduxStore()}>
+        <App />
+      </Provider>
+    )
 
-		if (!isSaffron) ReactDOM.render(component, root)
+    if (!isSaffron) ReactDOM.render(component, root)
 
-		deferred.resolve(component)
-	}
+    deferred.resolve(component)
+  }
 
-	$(doRender)
+  $(doRender)
 
-	return deferred.promise
+  return deferred.promise
 }
 
 async function stop(): Promise<void> {}
 
 module.exports = {
-	start,
-	stop,
+  start,
+  stop
 }

@@ -14,55 +14,55 @@ import { UtmCoordinateSystem } from '@mapperai/mapper-annotated-scene'
 const altitude = -20.0
 
 export function kmlToTerritories(
-	utmCoordinateSystem: UtmCoordinateSystem,
-	path: string,
+  utmCoordinateSystem: UtmCoordinateSystem,
+  path: string
 ): Promise<Territory[]> {
-	return KML.toGeoJson(path).then(geojson => {
-		if (
-			!(
-				geojson.type &&
-				geojson.type === 'FeatureCollection' &&
-				geojson.features &&
-				Array.isArray(geojson.features)
-			)
-		)
-			return Promise.reject(Error(`invalid KML in ${path}`))
+  return KML.toGeoJson(path).then(geojson => {
+    if (
+      !(
+        geojson.type &&
+        geojson.type === 'FeatureCollection' &&
+        geojson.features &&
+        Array.isArray(geojson.features)
+      )
+    )
+      return Promise.reject(Error(`invalid KML in ${path}`))
 
-		const territories: Territory[] = []
+    const territories: Territory[] = []
 
-		geojson.features.forEach(feature => {
-			if (
-				feature.properties &&
-				feature.properties.name &&
-				feature.geometry &&
-				feature.geometry.coordinates &&
-				Array.isArray(feature.geometry.coordinates)
-			) {
-				feature.geometry.coordinates.forEach(coordinateArray => {
-					const t = new Territory()
+    geojson.features.forEach(feature => {
+      if (
+        feature.properties &&
+        feature.properties.name &&
+        feature.geometry &&
+        feature.geometry.coordinates &&
+        Array.isArray(feature.geometry.coordinates)
+      ) {
+        feature.geometry.coordinates.forEach(coordinateArray => {
+          const t = new Territory()
 
-					t.setLabel(feature.properties.name)
+          t.setLabel(feature.properties.name)
 
-					coordinateArray
-						.filter(
-							c =>
-								Array.isArray(c) &&
-								lodash.isFinite(c[0]) &&
-								lodash.isFinite(c[1]),
-						)
-						.forEach(c => {
-							const lla = new THREE.Vector3(c[0], c[1], altitude)
+          coordinateArray
+            .filter(
+              c =>
+                Array.isArray(c) &&
+                lodash.isFinite(c[0]) &&
+                lodash.isFinite(c[1])
+            )
+            .forEach(c => {
+              const lla = new THREE.Vector3(c[0], c[1], altitude)
 
-							t.addMarker(utmCoordinateSystem.lngLatAltToThreeJs(lla), false)
-						})
+              t.addMarker(utmCoordinateSystem.lngLatAltToThreeJs(lla), false)
+            })
 
-					t.complete()
+          t.complete()
 
-					if (t.isValid()) territories.push(t)
-				})
-			}
-		})
+          if (t.isValid()) territories.push(t)
+        })
+      }
+    })
 
-		return territories
-	})
+    return territories
+  })
 }
