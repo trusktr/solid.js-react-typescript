@@ -5,33 +5,33 @@ const entry = require('./entry')
  * Annotator root component
  */
 class Annotator extends React.Component {
-	constructor(props, context) {
-		super(props, context)
+  constructor(props, context) {
+    super(props, context)
 
-		this.state = {}
-	}
+    this.state = {}
+  }
 
-	componentDidMount() {
-		if (!this.state.componentPromise) {
-			this.setState({
-				componentPromise: entry.start(true).then(component => {
-					return this.setState({
-						component,
-					})
-				}),
-			})
-		}
-	}
+  componentDidMount() {
+    if (!this.state.componentPromise) {
+      this.setState({
+        componentPromise: entry.start(true).then(component => {
+          return this.setState({
+            component
+          })
+        })
+      })
+    }
+  }
 
-	render() {
-		const { component } = this.state
+  render() {
+    const { component } = this.state
 
-		return component ? component : React.createElement('div', {}, 'loading')
-	}
+    return component ? component : React.createElement('div', {}, 'loading')
+  }
 }
 
 module.exports = {
-	component: Annotator,
-	start: async () => {},
-	stop: async () => {},
+  component: Annotator,
+  start: async () => {},
+  stop: async () => {}
 }

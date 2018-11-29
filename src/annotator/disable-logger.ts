@@ -3,14 +3,14 @@
 const disableLogger = true
 
 if (disableLogger) {
-	const typelogger = require('typelogger') as any
+  const typelogger = require('typelogger') as any
 
-	typelogger.getLogger = function() {
-		return {
-			debug() {},
-			info() {},
-			warn() {},
-			error() {},
-		}
-	}
+  typelogger.getLogger = function() {
+    return {
+      debug() {},
+      info() {},
+      warn() {},
+      error() {}
+    }
+  }
 }

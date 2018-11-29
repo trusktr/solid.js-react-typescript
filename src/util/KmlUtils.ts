@@ -19,47 +19,47 @@ import * as AsyncFile from 'async-file'
  *  kml.saveToFile("MyOutputFilename.kml")
  */
 export class SimpleKML {
-	header: string
-	content: string
-	tail: string
+  header: string
+  content: string
+  tail: string
 
-	constructor() {
-		this.header =
-			'<?xml version="1.0" encoding="UTF-8"?>\n' +
-			'<kml xmlns="http://www.opengis.net/kml/2.2">\n' +
-			'  <Document>\n'
+  constructor() {
+    this.header =
+      '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<kml xmlns="http://www.opengis.net/kml/2.2">\n' +
+      '  <Document>\n'
 
-		this.tail = '  </Document>\n</kml>\n'
-		this.content = ''
-	}
+    this.tail = '  </Document>\n</kml>\n'
+    this.content = ''
+  }
 
-	addPath(points: Array<THREE.Vector3>): void {
-		let path =
-			'	<Placemark>\n ' +
-			'	  <LineString>\n' +
-			'		<altitudeMode>clampToGround</altitudeMode>\n' +
-			'		<coordinates>\n'
+  addPath(points: Array<THREE.Vector3>): void {
+    let path =
+      '	<Placemark>\n ' +
+      '	  <LineString>\n' +
+      '		<altitudeMode>clampToGround</altitudeMode>\n' +
+      '		<coordinates>\n'
 
-		points.forEach(point => {
-			path +=
-				'		  ' +
-				point.x.toString() +
-				',' +
-				point.y.toString() +
-				',' +
-				point.z.toString() +
-				'\n'
-		})
+    points.forEach(point => {
+      path +=
+        '		  ' +
+        point.x.toString() +
+        ',' +
+        point.y.toString() +
+        ',' +
+        point.z.toString() +
+        '\n'
+    })
 
-		path += '		</coordinates>\n' + '' + '	  </LineString>\n' + '	</Placemark>\n'
+    path += '		</coordinates>\n' + '' + '	  </LineString>\n' + '	</Placemark>\n'
 
-		this.content += path
-	}
+    this.content += path
+  }
 
-	saveToFile(fileName: string): Promise<void> {
-		return AsyncFile.writeTextFile(
-			fileName,
-			this.header + this.content + this.tail,
-		)
-	}
+  saveToFile(fileName: string): Promise<void> {
+    return AsyncFile.writeTextFile(
+      fileName,
+      this.header + this.content + this.tail
+    )
+  }
 }
