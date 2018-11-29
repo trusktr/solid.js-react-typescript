@@ -10,111 +10,111 @@ let deployEnv
 
 if (envInput === 'prod' || envInput === 'production') deployEnv = 'prod'
 else if (envInput === 'dev' || envInput === 'development' || envInput === '')
-	deployEnv = 'dev'
+  deployEnv = 'dev'
 else if (envInput === 'test') deployEnv = 'test'
 else throw new Error('Unknown environment name: NODE_ENV=' + envInput)
 
 const {
-	promise: configPromise,
-	reject: rejectConfig,
-	resolve: resolveConfig,
+  promise: configPromise,
+  reject: rejectConfig,
+  resolve: resolveConfig
 } = createPromise()
 
 // eslint-disable-next-line typescript/no-explicit-any
 function configReady() {
-	return configPromise
+  return configPromise
 }
 
 function setupConfig() {
-	if (process.env.WEBPACK) {
-		try {
-			const confMods = require.context('.', true, /yaml$/)
-			const confKeys = confMods.keys()
-			const envFilename = `${deployEnv}.yaml`
+  if (process.env.WEBPACK) {
+    try {
+      const confMods = require.context('.', true, /yaml$/)
+      const confKeys = confMods.keys()
+      const envFilename = `${deployEnv}.yaml`
 
-			console.log('Available env configs', confKeys, 'desired', envFilename)
+      console.log('Available env configs', confKeys, 'desired', envFilename)
 
-			const testConfKeys = [envFilename, 'local.yaml']
-			const conf = testConfKeys.reduce((conf, nextKey) => {
-				const key = confKeys.find(key => key.includes(nextKey))
+      const testConfKeys = [envFilename, 'local.yaml']
+      const conf = testConfKeys.reduce((conf, nextKey) => {
+        const key = confKeys.find(key => key.includes(nextKey))
 
-				if (key) {
-					const confMod = confMods(key)
+        if (key) {
+          const confMod = confMods(key)
 
-					_.merge(conf, confMod)
-				}
+          _.merge(conf, confMod)
+        }
 
-				return conf
-			}, {})
+        return conf
+      }, {})
 
-			console.log(
-				'Available env configs',
-				confKeys,
-				'desired',
-				envFilename,
-				'final config',
-				conf,
-			)
+      console.log(
+        'Available env configs',
+        confKeys,
+        'desired',
+        envFilename,
+        'final config',
+        conf
+      )
 
-			const required = [
-				// 'tile_manager.utm_tile_scale',
-				// 'tile_manager.super_tile_scale',
-				'output.annotations.json.path',
-				'output.annotations.kml.path',
-			]
+      const required = [
+        // 'tile_manager.utm_tile_scale',
+        // 'tile_manager.super_tile_scale',
+        'output.annotations.json.path',
+        'output.annotations.kml.path'
+      ]
 
-			required.forEach(key => {
-				if (!conf[key])
-					throw new Error(`missing required configuration key: ${key}`)
-			})
+      required.forEach(key => {
+        if (!conf[key])
+          throw new Error(`missing required configuration key: ${key}`)
+      })
 
-			Object.assign(config, conf)
-			resolveConfig(config)
-		} catch (err) {
-			console.error('Failed to load config', err)
-			rejectConfig(err)
-		}
-	} else {
-		const path = require('path')
-		const fs = require('fs')
-		const nconf = require('nconf')
-		const yaml = require('nconf-yaml')
-		const envFile = path.resolve(__dirname, deployEnv + '.yaml')
+      Object.assign(config, conf)
+      resolveConfig(config)
+    } catch (err) {
+      console.error('Failed to load config', err)
+      rejectConfig(err)
+    }
+  } else {
+    const path = require('path')
+    const fs = require('fs')
+    const nconf = require('nconf')
+    const yaml = require('nconf-yaml')
+    const envFile = path.resolve(__dirname, deployEnv + '.yaml')
 
-		if (!fs.existsSync(envFile)) {
-			throw new Error(
-				`Bad environment variable NODE_ENV=${deployEnv}. Missing required config file ${envFile}.`,
-			)
-		}
+    if (!fs.existsSync(envFile)) {
+      throw new Error(
+        `Bad environment variable NODE_ENV=${deployEnv}. Missing required config file ${envFile}.`
+      )
+    }
 
-		const required = [
-			// 'tile_manager.utm_tile_scale',
-			// 'tile_manager.super_tile_scale',
-			'output.annotations.json.path',
-			'output.annotations.kml.path',
-		]
-		const localFile = path.resolve(__dirname, 'local.yaml')
+    const required = [
+      // 'tile_manager.utm_tile_scale',
+      // 'tile_manager.super_tile_scale',
+      'output.annotations.json.path',
+      'output.annotations.kml.path'
+    ]
+    const localFile = path.resolve(__dirname, 'local.yaml')
 
-		nconf
-			.argv()
-			.env(required)
-			.file('local_config', { file: localFile, format: yaml })
-			.file('shared_config', { file: envFile, format: yaml })
-			.defaults({})
+    nconf
+      .argv()
+      .env(required)
+      .file('local_config', { file: localFile, format: yaml })
+      .file('shared_config', { file: envFile, format: yaml })
+      .defaults({})
 
-		required.forEach(key => {
-			if (!nconf.get(key))
-				throw new Error(`missing required configuration key: ${key}`)
-		})
+    required.forEach(key => {
+      if (!nconf.get(key))
+        throw new Error(`missing required configuration key: ${key}`)
+    })
 
-		Object.assign(config, nconf.get())
-		resolveConfig(config)
-	}
+    Object.assign(config, nconf.get())
+    resolveConfig(config)
+  }
 }
 
 setupConfig()
 
 module.exports = {
-	configReady,
-	default: config,
+  configReady,
+  default: config
 }

@@ -1,4 +1,4 @@
 interface Window {
-	mapperSessionId?: string
-	isSaffron: boolean
+  mapperSessionId?: string
+  isSaffron: boolean
 }

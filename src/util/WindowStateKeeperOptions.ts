@@ -11,23 +11,23 @@ const windowStateDirectory = 'window-state'
 // Return it within a partial configuration object for `electron-window-state`.
 // https://www.npmjs.com/package/electron-window-state.
 export async function windowStateKeeperOptions(
-	windowName: string,
+  windowName: string
 ): Promise<object> {
-	if (!windowName) throw Error('missing windowName')
+  if (!windowName) throw Error('missing windowName')
 
-	await configReady()
+  await configReady()
 
-	const applicationDirectory =
-		config['preferences.directory'] || 'mapper-annotator'
-	const windowStatePrefsFile =
-		applicationDirectory +
-		'/' +
-		windowStateDirectory +
-		'/' +
-		windowName +
-		'.json'
+  const applicationDirectory =
+    config['preferences.directory'] || 'mapper-annotator'
+  const windowStatePrefsFile =
+    applicationDirectory +
+    '/' +
+    windowStateDirectory +
+    '/' +
+    windowName +
+    '.json'
 
-	return {
-		file: windowStatePrefsFile,
-	}
+  return {
+    file: windowStatePrefsFile
+  }
 }
