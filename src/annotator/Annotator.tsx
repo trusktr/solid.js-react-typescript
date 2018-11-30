@@ -13,9 +13,7 @@ import config from 'annotator-config'
 import * as Electron from 'electron'
 import { flatten } from 'lodash'
 import { guard } from 'typeguard'
-
 import { SimpleKML } from '../util/KmlUtils'
-//import {GUIParams} from 'dat.gui'
 import * as Dat from 'dat.gui'
 import { isNullOrUndefined } from 'util' // eslint-disable-line node/no-deprecated-api
 import * as MapperProtos from '@mapperai/mapper-models'
@@ -224,20 +222,13 @@ export default class Annotator extends React.Component<
   }
 
   // Create a UI widget to adjust application settings on the fly.
-  // JOE, this is Annotator app-specific
   createControlsGui(): void {
-    // Add panel to change the settings
     if (!isNullOrUndefined(config['startup.show_color_picker'])) {
       log.warn(
         'config option startup.show_color_picker has been renamed to startup.show_control_panel'
       )
     }
-
-    // if (!config['startup.show_control_panel'] || process.env.WEBPACK) {
-    // 	this.gui = null
-    // 	return
-    // }
-    log.info('dat.GUI', dat.GUI)
+    if (!config['startup.show_control_panel']) return
 
     const gui = (this.gui = new dat.GUI({
       hideable: false,
@@ -378,7 +369,6 @@ export default class Annotator extends React.Component<
 
   private destroyControlsGui(): void {
     guard(() => {
-      if (!config['startup.show_control_panel']) return
       if (this.gui) this.gui.destroy()
     })
   }
@@ -1914,13 +1904,13 @@ export default class Annotator extends React.Component<
     try {
       this.destroyControlsGui()
     } catch (err) {
-      log.error('Unable to remove controls, gui, etc')
+      log.error('destroyControlsGui() failed', err)
     }
 
     try {
       this.state.annotatedSceneController!.cleanup()
     } catch (err) {
-      log.error('Unable to remove controls, gui, etc')
+      log.error('annotatedSceneController.cleanup() failed', err)
     }
     // TODO JOE  - remove event listeners  - clean up child windows
   }
