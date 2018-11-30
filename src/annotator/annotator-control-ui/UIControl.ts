@@ -160,6 +160,7 @@ export default function initUIControl(): void {
       'PEDESTRIAN_ONLY',
       'PARKING',
       'CROSSWALK',
+      'TRACKED_VEHICLES',
       'OTHER'
     ],
     ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
@@ -181,6 +182,7 @@ export default function initUIControl(): void {
       LaneType.PEDESTRIAN_ONLY.toString(),
       LaneType.PARKING.toString(),
       LaneType.CROSSWALK.toString(),
+      LaneType.TRACKED_VEHICLES.toString(),
       LaneType.OTHER.toString()
     ],
     [
