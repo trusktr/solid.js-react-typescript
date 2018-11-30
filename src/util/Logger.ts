@@ -12,10 +12,10 @@ TypeLogger.setLogThreshold(TypeLogger.LogLevel.INFO)
 //const LogQueueMaxRecords = 1000
 
 enum LogLevel {
-	debug = 1,
-	info,
-	warn,
-	error,
+  debug = 1,
+  info,
+  warn,
+  error
 }
 
 const LogLevelNames = Object.keys(LogLevel).filter(isString)
@@ -200,48 +200,48 @@ let Threshold = LogLevel.info
  */
 /* eslint-disable typescript/no-explicit-any */
 export function getLogger(name: string): any {
-	name = name.split('/').pop() as string
-	return LogLevelNames.reduce(
-		(logger, level) => {
-			logger[level as any] = (...args: any[]) => {
-				/* eslint-disable typescript/no-explicit-any */
-				const msgLevel = (LogLevel as any)[level as any] as LogLevel
+  name = name.split('/').pop() as string
+  return LogLevelNames.reduce(
+    (logger, level) => {
+      logger[level as any] = (...args: any[]) => {
+        /* eslint-disable typescript/no-explicit-any */
+        const msgLevel = (LogLevel as any)[level as any] as LogLevel
 
-				if (msgLevel < Threshold) return
+        if (msgLevel < Threshold) return
 
-				//if (isDefined(getStoreState) && [LogLevel.info,LogLevel.error,LogLevel.warn].includes(msgLevel)) {
-				// const
-				// 	error = args.filter((arg:any) => arg instanceof Error),
-				// 	message = args.filter((arg:any) => !(arg instanceof Error)).join(" ")
+        //if (isDefined(getStoreState) && [LogLevel.info,LogLevel.error,LogLevel.warn].includes(msgLevel)) {
+        // const
+        // 	error = args.filter((arg:any) => arg instanceof Error),
+        // 	message = args.filter((arg:any) => !(arg instanceof Error)).join(" ")
 
-				//LogFirehose.log(msgLevel,name,message,error.length ? error[0] : null)
+        //LogFirehose.log(msgLevel,name,message,error.length ? error[0] : null)
 
-				//}
+        //}
 
-				//baseLogger[level](name,...args)
-				if (console[level as any]) console[level as any](name, ...args)
-				else console.log(name, ...args)
-			}
+        //baseLogger[level](name,...args)
+        if (console[level as any]) console[level as any](name, ...args)
+        else console.log(name, ...args)
+      }
 
-			return logger
-		},
-		/* eslint-disable typescript/no-explicit-any */
-		{
-			isDebugEnabled,
-		} as any,
-	)
+      return logger
+    },
+    /* eslint-disable typescript/no-explicit-any */
+    {
+      isDebugEnabled
+    } as any
+  )
 }
 
 export function setThreshold(threshold: LogLevel): void {
-	Threshold = threshold
+  Threshold = threshold
 }
 
 export function enableDebug(): void {
-	setThreshold(LogLevel.debug)
+  setThreshold(LogLevel.debug)
 }
 
 export function isDebugEnabled(): boolean {
-	return LogLevel.debug >= Threshold
+  return LogLevel.debug >= Threshold
 }
 
 export default getLogger
