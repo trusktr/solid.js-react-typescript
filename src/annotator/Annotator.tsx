@@ -21,7 +21,6 @@ import * as THREE from 'three'
 import { ImageManager } from './image/ImageManager'
 import { CalibratedImage } from './image/CalibratedImage'
 import * as React from 'react'
-//import {v4 as UUID} from 'uuid'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import { hexStringToHexadecimal } from '../util/Color'
 import SaveState from './SaveState'
@@ -38,13 +37,15 @@ import {
   NeighborLocation,
   NeighborDirection,
   Key,
+  Layer,
+  LayerId,
+  LayerStatus,
   StatusWindowState,
   AnnotatedSceneController,
   THREEColorValue,
   getLogger as Logger,
   toProps,
   Events,
-  //Layer as AnnotatedSceneLayer,
   AnnotatedSceneActions,
   DataProviderFactory,
   KeyboardEventHighlights,
@@ -62,34 +63,25 @@ import { IThemedProperties } from '@mapperai/mapper-themes'
 // eslint-disable-next-line typescript/no-explicit-any
 const dat: typeof Dat = (Dat as any).default as typeof Dat
 const $ = require('jquery')
-//
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
-// const Layers = {
-// 	...AnnotatedSceneLayer,
-// 	IMAGE_SCREENS: UUID(),
-// }
-//
-// type Layer = string
-//
-// const allLayers: Layer[] = []
-//
-// for (const key in Layers) {
-// 	if (Layers.hasOwnProperty(key)) {
-// 		const layer = Layers[key]
-//
-// 		allLayers.push(layer)
-// 	}
-// }
+
+const allLayers: LayerId[] = [
+  Layer[Layer.base1],
+  Layer[Layer.base1hi],
+  Layer[Layer.anot1]
+]
+
 // Groups of layers which are visible together. They are toggled on/off with the 'show/hide' command.
 // - all visible
 // - annotations hidden
 // - everything but annotations hidden
-// const layerGroups: Layer[][] = [
-// 	allLayers,
-// 	[Layers.POINT_CLOUD, Layers.IMAGE_SCREENS],
-// 	[Layers.ANNOTATIONS],
-// ]
+const layerGroups: LayerId[][] = [
+  allLayers,
+  [Layer[Layer.base1], Layer[Layer.base1hi]], // todo IMAGE_SCREENS layer
+  [Layer[Layer.anot1]]
+]
+
 const defaultLayerGroupIndex = 0
 
 /**
@@ -123,7 +115,6 @@ interface AnnotatorProps extends IThemedProperties {
   isLiveMode?: boolean
   rendererSize?: Electron.Size
   camera?: THREE.Camera
-
   dataProviderFactory: DataProviderFactory
   isShiftKeyPressed?: boolean
   isAddMarkerMode?: boolean
@@ -149,7 +140,6 @@ interface AnnotatorProps extends IThemedProperties {
     'isLiveMode',
     'rendererSize',
     'camera',
-
     'isShiftKeyPressed',
     'isAddMarkerMode',
     'isAddConnectionMode',
@@ -1861,9 +1851,15 @@ export default class Annotator extends React.Component<
 
     layerGroupIndex++
 
-    // if (!layerGroups[layerGroupIndex]) layerGroupIndex = defaultLayerGroupIndex
-    //
-    // this.state.annotatedSceneController!.setLayerVisibility(layerGroups[layerGroupIndex], true)
+    if (!layerGroups[layerGroupIndex]) layerGroupIndex = defaultLayerGroupIndex
+
+    allLayers.forEach(layerId => {
+      const status = layerGroups[layerGroupIndex].find(id => id === layerId)
+        ? LayerStatus.Visible
+        : LayerStatus.Hidden
+      this.state.annotatedSceneController!.setLayerStatus(layerId, status)
+    })
+
     this.setState({ layerGroupIndex })
   }
 
