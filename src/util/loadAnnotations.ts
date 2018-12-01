@@ -2,7 +2,6 @@ import * as AsyncFile from 'async-file'
 import * as Electron from 'electron'
 import * as THREE from 'three'
 import {
-  Layer,
   LayerStatus,
   AnnotatedSceneController,
   getLogger as Logger
@@ -29,7 +28,7 @@ export default function loadAnnotations(
     .then(focalPoint => {
       if (focalPoint)
         sceneController.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
-      sceneController.setLayerStatus(Layer[Layer.anot1], LayerStatus.Visible)
+      sceneController.setLayerStatus("anot1", LayerStatus.Visible)
     })
     .catch(err => {
       log.error(err.message)

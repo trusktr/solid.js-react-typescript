@@ -37,7 +37,6 @@ import {
   NeighborLocation,
   NeighborDirection,
   Key,
-  Layer,
   LayerId,
   LayerStatus,
   StatusWindowState,
@@ -67,9 +66,9 @@ const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 
 const allLayers: LayerId[] = [
-  Layer[Layer.base1],
-  Layer[Layer.base1hi],
-  Layer[Layer.anot1]
+  "base1",
+  "base1hi",
+  "anot1"
 ]
 
 // Groups of layers which are visible together. They are toggled on/off with the 'show/hide' command.
@@ -78,8 +77,8 @@ const allLayers: LayerId[] = [
 // - everything but annotations hidden
 const layerGroups: LayerId[][] = [
   allLayers,
-  [Layer[Layer.base1], Layer[Layer.base1hi]], // todo IMAGE_SCREENS layer
-  [Layer[Layer.anot1]]
+  ["base1", "base1hi"], // todo IMAGE_SCREENS layer
+  ["anot1"]
 ]
 
 const defaultLayerGroupIndex = 0
