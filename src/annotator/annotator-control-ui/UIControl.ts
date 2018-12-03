@@ -160,11 +160,12 @@ export default function initUIControl(): void {
       'PEDESTRIAN_ONLY',
       'PARKING',
       'CROSSWALK',
+      'TRACKED_VEHICLES',
       'OTHER'
     ],
-    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –'],
+    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
-    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –'],
+    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
     ['UNKNOWN', 'continue ––»»»––', 'stop ––||––'],
     ['UNKNOWN', 'continue ––»»»––', 'stop ––||––']
@@ -181,12 +182,15 @@ export default function initUIControl(): void {
       LaneType.PEDESTRIAN_ONLY.toString(),
       LaneType.PARKING.toString(),
       LaneType.CROSSWALK.toString(),
+      LaneType.TRACKED_VEHICLES.toString(),
       LaneType.OTHER.toString()
     ],
     [
       LaneLineType.UNKNOWN.toString(),
       LaneLineType.SOLID.toString(),
-      LaneLineType.DASHED.toString()
+      LaneLineType.DASHED.toString(),
+      LaneLineType.CURB.toString(),
+      LaneLineType.ROAD_EDGE.toString()
     ],
     [
       LaneLineColor.UNKNOWN.toString(),
@@ -199,7 +203,9 @@ export default function initUIControl(): void {
     [
       LaneLineType.UNKNOWN.toString(),
       LaneLineType.SOLID.toString(),
-      LaneLineType.DASHED.toString()
+      LaneLineType.DASHED.toString(),
+      LaneLineType.CURB.toString(),
+      LaneLineType.ROAD_EDGE.toString()
     ],
     [
       LaneLineColor.UNKNOWN.toString(),
@@ -255,8 +261,22 @@ export default function initUIControl(): void {
   }
 
   // ------------------------------------------------------------------------------------------------------------------
-  const cpLabelsText = ['Connection ID', 'Type:']
-  const cpLabelsId = ['cp_id', 'cp_type']
+  const cpLabelsText = [
+    'Connection ID',
+    'Type:',
+    'Left Line Type:',
+    'Left Line Color:',
+    'Right Line Type:',
+    'Right Line Color'
+  ]
+  const cpLabelsId = [
+    'cp_id',
+    'cp_type',
+    'cp_left_line',
+    'cp_left_color',
+    'cp_right_line',
+    'cp_right_color'
+  ]
   const cpLabels: Array<HTMLElement> = []
 
   for (const i in cpLabelsText) {
@@ -270,16 +290,20 @@ export default function initUIControl(): void {
     }
   }
 
-  const cpSelectsId = ['cp_select_type']
+  const cpSelectsId = [
+    'cp_select_type',
+    'cp_select_left_type',
+    'cp_select_left_color',
+    'cp_select_right_type',
+    'cp_select_right_color'
+  ]
+  // prettier-ignore
   const cpSelectsText = [
-    [
-      'UNKNOWN',
-      'YIELD',
-      'ALTERNATE',
-      'RYG_LIGHT',
-      'RYG_LEFT_ARROW_LIGHT',
-      'OTHER'
-    ]
+    ['UNKNOWN', 'YIELD', 'ALTERNATE', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER'],
+    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
+    ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
+    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
+    ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
   ]
   const cpSelectsValue = [
     [
@@ -289,6 +313,36 @@ export default function initUIControl(): void {
       ConnectionType.RYG_LIGHT.toString(),
       ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(),
       ConnectionType.OTHER.toString()
+    ],
+    [
+      LaneLineType.UNKNOWN.toString(),
+      LaneLineType.SOLID.toString(),
+      LaneLineType.DASHED.toString(),
+      LaneLineType.CURB.toString(),
+      LaneLineType.ROAD_EDGE.toString()
+    ],
+    [
+      LaneLineColor.UNKNOWN.toString(),
+      LaneLineColor.WHITE.toString(),
+      LaneLineColor.YELLOW.toString(),
+      LaneLineColor.RED.toString(),
+      LaneLineColor.BLUE.toString(),
+      LaneLineColor.OTHER.toString()
+    ],
+    [
+      LaneLineType.UNKNOWN.toString(),
+      LaneLineType.SOLID.toString(),
+      LaneLineType.DASHED.toString(),
+      LaneLineType.CURB.toString(),
+      LaneLineType.ROAD_EDGE.toString()
+    ],
+    [
+      LaneLineColor.UNKNOWN.toString(),
+      LaneLineColor.WHITE.toString(),
+      LaneLineColor.YELLOW.toString(),
+      LaneLineColor.RED.toString(),
+      LaneLineColor.BLUE.toString(),
+      LaneLineColor.OTHER.toString()
     ]
   ]
   const cpSelects: Array<HTMLElement> = []
