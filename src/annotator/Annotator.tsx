@@ -13,9 +13,7 @@ import config from 'annotator-config'
 import * as Electron from 'electron'
 import { flatten } from 'lodash'
 import { guard } from 'typeguard'
-
 import { SimpleKML } from '../util/KmlUtils'
-//import {GUIParams} from 'dat.gui'
 import * as Dat from 'dat.gui'
 import { isNullOrUndefined } from 'util' // eslint-disable-line node/no-deprecated-api
 import * as MapperProtos from '@mapperai/mapper-models'
@@ -23,7 +21,6 @@ import * as THREE from 'three'
 import { ImageManager } from './image/ImageManager'
 import { CalibratedImage } from './image/CalibratedImage'
 import * as React from 'react'
-//import {v4 as UUID} from 'uuid'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import { hexStringToHexadecimal } from '../util/Color'
 import SaveState from './SaveState'
@@ -40,13 +37,14 @@ import {
   NeighborLocation,
   NeighborDirection,
   Key,
+  LayerId,
+  LayerStatus,
   StatusWindowState,
   AnnotatedSceneController,
   THREEColorValue,
   getLogger as Logger,
   toProps,
   Events,
-  //Layer as AnnotatedSceneLayer,
   AnnotatedSceneActions,
   DataProviderFactory,
   KeyboardEventHighlights,
@@ -64,34 +62,25 @@ import { IThemedProperties } from '@mapperai/mapper-themes'
 // eslint-disable-next-line typescript/no-explicit-any
 const dat: typeof Dat = (Dat as any).default as typeof Dat
 const $ = require('jquery')
-//
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
-// const Layers = {
-// 	...AnnotatedSceneLayer,
-// 	IMAGE_SCREENS: UUID(),
-// }
-//
-// type Layer = string
-//
-// const allLayers: Layer[] = []
-//
-// for (const key in Layers) {
-// 	if (Layers.hasOwnProperty(key)) {
-// 		const layer = Layers[key]
-//
-// 		allLayers.push(layer)
-// 	}
-// }
+
+const allLayers: LayerId[] = [
+  "base1",
+  "base1hi",
+  "anot1"
+]
+
 // Groups of layers which are visible together. They are toggled on/off with the 'show/hide' command.
 // - all visible
 // - annotations hidden
 // - everything but annotations hidden
-// const layerGroups: Layer[][] = [
-// 	allLayers,
-// 	[Layers.POINT_CLOUD, Layers.IMAGE_SCREENS],
-// 	[Layers.ANNOTATIONS],
-// ]
+const layerGroups: LayerId[][] = [
+  allLayers,
+  ["base1", "base1hi"], // todo IMAGE_SCREENS layer
+  ["anot1"]
+]
+
 const defaultLayerGroupIndex = 0
 
 /**
@@ -126,7 +115,6 @@ interface AnnotatorProps extends IThemedProperties {
   isLiveMode?: boolean
   rendererSize?: Electron.Size
   camera?: THREE.Camera
-
   dataProviderFactory: DataProviderFactory
   isShiftKeyPressed?: boolean
   isAddMarkerMode?: boolean
@@ -152,7 +140,6 @@ interface AnnotatorProps extends IThemedProperties {
     'isLiveMode',
     'rendererSize',
     'camera',
-
     'isShiftKeyPressed',
     'isAddMarkerMode',
     'isAddConnectionMode',
@@ -226,20 +213,13 @@ export default class Annotator extends React.Component<
   }
 
   // Create a UI widget to adjust application settings on the fly.
-  // JOE, this is Annotator app-specific
   createControlsGui(): void {
-    // Add panel to change the settings
     if (!isNullOrUndefined(config['startup.show_color_picker'])) {
       log.warn(
         'config option startup.show_color_picker has been renamed to startup.show_control_panel'
       )
     }
-
-    // if (!config['startup.show_control_panel'] || process.env.WEBPACK) {
-    // 	this.gui = null
-    // 	return
-    // }
-    log.info('dat.GUI', dat.GUI)
+    if (!config['startup.show_control_panel']) return
 
     const gui = (this.gui = new dat.GUI({
       hideable: false,
@@ -383,7 +363,6 @@ export default class Annotator extends React.Component<
 
   private destroyControlsGui(): void {
     guard(() => {
-      if (!config['startup.show_control_panel']) return
       if (this.gui) this.gui.destroy()
     })
   }
@@ -1876,9 +1855,15 @@ export default class Annotator extends React.Component<
 
     layerGroupIndex++
 
-    // if (!layerGroups[layerGroupIndex]) layerGroupIndex = defaultLayerGroupIndex
-    //
-    // this.state.annotatedSceneController!.setLayerVisibility(layerGroups[layerGroupIndex], true)
+    if (!layerGroups[layerGroupIndex]) layerGroupIndex = defaultLayerGroupIndex
+
+    allLayers.forEach(layerId => {
+      const status = layerGroups[layerGroupIndex].find(id => id === layerId)
+        ? LayerStatus.Visible
+        : LayerStatus.Hidden
+      this.state.annotatedSceneController!.setLayerStatus(layerId, status)
+    })
+
     this.setState({ layerGroupIndex })
   }
 
@@ -1919,13 +1904,13 @@ export default class Annotator extends React.Component<
     try {
       this.destroyControlsGui()
     } catch (err) {
-      log.error('Unable to remove controls, gui, etc')
+      log.error('destroyControlsGui() failed', err)
     }
 
     try {
       this.state.annotatedSceneController!.cleanup()
     } catch (err) {
-      log.error('Unable to remove controls, gui, etc')
+      log.error('annotatedSceneController.cleanup() failed', err)
     }
     // TODO JOE  - remove event listeners  - clean up child windows
   }
