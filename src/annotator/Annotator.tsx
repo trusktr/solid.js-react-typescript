@@ -476,15 +476,15 @@ export default class Annotator extends React.Component<
         }
 
         break
-        // Middle click released
       }
 
+      // Middle click released
       case 1: {
         // no actions
         break
-        // Right  click released
       }
 
+      // Right  click released
       case 2: {
         if (this.props.isShiftKeyPressed) return
 
