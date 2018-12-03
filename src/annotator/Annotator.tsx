@@ -1018,7 +1018,7 @@ export default class Annotator extends React.Component<
       if (activeAnnotation === null) return
 
       log.info(
-        'Adding left side type: ' +
+        'Adding left side color: ' +
           lcLeftColor
             .children('option')
             .filter(':selected')
@@ -1060,7 +1060,7 @@ export default class Annotator extends React.Component<
       if (activeAnnotation === null) return
 
       log.info(
-        'Adding left side type: ' +
+        'Adding right side color: ' +
           lcRightColor
             .children('option')
             .filter(':selected')
@@ -1174,15 +1174,54 @@ export default class Annotator extends React.Component<
 
       if (activeAnnotation === null) return
 
-      log.info(
-        'Adding connection type: ' +
-          cpType
-            .children('options')
-            .filter(':selected')
-            .text()
-      )
+      // prettier-ignore
+      log.info('Adding connection type: ' + cpType.children('options').filter(':selected').text())
 
       activeAnnotation.type = +cpType.val()
+    })
+
+    const cpLeftType = $('#cp_select_left_type')
+    cpLeftType.on('change', () => {
+      cpLeftType.blur()
+      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      if (activeAnnotation === null) return
+      // prettier-ignore
+      log.info("Adding left side type: " + cpLeftType.children("option").filter(":selected").text())
+      activeAnnotation.leftLineType = +cpLeftType.val()
+      activeAnnotation.updateVisualization()
+    })
+
+    const cpLeftColor = $('#cp_select_left_color')
+    cpLeftColor.on('change', () => {
+      cpLeftColor.blur()
+      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      if (activeAnnotation === null) return
+      // prettier-ignore
+      log.info("Adding left side color: " + cpLeftColor.children("option").filter(":selected").text())
+      activeAnnotation.leftLineColor = +cpLeftColor.val()
+      activeAnnotation.updateVisualization()
+    })
+
+    const cpRightType = $('#cp_select_right_type')
+    cpRightType.on('change', () => {
+      cpRightType.blur()
+      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      if (activeAnnotation === null) return
+      // prettier-ignore
+      log.info("Adding right side type: " + cpRightType.children("option").filter(":selected").text())
+      activeAnnotation.rightLineType = +cpRightType.val()
+      activeAnnotation.updateVisualization()
+    })
+
+    const cpRightColor = $('#cp_select_right_color')
+    cpRightColor.on('change', () => {
+      cpRightColor.blur()
+      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      if (activeAnnotation === null) return
+      // prettier-ignore
+      log.info("Adding left side color: " + cpRightColor.children("option").filter(":selected").text())
+      activeAnnotation.rightLineColor = +cpRightColor.val()
+      activeAnnotation.updateVisualization()
     })
   }
 
@@ -1588,6 +1627,22 @@ export default class Annotator extends React.Component<
 
     cpSelectType.removeAttr('disabled')
     cpSelectType.val(activeAnnotation.type.toString())
+
+    const cpSelectLeft = $('#cp_select_left_type')
+    cpSelectLeft.removeAttr('disabled')
+    cpSelectLeft.val(activeAnnotation.leftLineType.toString())
+
+    const cpSelectLeftColor = $('#cp_select_left_color')
+    cpSelectLeftColor.removeAttr('disabled')
+    cpSelectLeftColor.val(activeAnnotation.leftLineColor.toString())
+
+    const cpSelectRight = $('#cp_select_right_type')
+    cpSelectRight.removeAttr('disabled')
+    cpSelectRight.val(activeAnnotation.rightLineType.toString())
+
+    const cpSelectRightColor = $('#cp_select_right_color')
+    cpSelectRightColor.removeAttr('disabled')
+    cpSelectRightColor.val(activeAnnotation.rightLineColor.toString())
   }
 
   private deactivateAllAnnotationPropertiesMenus = (
