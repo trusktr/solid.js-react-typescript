@@ -1,3 +1,5 @@
+require('source-map-support').install()
+
 const React = require('react')
 const entry = require('./entry')
 
@@ -5,8 +7,8 @@ const entry = require('./entry')
  * Annotator root component
  */
 class Annotator extends React.Component {
-  constructor(props, context) {
-    super(props, context)
+  constructor(props) {
+    super(props)
 
     this.state = {}
   }
@@ -26,7 +28,7 @@ class Annotator extends React.Component {
   render() {
     const { component } = this.state
 
-    return component ? component : React.createElement('div', {}, 'loading')
+    return component ? component : React.createElement('div', {}, 'loading4')
   }
 }
 

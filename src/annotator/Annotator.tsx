@@ -10,11 +10,10 @@
 // - [ ] fix window state keeper
 
 import config from 'annotator-config'
-import * as $ from 'jquery'
 import * as Electron from 'electron'
-import * as AsyncFile from 'async-file'
-import * as mkdirp from 'mkdirp'
 import { flatten } from 'lodash'
+import { guard } from 'typeguard'
+
 import { SimpleKML } from '../util/KmlUtils'
 //import {GUIParams} from 'dat.gui'
 import * as Dat from 'dat.gui'
@@ -26,14 +25,12 @@ import { CalibratedImage } from './image/CalibratedImage'
 import * as React from 'react'
 //import {v4 as UUID} from 'uuid'
 import AnnotatorMenuView from './AnnotatorMenuView'
-import { dateToString } from '../util/dateToString'
 import { hexStringToHexadecimal } from '../util/Color'
 import SaveState from './SaveState'
-import { kmlToTerritories } from '../util/KmlToTerritories'
+//import { kmlToTerritories } from '../util/KmlToTerritories'
 import loadAnnotations from '../util/loadAnnotations'
 import {
   AnnotatedSceneState,
-  tileIndexFromVector3,
   MousePosition,
   mousePositionToGLSpace,
   AnnotationType,
@@ -48,29 +45,26 @@ import {
   THREEColorValue,
   getLogger as Logger,
   toProps,
-  typedConnect,
   Events,
   //Layer as AnnotatedSceneLayer,
   AnnotatedSceneActions,
-  S3PersistentServiceClientFactory,
-  Annotation,
+  DataProviderFactory,
   KeyboardEventHighlights,
-  scale3DToSpatialTileScale,
-  spatialTileScaleToString,
   IAnnotatedSceneConfig
 } from '@mapperai/mapper-annotated-scene'
+import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
+import { IThemedProperties } from '@mapperai/mapper-themes'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
 // 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
 // })
 
-let dat: typeof Dat = Dat
-
-// dat.GUI is packaged wrong, this small hack makes it work with Webpack and with @babel/register.
+// TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
-if (process.env.WEBPACK) dat = (Dat as any).default as typeof Dat
-
+const dat: typeof Dat = (Dat as any).default as typeof Dat
+const $ = require('jquery')
+//
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 // const Layers = {
@@ -124,7 +118,7 @@ interface AnnotatorState {
   annotatedSceneConfig?: IAnnotatedSceneConfig
 }
 
-interface AnnotatorProps {
+interface AnnotatorProps extends IThemedProperties {
   statusWindowState?: StatusWindowState
   uiMenuVisible?: boolean
   carPose?: MapperProtos.mapper.models.PoseMessage
@@ -132,7 +126,7 @@ interface AnnotatorProps {
   rendererSize?: Electron.Size
   camera?: THREE.Camera
 
-  persistentServiceClientFactory: S3PersistentServiceClientFactory
+  dataProviderFactory: DataProviderFactory
   isShiftKeyPressed?: boolean
   isAddMarkerMode?: boolean
   isAddConnectionMode?: boolean
@@ -148,7 +142,7 @@ interface AnnotatorProps {
   isTransformControlsAttached?: boolean
 }
 
-@typedConnect(
+@ReactUtil.typedConnect(
   toProps(
     AnnotatedSceneState,
     'uiMenuVisible',
@@ -210,7 +204,7 @@ export default class Annotator extends React.Component<
 
     this.state = {
       background: hexStringToHexadecimal(
-        config['startup.background_color'] || '#442233'
+        config['startup.background_color'] || '#1d232a'
       ),
       layerGroupIndex: defaultLayerGroupIndex,
 
@@ -230,6 +224,7 @@ export default class Annotator extends React.Component<
   }
 
   // Create a UI widget to adjust application settings on the fly.
+  // JOE, this is Annotator app-specific
   createControlsGui(): void {
     // Add panel to change the settings
     if (!isNullOrUndefined(config['startup.show_color_picker'])) {
@@ -382,8 +377,10 @@ export default class Annotator extends React.Component<
   }
 
   private destroyControlsGui(): void {
-    if (!config['startup.show_control_panel']) return
-    if (this.gui) this.gui.destroy()
+    guard(() => {
+      if (!config['startup.show_control_panel']) return
+      if (this.gui) this.gui.destroy()
+    })
   }
 
   // When ImageManager loads an image, add it to the scene.
@@ -615,66 +612,64 @@ export default class Annotator extends React.Component<
    * Make a best effort to save annotations before exiting. There is no guarantee the
    * promise will complete, but it seems to work in practice.
    */
-  private onBeforeUnload: (e: BeforeUnloadEvent) => void = (
-    _: BeforeUnloadEvent
-  ) => {
-    this.saveState!.immediateAutoSave()
-  }
-
-  private onFocus = (): void => {
-    this.saveState!.enableAutoSave()
-  }
-  private onBlur = (): void => {
-    this.saveState!.disableAutoSave()
-  }
+  // private onBeforeUnload: (e: BeforeUnloadEvent) => void = (
+  // 	_: BeforeUnloadEvent,
+  // ) => {
+  // 	this.saveState!.immediateAutoSave()
+  // }
+  //
+  // private onFocus = (): void => {
+  // 	this.saveState!.enableAutoSave()
+  // }
+  // private onBlur = (): void => guard(() => this.saveState!.disableAutoSave())
 
   // }}
 
   /**
    * Load territories from KML which is generated elsewhere. Build the objects and add them to the Annotator scene.
    */
-  loadTerritoriesKml(fileName: string): Promise<void> {
-    log.info('Loading KML Territories from ' + fileName)
-
-    return this.loadKmlTerritoriesFromFile(fileName)
-      .then(newAnnotationsFocalPoint => {
-        if (newAnnotationsFocalPoint) {
-          //this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
-
-          const { x, y, z } = newAnnotationsFocalPoint
-
-          this.state.annotatedSceneController!.setStage(x, y, z)
-        }
-      })
-      .catch(err => {
-        log.error(err.message)
-        dialog.showErrorBox('Territories Load Error', err.message)
-      })
-  }
+  // loadTerritoriesKml(fileName: string): Promise<void> {
+  // 	log.info('Loading KML Territories from ' + fileName)
+  //
+  // 	return this.loadKmlTerritoriesFromFile(fileName)
+  // 		.then(newAnnotationsFocalPoint => {
+  // 			if (newAnnotationsFocalPoint) {
+  // 				//this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
+  //
+  // 				const { x, y, z } = newAnnotationsFocalPoint
+  //
+  // 				this.state.annotatedSceneController!.setStage(x, y, z)
+  // 			}
+  // 		})
+  // 		.catch(err => {
+  // 			log.error(err.message)
+  // 			dialog.showErrorBox('Territories Load Error', err.message)
+  // 		})
+  // }
 
   /**
    * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
    *   there will be something to look at there
    */
-  loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
-    return kmlToTerritories(
-      this.state.annotatedSceneController!.state.utmCoordinateSystem!,
-      fileName
-    ).then(territories => {
-      if (!territories)
-        throw Error(`territories KML file ${fileName} has no territories`)
-
-      log.info(`found ${territories.length} territories`)
-      this.saveState!.immediateAutoSave()
-
-      const result = this.state.annotatedSceneController!.addAnnotations(
-        territories
-      )
-
-      this.saveState!.clean()
-      return result
-    })
-  }
+  // loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
+  // 	return kmlToTerritories(
+  // 		this.state.annotatedSceneController!.state.utmCoordinateSystem!,
+  // 		fileName,
+  // 	).then(territories => {
+  // 		if (!territories)
+  // 			throw Error(`territories KML file ${fileName} has no territories`)
+  //
+  // 		log.info(`found ${territories.length} territories`)
+  // 		this.saveState!.immediateAutoSave()
+  //
+  // 		const result = this.state.annotatedSceneController!.addAnnotations(
+  // 			territories,
+  // 		)
+  //
+  // 		this.saveState!.clean()
+  // 		return result
+  // 	})
+  // }
 
   mapKey(
     key: Key,
@@ -721,7 +716,7 @@ export default class Annotator extends React.Component<
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
     this.mapKey('m', () => this.uiSaveWaypointsKml())
-    this.mapKey('N', () => this.uiExportAnnotationsTiles(OutputFormat.UTM))
+    this.mapKey('N', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
     this.mapKey('S', () => this.uiSaveToFile(OutputFormat.LLA))
     this.mapKey('s', () => this.uiSaveToFile(OutputFormat.UTM))
@@ -853,123 +848,6 @@ export default class Annotator extends React.Component<
     return this.saveState!.saveAnnotationsToFile(formattedPath, format).catch(
       error => log.warn('save to file failed: ' + error.message)
     )
-  }
-
-  private async uiExportAnnotationsTiles(format: OutputFormat): Promise<void> {
-    const basePath = config['output.annotations.tiles_dir']
-    const scale = scale3DToSpatialTileScale(
-      this.state.annotatedSceneController!.state.scaleProvider!.utmTileScale
-    )
-
-    if (isNullOrUndefined(scale)) {
-      return Promise.reject(
-        Error(
-          `can't create export path because of a bad scale: ${
-            this.state.annotatedSceneController!.state.scaleProvider!
-              .utmTileScale
-          }`
-        )
-      )
-    }
-
-    const scaleString = spatialTileScaleToString(scale)
-
-    if (isNullOrUndefined(scaleString)) {
-      return Promise.reject(
-        Error(
-          `can't create export path because of a bad scale: ${
-            this.state.annotatedSceneController!.state.scaleProvider!
-              .utmTileScale
-          }`
-        )
-      )
-    }
-
-    const dir = basePath + '/' + dateToString(new Date()) + scaleString
-
-    log.info(`Exporting annotations tiles to ${dir}`)
-
-    try {
-      await this.exportAnnotationsTiles(dir, format)
-    } catch (error) {
-      log.warn('export failed: ' + error.message)
-    }
-  }
-
-  // Parcel out the annotations to tile files. This produces output similar to the Perception
-  // TileManager, which conveniently is ready to be consumed by the Strabo LoadTiles script.
-  // https://github.com/Signafy/mapper-annotator/blob/develop/documentation/tile_service.md
-  exportAnnotationsTiles(
-    directory: string,
-    format: OutputFormat
-  ): Promise<void[]> {
-    const {
-      utmCoordinateSystem,
-      scaleProvider
-    } = this.state.annotatedSceneController!.state
-    const annotations = this.state
-      .annotationManager!.allAnnotations()
-      .filter(a => a.isValid())
-
-    if (!annotations.length)
-      return Promise.reject(Error('failed to save empty set of annotations'))
-
-    if (
-      !utmCoordinateSystem!.hasOrigin &&
-      !config['output.annotations.debug.allow_annotations_without_utm_origin']
-    ) {
-      return Promise.reject(
-        Error('failed to save annotations: UTM origin is not set')
-      )
-    }
-
-    if (format !== OutputFormat.UTM) {
-      return Promise.reject(
-        Error('exportAnnotationsTiles() is implemented only for UTM')
-      )
-    }
-
-    mkdirp.sync(directory)
-
-    // Repeat the entire annotation record in each tile that is intersected by the annotation.
-    // TODO CLYDE For now the intersection algorithm only checks the markers (vertices) of the annotation
-    // TODO CLYDE   geometry. It might be nice to interpolate between markers to find all intersections.
-    const groups: Map<string, Set<Annotation>> = new Map()
-
-    annotations.forEach(annotation => {
-      annotation.markers.forEach(marker => {
-        const utmPosition = utmCoordinateSystem!.threeJsToUtm(marker.position)
-        const key = tileIndexFromVector3(
-          scaleProvider!.utmTileScale,
-          utmPosition
-        ).toString('_')
-        const existing = groups.get(key)
-
-        if (existing) groups.set(key, existing.add(annotation))
-        else groups.set(key, new Set<Annotation>().add(annotation))
-      })
-    })
-
-    // Generate a file for each tile.
-    const promises: Promise<void>[] = []
-
-    groups.forEach((tileAnnotations, key) => {
-      const fileName = directory + '/' + key + '.json'
-
-      promises.push(
-        AsyncFile.writeTextFile(
-          fileName,
-          JSON.stringify(
-            this.state.annotationManager!.toJSON(
-              format,
-              Array.from(tileAnnotations)
-            )
-          )
-        )
-      )
-    })
-
-    return Promise.all(promises)
   }
 
   // Save lane waypoints only.
@@ -1459,31 +1337,30 @@ export default class Annotator extends React.Component<
       log.warn('missing element tools_load_images')
     }
 
-    const toolsLoadTerritoriesKml = document.getElementById(
-      'tools_load_territories_kml'
-    )
-
-    if (toolsLoadTerritoriesKml) {
-      toolsLoadTerritoriesKml.addEventListener('click', () => {
-        const options: Electron.OpenDialogOptions = {
-          message: 'Load Territories KML File',
-          properties: ['openFile'],
-          filters: [{ name: 'kml', extensions: ['kml'] }]
-        }
-
-        const handler = (paths: string[]): void => {
-          if (paths && paths.length) {
-            this.loadTerritoriesKml(paths[0]).catch(err =>
-              log.warn('loadTerritoriesKml failed: ' + err.message)
-            )
-          }
-        }
-
-        dialog.showOpenDialog(options, handler)
-      })
-    } else {
-      log.warn('missing element tools_load_territories_kml')
-    }
+    // const toolsLoadTerritoriesKml = document.getElementById(
+    // 	'tools_load_territories_kml',
+    // )
+    // if (toolsLoadTerritoriesKml) {
+    // 	toolsLoadTerritoriesKml.addEventListener('click', () => {
+    // 		const options: Electron.OpenDialogOptions = {
+    // 			message: 'Load Territories KML File',
+    // 			properties: ['openFile'],
+    // 			filters: [{ name: 'kml', extensions: ['kml'] }],
+    // 		}
+    //
+    // 		const handler = (paths: string[]): void => {
+    // 			if (paths && paths.length) {
+    // 				this.loadTerritoriesKml(paths[0]).catch(err =>
+    // 					log.warn('loadTerritoriesKml failed: ' + err.message),
+    // 				)
+    // 			}
+    // 		}
+    //
+    // 		dialog.showOpenDialog(options, handler)
+    // 	})
+    // } else {
+    // 	log.warn('missing element tools_load_territories_kml')
+    // }
 
     const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 
@@ -1955,8 +1832,8 @@ export default class Annotator extends React.Component<
       'startup.camera_offset': [0, 20, 20],
       'tile_manager.maximum_points_to_load': 20000000,
       'tile_manager.maximum_point_density': 100,
-      'tile_manager.maximum_super_tiles_to_load': 150,
-      'tile_manager.initial_super_tiles_to_load': 100,
+      'tile_manager.maximum_super_tiles_to_load': 450,
+      'tile_manager.initial_super_tiles_to_load': 250,
       'tile_manager.super_tile_scale': [24, 8, 24], // ditto; must contain multiples of utm_tile_scale
       'annotator.area_of_interest.size': [60, 20, 60],
       'tile_manager.stats_display.enable': true,
@@ -1966,9 +1843,9 @@ export default class Annotator extends React.Component<
   }
 
   componentDidMount(): void {
-    window.addEventListener('focus', this.onFocus)
-    window.addEventListener('blur', this.onBlur)
-    window.addEventListener('beforeunload', this.onBeforeUnload)
+    // window.addEventListener('focus', this.onFocus)
+    // window.addEventListener('blur', this.onBlur)
+    // window.addEventListener('beforeunload', this.onBeforeUnload)
 
     document.addEventListener('mousemove', this.checkForImageScreenSelection)
     document.addEventListener('mouseup', this.clickImageScreenBox)
@@ -1979,8 +1856,17 @@ export default class Annotator extends React.Component<
   }
 
   componentWillUnmount(): void {
-    this.destroyControlsGui()
+    try {
+      this.destroyControlsGui()
+    } catch (err) {
+      log.error('Unable to remove controls, gui, etc')
+    }
 
+    try {
+      this.state.annotatedSceneController!.cleanup()
+    } catch (err) {
+      log.error('Unable to remove controls, gui, etc')
+    }
     // TODO JOE  - remove event listeners  - clean up child windows
   }
 
@@ -2048,9 +1934,10 @@ export default class Annotator extends React.Component<
       lane instanceof Lane && this.uiUpdateLaneWidth(lane)
     })
 
-    channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
-      this.saveState!.dirty()
-    })
+    // BEFORE DATA PROVIDERS
+    // channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
+    // 	guard(() => this.saveState!.dirty())
+    // })
 
     channel!.once(Events.ANNOTATED_SCENE_READY, async () => {
       this.addImageScreenLayer()
@@ -2071,35 +1958,34 @@ export default class Annotator extends React.Component<
   }
 
   /* eslint-disable typescript/no-explicit-any */
-  private getAnnotatedSceneRef = (ref: any) => {
-    ref &&
-      this.setState(
-        {
-          annotatedSceneController: ref as AnnotatedSceneController
-        },
-        this.attachScene
-      )
+  private setAnnotatedSceneRef = (ref: any) => {
+    this.setState(
+      {
+        annotatedSceneController: ref as AnnotatedSceneController
+      },
+      this.attachScene
+    )
   }
   /* eslint-enable typescript/no-explicit-any */
 
   // TODO JOE don't get refs directly, proxy functionality through AnnotatedSceneController
-  private getAnnotationManagerRef = (ref: AnnotationManager) => {
+  private setAnnotationManagerRef = (ref: AnnotationManager) => {
     ref && this.setState({ annotationManager: ref })
   }
 
   render(): JSX.Element {
     const { annotatedSceneConfig } = this.state
-    const { persistentServiceClientFactory } = this.props
+    const { dataProviderFactory } = this.props
 
-    return !persistentServiceClientFactory || !annotatedSceneConfig ? (
+    return !dataProviderFactory || !annotatedSceneConfig ? (
       <div />
     ) : (
       <React.Fragment>
         <AnnotatedSceneController
-          sceneRef={this.getAnnotatedSceneRef}
+          sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
-          getAnnotationManagerRef={this.getAnnotationManagerRef}
-          persistentServiceClientFactory={persistentServiceClientFactory}
+          annotationManagerRef={this.setAnnotationManagerRef}
+          dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
         />
         <AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!} />

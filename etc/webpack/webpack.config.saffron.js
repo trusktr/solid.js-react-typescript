@@ -73,6 +73,7 @@ function makeExternals() {
     'electron',
     'react',
     'react-dom',
+    '@mapperai/mapper-annotated-scene',
     '@mapperai/mapper-saffron-sdk',
     'material-ui',
     'material-ui-icons',
@@ -83,7 +84,8 @@ function makeExternals() {
     'mapbox-gl',
     'react-mapbox-gl',
     'gtran-kml',
-    'config'
+    'config',
+    'source-map-support'
   ]
   // return {
   // 	'react': 'commonjs react', // this line is just to use the React dependency of the parent Saffron platform
@@ -111,7 +113,7 @@ function makeModuleConfig() {
       // SOURCE MAPS
       {
         test: /\.js$/,
-        exclude: /(typelogger|async-file)/,
+        exclude: /(typelogger|async-file|node_modules)/,
         use: ['source-map-loader'],
         enforce: 'pre'
       },
@@ -141,8 +143,8 @@ function makeModuleConfig() {
         exclude: [/node_modules/],
         loader: 'ts-loader',
         options: {
-          transpileOnly: true,
-          experimentalWatchApi: true
+          transpileOnly: true
+          //experimentalWatchApi: true,
         }
       },
 
@@ -192,7 +194,7 @@ function makeModuleConfig() {
  */
 function makeHotEntry(entry, devEntries) {
   // HMR ENTRY ADDITION
-  if (isDev) entry.unshift('react-hot-loader/patch')
+  //if (isDev) entry.unshift('react-hot-loader/patch')
 
   if (devEntries) entry.unshift(...devEntries)
 
@@ -242,13 +244,13 @@ function patchConfig(config) {
     _.merge(config, {
       // In development specify absolute path - better debugger support
       output: {
-        // devtoolModuleFilenameTemplate: "file://[absolute-resource-path]",
+        //devtoolModuleFilenameTemplate: 'file://[absolute-resource-path]',
         // devtoolFallbackModuleFilenameTemplate: "file://[absolute-resource-path]"
       }
     })
 
     // IF ENTRY & DEV THEN HMR
-    config.plugins.splice(1, 0, new HotModuleReplacementPlugin())
+    //config.plugins.splice(1, 0, new HotModuleReplacementPlugin())
   } else {
     config.plugins.push(
       new Webpack.LoaderOptionsPlugin({
