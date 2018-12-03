@@ -103,6 +103,7 @@ const defaultLayerGroupIndex = 0
 interface AnnotatorState {
   background: THREEColorValue
   layerGroupIndex: number
+  bezierScaleFactor: number
 
   imageScreenOpacity: number
 
@@ -207,6 +208,7 @@ export default class Annotator extends React.Component<
         config['startup.background_color'] || '#1d232a'
       ),
       layerGroupIndex: defaultLayerGroupIndex,
+      bezierScaleFactor: 6,
 
       imageScreenOpacity:
         parseFloat(config['image_manager.image.opacity']) || 0.5,
@@ -369,9 +371,12 @@ export default class Annotator extends React.Component<
     const folderConnection = gui.addFolder('Connection params')
 
     folderConnection
-      .add(this.state.annotationManager!.state, 'bezierScaleFactor', 1, 30)
+      .add(this.state, 'bezierScaleFactor', 1, 30)
       .step(1)
       .name('Bezier factor')
+      .onChange((bezierScaleFactor) => {
+        this.setState({ bezierScaleFactor })
+      })
 
     folderConnection.open()
   }
