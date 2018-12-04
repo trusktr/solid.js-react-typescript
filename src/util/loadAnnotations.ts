@@ -28,7 +28,7 @@ export default function loadAnnotations(
     .then(focalPoint => {
       if (focalPoint)
         sceneController.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
-      sceneController.setLayerStatus("anot1", LayerStatus.Visible)
+      sceneController.setLayerStatus('anot1', LayerStatus.Visible)
     })
     .catch(err => {
       log.error(err.message)
