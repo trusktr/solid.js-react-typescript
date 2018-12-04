@@ -15,11 +15,11 @@ import {
   getLogger as Logger,
   AnnotatedSceneActions,
   Events,
-  UtmCoordinateSystem
+  UtmCoordinateSystem,
+  EventEmitter
 } from '@mapperai/mapper-annotated-scene'
 import { AuroraCameraParameters } from './CameraParameters'
 import config from 'annotator-config'
-import { EventEmitter } from 'events'
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
