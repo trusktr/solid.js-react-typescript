@@ -2,7 +2,7 @@
   "name": "@mapperai/mapper-annotator",
   "appName": "Annotator",
   "appID": "Annotator",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Mapper.ai Point Cloud Annotator",
   "main": "saffron.js",
   "license": "UNLICENSED",
@@ -45,7 +45,7 @@
     "*.{ts,tsx}": [
       "./scripts/typecheck-if-develop-or-master.sh"
     ],
-    "*.{js,ts,tsx,json,md}": [
+    "*.{js,ts,tsx,json}": [
       "./scripts/eslint-if-develop-or-master.sh",
       "./scripts/prettier-if-develop-or-master.sh",
       "git add"

@@ -65,11 +65,7 @@ const $ = require('jquery')
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 
-const allLayers: LayerId[] = [
-  "base1",
-  "base1hi",
-  "anot1"
-]
+const allLayers: LayerId[] = ['base1', 'base1hi', 'anot1']
 
 // Groups of layers which are visible together. They are toggled on/off with the 'show/hide' command.
 // - all visible
@@ -77,8 +73,8 @@ const allLayers: LayerId[] = [
 // - everything but annotations hidden
 const layerGroups: LayerId[][] = [
   allLayers,
-  ["base1", "base1hi"], // todo IMAGE_SCREENS layer
-  ["anot1"]
+  ['base1', 'base1hi'], // todo IMAGE_SCREENS layer
+  ['anot1']
 ]
 
 const defaultLayerGroupIndex = 0
@@ -354,7 +350,7 @@ export default class Annotator extends React.Component<
       .add(this.state, 'bezierScaleFactor', 1, 30)
       .step(1)
       .name('Bezier factor')
-      .onChange((bezierScaleFactor) => {
+      .onChange(bezierScaleFactor => {
         this.setState({ bezierScaleFactor })
       })
 
