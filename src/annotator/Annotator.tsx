@@ -689,7 +689,7 @@ export default class Annotator extends React.Component<
     this.mapKey('Escape', () => this.uiEscapeSelection())
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
     this.mapKeyUp('Shift', () => this.onShiftKeyUp())
-    this.mapKey('A', () => this.uiDeleteAllAnnotations())
+    // this.mapKey('A', () => this.uiDeleteAllAnnotations()) // disable for now
     this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
 
     this.mapKey('C', () =>
