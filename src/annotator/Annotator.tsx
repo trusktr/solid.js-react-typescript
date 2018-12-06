@@ -777,18 +777,18 @@ export default class Annotator extends React.Component<
       this.state.annotationManager!.hideTransform()
     }
   }
-
-  private uiDeleteAllAnnotations(): void {
-    this.saveState!.immediateAutoSave()
-      .then(() => {
-        this.state.annotationManager!.unloadAllAnnotations()
-        this.saveState!.clean()
-      })
-      .catch(e => {
-        log.error(e.message)
-        dialog.showErrorBox('Error deleting all annotations', e.message)
-      })
-  }
+  //
+  // private uiDeleteAllAnnotations(): void {
+  //   this.saveState!.immediateAutoSave()
+  //     .then(() => {
+  //       this.state.annotationManager!.unloadAllAnnotations()
+  //       this.saveState!.clean()
+  //     })
+  //     .catch(e => {
+  //       log.error(e.message)
+  //       dialog.showErrorBox('Error deleting all annotations', e.message)
+  //     })
+  // }
 
   // Create an annotation, add it to the scene, and activate (highlight) it.
   private uiAddAnnotation(annotationType: AnnotationType): void {
