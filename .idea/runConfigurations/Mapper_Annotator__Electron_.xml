@@ -1,8 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Mapper Annotator (Electron)" type="NodeJSConfigurationType" factoryName="Node.js" path-to-node="$PROJECT_DIR$/node_modules/.bin/electron" path-to-js-file="src/annotator/annotator-entry-main/index.js" working-dir="$PROJECT_DIR$">
-    <envs>
-      <env name="NODE_ENV" value="development" />
-    </envs>
-    <method v="2" />
-  </configuration>
-</component>
