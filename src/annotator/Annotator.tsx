@@ -1885,7 +1885,7 @@ export default class Annotator extends React.Component<
     // Here's we're relying on the fact that the first item in the array is the
     // marker we explicitly transformed (see the `neighbors` array in
     // AnnotationManager.checkForActiveMarker)
-    const transformedMarkers = (transformedObjects as Marker[])
+    const transformedMarkers = [...(transformedObjects as Marker[])]
     const transformedMarker = transformedMarkers.splice(0, 1)[0]
 
     // get all markers in view
