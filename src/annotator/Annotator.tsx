@@ -1929,6 +1929,8 @@ export default class Annotator extends React.Component<
 
       activeAnnotation.updateVisualization()
 
+      this.state.annotatedSceneController!.updateTransformControls()
+
       this.state.annotatedSceneController!.shouldRender()
     }
   }
