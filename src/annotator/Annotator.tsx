@@ -2149,7 +2149,7 @@ export default class Annotator extends React.Component<
 function hasGeometry(n: THREE.Object3D): boolean {
   return !!(n as any).geometry
 
-  // NOTE: The following doesn't work because the annotated-scene bundle uses
+  // FIXME The following doesn't work because the annotated-scene bundle uses
   // it's own version of Three.js, so we can not check objects made in
   // annotated-scene against Annotator's version of Three.js
   //
