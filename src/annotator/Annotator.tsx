@@ -13,9 +13,7 @@ import config from 'annotator-config'
 import * as Electron from 'electron'
 import { flatten } from 'lodash'
 import { guard } from 'typeguard'
-
 import { SimpleKML } from '../util/KmlUtils'
-//import {GUIParams} from 'dat.gui'
 import * as Dat from 'dat.gui'
 import { isNullOrUndefined } from 'util' // eslint-disable-line node/no-deprecated-api
 import * as MapperProtos from '@mapperai/mapper-models'
@@ -23,7 +21,6 @@ import * as THREE from 'three'
 import { ImageManager } from './image/ImageManager'
 import { CalibratedImage } from './image/CalibratedImage'
 import * as React from 'react'
-//import {v4 as UUID} from 'uuid'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import { hexStringToHexadecimal } from '../util/Color'
 import SaveState from './SaveState'
@@ -40,13 +37,14 @@ import {
   NeighborLocation,
   NeighborDirection,
   Key,
+  LayerId,
+  LayerStatus,
   StatusWindowState,
   AnnotatedSceneController,
   THREEColorValue,
   getLogger as Logger,
   toProps,
   Events,
-  //Layer as AnnotatedSceneLayer,
   AnnotatedSceneActions,
   DataProviderFactory,
   KeyboardEventHighlights,
@@ -64,34 +62,21 @@ import { IThemedProperties } from '@mapperai/mapper-themes'
 // eslint-disable-next-line typescript/no-explicit-any
 const dat: typeof Dat = (Dat as any).default as typeof Dat
 const $ = require('jquery')
-//
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
-// const Layers = {
-// 	...AnnotatedSceneLayer,
-// 	IMAGE_SCREENS: UUID(),
-// }
-//
-// type Layer = string
-//
-// const allLayers: Layer[] = []
-//
-// for (const key in Layers) {
-// 	if (Layers.hasOwnProperty(key)) {
-// 		const layer = Layers[key]
-//
-// 		allLayers.push(layer)
-// 	}
-// }
+
+const allLayers: LayerId[] = ['base1', 'base1hi', 'anot1']
+
 // Groups of layers which are visible together. They are toggled on/off with the 'show/hide' command.
 // - all visible
 // - annotations hidden
 // - everything but annotations hidden
-// const layerGroups: Layer[][] = [
-// 	allLayers,
-// 	[Layers.POINT_CLOUD, Layers.IMAGE_SCREENS],
-// 	[Layers.ANNOTATIONS],
-// ]
+const layerGroups: LayerId[][] = [
+  allLayers,
+  ['base1', 'base1hi'], // todo IMAGE_SCREENS layer
+  ['anot1']
+]
+
 const defaultLayerGroupIndex = 0
 
 /**
@@ -103,6 +88,7 @@ const defaultLayerGroupIndex = 0
 interface AnnotatorState {
   background: THREEColorValue
   layerGroupIndex: number
+  bezierScaleFactor: number
 
   imageScreenOpacity: number
 
@@ -125,7 +111,6 @@ interface AnnotatorProps extends IThemedProperties {
   isLiveMode?: boolean
   rendererSize?: Electron.Size
   camera?: THREE.Camera
-
   dataProviderFactory: DataProviderFactory
   isShiftKeyPressed?: boolean
   isAddMarkerMode?: boolean
@@ -151,7 +136,6 @@ interface AnnotatorProps extends IThemedProperties {
     'isLiveMode',
     'rendererSize',
     'camera',
-
     'isShiftKeyPressed',
     'isAddMarkerMode',
     'isAddConnectionMode',
@@ -207,6 +191,7 @@ export default class Annotator extends React.Component<
         config['startup.background_color'] || '#1d232a'
       ),
       layerGroupIndex: defaultLayerGroupIndex,
+      bezierScaleFactor: 6,
 
       imageScreenOpacity:
         parseFloat(config['image_manager.image.opacity']) || 0.5,
@@ -224,20 +209,13 @@ export default class Annotator extends React.Component<
   }
 
   // Create a UI widget to adjust application settings on the fly.
-  // JOE, this is Annotator app-specific
   createControlsGui(): void {
-    // Add panel to change the settings
     if (!isNullOrUndefined(config['startup.show_color_picker'])) {
       log.warn(
         'config option startup.show_color_picker has been renamed to startup.show_control_panel'
       )
     }
-
-    // if (!config['startup.show_control_panel'] || process.env.WEBPACK) {
-    // 	this.gui = null
-    // 	return
-    // }
-    log.info('dat.GUI', dat.GUI)
+    if (!config['startup.show_control_panel']) return
 
     const gui = (this.gui = new dat.GUI({
       hideable: false,
@@ -369,16 +347,18 @@ export default class Annotator extends React.Component<
     const folderConnection = gui.addFolder('Connection params')
 
     folderConnection
-      .add(this.state.annotationManager!.state, 'bezierScaleFactor', 1, 30)
+      .add(this.state, 'bezierScaleFactor', 1, 30)
       .step(1)
       .name('Bezier factor')
+      .onChange(bezierScaleFactor => {
+        this.setState({ bezierScaleFactor })
+      })
 
     folderConnection.open()
   }
 
   private destroyControlsGui(): void {
     guard(() => {
-      if (!config['startup.show_control_panel']) return
       if (this.gui) this.gui.destroy()
     })
   }
@@ -497,15 +477,15 @@ export default class Annotator extends React.Component<
         }
 
         break
-        // Middle click released
       }
 
+      // Middle click released
       case 1: {
         // no actions
         break
-        // Right  click released
       }
 
+      // Right  click released
       case 2: {
         if (this.props.isShiftKeyPressed) return
 
@@ -705,7 +685,7 @@ export default class Annotator extends React.Component<
     this.mapKey('Escape', () => this.uiEscapeSelection())
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
     this.mapKeyUp('Shift', () => this.onShiftKeyUp())
-    this.mapKey('A', () => this.uiDeleteAllAnnotations())
+    // this.mapKey('A', () => this.uiDeleteAllAnnotations()) // disable for now
     this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
 
     this.mapKey('C', () =>
@@ -797,18 +777,18 @@ export default class Annotator extends React.Component<
       this.state.annotationManager!.hideTransform()
     }
   }
-
-  private uiDeleteAllAnnotations(): void {
-    this.saveState!.immediateAutoSave()
-      .then(() => {
-        this.state.annotationManager!.unloadAllAnnotations()
-        this.saveState!.clean()
-      })
-      .catch(e => {
-        log.error(e.message)
-        dialog.showErrorBox('Error deleting all annotations', e.message)
-      })
-  }
+  //
+  // private uiDeleteAllAnnotations(): void {
+  //   this.saveState!.immediateAutoSave()
+  //     .then(() => {
+  //       this.state.annotationManager!.unloadAllAnnotations()
+  //       this.saveState!.clean()
+  //     })
+  //     .catch(e => {
+  //       log.error(e.message)
+  //       dialog.showErrorBox('Error deleting all annotations', e.message)
+  //     })
+  // }
 
   // Create an annotation, add it to the scene, and activate (highlight) it.
   private uiAddAnnotation(annotationType: AnnotationType): void {
@@ -1018,7 +998,7 @@ export default class Annotator extends React.Component<
       if (activeAnnotation === null) return
 
       log.info(
-        'Adding left side type: ' +
+        'Adding left side color: ' +
           lcLeftColor
             .children('option')
             .filter(':selected')
@@ -1060,7 +1040,7 @@ export default class Annotator extends React.Component<
       if (activeAnnotation === null) return
 
       log.info(
-        'Adding left side type: ' +
+        'Adding right side color: ' +
           lcRightColor
             .children('option')
             .filter(':selected')
@@ -1174,15 +1154,54 @@ export default class Annotator extends React.Component<
 
       if (activeAnnotation === null) return
 
-      log.info(
-        'Adding connection type: ' +
-          cpType
-            .children('options')
-            .filter(':selected')
-            .text()
-      )
+      // prettier-ignore
+      log.info('Adding connection type: ' + cpType.children('options').filter(':selected').text())
 
       activeAnnotation.type = +cpType.val()
+    })
+
+    const cpLeftType = $('#cp_select_left_type')
+    cpLeftType.on('change', () => {
+      cpLeftType.blur()
+      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      if (activeAnnotation === null) return
+      // prettier-ignore
+      log.info("Adding left side type: " + cpLeftType.children("option").filter(":selected").text())
+      activeAnnotation.leftLineType = +cpLeftType.val()
+      activeAnnotation.updateVisualization()
+    })
+
+    const cpLeftColor = $('#cp_select_left_color')
+    cpLeftColor.on('change', () => {
+      cpLeftColor.blur()
+      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      if (activeAnnotation === null) return
+      // prettier-ignore
+      log.info("Adding left side color: " + cpLeftColor.children("option").filter(":selected").text())
+      activeAnnotation.leftLineColor = +cpLeftColor.val()
+      activeAnnotation.updateVisualization()
+    })
+
+    const cpRightType = $('#cp_select_right_type')
+    cpRightType.on('change', () => {
+      cpRightType.blur()
+      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      if (activeAnnotation === null) return
+      // prettier-ignore
+      log.info("Adding right side type: " + cpRightType.children("option").filter(":selected").text())
+      activeAnnotation.rightLineType = +cpRightType.val()
+      activeAnnotation.updateVisualization()
+    })
+
+    const cpRightColor = $('#cp_select_right_color')
+    cpRightColor.on('change', () => {
+      cpRightColor.blur()
+      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      if (activeAnnotation === null) return
+      // prettier-ignore
+      log.info("Adding left side color: " + cpRightColor.children("option").filter(":selected").text())
+      activeAnnotation.rightLineColor = +cpRightColor.val()
+      activeAnnotation.updateVisualization()
     })
   }
 
@@ -1588,6 +1607,22 @@ export default class Annotator extends React.Component<
 
     cpSelectType.removeAttr('disabled')
     cpSelectType.val(activeAnnotation.type.toString())
+
+    const cpSelectLeft = $('#cp_select_left_type')
+    cpSelectLeft.removeAttr('disabled')
+    cpSelectLeft.val(activeAnnotation.leftLineType.toString())
+
+    const cpSelectLeftColor = $('#cp_select_left_color')
+    cpSelectLeftColor.removeAttr('disabled')
+    cpSelectLeftColor.val(activeAnnotation.leftLineColor.toString())
+
+    const cpSelectRight = $('#cp_select_right_type')
+    cpSelectRight.removeAttr('disabled')
+    cpSelectRight.val(activeAnnotation.rightLineType.toString())
+
+    const cpSelectRightColor = $('#cp_select_right_color')
+    cpSelectRightColor.removeAttr('disabled')
+    cpSelectRightColor.val(activeAnnotation.rightLineColor.toString())
   }
 
   private deactivateAllAnnotationPropertiesMenus = (
@@ -1816,9 +1851,15 @@ export default class Annotator extends React.Component<
 
     layerGroupIndex++
 
-    // if (!layerGroups[layerGroupIndex]) layerGroupIndex = defaultLayerGroupIndex
-    //
-    // this.state.annotatedSceneController!.setLayerVisibility(layerGroups[layerGroupIndex], true)
+    if (!layerGroups[layerGroupIndex]) layerGroupIndex = defaultLayerGroupIndex
+
+    allLayers.forEach(layerId => {
+      const status = layerGroups[layerGroupIndex].find(id => id === layerId)
+        ? LayerStatus.Visible
+        : LayerStatus.Hidden
+      this.state.annotatedSceneController!.setLayerStatus(layerId, status)
+    })
+
     this.setState({ layerGroupIndex })
   }
 
@@ -1829,7 +1870,7 @@ export default class Annotator extends React.Component<
    */
   private makeAnnotatedSceneConfig = () => {
     return {
-      'startup.camera_offset': [0, 20, 20],
+      'startup.camera_offset': [0, 400, 200],
       'tile_manager.maximum_points_to_load': 20000000,
       'tile_manager.maximum_point_density': 100,
       'tile_manager.maximum_super_tiles_to_load': 300,
@@ -1859,13 +1900,13 @@ export default class Annotator extends React.Component<
     try {
       this.destroyControlsGui()
     } catch (err) {
-      log.error('Unable to remove controls, gui, etc')
+      log.error('destroyControlsGui() failed', err)
     }
 
     try {
       this.state.annotatedSceneController!.cleanup()
     } catch (err) {
-      log.error('Unable to remove controls, gui, etc')
+      log.error('annotatedSceneController.cleanup() failed', err)
     }
     // TODO JOE  - remove event listeners  - clean up child windows
   }

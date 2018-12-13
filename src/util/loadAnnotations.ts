@@ -2,6 +2,7 @@ import * as AsyncFile from 'async-file'
 import * as Electron from 'electron'
 import * as THREE from 'three'
 import {
+  LayerStatus,
   AnnotatedSceneController,
   getLogger as Logger
 } from '@mapperai/mapper-annotated-scene'
@@ -21,13 +22,13 @@ export default function loadAnnotations(
   sceneController: AnnotatedSceneController
 ): Promise<void> {
   log.info('Loading annotations from ' + fileName)
-  //	sceneController.setLayerVisibility([Layer.ANNOTATIONS])
 
   return loadAnnotationsFromFile
     .call(this, fileName, sceneController)
     .then(focalPoint => {
       if (focalPoint)
         sceneController.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
+      sceneController.setLayerStatus('anot1', LayerStatus.Visible)
     })
     .catch(err => {
       log.error(err.message)

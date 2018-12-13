@@ -223,7 +223,7 @@ function styles(theme) {
           height: '100%',
           width: '250px',
           zIndex: 1,
-          top: 100,
+          top: 40,
           backgroundColor: 'transparent',
           overflowX: 'hidden',
           paddingTop: 0,
@@ -360,7 +360,7 @@ function styles(theme) {
           backgroundColor: 'transparent',
           position: 'absolute',
           zIndex: 1,
-          top: 100,
+          top: 0,
           right: 0,
           paddingRight: '5px',
           textAlign: 'right',
@@ -375,6 +375,7 @@ function styles(theme) {
           width: '40px',
           fontSize: 'x-large',
           border: 0,
+          color: 'white',
 
           '&:hover': {
             fontSize: 'xx-large',
