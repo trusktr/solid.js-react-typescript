@@ -1868,7 +1868,7 @@ export default class Annotator extends React.Component<
     this.setState({ layerGroupIndex })
   }
 
-  private snapMarker = (transformedObjects: THREE.Object3D[]): void => {
+  private snapMarker = (transformedObjects: ReadonlyArray<THREE.Object3D>): void => {
     if (!(transformedObjects[0] instanceof Marker)) return
 
     // get active annotation
@@ -1885,7 +1885,7 @@ export default class Annotator extends React.Component<
     // Here's we're relying on the fact that the first item in the array is the
     // marker we explicitly transformed (see the `neighbors` array in
     // AnnotationManager.checkForActiveMarker)
-    const transformedMarkers = [...(transformedObjects as Marker[])]
+    const transformedMarkers = [...transformedObjects] as Marker[]
     const transformedMarker = transformedMarkers.shift()!
 
     // get all markers in view
