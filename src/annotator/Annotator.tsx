@@ -1886,7 +1886,7 @@ export default class Annotator extends React.Component<
     // marker we explicitly transformed (see the `neighbors` array in
     // AnnotationManager.checkForActiveMarker)
     const transformedMarkers = [...(transformedObjects as Marker[])]
-    const transformedMarker = transformedMarkers.splice(0, 1)[0]
+    const transformedMarker = transformedMarkers.shift()
 
     // get all markers in view
     const frustum = new THREE.Frustum
