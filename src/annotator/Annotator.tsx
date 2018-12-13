@@ -1937,27 +1937,20 @@ export default class Annotator extends React.Component<
 
   getAnnotationsInFrustum(frustum: THREE.Frustum) {
     return this.state.annotationManager!.allAnnotations()
-      .filter(annotation =>
-        annotation.renderingObject.children.some(n => {
-          let hasMeshInView = false
+      .filter(annotation => {
+        const object = annotation.renderingObject
 
-          // debugger
+        let hasMeshInView = false
 
-          const hasGeom = hasGeometry(n)
+        object.traverse(object => {
+          if (hasMeshInView) return
 
-          if (hasGeom && frustum.intersectsObject(n))
+          if (hasGeometry(object) && frustum.intersectsObject(object))
             hasMeshInView = true
-
-          n.traverse(n => {
-            const hasGeom = hasGeometry(n)
-
-            if (hasGeom && frustum.intersectsObject(n))
-              hasMeshInView = true
-          })
-
-          return hasMeshInView
         })
-      )
+
+        return hasMeshInView
+      })
   }
 
   getMarkersInFrustum(frustum: THREE.Frustum, markersToExclude: Marker[]) {
