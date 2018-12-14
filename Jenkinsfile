@@ -1,38 +1,37 @@
-pipeline {
-	agent any
-	stages {
-		stage('Build') {
-			steps {
-				sh '''./build-scripts/get-ecr-auth.sh'''
-				sh '''./build-scripts/build.sh'''
-				sh '''./build-scripts/hdk-push.sh'''
-			}
-		}
-	}
-	post {
-		always {
-			cleanWs(cleanWhenSuccess: true, cleanWhenUnstable: true, cleanWhenNotBuilt: true, cleanWhenAborted: true, deleteDirs: true, cleanWhenFailure: true)
+@Library("mapper-jenkins-libs")_
 
-		}
+try {
+  node('master') {
 
-		failure {
-			slackSend(channel: "#sw-build", color: 'D81A09', message: "Failed: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
-		}
+    stage("Checkout") {
+      checkout scm
+    }
 
-		unstable {
-			slackSend(channel: "#sw-build", color: 'C1C104', message: "Unstable: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
-		}
+		def branchName = env.BRANCH_NAME
+    def tag = sh(returnStdout: true, script: "git tag --contains | head -1").trim()
+    if (!tag) {
+      throw new RuntimeException("skip")
+    }
 
-		changed {
-			script {
-				if (currentBuild.currentResult == 'SUCCESS') {
-					// send to Slack
-					slackSend (channel: "#sw-build", color: '25A553', message: "Success: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]. (${env.BUILD_URL})")
-				}
-			}
+    stage("Assemble & Deploy App") {
+      sh """
+      rm -Rf ./dist
+      rm -Rf ./node_modules
+      npm install
+      npm run package
+      ARTIFACT=\$(find dist -name mapper-*.zip)
+      FILENAME=\$(basename \${ARTIFACT})
+      aws s3 cp \${ARTIFACT} s3://mapper-dev-saffron-apps/uploads/\${FILENAME}
+      aws s3 cp \${ARTIFACT} s3://mapper-prod-saffron-apps/uploads/\${FILENAME}
+      """
+    }
+  }
+} catch (err) {
+  def message = err.getMessage()
+  if (message == "skip") {
+    currentBuild.result = 'SUCCESS'
+  } else {
+    throw err
+  }
 
-
-		}
-
-	}
 }

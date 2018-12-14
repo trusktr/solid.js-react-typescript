@@ -1,51 +1,43 @@
 {
-    "compilerOptions": {
-        "allowSyntheticDefaultImports": true,
-        "alwaysStrict": true,
-        "baseUrl": "./src",
-        "declaration": false,
-        "emitDecoratorMetadata": true,
-        "experimentalDecorators": true,
-        "forceConsistentCasingInFileNames": true,
-        "jsx": "react",
-		"lib": ["es6", "dom", "esnext.asynciterable"],
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "noFallthroughCasesInSwitch": true,
-        "noImplicitReturns": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "outDir": "./dist/out",
-        "paths": {
-			"*": [ "*" ],
-			"assets/*": [ "annotator-assets/*" ],
-			"@/*": [ "*" ]
-		},
-        "preserveConstEnums": true,
-        "pretty": true,
-        "sourceMap": true,
-		"strictNullChecks": true,
-		"target": "es6"
-    },
-    "compileOnSave": true,
-    "include": [
-        "src"
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": false,
+    "esModuleInterop": false,
+    "alwaysStrict": true,
+    "baseUrl": "./src",
+    "declaration": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react",
+    "lib": [
+      "es2017.object",
+      "es5",
+      "es6",
+      "es7",
+      "es2015",
+      "es2016",
+      "es2017",
+      "es2018",
+      "dom"
     ],
-    "awesomeTypescriptLoaderOptions": {
-        "useBabel": false,
-        "forkChecker": true,
-        "useCache": true,
-        "cacheDirectory": "dist/.awcache",
-        "babelOptions": {
-            "sourceMaps": "both",
-            "env": {
-                "development": {
-                    "plugins": [
-                        "react-hot-loader/babel"
-                    ]
-                }
-            }
-        }
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitAny": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "outDir": "./dist/out",
+    "preserveConstEnums": true,
+    "pretty": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "target": "es6",
+    "skipLibCheck": true,
+    "paths": {
+      "*": ["*"]
     }
-
+  },
+  "compileOnSave": false,
+  "include": ["src/**/*"]
 }

@@ -1,6 +1,6 @@
 # Created by .ignore support plugin (hsz.mobi)
 .DS_Store
-
+.idea
 ### Node template
 # Logs
 logs
@@ -19,7 +19,6 @@ jspm_packages/
 .idea/**/tasks.xml
 .idea/codeStyles
 .idea/dictionaries
-.idea/inspectionProfiles
 
 # Sensitive or high-churn files:
 .idea/**/dataSources/
@@ -40,3 +39,4 @@ data
 # developer config file
 local*.yaml
 test*.yaml
+/.idea/MapperAnnotatorApp.iml
