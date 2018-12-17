@@ -66,11 +66,7 @@ const $ = require('jquery')
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 
-const allLayers: LayerId[] = [
-  "base1",
-  "base1hi",
-  "anot1"
-]
+const allLayers: LayerId[] = ['base1', 'base1hi', 'anot1']
 
 // Groups of layers which are visible together. They are toggled on/off with the 'show/hide' command.
 // - all visible
@@ -78,8 +74,8 @@ const allLayers: LayerId[] = [
 // - everything but annotations hidden
 const layerGroups: LayerId[][] = [
   allLayers,
-  ["base1", "base1hi"], // todo IMAGE_SCREENS layer
-  ["anot1"]
+  ['base1', 'base1hi'], // todo IMAGE_SCREENS layer
+  ['anot1']
 ]
 
 const defaultLayerGroupIndex = 0
@@ -355,7 +351,7 @@ export default class Annotator extends React.Component<
       .add(this.state, 'bezierScaleFactor', 1, 30)
       .step(1)
       .name('Bezier factor')
-      .onChange((bezierScaleFactor) => {
+      .onChange(bezierScaleFactor => {
         this.setState({ bezierScaleFactor })
       })
 
@@ -690,7 +686,7 @@ export default class Annotator extends React.Component<
     this.mapKey('Escape', () => this.uiEscapeSelection())
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
     this.mapKeyUp('Shift', () => this.onShiftKeyUp())
-    this.mapKey('A', () => this.uiDeleteAllAnnotations())
+    // this.mapKey('A', () => this.uiDeleteAllAnnotations()) // disable for now
     this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
 
     this.mapKey('C', () =>
@@ -782,18 +778,18 @@ export default class Annotator extends React.Component<
       this.state.annotationManager!.hideTransform()
     }
   }
-
-  private uiDeleteAllAnnotations(): void {
-    this.saveState!.immediateAutoSave()
-      .then(() => {
-        this.state.annotationManager!.unloadAllAnnotations()
-        this.saveState!.clean()
-      })
-      .catch(e => {
-        log.error(e.message)
-        dialog.showErrorBox('Error deleting all annotations', e.message)
-      })
-  }
+  //
+  // private uiDeleteAllAnnotations(): void {
+  //   this.saveState!.immediateAutoSave()
+  //     .then(() => {
+  //       this.state.annotationManager!.unloadAllAnnotations()
+  //       this.saveState!.clean()
+  //     })
+  //     .catch(e => {
+  //       log.error(e.message)
+  //       dialog.showErrorBox('Error deleting all annotations', e.message)
+  //     })
+  // }
 
   // Create an annotation, add it to the scene, and activate (highlight) it.
   private uiAddAnnotation(annotationType: AnnotationType): void {
@@ -1972,11 +1968,11 @@ export default class Annotator extends React.Component<
    */
   private makeAnnotatedSceneConfig = () => {
     return {
-      'startup.camera_offset': [0, 20, 20],
+      'startup.camera_offset': [0, 400, 200],
       'tile_manager.maximum_points_to_load': 20000000,
       'tile_manager.maximum_point_density': 100,
-      'tile_manager.maximum_super_tiles_to_load': 450,
-      'tile_manager.initial_super_tiles_to_load': 250,
+      'tile_manager.maximum_super_tiles_to_load': 300,
+      'tile_manager.initial_super_tiles_to_load': 150,
       'tile_manager.super_tile_scale': [24, 8, 24], // ditto; must contain multiples of utm_tile_scale
       'annotator.area_of_interest.size': [60, 20, 60],
       'tile_manager.stats_display.enable': true,
