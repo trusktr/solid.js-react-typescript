@@ -2,7 +2,7 @@
   "name": "@mapperai/mapper-annotator",
   "appName": "Annotator",
   "appID": "Annotator",
-  "version": "1.0.0",
+  "version": "1.0.12",
   "description": "Mapper.ai Point Cloud Annotator",
   "main": "saffron.js",
   "license": "UNLICENSED",
@@ -45,7 +45,7 @@
     "*.{ts,tsx}": [
       "./scripts/typecheck-if-develop-or-master.sh"
     ],
-    "*.{js,ts,tsx,json,md}": [
+    "*.{js,ts,tsx,json}": [
       "./scripts/eslint-if-develop-or-master.sh",
       "./scripts/prettier-if-develop-or-master.sh",
       "git add"
@@ -109,7 +109,7 @@
     "webpack-sources": "1.1.0"
   },
   "dependencies": {
-    "@mapperai/mapper-annotated-scene": "0.0.29",
+    "@mapperai/mapper-annotated-scene": "0.0.36",
     "@mapperai/mapper-models": "1.9.8",
     "@mapperai/mapper-saffron-sdk": "2.0.20",
     "@mapperai/mapper-themes": "^1.0.13",

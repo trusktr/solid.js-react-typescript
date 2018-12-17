@@ -33,13 +33,13 @@ const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf-8')),
 
 run('npm install --production')
 
-rm('-Rf', 'node_modules/@mapperai/mapper-annotated-scene')
+// rm('-Rf', 'node_modules/@mapperai/mapper-annotated-scene')
 rm('-Rf', 'node_modules/electron')
-cp(
-  '-R',
-  '../../node_modules/@mapperai/mapper-annotated-scene',
-  'node_modules/@mapperai/'
-)
+// cp(
+//   '-R',
+//   '../../node_modules/@mapperai/mapper-annotated-scene',
+//   'node_modules/@mapperai/'
+// )
 
 console.log(`Packaging: ${pkgFilename}`)
 run(`zip -r ${pkgFilename} .`)

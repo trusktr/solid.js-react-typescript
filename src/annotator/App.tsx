@@ -72,10 +72,10 @@ export class App extends React.Component<AppProps, AppState> {
   /**
    * Update session
    */
-  private onSessionSelected = (session: ISessionInfo) =>
+  private onSessionSelected = (factory: DataProviderFactory, session: ISessionInfo) =>
     this.setState({
       session,
-      dataProviderFactory: App.createDataProviderFactory(session.id),
+      dataProviderFactory: factory.forSessionId(session.id),//App.createDataProviderFactory(session.id),
       reset: true
     })
 
