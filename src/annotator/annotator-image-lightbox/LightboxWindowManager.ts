@@ -11,10 +11,10 @@ import { channel as ipcChannel } from '../../electron-ipc/Channel'
 import * as IPCMessages from './IPCMessages'
 import WindowCommunicator from '../../util/WindowCommunicator'
 import createPromise, { Resolve } from '../../util/createPromise'
-import { EventEmitter } from 'events'
 import {
   KeyboardEventHighlights,
-  Events
+  Events,
+  EventEmitter
 } from '@mapperai/mapper-annotated-scene'
 import windowStateKeeper from 'electron-window-state'
 import config from 'annotator-config'

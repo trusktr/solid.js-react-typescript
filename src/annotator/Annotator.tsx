@@ -1947,27 +1947,27 @@ export default class Annotator extends React.Component<
     // TODO JOE move UI logic to React/JSX, and get state from Redux
 
     channel!.on(
-      'deactivateFrontSideNeighbours',
+      Events.deactivateFrontSideNeighbours,
       Annotator.deactivateFrontSideNeighbours
     )
 
     channel!.on(
-      'deactivateLeftSideNeighbours',
+      Events.deactivateLeftSideNeighbours,
       Annotator.deactivateLeftSideNeighbours
     )
 
     channel!.on(
-      'deactivateRightSideNeighbours',
+      Events.deactivateRightSideNeighbours,
       Annotator.deactivateRightSideNeighbours
     )
 
     channel!.on(
-      'deactivateAllAnnotationPropertiesMenus',
+      Events.deactivateAllAnnotationPropertiesMenus,
       this.deactivateAllAnnotationPropertiesMenus
     )
 
     channel!.on(
-      'resetAllAnnotationPropertiesMenuElements',
+      Events.resetAllAnnotationPropertiesMenuElements,
       this.resetAllAnnotationPropertiesMenuElements
     )
 
