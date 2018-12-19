@@ -22,7 +22,7 @@ Set up a [personal NPM account](https://www.npmjs.com/signup).
 
 Authenticate your local NPM CLI with your npmjs.com credentials:
 
-```sh
+```bash
 npm login
 ```
 
@@ -32,7 +32,7 @@ You can now successfully install project dependencies, including private depende
 
 ### Install application dependencies
 
-```sh
+```bash
 npm install
 ```
 
@@ -48,9 +48,15 @@ See [the docs](documentation/configuration.md) for details.
 
 #### Running within Saffron
 
-    npm run dev
+```bash
+npm run dev
+```
 
-_TODO_ publish latest annotated-scene and test this
+#### Publish
+
+```bash
+npm version patch && git push --tags
+```
 
 #### Running within Saffron, with local Annotated Scene library
 
