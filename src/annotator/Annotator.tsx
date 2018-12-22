@@ -709,10 +709,6 @@ export default class Annotator extends React.Component<
     this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TERRITORY))
     this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
 
-    this.mapKey('U', () =>
-      this.state.annotatedSceneController!.unloadPointCloudData()
-    )
-
     this.mapKey('V', () =>
       this.state.annotatedSceneController!.toggleCameraType()
     )
