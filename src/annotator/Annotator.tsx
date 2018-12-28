@@ -347,8 +347,10 @@ export default class Annotator extends React.Component<
 
     const folderConnection = gui.addFolder('Connection params')
 
+    const bezierScaleFactor = this.state.bezierScaleFactor
+
     folderConnection
-      .add(this.state, 'bezierScaleFactor', 1, 30)
+      .add({ bezierScaleFactor }, 'bezierScaleFactor', 1, 30)
       .step(1)
       .name('Bezier factor')
       .onChange(bezierScaleFactor => {
@@ -2125,6 +2127,7 @@ export default class Annotator extends React.Component<
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
+          bezierScaleFactor={this.state.bezierScaleFactor}
           annotationManagerRef={this.setAnnotationManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
