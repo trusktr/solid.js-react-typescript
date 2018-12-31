@@ -59,8 +59,11 @@ publish that to S3 (see Jenkinsfile). To make a new version and push the tag,
 run:
 
 ```bash
-npm version patch && git push --follow-tags
+npm run publish-version-patch
 ```
+
+There are also `publish-version-minor` and `publish-version-major` scripts for
+publish minor and major versions.
 
 #### Running within Saffron, with local Annotated Scene library
 

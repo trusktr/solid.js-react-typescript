@@ -34,7 +34,10 @@
     "lint-js": "npm run lint -- './**/{.,}*.{js,json,html}'",
     "lint-ts": "npm run lint -- './**/*.{ts,tsx}'",
     "COMMENT about dev-or-master": "exits non-zero if we're not on develop or master branches",
-    "dev-or-master": "git branch | grep \\* | cut -d ' ' -f2 | grep -E 'develop|master' > /dev/null"
+    "dev-or-master": "git branch | grep \\* | cut -d ' ' -f2 | grep -E 'develop|master' > /dev/null",
+    "publish-version-patch": "npm version patch && git push --follow-tags",
+    "publish-version-minor": "npm version minor && git push --follow-tags",
+    "publish-version-major": "npm version major && git push --follow-tags"
   },
   "husky": {
     "hooks": {
