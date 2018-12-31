@@ -54,8 +54,12 @@ npm run dev
 
 #### Publish
 
+The CI system (Jenkins) will see when a new tag is pushed to GitHub and will
+publish that to S3 (see Jenkinsfile). To make a new version and push the tag,
+run:
+
 ```bash
-npm version patch && git push --tags
+npm version patch && git push --follow-tags
 ```
 
 #### Running within Saffron, with local Annotated Scene library
