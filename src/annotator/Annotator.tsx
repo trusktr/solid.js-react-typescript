@@ -48,7 +48,8 @@ import {
   AnnotatedSceneActions,
   DataProviderFactory,
   KeyboardEventHighlights,
-  IAnnotatedSceneConfig
+  IAnnotatedSceneConfig,
+  Marker,
 } from '@mapperai/mapper-annotated-scene'
 import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
 import { IThemedProperties } from '@mapperai/mapper-themes'
@@ -346,8 +347,10 @@ export default class Annotator extends React.Component<
 
     const folderConnection = gui.addFolder('Connection params')
 
+    const bezierScaleFactor = this.state.bezierScaleFactor
+
     folderConnection
-      .add(this.state, 'bezierScaleFactor', 1, 30)
+      .add({ bezierScaleFactor }, 'bezierScaleFactor', 1, 30)
       .step(1)
       .name('Bezier factor')
       .onChange(bezierScaleFactor => {
@@ -1863,6 +1866,103 @@ export default class Annotator extends React.Component<
     this.setState({ layerGroupIndex })
   }
 
+  private snapMarker = (transformedObjects: ReadonlyArray<THREE.Object3D>): void => {
+    if (!(transformedObjects[0] instanceof Marker)) return
+
+    // get active annotation
+    const activeAnnotation = this.state.annotationManager!.getActiveAnnotation()
+
+    if (!activeAnnotation) {
+      throw new Error(`
+        It should not be possible to snap a point if an annotation is not
+        selected and therefore there are no markers visible to interact with.
+      `)
+    }
+
+    // get the selected marker we just transformed
+    // Here's we're relying on the fact that the first item in the array is the
+    // marker we explicitly transformed (see the `neighbors` array in
+    // AnnotationManager.checkForActiveMarker)
+    const transformedMarkers = [...transformedObjects] as Marker[]
+    const transformedMarker = transformedMarkers.shift()!
+
+    // get all markers in view
+    const frustum = new THREE.Frustum
+    const projScreenMatrix = new THREE.Matrix4
+    const {camera} = this.props
+    projScreenMatrix.multiplyMatrices( camera!.projectionMatrix, camera!.matrixWorldInverse )
+		frustum.setFromMatrix( projScreenMatrix )
+
+    const markersInView = this.getMarkersInFrustum(frustum, activeAnnotation.markers)
+
+    let closestMarker: Marker
+    let smallestDistance: number = Infinity
+    const snapThreshold = 0.5
+
+    // See if any markers are within the snap threshold
+    markersInView.forEach(marker => {
+      const distance = transformedMarker.position.distanceTo(marker.position)
+
+      if (distance < smallestDistance) {
+        smallestDistance = distance
+        closestMarker = marker
+      }
+    })
+
+    const shouldSnap = smallestDistance <= snapThreshold
+
+    // debugger
+
+    if (shouldSnap) {
+      const snapDirection = closestMarker!.position.clone()
+        .sub(transformedMarker.position)
+
+      // adjust position of selected marker to closest marker within threshold
+      transformedMarker.position.copy(closestMarker!.position)
+
+      // apply the same movement to other selected markers
+      transformedMarkers.forEach(marker => {
+        marker.position.add(snapDirection)
+      })
+
+      activeAnnotation.updateVisualization()
+
+      this.state.annotatedSceneController!.updateTransformControls()
+
+      this.state.annotatedSceneController!.shouldRender()
+    }
+  }
+
+  getAnnotationsInFrustum(frustum: THREE.Frustum) {
+    return this.state.annotationManager!.allAnnotations()
+      .filter(annotation => {
+        const object = annotation.renderingObject
+
+        let hasMeshInView = false
+
+        object.traverse(object => {
+          if (hasMeshInView) return
+
+          if (hasGeometry(object) && frustum.intersectsObject(object))
+            hasMeshInView = true
+        })
+
+        return hasMeshInView
+      })
+  }
+
+  getMarkersInFrustum(frustum: THREE.Frustum, markersToExclude: Marker[]) {
+    const annotationsInView = this.getAnnotationsInFrustum(frustum)
+
+    return flatten(
+      annotationsInView.map(annotation =>
+        annotation.markers.filter(marker =>
+          frustum.intersectsObject(marker) && !markersToExclude.includes(marker)
+        )
+      )
+    )
+  }
+
   /**
    * Create scene config
    *
@@ -1943,31 +2043,33 @@ export default class Annotator extends React.Component<
     channel!.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
     channel!.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
 
+    channel!.on(Events.TRANSFORM_DONE, this.snapMarker)
+
     // UI updates
     // TODO JOE move UI logic to React/JSX, and get state from Redux
 
     channel!.on(
-      'deactivateFrontSideNeighbours',
+      Events.deactivateFrontSideNeighbours,
       Annotator.deactivateFrontSideNeighbours
     )
 
     channel!.on(
-      'deactivateLeftSideNeighbours',
+      Events.deactivateLeftSideNeighbours,
       Annotator.deactivateLeftSideNeighbours
     )
 
     channel!.on(
-      'deactivateRightSideNeighbours',
+      Events.deactivateRightSideNeighbours,
       Annotator.deactivateRightSideNeighbours
     )
 
     channel!.on(
-      'deactivateAllAnnotationPropertiesMenus',
+      Events.deactivateAllAnnotationPropertiesMenus,
       this.deactivateAllAnnotationPropertiesMenus
     )
 
     channel!.on(
-      'resetAllAnnotationPropertiesMenuElements',
+      Events.resetAllAnnotationPropertiesMenuElements,
       this.resetAllAnnotationPropertiesMenuElements
     )
 
@@ -2025,6 +2127,7 @@ export default class Annotator extends React.Component<
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
+          bezierScaleFactor={this.state.bezierScaleFactor}
           annotationManagerRef={this.setAnnotationManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
@@ -2033,4 +2136,19 @@ export default class Annotator extends React.Component<
       </React.Fragment>
     )
   }
+}
+
+function hasGeometry(n: THREE.Object3D): boolean {
+  return !!(n as any).geometry
+
+  // FIXME The following doesn't work because the annotated-scene bundle uses
+  // it's own version of Three.js, so we can not check objects made in
+  // annotated-scene against Annotator's version of Three.js
+  //
+  // return (
+  //   n instanceof THREE.Mesh ||
+  //   n instanceof THREE.Line ||
+  //   n instanceof THREE.Points ||
+  //   n instanceof THREE.Sprite
+  // )
 }

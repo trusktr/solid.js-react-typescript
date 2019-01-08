@@ -15,11 +15,11 @@ import {
   getLogger as Logger,
   AnnotatedSceneActions,
   Events,
-  UtmCoordinateSystem
+  UtmCoordinateSystem,
+  EventEmitter
 } from '@mapperai/mapper-annotated-scene'
 import { AuroraCameraParameters } from './CameraParameters'
 import config from 'annotator-config'
-import { EventEmitter } from 'events'
 
 const log = Logger(__filename)
 const dialog = Electron.remote.dialog
@@ -65,7 +65,7 @@ export class ImageManager {
     this.opacity = opacity
     if (!this.imageScreens.length) return false
     this.imageScreens.forEach(i => i.setOpacity(opacity))
-    this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
+    this.channel.emit(Events.SCENE_SHOULD_RENDER)
     return true
   }
 
@@ -170,7 +170,7 @@ export class ImageManager {
 
     this.loadedImageDetails = OrderedSet()
 
-    if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
+    if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER)
   }
 
   private toLightboxStateMessage(): IPCMessages.LightboxState {
@@ -194,7 +194,7 @@ export class ImageManager {
       .filter(i => i!.imageScreen.uuid === state.uuid)
       .forEach(i => i!.imageScreen.setHighlight(state.active) && updated++)
 
-    if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER, null)
+    if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER)
   }
 
   private onImageClick = (click: IPCMessages.ImageClick): void => {
