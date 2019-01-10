@@ -19,11 +19,20 @@ import {
   ISessionInfo,
   StatusWindowActions,
   AnnotatedSceneActions,
-  DataProviderFactory
+  DataProviderFactory,
+  AnnotationManager,
+  getLogger
 } from '@mapperai/mapper-annotated-scene'
 import { makeSaffronDataProviderFactory } from './SaffronDataProviderFactory'
 import Annotator from '../annotator/Annotator'
 import createStyles from '@material-ui/core/styles/createStyles'
+import { ActivityTracker } from './ActivityTracker'
+
+const log = getLogger(__filename)
+
+interface IActivityTrackingInfo {
+  numberOfAnnotations: number
+}
 
 export interface AppProps extends IThemedProperties {}
 
@@ -34,6 +43,7 @@ export interface AppState {
   env: string
   reset: boolean
   isSaffron: boolean
+  annotationManager: AnnotationManager | null
 }
 
 @withStatefulStyles(styles)
@@ -46,6 +56,7 @@ export class App extends React.Component<AppProps, AppState> {
 
   private statusWindowActions = new StatusWindowActions()
   private sceneActions = new AnnotatedSceneActions()
+  private activityTracker?: ActivityTracker<IActivityTrackingInfo>
 
   constructor(props: AppProps) {
     super(props)
@@ -57,7 +68,8 @@ export class App extends React.Component<AppProps, AppState> {
       session: null,
       env: 'prod',
       reset: false,
-      isSaffron: window.isSaffron === true
+      isSaffron: window.isSaffron === true,
+      annotationManager: null
     }
   }
 
@@ -79,14 +91,45 @@ export class App extends React.Component<AppProps, AppState> {
       reset: true
     })
 
+  private getAnnotationManagerRef = (annotationManager: AnnotationManager | null) => {
+    this.setState({ annotationManager })
+  }
+
+  onTrackActivity = (): IActivityTrackingInfo => {
+    const annotationManager = this.state.annotationManager
+
+    if (!annotationManager) {
+      throw new Error('scene not ready')
+    }
+
+    return {
+      numberOfAnnotations: annotationManager.allAnnotations().length
+    }
+  }
+
   componentDidUpdate(
     _prevProps: Readonly<AppProps>,
-    _prevState: Readonly<AppState>,
+    prevState: Readonly<AppState>,
     _snapshot?: any
   ): void {
     if (this.state.reset) {
       this.setState({ reset: false })
     }
+
+    if (this.state.session !== prevState.session) {
+      this.activityTracker && this.activityTracker.stop()
+
+      if (this.state.session && this.state.session.id) {
+        this.activityTracker = new ActivityTracker(this.state.session.id, this.onTrackActivity)
+        this.activityTracker.start()
+      } else {
+        log.info('no session, not tracking activity')
+      }
+    }
+  }
+
+  componentWillUnmount() {
+    this.activityTracker && this.activityTracker.stop()
   }
 
   /**
@@ -99,7 +142,7 @@ export class App extends React.Component<AppProps, AppState> {
 
     return (
       <>
-        <Annotator dataProviderFactory={dataProviderFactory!} />
+        <Annotator getAnnotationManagerRef={this.getAnnotationManagerRef} dataProviderFactory={dataProviderFactory!} />
         <div id="menu_control">
           <button
             id="status_window_control_btn"
