@@ -118,6 +118,7 @@ export class App extends React.Component<AppProps, AppState> {
 
     if (this.state.session !== prevState.session) {
       this.activityTracker && this.activityTracker.stop()
+      delete this.activityTracker
 
       if (this.state.session && this.state.session.id) {
         this.activityTracker = new ActivityTracker(this.state.session.id, this.onTrackActivity)
@@ -130,6 +131,7 @@ export class App extends React.Component<AppProps, AppState> {
 
   componentWillUnmount() {
     this.activityTracker && this.activityTracker.stop()
+    delete this.activityTracker
   }
 
   /**
