@@ -73,6 +73,7 @@ export class ActivityTracker<T extends Object | null> {
     await this.s3!
       .putObject({
         Body: JSON.stringify({
+          userId,
           timestamp,
           intervalSeconds: 30,
           meta: metaData,
