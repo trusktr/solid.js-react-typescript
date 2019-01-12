@@ -270,7 +270,7 @@ function styles(theme) {
           zIndex: 1,
           top: 40,
           backgroundColor: 'transparent',
-          overflowX: 'hidden',
+          overflow: 'visible',
           paddingTop: 0,
           paddingRight: '5px',
           pointerEvents: 'none',
