@@ -1,5 +1,4 @@
 import { S3 } from 'aws-sdk'
-import { v4 as UUID } from 'uuid'
 import { getS3Client, getLogger, } from '@mapperai/mapper-annotated-scene'
 import { getAccount, getOrganizationId } from '@mapperai/mapper-saffron-sdk'
 import { awsCredentials, s3Bucket } from './SaffronDataProviderFactory'
@@ -66,7 +65,7 @@ export class ActivityTracker<T extends Object | null> {
 
     const userId = account.user.id
     const timestamp = Date.now()
-    const Key = `${organizationId}/stats/${sessionId}/${userId}--${UUID()}--${timestamp}.json`
+    const Key = `${organizationId}/stats/${sessionId}/${userId}--${timestamp}.json`
 
     const metaData = (this.onActivityTrack && this.onActivityTrack()) || {}
 
