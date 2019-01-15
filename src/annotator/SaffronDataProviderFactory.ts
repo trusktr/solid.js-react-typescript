@@ -2,7 +2,8 @@ import {
   IAWSCredentials,
   makeDataCloudProviderFactory,
   DataProviderFactory,
-  PusherConfig
+  PusherConfig,
+  Deferred
 } from '@mapperai/mapper-annotated-scene'
 import SaffronSDK, {
   getPusherConnectionParams,
@@ -11,6 +12,21 @@ import SaffronSDK, {
 import getLogger from 'util/Logger'
 
 const log = getLogger(__filename)
+
+const {
+  promise: awsCredentials,
+  resolve: resolveCredentials,
+  reject: rejectCredentials,
+} = new Deferred<IAWSCredentials>()
+
+export { awsCredentials }
+
+const {
+  promise: s3Bucket,
+  resolve: resolveBucket,
+} = new Deferred<string>()
+
+export { s3Bucket }
 
 /**
  * Tile service client factory for meridian
@@ -42,8 +58,12 @@ export function makeSaffronDataProviderFactory(
         credentials != null &&
         sessionBucket &&
         credentials.expiration! > Date.now()
-      )
+      ) {
+        resolveCredentials(credentials)
         return credentials
+      } else {
+        rejectCredentials(new Error('invalid credentials'))
+      }
     }
 
     credentialPromise = (async () => {
@@ -57,6 +77,7 @@ export function makeSaffronDataProviderFactory(
 
         // SET THE BUCKET
         sessionBucket = response.sessionBucket
+        resolveBucket(sessionBucket)
 
         // ENSURE EXPIRATION
         const credentials = { ...response.credentials }
