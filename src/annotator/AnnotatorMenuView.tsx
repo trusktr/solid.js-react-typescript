@@ -27,7 +27,7 @@ export default class AnnotatorMenuView extends React.Component<
     super(props)
   }
 
-  render() {
+  render(): JSX.Element {
     return (
       <div id="menu" className={this.props.uiMenuVisible ? '' : 'hidden'}>
         <menu id="annotationMenu" className="menu">
