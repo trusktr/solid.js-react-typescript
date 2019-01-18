@@ -283,8 +283,7 @@ function styles(theme) {
           paddingRight: '5px',
 
           '& menu': {
-            overflow: '',
-            overflowY: 'auto',
+            padding: 0,
           },
 
           '& *': {
