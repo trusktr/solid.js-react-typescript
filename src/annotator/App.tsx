@@ -200,6 +200,13 @@ export class App extends React.Component<AppProps, AppState> {
 // SO in this case we must hover on `styles` to see the return type.
 // eslint-disable-next-line typescript/explicit-function-return-type
 function styles(theme) {
+
+  const menuTopPosition = 40
+
+  // accounts for height of the widget that shows LLA and UTM coordinates at
+  // bottom right of the screen
+  const coordinatesWidgetHeight = 50
+
   return createStyles(
     mergeStyles({
       root: [
@@ -265,15 +272,20 @@ function styles(theme) {
         '#menu': {
           position: 'absolute',
           right: 0,
-          height: '100%',
+          height: `calc(100% - ${menuTopPosition}px - ${coordinatesWidgetHeight}px)`,
           width: '250px',
           zIndex: 1,
-          top: 40,
+          top: menuTopPosition,
           backgroundColor: 'transparent',
-          overflow: 'visible',
+          overflowX: 'visible', // visible, but don't scroll
+          overflowY: 'auto', // scroll if necessary
           paddingTop: 0,
           paddingRight: '5px',
-          pointerEvents: 'none',
+
+          '& menu': {
+            overflow: '',
+            overflowY: 'auto',
+          },
 
           '& *': {
             pointerEvents: 'auto'

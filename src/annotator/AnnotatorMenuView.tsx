@@ -186,11 +186,8 @@ export default class AnnotatorMenuView extends React.Component<
               <Help />
             </div>
           </div>
-        </menu>
-
-        <div>
           <Inspector selectedAnnotation={this.props.selectedAnnotation} />
-        </div>
+        </menu>
       </div>
     )
   }
