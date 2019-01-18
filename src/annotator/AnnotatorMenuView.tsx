@@ -4,7 +4,7 @@
  */
 
 import * as React from 'react'
-import {LayerManager, typedConnect, toProps, AnnotatedSceneState, LayerStatusMap} from "@mapperai/mapper-annotated-scene"
+import {LayerManager2, typedConnect, toProps, AnnotatedSceneState, LayerStatusMap} from "@mapperai/mapper-annotated-scene"
 import initUIControl from '../annotator/annotator-control-ui/UIControl'
 import Help from '../annotator/components/Help'
 
@@ -32,7 +32,7 @@ export default class AnnotatorMenuView extends React.Component<
       <div id="menu" className={this.props.uiMenuVisible ? '' : 'hidden'}>
         <menu id="annotationMenu" className="menu">
           {this.props.layerStatus && (
-            <LayerManager layerStatus={this.props.layerStatus} />
+            <LayerManager2 layerStatus={this.props.layerStatus} />
           )}
           <div id="tools" className="div_buttons_group">
             <button
