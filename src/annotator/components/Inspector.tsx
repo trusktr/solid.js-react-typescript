@@ -92,6 +92,10 @@ export class Inspector extends React.Component<
     event.nativeEvent.stopImmediatePropagation()
   }
 
+  private checkTagIsValid = (inputValue: string) => {
+    return !!inputValue.match(/^[A-Za-z0-9_-]+$/)
+  }
+
   componentDidUpdate(oldProps: IInspectorProps) {
     if (oldProps.allAnnotationTags !== this.props.allAnnotationTags) {
       const availableTags = Array.from(new Set(defaultTags.concat(
@@ -136,6 +140,7 @@ export class Inspector extends React.Component<
             onChange={this.onTagChange}
             onMenuClose={this.onSelectMenuClosed}
             onKeyDown={this.onSelectKeyDown}
+            isValidNewOption={this.checkTagIsValid}
           />
         )}
       </Paper>
