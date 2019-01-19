@@ -4,8 +4,8 @@
 
 import * as React from 'react'
 import * as _ from 'lodash'
-import Select from 'react-select'
-import { Annotation } from '@mapperai/mapper-annotated-scene'
+import { Creatable } from 'react-select'
+import { Annotation, typedConnect, toProps, AnnotatedSceneState } from '@mapperai/mapper-annotated-scene'
 import {
   IThemedProperties,
   ITheme,
@@ -41,21 +41,33 @@ allTags.forEach(tag =>
 
 export interface IInspectorProps extends IThemedProperties {
   selectedAnnotation?: Annotation | null
+  allAnnotationTags?: string[]
 }
 
-export interface IInspectorState {}
+type SelectOption = { value: string, label: string }
+
+export interface IInspectorState {
+  availableTags: SelectOption[]
+}
 
 @withStatefulStyles(styles)
+@typedConnect(toProps(
+  AnnotatedSceneState,
+  'allAnnotationTags',
+))
 export class Inspector extends React.Component<
   IInspectorProps,
   IInspectorState
 > {
-  constructor(props: IInspectorProps, context: any) {
-    super(props, context)
-    this.state = {}
+  constructor(props: IInspectorProps) {
+    super(props)
+
+    this.state = {
+      availableTags: []
+    }
   }
 
-  private tagSelectRef = React.createRef<Select>()
+  private tagSelectRef = React.createRef<Creatable>()
 
   private onTagChange = (options: SelectOptions, _): void => {
     const annotation = this.props.selectedAnnotation
@@ -82,6 +94,17 @@ export class Inspector extends React.Component<
     event.nativeEvent.stopImmediatePropagation()
   }
 
+  componentDidUpdate(oldProps: IInspectorProps) {
+    if (oldProps.allAnnotationTags !== this.props.allAnnotationTags) {
+      const availableTags = Array.from(new Set(allTags.concat(
+        (this.props.allAnnotationTags || [])
+      )))
+        .map(tag => ({ value: tag, label: tag }))
+
+      this.setState({ availableTags })
+    }
+  }
+
   render() {
     const { classes, selectedAnnotation } = this.props
 
@@ -103,13 +126,13 @@ export class Inspector extends React.Component<
         {!selectedAnnotation ? (
           <Typography variant="h5">Nothing is selected.</Typography>
         ) : (
-          <Select
+          <Creatable
             isMulti
             ref={this.tagSelectRef}
             className={classes!.select}
             placeholder="Tags..."
             defaultValue={currentTags}
-            options={allTagOptions}
+            options={this.state.availableTags}
             menuPlacement="auto"
             closeMenuOnSelect={false}
             onChange={this.onTagChange}
