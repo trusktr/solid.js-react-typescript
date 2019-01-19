@@ -24,15 +24,13 @@ type SelectOptions = Array<{
 }>
 
 // prettier-ignore
-const allTags = [
-  'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
-  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen',
-  'eighteen',
+const defaultTags: string[] = [
+  // TODO get default tags from a file provided by the user
 ]
 
 const allTagOptions: SelectOptions = []
 
-allTags.forEach(tag =>
+defaultTags.forEach(tag =>
   allTagOptions.push({
     value: tag,
     label: tag
@@ -96,7 +94,7 @@ export class Inspector extends React.Component<
 
   componentDidUpdate(oldProps: IInspectorProps) {
     if (oldProps.allAnnotationTags !== this.props.allAnnotationTags) {
-      const availableTags = Array.from(new Set(allTags.concat(
+      const availableTags = Array.from(new Set(defaultTags.concat(
         (this.props.allAnnotationTags || [])
       )))
         .map(tag => ({ value: tag, label: tag }))
