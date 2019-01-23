@@ -32,7 +32,7 @@ export default class AnnotatorMenuView extends React.Component<
       <div id="menu" className={this.props.uiMenuVisible ? '' : 'hidden'}>
         <menu id="annotationMenu" className="menu">
           {this.props.layerStatus && (
-            <LayerManager layerStatus={this.props.layerStatus} useCheckboxes={true} />
+            <LayerManager layerStatus={this.props.layerStatus} useCheckboxes={true} isDraggable={false} />
           )}
           <div id="tools" className="div_buttons_group">
             <button
