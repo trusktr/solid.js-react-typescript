@@ -50,6 +50,7 @@ import {
   KeyboardEventHighlights,
   IAnnotatedSceneConfig,
   Marker,
+  Annotation,
 } from '@mapperai/mapper-annotated-scene'
 import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
 import { IThemedProperties } from '@mapperai/mapper-themes'
@@ -127,6 +128,7 @@ interface AnnotatorProps extends IThemedProperties {
   mousePosition?: MousePosition
   isTransformControlsAttached?: boolean
   getAnnotationManagerRef?: (annotationManager: AnnotationManager | null) => void
+  activeAnnotation?: Annotation | null
 }
 
 @ReactUtil.typedConnect(
@@ -150,6 +152,7 @@ interface AnnotatorProps extends IThemedProperties {
     'isMouseDown',
     'isMouseDragging',
     'mousePosition',
+    'activeAnnotation',
     'isTransformControlsAttached'
   )
 )
@@ -2134,7 +2137,10 @@ export default class Annotator extends React.Component<
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
         />
-        <AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!} />
+        <AnnotatorMenuView
+          uiMenuVisible={this.props.uiMenuVisible!}
+          selectedAnnotation={ this.props.activeAnnotation }
+        />
       </React.Fragment>
     )
   }

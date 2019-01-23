@@ -4,11 +4,14 @@
  */
 
 import * as React from 'react'
-import initUIControl from '../annotator/annotator-control-ui/UIControl'
+import initUIControl from './annotator-control-ui/UIControl'
+import { Annotation } from '@mapperai/mapper-annotated-scene'
 import Help from '../annotator/components/Help'
+import { Inspector } from './components/Inspector'
 
 interface AnnotatorMenuViewProps {
   uiMenuVisible: boolean
+  selectedAnnotation?: Annotation | null
 }
 
 interface AnnotatorMenuViewState {}
@@ -183,6 +186,7 @@ export default class AnnotatorMenuView extends React.Component<
               <Help />
             </div>
           </div>
+          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
         </menu>
       </div>
     )
