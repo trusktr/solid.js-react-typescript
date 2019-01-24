@@ -731,7 +731,7 @@ export default class Annotator extends React.Component<
     )
 
     this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TERRITORY))
-    this.mapKey('B', () => this.uiAddAnnotation(AnnotationType.POLYGON))
+    this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.POLYGON))
     this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
 
     this.mapKey('U', () =>
