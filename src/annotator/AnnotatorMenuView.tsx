@@ -5,17 +5,22 @@
 
 import * as React from 'react'
 import initUIControl from './annotator-control-ui/UIControl'
-import { Annotation } from '@mapperai/mapper-annotated-scene'
+import {Annotation, LayerManager, typedConnect, toProps, AnnotatedSceneState, LayerStatusMap} from '@mapperai/mapper-annotated-scene'
 import Help from '../annotator/components/Help'
 import { Inspector } from './components/Inspector'
 
 interface AnnotatorMenuViewProps {
   uiMenuVisible: boolean
+  layerStatus?: LayerStatusMap
   selectedAnnotation?: Annotation | null
 }
 
 interface AnnotatorMenuViewState {}
 
+@typedConnect(toProps(
+  AnnotatedSceneState,
+  'layerStatus'
+))
 export default class AnnotatorMenuView extends React.Component<
   AnnotatorMenuViewProps,
   AnnotatorMenuViewState
@@ -28,6 +33,9 @@ export default class AnnotatorMenuView extends React.Component<
     return (
       <div id="menu" className={this.props.uiMenuVisible ? '' : 'hidden'}>
         <menu id="annotationMenu" className="menu">
+          {this.props.layerStatus && (
+            <LayerManager layerStatus={this.props.layerStatus} useCheckboxes={true} isDraggable={false} />
+          )}
           <div id="tools" className="div_buttons_group">
             <button
               id="tools_add_lane"
