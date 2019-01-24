@@ -4,13 +4,15 @@
  */
 
 import * as React from 'react'
-import {LayerManager, typedConnect, toProps, AnnotatedSceneState, LayerStatusMap} from "@mapperai/mapper-annotated-scene"
-import initUIControl from '../annotator/annotator-control-ui/UIControl'
+import initUIControl from './annotator-control-ui/UIControl'
+import {Annotation, LayerManager, typedConnect, toProps, AnnotatedSceneState, LayerStatusMap} from "@mapperai/mapper-annotated-scene"
 import Help from '../annotator/components/Help'
+import { Inspector } from './components/Inspector'
 
 interface AnnotatorMenuViewProps {
   uiMenuVisible: boolean
   layerStatus?: LayerStatusMap
+  selectedAnnotation?: Annotation | null
 }
 
 interface AnnotatorMenuViewState {}
@@ -192,6 +194,7 @@ export default class AnnotatorMenuView extends React.Component<
               <Help />
             </div>
           </div>
+          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
         </menu>
       </div>
     )
