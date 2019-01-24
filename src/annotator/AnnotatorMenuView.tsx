@@ -5,7 +5,7 @@
 
 import * as React from 'react'
 import initUIControl from './annotator-control-ui/UIControl'
-import {Annotation, LayerManager, typedConnect, toProps, AnnotatedSceneState, LayerStatusMap} from "@mapperai/mapper-annotated-scene"
+import {Annotation, LayerManager, typedConnect, toProps, AnnotatedSceneState, LayerStatusMap} from '@mapperai/mapper-annotated-scene'
 import Help from '../annotator/components/Help'
 import { Inspector } from './components/Inspector'
 
