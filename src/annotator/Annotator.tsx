@@ -1804,11 +1804,6 @@ export default class Annotator extends React.Component<
    */
   private deactivatePolygonProp(): void {
     this.collapseAccordion('#menu_polygon')
-
-    const polygonLabel = document.getElementById('input_label_polygon')
-
-    if (polygonLabel) (polygonLabel as HTMLInputElement).value = ''
-    else log.warn('missing element input_label_polygon')
   }
 
   /**
