@@ -190,10 +190,7 @@ export default class AnnotatorMenuView extends React.Component<
               Polygon Properties
             </h3>
             <div id="menu_body_polygon" className="dropdown_body">
-              <div id="property_1_polygon" className="fieldset_content_style">
-                <span className="label_style"> Label </span>
-                <input id="input_label_polygon" />
-              </div>
+              {/* nothing in the panel at the moment */}
             </div>
           </div>
           <div id="menu_help" className="accordion">

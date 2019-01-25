@@ -1258,29 +1258,7 @@ export default class Annotator extends React.Component<
   }
 
   private bindPolygonPropertiesPanel(): void {
-    const polygonLabel = document.getElementById('input_label_polygon')
-
-    if (polygonLabel) {
-      // Select all text when the input element gains focus.
-      polygonLabel.addEventListener('focus', event => {
-        ;(event.target as HTMLInputElement).select()
-      })
-
-      // Update polygon label text on any change to input.
-      polygonLabel.addEventListener('input', (event: Event) => {
-        const activeAnnotation = this.state.annotationManager!.getActivePolygonAnnotation()
-
-        if (activeAnnotation)
-          activeAnnotation.setLabel((event.target as HTMLInputElement).value)
-      })
-
-      // User is done editing: lose focus.
-      polygonLabel.addEventListener('change', (event: Event) => {
-        ;(event.target as HTMLInputElement).blur()
-      })
-    } else {
-      log.warn('missing element input_label_polygon')
-    }
+    // nothing in this panel at the moment
   }
 
   private bindTrafficDevicePropertiesPanel(): void {
@@ -1604,12 +1582,6 @@ export default class Annotator extends React.Component<
     if (!activeAnnotation) return
 
     this.expandAccordion('#menu_polygon')
-
-    const polygonLabel = document.getElementById('input_label_polygon')
-
-    if (polygonLabel)
-      (polygonLabel as HTMLInputElement).value = activeAnnotation.getLabel()
-    else log.warn('missing element input_label_polygon')
   }
 
   /**
