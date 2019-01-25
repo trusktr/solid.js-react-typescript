@@ -19,11 +19,20 @@ import {
   ISessionInfo,
   StatusWindowActions,
   AnnotatedSceneActions,
-  DataProviderFactory
+  DataProviderFactory,
+  AnnotationManager,
+  getLogger
 } from '@mapperai/mapper-annotated-scene'
 import { makeSaffronDataProviderFactory } from './SaffronDataProviderFactory'
 import Annotator from '../annotator/Annotator'
 import createStyles from '@material-ui/core/styles/createStyles'
+import { ActivityTracker } from './ActivityTracker'
+
+const log = getLogger(__filename)
+
+interface IActivityTrackingInfo {
+  numberOfAnnotations: number
+}
 
 export interface AppProps extends IThemedProperties {}
 
@@ -34,6 +43,7 @@ export interface AppState {
   env: string
   reset: boolean
   isSaffron: boolean
+  annotationManager: AnnotationManager | null
 }
 
 @withStatefulStyles(styles)
@@ -46,6 +56,7 @@ export class App extends React.Component<AppProps, AppState> {
 
   private statusWindowActions = new StatusWindowActions()
   private sceneActions = new AnnotatedSceneActions()
+  private activityTracker?: ActivityTracker<IActivityTrackingInfo>
 
   constructor(props: AppProps) {
     super(props)
@@ -57,7 +68,8 @@ export class App extends React.Component<AppProps, AppState> {
       session: null,
       env: 'prod',
       reset: false,
-      isSaffron: window.isSaffron === true
+      isSaffron: window.isSaffron === true,
+      annotationManager: null
     }
   }
 
@@ -79,14 +91,47 @@ export class App extends React.Component<AppProps, AppState> {
       reset: true
     })
 
+  private getAnnotationManagerRef = (annotationManager: AnnotationManager | null) => {
+    this.setState({ annotationManager })
+  }
+
+  onTrackActivity = (): IActivityTrackingInfo => {
+    const annotationManager = this.state.annotationManager
+
+    if (!annotationManager) {
+      throw new Error('scene not ready')
+    }
+
+    return {
+      numberOfAnnotations: annotationManager.allAnnotations().length
+    }
+  }
+
   componentDidUpdate(
     _prevProps: Readonly<AppProps>,
-    _prevState: Readonly<AppState>,
+    prevState: Readonly<AppState>,
     _snapshot?: any
   ): void {
     if (this.state.reset) {
       this.setState({ reset: false })
     }
+
+    if (this.state.session !== prevState.session) {
+      this.activityTracker && this.activityTracker.stop()
+      delete this.activityTracker
+
+      if (this.state.session && this.state.session.id) {
+        this.activityTracker = new ActivityTracker(this.state.session.id, this.onTrackActivity)
+        this.activityTracker.start()
+      } else {
+        log.info('no session, not tracking activity')
+      }
+    }
+  }
+
+  componentWillUnmount() {
+    this.activityTracker && this.activityTracker.stop()
+    delete this.activityTracker
   }
 
   /**
@@ -99,7 +144,7 @@ export class App extends React.Component<AppProps, AppState> {
 
     return (
       <>
-        <Annotator dataProviderFactory={dataProviderFactory!} />
+        <Annotator getAnnotationManagerRef={this.getAnnotationManagerRef} dataProviderFactory={dataProviderFactory!} />
         <div id="menu_control">
           <button
             id="status_window_control_btn"
@@ -155,6 +200,13 @@ export class App extends React.Component<AppProps, AppState> {
 // SO in this case we must hover on `styles` to see the return type.
 // eslint-disable-next-line typescript/explicit-function-return-type
 function styles(theme) {
+
+  const menuTopPosition = 40
+
+  // accounts for height of the widget that shows LLA and UTM coordinates at
+  // bottom right of the screen
+  const coordinatesWidgetHeight = 50
+
   return createStyles(
     mergeStyles({
       root: [
@@ -220,15 +272,19 @@ function styles(theme) {
         '#menu': {
           position: 'absolute',
           right: 0,
-          height: '100%',
+          height: `calc(100% - ${menuTopPosition}px - ${coordinatesWidgetHeight}px)`,
           width: '250px',
           zIndex: 1,
-          top: 40,
+          top: menuTopPosition,
           backgroundColor: 'transparent',
-          overflowX: 'hidden',
+          overflowX: 'visible', // visible, but don't scroll
+          overflowY: 'auto', // scroll if necessary
           paddingTop: 0,
           paddingRight: '5px',
-          pointerEvents: 'none',
+
+          '& menu': {
+            padding: 0,
+          },
 
           '& *': {
             pointerEvents: 'auto'

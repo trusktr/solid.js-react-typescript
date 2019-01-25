@@ -50,6 +50,7 @@ import {
   KeyboardEventHighlights,
   IAnnotatedSceneConfig,
   Marker,
+  Annotation,
 } from '@mapperai/mapper-annotated-scene'
 import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
 import { IThemedProperties } from '@mapperai/mapper-themes'
@@ -126,6 +127,8 @@ interface AnnotatorProps extends IThemedProperties {
   isMouseDragging?: boolean
   mousePosition?: MousePosition
   isTransformControlsAttached?: boolean
+  getAnnotationManagerRef?: (annotationManager: AnnotationManager | null) => void
+  activeAnnotation?: Annotation | null
 }
 
 @ReactUtil.typedConnect(
@@ -149,6 +152,7 @@ interface AnnotatorProps extends IThemedProperties {
     'isMouseDown',
     'isMouseDragging',
     'mousePosition',
+    'activeAnnotation',
     'isTransformControlsAttached'
   )
 )
@@ -2114,6 +2118,7 @@ export default class Annotator extends React.Component<
   // TODO JOE don't get refs directly, proxy functionality through AnnotatedSceneController
   private setAnnotationManagerRef = (ref: AnnotationManager) => {
     ref && this.setState({ annotationManager: ref })
+    this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef(ref)
   }
 
   render(): JSX.Element {
@@ -2132,12 +2137,16 @@ export default class Annotator extends React.Component<
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
         />
-        <AnnotatorMenuView uiMenuVisible={this.props.uiMenuVisible!} />
+        <AnnotatorMenuView
+          uiMenuVisible={this.props.uiMenuVisible!}
+          selectedAnnotation={ this.props.activeAnnotation }
+        />
       </React.Fragment>
     )
   }
 }
 
+// TODO replace with the new helpers from the cleanup PRs
 function hasGeometry(n: THREE.Object3D): boolean {
   return !!(n as any).geometry
 
