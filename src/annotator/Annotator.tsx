@@ -100,6 +100,7 @@ interface AnnotatorState {
   lockBoundaries: boolean
   lockLanes: boolean
   lockTerritories: boolean
+  lockPolygons: boolean
   lockTrafficDevices: boolean
   isImageScreensVisible: boolean
 
@@ -209,6 +210,7 @@ export default class Annotator extends React.Component<
       lockBoundaries: false,
       lockLanes: false,
       lockTerritories: true,
+      lockPolygons: true,
       lockTrafficDevices: false
     }
   }
@@ -279,6 +281,7 @@ export default class Annotator extends React.Component<
     new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
     new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
     new AnnotatedSceneActions().setLockTerritories(this.state.lockTerritories)
+    new AnnotatedSceneActions().setLockPolygons(this.state.lockPolygons)
 
     new AnnotatedSceneActions().setLockTrafficDevices(
       this.state.lockTrafficDevices
@@ -330,6 +333,21 @@ export default class Annotator extends React.Component<
         }
 
         new AnnotatedSceneActions().setLockTerritories(value)
+      })
+
+    folderLock
+      .add(this.state, 'lockPolygons')
+      .name('Polygons')
+      .onChange((value: boolean) => {
+        if (
+          value &&
+          this.state.annotationManager!.getActivePolygonAnnotation()
+        ) {
+          this.state.annotatedSceneController!.cleanTransformControls()
+          this.uiEscapeSelection()
+        }
+
+        new AnnotatedSceneActions().setLockPolygons(value)
       })
 
     folderLock
@@ -713,6 +731,7 @@ export default class Annotator extends React.Component<
     )
 
     this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TERRITORY))
+    this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.POLYGON))
     this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
 
     this.mapKey('U', () =>
@@ -1238,6 +1257,10 @@ export default class Annotator extends React.Component<
     }
   }
 
+  private bindPolygonPropertiesPanel(): void {
+    // nothing in this panel at the moment
+  }
+
   private bindTrafficDevicePropertiesPanel(): void {
     const tpType = $('#tp_select_type')
 
@@ -1309,6 +1332,7 @@ export default class Annotator extends React.Component<
     this.bindLaneNeighborsPanel()
     this.bindConnectionPropertiesPanel()
     this.bindTerritoryPropertiesPanel()
+    this.bindPolygonPropertiesPanel()
     this.bindTrafficDevicePropertiesPanel()
     this.bindBoundaryPropertiesPanel()
 
@@ -1464,6 +1488,7 @@ export default class Annotator extends React.Component<
     this.resetLaneProp()
     this.resetConnectionProp()
     this.resetTerritoryProp()
+    this.resetPolygonProp()
     this.resetTrafficDeviceProp()
   }
 
@@ -1546,6 +1571,17 @@ export default class Annotator extends React.Component<
     if (territoryLabel)
       (territoryLabel as HTMLInputElement).value = activeAnnotation.getLabel()
     else log.warn('missing element input_label_territory')
+  }
+
+  /**
+   * Reset polygon properties elements based on the current active polygon
+   */
+  private resetPolygonProp(): void {
+    const activeAnnotation = this.state.annotationManager!.getActivePolygonAnnotation()
+
+    if (!activeAnnotation) return
+
+    this.expandAccordion('#menu_polygon')
   }
 
   /**
@@ -1640,6 +1676,7 @@ export default class Annotator extends React.Component<
     if (exceptFor !== AnnotationType.LANE) this.deactivateLanePropUI()
     if (exceptFor !== AnnotationType.CONNECTION) this.deactivateConnectionProp()
     if (exceptFor !== AnnotationType.TERRITORY) this.deactivateTerritoryProp()
+    if (exceptFor !== AnnotationType.POLYGON) this.deactivatePolygonProp()
     if (exceptFor !== AnnotationType.TRAFFIC_DEVICE)
       this.deactivateTrafficDeviceProp()
   }
@@ -1760,6 +1797,13 @@ export default class Annotator extends React.Component<
 
     if (territoryLabel) (territoryLabel as HTMLInputElement).value = ''
     else log.warn('missing element input_label_territory')
+  }
+
+  /**
+   * Deactivate polygon properties menu panel
+   */
+  private deactivatePolygonProp(): void {
+    this.collapseAccordion('#menu_polygon')
   }
 
   /**
