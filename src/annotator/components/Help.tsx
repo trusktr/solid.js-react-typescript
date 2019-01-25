@@ -41,7 +41,7 @@ export default class Help extends React.Component<{}, {}> {
         <br />b - Create new boundary
         <br />t - Create new traffic device
         <br />T - Create new annotator territory
-        <br />B - Create new annotator polygon
+        <br />p - Create new annotator (p)olygon
         <br />a - Hold to add annotation markers
         <br />d - Delete last marker
         <br />
