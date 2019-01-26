@@ -16,7 +16,6 @@ export default class Help extends React.Component<{}, {}> {
         <br />h - Hide super tiles/point cloud/annotations
         <br />
         Shift-click - load an image file
-        <br />U - Unload the point cloud
         <br />
         <strong>Annotations</strong>
         <br />s - Save annotations JSON file as UTM
