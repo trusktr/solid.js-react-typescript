@@ -22,7 +22,6 @@ try {
       ARTIFACT=\$(find dist -name mapper-*.zip)
       FILENAME=\$(basename \${ARTIFACT})
       aws s3 cp \${ARTIFACT} s3://mapper-dev-saffron-apps/uploads/\${FILENAME}
-      aws s3 cp \${ARTIFACT} s3://mapper-prod-saffron-apps/uploads/\${FILENAME}
       """
     }
   }

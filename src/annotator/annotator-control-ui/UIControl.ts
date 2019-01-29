@@ -478,6 +478,7 @@ export default function initUIControl(): void {
     '#menu_lane',
     '#menu_connection',
     '#menu_territory',
+    '#menu_polygon',
     '#menu_traffic_device'
   ]
 
