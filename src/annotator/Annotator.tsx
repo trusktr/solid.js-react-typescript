@@ -2014,10 +2014,10 @@ export default class Annotator extends React.Component<
    */
   private makeAnnotatedSceneConfig = () => {
     return {
-      'startup.camera_offset': [0, 400, 200],
+      'startup.camera_offset': [0, 200, 100],
       'tile_manager.maximum_points_to_load': 20000000,
       'tile_manager.maximum_point_density': 100,
-      'tile_manager.maximum_super_tiles_to_load': 1000,
+      'tile_manager.maximum_super_tiles_to_load': 600,
       'tile_manager.initial_super_tiles_to_load': 150,
       'tile_manager.super_tile_scale': [24, 8, 24], // ditto; must contain multiples of utm_tile_scale
       'annotator.area_of_interest.size': [60, 20, 60],
