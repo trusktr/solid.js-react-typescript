@@ -766,10 +766,6 @@ export default class Annotator extends React.Component<
     this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.POLYGON))
     this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
 
-    this.mapKey('U', () =>
-      this.state.annotatedSceneController!.unloadPointCloudData()
-    )
-
     this.mapKey('V', () =>
       this.state.annotatedSceneController!.toggleCameraType()
     )
@@ -2050,7 +2046,7 @@ export default class Annotator extends React.Component<
    */
   private makeAnnotatedSceneConfig = () => {
     return {
-      'startup.camera_offset': [0, 400, 200],
+      'startup.camera_offset': [0, 200, 100],
       'tile_manager.maximum_points_to_load': 20000000,
       'tile_manager.maximum_point_density': this.state.maxPointDensity,
       'tile_manager.maximum_super_tiles_to_load': this.state.maxSuperTilesToLoad,
