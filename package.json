@@ -119,7 +119,6 @@
     "@material-ui/core": "3.8.3",
     "animation-loop": "1.4.0",
     "async-file": "2.0.2",
-    "aws-sdk": "2.293.0",
     "css-modules-require-hook": "4.2.3",
     "dat.gui": "0.7.1",
     "electron": "3.0.8",
