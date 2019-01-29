@@ -406,7 +406,7 @@ export default class Annotator extends React.Component<
       .onChange(maxSuperTilesToLoad => this.setState({ maxSuperTilesToLoad }))
 
     tileFolder
-      .add({ maxPointDensity: this.state.maxPointDensity }, 'maxPointDensity', 1, 3000)
+      .add({ maxPointDensity: this.state.maxPointDensity }, 'maxPointDensity', 1, 1000)
       .step(1)
       .name('Max density')
       .onChange(maxPointDensity => this.setState({ maxPointDensity }))
