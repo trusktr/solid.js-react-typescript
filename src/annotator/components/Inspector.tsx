@@ -128,20 +128,23 @@ export class Inspector extends React.Component<
         {!selectedAnnotation ? (
           <Typography variant="h5">Nothing is selected.</Typography>
         ) : (
-          <Creatable
-            isMulti
-            ref={this.tagSelectRef}
-            className={classes!.select}
-            placeholder="Tags..."
-            defaultValue={currentTags}
-            options={this.state.availableTags}
-            menuPlacement="auto"
-            closeMenuOnSelect={false}
-            onChange={this.onTagChange}
-            onMenuClose={this.onSelectMenuClosed}
-            onKeyDown={this.onSelectKeyDown}
-            isValidNewOption={this.checkTagIsValid}
-          />
+          <div>
+            ID: {selectedAnnotation.uuid}
+            <Creatable
+              isMulti
+              ref={this.tagSelectRef}
+              className={classes!.select}
+              placeholder="Tags..."
+              defaultValue={currentTags}
+              options={this.state.availableTags}
+              menuPlacement="auto"
+              closeMenuOnSelect={false}
+              onChange={this.onTagChange}
+              onMenuClose={this.onSelectMenuClosed}
+              onKeyDown={this.onSelectKeyDown}
+              isValidNewOption={this.checkTagIsValid}
+            />
+          </div>
         )}
       </Paper>
     )
