@@ -1542,12 +1542,6 @@ export default class Annotator extends React.Component<
       Annotator.deactivateFrontSideNeighbours()
     else Annotator.activateFrontSideNeighbours()
 
-    const lpId = document.getElementById('lp_id_value')
-
-    if (lpId) lpId.textContent = activeAnnotation.id.toString()
-    else log.warn('missing element lp_id_value')
-    this.uiUpdateLaneWidth(activeAnnotation)
-
     const lpSelectType = $('#lp_select_type')
 
     lpSelectType.removeAttr('disabled')
@@ -1622,11 +1616,6 @@ export default class Annotator extends React.Component<
 
     this.expandAccordion('#menu_traffic_device')
 
-    const tpId = document.getElementById('tp_id_value')
-
-    if (tpId) tpId.textContent = activeAnnotation.id.toString()
-    else log.warn('missing element tp_id_value')
-
     const tpSelectType = $('#tp_select_type')
 
     tpSelectType.removeAttr('disabled')
@@ -1642,11 +1631,6 @@ export default class Annotator extends React.Component<
     if (!activeAnnotation) return
 
     this.expandAccordion('#menu_boundary')
-
-    const bpId = document.getElementById('bp_id_value')
-
-    if (bpId) bpId.textContent = activeAnnotation.id.toString()
-    else log.warn('missing element bp_id_value')
 
     const bpSelectType = $('#bp_select_type')
 
@@ -1668,11 +1652,6 @@ export default class Annotator extends React.Component<
     if (!activeAnnotation) return
 
     this.expandAccordion('#menu_connection')
-
-    const cpId = document.getElementById('cp_id_value')
-
-    if (cpId) cpId.textContent = activeAnnotation.id.toString()
-    else log.warn('missing element bp_id_value')
 
     const cpSelectType = $('#cp_select_type')
 
