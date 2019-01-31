@@ -83,7 +83,6 @@ function makeExternals() {
     'react-redux',
     'mapbox-gl',
     'react-mapbox-gl',
-    'gtran-kml',
     'config',
     'source-map-support'
   ]

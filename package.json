@@ -126,7 +126,6 @@
     "electron-window-state": "5.0.2",
     "events": "^3.0.0",
     "executable": "4.1.1",
-    "gtran-kml": "1.2.1",
     "image-size": "0.6.2",
     "immutable": "3.8.2",
     "jquery": "3.2.1",
