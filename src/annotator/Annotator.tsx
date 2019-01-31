@@ -223,7 +223,7 @@ export default class Annotator extends React.Component<
       lockBoundaries: false,
       lockLanes: false,
       lockTerritories: true,
-      lockPolygons: true,
+      lockPolygons: false,
       lockTrafficDevices: false,
 
       maxSuperTilesToLoad,
