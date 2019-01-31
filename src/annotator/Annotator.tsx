@@ -51,6 +51,7 @@ import {
   IAnnotatedSceneConfig,
   Marker,
   Annotation,
+  DefaultConfig,
 } from '@mapperai/mapper-annotated-scene'
 import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
 import { IThemedProperties } from '@mapperai/mapper-themes'
@@ -105,6 +106,9 @@ interface AnnotatorState {
   isImageScreensVisible: boolean
 
   annotatedSceneConfig?: IAnnotatedSceneConfig
+
+  maxSuperTilesToLoad: number
+  maxPointDensity: number
 }
 
 interface AnnotatorProps extends IThemedProperties {
@@ -192,6 +196,15 @@ export default class Annotator extends React.Component<
     this.highlightedLightboxImage = null
     this.lightboxImageRays = []
 
+    const maxSuperTilesToLoad = parseInt(
+      localStorage.getItem('maxSuperTilesToLoad') ||
+      DefaultConfig['tile_manager.maximum_super_tiles_to_load'].toString()
+    )
+    const maxPointDensity = parseInt(
+      localStorage.getItem('maxPointDensity') ||
+      DefaultConfig['tile_manager.maximum_point_density'].toString()
+    )
+
     this.state = {
       background: hexStringToHexadecimal(
         config['startup.background_color'] || '#1d232a'
@@ -211,7 +224,10 @@ export default class Annotator extends React.Component<
       lockLanes: false,
       lockTerritories: true,
       lockPolygons: true,
-      lockTrafficDevices: false
+      lockTrafficDevices: false,
+
+      maxSuperTilesToLoad,
+      maxPointDensity,
     }
   }
 
@@ -380,6 +396,22 @@ export default class Annotator extends React.Component<
       })
 
     folderConnection.open()
+
+    const tileFolder = gui.addFolder('Tile Settings')
+
+    tileFolder
+      .add({ maxSuperTilesToLoad: this.state.maxSuperTilesToLoad }, 'maxSuperTilesToLoad', 1, 3000)
+      .step(1)
+      .name('Max tiles')
+      .onChange(maxSuperTilesToLoad => this.setState({ maxSuperTilesToLoad }))
+
+    tileFolder
+      .add({ maxPointDensity: this.state.maxPointDensity }, 'maxPointDensity', 1, 1000)
+      .step(1)
+      .name('Max density')
+      .onChange(maxPointDensity => this.setState({ maxPointDensity }))
+
+    tileFolder.open()
   }
 
   private destroyControlsGui(): void {
@@ -733,10 +765,6 @@ export default class Annotator extends React.Component<
     this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TERRITORY))
     this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.POLYGON))
     this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
-
-    this.mapKey('U', () =>
-      this.state.annotatedSceneController!.unloadPointCloudData()
-    )
 
     this.mapKey('V', () =>
       this.state.annotatedSceneController!.toggleCameraType()
@@ -2018,11 +2046,11 @@ export default class Annotator extends React.Component<
    */
   private makeAnnotatedSceneConfig = () => {
     return {
-      'startup.camera_offset': [0, 400, 200],
+      'startup.camera_offset': [0, 200, 100],
       'tile_manager.maximum_points_to_load': 20000000,
-      'tile_manager.maximum_point_density': 100,
-      'tile_manager.maximum_super_tiles_to_load': 300,
-      'tile_manager.initial_super_tiles_to_load': 150,
+      'tile_manager.maximum_point_density': this.state.maxPointDensity,
+      'tile_manager.maximum_super_tiles_to_load': this.state.maxSuperTilesToLoad,
+      'tile_manager.initial_super_tiles_to_load': 1,
       'tile_manager.super_tile_scale': [24, 8, 24], // ditto; must contain multiples of utm_tile_scale
       'annotator.area_of_interest.size': [60, 20, 60],
       'tile_manager.stats_display.enable': true,
@@ -2071,6 +2099,14 @@ export default class Annotator extends React.Component<
     if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
       if (this.state.isImageScreensVisible) this.imageManager.showImageScreens()
       else this.imageManager.hideImageScreens()
+    }
+
+    if (oldState.maxSuperTilesToLoad !== this.state.maxSuperTilesToLoad) {
+      localStorage.setItem('maxSuperTilesToLoad', this.state.maxSuperTilesToLoad.toString())
+    }
+
+    if (oldState.maxPointDensity !== this.state.maxPointDensity) {
+      localStorage.setItem('maxPointDensity', this.state.maxPointDensity.toString())
     }
   }
 
