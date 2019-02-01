@@ -1884,6 +1884,7 @@ export default class Annotator extends React.Component<
       'tile_manager.super_tile_scale': [24, 24, 24],
       'annotator.area_of_interest.size': [60, 20, 60],
       'tile_manager.stats_display.enable': true,
+      'status_window.external_location_links.enable': true,
       'annotator.draw_bounding_box': false,
       'annotator.area_of_interest.enable': true
     } as IAnnotatedSceneConfig
