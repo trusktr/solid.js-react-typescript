@@ -24,7 +24,6 @@ import * as React from 'react'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import { hexStringToHexadecimal } from '../util/Color'
 import SaveState from './SaveState'
-//import { kmlToTerritories } from '../util/KmlToTerritories'
 import loadAnnotations from '../util/loadAnnotations'
 import {
   AnnotatedSceneState,
@@ -100,7 +99,6 @@ interface AnnotatorState {
 
   lockBoundaries: boolean
   lockLanes: boolean
-  lockTerritories: boolean
   lockPolygons: boolean
   lockTrafficDevices: boolean
   isImageScreensVisible: boolean
@@ -222,8 +220,7 @@ export default class Annotator extends React.Component<
 
       lockBoundaries: false,
       lockLanes: false,
-      lockTerritories: true,
-      lockPolygons: true,
+      lockPolygons: false,
       lockTrafficDevices: false,
 
       maxSuperTilesToLoad,
@@ -296,7 +293,6 @@ export default class Annotator extends React.Component<
 
     new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
     new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
-    new AnnotatedSceneActions().setLockTerritories(this.state.lockTerritories)
     new AnnotatedSceneActions().setLockPolygons(this.state.lockPolygons)
 
     new AnnotatedSceneActions().setLockTrafficDevices(
@@ -334,21 +330,6 @@ export default class Annotator extends React.Component<
         }
 
         new AnnotatedSceneActions().setLockLanes(value)
-      })
-
-    folderLock
-      .add(this.state, 'lockTerritories')
-      .name('Territories')
-      .onChange((value: boolean) => {
-        if (
-          value &&
-          this.state.annotationManager!.getActiveTerritoryAnnotation()
-        ) {
-          this.state.annotatedSceneController!.cleanTransformControls()
-          this.uiEscapeSelection()
-        }
-
-        new AnnotatedSceneActions().setLockTerritories(value)
       })
 
     folderLock
@@ -662,52 +643,6 @@ export default class Annotator extends React.Component<
 
   // }}
 
-  /**
-   * Load territories from KML which is generated elsewhere. Build the objects and add them to the Annotator scene.
-   */
-  // loadTerritoriesKml(fileName: string): Promise<void> {
-  // 	log.info('Loading KML Territories from ' + fileName)
-  //
-  // 	return this.loadKmlTerritoriesFromFile(fileName)
-  // 		.then(newAnnotationsFocalPoint => {
-  // 			if (newAnnotationsFocalPoint) {
-  // 				//this.state.annotatedSceneController!.setLayerVisibility([Layers.ANNOTATIONS])
-  //
-  // 				const { x, y, z } = newAnnotationsFocalPoint
-  //
-  // 				this.state.annotatedSceneController!.setStage(x, y, z)
-  // 			}
-  // 		})
-  // 		.catch(err => {
-  // 			log.error(err.message)
-  // 			dialog.showErrorBox('Territories Load Error', err.message)
-  // 		})
-  // }
-
-  /**
-   * @returns NULL or the center point of the bottom of the bounding box of the data; hopefully
-   *   there will be something to look at there
-   */
-  // loadKmlTerritoriesFromFile(fileName: string): Promise<THREE.Vector3 | null> {
-  // 	return kmlToTerritories(
-  // 		this.state.annotatedSceneController!.state.utmCoordinateSystem!,
-  // 		fileName,
-  // 	).then(territories => {
-  // 		if (!territories)
-  // 			throw Error(`territories KML file ${fileName} has no territories`)
-  //
-  // 		log.info(`found ${territories.length} territories`)
-  // 		this.saveState!.immediateAutoSave()
-  //
-  // 		const result = this.state.annotatedSceneController!.addAnnotations(
-  // 			territories,
-  // 		)
-  //
-  // 		this.saveState!.clean()
-  // 		return result
-  // 	})
-  // }
-
   mapKey(
     key: Key,
     fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void
@@ -762,7 +697,6 @@ export default class Annotator extends React.Component<
       this.state.annotatedSceneController!.resetTiltAndCompass()
     )
 
-    this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TERRITORY))
     this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.POLYGON))
     this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
 
@@ -1259,32 +1193,6 @@ export default class Annotator extends React.Component<
     })
   }
 
-  private bindTerritoryPropertiesPanel(): void {
-    const territoryLabel = document.getElementById('input_label_territory')
-
-    if (territoryLabel) {
-      // Select all text when the input element gains focus.
-      territoryLabel.addEventListener('focus', event => {
-        ;(event.target as HTMLInputElement).select()
-      })
-
-      // Update territory label text on any change to input.
-      territoryLabel.addEventListener('input', (event: Event) => {
-        const activeAnnotation = this.state.annotationManager!.getActiveTerritoryAnnotation()
-
-        if (activeAnnotation)
-          activeAnnotation.setLabel((event.target as HTMLInputElement).value)
-      })
-
-      // User is done editing: lose focus.
-      territoryLabel.addEventListener('change', (event: Event) => {
-        ;(event.target as HTMLInputElement).blur()
-      })
-    } else {
-      log.warn('missing element input_label_territory')
-    }
-  }
-
   private bindPolygonPropertiesPanel(): void {
     // nothing in this panel at the moment
   }
@@ -1359,7 +1267,6 @@ export default class Annotator extends React.Component<
     this.bindLanePropertiesPanel()
     this.bindLaneNeighborsPanel()
     this.bindConnectionPropertiesPanel()
-    this.bindTerritoryPropertiesPanel()
     this.bindPolygonPropertiesPanel()
     this.bindTrafficDevicePropertiesPanel()
     this.bindBoundaryPropertiesPanel()
@@ -1414,31 +1321,6 @@ export default class Annotator extends React.Component<
     } else {
       log.warn('missing element tools_load_images')
     }
-
-    // const toolsLoadTerritoriesKml = document.getElementById(
-    // 	'tools_load_territories_kml',
-    // )
-    // if (toolsLoadTerritoriesKml) {
-    // 	toolsLoadTerritoriesKml.addEventListener('click', () => {
-    // 		const options: Electron.OpenDialogOptions = {
-    // 			message: 'Load Territories KML File',
-    // 			properties: ['openFile'],
-    // 			filters: [{ name: 'kml', extensions: ['kml'] }],
-    // 		}
-    //
-    // 		const handler = (paths: string[]): void => {
-    // 			if (paths && paths.length) {
-    // 				this.loadTerritoriesKml(paths[0]).catch(err =>
-    // 					log.warn('loadTerritoriesKml failed: ' + err.message),
-    // 				)
-    // 			}
-    // 		}
-    //
-    // 		dialog.showOpenDialog(options, handler)
-    // 	})
-    // } else {
-    // 	log.warn('missing element tools_load_territories_kml')
-    // }
 
     const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
 
@@ -1515,7 +1397,6 @@ export default class Annotator extends React.Component<
     this.resetBoundaryProp()
     this.resetLaneProp()
     this.resetConnectionProp()
-    this.resetTerritoryProp()
     this.resetPolygonProp()
     this.resetTrafficDeviceProp()
   }
@@ -1541,12 +1422,6 @@ export default class Annotator extends React.Component<
     if (activeAnnotation.neighborsIds.front.length > 0)
       Annotator.deactivateFrontSideNeighbours()
     else Annotator.activateFrontSideNeighbours()
-
-    const lpId = document.getElementById('lp_id_value')
-
-    if (lpId) lpId.textContent = activeAnnotation.id.toString()
-    else log.warn('missing element lp_id_value')
-    this.uiUpdateLaneWidth(activeAnnotation)
 
     const lpSelectType = $('#lp_select_type')
 
@@ -1585,23 +1460,6 @@ export default class Annotator extends React.Component<
   }
 
   /**
-   * Reset territory properties elements based on the current active territory
-   */
-  private resetTerritoryProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActiveTerritoryAnnotation()
-
-    if (!activeAnnotation) return
-
-    this.expandAccordion('#menu_territory')
-
-    const territoryLabel = document.getElementById('input_label_territory')
-
-    if (territoryLabel)
-      (territoryLabel as HTMLInputElement).value = activeAnnotation.getLabel()
-    else log.warn('missing element input_label_territory')
-  }
-
-  /**
    * Reset polygon properties elements based on the current active polygon
    */
   private resetPolygonProp(): void {
@@ -1622,11 +1480,6 @@ export default class Annotator extends React.Component<
 
     this.expandAccordion('#menu_traffic_device')
 
-    const tpId = document.getElementById('tp_id_value')
-
-    if (tpId) tpId.textContent = activeAnnotation.id.toString()
-    else log.warn('missing element tp_id_value')
-
     const tpSelectType = $('#tp_select_type')
 
     tpSelectType.removeAttr('disabled')
@@ -1642,11 +1495,6 @@ export default class Annotator extends React.Component<
     if (!activeAnnotation) return
 
     this.expandAccordion('#menu_boundary')
-
-    const bpId = document.getElementById('bp_id_value')
-
-    if (bpId) bpId.textContent = activeAnnotation.id.toString()
-    else log.warn('missing element bp_id_value')
 
     const bpSelectType = $('#bp_select_type')
 
@@ -1668,11 +1516,6 @@ export default class Annotator extends React.Component<
     if (!activeAnnotation) return
 
     this.expandAccordion('#menu_connection')
-
-    const cpId = document.getElementById('cp_id_value')
-
-    if (cpId) cpId.textContent = activeAnnotation.id.toString()
-    else log.warn('missing element bp_id_value')
 
     const cpSelectType = $('#cp_select_type')
 
@@ -1703,7 +1546,6 @@ export default class Annotator extends React.Component<
     if (exceptFor !== AnnotationType.BOUNDARY) this.deactivateBoundaryProp()
     if (exceptFor !== AnnotationType.LANE) this.deactivateLanePropUI()
     if (exceptFor !== AnnotationType.CONNECTION) this.deactivateConnectionProp()
-    if (exceptFor !== AnnotationType.TERRITORY) this.deactivateTerritoryProp()
     if (exceptFor !== AnnotationType.POLYGON) this.deactivatePolygonProp()
     if (exceptFor !== AnnotationType.TRAFFIC_DEVICE)
       this.deactivateTrafficDeviceProp()
@@ -1813,18 +1655,6 @@ export default class Annotator extends React.Component<
     } else {
       log.warn('missing element boundary_prop')
     }
-  }
-
-  /**
-   * Deactivate territory properties menu panel
-   */
-  private deactivateTerritoryProp(): void {
-    this.collapseAccordion('#menu_territory')
-
-    const territoryLabel = document.getElementById('input_label_territory')
-
-    if (territoryLabel) (territoryLabel as HTMLInputElement).value = ''
-    else log.warn('missing element input_label_territory')
   }
 
   /**

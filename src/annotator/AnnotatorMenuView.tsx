@@ -66,13 +66,6 @@ export default class AnnotatorMenuView extends React.Component<
               Load Images{' '}
             </button>
             <button
-              id="tools_load_territories_kml"
-              className="ui-btn ui-icon-action ui-btn-icon-left"
-            >
-              {' '}
-              Load Territories{' '}
-            </button>
-            <button
               id="tools_load_annotation"
               className="ui-btn ui-icon-edit ui-btn-icon-left"
             >
@@ -171,18 +164,6 @@ export default class AnnotatorMenuView extends React.Component<
                 id="traffic_device_prop_2"
                 className="fieldset_content_style"
               />
-            </div>
-          </div>
-          <div id="menu_territory" className="accordion">
-            <h3 id="menu_head_territory" className="dropdown_head">
-              {' '}
-              Territory Properties{' '}
-            </h3>
-            <div id="menu_body_territory" className="dropdown_body">
-              <div id="property_1_territory" className="fieldset_content_style">
-                <span className="label_style"> Label </span>
-                <input id="input_label_territory" />
-              </div>
             </div>
           </div>
           <div id="menu_polygon" className="accordion">
