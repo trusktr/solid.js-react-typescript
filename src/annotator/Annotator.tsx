@@ -2054,7 +2054,6 @@ export default class Annotator extends React.Component<
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
           bezierScaleFactor={this.state.bezierScaleFactor}
-          roadPointsIntensityScale={this.state.roadPointsIntensityScale}
           annotationManagerRef={this.setAnnotationManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
