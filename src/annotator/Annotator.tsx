@@ -203,7 +203,10 @@ export default class Annotator extends React.Component<
       localStorage.getItem('maxPointDensity') ||
       DefaultConfig['tile_manager.maximum_point_density'].toString()
     )
-    const roadPointsIntensityScale = parseInt(DefaultConfig['tile_manager.road_points_intensity_scale'].toString())
+    const roadPointsIntensityScale = parseInt(
+      localStorage.getItem('roadPointsIntensityScale') ||
+      DefaultConfig['tile_manager.road_points_intensity_scale'].toString()
+    )
 
     this.state = {
       background: hexStringToHexadecimal(
@@ -1948,6 +1951,10 @@ export default class Annotator extends React.Component<
 
     if (oldState.maxPointDensity !== this.state.maxPointDensity) {
       localStorage.setItem('maxPointDensity', this.state.maxPointDensity.toString())
+    }
+
+    if (oldState.roadPointsIntensityScale !== this.state.roadPointsIntensityScale) {
+      localStorage.setItem('roadPointsIntensityScale', this.state.roadPointsIntensityScale.toString())
     }
   }
 
