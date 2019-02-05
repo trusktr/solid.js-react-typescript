@@ -14,6 +14,11 @@ import {
   mergeStyles,
   mergeClasses,
 } from '@mapperai/mapper-themes'
+import {
+  menuSpacing,
+  menuTopPosition,
+  panelBorderRadius,
+} from './styleVars'
 
 interface AnnotatorMenuViewProps extends IThemedProperties {
   uiMenuVisible: boolean
@@ -202,18 +207,12 @@ export default class AnnotatorMenuView extends React.Component<
   }
 }
 
-const menuTopPosition = 40
-
-// accounts for height of the widget that shows LLA and UTM coordinates at
-// bottom right of the screen
-const coordinatesWidgetHeight = 50
-
 function styles() {
   return mergeStyles({
     menu: {
       position: 'absolute',
-      right: 0,
-      height: `calc(100% - ${menuTopPosition}px - ${coordinatesWidgetHeight}px)`,
+      right: menuSpacing,
+      height: `calc(100% - ${menuTopPosition}px - ${menuSpacing}px)`,
       width: '250px',
       zIndex: 1,
       top: menuTopPosition,
@@ -221,7 +220,7 @@ function styles() {
       overflowX: 'visible', // visible, but don't scroll
       overflowY: 'auto', // scroll if necessary
       paddingTop: 0,
-      paddingRight: '5px',
+      borderRadius: panelBorderRadius,
 
       '&.hidden': {
         display: 'none'
@@ -229,6 +228,7 @@ function styles() {
 
       '& menu': {
         padding: 0,
+        margin: 0,
       },
 
       '& *': {
