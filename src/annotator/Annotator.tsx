@@ -107,6 +107,7 @@ interface AnnotatorState {
 
   maxSuperTilesToLoad: number
   maxPointDensity: number
+  roadPointsIntensityScale: number
 }
 
 interface AnnotatorProps extends IThemedProperties {
@@ -202,6 +203,7 @@ export default class Annotator extends React.Component<
       localStorage.getItem('maxPointDensity') ||
       DefaultConfig['tile_manager.maximum_point_density'].toString()
     )
+    const roadPointsIntensityScale = parseInt(DefaultConfig['tile_manager.road_points_intensity_scale'].toString())
 
     this.state = {
       background: hexStringToHexadecimal(
@@ -225,6 +227,7 @@ export default class Annotator extends React.Component<
 
       maxSuperTilesToLoad,
       maxPointDensity,
+      roadPointsIntensityScale,
     }
   }
 
@@ -391,6 +394,12 @@ export default class Annotator extends React.Component<
       .step(1)
       .name('Max density')
       .onChange(maxPointDensity => this.setState({ maxPointDensity }))
+
+    tileFolder
+      .add({roadPointsIntensityScale: this.state.roadPointsIntensityScale}, 'roadPointsIntensityScale', 1, 50)
+      .step(1)
+      .name('Road contrast')
+      .onChange(roadPointsIntensityScale => this.setState({roadPointsIntensityScale}))
 
     tileFolder.open()
   }
@@ -1878,6 +1887,7 @@ export default class Annotator extends React.Component<
     return {
       'startup.camera_offset': [0, 200, 100],
       'tile_manager.maximum_points_to_load': 20000000,
+      'tile_manager.road_points_intensity_scale': this.state.roadPointsIntensityScale,
       'tile_manager.maximum_point_density': this.state.maxPointDensity,
       'tile_manager.maximum_super_tiles_to_load': this.state.maxSuperTilesToLoad,
       'tile_manager.initial_super_tiles_to_load': 1,
@@ -2044,6 +2054,7 @@ export default class Annotator extends React.Component<
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
           bezierScaleFactor={this.state.bezierScaleFactor}
+          roadPointsIntensityScale={this.state.roadPointsIntensityScale}
           annotationManagerRef={this.setAnnotationManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
