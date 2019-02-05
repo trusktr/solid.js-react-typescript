@@ -299,7 +299,20 @@ export default function initUIControl(): void {
   ]
   // prettier-ignore
   const cpSelectsText = [
-    ['UNKNOWN', 'YIELD', 'ALTERNATE', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER'],
+    [
+      'UNKNOWN',
+      'ALL_VEHICLES',
+      'MOTOR_VEHICLES',
+      'CAR_ONLY',
+      'TRUCK_ONLY',
+      'BUS_ONLY',
+      'BIKE_ONLY',
+      'PEDESTRIAN_ONLY',
+      'PARKING',
+      'CROSSWALK',
+      'TRACKED_VEHICLES',
+      'OTHER'
+    ],
     ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
     ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
@@ -308,10 +321,16 @@ export default function initUIControl(): void {
   const cpSelectsValue = [
     [
       ConnectionType.UNKNOWN.toString(),
-      ConnectionType.YIELD.toString(),
-      ConnectionType.ALTERNATE.toString(),
-      ConnectionType.RYG_LIGHT.toString(),
-      ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(),
+      ConnectionType.ALL_VEHICLES.toString(),
+      ConnectionType.MOTOR_VEHICLES.toString(),
+      ConnectionType.CAR_ONLY.toString(),
+      ConnectionType.TRUCK_ONLY.toString(),
+      ConnectionType.BUS_ONLY.toString(),
+      ConnectionType.BIKE_ONLY.toString(),
+      ConnectionType.PEDESTRIAN_ONLY.toString(),
+      ConnectionType.PARKING.toString(),
+      ConnectionType.CROSSWALK.toString(),
+      ConnectionType.TRACKED_VEHICLES.toString(),
       ConnectionType.OTHER.toString()
     ],
     [
