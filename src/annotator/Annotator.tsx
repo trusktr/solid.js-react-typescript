@@ -13,6 +13,7 @@ import config from 'annotator-config'
 import * as Electron from 'electron'
 import { flatten } from 'lodash'
 import { guard } from 'typeguard'
+import Button from '@material-ui/core/Button';
 import { SimpleKML } from '../util/KmlUtils'
 import * as Dat from 'dat.gui'
 import { isNullOrUndefined } from 'util' // eslint-disable-line node/no-deprecated-api
@@ -59,6 +60,10 @@ import {
   withStatefulStyles,
   mergeStyles,
 } from '@mapperai/mapper-themes'
+import {
+  menuSpacing,
+  panelBorderRadius,
+} from './styleVars'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -706,7 +711,7 @@ export default class Annotator extends React.Component<
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
     this.mapKey('m', () => this.uiSaveWaypointsKml())
-    this.mapKey('N', () => this.state.annotationManager!.publish())
+    this.mapKey('P', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
     this.mapKey('S', () => this.uiSaveToFile(OutputFormat.LLA))
     this.mapKey('s', () => this.uiSaveToFile(OutputFormat.UTM))
@@ -1909,6 +1914,10 @@ export default class Annotator extends React.Component<
     } as IAnnotatedSceneConfig
   }
 
+  private onPublishClick = () => {
+    this.state.annotationManager!.publish()
+  }
+
   private onStatusWindowClick = () => {
     this.statusWindowActions.toggleEnabled()
   }
@@ -2068,18 +2077,15 @@ export default class Annotator extends React.Component<
     ) : (
       <React.Fragment>
         <div id="menu_control" className={classes!.menuControl}>
-          <button
-            className={classes!.menuButton}
-            onClick={this.onStatusWindowClick}
-          >
+          <Button variant="contained" color="primary" onClick={this.onPublishClick} classes={{root: classes!.publishButton!}}>
+            Publish
+          </Button>
+          <Button variant="contained" color="primary" onClick={this.onStatusWindowClick}>
             &#x2139;
-          </button>
-          <button
-            className={classes!.menuButton}
-            onClick={this.onMenuClick}
-          >
+          </Button>
+          <Button variant="contained" color="primary" onClick={this.onMenuClick}>
             &#9776;
-          </button>
+          </Button>
         </div>
         <AnnotatorMenuView
           uiMenuVisible={this.props.uiMenuVisible!}
@@ -2116,6 +2122,8 @@ function hasGeometry(n: THREE.Object3D): boolean {
   // )
 }
 
+const numberOfButtons = 3
+
 function styles() {
   return mergeStyles({
     annotatedScene: {
@@ -2150,41 +2158,46 @@ function styles() {
       backgroundColor: 'transparent',
       position: 'absolute',
       zIndex: 1,
-      top: 0,
-      right: 0,
-      paddingRight: '5px',
-      textAlign: 'right',
+      top: menuSpacing,
+      right: menuSpacing,
       visibility: 'hidden',
-      height: '50px',
-      width: '150px'
-    },
+      height: '32px',
+      display: 'flex',
+      justifyContent: 'space-between',
 
-    menuButton: {
-      backgroundColor: 'transparent',
-      height: '40px',
-      width: '40px',
-      fontSize: 'x-large',
-      border: 0,
-      color: 'white',
-
-      '&:hover': {
-        fontSize: 'xx-large',
-        backgroundColor: 'transparent'
-      },
-      '&:active': {
-        fontSize: 'xx-large'
+      "& > *": {
+        width: `calc(${100/numberOfButtons}% - ${menuSpacing/2}px)`,
+        "& span": {
+          fontSize: '1.5rem',
+          lineHeight: '1.5rem',
+        },
+        "&$publishButton": {
+          "& span": {
+            fontSize: '1rem',
+            lineHeight: '1rem',
+          },
+        },
       }
     },
+
+    publishButton: {},
 
     '@global': {
       // this is inside of AnnotatedSceneController
       '#status_window': {
         position: 'absolute',
-        right: 0,
-        bottom: 0,
+        left: menuSpacing,
+        bottom: menuSpacing,
         backgroundColor: 'rgba(255, 255, 255, 0.5)',
         padding: '5px',
-        zIndex: 3
+        zIndex: 3,
+        borderRadius: panelBorderRadius,
+      },
+
+      '.performanceStats': {
+        // FIXME, if the status_window height gets taller because of
+        // annotated-scene, then it overlaps with the performance stats
+        bottom: '76px!important',
       },
     },
   })
