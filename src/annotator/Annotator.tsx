@@ -51,9 +51,14 @@ import {
   Marker,
   Annotation,
   DefaultConfig,
+  StatusWindowActions,
 } from '@mapperai/mapper-annotated-scene'
 import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
-import { IThemedProperties } from '@mapperai/mapper-themes'
+import {
+  IThemedProperties,
+  withStatefulStyles,
+  mergeStyles,
+} from '@mapperai/mapper-themes'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -160,6 +165,8 @@ interface AnnotatorProps extends IThemedProperties {
     'isTransformControlsAttached'
   )
 )
+
+@withStatefulStyles(styles)
 export default class Annotator extends React.Component<
   AnnotatorProps,
   AnnotatorState
@@ -171,6 +178,8 @@ export default class Annotator extends React.Component<
   private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
   private gui?: dat.GUI
   private saveState: SaveState | null = null
+  private statusWindowActions = new StatusWindowActions()
+  private sceneActions = new AnnotatedSceneActions()
 
   constructor(props: AnnotatorProps) {
     super(props)
@@ -1900,6 +1909,14 @@ export default class Annotator extends React.Component<
     } as IAnnotatedSceneConfig
   }
 
+  private onStatusWindowClick = () => {
+    this.statusWindowActions.toggleEnabled()
+  }
+
+  private onMenuClick = () => {
+    this.sceneActions.toggleUIMenuVisible()
+  }
+
   componentDidMount(): void {
     // window.addEventListener('focus', this.onFocus)
     // window.addEventListener('blur', this.onBlur)
@@ -2044,12 +2061,30 @@ export default class Annotator extends React.Component<
 
   render(): JSX.Element {
     const { annotatedSceneConfig } = this.state
-    const { dataProviderFactory } = this.props
+    const { dataProviderFactory, classes } = this.props
 
     return !dataProviderFactory || !annotatedSceneConfig ? (
       <div />
     ) : (
       <React.Fragment>
+        <div id="menu_control" className={classes!.menuControl}>
+          <button
+            className={classes!.menuButton}
+            onClick={this.onStatusWindowClick}
+          >
+            &#x2139;
+          </button>
+          <button
+            className={classes!.menuButton}
+            onClick={this.onMenuClick}
+          >
+            &#9776;
+          </button>
+        </div>
+        <AnnotatorMenuView
+          uiMenuVisible={this.props.uiMenuVisible!}
+          selectedAnnotation={ this.props.activeAnnotation }
+        />
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
@@ -2058,10 +2093,7 @@ export default class Annotator extends React.Component<
           annotationManagerRef={this.setAnnotationManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
-        />
-        <AnnotatorMenuView
-          uiMenuVisible={this.props.uiMenuVisible!}
-          selectedAnnotation={ this.props.activeAnnotation }
+          classes={{root: classes!.annotatedScene}}
         />
       </React.Fragment>
     )
@@ -2082,4 +2114,78 @@ function hasGeometry(n: THREE.Object3D): boolean {
   //   n instanceof THREE.Points ||
   //   n instanceof THREE.Sprite
   // )
+}
+
+function styles() {
+  return mergeStyles({
+    annotatedScene: {
+      height: '100%',
+      maxHeight: '100%',
+      minHeight: '100%',
+      border: 0,
+      padding: 0,
+      margin: 0,
+      width: '100%',
+      maxWidth: '100%',
+      minWidth: '100%',
+      fontFamily: 'Verdana, Geneva, sans-serif',
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+
+      '& canvas.annotated-scene-canvas': {
+        width: '100%',
+        height: '100%'
+      },
+
+      '& .hidden': {
+        display: 'none'
+      },
+
+      '&, & *, & *::after, & *::before': {
+        boxSizing: 'border-box'
+      },
+    },
+
+    menuControl: {
+      backgroundColor: 'transparent',
+      position: 'absolute',
+      zIndex: 1,
+      top: 0,
+      right: 0,
+      paddingRight: '5px',
+      textAlign: 'right',
+      visibility: 'hidden',
+      height: '50px',
+      width: '150px'
+    },
+
+    menuButton: {
+      backgroundColor: 'transparent',
+      height: '40px',
+      width: '40px',
+      fontSize: 'x-large',
+      border: 0,
+      color: 'white',
+
+      '&:hover': {
+        fontSize: 'xx-large',
+        backgroundColor: 'transparent'
+      },
+      '&:active': {
+        fontSize: 'xx-large'
+      }
+    },
+
+    '@global': {
+      // this is inside of AnnotatedSceneController
+      '#status_window': {
+        position: 'absolute',
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        padding: '5px',
+        zIndex: 3
+      },
+    },
+  })
 }
