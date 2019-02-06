@@ -13,6 +13,7 @@ import config from 'annotator-config'
 import * as Electron from 'electron'
 import { flatten } from 'lodash'
 import { guard } from 'typeguard'
+import Button from '@material-ui/core/Button';
 import { SimpleKML } from '../util/KmlUtils'
 import * as Dat from 'dat.gui'
 import { isNullOrUndefined } from 'util' // eslint-disable-line node/no-deprecated-api
@@ -51,9 +52,18 @@ import {
   Marker,
   Annotation,
   DefaultConfig,
+  StatusWindowActions,
 } from '@mapperai/mapper-annotated-scene'
 import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
-import { IThemedProperties } from '@mapperai/mapper-themes'
+import {
+  IThemedProperties,
+  withStatefulStyles,
+  mergeStyles,
+} from '@mapperai/mapper-themes'
+import {
+  menuSpacing,
+  panelBorderRadius,
+} from './styleVars'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -160,6 +170,8 @@ interface AnnotatorProps extends IThemedProperties {
     'isTransformControlsAttached'
   )
 )
+
+@withStatefulStyles(styles)
 export default class Annotator extends React.Component<
   AnnotatorProps,
   AnnotatorState
@@ -171,6 +183,8 @@ export default class Annotator extends React.Component<
   private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
   private gui?: dat.GUI
   private saveState: SaveState | null = null
+  private statusWindowActions = new StatusWindowActions()
+  private sceneActions = new AnnotatedSceneActions()
 
   constructor(props: AnnotatorProps) {
     super(props)
@@ -697,7 +711,7 @@ export default class Annotator extends React.Component<
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
     this.mapKey('m', () => this.uiSaveWaypointsKml())
-    this.mapKey('N', () => this.state.annotationManager!.publish())
+    this.mapKey('P', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
     this.mapKey('S', () => this.uiSaveToFile(OutputFormat.LLA))
     this.mapKey('s', () => this.uiSaveToFile(OutputFormat.UTM))
@@ -1900,6 +1914,18 @@ export default class Annotator extends React.Component<
     } as IAnnotatedSceneConfig
   }
 
+  private onPublishClick = () => {
+    this.state.annotationManager!.publish()
+  }
+
+  private onStatusWindowClick = () => {
+    this.statusWindowActions.toggleEnabled()
+  }
+
+  private onMenuClick = () => {
+    this.sceneActions.toggleUIMenuVisible()
+  }
+
   componentDidMount(): void {
     // window.addEventListener('focus', this.onFocus)
     // window.addEventListener('blur', this.onBlur)
@@ -2044,12 +2070,27 @@ export default class Annotator extends React.Component<
 
   render(): JSX.Element {
     const { annotatedSceneConfig } = this.state
-    const { dataProviderFactory } = this.props
+    const { dataProviderFactory, classes } = this.props
 
     return !dataProviderFactory || !annotatedSceneConfig ? (
       <div />
     ) : (
       <React.Fragment>
+        <div id="menu_control" className={classes!.menuControl}>
+          <Button variant="contained" color="primary" onClick={this.onPublishClick} classes={{root: classes!.publishButton!}}>
+            Publish
+          </Button>
+          <Button variant="contained" color="primary" onClick={this.onStatusWindowClick}>
+            &#x2139;
+          </Button>
+          <Button variant="contained" color="primary" onClick={this.onMenuClick}>
+            &#9776;
+          </Button>
+        </div>
+        <AnnotatorMenuView
+          uiMenuVisible={this.props.uiMenuVisible!}
+          selectedAnnotation={ this.props.activeAnnotation }
+        />
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
@@ -2058,10 +2099,7 @@ export default class Annotator extends React.Component<
           annotationManagerRef={this.setAnnotationManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
-        />
-        <AnnotatorMenuView
-          uiMenuVisible={this.props.uiMenuVisible!}
-          selectedAnnotation={ this.props.activeAnnotation }
+          classes={{root: classes!.annotatedScene}}
         />
       </React.Fragment>
     )
@@ -2082,4 +2120,85 @@ function hasGeometry(n: THREE.Object3D): boolean {
   //   n instanceof THREE.Points ||
   //   n instanceof THREE.Sprite
   // )
+}
+
+const numberOfButtons = 3
+
+function styles() {
+  return mergeStyles({
+    annotatedScene: {
+      height: '100%',
+      maxHeight: '100%',
+      minHeight: '100%',
+      border: 0,
+      padding: 0,
+      margin: 0,
+      width: '100%',
+      maxWidth: '100%',
+      minWidth: '100%',
+      fontFamily: 'Verdana, Geneva, sans-serif',
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+
+      '& canvas.annotated-scene-canvas': {
+        width: '100%',
+        height: '100%'
+      },
+
+      '& .hidden': {
+        display: 'none'
+      },
+
+      '&, & *, & *::after, & *::before': {
+        boxSizing: 'border-box'
+      },
+    },
+
+    menuControl: {
+      backgroundColor: 'transparent',
+      position: 'absolute',
+      zIndex: 1,
+      top: menuSpacing,
+      right: menuSpacing,
+      visibility: 'hidden',
+      height: '32px',
+      display: 'flex',
+      justifyContent: 'space-between',
+
+      "& > *": {
+        width: `calc(${100/numberOfButtons}% - ${menuSpacing/2}px)`,
+        "& span": {
+          fontSize: '1.5rem',
+          lineHeight: '1.5rem',
+        },
+        "&$publishButton": {
+          "& span": {
+            fontSize: '1rem',
+            lineHeight: '1rem',
+          },
+        },
+      }
+    },
+
+    publishButton: {},
+
+    '@global': {
+      // this is inside of AnnotatedSceneController
+      '#status_window': {
+        position: 'absolute',
+        left: menuSpacing,
+        bottom: menuSpacing,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        padding: '5px',
+        zIndex: 3,
+        borderRadius: panelBorderRadius,
+      },
+
+      '.performanceStats': {
+        // FIXME, if the status_window height gets taller because of
+        // annotated-scene, then it overlaps with the performance stats
+        bottom: '76px!important',
+      },
+    },
+  })
 }
