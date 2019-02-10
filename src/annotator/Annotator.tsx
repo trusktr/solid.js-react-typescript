@@ -388,7 +388,7 @@ export default class Annotator extends React.Component<
     folderConnection
       .add({ bezierScaleFactor }, 'bezierScaleFactor', 1, 30)
       .step(1)
-      .name('Bezier factor')
+      .name('Curvature')
       .onChange(bezierScaleFactor => {
         this.setState({ bezierScaleFactor })
       })

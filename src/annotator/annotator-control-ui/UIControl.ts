@@ -163,9 +163,9 @@ export default function initUIControl(): void {
       'TRACKED_VEHICLES',
       'OTHER'
     ],
-    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
+    ['UNKNOWN', 'NONE', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
-    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
+    ['UNKNOWN', 'NONE', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
     ['UNKNOWN', 'continue ––»»»––', 'stop ––||––'],
     ['UNKNOWN', 'continue ––»»»––', 'stop ––||––']
@@ -187,6 +187,7 @@ export default function initUIControl(): void {
     ],
     [
       LaneLineType.UNKNOWN.toString(),
+      LaneLineType.NONE.toString(),
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
@@ -202,6 +203,7 @@ export default function initUIControl(): void {
     ],
     [
       LaneLineType.UNKNOWN.toString(),
+      LaneLineType.NONE.toString(),
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
@@ -313,9 +315,9 @@ export default function initUIControl(): void {
       'TRACKED_VEHICLES',
       'OTHER'
     ],
-    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
+    ['UNKNOWN', 'NONE', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
-    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
+    ['UNKNOWN', 'NONE', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
   ]
   const cpSelectsValue = [
@@ -335,6 +337,7 @@ export default function initUIControl(): void {
     ],
     [
       LaneLineType.UNKNOWN.toString(),
+      LaneLineType.NONE.toString(),
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
@@ -350,6 +353,7 @@ export default function initUIControl(): void {
     ],
     [
       LaneLineType.UNKNOWN.toString(),
+      LaneLineType.NONE.toString(),
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
