@@ -73,7 +73,7 @@ import {
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
 const dat: typeof Dat = (Dat as any).default as typeof Dat
-const $ = require('jquery')
+import $ = require('jquery')
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 
@@ -645,27 +645,6 @@ export default class Annotator extends React.Component<
     this.state.annotatedSceneController!.shouldRender()
   }
 
-  // TODO JOE eventually we need to remove this filesystem stuff from the
-  // shared lib so that the shared lib can work in regular browsers
-  // {{
-
-  /*
-   * Make a best effort to save annotations before exiting. There is no guarantee the
-   * promise will complete, but it seems to work in practice.
-   */
-  // private onBeforeUnload: (e: BeforeUnloadEvent) => void = (
-  // 	_: BeforeUnloadEvent,
-  // ) => {
-  // 	this.saveState!.immediateAutoSave()
-  // }
-  //
-  // private onFocus = (): void => {
-  // 	this.saveState!.enableAutoSave()
-  // }
-  // private onBlur = (): void => guard(() => this.saveState!.disableAutoSave())
-
-  // }}
-
   mapKey(
     key: Key,
     fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void
@@ -1103,56 +1082,54 @@ export default class Annotator extends React.Component<
     })
   }
 
+  unbindLanePropertiesPanel() {
+    $('#lp_select_type').off()
+    $('#lp_select_left_type').off()
+    $('#lp_select_left_color').off()
+    $('#lp_select_right_type').off()
+    $('#lp_select_right_color').off()
+    $('#lp_select_entry').off()
+    $('#lp_select_exit').off()
+  }
+
   private bindLaneNeighborsPanel(): void {
-    const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+    const lpAddLeftOpposite = $('#lp_add_left_opposite')
 
-    if (lpAddLeftOpposite) {
-      lpAddLeftOpposite.addEventListener('click', () => {
-        this.addLeftReverse()
-      })
-    } else {
-      log.warn('missing element lp_add_left_opposite')
-    }
+    lpAddLeftOpposite.on('click', () => {
+      this.addLeftReverse()
+    })
 
-    const lpAddLeftSame = document.getElementById('lp_add_left_same')
+    const lpAddLeftSame = $('#lp_add_left_same')
 
-    if (lpAddLeftSame) {
-      lpAddLeftSame.addEventListener('click', () => {
-        this.addLeftSame()
-      })
-    } else {
-      log.warn('missing element lp_add_left_same')
-    }
+    lpAddLeftSame.on('click', () => {
+      this.addLeftSame()
+    })
 
-    const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+    const lpAddRightOpposite = $('#lp_add_right_opposite')
 
-    if (lpAddRightOpposite) {
-      lpAddRightOpposite.addEventListener('click', () => {
-        this.addRightReverse()
-      })
-    } else {
-      log.warn('missing element lp_add_right_opposite')
-    }
+    lpAddRightOpposite.on('click', () => {
+      this.addRightReverse()
+    })
 
-    const lpAddRightSame = document.getElementById('lp_add_right_same')
+    const lpAddRightSame = $('#lp_add_right_same')
 
-    if (lpAddRightSame) {
-      lpAddRightSame.addEventListener('click', () => {
-        this.addRightSame()
-      })
-    } else {
-      log.warn('missing element lp_add_right_same')
-    }
+    lpAddRightSame.on('click', () => {
+      this.addRightSame()
+    })
 
-    const lpAddFront = document.getElementById('lp_add_forward')
+    const lpAddFront = $('#lp_add_forward')
 
-    if (lpAddFront) {
-      lpAddFront.addEventListener('click', () => {
-        this.addFront()
-      })
-    } else {
-      log.warn('missing element lp_add_forward')
-    }
+    lpAddFront.on('click', () => {
+      this.addFront()
+    })
+  }
+
+  unbindLaneNeighborsPanel() {
+    $('#lp_add_left_opposite').off()
+    $('#lp_add_left_same').off()
+    $('#lp_add_right_opposite').off()
+    $('#lp_add_right_same').off()
+    $('#lp_add_forward').off()
   }
 
   private bindConnectionPropertiesPanel(): void {
@@ -1216,8 +1193,19 @@ export default class Annotator extends React.Component<
     })
   }
 
+  unbindConnectionPropertiesPanel() {
+    $('#cp_select_type').off()
+    $('#cp_select_left_type').off()
+    $('#cp_select_left_color').off()
+    $('#cp_select_right_type').off()
+    $('#cp_select_right_color').off()
+  }
+
   private bindPolygonPropertiesPanel(): void {
     // nothing in this panel at the moment
+  }
+  unbindPolygonPropertiesPanel() {
+    // nothing to unbind
   }
 
   private bindTrafficDevicePropertiesPanel(): void {
@@ -1242,6 +1230,10 @@ export default class Annotator extends React.Component<
       activeAnnotation.updateVisualization()
       this.state.annotatedSceneController!.shouldRender()
     })
+  }
+
+  unbindTrafficDevicePropertiesPanel() {
+    $('#tp_select_type').off()
   }
 
   private bindBoundaryPropertiesPanel(): void {
@@ -1286,6 +1278,11 @@ export default class Annotator extends React.Component<
     })
   }
 
+  unbindBoundaryPropertiesPanel() {
+    $('#bp_select_type').off()
+    $('#bp_select_color').off()
+  }
+
   private bind(): void {
     this.bindLanePropertiesPanel()
     this.bindLaneNeighborsPanel()
@@ -1294,112 +1291,99 @@ export default class Annotator extends React.Component<
     this.bindTrafficDevicePropertiesPanel()
     this.bindBoundaryPropertiesPanel()
 
-    const menuControlElement = document.getElementById('menu_control')
+    const menuControlElement = $('#menu_control')
 
-    if (menuControlElement) menuControlElement.style.visibility = 'visible'
+    if (menuControlElement.length) menuControlElement[0].style.visibility = 'visible'
     else log.warn('missing element menu_control')
 
-    const toolsDelete = document.getElementById('tools_delete')
+    const toolsDelete = $('#tools_delete')
 
-    if (toolsDelete) {
-      toolsDelete.addEventListener('click', () => {
-        this.uiDeleteActiveAnnotation()
-      })
-    } else {
-      log.warn('missing element tools_delete')
-    }
+    toolsDelete.on('click', () => {
+      this.uiDeleteActiveAnnotation()
+    })
 
-    const toolsAddLane = document.getElementById('tools_add_lane')
+    const toolsAddLane = $('#tools_add_lane')
 
-    if (toolsAddLane) {
-      toolsAddLane.addEventListener('click', () => {
-        this.uiAddAnnotation(AnnotationType.LANE)
-      })
-    } else {
-      log.warn('missing element tools_add_lane')
-    }
+    toolsAddLane.on('click', () => {
+      this.uiAddAnnotation(AnnotationType.LANE)
+    })
 
-    const toolsAddTrafficDevice = document.getElementById(
-      'tools_add_traffic_device'
-    )
+    const toolsAddTrafficDevice = $('#tools_add_traffic_device')
 
-    if (toolsAddTrafficDevice) {
-      toolsAddTrafficDevice.addEventListener('click', () => {
-        this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
-      })
-    } else {
-      log.warn('missing element tools_add_traffic_device')
-    }
+    toolsAddTrafficDevice.on('click', () => {
+      this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
+    })
 
-    const toolsLoadImages = document.getElementById('tools_load_images')
+    const toolsLoadImages = $('#tools_load_images')
 
-    if (toolsLoadImages) {
-      toolsLoadImages.addEventListener('click', () => {
-        this.imageManager
-          .loadImagesFromOpenDialog()
-          .catch(err =>
-            log.warn('loadImagesFromOpenDialog failed: ' + err.message)
-          )
-      })
-    } else {
-      log.warn('missing element tools_load_images')
-    }
+    toolsLoadImages.on('click', () => {
+      this.imageManager
+        .loadImagesFromOpenDialog()
+        .catch(err =>
+          log.warn('loadImagesFromOpenDialog failed: ' + err.message)
+        )
+    })
 
-    const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
+    const toolsLoadAnnotation = $('#tools_load_annotation')
 
-    if (toolsLoadAnnotation) {
-      toolsLoadAnnotation.addEventListener('click', () => {
-        const options: Electron.OpenDialogOptions = {
-          message: 'Load Annotations File',
-          properties: ['openFile'],
-          filters: [{ name: 'json', extensions: ['json'] }]
-        }
+    toolsLoadAnnotation.on('click', () => {
+      const options: Electron.OpenDialogOptions = {
+        message: 'Load Annotations File',
+        properties: ['openFile'],
+        filters: [{ name: 'json', extensions: ['json'] }]
+      }
 
-        const handler = async (paths: string[]): Promise<void> => {
-          if (paths && paths.length) {
-            try {
-              this.saveState!.immediateAutoSave()
+      const handler = async (paths: string[]): Promise<void> => {
+        if (paths && paths.length) {
+          try {
+            this.saveState!.immediateAutoSave()
 
-              await loadAnnotations.call(
-                this,
-                paths[0],
-                this.state.annotatedSceneController!
-              )
+            await loadAnnotations.call(
+              this,
+              paths[0],
+              this.state.annotatedSceneController!
+            )
 
-              this.saveState!.clean()
-            } catch (err) {
-              log.warn('loadAnnotations failed: ' + err.message)
-            }
+            this.saveState!.clean()
+          } catch (err) {
+            log.warn('loadAnnotations failed: ' + err.message)
           }
         }
+      }
 
-        dialog.showOpenDialog(options, handler)
-      })
-    } else {
-      log.warn('missing element tools_load_annotation')
-    }
+      dialog.showOpenDialog(options, handler)
+    })
 
-    const toolsSave = document.getElementById('tools_save')
+    const toolsSave = $('#tools_save')
 
-    if (toolsSave) {
-      toolsSave.addEventListener('click', () => {
-        this.uiSaveToFile(OutputFormat.UTM)
-      })
-    } else {
-      log.warn('missing element tools_save')
-    }
+    toolsSave.on('click', () => {
+      this.uiSaveToFile(OutputFormat.UTM)
+    })
 
-    const toolsExportKml = document.getElementById('tools_export_kml')
+    const toolsExportKml = $('#tools_export_kml')
 
-    if (toolsExportKml) {
-      toolsExportKml.addEventListener('click', () => {
-        this.uiSaveWaypointsKml()
-      })
-    } else {
-      log.warn('missing element tools_export_kml')
-    }
+    toolsExportKml.on('click', () => {
+      this.uiSaveWaypointsKml()
+    })
 
     this.deactivateAllAnnotationPropertiesMenus()
+  }
+
+  unbind() {
+    this.unbindLanePropertiesPanel()
+    this.unbindLaneNeighborsPanel()
+    this.unbindConnectionPropertiesPanel()
+    this.unbindPolygonPropertiesPanel()
+    this.unbindTrafficDevicePropertiesPanel()
+    this.unbindBoundaryPropertiesPanel()
+
+    $('#menu_control').off()
+    $('#tools_add_lane').off()
+    $('#tools_add_traffic_device').off()
+    $('#tools_load_images').off()
+    $('#tools_load_annotation').off()
+    $('#tools_save').off()
+    $('#tools_export_kml').off()
   }
 
   // }}
@@ -1927,10 +1911,6 @@ export default class Annotator extends React.Component<
   }
 
   componentDidMount(): void {
-    // window.addEventListener('focus', this.onFocus)
-    // window.addEventListener('blur', this.onBlur)
-    // window.addEventListener('beforeunload', this.onBeforeUnload)
-
     document.addEventListener('mousemove', this.checkForImageScreenSelection)
     document.addEventListener('mouseup', this.clickImageScreenBox)
 
@@ -1940,6 +1920,11 @@ export default class Annotator extends React.Component<
   }
 
   componentWillUnmount(): void {
+    this.unbind()
+
+    document.removeEventListener('mousemove', this.checkForImageScreenSelection)
+    document.removeEventListener('mouseup', this.clickImageScreenBox)
+
     try {
       this.destroyControlsGui()
     } catch (err) {
@@ -1947,7 +1932,8 @@ export default class Annotator extends React.Component<
     }
 
     try {
-      this.state.annotatedSceneController!.cleanup()
+      this.state.annotatedSceneController &&
+        this.state.annotatedSceneController.cleanup()
     } catch (err) {
       log.error('annotatedSceneController.cleanup() failed', err)
     }
