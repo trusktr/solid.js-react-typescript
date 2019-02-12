@@ -645,27 +645,6 @@ export default class Annotator extends React.Component<
     this.state.annotatedSceneController!.shouldRender()
   }
 
-  // TODO JOE eventually we need to remove this filesystem stuff from the
-  // shared lib so that the shared lib can work in regular browsers
-  // {{
-
-  /*
-   * Make a best effort to save annotations before exiting. There is no guarantee the
-   * promise will complete, but it seems to work in practice.
-   */
-  // private onBeforeUnload: (e: BeforeUnloadEvent) => void = (
-  // 	_: BeforeUnloadEvent,
-  // ) => {
-  // 	this.saveState!.immediateAutoSave()
-  // }
-  //
-  // private onFocus = (): void => {
-  // 	this.saveState!.enableAutoSave()
-  // }
-  // private onBlur = (): void => guard(() => this.saveState!.disableAutoSave())
-
-  // }}
-
   mapKey(
     key: Key,
     fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void
@@ -1932,10 +1911,6 @@ export default class Annotator extends React.Component<
   }
 
   componentDidMount(): void {
-    // window.addEventListener('focus', this.onFocus)
-    // window.addEventListener('blur', this.onBlur)
-    // window.addEventListener('beforeunload', this.onBeforeUnload)
-
     document.addEventListener('mousemove', this.checkForImageScreenSelection)
     document.addEventListener('mouseup', this.clickImageScreenBox)
 
@@ -1946,10 +1921,6 @@ export default class Annotator extends React.Component<
 
   componentWillUnmount(): void {
     this.unbind()
-
-    // window.removeEventListener('focus', this.onFocus)
-    // window.removeEventListener('blur', this.onBlur)
-    // window.removeEventListener('beforeunload', this.onBeforeUnload)
 
     document.removeEventListener('mousemove', this.checkForImageScreenSelection)
     document.removeEventListener('mouseup', this.clickImageScreenBox)
