@@ -11,7 +11,6 @@ import {
   LaneType,
   LaneLineType,
   LaneLineColor,
-  LaneEntryExitType
 } from '@mapperai/mapper-annotated-scene'
 
 export default function initUIControl(): void {
@@ -112,8 +111,6 @@ export default function initUIControl(): void {
     'Left Line Color:',
     'Right Line Type:',
     'Right Line Color',
-    'Entry Type:',
-    'Exit Type:'
   ]
   const lpLabelsId = [
     'lp_id',
@@ -123,8 +120,6 @@ export default function initUIControl(): void {
     'lp_left_color',
     'lp_right_line',
     'lp_right_color',
-    'lp_entry',
-    'lp_exit'
   ]
   const lpLabels: Array<HTMLElement> = []
 
@@ -145,8 +140,6 @@ export default function initUIControl(): void {
     'lp_select_left_color',
     'lp_select_right_type',
     'lp_select_right_color',
-    'lp_select_entry',
-    'lp_select_exit'
   ]
   const lpSelectsText = [
     [
@@ -167,8 +160,6 @@ export default function initUIControl(): void {
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
     ['UNKNOWN', 'NONE', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
-    ['UNKNOWN', 'continue ––»»»––', 'stop ––||––'],
-    ['UNKNOWN', 'continue ––»»»––', 'stop ––||––']
   ]
   const lpSelectValue = [
     [
@@ -217,16 +208,6 @@ export default function initUIControl(): void {
       LaneLineColor.BLUE.toString(),
       LaneLineColor.OTHER.toString()
     ],
-    [
-      LaneEntryExitType.UNKNOWN.toString(),
-      LaneEntryExitType.CONTINUE.toString(),
-      LaneEntryExitType.STOP.toString()
-    ],
-    [
-      LaneEntryExitType.UNKNOWN.toString(),
-      LaneEntryExitType.CONTINUE.toString(),
-      LaneEntryExitType.STOP.toString()
-    ]
   ]
   const lpSelects: Array<HTMLElement> = []
   const eLaneId = document.createElement('text')
