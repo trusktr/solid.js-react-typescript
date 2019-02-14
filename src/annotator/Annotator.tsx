@@ -12,7 +12,6 @@
 import config from 'annotator-config'
 import * as Electron from 'electron'
 import { flatten } from 'lodash'
-import { guard } from 'typeguard'
 import Button from '@material-ui/core/Button';
 import { SimpleKML } from '../util/KmlUtils'
 import * as Dat from 'dat.gui'
@@ -245,6 +244,8 @@ export default class Annotator extends React.Component<
     }
   }
 
+  private datContainer: JQuery
+
   // Create a UI widget to adjust application settings on the fly.
   createControlsGui(): void {
     if (!isNullOrUndefined(config['startup.show_color_picker'])) {
@@ -256,13 +257,15 @@ export default class Annotator extends React.Component<
 
     const gui = (this.gui = new dat.GUI({
       hideable: false,
-      closeOnTop: true
+      closeOnTop: true,
+      autoPlace: false,
     }))
-    const datContainer = $('<div class="dg ac"></div>')
+    this.datContainer = $('<div class="dg ac"></div>')
 
-    $('.annotated-scene-container').append(datContainer.append(gui.domElement))
+    this.datContainer.append(gui.domElement)
+    $('.annotated-scene-container').append(this.datContainer)
 
-    datContainer.css({
+    this.datContainer.css({
       position: 'absolute',
       top: 0,
       left: 0
@@ -419,9 +422,11 @@ export default class Annotator extends React.Component<
   }
 
   private destroyControlsGui(): void {
-    guard(() => {
-      if (this.gui) this.gui.destroy()
-    })
+    if (!this.gui) return
+    debugger
+    this.gui.destroy()
+    this.gui.domElement.remove()
+    this.datContainer.remove()
   }
 
   // When ImageManager loads an image, add it to the scene.
@@ -1945,8 +1950,18 @@ export default class Annotator extends React.Component<
     oldState: AnnotatorState
   ): void {
     if (!oldState.annotationManager && this.state.annotationManager) {
-      this.createControlsGui()
-      this.saveState = new SaveState(this.state.annotationManager, config) // eslint-disable-line no-use-before-define
+
+      if (this.state.annotationManager) {
+        this.createControlsGui()
+        this.saveState = new SaveState(this.state.annotationManager, config) // eslint-disable-line no-use-before-define
+      } else {
+        this.destroyControlsGui()
+        if (this.saveState) {
+          this.saveState.cleanup()
+          this.saveState = null
+        }
+      }
+
     }
 
     if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {

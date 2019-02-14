@@ -21,6 +21,7 @@ export default class AnnotationState {
   private isDirty: boolean
   private autoSaveEnabled: boolean
   private autoSaveDirectory: string
+  private interval: number
 
   constructor(
     private annotationManager: AnnotationManager,
@@ -38,7 +39,7 @@ export default class AnnotationState {
       this.config['output.annotations.autosave.interval.seconds'] * 1000
 
     if (this.autoSaveDirectory && autoSaveEventInterval) {
-      setInterval(async () => {
+      this.interval = window.setInterval(async () => {
         if (this.doPeriodicSave()) await this.saveAnnotations()
       }, autoSaveEventInterval)
     }
@@ -126,5 +127,9 @@ export default class AnnotationState {
     // 		),
     // 	)
     // 	.then(() => this.clean())
+  }
+
+  cleanup() {
+    window.clearInterval(this.interval)
   }
 }
