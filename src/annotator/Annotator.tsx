@@ -423,7 +423,6 @@ export default class Annotator extends React.Component<
 
   private destroyControlsGui(): void {
     if (!this.gui) return
-    debugger
     this.gui.destroy()
     this.gui.domElement.remove()
     this.datContainer.remove()
