@@ -389,7 +389,7 @@ export default class Annotator extends React.Component<
     const bezierScaleFactor = this.state.bezierScaleFactor
 
     folderConnection
-      .add({ bezierScaleFactor }, 'bezierScaleFactor', 1, 30)
+      .add({ bezierScaleFactor }, 'bezierScaleFactor', 1, 50)
       .step(1)
       .name('Curvature')
       .onChange(bezierScaleFactor => {
@@ -1044,46 +1044,6 @@ export default class Annotator extends React.Component<
       activeAnnotation.rightLineColor = +lcRightColor.val()
       activeAnnotation.updateVisualization()
     })
-
-    const lcEntry = $('#lp_select_entry')
-
-    lcEntry.on('change', () => {
-      lcEntry.blur()
-
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
-
-      if (activeAnnotation === null) return
-
-      log.info(
-        'Adding entry type: ' +
-          lcEntry
-            .children('option')
-            .filter(':selected')
-            .text()
-      )
-
-      activeAnnotation.entryType = lcEntry.val()
-    })
-
-    const lcExit = $('#lp_select_exit')
-
-    lcExit.on('change', () => {
-      lcExit.blur()
-
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
-
-      if (activeAnnotation === null) return
-
-      log.info(
-        'Adding exit type: ' +
-          lcExit
-            .children('option')
-            .filter(':selected')
-            .text()
-      )
-
-      activeAnnotation.exitType = lcExit.val()
-    })
   }
 
   unbindLanePropertiesPanel() {
@@ -1092,8 +1052,6 @@ export default class Annotator extends React.Component<
     $('#lp_select_left_color').off()
     $('#lp_select_right_type').off()
     $('#lp_select_right_color').off()
-    $('#lp_select_entry').off()
-    $('#lp_select_exit').off()
   }
 
   private bindLaneNeighborsPanel(): void {
@@ -1458,16 +1416,6 @@ export default class Annotator extends React.Component<
 
     lpSelectRightColor.removeAttr('disabled')
     lpSelectRightColor.val(activeAnnotation.rightLineColor.toString())
-
-    const lpSelectEntry = $('#lp_select_entry')
-
-    lpSelectEntry.removeAttr('disabled')
-    lpSelectEntry.val(activeAnnotation.entryType.toString())
-
-    const lpSelectExit = $('#lp_select_exit')
-
-    lpSelectExit.removeAttr('disabled')
-    lpSelectExit.val(activeAnnotation.exitType.toString())
   }
 
   /**
