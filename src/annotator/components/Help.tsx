@@ -18,8 +18,6 @@ export default class Help extends React.Component<{}, {}> {
         Shift-click - load an image file
         <br />
         <strong>Annotations</strong>
-        <br />s - Save annotations JSON file as UTM
-        <br />S - Save annotations JSON file as Lat/Lon
         <br />P - Publish annotations to the cloud
         <br />m - Save road network waypoints to KML file
         {/* <br />A - Delete all annotations disabled for now */}

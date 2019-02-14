@@ -86,13 +86,6 @@ export default class AnnotatorMenuView extends React.Component<
               Load Annotations{' '}
             </button>
             <button
-              id="tools_save"
-              className="ui-btn ui-icon-check ui-btn-icon-left"
-            >
-              {' '}
-              Save Annotations{' '}
-            </button>
-            <button
               id="tools_export_kml"
               className="ui-btn ui-icon-location ui-btn-icon-left"
             >
