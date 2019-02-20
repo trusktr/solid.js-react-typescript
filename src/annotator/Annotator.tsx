@@ -30,7 +30,6 @@ import {
   mousePositionToGLSpace,
   AnnotationType,
   AnnotationManager,
-  OutputFormat,
   Lane,
   NeighborLocation,
   NeighborDirection,
