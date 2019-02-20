@@ -12,7 +12,6 @@
 import config from 'annotator-config'
 import * as Electron from 'electron'
 import { flatten } from 'lodash'
-import { guard } from 'typeguard'
 import Button from '@material-ui/core/Button';
 import { SimpleKML } from '../util/KmlUtils'
 import * as Dat from 'dat.gui'
@@ -24,7 +23,6 @@ import { CalibratedImage } from './image/CalibratedImage'
 import * as React from 'react'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import { hexStringToHexadecimal } from '../util/Color'
-import SaveState from './SaveState'
 import loadAnnotations from '../util/loadAnnotations'
 import {
   AnnotatedSceneState,
@@ -182,7 +180,6 @@ export default class Annotator extends React.Component<
   private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
   private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
   private gui?: dat.GUI
-  private saveState: SaveState | null = null
   private statusWindowActions = new StatusWindowActions()
   private sceneActions = new AnnotatedSceneActions()
 
@@ -245,6 +242,8 @@ export default class Annotator extends React.Component<
     }
   }
 
+  private datContainer: JQuery
+
   // Create a UI widget to adjust application settings on the fly.
   createControlsGui(): void {
     if (!isNullOrUndefined(config['startup.show_color_picker'])) {
@@ -256,13 +255,15 @@ export default class Annotator extends React.Component<
 
     const gui = (this.gui = new dat.GUI({
       hideable: false,
-      closeOnTop: true
+      closeOnTop: true,
+      autoPlace: false,
     }))
-    const datContainer = $('<div class="dg ac"></div>')
+    this.datContainer = $('<div class="dg ac"></div>')
 
-    $('.annotated-scene-container').append(datContainer.append(gui.domElement))
+    this.datContainer.append(gui.domElement)
+    $('.annotated-scene-container').append(this.datContainer)
 
-    datContainer.css({
+    this.datContainer.css({
       position: 'absolute',
       top: 0,
       left: 0
@@ -419,9 +420,10 @@ export default class Annotator extends React.Component<
   }
 
   private destroyControlsGui(): void {
-    guard(() => {
-      if (this.gui) this.gui.destroy()
-    })
+    if (!this.gui) return
+    this.gui.destroy()
+    this.gui.domElement.remove()
+    this.datContainer.remove()
   }
 
   // When ImageManager loads an image, add it to the scene.
@@ -692,8 +694,6 @@ export default class Annotator extends React.Component<
     this.mapKey('m', () => this.uiSaveWaypointsKml())
     this.mapKey('P', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
-    this.mapKey('S', () => this.uiSaveToFile(OutputFormat.LLA))
-    this.mapKey('s', () => this.uiSaveToFile(OutputFormat.UTM))
 
     this.mapKey('R', () =>
       this.state.annotatedSceneController!.resetTiltAndCompass()
@@ -767,18 +767,6 @@ export default class Annotator extends React.Component<
       this.state.annotationManager!.hideTransform()
     }
   }
-  //
-  // private uiDeleteAllAnnotations(): void {
-  //   this.saveState!.immediateAutoSave()
-  //     .then(() => {
-  //       this.state.annotationManager!.unloadAllAnnotations()
-  //       this.saveState!.clean()
-  //     })
-  //     .catch(e => {
-  //       log.error(e.message)
-  //       dialog.showErrorBox('Error deleting all annotations', e.message)
-  //     })
-  // }
 
   // Create an annotation, add it to the scene, and activate (highlight) it.
   private uiAddAnnotation(annotationType: AnnotationType): void {
@@ -797,27 +785,6 @@ export default class Annotator extends React.Component<
         'unable to add annotation of type ' + AnnotationType[annotationType]
       )
     }
-  }
-
-  // Save all annotation data.
-  private uiSaveToFile(format: OutputFormat): Promise<void> {
-    // Attempt to insert a string representing the coordinate system format into the requested path, then save.
-    const basePath = config['output.annotations.json.path']
-    const i = basePath.indexOf('.json')
-    const formattedPath =
-      i >= 0
-        ? basePath.slice(0, i) +
-          '-' +
-          OutputFormat[format] +
-          basePath.slice(i, basePath.length)
-        : basePath
-
-    log.info(`Saving annotations JSON to ${formattedPath}`)
-
-    // TODO JOE saveAnnotationsToFile should come out of the library and into Annotor
-    return this.saveState!.saveAnnotationsToFile(formattedPath, format).catch(
-      error => log.warn('save to file failed: ' + error.message)
-    )
   }
 
   // Save lane waypoints only.
@@ -1294,15 +1261,11 @@ export default class Annotator extends React.Component<
       const handler = async (paths: string[]): Promise<void> => {
         if (paths && paths.length) {
           try {
-            this.saveState!.immediateAutoSave()
-
             await loadAnnotations.call(
               this,
               paths[0],
               this.state.annotatedSceneController!
             )
-
-            this.saveState!.clean()
           } catch (err) {
             log.warn('loadAnnotations failed: ' + err.message)
           }
@@ -1310,12 +1273,6 @@ export default class Annotator extends React.Component<
       }
 
       dialog.showOpenDialog(options, handler)
-    })
-
-    const toolsSave = $('#tools_save')
-
-    toolsSave.on('click', () => {
-      this.uiSaveToFile(OutputFormat.UTM)
     })
 
     const toolsExportKml = $('#tools_export_kml')
@@ -1340,7 +1297,6 @@ export default class Annotator extends React.Component<
     $('#tools_add_traffic_device').off()
     $('#tools_load_images').off()
     $('#tools_load_annotation').off()
-    $('#tools_save').off()
     $('#tools_export_kml').off()
   }
 
@@ -1893,8 +1849,13 @@ export default class Annotator extends React.Component<
     oldState: AnnotatorState
   ): void {
     if (!oldState.annotationManager && this.state.annotationManager) {
-      this.createControlsGui()
-      this.saveState = new SaveState(this.state.annotationManager, config) // eslint-disable-line no-use-before-define
+
+      if (this.state.annotationManager) {
+        this.createControlsGui()
+      } else {
+        this.destroyControlsGui()
+      }
+
     }
 
     if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
@@ -1961,11 +1922,6 @@ export default class Annotator extends React.Component<
     channel!.on(Events.ANNOTATION_VISUAL_UPDATE, lane => {
       lane instanceof Lane && this.uiUpdateLaneWidth(lane)
     })
-
-    // BEFORE DATA PROVIDERS
-    // channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
-    // 	guard(() => this.saveState!.dirty())
-    // })
 
     channel!.once(Events.ANNOTATED_SCENE_READY, async () => {
       this.addImageScreenLayer()
