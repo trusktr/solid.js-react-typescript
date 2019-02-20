@@ -11,7 +11,6 @@ import {
   LaneType,
   LaneLineType,
   LaneLineColor,
-  LaneEntryExitType
 } from '@mapperai/mapper-annotated-scene'
 
 export default function initUIControl(): void {
@@ -112,8 +111,6 @@ export default function initUIControl(): void {
     'Left Line Color:',
     'Right Line Type:',
     'Right Line Color',
-    'Entry Type:',
-    'Exit Type:'
   ]
   const lpLabelsId = [
     'lp_id',
@@ -123,8 +120,6 @@ export default function initUIControl(): void {
     'lp_left_color',
     'lp_right_line',
     'lp_right_color',
-    'lp_entry',
-    'lp_exit'
   ]
   const lpLabels: Array<HTMLElement> = []
 
@@ -145,8 +140,6 @@ export default function initUIControl(): void {
     'lp_select_left_color',
     'lp_select_right_type',
     'lp_select_right_color',
-    'lp_select_entry',
-    'lp_select_exit'
   ]
   const lpSelectsText = [
     [
@@ -163,12 +156,10 @@ export default function initUIControl(): void {
       'TRACKED_VEHICLES',
       'OTHER'
     ],
-    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
+    ['UNKNOWN', 'NONE', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
-    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
+    ['UNKNOWN', 'NONE', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
-    ['UNKNOWN', 'continue ––»»»––', 'stop ––||––'],
-    ['UNKNOWN', 'continue ––»»»––', 'stop ––||––']
   ]
   const lpSelectValue = [
     [
@@ -187,6 +178,7 @@ export default function initUIControl(): void {
     ],
     [
       LaneLineType.UNKNOWN.toString(),
+      LaneLineType.NONE.toString(),
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
@@ -202,6 +194,7 @@ export default function initUIControl(): void {
     ],
     [
       LaneLineType.UNKNOWN.toString(),
+      LaneLineType.NONE.toString(),
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
@@ -215,16 +208,6 @@ export default function initUIControl(): void {
       LaneLineColor.BLUE.toString(),
       LaneLineColor.OTHER.toString()
     ],
-    [
-      LaneEntryExitType.UNKNOWN.toString(),
-      LaneEntryExitType.CONTINUE.toString(),
-      LaneEntryExitType.STOP.toString()
-    ],
-    [
-      LaneEntryExitType.UNKNOWN.toString(),
-      LaneEntryExitType.CONTINUE.toString(),
-      LaneEntryExitType.STOP.toString()
-    ]
   ]
   const lpSelects: Array<HTMLElement> = []
   const eLaneId = document.createElement('text')
@@ -299,23 +282,43 @@ export default function initUIControl(): void {
   ]
   // prettier-ignore
   const cpSelectsText = [
-    ['UNKNOWN', 'YIELD', 'ALTERNATE', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER'],
-    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
+    [
+      'UNKNOWN',
+      'ALL_VEHICLES',
+      'MOTOR_VEHICLES',
+      'CAR_ONLY',
+      'TRUCK_ONLY',
+      'BUS_ONLY',
+      'BIKE_ONLY',
+      'PEDESTRIAN_ONLY',
+      'PARKING',
+      'CROSSWALK',
+      'TRACKED_VEHICLES',
+      'OTHER'
+    ],
+    ['UNKNOWN', 'NONE', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
-    ['UNKNOWN', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
+    ['UNKNOWN', 'NONE', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
   ]
   const cpSelectsValue = [
     [
       ConnectionType.UNKNOWN.toString(),
-      ConnectionType.YIELD.toString(),
-      ConnectionType.ALTERNATE.toString(),
-      ConnectionType.RYG_LIGHT.toString(),
-      ConnectionType.RYG_LEFT_ARROW_LIGHT.toString(),
+      ConnectionType.ALL_VEHICLES.toString(),
+      ConnectionType.MOTOR_VEHICLES.toString(),
+      ConnectionType.CAR_ONLY.toString(),
+      ConnectionType.TRUCK_ONLY.toString(),
+      ConnectionType.BUS_ONLY.toString(),
+      ConnectionType.BIKE_ONLY.toString(),
+      ConnectionType.PEDESTRIAN_ONLY.toString(),
+      ConnectionType.PARKING.toString(),
+      ConnectionType.CROSSWALK.toString(),
+      ConnectionType.TRACKED_VEHICLES.toString(),
       ConnectionType.OTHER.toString()
     ],
     [
       LaneLineType.UNKNOWN.toString(),
+      LaneLineType.NONE.toString(),
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
@@ -331,6 +334,7 @@ export default function initUIControl(): void {
     ],
     [
       LaneLineType.UNKNOWN.toString(),
+      LaneLineType.NONE.toString(),
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),

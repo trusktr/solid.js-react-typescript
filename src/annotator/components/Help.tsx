@@ -18,9 +18,7 @@ export default class Help extends React.Component<{}, {}> {
         Shift-click - load an image file
         <br />
         <strong>Annotations</strong>
-        <br />s - Save annotations JSON file as UTM
-        <br />S - Save annotations JSON file as Lat/Lon
-        <br />N - Export annotations to UTM tile files
+        <br />P - Publish annotations to the cloud
         <br />m - Save road network waypoints to KML file
         {/* <br />A - Delete all annotations disabled for now */}
         <br />X - Toggle translation/rotation editing of traffic devices

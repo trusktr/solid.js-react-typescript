@@ -1,4 +1,5 @@
 import { S3 } from 'aws-sdk'
+import { getValue } from 'typeguard'
 import { getS3Client, getLogger, } from '@mapperai/mapper-annotated-scene'
 import { getAccount, getOrganizationId } from '@mapperai/mapper-saffron-sdk'
 import { awsCredentials, s3Bucket } from './SaffronDataProviderFactory'
@@ -44,32 +45,33 @@ export class ActivityTracker<T extends Object | null> {
 
     this.userHasInteracted = false
 
+    if (!this.s3) {
+      await Promise.all([
+        s3Bucket.then((bucket) => this.bucket = bucket),
+        awsCredentials.then(async (creds) => {
+          return this.s3 = await getS3Client(creds)
+        }),
+      ])
+    }
+
+    if (!this.bucket || !this.s3)
+      throw new Error('unable to get s3 client')
+
     const organizationId = getOrganizationId()
     const account = getAccount()
     const sessionId = this.sessionId
 
-    if (!(account && organizationId)) {
+    if (!(account && getValue(() => account.user.id) && organizationId)) {
       log.warn('user not authenticated, not logging activity yet')
       return
-    }
-
-    if (!this.s3) {
-      const [ creds, bucket ] = await Promise.all([
-        awsCredentials,
-        s3Bucket,
-      ])
-
-      this.bucket = bucket
-      this.s3 = await getS3Client(creds)
     }
 
     const userId = account.user.id
     const timestamp = Date.now()
     const Key = `${organizationId}/stats/${sessionId}/${userId}--${timestamp}.json`
-
     const metaData = (this.onActivityTrack && this.onActivityTrack()) || {}
 
-    await this.s3!
+    await this.s3
       .putObject({
         Body: JSON.stringify({
           userId,
@@ -77,7 +79,7 @@ export class ActivityTracker<T extends Object | null> {
           intervalSeconds: 30,
           meta: metaData,
         }),
-        Bucket: this.bucket!,
+        Bucket: this.bucket,
         Key
       })
       .promise()

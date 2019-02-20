@@ -8,8 +8,19 @@ import initUIControl from './annotator-control-ui/UIControl'
 import {Annotation, LayerManager, typedConnect, toProps, AnnotatedSceneState, LayerStatusMap} from '@mapperai/mapper-annotated-scene'
 import Help from '../annotator/components/Help'
 import { Inspector } from './components/Inspector'
+import {
+  IThemedProperties,
+  withStatefulStyles,
+  mergeStyles,
+  mergeClasses,
+} from '@mapperai/mapper-themes'
+import {
+  menuSpacing,
+  menuTopPosition,
+  panelBorderRadius,
+} from './styleVars'
 
-interface AnnotatorMenuViewProps {
+interface AnnotatorMenuViewProps extends IThemedProperties {
   uiMenuVisible: boolean
   layerStatus?: LayerStatusMap
   selectedAnnotation?: Annotation | null
@@ -21,6 +32,7 @@ interface AnnotatorMenuViewState {}
   AnnotatedSceneState,
   'layerStatus'
 ))
+@withStatefulStyles(styles)
 export default class AnnotatorMenuView extends React.Component<
   AnnotatorMenuViewProps,
   AnnotatorMenuViewState
@@ -30,8 +42,9 @@ export default class AnnotatorMenuView extends React.Component<
   }
 
   render(): JSX.Element {
+    const {classes} = this.props
     return (
-      <div id="menu" className={this.props.uiMenuVisible ? '' : 'hidden'}>
+      <div id="menu" className={mergeClasses(classes!.menu!, this.props.uiMenuVisible ? '' : 'hidden')}>
         <menu id="annotationMenu" className="menu">
           {this.props.layerStatus && (
             <LayerManager layerStatus={this.props.layerStatus} useCheckboxes={true} isDraggable={false} />
@@ -71,13 +84,6 @@ export default class AnnotatorMenuView extends React.Component<
             >
               {' '}
               Load Annotations{' '}
-            </button>
-            <button
-              id="tools_save"
-              className="ui-btn ui-icon-check ui-btn-icon-left"
-            >
-              {' '}
-              Save Annotations{' '}
             </button>
             <button
               id="tools_export_kml"
@@ -192,4 +198,147 @@ export default class AnnotatorMenuView extends React.Component<
   componentDidMount(): void {
     initUIControl()
   }
+}
+
+function styles() {
+  return mergeStyles({
+    menu: {
+      position: 'absolute',
+      right: menuSpacing,
+      height: `calc(100% - ${menuTopPosition}px - ${menuSpacing}px)`,
+      width: '250px',
+      zIndex: 1,
+      top: menuTopPosition,
+      backgroundColor: 'transparent',
+      overflowX: 'visible', // visible, but don't scroll
+      overflowY: 'auto', // scroll if necessary
+      paddingTop: 0,
+      borderRadius: panelBorderRadius,
+
+      '&.hidden': {
+        display: 'none'
+      },
+
+      '& menu': {
+        padding: 0,
+        margin: 0,
+      },
+
+      '& *': {
+        pointerEvents: 'auto'
+      },
+
+      '&, & *, & *::after, & *::before': {
+        boxSizing: 'border-box'
+      },
+
+      '& .statusOk': {
+        color: '#0a0'
+      },
+      '& .statusWarning': {
+        color: '#ffd260'
+      },
+      '& .statusError': {
+        color: '#a00'
+      },
+      '& button': {
+        width: '100%',
+        textDecoration: 'none',
+        outline: 0,
+        color: '#fff',
+        backgroundColor: '#4caf50',
+        border: 0,
+        borderRadius: '15px',
+        '&.laneBtn': {
+          width: '30px'
+        },
+        '&:active': {
+          backgroundColor: '#3e8e41',
+          transform: 'translateY(4px)'
+        },
+        '&:hover': {
+          backgroundColor: '#3e8e41'
+        }
+      },
+      '& .fieldset_content_style': {
+        width: '100%',
+        height: '100%',
+        marginTop: '2px',
+        textAlign: 'center'
+      },
+      '& .div_buttons_group': {
+        marginTop: '2px',
+        textAlign: 'center'
+      },
+      '& .div_properties': {
+        marginTop: '2px',
+        textAlign: 'center'
+      },
+      '& .div_glue, & .div_help': {
+        marginTop: '2px',
+        textAlign: 'left',
+        fontSize: 'x-small'
+      },
+      '& .div_help': {
+        marginTop: 0
+      },
+      '& .ui-btn': {
+        fontSize: '12px'
+      },
+      '& .label_style, & .select_style': {
+        textAlign: 'left',
+        padding: 0,
+        margin: 0,
+        float: 'left',
+        fontSize: 'x-small'
+      },
+      '& .label_style': {
+        border: 0,
+        backgroundColor: 'transparent',
+        width: '60%'
+      },
+      '& .select_style': {
+        width: '40%'
+      },
+      '& .accordion': {
+        outline: 0,
+        borderRadius: '10px',
+        marginBottom: '2px',
+        backgroundColor: '#f4511e',
+        border: 0,
+        color: '#fff',
+        textAlign: 'left',
+        fontSize: '15px',
+        padding: 0,
+        width: 'auto',
+        cursor: 'pointer'
+      },
+      '& .dropdown_head': {
+        margin: '3px',
+        padding: '2px',
+        fontSize: '12px',
+        '&:after': {
+          content: "'\\02795'", // TODO? it was '\02795' in the CSS
+          fontSize: '10px',
+          paddingRight: '5px',
+          paddingTop: '2px',
+          float: 'right'
+        },
+        '&:active': {
+          '&:after': {
+            content: "'-'"
+          }
+        }
+      },
+      '& .dropdown_body': {
+        height: 'auto',
+        padding: '5px',
+        borderRadius: '5px',
+        backgroundColor: '#faebd7',
+        color: '#000',
+        display: 'none',
+        overflow: 'auto'
+      },
+    },
+  })
 }

@@ -12,7 +12,7 @@
 import config from 'annotator-config'
 import * as Electron from 'electron'
 import { flatten } from 'lodash'
-import { guard } from 'typeguard'
+import Button from '@material-ui/core/Button';
 import { SimpleKML } from '../util/KmlUtils'
 import * as Dat from 'dat.gui'
 import { isNullOrUndefined } from 'util' // eslint-disable-line node/no-deprecated-api
@@ -23,7 +23,6 @@ import { CalibratedImage } from './image/CalibratedImage'
 import * as React from 'react'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import { hexStringToHexadecimal } from '../util/Color'
-import SaveState from './SaveState'
 import loadAnnotations from '../util/loadAnnotations'
 import {
   AnnotatedSceneState,
@@ -51,9 +50,18 @@ import {
   Marker,
   Annotation,
   DefaultConfig,
+  StatusWindowActions,
 } from '@mapperai/mapper-annotated-scene'
 import { ReactUtil } from '@mapperai/mapper-saffron-sdk'
-import { IThemedProperties } from '@mapperai/mapper-themes'
+import {
+  IThemedProperties,
+  withStatefulStyles,
+  mergeStyles,
+} from '@mapperai/mapper-themes'
+import {
+  menuSpacing,
+  panelBorderRadius,
+} from './styleVars'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -63,7 +71,7 @@ import { IThemedProperties } from '@mapperai/mapper-themes'
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
 const dat: typeof Dat = (Dat as any).default as typeof Dat
-const $ = require('jquery')
+import $ = require('jquery')
 const dialog = Electron.remote.dialog
 const log = Logger(__filename)
 
@@ -160,6 +168,8 @@ interface AnnotatorProps extends IThemedProperties {
     'isTransformControlsAttached'
   )
 )
+
+@withStatefulStyles(styles)
 export default class Annotator extends React.Component<
   AnnotatorProps,
   AnnotatorState
@@ -170,7 +180,8 @@ export default class Annotator extends React.Component<
   private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
   private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
   private gui?: dat.GUI
-  private saveState: SaveState | null = null
+  private statusWindowActions = new StatusWindowActions()
+  private sceneActions = new AnnotatedSceneActions()
 
   constructor(props: AnnotatorProps) {
     super(props)
@@ -234,6 +245,8 @@ export default class Annotator extends React.Component<
     }
   }
 
+  private datContainer: JQuery
+
   // Create a UI widget to adjust application settings on the fly.
   createControlsGui(): void {
     if (!isNullOrUndefined(config['startup.show_color_picker'])) {
@@ -245,13 +258,15 @@ export default class Annotator extends React.Component<
 
     const gui = (this.gui = new dat.GUI({
       hideable: false,
-      closeOnTop: true
+      closeOnTop: true,
+      autoPlace: false,
     }))
-    const datContainer = $('<div class="dg ac"></div>')
+    this.datContainer = $('<div class="dg ac"></div>')
 
-    $('.annotated-scene-container').append(datContainer.append(gui.domElement))
+    this.datContainer.append(gui.domElement)
+    $('.annotated-scene-container').append(this.datContainer)
 
-    datContainer.css({
+    this.datContainer.css({
       position: 'absolute',
       top: 0,
       left: 0
@@ -375,9 +390,9 @@ export default class Annotator extends React.Component<
     const bezierScaleFactor = this.state.bezierScaleFactor
 
     folderConnection
-      .add({ bezierScaleFactor }, 'bezierScaleFactor', 1, 30)
+      .add({ bezierScaleFactor }, 'bezierScaleFactor', 1, 50)
       .step(1)
-      .name('Bezier factor')
+      .name('Curvature')
       .onChange(bezierScaleFactor => {
         this.setState({ bezierScaleFactor })
       })
@@ -408,9 +423,10 @@ export default class Annotator extends React.Component<
   }
 
   private destroyControlsGui(): void {
-    guard(() => {
-      if (this.gui) this.gui.destroy()
-    })
+    if (!this.gui) return
+    this.gui.destroy()
+    this.gui.domElement.remove()
+    this.datContainer.remove()
   }
 
   // When ImageManager loads an image, add it to the scene.
@@ -634,27 +650,6 @@ export default class Annotator extends React.Component<
     this.state.annotatedSceneController!.shouldRender()
   }
 
-  // TODO JOE eventually we need to remove this filesystem stuff from the
-  // shared lib so that the shared lib can work in regular browsers
-  // {{
-
-  /*
-   * Make a best effort to save annotations before exiting. There is no guarantee the
-   * promise will complete, but it seems to work in practice.
-   */
-  // private onBeforeUnload: (e: BeforeUnloadEvent) => void = (
-  // 	_: BeforeUnloadEvent,
-  // ) => {
-  // 	this.saveState!.immediateAutoSave()
-  // }
-  //
-  // private onFocus = (): void => {
-  // 	this.saveState!.enableAutoSave()
-  // }
-  // private onBlur = (): void => guard(() => this.saveState!.disableAutoSave())
-
-  // }}
-
   mapKey(
     key: Key,
     fn: (e?: KeyboardEvent | KeyboardEventHighlights) => void
@@ -700,10 +695,8 @@ export default class Annotator extends React.Component<
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
     this.mapKey('m', () => this.uiSaveWaypointsKml())
-    this.mapKey('N', () => this.state.annotationManager!.publish())
+    this.mapKey('P', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
-    this.mapKey('S', () => this.uiSaveToFile(OutputFormat.LLA))
-    this.mapKey('s', () => this.uiSaveToFile(OutputFormat.UTM))
 
     this.mapKey('R', () =>
       this.state.annotatedSceneController!.resetTiltAndCompass()
@@ -777,18 +770,6 @@ export default class Annotator extends React.Component<
       this.state.annotationManager!.hideTransform()
     }
   }
-  //
-  // private uiDeleteAllAnnotations(): void {
-  //   this.saveState!.immediateAutoSave()
-  //     .then(() => {
-  //       this.state.annotationManager!.unloadAllAnnotations()
-  //       this.saveState!.clean()
-  //     })
-  //     .catch(e => {
-  //       log.error(e.message)
-  //       dialog.showErrorBox('Error deleting all annotations', e.message)
-  //     })
-  // }
 
   // Create an annotation, add it to the scene, and activate (highlight) it.
   private uiAddAnnotation(annotationType: AnnotationType): void {
@@ -807,27 +788,6 @@ export default class Annotator extends React.Component<
         'unable to add annotation of type ' + AnnotationType[annotationType]
       )
     }
-  }
-
-  // Save all annotation data.
-  private uiSaveToFile(format: OutputFormat): Promise<void> {
-    // Attempt to insert a string representing the coordinate system format into the requested path, then save.
-    const basePath = config['output.annotations.json.path']
-    const i = basePath.indexOf('.json')
-    const formattedPath =
-      i >= 0
-        ? basePath.slice(0, i) +
-          '-' +
-          OutputFormat[format] +
-          basePath.slice(i, basePath.length)
-        : basePath
-
-    log.info(`Saving annotations JSON to ${formattedPath}`)
-
-    // TODO JOE saveAnnotationsToFile should come out of the library and into Annotor
-    return this.saveState!.saveAnnotationsToFile(formattedPath, format).catch(
-      error => log.warn('save to file failed: ' + error.message)
-    )
   }
 
   // Save lane waypoints only.
@@ -1050,98 +1010,54 @@ export default class Annotator extends React.Component<
       activeAnnotation.rightLineColor = +lcRightColor.val()
       activeAnnotation.updateVisualization()
     })
+  }
 
-    const lcEntry = $('#lp_select_entry')
-
-    lcEntry.on('change', () => {
-      lcEntry.blur()
-
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
-
-      if (activeAnnotation === null) return
-
-      log.info(
-        'Adding entry type: ' +
-          lcEntry
-            .children('option')
-            .filter(':selected')
-            .text()
-      )
-
-      activeAnnotation.entryType = lcEntry.val()
-    })
-
-    const lcExit = $('#lp_select_exit')
-
-    lcExit.on('change', () => {
-      lcExit.blur()
-
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
-
-      if (activeAnnotation === null) return
-
-      log.info(
-        'Adding exit type: ' +
-          lcExit
-            .children('option')
-            .filter(':selected')
-            .text()
-      )
-
-      activeAnnotation.exitType = lcExit.val()
-    })
+  unbindLanePropertiesPanel() {
+    $('#lp_select_type').off()
+    $('#lp_select_left_type').off()
+    $('#lp_select_left_color').off()
+    $('#lp_select_right_type').off()
+    $('#lp_select_right_color').off()
   }
 
   private bindLaneNeighborsPanel(): void {
-    const lpAddLeftOpposite = document.getElementById('lp_add_left_opposite')
+    const lpAddLeftOpposite = $('#lp_add_left_opposite')
 
-    if (lpAddLeftOpposite) {
-      lpAddLeftOpposite.addEventListener('click', () => {
-        this.addLeftReverse()
-      })
-    } else {
-      log.warn('missing element lp_add_left_opposite')
-    }
+    lpAddLeftOpposite.on('click', () => {
+      this.addLeftReverse()
+    })
 
-    const lpAddLeftSame = document.getElementById('lp_add_left_same')
+    const lpAddLeftSame = $('#lp_add_left_same')
 
-    if (lpAddLeftSame) {
-      lpAddLeftSame.addEventListener('click', () => {
-        this.addLeftSame()
-      })
-    } else {
-      log.warn('missing element lp_add_left_same')
-    }
+    lpAddLeftSame.on('click', () => {
+      this.addLeftSame()
+    })
 
-    const lpAddRightOpposite = document.getElementById('lp_add_right_opposite')
+    const lpAddRightOpposite = $('#lp_add_right_opposite')
 
-    if (lpAddRightOpposite) {
-      lpAddRightOpposite.addEventListener('click', () => {
-        this.addRightReverse()
-      })
-    } else {
-      log.warn('missing element lp_add_right_opposite')
-    }
+    lpAddRightOpposite.on('click', () => {
+      this.addRightReverse()
+    })
 
-    const lpAddRightSame = document.getElementById('lp_add_right_same')
+    const lpAddRightSame = $('#lp_add_right_same')
 
-    if (lpAddRightSame) {
-      lpAddRightSame.addEventListener('click', () => {
-        this.addRightSame()
-      })
-    } else {
-      log.warn('missing element lp_add_right_same')
-    }
+    lpAddRightSame.on('click', () => {
+      this.addRightSame()
+    })
 
-    const lpAddFront = document.getElementById('lp_add_forward')
+    const lpAddFront = $('#lp_add_forward')
 
-    if (lpAddFront) {
-      lpAddFront.addEventListener('click', () => {
-        this.addFront()
-      })
-    } else {
-      log.warn('missing element lp_add_forward')
-    }
+    lpAddFront.on('click', () => {
+      this.addFront()
+    })
+  }
+
+  unbindLaneNeighborsPanel() {
+    $('#lp_add_left_opposite').off()
+    $('#lp_add_left_same').off()
+    $('#lp_add_right_opposite').off()
+    $('#lp_add_right_same').off()
+    $('#lp_add_forward').off()
   }
 
   private bindConnectionPropertiesPanel(): void {
@@ -1205,8 +1121,19 @@ export default class Annotator extends React.Component<
     })
   }
 
+  unbindConnectionPropertiesPanel() {
+    $('#cp_select_type').off()
+    $('#cp_select_left_type').off()
+    $('#cp_select_left_color').off()
+    $('#cp_select_right_type').off()
+    $('#cp_select_right_color').off()
+  }
+
   private bindPolygonPropertiesPanel(): void {
     // nothing in this panel at the moment
+  }
+  unbindPolygonPropertiesPanel() {
+    // nothing to unbind
   }
 
   private bindTrafficDevicePropertiesPanel(): void {
@@ -1231,6 +1158,10 @@ export default class Annotator extends React.Component<
       activeAnnotation.updateVisualization()
       this.state.annotatedSceneController!.shouldRender()
     })
+  }
+
+  unbindTrafficDevicePropertiesPanel() {
+    $('#tp_select_type').off()
   }
 
   private bindBoundaryPropertiesPanel(): void {
@@ -1275,6 +1206,11 @@ export default class Annotator extends React.Component<
     })
   }
 
+  unbindBoundaryPropertiesPanel() {
+    $('#bp_select_type').off()
+    $('#bp_select_color').off()
+  }
+
   private bind(): void {
     this.bindLanePropertiesPanel()
     this.bindLaneNeighborsPanel()
@@ -1283,112 +1219,88 @@ export default class Annotator extends React.Component<
     this.bindTrafficDevicePropertiesPanel()
     this.bindBoundaryPropertiesPanel()
 
-    const menuControlElement = document.getElementById('menu_control')
+    const menuControlElement = $('#menu_control')
 
-    if (menuControlElement) menuControlElement.style.visibility = 'visible'
+    if (menuControlElement.length) menuControlElement[0].style.visibility = 'visible'
     else log.warn('missing element menu_control')
 
-    const toolsDelete = document.getElementById('tools_delete')
+    const toolsDelete = $('#tools_delete')
 
-    if (toolsDelete) {
-      toolsDelete.addEventListener('click', () => {
-        this.uiDeleteActiveAnnotation()
-      })
-    } else {
-      log.warn('missing element tools_delete')
-    }
+    toolsDelete.on('click', () => {
+      this.uiDeleteActiveAnnotation()
+    })
 
-    const toolsAddLane = document.getElementById('tools_add_lane')
+    const toolsAddLane = $('#tools_add_lane')
 
-    if (toolsAddLane) {
-      toolsAddLane.addEventListener('click', () => {
-        this.uiAddAnnotation(AnnotationType.LANE)
-      })
-    } else {
-      log.warn('missing element tools_add_lane')
-    }
+    toolsAddLane.on('click', () => {
+      this.uiAddAnnotation(AnnotationType.LANE)
+    })
 
-    const toolsAddTrafficDevice = document.getElementById(
-      'tools_add_traffic_device'
-    )
+    const toolsAddTrafficDevice = $('#tools_add_traffic_device')
 
-    if (toolsAddTrafficDevice) {
-      toolsAddTrafficDevice.addEventListener('click', () => {
-        this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
-      })
-    } else {
-      log.warn('missing element tools_add_traffic_device')
-    }
+    toolsAddTrafficDevice.on('click', () => {
+      this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
+    })
 
-    const toolsLoadImages = document.getElementById('tools_load_images')
+    const toolsLoadImages = $('#tools_load_images')
 
-    if (toolsLoadImages) {
-      toolsLoadImages.addEventListener('click', () => {
-        this.imageManager
-          .loadImagesFromOpenDialog()
-          .catch(err =>
-            log.warn('loadImagesFromOpenDialog failed: ' + err.message)
-          )
-      })
-    } else {
-      log.warn('missing element tools_load_images')
-    }
+    toolsLoadImages.on('click', () => {
+      this.imageManager
+        .loadImagesFromOpenDialog()
+        .catch(err =>
+          log.warn('loadImagesFromOpenDialog failed: ' + err.message)
+        )
+    })
 
-    const toolsLoadAnnotation = document.getElementById('tools_load_annotation')
+    const toolsLoadAnnotation = $('#tools_load_annotation')
 
-    if (toolsLoadAnnotation) {
-      toolsLoadAnnotation.addEventListener('click', () => {
-        const options: Electron.OpenDialogOptions = {
-          message: 'Load Annotations File',
-          properties: ['openFile'],
-          filters: [{ name: 'json', extensions: ['json'] }]
-        }
+    toolsLoadAnnotation.on('click', () => {
+      const options: Electron.OpenDialogOptions = {
+        message: 'Load Annotations File',
+        properties: ['openFile'],
+        filters: [{ name: 'json', extensions: ['json'] }]
+      }
 
-        const handler = async (paths: string[]): Promise<void> => {
-          if (paths && paths.length) {
-            try {
-              this.saveState!.immediateAutoSave()
-
-              await loadAnnotations.call(
-                this,
-                paths[0],
-                this.state.annotatedSceneController!
-              )
-
-              this.saveState!.clean()
-            } catch (err) {
-              log.warn('loadAnnotations failed: ' + err.message)
-            }
+      const handler = async (paths: string[]): Promise<void> => {
+        if (paths && paths.length) {
+          try {
+            await loadAnnotations.call(
+              this,
+              paths[0],
+              this.state.annotatedSceneController!
+            )
+          } catch (err) {
+            log.warn('loadAnnotations failed: ' + err.message)
           }
         }
+      }
 
-        dialog.showOpenDialog(options, handler)
-      })
-    } else {
-      log.warn('missing element tools_load_annotation')
-    }
+      dialog.showOpenDialog(options, handler)
+    })
 
-    const toolsSave = document.getElementById('tools_save')
+    const toolsExportKml = $('#tools_export_kml')
 
-    if (toolsSave) {
-      toolsSave.addEventListener('click', () => {
-        this.uiSaveToFile(OutputFormat.UTM)
-      })
-    } else {
-      log.warn('missing element tools_save')
-    }
-
-    const toolsExportKml = document.getElementById('tools_export_kml')
-
-    if (toolsExportKml) {
-      toolsExportKml.addEventListener('click', () => {
-        this.uiSaveWaypointsKml()
-      })
-    } else {
-      log.warn('missing element tools_export_kml')
-    }
+    toolsExportKml.on('click', () => {
+      this.uiSaveWaypointsKml()
+    })
 
     this.deactivateAllAnnotationPropertiesMenus()
+  }
+
+  unbind() {
+    this.unbindLanePropertiesPanel()
+    this.unbindLaneNeighborsPanel()
+    this.unbindConnectionPropertiesPanel()
+    this.unbindPolygonPropertiesPanel()
+    this.unbindTrafficDevicePropertiesPanel()
+    this.unbindBoundaryPropertiesPanel()
+
+    $('#menu_control').off()
+    $('#tools_add_lane').off()
+    $('#tools_add_traffic_device').off()
+    $('#tools_load_images').off()
+    $('#tools_load_annotation').off()
+    $('#tools_export_kml').off()
   }
 
   // }}
@@ -1459,16 +1371,6 @@ export default class Annotator extends React.Component<
 
     lpSelectRightColor.removeAttr('disabled')
     lpSelectRightColor.val(activeAnnotation.rightLineColor.toString())
-
-    const lpSelectEntry = $('#lp_select_entry')
-
-    lpSelectEntry.removeAttr('disabled')
-    lpSelectEntry.val(activeAnnotation.entryType.toString())
-
-    const lpSelectExit = $('#lp_select_exit')
-
-    lpSelectExit.removeAttr('disabled')
-    lpSelectExit.val(activeAnnotation.exitType.toString())
   }
 
   /**
@@ -1903,11 +1805,19 @@ export default class Annotator extends React.Component<
     } as IAnnotatedSceneConfig
   }
 
-  componentDidMount(): void {
-    // window.addEventListener('focus', this.onFocus)
-    // window.addEventListener('blur', this.onBlur)
-    // window.addEventListener('beforeunload', this.onBeforeUnload)
+  private onPublishClick = () => {
+    this.state.annotationManager!.publish()
+  }
 
+  private onStatusWindowClick = () => {
+    this.statusWindowActions.toggleEnabled()
+  }
+
+  private onMenuClick = () => {
+    this.sceneActions.toggleUIMenuVisible()
+  }
+
+  componentDidMount(): void {
     document.addEventListener('mousemove', this.checkForImageScreenSelection)
     document.addEventListener('mouseup', this.clickImageScreenBox)
 
@@ -1917,6 +1827,11 @@ export default class Annotator extends React.Component<
   }
 
   componentWillUnmount(): void {
+    this.unbind()
+
+    document.removeEventListener('mousemove', this.checkForImageScreenSelection)
+    document.removeEventListener('mouseup', this.clickImageScreenBox)
+
     try {
       this.destroyControlsGui()
     } catch (err) {
@@ -1924,7 +1839,8 @@ export default class Annotator extends React.Component<
     }
 
     try {
-      this.state.annotatedSceneController!.cleanup()
+      this.state.annotatedSceneController &&
+        this.state.annotatedSceneController.cleanup()
     } catch (err) {
       log.error('annotatedSceneController.cleanup() failed', err)
     }
@@ -1936,8 +1852,13 @@ export default class Annotator extends React.Component<
     oldState: AnnotatorState
   ): void {
     if (!oldState.annotationManager && this.state.annotationManager) {
-      this.createControlsGui()
-      this.saveState = new SaveState(this.state.annotationManager, config) // eslint-disable-line no-use-before-define
+
+      if (this.state.annotationManager) {
+        this.createControlsGui()
+      } else {
+        this.destroyControlsGui()
+      }
+
     }
 
     if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
@@ -2009,11 +1930,6 @@ export default class Annotator extends React.Component<
       lane instanceof Lane && this.uiUpdateLaneWidth(lane)
     })
 
-    // BEFORE DATA PROVIDERS
-    // channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
-    // 	guard(() => this.saveState!.dirty())
-    // })
-
     channel!.once(Events.ANNOTATED_SCENE_READY, async () => {
       this.addImageScreenLayer()
 
@@ -2051,12 +1967,27 @@ export default class Annotator extends React.Component<
 
   render(): JSX.Element {
     const { annotatedSceneConfig } = this.state
-    const { dataProviderFactory } = this.props
+    const { dataProviderFactory, classes } = this.props
 
     return !dataProviderFactory || !annotatedSceneConfig ? (
       <div />
     ) : (
       <React.Fragment>
+        <div id="menu_control" className={classes!.menuControl}>
+          <Button variant="contained" color="primary" onClick={this.onPublishClick} classes={{root: classes!.publishButton!}}>
+            Publish
+          </Button>
+          <Button variant="contained" color="primary" onClick={this.onStatusWindowClick}>
+            &#x2139;
+          </Button>
+          <Button variant="contained" color="primary" onClick={this.onMenuClick}>
+            &#9776;
+          </Button>
+        </div>
+        <AnnotatorMenuView
+          uiMenuVisible={this.props.uiMenuVisible!}
+          selectedAnnotation={ this.props.activeAnnotation }
+        />
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
@@ -2064,10 +1995,7 @@ export default class Annotator extends React.Component<
           annotationManagerRef={this.setAnnotationManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
-        />
-        <AnnotatorMenuView
-          uiMenuVisible={this.props.uiMenuVisible!}
-          selectedAnnotation={ this.props.activeAnnotation }
+          classes={{root: classes!.annotatedScene}}
         />
       </React.Fragment>
     )
@@ -2088,4 +2016,85 @@ function hasGeometry(n: THREE.Object3D): boolean {
   //   n instanceof THREE.Points ||
   //   n instanceof THREE.Sprite
   // )
+}
+
+const numberOfButtons = 3
+
+function styles() {
+  return mergeStyles({
+    annotatedScene: {
+      height: '100%',
+      maxHeight: '100%',
+      minHeight: '100%',
+      border: 0,
+      padding: 0,
+      margin: 0,
+      width: '100%',
+      maxWidth: '100%',
+      minWidth: '100%',
+      fontFamily: 'Verdana, Geneva, sans-serif',
+      overflowX: 'hidden',
+      overflowY: 'hidden',
+
+      '& canvas.annotated-scene-canvas': {
+        width: '100%',
+        height: '100%'
+      },
+
+      '& .hidden': {
+        display: 'none'
+      },
+
+      '&, & *, & *::after, & *::before': {
+        boxSizing: 'border-box'
+      },
+    },
+
+    menuControl: {
+      backgroundColor: 'transparent',
+      position: 'absolute',
+      zIndex: 1,
+      top: menuSpacing,
+      right: menuSpacing,
+      visibility: 'hidden',
+      height: '32px',
+      display: 'flex',
+      justifyContent: 'space-between',
+
+      "& > *": {
+        width: `calc(${100/numberOfButtons}% - ${menuSpacing/2}px)`,
+        "& span": {
+          fontSize: '1.5rem',
+          lineHeight: '1.5rem',
+        },
+        "&$publishButton": {
+          "& span": {
+            fontSize: '1rem',
+            lineHeight: '1rem',
+          },
+        },
+      }
+    },
+
+    publishButton: {},
+
+    '@global': {
+      // this is inside of AnnotatedSceneController
+      '#status_window': {
+        position: 'absolute',
+        left: menuSpacing,
+        bottom: menuSpacing,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        padding: '5px',
+        zIndex: 3,
+        borderRadius: panelBorderRadius,
+      },
+
+      '.performanceStats': {
+        // FIXME, if the status_window height gets taller because of
+        // annotated-scene, then it overlaps with the performance stats
+        bottom: '76px!important',
+      },
+    },
+  })
 }
