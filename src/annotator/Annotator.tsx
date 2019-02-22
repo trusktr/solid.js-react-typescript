@@ -805,7 +805,7 @@ export default class Annotator extends React.Component<
     const a = document.createElement('a')
     a.style.setProperty('display', 'none')
     a.href = url
-    a.download = "annotations.json";
+    a.download = `annotations${sessionId ? '-'+sessionId : ''}.json`
     document.body.appendChild(a)
     a.click()
   }
