@@ -134,7 +134,6 @@ interface AnnotatorProps extends IThemedProperties {
   isConnectFrontNeighborMode?: boolean
   isJoinAnnotationMode?: boolean
   isAddConflictOrDeviceMode?: boolean
-  isRotationModeActive?: boolean
   isMouseDown?: boolean
   isMouseDragging?: boolean
   mousePosition?: MousePosition
@@ -160,7 +159,6 @@ interface AnnotatorProps extends IThemedProperties {
     'isConnectFrontNeighborMode',
     'isJoinAnnotationMode',
     'isAddConflictOrDeviceMode',
-    'isRotationModeActive',
     'isMouseDown',
     'isMouseDragging',
     'mousePosition',
@@ -677,6 +675,8 @@ export default class Annotator extends React.Component<
     // `ctrl+a` and let users customize. Perhaps built on ELectron
     // accelerators and possibly similar to Atom key maps.
 
+    const actions = new AnnotatedSceneActions()
+
     this.mapKey('Backspace', () => this.uiDeleteActiveAnnotation())
     this.mapKey('Escape', () => this.uiEscapeSelection())
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
@@ -707,10 +707,8 @@ export default class Annotator extends React.Component<
     )
 
     this.mapKey('X', () =>
-      this.state.annotationManager!.toggleTransformControlsRotationMode()
+      this.state.annotationManager!.cycleTransformControlModes()
     )
-
-    const actions = new AnnotatedSceneActions()
 
     this.keyHeld('a', held => actions.setAddMarkerMode(held))
     this.keyHeld('c', held => actions.setAddConnectionMode(held))
