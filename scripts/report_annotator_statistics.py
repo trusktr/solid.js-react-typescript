@@ -6,6 +6,7 @@ from S3. Take the local files and grind them down into statistics.
 import argparse
 import json
 import os
+import re
 import subprocess
 
 bucket = 'mapper-prod-session-data'
@@ -23,15 +24,18 @@ def process(args):
     args.stats_dest_dir = f"{dest_dir}/stats"
     args.conversion_dest_file = f"{args.output_directory}/{args.session_id}.tsv"
 
-    download(args)
+    publish_timestamp = download(args)
     total_time = parse_logs(args)
     count_annotations(args)
-    append_time(args, total_time)
+    append_metadata(args, publish_timestamp, total_time)
 
 
 def download(args):
+    publish_timestamp = ''
     try:
-        subprocess.check_output(['aws', 's3', 'ls', args.annotations_source_file])
+        result = subprocess.check_output(['aws', 's3', 'ls', args.annotations_source_file])
+        matches = re.search('^([\d-]+ [\d:]+)', result.decode("utf-8"))
+        publish_timestamp = matches.group(0)
     except subprocess.CalledProcessError:
         print(f"session {args.session_id} has not been published")
         exit(1)
@@ -46,6 +50,8 @@ def download(args):
     sync_args = ['aws', 's3', 'sync', '--include', '"*.json"', '--delete', '--quiet']
     subprocess.check_output(sync_args + [args.annotations_source_dir, args.annotations_dest_dir])
     subprocess.check_output(sync_args + [args.stats_source_dir, args.stats_dest_dir])
+
+    return publish_timestamp
 
 
 # TODO filter stats which are newer than the published annotations
@@ -73,8 +79,11 @@ def count_annotations(args):
     subprocess.check_output(conversion_args)
 
 
-def append_time(args, total_time):
+def append_metadata(args, publish_timestamp, total_time):
     with open(args.conversion_dest_file, 'a') as f:
+        f.write(f"organization\tID\t{args.org_id}\n")
+        f.write(f"session\tID\t{args.session_id}\n")
+        f.write(f"published\ttimestamp\t{publish_timestamp}\n")
         f.write(f"annotator activity\ttime (s)\t{total_time}\n")
 
 

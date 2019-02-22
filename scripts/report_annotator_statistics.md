@@ -5,6 +5,7 @@ We are gathering statistics on Annotator tool usage in a spreadsheet. To make so
  - write access to [the spreadsheet](https://docs.google.com/spreadsheets/d/1uy5BURyJAVCHQOTaOaqMHjXEB-loqlRccw501Fbyp8c/edit?usp=sharing)
  - a session ID which has been annotated and published
  - the organization ID for the session
+ - [AWS CLI tools](https://docs.google.com/document/d/1x7yNMfRnDBJQt2FqrkDZyUa8a6w7KhgdqshYg4Au0sc/edit#)
  - a build of [mapper-semantic-conversion](https://github.com/Signafy/mapper-semantic-conversion)
  - `report_annotator_statistics.py`
 
@@ -33,6 +34,6 @@ python3 \
 	$SESSION_ID
 ```
 
-After running the scripts, you are left with a `.tsv` file. Open [the spreadsheet](https://docs.google.com/spreadsheets/d/1uy5BURyJAVCHQOTaOaqMHjXEB-loqlRccw501Fbyp8c/edit?usp=sharing) and navigate to `File>Import…>Upload`. Drag the `.tsv` file there.
+After running the scripts, you are left with a `.tsv` file. Open [the spreadsheet](https://docs.google.com/spreadsheets/d/1uy5BURyJAVCHQOTaOaqMHjXEB-loqlRccw501Fbyp8c/edit?usp=sharing) and navigate to `File>Import…>Upload`. Drag the `.tsv` file there. Then select `Insert new sheet(s)` and `Import data`.
 
 The new sheet has raw data but no calculations. Go to one of the existing sheets, copy the calculations rows (in green), and paste into the new sheet. Check the equations to be sure they refer to the correct cells in the new sheet.
