@@ -800,8 +800,7 @@ export default class Annotator extends React.Component<
   private saveAnnotationsJson = () => {
     const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON())
     const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
-    console.log( 'SAVE ANNOTATIONS JSON', json )
-    const url = URL.createObjectURL(new Blob([json], {type: 'text/json'}))
+    const url = URL.createObjectURL(new Blob([json], {type: 'application/json'}))
     const a = document.createElement('a')
     a.style.setProperty('display', 'none')
     a.href = url
