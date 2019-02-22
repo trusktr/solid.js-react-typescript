@@ -30,7 +30,6 @@ import {
   mousePositionToGLSpace,
   AnnotationType,
   AnnotationManager,
-  OutputFormat,
   Lane,
   NeighborLocation,
   NeighborDirection,
@@ -796,6 +795,19 @@ export default class Annotator extends React.Component<
     return this.saveToKML(basePath).catch(err =>
       log.warn('saveToKML failed: ' + err.message)
     )
+  }
+
+  private saveAnnotationsJson = () => {
+    const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON())
+    const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
+    console.log( 'SAVE ANNOTATIONS JSON', json )
+    const url = URL.createObjectURL(new Blob([json], {type: 'text/json'}))
+    const a = document.createElement('a')
+    a.style.setProperty('display', 'none')
+    a.href = url
+    a.download = "annotations.json";
+    document.body.appendChild(a)
+    a.click()
   }
 
   /**
@@ -1980,6 +1992,7 @@ export default class Annotator extends React.Component<
         <AnnotatorMenuView
           uiMenuVisible={this.props.uiMenuVisible!}
           selectedAnnotation={ this.props.activeAnnotation }
+          onSaveAnnotationsJson={this.saveAnnotationsJson}
         />
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
