@@ -96,7 +96,7 @@ startup.show_control_panel: true
 
 # persistence of a data file
 output.annotations.json.path: ./data/annotations.json
-output.annotations.kml.path: ./data/waypoints.kml
+output.annotations.kml.path: ./data/annotations.kml
 output.annotations.autosave.directory.path: ./data/autosave
 output.annotations.autosave.interval.seconds: 300
 output.annotations.tiles_dir: ./data/tiles
