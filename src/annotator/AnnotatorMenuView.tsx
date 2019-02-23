@@ -90,7 +90,7 @@ export default class AnnotatorMenuView extends React.Component<
               id="tools_export_kml"
               className="ui-btn ui-icon-location ui-btn-icon-left"
             >
-              Export Lane Waypoints as KML
+              Export Annotations as KML
             </button>
             <button
               onClick={this.props.onSaveAnnotationsJson}
