@@ -25,7 +25,7 @@ interface AnnotatorMenuViewProps extends IThemedProperties {
   layerStatus?: LayerStatusMap
   selectedAnnotation?: Annotation | null
   onSaveAnnotationsJson(): void
-  onSaveWaypointsKML(): void
+  onSaveAnnotationsKML(): void
 }
 
 interface AnnotatorMenuViewState {}
@@ -88,7 +88,7 @@ export default class AnnotatorMenuView extends React.Component<
               Load Annotations{' '}
             </button>
             <button
-              onClick={this.props.onSaveWaypointsKML}
+              onClick={this.props.onSaveAnnotationsKML}
               className="ui-btn ui-icon-location ui-btn-icon-left"
             >
               Save Annotations as KML

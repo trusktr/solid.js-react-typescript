@@ -1984,7 +1984,7 @@ export default class Annotator extends React.Component<
           uiMenuVisible={this.props.uiMenuVisible!}
           selectedAnnotation={ this.props.activeAnnotation }
           onSaveAnnotationsJson={this.saveAnnotationsJson}
-          onSaveWaypointsKML={this.saveAnnotationsKML}
+          onSaveAnnotationsKML={this.saveAnnotationsKML}
         />
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
