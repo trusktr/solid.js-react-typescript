@@ -91,7 +91,7 @@ export default class AnnotatorMenuView extends React.Component<
               onClick={this.props.onSaveWaypointsKML}
               className="ui-btn ui-icon-location ui-btn-icon-left"
             >
-              Save Lane Waypoints as KML
+              Save Annotations as KML
             </button>
             <button
               onClick={this.props.onSaveAnnotationsJson}

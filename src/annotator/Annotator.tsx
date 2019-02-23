@@ -691,7 +691,6 @@ export default class Annotator extends React.Component<
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
-    this.mapKey('m', () => this.saveAnnotationsKML())
     this.mapKey('P', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
 
@@ -804,18 +803,23 @@ export default class Annotator extends React.Component<
   private saveAnnotationsKML() {
     const { utmCoordinateSystem } = this.state.annotatedSceneController!.state
 
-    // Get all the points and convert to lat lon
-    const geopoints: Array<THREE.Vector3> = flatten(
-      this.state.annotationManager!.state.laneAnnotations.map(lane =>
-        lane.waypoints.map(p => utmCoordinateSystem!.threeJsToLngLatAlt(p))
-      )
-    )
+    function annotationToGeoPoints(a: Annotation): Array<THREE.Vector3> {
+      return a.outline.map(m => utmCoordinateSystem!.threeJsToLngLatAlt(m.position))
+    }
 
-    const kml = JSON.stringify(geopoints)
+    // Get all the points and convert to lat lon
+    const kml = new SimpleKML()
+
+    const annotations = this.state.annotationManager!.state
+    annotations.boundaryAnnotations.forEach(a => kml.addPath(annotationToGeoPoints(a)))
+    annotations.laneAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    annotations.connectionAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    annotations.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
+
     const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
 
     saveFileWithDialog(
-      kml,
+      kml.toString(),
       'application/vnd.google-earth.kml+xml',
       `annotations${sessionId ? '-'+sessionId : ''}.kml`
     )

@@ -19,8 +19,6 @@ export default class Help extends React.Component<{}, {}> {
         <br />
         <strong>Annotations</strong>
         <br />P - Publish annotations to the cloud
-        <br />m - Save road network waypoints to KML file
-        {/* <br />A - Delete all annotations disabled for now */}
         <br />X - Toggle translation/rotation editing of traffic devices
         <br />
         Delete/Backspace - Delete active annotation
