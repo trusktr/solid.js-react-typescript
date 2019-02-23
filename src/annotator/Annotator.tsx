@@ -800,7 +800,7 @@ export default class Annotator extends React.Component<
   /**
    * 	Save lane waypoints (only) to KML.
    */
-  private saveAnnotationsKML() {
+  private saveAnnotationsKML = () => {
     const { utmCoordinateSystem } = this.state.annotatedSceneController!.state
 
     function annotationToGeoPoints(a: Annotation): Array<THREE.Vector3> {
