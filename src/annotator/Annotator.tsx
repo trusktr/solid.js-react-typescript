@@ -61,6 +61,7 @@ import {
   menuSpacing,
   panelBorderRadius,
 } from './styleVars'
+import { saveFileWithDialog } from '../util/file'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -690,7 +691,7 @@ export default class Annotator extends React.Component<
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
-    this.mapKey('m', () => this.uiSaveWaypointsKml())
+    this.mapKey('m', () => this.saveAnnotationsKML())
     this.mapKey('P', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
 
@@ -786,45 +787,38 @@ export default class Annotator extends React.Component<
     }
   }
 
-  // Save lane waypoints only.
-  private async uiSaveWaypointsKml(): Promise<void> {
-    const basePath = config['output.annotations.kml.path']
-
-    log.info(`Saving waypoints KML to ${basePath}`)
-
-    return this.saveToKML(basePath).catch(err =>
-      log.warn('saveToKML failed: ' + err.message)
-    )
-  }
-
   private saveAnnotationsJson = () => {
     const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON())
     const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
-    const url = URL.createObjectURL(new Blob([json], {type: 'application/json'}))
-    const a = document.createElement('a')
-    a.style.setProperty('display', 'none')
-    a.href = url
-    a.download = `annotations${sessionId ? '-'+sessionId : ''}.json`
-    document.body.appendChild(a)
-    a.click()
+
+    saveFileWithDialog(
+      json,
+      'application/json',
+      `annotations${sessionId ? '-'+sessionId : ''}.json`
+    )
   }
 
   /**
    * 	Save lane waypoints (only) to KML.
    */
-  saveToKML(fileName: string): Promise<void> {
+  private saveAnnotationsKML() {
     const { utmCoordinateSystem } = this.state.annotatedSceneController!.state
+
     // Get all the points and convert to lat lon
     const geopoints: Array<THREE.Vector3> = flatten(
       this.state.annotationManager!.state.laneAnnotations.map(lane =>
         lane.waypoints.map(p => utmCoordinateSystem!.threeJsToLngLatAlt(p))
       )
     )
-    // Save file
-    const kml = new SimpleKML()
 
-    kml.addPath(geopoints)
-    return kml.saveToFile(fileName)
+    const kml = JSON.stringify(geopoints)
+    const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
+
+    saveFileWithDialog(
+      kml,
+      'application/vnd.google-earth.kml+xml',
+      `annotations${sessionId ? '-'+sessionId : ''}.kml`
+    )
   }
 
   private addFront(): void {
@@ -1284,12 +1278,6 @@ export default class Annotator extends React.Component<
       }
 
       dialog.showOpenDialog(options, handler)
-    })
-
-    const toolsExportKml = $('#tools_export_kml')
-
-    toolsExportKml.on('click', () => {
-      this.uiSaveWaypointsKml()
     })
 
     this.deactivateAllAnnotationPropertiesMenus()
@@ -1992,6 +1980,7 @@ export default class Annotator extends React.Component<
           uiMenuVisible={this.props.uiMenuVisible!}
           selectedAnnotation={ this.props.activeAnnotation }
           onSaveAnnotationsJson={this.saveAnnotationsJson}
+          onSaveWaypointsKML={this.saveAnnotationsKML}
         />
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
