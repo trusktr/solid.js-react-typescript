@@ -1,7 +1,9 @@
 export type Content = StrictUnion<ArrayBuffer | ArrayBufferView | Blob | string>
 
-// NOTE: this should be called from a user-initiated DOM event, or else the
-// below `a.click()` won't work.
+/**
+ * Opens a save dialog to save the given content of given mime type, with
+ * default pre-filled filename.
+ */
 export function saveFileWithDialog(content: Content, mime: string, filename: string) {
   const file = new Blob([content], {type: mime})
   const url = URL.createObjectURL(file)
@@ -11,5 +13,5 @@ export function saveFileWithDialog(content: Content, mime: string, filename: str
   a.download = filename
   document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(url)
 }
