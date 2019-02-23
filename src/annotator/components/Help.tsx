@@ -19,7 +19,7 @@ export default class Help extends React.Component<{}, {}> {
         <br />
         <strong>Annotations</strong>
         <br />P - Publish annotations to the cloud
-        <br />X - Toggle translation/rotation editing of traffic devices
+        <br />X - Cycle through available tranformation modes (translate, rotate, scale) for the selected annotation
         <br />
         Delete/Backspace - Delete active annotation
         <br />c - Hold to add lane connection; click on the lane to connect
