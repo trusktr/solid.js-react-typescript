@@ -25,34 +25,82 @@ export class SimpleKML {
 
   constructor() {
     this.header =
-      '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<kml xmlns="http://www.opengis.net/kml/2.2">\n' +
-      '  <Document>\n'
-
-    this.tail = '  </Document>\n</kml>\n'
-    this.content = ''
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+      "<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n" +
+      "  <Document>\n" +
+      "  <Style id=\"white\">\n" +
+      "    <LineStyle>\n" +
+      "      <color>66ffffff</color>\n" +
+      "    </LineStyle>\n" +
+      "    <PolyStyle>\n" +
+      "      <color>66999999</color>\n" +
+      "    </PolyStyle>\n" +
+      "  </Style>\n" +
+      "  <Style id=\"green\">\n" +
+      "    <LineStyle>\n" +
+      "      <color>6600ff00</color>\n" +
+      "    </LineStyle>\n" +
+      "    <PolyStyle>\n" +
+      "      <color>66009900</color>\n" +
+      "    </PolyStyle>\n" +
+      "  </Style>\n"
+    this.tail = "  </Document>\n</kml>\n"
+    this.content = ""
   }
 
-  addPath(points: Array<THREE.Vector3>): void {
+  addPoints(points: Array<THREE.Vector3>, style: String = "white"): void {
+    points.forEach(p => this.addPoint(p, style))
+  }
+
+  addPoint(point: THREE.Vector3, style: String = "white"): void {
     let path =
-      '	<Placemark>\n ' +
-      '	  <LineString>\n' +
-      '		<altitudeMode>clampToGround</altitudeMode>\n' +
-      '		<coordinates>\n'
+      "    <Placemark>\n " +
+      "      <styleUrl>#" + style + "</styleUrl>\n" +
+      "      <Point>\n" +
+      "        <coordinates>\n" +
+      "            " + point.x.toString() + "," + point.y.toString() + "," + point.z.toString() + "\n" +
+      "        </coordinates>\n" +
+      "      </Point>\n" +
+      "    </Placemark>\n"
+    this.content += path
+  }
 
-    points.forEach(point => {
-      path +=
-        '		  ' +
-        point.x.toString() +
-        ',' +
-        point.y.toString() +
-        ',' +
-        point.z.toString() +
-        '\n'
+  addPath(points: Array<THREE.Vector3>, style: String = "white"): void {
+    let path =
+      "    <Placemark>\n " +
+      "      <styleUrl>#" + style + "</styleUrl>\n" +
+      "      <LineString>\n" +
+      "        <altitudeMode>clampToGround</altitudeMode>\n" +
+      "        <coordinates>\n"
+    points.forEach((point) => {
+      path += "          " + point.x.toString() + "," + point.y.toString() + "," + point.z.toString() + "\n"
     })
+    path +=
+      "        </coordinates>\n" + "" +
+      "      </LineString>\n" +
+      "    </Placemark>\n"
+    this.content += path
+  }
 
-    path += '		</coordinates>\n' + '' + '	  </LineString>\n' + '	</Placemark>\n'
-
+  addPolygon(points: Array<THREE.Vector3>, style: String = "green"): void {
+    let path =
+      "    <Placemark>\n " +
+      "      <styleUrl>#" + style + "</styleUrl>\n" +
+      "      <Polygon>\n" +
+      "        <tessellate>1</tessellate>\n" +
+      "        <altitudeMode>clampToGround</altitudeMode>\n" +
+      "        <outerBoundaryIs>\n" +
+      "          <LinearRing>\n" +
+      "            <coordinates>\n"
+    points.concat(points[0]).forEach((point) => {
+      path += "          " + point.x.toString() + "," + point.y.toString() + "," + point.z.toString() + "\n"
+    })
+    path +=
+      "            </coordinates>\n" +
+      "          </LinearRing>\n" +
+      "        </outerBoundaryIs>\n" +
+      "      </Polygon>\n" +
+      "    </Placemark>\n"
     this.content += path
   }
 

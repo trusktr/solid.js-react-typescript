@@ -690,7 +690,7 @@ export default class Annotator extends React.Component<
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
-    this.mapKey('m', () => this.uiSaveWaypointsKml())
+    this.mapKey('m', () => this.uiSaveAnnotationsKml())
     this.mapKey('P', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
 
@@ -786,11 +786,10 @@ export default class Annotator extends React.Component<
     }
   }
 
-  // Save lane waypoints only.
-  private async uiSaveWaypointsKml(): Promise<void> {
+  private async uiSaveAnnotationsKml(): Promise<void> {
     const basePath = config['output.annotations.kml.path']
 
-    log.info(`Saving waypoints KML to ${basePath}`)
+    log.info(`Saving annotations KML to ${basePath}`)
 
     return this.saveToKML(basePath).catch(err =>
       log.warn('saveToKML failed: ' + err.message)
@@ -810,21 +809,20 @@ export default class Annotator extends React.Component<
     a.click()
   }
 
-  /**
-   * 	Save lane waypoints (only) to KML.
-   */
   saveToKML(fileName: string): Promise<void> {
     const { utmCoordinateSystem } = this.state.annotatedSceneController!.state
+    function annotationToGeoPoints(a: Annotation): Array<THREE.Vector3> {
+      return a.outline.map(m => utmCoordinateSystem!.threeJsToLngLatAlt(m.position))
+    }
+
     // Get all the points and convert to lat lon
-    const geopoints: Array<THREE.Vector3> = flatten(
-      this.state.annotationManager!.state.laneAnnotations.map(lane =>
-        lane.waypoints.map(p => utmCoordinateSystem!.threeJsToLngLatAlt(p))
-      )
-    )
-    // Save file
     const kml = new SimpleKML()
 
-    kml.addPath(geopoints)
+    const annotations = this.state.annotationManager!.state
+    annotations.boundaryAnnotations.forEach(a => kml.addPath(annotationToGeoPoints(a)))
+    annotations.laneAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    annotations.connectionAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    annotations.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
     return kml.saveToFile(fileName)
   }
 
@@ -1290,7 +1288,7 @@ export default class Annotator extends React.Component<
     const toolsExportKml = $('#tools_export_kml')
 
     toolsExportKml.on('click', () => {
-      this.uiSaveWaypointsKml()
+      this.uiSaveAnnotationsKml()
     })
 
     this.deactivateAllAnnotationPropertiesMenus()
