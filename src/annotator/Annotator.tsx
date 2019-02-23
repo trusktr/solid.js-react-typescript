@@ -36,6 +36,7 @@ import {
   Key,
   LayerId,
   LayerStatus,
+  Layer,
   StatusWindowState,
   AnnotatedSceneController,
   THREEColorValue,
@@ -773,6 +774,7 @@ export default class Annotator extends React.Component<
         true
       )[0]
     ) {
+      this.sceneActions.setLayerStatus(Layer.anot1, LayerStatus.Visible)
       log.info(`Added new ${AnnotationType[annotationType]} annotation`)
       this.deactivateAllAnnotationPropertiesMenus(annotationType)
       this.resetAllAnnotationPropertiesMenuElements()
