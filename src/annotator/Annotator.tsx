@@ -12,7 +12,6 @@
 import config from 'annotator-config'
 import * as Electron from 'electron'
 import { flatten } from 'lodash'
-import { guard } from 'typeguard'
 import Button from '@material-ui/core/Button';
 import { SimpleKML } from '../util/KmlUtils'
 import * as Dat from 'dat.gui'
@@ -24,7 +23,6 @@ import { CalibratedImage } from './image/CalibratedImage'
 import * as React from 'react'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import { hexStringToHexadecimal } from '../util/Color'
-import SaveState from './SaveState'
 import loadAnnotations from '../util/loadAnnotations'
 import {
   AnnotatedSceneState,
@@ -32,13 +30,13 @@ import {
   mousePositionToGLSpace,
   AnnotationType,
   AnnotationManager,
-  OutputFormat,
   Lane,
   NeighborLocation,
   NeighborDirection,
   Key,
   LayerId,
   LayerStatus,
+  Layer,
   StatusWindowState,
   AnnotatedSceneController,
   THREEColorValue,
@@ -64,6 +62,7 @@ import {
   menuSpacing,
   panelBorderRadius,
 } from './styleVars'
+import { saveFileWithDialog } from '../util/file'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -136,7 +135,6 @@ interface AnnotatorProps extends IThemedProperties {
   isConnectFrontNeighborMode?: boolean
   isJoinAnnotationMode?: boolean
   isAddConflictOrDeviceMode?: boolean
-  isRotationModeActive?: boolean
   isMouseDown?: boolean
   isMouseDragging?: boolean
   mousePosition?: MousePosition
@@ -162,7 +160,6 @@ interface AnnotatorProps extends IThemedProperties {
     'isConnectFrontNeighborMode',
     'isJoinAnnotationMode',
     'isAddConflictOrDeviceMode',
-    'isRotationModeActive',
     'isMouseDown',
     'isMouseDragging',
     'mousePosition',
@@ -182,7 +179,6 @@ export default class Annotator extends React.Component<
   private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
   private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
   private gui?: dat.GUI
-  private saveState: SaveState | null = null
   private statusWindowActions = new StatusWindowActions()
   private sceneActions = new AnnotatedSceneActions()
 
@@ -245,6 +241,8 @@ export default class Annotator extends React.Component<
     }
   }
 
+  private datContainer: JQuery
+
   // Create a UI widget to adjust application settings on the fly.
   createControlsGui(): void {
     if (!isNullOrUndefined(config['startup.show_color_picker'])) {
@@ -256,13 +254,15 @@ export default class Annotator extends React.Component<
 
     const gui = (this.gui = new dat.GUI({
       hideable: false,
-      closeOnTop: true
+      closeOnTop: true,
+      autoPlace: false,
     }))
-    const datContainer = $('<div class="dg ac"></div>')
+    this.datContainer = $('<div class="dg ac"></div>')
 
-    $('.annotated-scene-container').append(datContainer.append(gui.domElement))
+    this.datContainer.append(gui.domElement)
+    $('.annotated-scene-container').append(this.datContainer)
 
-    datContainer.css({
+    this.datContainer.css({
       position: 'absolute',
       top: 0,
       left: 0
@@ -419,9 +419,10 @@ export default class Annotator extends React.Component<
   }
 
   private destroyControlsGui(): void {
-    guard(() => {
-      if (this.gui) this.gui.destroy()
-    })
+    if (!this.gui) return
+    this.gui.destroy()
+    this.gui.domElement.remove()
+    this.datContainer.remove()
   }
 
   // When ImageManager loads an image, add it to the scene.
@@ -675,6 +676,8 @@ export default class Annotator extends React.Component<
     // `ctrl+a` and let users customize. Perhaps built on ELectron
     // accelerators and possibly similar to Atom key maps.
 
+    const actions = new AnnotatedSceneActions()
+
     this.mapKey('Backspace', () => this.uiDeleteActiveAnnotation())
     this.mapKey('Escape', () => this.uiEscapeSelection())
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
@@ -689,11 +692,8 @@ export default class Annotator extends React.Component<
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
-    this.mapKey('m', () => this.uiSaveWaypointsKml())
     this.mapKey('P', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
-    this.mapKey('S', () => this.uiSaveToFile(OutputFormat.LLA))
-    this.mapKey('s', () => this.uiSaveToFile(OutputFormat.UTM))
 
     this.mapKey('R', () =>
       this.state.annotatedSceneController!.resetTiltAndCompass()
@@ -707,10 +707,8 @@ export default class Annotator extends React.Component<
     )
 
     this.mapKey('X', () =>
-      this.state.annotationManager!.toggleTransformControlsRotationMode()
+      this.state.annotationManager!.cycleTransformControlModes()
     )
-
-    const actions = new AnnotatedSceneActions()
 
     this.keyHeld('a', held => actions.setAddMarkerMode(held))
     this.keyHeld('c', held => actions.setAddConnectionMode(held))
@@ -767,18 +765,6 @@ export default class Annotator extends React.Component<
       this.state.annotationManager!.hideTransform()
     }
   }
-  //
-  // private uiDeleteAllAnnotations(): void {
-  //   this.saveState!.immediateAutoSave()
-  //     .then(() => {
-  //       this.state.annotationManager!.unloadAllAnnotations()
-  //       this.saveState!.clean()
-  //     })
-  //     .catch(e => {
-  //       log.error(e.message)
-  //       dialog.showErrorBox('Error deleting all annotations', e.message)
-  //     })
-  // }
 
   // Create an annotation, add it to the scene, and activate (highlight) it.
   private uiAddAnnotation(annotationType: AnnotationType): void {
@@ -788,6 +774,7 @@ export default class Annotator extends React.Component<
         true
       )[0]
     ) {
+      this.sceneActions.setLayerStatus(Layer.anot1, LayerStatus.Visible)
       log.info(`Added new ${AnnotationType[annotationType]} annotation`)
       this.deactivateAllAnnotationPropertiesMenus(annotationType)
       this.resetAllAnnotationPropertiesMenuElements()
@@ -799,54 +786,43 @@ export default class Annotator extends React.Component<
     }
   }
 
-  // Save all annotation data.
-  private uiSaveToFile(format: OutputFormat): Promise<void> {
-    // Attempt to insert a string representing the coordinate system format into the requested path, then save.
-    const basePath = config['output.annotations.json.path']
-    const i = basePath.indexOf('.json')
-    const formattedPath =
-      i >= 0
-        ? basePath.slice(0, i) +
-          '-' +
-          OutputFormat[format] +
-          basePath.slice(i, basePath.length)
-        : basePath
+  private saveAnnotationsJson = () => {
+    const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON())
+    const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
 
-    log.info(`Saving annotations JSON to ${formattedPath}`)
-
-    // TODO JOE saveAnnotationsToFile should come out of the library and into Annotor
-    return this.saveState!.saveAnnotationsToFile(formattedPath, format).catch(
-      error => log.warn('save to file failed: ' + error.message)
-    )
-  }
-
-  // Save lane waypoints only.
-  private async uiSaveWaypointsKml(): Promise<void> {
-    const basePath = config['output.annotations.kml.path']
-
-    log.info(`Saving waypoints KML to ${basePath}`)
-
-    return this.saveToKML(basePath).catch(err =>
-      log.warn('saveToKML failed: ' + err.message)
+    saveFileWithDialog(
+      json,
+      'application/json',
+      `annotations${sessionId ? '-'+sessionId : ''}.json`
     )
   }
 
   /**
    * 	Save lane waypoints (only) to KML.
    */
-  saveToKML(fileName: string): Promise<void> {
+  private saveAnnotationsKML = () => {
     const { utmCoordinateSystem } = this.state.annotatedSceneController!.state
+
+    function annotationToGeoPoints(a: Annotation): Array<THREE.Vector3> {
+      return a.outline.map(m => utmCoordinateSystem!.threeJsToLngLatAlt(m.position))
+    }
+
     // Get all the points and convert to lat lon
-    const geopoints: Array<THREE.Vector3> = flatten(
-      this.state.annotationManager!.state.laneAnnotations.map(lane =>
-        lane.waypoints.map(p => utmCoordinateSystem!.threeJsToLngLatAlt(p))
-      )
-    )
-    // Save file
     const kml = new SimpleKML()
 
-    kml.addPath(geopoints)
-    return kml.saveToFile(fileName)
+    const annotations = this.state.annotationManager!.state
+    annotations.boundaryAnnotations.forEach(a => kml.addPath(annotationToGeoPoints(a)))
+    annotations.laneAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    annotations.connectionAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    annotations.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
+
+    const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
+
+    saveFileWithDialog(
+      kml.toString(),
+      'application/vnd.google-earth.kml+xml',
+      `annotations${sessionId ? '-'+sessionId : ''}.kml`
+    )
   }
 
   private addFront(): void {
@@ -1294,15 +1270,11 @@ export default class Annotator extends React.Component<
       const handler = async (paths: string[]): Promise<void> => {
         if (paths && paths.length) {
           try {
-            this.saveState!.immediateAutoSave()
-
             await loadAnnotations.call(
               this,
               paths[0],
               this.state.annotatedSceneController!
             )
-
-            this.saveState!.clean()
           } catch (err) {
             log.warn('loadAnnotations failed: ' + err.message)
           }
@@ -1310,18 +1282,6 @@ export default class Annotator extends React.Component<
       }
 
       dialog.showOpenDialog(options, handler)
-    })
-
-    const toolsSave = $('#tools_save')
-
-    toolsSave.on('click', () => {
-      this.uiSaveToFile(OutputFormat.UTM)
-    })
-
-    const toolsExportKml = $('#tools_export_kml')
-
-    toolsExportKml.on('click', () => {
-      this.uiSaveWaypointsKml()
     })
 
     this.deactivateAllAnnotationPropertiesMenus()
@@ -1340,7 +1300,6 @@ export default class Annotator extends React.Component<
     $('#tools_add_traffic_device').off()
     $('#tools_load_images').off()
     $('#tools_load_annotation').off()
-    $('#tools_save').off()
     $('#tools_export_kml').off()
   }
 
@@ -1893,8 +1852,13 @@ export default class Annotator extends React.Component<
     oldState: AnnotatorState
   ): void {
     if (!oldState.annotationManager && this.state.annotationManager) {
-      this.createControlsGui()
-      this.saveState = new SaveState(this.state.annotationManager, config) // eslint-disable-line no-use-before-define
+
+      if (this.state.annotationManager) {
+        this.createControlsGui()
+      } else {
+        this.destroyControlsGui()
+      }
+
     }
 
     if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
@@ -1962,11 +1926,6 @@ export default class Annotator extends React.Component<
       lane instanceof Lane && this.uiUpdateLaneWidth(lane)
     })
 
-    // BEFORE DATA PROVIDERS
-    // channel!.on(Events.ANNOTATIONS_MODIFIED, () => {
-    // 	guard(() => this.saveState!.dirty())
-    // })
-
     channel!.once(Events.ANNOTATED_SCENE_READY, async () => {
       this.addImageScreenLayer()
 
@@ -2024,6 +1983,8 @@ export default class Annotator extends React.Component<
         <AnnotatorMenuView
           uiMenuVisible={this.props.uiMenuVisible!}
           selectedAnnotation={ this.props.activeAnnotation }
+          onSaveAnnotationsJson={this.saveAnnotationsJson}
+          onSaveAnnotationsKML={this.saveAnnotationsKML}
         />
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
