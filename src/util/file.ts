@@ -11,4 +11,5 @@ export function saveFileWithDialog(content: Content, mime: string, filename: str
   a.download = filename
   document.body.appendChild(a)
   a.click()
+  URL.revokeObjectURL(url);
 }
