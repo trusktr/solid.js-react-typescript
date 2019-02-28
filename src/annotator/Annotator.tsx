@@ -1922,8 +1922,8 @@ export default class Annotator extends React.Component<
       this.resetAllAnnotationPropertiesMenuElements
     )
 
-    channel!.on(Events.ANNOTATION_VISUAL_UPDATE, lane => {
-      lane instanceof Lane && this.uiUpdateLaneWidth(lane)
+    channel!.on(Events.ANNOTATION_VISUAL_UPDATE, annotation => {
+      if (annotation instanceof Lane) this.uiUpdateLaneWidth(annotation)
     })
 
     channel!.once(Events.ANNOTATED_SCENE_READY, async () => {
