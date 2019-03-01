@@ -2,7 +2,7 @@
   "name": "@mapperai/mapper-annotator",
   "appName": "Annotator",
   "appID": "Annotator",
-  "version": "1.4.12",
+  "version": "1.4.13",
   "description": "Mapper.ai Point Cloud Annotator",
   "main": "saffron.js",
   "license": "UNLICENSED",
