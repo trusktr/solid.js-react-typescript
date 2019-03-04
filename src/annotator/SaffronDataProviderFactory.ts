@@ -33,7 +33,8 @@ export { s3Bucket }
  */
 export function makeSaffronDataProviderFactory(
   sessionId: string | null,
-  organizationId: string = getOrganizationId()!
+  useCache = true,
+  organizationId: string = getOrganizationId()!,
 ): DataProviderFactory {
   /**
    * Holds the credentials that will be used
@@ -142,6 +143,7 @@ export function makeSaffronDataProviderFactory(
       }
     } as PusherConfig,
     null,
-    false
+    false,
+    useCache,
   )
 }
