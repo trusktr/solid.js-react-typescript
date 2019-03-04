@@ -294,19 +294,23 @@ export default class Annotator extends React.Component<
 		`
     )
 
+    /*
     gui
       .addColor(this.state, 'background')
       .name('Background')
       .onChange(() => {
         this.forceUpdate()
       })
+      */
 
+    /*
     gui
       .add(this.state, 'imageScreenOpacity', 0, 1)
       .name('Image Opacity')
       .onChange((value: number) => {
         this.imageManager.setOpacity(value)
       })
+      */
 
     new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
     new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
