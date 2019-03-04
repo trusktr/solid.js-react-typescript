@@ -134,7 +134,7 @@ interface AnnotatorProps extends IThemedProperties {
   isConnectRightNeighborMode?: boolean
   isConnectFrontNeighborMode?: boolean
   isJoinAnnotationMode?: boolean
-  isAddConflictOrDeviceMode?: boolean
+  isAddDeviceMode?: boolean
   isMouseDown?: boolean
   isMouseDragging?: boolean
   mousePosition?: MousePosition
@@ -159,7 +159,7 @@ interface AnnotatorProps extends IThemedProperties {
     'isConnectRightNeighborMode',
     'isConnectFrontNeighborMode',
     'isJoinAnnotationMode',
-    'isAddConflictOrDeviceMode',
+    'isAddDeviceMode',
     'isMouseDown',
     'isMouseDragging',
     'mousePosition',
@@ -719,7 +719,7 @@ export default class Annotator extends React.Component<
     this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
     this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
     this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
-    this.keyHeld('q', held => actions.setAddConflictOrDeviceMode(held))
+    this.keyHeld('q', held => actions.setAddDeviceMode(held))
     this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
   }
 
