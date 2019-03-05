@@ -73,6 +73,7 @@ export default class AnnotatorMenuView extends React.Component<
               {' '}
               Delete Annotation{' '}
             </button>
+            {/*
             <button
               id="tools_load_images"
               className="ui-btn ui-icon-camera ui-btn-icon-left"
@@ -87,6 +88,7 @@ export default class AnnotatorMenuView extends React.Component<
               {' '}
               Load Annotations{' '}
             </button>
+            */}
             <button
               onClick={this.props.onSaveAnnotationsKML}
               className="ui-btn ui-icon-location ui-btn-icon-left"
