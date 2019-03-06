@@ -4,6 +4,7 @@
   "appID": "Annotator",
   "version": "1.4.13",
   "description": "Mapper.ai Point Cloud Annotator",
+  "appIcon": "https://s3.amazonaws.com/mapper-website-assets/saffron/icons/Annotator_Icon.svg",
   "main": "saffron.js",
   "license": "UNLICENSED",
   "repository": {

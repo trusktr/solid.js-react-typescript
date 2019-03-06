@@ -35,5 +35,8 @@ class Annotator extends React.Component {
 module.exports = {
   component: Annotator,
   start: async () => {},
-  stop: async () => {}
+  stop: async () => {},
+  metadata: {
+    awsCredentialsEndpoint: "annotator"
+  }
 }

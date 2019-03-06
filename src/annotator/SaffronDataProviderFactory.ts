@@ -68,23 +68,17 @@ export function makeSaffronDataProviderFactory(
 
     credentialPromise = (async () => {
       try {
-        const response = (await new SaffronSDK.CloudService.CloudService().makeAPIRequest(
-          SaffronSDK.CloudConstants.API.Identity,
-          SaffronSDK.CloudConstants.HttpMethod.GET,
-          `identity/1/credentials/${organizationId}/annotator`,
-          'annotator'
-        )).data
-
+        const response = SaffronSDK.AWSManager.getAppAWSCredentials("Annotator")
+        log.info("Got aws credentials from saffron", response)
+        if(response == null) {
+          throw new Error("AWS Credentials are null")
+        }
+        
         // SET THE BUCKET
         sessionBucket = response.sessionBucket
         resolveBucket(sessionBucket)
-
-        // ENSURE EXPIRATION
-        const credentials = { ...response.credentials }
-
-        credentials.expiration = Date.now() + 1000 * 60 * 50 // 50mins
-
-        return credentials as IAWSCredentials
+        
+        return response.credentials as IAWSCredentials
       } catch (err) {
         log.error('Unable to get credentials', err)
         credentialPromise = null
