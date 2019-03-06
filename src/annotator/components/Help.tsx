@@ -28,8 +28,7 @@ export default class Help extends React.Component<{}, {}> {
         <br />l - Hold to add left lane neighbor; click on the left neighbor
         <br />r - Hold to add right lane neighbor; click on the right neighbor
         <br />F - Flip/Reverse current lane direction
-        <br />q - Hold and click to add/remove a conflict or device to/from a
-        connection
+        <br />q - Hold and click to add/remove a traffic device to/from a connection
         <br />
         <strong>Annotation Markers</strong>
         <br />n - Create new lane
