@@ -22,8 +22,8 @@ export default function initUIControl(): void {
   const connectionProp = document.getElementById('connection_prop')
   // Define new elements
   /// ////////////////////////////////////////////////////////////////////////////
-  const bpLabelsText = ['Boundary ID:', 'Boundary Type:', 'Boundary Color']
-  const bpLabelsId = ['bp_id', 'bp_type', 'bp_color']
+  const bpLabelsText = ['Boundary Type:', 'Boundary Color']
+  const bpLabelsId = ['bp_type', 'bp_color']
   const bpLabels: Array<HTMLElement> = []
 
   for (const i in bpLabelsText) {
@@ -76,12 +76,6 @@ export default function initUIControl(): void {
     ]
   ]
   const bpSelects: Array<HTMLElement> = []
-  const eBoundaryId = document.createElement('text')
-
-  eBoundaryId.textContent = 'UNKNOWN'
-  eBoundaryId.id = 'bp_id_value'
-  eBoundaryId.className = 'select_style'
-  bpSelects.push(eBoundaryId)
 
   for (const i in bpSelectsId) {
     if (bpSelectsId.hasOwnProperty(i)) {
@@ -104,7 +98,6 @@ export default function initUIControl(): void {
 
   // ------------------------------------------------------------------------------------------------------------------
   const lpLabelsText = [
-    'Lane ID:',
     'Lane Width:',
     'Type:',
     'Left Line Type:',
@@ -113,7 +106,6 @@ export default function initUIControl(): void {
     'Right Line Color',
   ]
   const lpLabelsId = [
-    'lp_id',
     'lp_width',
     'lp_lane_type',
     'lp_left_line',
@@ -210,12 +202,6 @@ export default function initUIControl(): void {
     ],
   ]
   const lpSelects: Array<HTMLElement> = []
-  const eLaneId = document.createElement('text')
-
-  eLaneId.textContent = 'UNKNOWN'
-  eLaneId.id = 'lp_id_value'
-  eLaneId.className = 'select_style'
-  lpSelects.push(eLaneId)
 
   const eLaneWidth = document.createElement('text')
 
@@ -377,8 +363,8 @@ export default function initUIControl(): void {
   }
 
   // ------------------------------------------------------------------------------------------------------------------
-  const tpLabelsText = ['Traffic device ID:', 'Type:']
-  const tpLabelsId = ['tp_id', 'tp_type']
+  const tpLabelsText = ['Type:']
+  const tpLabelsId = ['tp_type']
   const tpLabels: Array<HTMLElement> = []
 
   for (const i in tpLabelsText) {
@@ -407,12 +393,6 @@ export default function initUIControl(): void {
     ]
   ]
   const tpSelects: Array<HTMLElement> = []
-  const elementTrafficDeviceId = document.createElement('text')
-
-  elementTrafficDeviceId.textContent = 'UNKNOWN'
-  elementTrafficDeviceId.id = 'tp_id_value'
-  elementTrafficDeviceId.className = 'select_style'
-  tpSelects.push(elementTrafficDeviceId)
 
   for (const i in tpSelectsId) {
     if (tpSelectsId.hasOwnProperty(i)) {
