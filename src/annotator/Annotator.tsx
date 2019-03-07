@@ -320,7 +320,7 @@ export default class Annotator extends React.Component<
       this.state.lockTrafficDevices
     )
 
-    const folderLock = gui.addFolder('Lock')
+    const folderLock = gui.addFolder('Lock Annotations')
 
     folderLock
       .add(this.state, 'lockBoundaries')
@@ -385,7 +385,7 @@ export default class Annotator extends React.Component<
 
     folderLock.open()
 
-    const folderConnection = gui.addFolder('Connection params')
+    const folderConnection = gui.addFolder('Connections')
 
     const bezierScaleFactor = this.state.bezierScaleFactor
 
@@ -399,7 +399,7 @@ export default class Annotator extends React.Component<
 
     folderConnection.open()
 
-    const tileFolder = gui.addFolder('Tile Settings')
+    const tileFolder = gui.addFolder('Point Cloud')
 
     tileFolder
       .add({ maxSuperTilesToLoad: this.state.maxSuperTilesToLoad }, 'maxSuperTilesToLoad', 1, 3000)

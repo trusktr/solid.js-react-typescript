@@ -3,7 +3,7 @@
   "appName": "Annotator",
   "appID": "Annotator",
   "version": "1.4.13",
-  "description": "Mapper.ai Point Cloud Annotator",
+  "description": "Mapper.ai HD Map Editor",
   "main": "saffron.js",
   "license": "UNLICENSED",
   "repository": {
