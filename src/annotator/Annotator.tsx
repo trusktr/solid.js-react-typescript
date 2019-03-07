@@ -955,7 +955,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.leftLineType = +lcLeftType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const lcLeftColor = $('#lp_select_left_color')
@@ -976,7 +975,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.leftLineColor = +lcLeftColor.val()
-      activeAnnotation.updateVisualization()
     })
 
     const lcRightType = $('#lp_select_right_type')
@@ -997,7 +995,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.rightLineType = +lcRightType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const lcRightColor = $('#lp_select_right_color')
@@ -1018,7 +1015,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.rightLineColor = +lcRightColor.val()
-      activeAnnotation.updateVisualization()
     })
   }
 
@@ -1094,7 +1090,6 @@ export default class Annotator extends React.Component<
       // prettier-ignore
       log.info("Adding left side type: " + cpLeftType.children("option").filter(":selected").text())
       activeAnnotation.leftLineType = +cpLeftType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const cpLeftColor = $('#cp_select_left_color')
@@ -1105,7 +1100,6 @@ export default class Annotator extends React.Component<
       // prettier-ignore
       log.info("Adding left side color: " + cpLeftColor.children("option").filter(":selected").text())
       activeAnnotation.leftLineColor = +cpLeftColor.val()
-      activeAnnotation.updateVisualization()
     })
 
     const cpRightType = $('#cp_select_right_type')
@@ -1116,7 +1110,6 @@ export default class Annotator extends React.Component<
       // prettier-ignore
       log.info("Adding right side type: " + cpRightType.children("option").filter(":selected").text())
       activeAnnotation.rightLineType = +cpRightType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const cpRightColor = $('#cp_select_right_color')
@@ -1127,7 +1120,6 @@ export default class Annotator extends React.Component<
       // prettier-ignore
       log.info("Adding left side color: " + cpRightColor.children("option").filter(":selected").text())
       activeAnnotation.rightLineColor = +cpRightColor.val()
-      activeAnnotation.updateVisualization()
     })
   }
 
@@ -1165,7 +1157,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.type = +tpType.val()
-      activeAnnotation.updateVisualization()
       this.state.annotatedSceneController!.shouldRender()
     })
   }
