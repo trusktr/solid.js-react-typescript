@@ -64,11 +64,6 @@ import {
 } from './styleVars'
 import { saveFileWithDialog } from '../util/file'
 
-// const credentialProvider = async () => ({
-// 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-// 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-// })
-
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
 const dat: typeof Dat = (Dat as any).default as typeof Dat
