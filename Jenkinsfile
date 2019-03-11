@@ -71,37 +71,6 @@ try {
         }
       }
 
-    } else {
-
-      echo "Branch name: ${branchName}"
-
-      // the assumption is we only merge pull requests into master
-      def shouldBumpVersion = branchName == "develop"
-
-      echo "Should bump dev version: ${shouldBumpVersion}"
-
-      /**
-       * Bump the version for develop and master
-       * Saffron has two runs of the pipeline to push an update
-       * The first run will bump the version number and push it to github
-       * The second run does not need to bump the version again, and instead will use the updated version number (previously computed) to create a build
-       * It takes two runs because the first time through the pipeline has a package.json file that hasn't been updated yet
-       * (hence the first build is to solely increment the version)
-       */
-      if (shouldBumpVersion) {
-        stage("Version bump: ${branchName}") {
-
-          // BUMP VERSION
-          // versionBumpV2(versionFilename: 'package.json')
-
-          // runs a semver patch update on the version number in package.json
-          sh """
-          npm run publish-version-patch
-          """
-        }
-
-        echo "Version bumped for ${branchName} branch. Next build will publish."
-      }
     }
 
     /**
