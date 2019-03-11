@@ -35,6 +35,7 @@ try {
      * Install
      */
     stage("Test") {
+      echo "Running tests..."
       sh """
       npm test
       """
