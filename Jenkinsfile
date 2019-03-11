@@ -1,7 +1,5 @@
 @Library("mapper-jenkins-libs")_
 
-// import ai.mapper.jenkins.*
-
 try {
   node('master') {
     properties([disableConcurrentBuilds()])
@@ -43,10 +41,6 @@ try {
     }
 
     def tag = sh(returnStdout: true, script: "git tag --contains | head -1").trim()
-
-    // if (!tag) {
-    //   throw new RuntimeException("skip")
-    // }
 
     // if we have a tag, we'll publish the nwe version
     if (tag) {
