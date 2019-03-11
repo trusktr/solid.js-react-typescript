@@ -1,5 +1,5 @@
 /* eslint-disable typescript/no-explicit-any */
-import { isString } from 'typeguard'
+// import { isString } from 'typeguard'
 import * as TypeLogger from 'typelogger'
 //import * as AWS from "aws-sdk"
 // import IUser, {IAWSTemporaryCredentials, IOrganization} from "models/User"
@@ -18,7 +18,7 @@ enum LogLevel {
   error
 }
 
-const LogLevelNames = Object.keys(LogLevel).filter(isString)
+// const LogLevelNames = Object.keys(LogLevel).filter(isString)
 
 // const EnvLogThreshold = {
 // 	'dev': LogLevel.info,
@@ -200,37 +200,10 @@ let Threshold = LogLevel.info
  */
 /* eslint-disable typescript/no-explicit-any */
 export function getLogger(name: string): any {
-  name = name.split('/').pop() as string
-  return LogLevelNames.reduce(
-    (logger, level) => {
-      logger[level as any] = (...args: any[]) => {
-        /* eslint-disable typescript/no-explicit-any */
-        const msgLevel = (LogLevel as any)[level as any] as LogLevel
-
-        if (msgLevel < Threshold) return
-
-        //if (isDefined(getStoreState) && [LogLevel.info,LogLevel.error,LogLevel.warn].includes(msgLevel)) {
-        // const
-        // 	error = args.filter((arg:any) => arg instanceof Error),
-        // 	message = args.filter((arg:any) => !(arg instanceof Error)).join(" ")
-
-        //LogFirehose.log(msgLevel,name,message,error.length ? error[0] : null)
-
-        //}
-
-        //baseLogger[level](name,...args)
-        if (console[level as any]) console[level as any](name, ...args)
-        else console.log(name, ...args)
-      }
-
-      return logger
-    },
-    /* eslint-disable typescript/no-explicit-any */
-    {
-      isDebugEnabled
-    } as any
-  )
+  console.log("RTT-annotator getLogger", name)
+  return SaffronSDK.LogManager.log(name, "annotator")
 }
+
 
 export function setThreshold(threshold: LogLevel): void {
   Threshold = threshold
