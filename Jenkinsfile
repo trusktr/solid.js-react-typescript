@@ -109,7 +109,7 @@ try {
      */
     if (branchName == 'master') {
       stage("Get hotfix & merge new changes from master") {
-        git branch: "hotfix", credentialsId: 'bd092093-19d1-4ed7-a4b9-4e2b24a3cc6f', url: 'git@github.com:Signafy/mapper-saffron.git'
+        git branch: "hotfix", credentialsId: 'bd092093-19d1-4ed7-a4b9-4e2b24a3cc6f', url: 'git@github.com:Signafy/mapper-annotator.git'
 
         sh """
         git fetch --all
