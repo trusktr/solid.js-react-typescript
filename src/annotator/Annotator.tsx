@@ -328,7 +328,7 @@ export default class Annotator extends React.Component<
       .onChange((value: boolean) => {
         if (
           value &&
-          this.state.annotationManager!.getActiveBoundaryAnnotation()
+          this.state.annotationManager!.activeBoundaryAnnotation
         ) {
           this.state.annotatedSceneController!.cleanTransformControls()
           this.uiEscapeSelection()
@@ -343,8 +343,8 @@ export default class Annotator extends React.Component<
       .onChange((value: boolean) => {
         if (
           value &&
-          (this.state.annotationManager!.getActiveLaneAnnotation() ||
-            this.state.annotationManager!.getActiveConnectionAnnotation())
+          (this.state.annotationManager!.activeLaneAnnotation ||
+            this.state.annotationManager!.activeConnectionAnnotation)
         ) {
           this.state.annotatedSceneController!.cleanTransformControls()
           this.uiEscapeSelection()
@@ -359,7 +359,7 @@ export default class Annotator extends React.Component<
       .onChange((value: boolean) => {
         if (
           value &&
-          this.state.annotationManager!.getActivePolygonAnnotation()
+          this.state.annotationManager!.activePolygonAnnotation
         ) {
           this.state.annotatedSceneController!.cleanTransformControls()
           this.uiEscapeSelection()
@@ -374,7 +374,7 @@ export default class Annotator extends React.Component<
       .onChange((value: boolean) => {
         if (
           value &&
-          this.state.annotationManager!.getActiveTrafficDeviceAnnotation()
+          this.state.annotationManager!.activeTrafficDeviceAnnotation
         ) {
           this.state.annotatedSceneController!.cleanTransformControls()
           this.uiEscapeSelection()
@@ -920,7 +920,7 @@ export default class Annotator extends React.Component<
     lcType.on('change', () => {
       lcType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
       if (activeAnnotation === null) return
 
@@ -940,7 +940,7 @@ export default class Annotator extends React.Component<
     lcLeftType.on('change', () => {
       lcLeftType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
       if (activeAnnotation === null) return
 
@@ -960,7 +960,7 @@ export default class Annotator extends React.Component<
     lcLeftColor.on('change', () => {
       lcLeftColor.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
       if (activeAnnotation === null) return
 
@@ -980,7 +980,7 @@ export default class Annotator extends React.Component<
     lcRightType.on('change', () => {
       lcRightType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1000,7 +1000,7 @@ export default class Annotator extends React.Component<
     lcRightColor.on('change', () => {
       lcRightColor.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1070,7 +1070,7 @@ export default class Annotator extends React.Component<
     cpType.on('change', () => {
       cpType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1083,7 +1083,7 @@ export default class Annotator extends React.Component<
     const cpLeftType = $('#cp_select_left_type')
     cpLeftType.on('change', () => {
       cpLeftType.blur()
-      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
       if (activeAnnotation === null) return
       // prettier-ignore
       log.info("Adding left side type: " + cpLeftType.children("option").filter(":selected").text())
@@ -1093,7 +1093,7 @@ export default class Annotator extends React.Component<
     const cpLeftColor = $('#cp_select_left_color')
     cpLeftColor.on('change', () => {
       cpLeftColor.blur()
-      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
       if (activeAnnotation === null) return
       // prettier-ignore
       log.info("Adding left side color: " + cpLeftColor.children("option").filter(":selected").text())
@@ -1103,7 +1103,7 @@ export default class Annotator extends React.Component<
     const cpRightType = $('#cp_select_right_type')
     cpRightType.on('change', () => {
       cpRightType.blur()
-      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
       if (activeAnnotation === null) return
       // prettier-ignore
       log.info("Adding right side type: " + cpRightType.children("option").filter(":selected").text())
@@ -1113,7 +1113,7 @@ export default class Annotator extends React.Component<
     const cpRightColor = $('#cp_select_right_color')
     cpRightColor.on('change', () => {
       cpRightColor.blur()
-      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
       if (activeAnnotation === null) return
       // prettier-ignore
       log.info("Adding left side color: " + cpRightColor.children("option").filter(":selected").text())
@@ -1142,7 +1142,7 @@ export default class Annotator extends React.Component<
     tpType.on('change', () => {
       tpType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveTrafficDeviceAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeTrafficDeviceAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1169,7 +1169,7 @@ export default class Annotator extends React.Component<
     bpType.on('change', () => {
       bpType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveBoundaryAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeBoundaryAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1189,7 +1189,7 @@ export default class Annotator extends React.Component<
     bpColor.on('change', () => {
       bpColor.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveBoundaryAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeBoundaryAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1322,7 +1322,7 @@ export default class Annotator extends React.Component<
    * Reset lane properties elements based on the current active lane
    */
   private resetLaneProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+    const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
     if (!activeAnnotation) return
 
@@ -1370,7 +1370,7 @@ export default class Annotator extends React.Component<
    * Reset polygon properties elements based on the current active polygon
    */
   private resetPolygonProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActivePolygonAnnotation()
+    const activeAnnotation = this.state.annotationManager!.activePolygonAnnotation
 
     if (!activeAnnotation) return
 
@@ -1381,7 +1381,7 @@ export default class Annotator extends React.Component<
    * Reset traffic device properties elements based on the current active traffic device
    */
   private resetTrafficDeviceProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActiveTrafficDeviceAnnotation()
+    const activeAnnotation = this.state.annotationManager!.activeTrafficDeviceAnnotation
 
     if (!activeAnnotation) return
 
@@ -1397,7 +1397,7 @@ export default class Annotator extends React.Component<
    * Reset boundary properties elements based on the current active boundary
    */
   private resetBoundaryProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActiveBoundaryAnnotation()
+    const activeAnnotation = this.state.annotationManager!.activeBoundaryAnnotation
 
     if (!activeAnnotation) return
 
@@ -1418,7 +1418,7 @@ export default class Annotator extends React.Component<
    * Reset connection properties elements based on the current active connection
    */
   private resetConnectionProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+    const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
 
     if (!activeAnnotation) return
 
@@ -1718,7 +1718,7 @@ export default class Annotator extends React.Component<
   }
 
   getAnnotationsInFrustum(frustum: THREE.Frustum) {
-    return this.state.annotationManager!.allAnnotations()
+    return this.state.annotationManager!.allAnnotations
       .filter(annotation => {
         const object = annotation.renderingObject
 
