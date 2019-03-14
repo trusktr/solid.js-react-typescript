@@ -11,7 +11,7 @@
 
 import config from 'annotator-config'
 import * as Electron from 'electron'
-import { flatten } from 'lodash'
+import { flatten, head, uniq } from 'lodash'
 import Button from '@material-ui/core/Button';
 import { SimpleKML } from '../util/KmlUtils'
 import * as Dat from 'dat.gui'
@@ -1666,42 +1666,38 @@ export default class Annotator extends React.Component<
     this.setState({ layerGroupIndex })
   }
 
+  // After a marker (or set of markers) has been moved in the UI, see if it is near another
+  // marker and decide whether it should snap to the same position.
   private snapMarker = (transformedObjects: ReadonlyArray<THREE.Object3D>): void => {
-    if (!(transformedObjects[0] instanceof Marker)) return
+    if (!(transformedObjects.length && transformedObjects[0] instanceof Marker)) return
 
-    // get active annotation
-    const activeAnnotation = this.state.annotationManager!.getActiveAnnotation()
-
-    if (!activeAnnotation) {
-      throw new Error(`
-        It should not be possible to snap a point if an annotation is not
-        selected and therefore there are no markers visible to interact with.
-      `)
-    }
-
-    // get the selected marker we just transformed
-    // Here's we're relying on the fact that the first item in the array is the
-    // marker we explicitly transformed (see the `neighbors` array in
-    // AnnotationManager.checkForActiveMarker)
+    // Get the selected marker we just transformed.
+    // Here we're relying on the fact that the first item in the array is the
+    // marker we explicitly transformed (see the `moveableMarkers` array in
+    // AnnotationManager.checkForActiveMarker()), while the others will move along with it.
     const transformedMarkers = [...transformedObjects] as Marker[]
-    const transformedMarker = transformedMarkers.shift()!
+    const primaryMarker = head(transformedMarkers)!
 
-    // get all markers in view
+    const transformedAnnotations = uniq(transformedMarkers.map(m => m.annotation))
+
+    // Get all markers in view which are not part of the annotations being manipulated.
     const frustum = new THREE.Frustum
     const projScreenMatrix = new THREE.Matrix4
     const {camera} = this.props
     projScreenMatrix.multiplyMatrices( camera!.projectionMatrix, camera!.matrixWorldInverse )
 		frustum.setFromMatrix( projScreenMatrix )
+    const markersInView = this.getMarkersInFrustum(
+      frustum,
+      flatten(transformedAnnotations.map(a => a.markers))
+    )
 
-    const markersInView = this.getMarkersInFrustum(frustum, activeAnnotation.markers)
-
-    let closestMarker: Marker
+    let closestMarker: Marker | null = null
     let smallestDistance: number = Infinity
     const snapThreshold = 0.5
 
     // See if any markers are within the snap threshold
     markersInView.forEach(marker => {
-      const distance = transformedMarker.position.distanceTo(marker.position)
+      const distance = primaryMarker.position.distanceTo(marker.position)
 
       if (distance < smallestDistance) {
         smallestDistance = distance
@@ -1710,25 +1706,15 @@ export default class Annotator extends React.Component<
     })
 
     const shouldSnap = smallestDistance <= snapThreshold
-
-    // debugger
-
-    if (shouldSnap) {
+    if (shouldSnap && closestMarker) {
       const snapDirection = closestMarker!.position.clone()
-        .sub(transformedMarker.position)
+        .sub(primaryMarker.position)
 
-      // adjust position of selected marker to closest marker within threshold
-      transformedMarker.position.copy(closestMarker!.position)
+      // Apply the same offset to all selected markers.
+      transformedMarkers.forEach(m => m.position.add(snapDirection))
 
-      // apply the same movement to other selected markers
-      transformedMarkers.forEach(marker => {
-        marker.position.add(snapDirection)
-      })
-
-      activeAnnotation.updateVisualization()
-
+      transformedAnnotations.forEach(a => a.updateVisualization())
       this.state.annotatedSceneController!.updateTransformControls()
-
       this.state.annotatedSceneController!.shouldRender()
     }
   }
