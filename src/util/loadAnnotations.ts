@@ -3,11 +3,11 @@ import * as Electron from 'electron'
 import * as THREE from 'three'
 import {
   LayerStatus,
-  AnnotatedSceneController,
-  getLogger as Logger
+  AnnotatedSceneController
 } from '@mapperai/mapper-annotated-scene'
+import getLogger from 'util/Logger'
 
-const log = Logger(__filename)
+const log = getLogger(__filename)
 const dialog = Electron.remote.dialog
 
 // TODO JOE make this a class mixin, it is cleaner.

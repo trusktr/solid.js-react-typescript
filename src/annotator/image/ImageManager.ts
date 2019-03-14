@@ -12,7 +12,6 @@ import { LightboxWindowManager } from '../annotator-image-lightbox/LightboxWindo
 import * as IPCMessages from '../annotator-image-lightbox/IPCMessages'
 import { readImageMetadataFile } from './Aurora'
 import {
-  getLogger as Logger,
   AnnotatedSceneActions,
   Events,
   UtmCoordinateSystem,
@@ -20,8 +19,9 @@ import {
 } from '@mapperai/mapper-annotated-scene'
 import { AuroraCameraParameters } from './CameraParameters'
 import config from 'annotator-config'
+import getLogger from 'util/Logger'
 
-const log = Logger(__filename)
+const log = getLogger(__filename)
 const dialog = Electron.remote.dialog
 
 interface ImageManagerSettings {

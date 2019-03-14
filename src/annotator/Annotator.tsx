@@ -40,7 +40,6 @@ import {
   StatusWindowState,
   AnnotatedSceneController,
   THREEColorValue,
-  getLogger as Logger,
   toProps,
   Events,
   AnnotatedSceneActions,
@@ -63,6 +62,7 @@ import {
   panelBorderRadius,
 } from './styleVars'
 import { saveFileWithDialog } from '../util/file'
+import getLogger from 'util/Logger'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -74,7 +74,7 @@ import { saveFileWithDialog } from '../util/file'
 const dat: typeof Dat = (Dat as any).default as typeof Dat
 import $ = require('jquery')
 const dialog = Electron.remote.dialog
-const log = Logger(__filename)
+const log = getLogger(__filename)
 
 const allLayers: LayerId[] = ['base1', 'base1hi', 'anot1']
 
@@ -719,7 +719,7 @@ export default class Annotator extends React.Component<
     this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
     this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
     this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
-    this.keyHeld('q', held => actions.setAddDeviceMode(held))
+    //this.keyHeld('q', held => actions.setAddDeviceMode(held))
     this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
   }
 
