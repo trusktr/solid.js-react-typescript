@@ -320,7 +320,7 @@ export default class Annotator extends React.Component<
       this.state.lockTrafficDevices
     )
 
-    const folderLock = gui.addFolder('Lock')
+    const folderLock = gui.addFolder('Lock Annotations')
 
     folderLock
       .add(this.state, 'lockBoundaries')
@@ -385,7 +385,7 @@ export default class Annotator extends React.Component<
 
     folderLock.open()
 
-    const folderConnection = gui.addFolder('Connection params')
+    const folderConnection = gui.addFolder('Connections')
 
     const bezierScaleFactor = this.state.bezierScaleFactor
 
@@ -399,7 +399,7 @@ export default class Annotator extends React.Component<
 
     folderConnection.open()
 
-    const tileFolder = gui.addFolder('Tile Settings')
+    const tileFolder = gui.addFolder('Point Cloud')
 
     tileFolder
       .add({ maxSuperTilesToLoad: this.state.maxSuperTilesToLoad }, 'maxSuperTilesToLoad', 1, 3000)
@@ -686,7 +686,6 @@ export default class Annotator extends React.Component<
     this.mapKey('Escape', () => this.uiEscapeSelection())
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
     this.mapKeyUp('Shift', () => this.onShiftKeyUp())
-    // this.mapKey('A', () => this.uiDeleteAllAnnotations()) // disable for now
     this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
 
     this.mapKey('C', () =>
@@ -696,7 +695,6 @@ export default class Annotator extends React.Component<
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
-    this.mapKey('P', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
 
     this.mapKey('R', () =>

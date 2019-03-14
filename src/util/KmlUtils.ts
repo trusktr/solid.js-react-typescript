@@ -52,7 +52,7 @@ export class SimpleKML {
   }
 
   addPoint(point: THREE.Vector3, style: String = "white"): void {
-    let path =
+    const path =
       "    <Placemark>\n " +
       "      <styleUrl>#" + style + "</styleUrl>\n" +
       "      <Point>\n" +
