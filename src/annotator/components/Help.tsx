@@ -18,7 +18,6 @@ export default class Help extends React.Component<{}, {}> {
         Shift-click - load an image file
         <br />
         <strong>Annotations</strong>
-        <br />P - Publish annotations to the cloud
         <br />X - Cycle through available tranformation modes (translate, rotate, scale) for the selected annotation
         <br />
         Delete/Backspace - Delete active annotation
