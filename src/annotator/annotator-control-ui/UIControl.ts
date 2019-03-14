@@ -4,11 +4,10 @@
  */
 
 import {
-  ConnectionType,
   BoundaryType,
   BoundaryColor,
   TrafficDeviceType,
-  LaneType,
+  LaneLikeType,
   LaneLineType,
   LaneLineColor,
 } from '@mapperai/mapper-annotated-scene'
@@ -155,18 +154,18 @@ export default function initUIControl(): void {
   ]
   const lpSelectValue = [
     [
-      LaneType.UNKNOWN.toString(),
-      LaneType.ALL_VEHICLES.toString(),
-      LaneType.MOTOR_VEHICLES.toString(),
-      LaneType.CAR_ONLY.toString(),
-      LaneType.TRUCK_ONLY.toString(),
-      LaneType.BUS_ONLY.toString(),
-      LaneType.BIKE_ONLY.toString(),
-      LaneType.PEDESTRIAN_ONLY.toString(),
-      LaneType.PARKING.toString(),
-      LaneType.CROSSWALK.toString(),
-      LaneType.TRACKED_VEHICLES.toString(),
-      LaneType.OTHER.toString()
+      LaneLikeType.UNKNOWN.toString(),
+      LaneLikeType.ALL_VEHICLES.toString(),
+      LaneLikeType.MOTOR_VEHICLES.toString(),
+      LaneLikeType.CAR_ONLY.toString(),
+      LaneLikeType.TRUCK_ONLY.toString(),
+      LaneLikeType.BUS_ONLY.toString(),
+      LaneLikeType.BIKE_ONLY.toString(),
+      LaneLikeType.PEDESTRIAN_ONLY.toString(),
+      LaneLikeType.PARKING.toString(),
+      LaneLikeType.CROSSWALK.toString(),
+      LaneLikeType.TRACKED_VEHICLES.toString(),
+      LaneLikeType.OTHER.toString()
     ],
     [
       LaneLineType.UNKNOWN.toString(),
@@ -289,18 +288,18 @@ export default function initUIControl(): void {
   ]
   const cpSelectsValue = [
     [
-      ConnectionType.UNKNOWN.toString(),
-      ConnectionType.ALL_VEHICLES.toString(),
-      ConnectionType.MOTOR_VEHICLES.toString(),
-      ConnectionType.CAR_ONLY.toString(),
-      ConnectionType.TRUCK_ONLY.toString(),
-      ConnectionType.BUS_ONLY.toString(),
-      ConnectionType.BIKE_ONLY.toString(),
-      ConnectionType.PEDESTRIAN_ONLY.toString(),
-      ConnectionType.PARKING.toString(),
-      ConnectionType.CROSSWALK.toString(),
-      ConnectionType.TRACKED_VEHICLES.toString(),
-      ConnectionType.OTHER.toString()
+      LaneLikeType.UNKNOWN.toString(),
+      LaneLikeType.ALL_VEHICLES.toString(),
+      LaneLikeType.MOTOR_VEHICLES.toString(),
+      LaneLikeType.CAR_ONLY.toString(),
+      LaneLikeType.TRUCK_ONLY.toString(),
+      LaneLikeType.BUS_ONLY.toString(),
+      LaneLikeType.BIKE_ONLY.toString(),
+      LaneLikeType.PEDESTRIAN_ONLY.toString(),
+      LaneLikeType.PARKING.toString(),
+      LaneLikeType.CROSSWALK.toString(),
+      LaneLikeType.TRACKED_VEHICLES.toString(),
+      LaneLikeType.OTHER.toString()
     ],
     [
       LaneLineType.UNKNOWN.toString(),
