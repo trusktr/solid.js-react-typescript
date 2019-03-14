@@ -134,7 +134,7 @@ interface AnnotatorProps extends IThemedProperties {
   isConnectRightNeighborMode?: boolean
   isConnectFrontNeighborMode?: boolean
   isJoinAnnotationMode?: boolean
-  isAddConflictOrDeviceMode?: boolean
+  isAddDeviceMode?: boolean
   isMouseDown?: boolean
   isMouseDragging?: boolean
   mousePosition?: MousePosition
@@ -159,7 +159,7 @@ interface AnnotatorProps extends IThemedProperties {
     'isConnectRightNeighborMode',
     'isConnectFrontNeighborMode',
     'isJoinAnnotationMode',
-    'isAddConflictOrDeviceMode',
+    'isAddDeviceMode',
     'isMouseDown',
     'isMouseDragging',
     'mousePosition',
@@ -294,19 +294,23 @@ export default class Annotator extends React.Component<
 		`
     )
 
+    /*
     gui
       .addColor(this.state, 'background')
       .name('Background')
       .onChange(() => {
         this.forceUpdate()
       })
+      */
 
+    /*
     gui
       .add(this.state, 'imageScreenOpacity', 0, 1)
       .name('Image Opacity')
       .onChange((value: number) => {
         this.imageManager.setOpacity(value)
       })
+      */
 
     new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
     new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
@@ -715,7 +719,7 @@ export default class Annotator extends React.Component<
     this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
     this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
     this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
-    this.keyHeld('q', held => actions.setAddConflictOrDeviceMode(held))
+    this.keyHeld('q', held => actions.setAddDeviceMode(held))
     this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
   }
 
@@ -951,7 +955,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.leftLineType = +lcLeftType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const lcLeftColor = $('#lp_select_left_color')
@@ -972,7 +975,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.leftLineColor = +lcLeftColor.val()
-      activeAnnotation.updateVisualization()
     })
 
     const lcRightType = $('#lp_select_right_type')
@@ -993,7 +995,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.rightLineType = +lcRightType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const lcRightColor = $('#lp_select_right_color')
@@ -1014,7 +1015,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.rightLineColor = +lcRightColor.val()
-      activeAnnotation.updateVisualization()
     })
   }
 
@@ -1090,7 +1090,6 @@ export default class Annotator extends React.Component<
       // prettier-ignore
       log.info("Adding left side type: " + cpLeftType.children("option").filter(":selected").text())
       activeAnnotation.leftLineType = +cpLeftType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const cpLeftColor = $('#cp_select_left_color')
@@ -1101,7 +1100,6 @@ export default class Annotator extends React.Component<
       // prettier-ignore
       log.info("Adding left side color: " + cpLeftColor.children("option").filter(":selected").text())
       activeAnnotation.leftLineColor = +cpLeftColor.val()
-      activeAnnotation.updateVisualization()
     })
 
     const cpRightType = $('#cp_select_right_type')
@@ -1112,7 +1110,6 @@ export default class Annotator extends React.Component<
       // prettier-ignore
       log.info("Adding right side type: " + cpRightType.children("option").filter(":selected").text())
       activeAnnotation.rightLineType = +cpRightType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const cpRightColor = $('#cp_select_right_color')
@@ -1123,7 +1120,6 @@ export default class Annotator extends React.Component<
       // prettier-ignore
       log.info("Adding left side color: " + cpRightColor.children("option").filter(":selected").text())
       activeAnnotation.rightLineColor = +cpRightColor.val()
-      activeAnnotation.updateVisualization()
     })
   }
 
@@ -1161,7 +1157,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.type = +tpType.val()
-      activeAnnotation.updateVisualization()
       this.state.annotatedSceneController!.shouldRender()
     })
   }
@@ -1475,11 +1470,6 @@ export default class Annotator extends React.Component<
     Annotator.deactivateRightSideNeighbours()
     Annotator.deactivateFrontSideNeighbours()
 
-    const lpId = document.getElementById('lp_id_value')
-
-    if (lpId) lpId.textContent = 'UNKNOWN'
-    else log.warn('missing element lp_id_value')
-
     const lpWidth = document.getElementById('lp_width_value')
 
     if (lpWidth) lpWidth.textContent = 'UNKNOWN'
@@ -1511,11 +1501,6 @@ export default class Annotator extends React.Component<
    */
   private deactivateBoundaryProp(): void {
     this.collapseAccordion('#menu_boundary')
-
-    const bpId = document.getElementById('bp_id_value')
-
-    if (bpId) bpId.textContent = 'UNKNOWN'
-    else log.warn('missing element bp_id_value')
 
     const bpType = document.getElementById('bp_select_type')
 
@@ -1583,11 +1568,6 @@ export default class Annotator extends React.Component<
    */
   private deactivateTrafficDeviceProp(): void {
     this.collapseAccordion('#menu_traffic_device')
-
-    const tpId = document.getElementById('tp_id_value')
-
-    if (tpId) tpId.textContent = 'UNKNOWN'
-    else log.warn('missing element tp_id_value')
 
     const tpType = document.getElementById('tp_select_type')
 
