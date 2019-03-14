@@ -38,9 +38,7 @@ npm install
 
 ## Configure
 
-The application uses [nconf](https://www.npmjs.com/package/nconf) for configuration. It is set up to read configs from [yaml files](src/config), from environment variables, or from the command line. The command line switch is formatted as `--CONFIG_NAME=CONFIG_VALUE`.
-
-See [the docs](documentation/configuration.md) for details.
+See [the docs](documentation/configuration.md) for advice on configuration files.
 
 ## Run the app
 
@@ -83,6 +81,7 @@ publish minor and major versions.
 
 ### With IntelliJ IDEA
 
+*TODO* update this
 - Open the project in IntelliJ IDEA.
 - Under Run>Run…, select the Mapper Annotator configuration and run it.
 
@@ -106,8 +105,3 @@ For linting, typechecks, formatting etc, try
 
 See `package.json` for more options.
 
-## Manipulating data
-
-### Annotations
-
-Annotation data is saved locally within this project by default, in `./data`. A set of annotations can be loaded or saved to disk using the menus in the application. There are some shortcuts in [configuration](documentation/configuration.md). Annotation files on disk can be merged in memory by loading them sequentially in the annotator. The application runs an auto-save process for annotations. Those files are in `./data/autosave` if you need them.
