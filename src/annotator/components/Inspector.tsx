@@ -153,6 +153,7 @@ export class Inspector extends React.Component<
 
 export default Inspector
 
+// eslint-disable-next-line typescript/explicit-function-return-type
 function styles(_theme: ITheme) {
   const fullWidth = { width: '100%' }
 

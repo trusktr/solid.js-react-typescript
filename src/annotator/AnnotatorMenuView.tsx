@@ -209,6 +209,7 @@ export default class AnnotatorMenuView extends React.Component<
   }
 }
 
+// eslint-disable-next-line typescript/explicit-function-return-type
 function styles() {
   return mergeStyles({
     menu: {

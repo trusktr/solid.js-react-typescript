@@ -1997,6 +1997,7 @@ function hasGeometry(n: THREE.Object3D): boolean {
 
 const numberOfButtons = 3
 
+// eslint-disable-next-line typescript/explicit-function-return-type
 function styles() {
   return mergeStyles({
     annotatedScene: {
