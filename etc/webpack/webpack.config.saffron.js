@@ -1,15 +1,13 @@
 // GET SHELL JS
 const Webpack = require('webpack')
-const { DefinePlugin, HotModuleReplacementPlugin } = Webpack
+const {DefinePlugin, HotModuleReplacementPlugin} = Webpack
 const Path = require('path')
 const Fs = require('fs')
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const _ = require('lodash')
 const baseDir = Path.resolve(__dirname, '..', '..')
 const srcRootDir = Path.resolve(baseDir, 'src')
-const pkgJson = JSON.parse(
-  Fs.readFileSync(Path.resolve(baseDir, 'package.json'), 'utf-8')
-)
+const pkgJson = JSON.parse(Fs.readFileSync(Path.resolve(baseDir, 'package.json'), 'utf-8'))
 const isDev = process.env.NODE_ENV !== 'production'
 const WebpackStatsConfig = {
   colors: true,
@@ -24,7 +22,7 @@ const WebpackStatsConfig = {
   hash: false,
   reasons: false,
   modules: false,
-  chunkOrigins: false
+  chunkOrigins: false,
 }
 
 /**
@@ -35,9 +33,7 @@ const WebpackStatsConfig = {
  */
 function resolveDirs(...dirs) {
   return dirs.map(dir => {
-    return ['c', 'C', '/', '.'].includes(dir.charAt(0))
-      ? Path.resolve(dir)
-      : Path.join(baseDir, dir)
+    return ['c', 'C', '/', '.'].includes(dir.charAt(0)) ? Path.resolve(dir) : Path.join(baseDir, dir)
   })
 }
 
@@ -82,7 +78,7 @@ function makeExternals() {
     'mapbox-gl',
     'react-mapbox-gl',
     'config',
-    'source-map-support'
+    'source-map-support',
   ]
   // return {
   // 	'react': 'commonjs react', // this line is just to use the React dependency of the parent Saffron platform
@@ -112,7 +108,7 @@ function makeModuleConfig() {
         test: /\.js$/,
         exclude: /(typelogger|async-file|node_modules)/,
         use: ['source-map-loader'],
-        enforce: 'pre'
+        enforce: 'pre',
       },
 
       // CSS / SCSS
@@ -123,15 +119,15 @@ function makeModuleConfig() {
           'css-loader',
           {
             loader: 'sass-loader',
-            options: {}
-          }
-        ]
+            options: {},
+          },
+        ],
       },
 
       // YAML
       {
         test: /\.(yaml|yml)$/,
-        use: ['json-loader', 'yaml-loader']
+        use: ['json-loader', 'yaml-loader'],
       },
 
       // TYPESCRIPT
@@ -140,15 +136,15 @@ function makeModuleConfig() {
         exclude: [/node_modules/],
         loader: 'ts-loader',
         options: {
-          transpileOnly: true
+          transpileOnly: true,
           //experimentalWatchApi: true,
-        }
+        },
       },
 
       // JADE
       {
         test: /\.(jade|pug)$/,
-        use: ['pug-loader']
+        use: ['pug-loader'],
       },
 
       // ASSETS / FONTS
@@ -159,10 +155,10 @@ function makeModuleConfig() {
             loader: 'url-loader',
             options: {
               // include assets smaller than this inside the bundle as data URLs
-              limit: Infinity
-            }
-          }
-        ]
+              limit: Infinity,
+            },
+          },
+        ],
       },
 
       // ASSETS / IMAGES & ICONS
@@ -173,12 +169,12 @@ function makeModuleConfig() {
             loader: 'url-loader',
             options: {
               // include assets smaller than this inside the bundle as data URLs
-              limit: Infinity
-            }
-          }
-        ]
-      }
-    ]
+              limit: Infinity,
+            },
+          },
+        ],
+      },
+    ],
   }
 }
 
@@ -207,7 +203,7 @@ function makeOutputConfig() {
   const outputConfig = {
     path: `${distDir}/package`,
     filename: 'bundle.js',
-    libraryTarget: 'commonjs2' // THIS IS THE MOST IMPORTANT LINE!,
+    libraryTarget: 'commonjs2', // THIS IS THE MOST IMPORTANT LINE!,
     //filename: '[name].[hash].js'
   }
 
@@ -223,7 +219,7 @@ function makeResolveConfig() {
   return {
     alias: makeAliases(),
     modules: moduleDirs,
-    extensions: ['.ts', '.tsx', '.js', '.jsx']
+    extensions: ['.ts', '.tsx', '.js', '.jsx'],
   }
 }
 
@@ -243,7 +239,7 @@ function patchConfig(config) {
       output: {
         //devtoolModuleFilenameTemplate: 'file://[absolute-resource-path]',
         // devtoolFallbackModuleFilenameTemplate: "file://[absolute-resource-path]"
-      }
+      },
     })
 
     // IF ENTRY & DEV THEN HMR
@@ -252,7 +248,7 @@ function patchConfig(config) {
     config.plugins.push(
       new Webpack.LoaderOptionsPlugin({
         minimize: true,
-        debug: false
+        debug: false,
       })
     )
   }
@@ -268,7 +264,7 @@ function patchConfig(config) {
 function getDevTool() {
   const DevTools = {
     development: 'source-map',
-    production: 'source-map'
+    production: 'source-map',
   }
 
   return DevTools[process.env.NODE_ENV] || DevTools.development
@@ -317,11 +313,11 @@ function makeConfig(name, dependencies, entry, configFn) {
      */
     plugins: [
       new DefinePlugin({
-        'process.env.WEBPACK': true
+        'process.env.WEBPACK': true,
       }),
       new ForkTsCheckerWebpackPlugin({
-        tsconfig: Path.resolve(baseDir, 'tsconfig.json')
-      })
+        tsconfig: Path.resolve(baseDir, 'tsconfig.json'),
+      }),
     ],
 
     /**
@@ -332,7 +328,7 @@ function makeConfig(name, dependencies, entry, configFn) {
       __filename: true,
       global: true,
       process: true,
-      console: true
+      console: true,
     },
 
     /**
@@ -344,8 +340,8 @@ function makeConfig(name, dependencies, entry, configFn) {
       contentBase: Path.join(baseDir, 'dist'),
       host: '0.0.0.0',
       port: 5000,
-      hot: true
-    }
+      hot: true,
+    },
   }
 
   if (configFn) configFn(config)
@@ -357,11 +353,11 @@ module.exports = makeConfig(
   'mapper-annotator',
   [],
   {
-    bundle: _.uniq(makeHotEntry(['./annotator/saffronEntry']))
+    bundle: _.uniq(makeHotEntry(['./annotator/saffronEntry'])),
   },
   config => {
     _.merge(config, {
-      devServer: {}
+      devServer: {},
     })
   }
 )

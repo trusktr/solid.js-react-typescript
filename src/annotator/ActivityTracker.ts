@@ -1,8 +1,8 @@
-import { S3 } from 'aws-sdk'
-import { getValue } from 'typeguard'
-import { getS3Client, getLogger, } from '@mapperai/mapper-annotated-scene'
-import { getAccount, getOrganizationId } from '@mapperai/mapper-saffron-sdk'
-import { awsCredentials, s3Bucket } from './SaffronDataProviderFactory'
+import {S3} from 'aws-sdk'
+import {getValue} from 'typeguard'
+import {getS3Client, getLogger} from '@mapperai/mapper-annotated-scene'
+import {getAccount, getOrganizationId} from '@mapperai/mapper-saffron-sdk'
+import {awsCredentials, s3Bucket} from './SaffronDataProviderFactory'
 
 const log = getLogger(__filename)
 
@@ -12,10 +12,7 @@ export class ActivityTracker<T extends Object | null> {
   private bucket?: string
   private s3?: S3
 
-  constructor(
-    private sessionId: string,
-    private onActivityTrack?: () => T
-  ) {}
+  constructor(private sessionId: string, private onActivityTrack?: () => T) {}
 
   start() {
     this.activityInterval = window.setInterval(this.checkActivity, 30000)
@@ -47,15 +44,14 @@ export class ActivityTracker<T extends Object | null> {
 
     if (!this.s3) {
       await Promise.all([
-        s3Bucket.then((bucket) => this.bucket = bucket),
-        awsCredentials.then(async (creds) => {
-          return this.s3 = await getS3Client(creds)
+        s3Bucket.then(bucket => (this.bucket = bucket)),
+        awsCredentials.then(async creds => {
+          return (this.s3 = await getS3Client(creds))
         }),
       ])
     }
 
-    if (!this.bucket || !this.s3)
-      throw new Error('unable to get s3 client')
+    if (!this.bucket || !this.s3) throw new Error('unable to get s3 client')
 
     const organizationId = getOrganizationId()
     const account = getAccount()
@@ -80,7 +76,7 @@ export class ActivityTracker<T extends Object | null> {
           meta: metaData,
         }),
         Bucket: this.bucket,
-        Key
+        Key,
       })
       .promise()
   }

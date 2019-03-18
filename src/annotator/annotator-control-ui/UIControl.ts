@@ -38,18 +38,8 @@ export default function initUIControl(): void {
 
   const bpSelectsId = ['bp_select_type', 'bp_select_color']
   const bpSelectsText = [
-    [
-      'UNKNOWN',
-      'CURB',
-      'SOLID',
-      'DASHED',
-      'DOUBLE_SOLID',
-      'DOUBLE_DASHED',
-      'SOLID_DASHED',
-      'DASHED_SOLID',
-      'OTHER'
-    ],
-    ['UNKNOWN', 'NONE', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'GREEN', 'OTHER']
+    ['UNKNOWN', 'CURB', 'SOLID', 'DASHED', 'DOUBLE_SOLID', 'DOUBLE_DASHED', 'SOLID_DASHED', 'DASHED_SOLID', 'OTHER'],
+    ['UNKNOWN', 'NONE', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'GREEN', 'OTHER'],
   ]
   const bpSelectsValue = [
     [
@@ -61,7 +51,7 @@ export default function initUIControl(): void {
       BoundaryType.DOUBLE_DASHED.toString(),
       BoundaryType.SOLID_DASHED.toString(),
       BoundaryType.DASHED_SOLID.toString(),
-      BoundaryType.OTHER.toString()
+      BoundaryType.OTHER.toString(),
     ],
     [
       BoundaryColor.UNKNOWN.toString(),
@@ -71,8 +61,8 @@ export default function initUIControl(): void {
       BoundaryColor.RED.toString(),
       BoundaryColor.BLUE.toString(),
       BoundaryColor.GREEN.toString(),
-      BoundaryColor.OTHER.toString()
-    ]
+      BoundaryColor.OTHER.toString(),
+    ],
   ]
   const bpSelects: Array<HTMLElement> = []
 
@@ -104,14 +94,7 @@ export default function initUIControl(): void {
     'Right Line Type:',
     'Right Line Color',
   ]
-  const lpLabelsId = [
-    'lp_width',
-    'lp_lane_type',
-    'lp_left_line',
-    'lp_left_color',
-    'lp_right_line',
-    'lp_right_color',
-  ]
+  const lpLabelsId = ['lp_width', 'lp_lane_type', 'lp_left_line', 'lp_left_color', 'lp_right_line', 'lp_right_color']
   const lpLabels: Array<HTMLElement> = []
 
   for (const i in lpLabelsText) {
@@ -145,7 +128,7 @@ export default function initUIControl(): void {
       'PARKING',
       'CROSSWALK',
       'TRACKED_VEHICLES',
-      'OTHER'
+      'OTHER',
     ],
     ['UNKNOWN', 'NONE', '––––––––––––', '–  –  –  –  –  –  –', 'CURB', 'ROAD_EDGE'],
     ['UNKNOWN', 'WHITE', 'YELLOW', 'RED', 'BLUE', 'OTHER'],
@@ -165,7 +148,7 @@ export default function initUIControl(): void {
       LaneLikeType.PARKING.toString(),
       LaneLikeType.CROSSWALK.toString(),
       LaneLikeType.TRACKED_VEHICLES.toString(),
-      LaneLikeType.OTHER.toString()
+      LaneLikeType.OTHER.toString(),
     ],
     [
       LaneLineType.UNKNOWN.toString(),
@@ -173,7 +156,7 @@ export default function initUIControl(): void {
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
-      LaneLineType.ROAD_EDGE.toString()
+      LaneLineType.ROAD_EDGE.toString(),
     ],
     [
       LaneLineColor.UNKNOWN.toString(),
@@ -181,7 +164,7 @@ export default function initUIControl(): void {
       LaneLineColor.YELLOW.toString(),
       LaneLineColor.RED.toString(),
       LaneLineColor.BLUE.toString(),
-      LaneLineColor.OTHER.toString()
+      LaneLineColor.OTHER.toString(),
     ],
     [
       LaneLineType.UNKNOWN.toString(),
@@ -189,7 +172,7 @@ export default function initUIControl(): void {
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
-      LaneLineType.ROAD_EDGE.toString()
+      LaneLineType.ROAD_EDGE.toString(),
     ],
     [
       LaneLineColor.UNKNOWN.toString(),
@@ -197,7 +180,7 @@ export default function initUIControl(): void {
       LaneLineColor.YELLOW.toString(),
       LaneLineColor.RED.toString(),
       LaneLineColor.BLUE.toString(),
-      LaneLineColor.OTHER.toString()
+      LaneLineColor.OTHER.toString(),
     ],
   ]
   const lpSelects: Array<HTMLElement> = []
@@ -235,16 +218,9 @@ export default function initUIControl(): void {
     'Left Line Type:',
     'Left Line Color:',
     'Right Line Type:',
-    'Right Line Color'
+    'Right Line Color',
   ]
-  const cpLabelsId = [
-    'cp_id',
-    'cp_type',
-    'cp_left_line',
-    'cp_left_color',
-    'cp_right_line',
-    'cp_right_color'
-  ]
+  const cpLabelsId = ['cp_id', 'cp_type', 'cp_left_line', 'cp_left_color', 'cp_right_line', 'cp_right_color']
   const cpLabels: Array<HTMLElement> = []
 
   for (const i in cpLabelsText) {
@@ -263,7 +239,7 @@ export default function initUIControl(): void {
     'cp_select_left_type',
     'cp_select_left_color',
     'cp_select_right_type',
-    'cp_select_right_color'
+    'cp_select_right_color',
   ]
   // prettier-ignore
   const cpSelectsText = [
@@ -299,7 +275,7 @@ export default function initUIControl(): void {
       LaneLikeType.PARKING.toString(),
       LaneLikeType.CROSSWALK.toString(),
       LaneLikeType.TRACKED_VEHICLES.toString(),
-      LaneLikeType.OTHER.toString()
+      LaneLikeType.OTHER.toString(),
     ],
     [
       LaneLineType.UNKNOWN.toString(),
@@ -307,7 +283,7 @@ export default function initUIControl(): void {
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
-      LaneLineType.ROAD_EDGE.toString()
+      LaneLineType.ROAD_EDGE.toString(),
     ],
     [
       LaneLineColor.UNKNOWN.toString(),
@@ -315,7 +291,7 @@ export default function initUIControl(): void {
       LaneLineColor.YELLOW.toString(),
       LaneLineColor.RED.toString(),
       LaneLineColor.BLUE.toString(),
-      LaneLineColor.OTHER.toString()
+      LaneLineColor.OTHER.toString(),
     ],
     [
       LaneLineType.UNKNOWN.toString(),
@@ -323,7 +299,7 @@ export default function initUIControl(): void {
       LaneLineType.SOLID.toString(),
       LaneLineType.DASHED.toString(),
       LaneLineType.CURB.toString(),
-      LaneLineType.ROAD_EDGE.toString()
+      LaneLineType.ROAD_EDGE.toString(),
     ],
     [
       LaneLineColor.UNKNOWN.toString(),
@@ -331,8 +307,8 @@ export default function initUIControl(): void {
       LaneLineColor.YELLOW.toString(),
       LaneLineColor.RED.toString(),
       LaneLineColor.BLUE.toString(),
-      LaneLineColor.OTHER.toString()
-    ]
+      LaneLineColor.OTHER.toString(),
+    ],
   ]
   const cpSelects: Array<HTMLElement> = []
   const eConnectionId = document.createElement('text')
@@ -378,9 +354,7 @@ export default function initUIControl(): void {
   }
 
   const tpSelectsId = ['tp_select_type']
-  const tpSelectsText = [
-    ['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER']
-  ]
+  const tpSelectsText = [['UNKNOWN', 'STOP', 'YIELD', 'RYG_LIGHT', 'RYG_LEFT_ARROW_LIGHT', 'OTHER']]
   const tpSelectsValue = [
     [
       TrafficDeviceType.UNKNOWN.toString(),
@@ -388,8 +362,8 @@ export default function initUIControl(): void {
       TrafficDeviceType.YIELD.toString(),
       TrafficDeviceType.RYG_LIGHT.toString(),
       TrafficDeviceType.RYG_LEFT_ARROW_LIGHT.toString(),
-      TrafficDeviceType.OTHER.toString()
-    ]
+      TrafficDeviceType.OTHER.toString(),
+    ],
   ]
   const tpSelects: Array<HTMLElement> = []
 
@@ -453,7 +427,7 @@ export default function initUIControl(): void {
   const accordionOptions = {
     collapsible: true,
     active: false,
-    heightStyle: 'content'
+    heightStyle: 'content',
   }
   const menuIds = [
     '#menu_boundary',
@@ -461,7 +435,7 @@ export default function initUIControl(): void {
     '#menu_lane',
     '#menu_connection',
     '#menu_polygon',
-    '#menu_traffic_device'
+    '#menu_traffic_device',
   ]
 
   menuIds.forEach(domId => $(domId).accordion(accordionOptions))
