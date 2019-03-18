@@ -1,5 +1,4 @@
 /* eslint-disable typescript/no-explicit-any */
-// import { isString } from 'typeguard'
 import * as TypeLogger from 'typelogger'
 //import * as AWS from "aws-sdk"
 // import IUser, {IAWSTemporaryCredentials, IOrganization} from "models/User"
@@ -17,8 +16,6 @@ enum LogLevel {
   warn,
   error
 }
-
-// const LogLevelNames = Object.keys(LogLevel).filter(isString)
 
 // const EnvLogThreshold = {
 // 	'dev': LogLevel.info,
@@ -200,7 +197,6 @@ let Threshold = LogLevel.info
  */
 /* eslint-disable typescript/no-explicit-any */
 export function getLogger(name: string): any {
-  console.log("RTT-annotator getLogger", name)
   return SaffronSDK.LogManager.log(name, "annotator")
 }
 
