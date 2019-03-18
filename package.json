@@ -2,7 +2,7 @@
   "name": "@mapperai/mapper-annotator",
   "appName": "Annotator",
   "appID": "Annotator",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Mapper.ai HD Map Editor",
   "main": "saffron.js",
   "license": "UNLICENSED",
