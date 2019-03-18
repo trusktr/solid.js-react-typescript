@@ -19,6 +19,7 @@ else if (envInput === 'test')
 else
   throw new Error('Unknown environment name: NODE_ENV=' + envInput)
 
+// prettier-ignore
 const {
   promise: configPromise,
   reject: rejectConfig,
@@ -46,6 +47,7 @@ function setupConfig(): void {
       return conf
     }, {})
 
+    // prettier-ignore
     console.log('Available env configs', confKeys, 'desired', envFilename, 'final config', conf)
 
     Object.assign(config, conf)

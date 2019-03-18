@@ -13,6 +13,7 @@ import getLogger from 'util/Logger'
 
 const log = getLogger(__filename)
 
+// prettier-ignore
 const {
   promise: awsCredentials,
   resolve: resolveCredentials,
