@@ -5,20 +5,20 @@
 
 import * as Electron from 'electron'
 import * as THREE from 'three'
-import { OrderedSet } from 'immutable'
-import { ImageScreen } from './ImageScreen'
-import { CalibratedImage } from './CalibratedImage'
-import { LightboxWindowManager } from '../annotator-image-lightbox/LightboxWindowManager'
+import {OrderedSet} from 'immutable'
+import {ImageScreen} from './ImageScreen'
+import {CalibratedImage} from './CalibratedImage'
+import {LightboxWindowManager} from '../annotator-image-lightbox/LightboxWindowManager'
 import * as IPCMessages from '../annotator-image-lightbox/IPCMessages'
-import { readImageMetadataFile } from './Aurora'
+import {readImageMetadataFile} from './Aurora'
 import {
   getLogger as Logger,
   AnnotatedSceneActions,
   Events,
   UtmCoordinateSystem,
-  EventEmitter
+  EventEmitter,
 } from '@mapperai/mapper-annotated-scene'
-import { AuroraCameraParameters } from './CameraParameters'
+import {AuroraCameraParameters} from './CameraParameters'
 import config from 'annotator-config'
 
 const log = Logger(__filename)
@@ -41,15 +41,12 @@ export class ImageManager {
   private lightboxWindow: LightboxWindowManager | null // pop full-size 2D images into their own window
   loadedImageDetails: OrderedSet<CalibratedImage>
 
-  constructor(
-    private utmCoordinateSystem: UtmCoordinateSystem,
-    private channel: EventEmitter
-  ) {
+  constructor(private utmCoordinateSystem: UtmCoordinateSystem, private channel: EventEmitter) {
     this.settings = {
       imageScreenWidth: config['image_manager.image_screen.width'],
       imageScreenHeight: config['image_manager.image_screen.height'],
       visibleWireframe: config['image_manager.image.wireframe.visible'],
-      clickedRayLength: 100
+      clickedRayLength: 100,
     }
 
     this.imageScreens = []
@@ -84,7 +81,7 @@ export class ImageManager {
         const options: Electron.OpenDialogOptions = {
           message: 'Load Image Files',
           properties: ['openFile', 'multiSelections'],
-          filters: [{ name: 'images', extensions: ['jpeg', 'jpg', 'png'] }]
+          filters: [{name: 'images', extensions: ['jpeg', 'jpg', 'png']}],
         }
 
         const handler = (paths: string[]): void => {
@@ -116,7 +113,7 @@ export class ImageManager {
             this.settings.imageScreenHeight,
             this.settings.visibleWireframe
           ),
-          parameters: cameraParameters
+          parameters: cameraParameters,
         } as CalibratedImage)
       })
       .catch(err => {
@@ -147,8 +144,7 @@ export class ImageManager {
   loadImageIntoWindow(image: CalibratedImage): void {
     if (this.loadedImageDetails.has(image)) return
 
-    if (!this.lightboxWindow)
-      this.lightboxWindow = new LightboxWindowManager(this.channel)
+    if (!this.lightboxWindow) this.lightboxWindow = new LightboxWindowManager(this.channel)
 
     this.channel.on(Events.IMAGE_EDIT_STATE, this.onImageEditState)
     this.channel.on(Events.IMAGE_CLICK, this.onImageClick)
@@ -164,9 +160,7 @@ export class ImageManager {
   private onLightboxWindowClose = (): void => {
     let updated = 0
 
-    this.loadedImageDetails.forEach(
-      i => i!.imageScreen.setHighlight(false) && updated++
-    )
+    this.loadedImageDetails.forEach(i => i!.imageScreen.setHighlight(false) && updated++)
 
     this.loadedImageDetails = OrderedSet()
 
@@ -181,9 +175,9 @@ export class ImageManager {
         .map(i => {
           return {
             uuid: i.imageScreen.uuid,
-            path: i.path
+            path: i.path,
           } as IPCMessages.LightboxImageDescription
-        })
+        }),
     }
   }
 
@@ -204,17 +198,11 @@ export class ImageManager {
         const parameters = i!.parameters
 
         if (parameters instanceof AuroraCameraParameters) {
-          const ray = parameters.imageCoordinatesToRay(
-            click.ratioX,
-            click.ratioY,
-            this.settings.clickedRayLength
-          )
+          const ray = parameters.imageCoordinatesToRay(click.ratioX, click.ratioY, this.settings.clickedRayLength)
 
           this.channel.emit(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, ray)
         } else {
-          log.error(
-            `found CalibratedImage with unknown type of parameters: ${parameters}`
-          )
+          log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)
         }
       })
   }
@@ -243,7 +231,7 @@ export class ImageManager {
     if (this.lightboxWindow) {
       this.lightboxWindow.imageSetState({
         uuid: image.imageScreen.uuid,
-        active: active
+        active: active,
       } as IPCMessages.ImageEditState)
 
       return true

@@ -5,20 +5,18 @@
 
 import * as React from 'react'
 import initUIControl from './annotator-control-ui/UIControl'
-import {Annotation, LayerManager, typedConnect, toProps, AnnotatedSceneState, LayerStatusMap} from '@mapperai/mapper-annotated-scene'
+import {
+  Annotation,
+  LayerManager,
+  typedConnect,
+  toProps,
+  AnnotatedSceneState,
+  LayerStatusMap,
+} from '@mapperai/mapper-annotated-scene'
 import Help from '../annotator/components/Help'
-import { Inspector } from './components/Inspector'
-import {
-  IThemedProperties,
-  withStatefulStyles,
-  mergeStyles,
-  mergeClasses,
-} from '@mapperai/mapper-themes'
-import {
-  menuSpacing,
-  menuTopPosition,
-  panelBorderRadius,
-} from './styleVars'
+import {Inspector} from './components/Inspector'
+import {IThemedProperties, withStatefulStyles, mergeStyles, mergeClasses} from '@mapperai/mapper-themes'
+import {menuSpacing, menuTopPosition, panelBorderRadius} from './styleVars'
 
 interface AnnotatorMenuViewProps extends IThemedProperties {
   uiMenuVisible: boolean
@@ -30,15 +28,9 @@ interface AnnotatorMenuViewProps extends IThemedProperties {
 
 interface AnnotatorMenuViewState {}
 
-@typedConnect(toProps(
-  AnnotatedSceneState,
-  'layerStatus'
-))
+@typedConnect(toProps(AnnotatedSceneState, 'layerStatus'))
 @withStatefulStyles(styles)
-export default class AnnotatorMenuView extends React.Component<
-  AnnotatorMenuViewProps,
-  AnnotatorMenuViewState
-> {
+export default class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
   constructor(props: AnnotatorMenuViewProps) {
     super(props)
   }
@@ -140,14 +132,8 @@ export default class AnnotatorMenuView extends React.Component<
               Traffic Device Properties
             </h3>
             <div id="exp_body_4" className="dropdown_body">
-              <div
-                id="traffic_device_prop_1"
-                className="fieldset_content_style"
-              />
-              <div
-                id="traffic_device_prop_2"
-                className="fieldset_content_style"
-              />
+              <div id="traffic_device_prop_1" className="fieldset_content_style" />
+              <div id="traffic_device_prop_2" className="fieldset_content_style" />
             </div>
           </div>
           <div id="menu_polygon" className="accordion">
@@ -194,7 +180,7 @@ function styles() {
       borderRadius: panelBorderRadius,
 
       '&.hidden': {
-        display: 'none'
+        display: 'none',
       },
 
       '& menu': {
@@ -203,21 +189,21 @@ function styles() {
       },
 
       '& *': {
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
       },
 
       '&, & *, & *::after, & *::before': {
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
       },
 
       '& .statusOk': {
-        color: '#0a0'
+        color: '#0a0',
       },
       '& .statusWarning': {
-        color: '#ffd260'
+        color: '#ffd260',
       },
       '& .statusError': {
-        color: '#a00'
+        color: '#a00',
       },
       '& button': {
         width: '100%',
@@ -228,55 +214,55 @@ function styles() {
         border: 0,
         borderRadius: '15px',
         '&.laneBtn': {
-          width: '30px'
+          width: '30px',
         },
         '&:active': {
           backgroundColor: '#3e8e41',
-          transform: 'translateY(4px)'
+          transform: 'translateY(4px)',
         },
         '&:hover': {
-          backgroundColor: '#3e8e41'
-        }
+          backgroundColor: '#3e8e41',
+        },
       },
       '& .fieldset_content_style': {
         width: '100%',
         height: '100%',
         marginTop: '2px',
-        textAlign: 'center'
+        textAlign: 'center',
       },
       '& .div_buttons_group': {
         marginTop: '2px',
-        textAlign: 'center'
+        textAlign: 'center',
       },
       '& .div_properties': {
         marginTop: '2px',
-        textAlign: 'center'
+        textAlign: 'center',
       },
       '& .div_glue, & .div_help': {
         marginTop: '2px',
         textAlign: 'left',
-        fontSize: 'x-small'
+        fontSize: 'x-small',
       },
       '& .div_help': {
-        marginTop: 0
+        marginTop: 0,
       },
       '& .ui-btn': {
-        fontSize: '12px'
+        fontSize: '12px',
       },
       '& .label_style, & .select_style': {
         textAlign: 'left',
         padding: 0,
         margin: 0,
         float: 'left',
-        fontSize: 'x-small'
+        fontSize: 'x-small',
       },
       '& .label_style': {
         border: 0,
         backgroundColor: 'transparent',
-        width: '60%'
+        width: '60%',
       },
       '& .select_style': {
-        width: '40%'
+        width: '40%',
       },
       '& .accordion': {
         outline: 0,
@@ -289,7 +275,7 @@ function styles() {
         fontSize: '15px',
         padding: 0,
         width: 'auto',
-        cursor: 'pointer'
+        cursor: 'pointer',
       },
       '& .dropdown_head': {
         margin: '3px',
@@ -300,13 +286,13 @@ function styles() {
           fontSize: '10px',
           paddingRight: '5px',
           paddingTop: '2px',
-          float: 'right'
+          float: 'right',
         },
         '&:active': {
           '&:after': {
-            content: "'-'"
-          }
-        }
+            content: "'-'",
+          },
+        },
       },
       '& .dropdown_body': {
         height: 'auto',
@@ -315,7 +301,7 @@ function styles() {
         backgroundColor: '#faebd7',
         color: '#000',
         display: 'none',
-        overflow: 'auto'
+        overflow: 'auto',
       },
     },
   })

@@ -6,8 +6,7 @@
 export function hexStringToHexadecimal(hex: String): number {
   const colors = hexToRgbArray(hex)
 
-  if (colors && colors.length === 3)
-    return 0x10000 * colors[0] + 0x100 * colors[1] + colors[2]
+  if (colors && colors.length === 3) return 0x10000 * colors[0] + 0x100 * colors[1] + colors[2]
   else return Number.NaN
 }
 

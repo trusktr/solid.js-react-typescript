@@ -20,7 +20,7 @@ require('module-alias').addAliases({
   '@mapperai/mapper-annotated-scene': (fromPath, moduleIdentifier, alias) => {
     if (moduleIdentifier === alias) return alias + '/src'
     return alias
-  }
+  },
 })
 
 // ability to require/import TypeScript files
@@ -32,7 +32,7 @@ require('ts-node').register({
   // manually supply our own compilerOptions, otherwise if we run this file
   // from another project's location (f.e. from Saffron) then ts-node will use
   // the compilerOptions from that other location, which may not work.
-  compilerOptions: require('./tsconfig.json').compilerOptions
+  compilerOptions: require('./tsconfig.json').compilerOptions,
 })
 
 // css files straight to document head (assumes that the browser `document` API
@@ -43,7 +43,7 @@ require('css-modules-require-hook')({
   preprocessCss: function(cssCode, file) {
     addStyleToHead(cssCode)
     return ''
-  }
+  },
 })
 
 function addStyleToHead(cssCode) {
@@ -68,7 +68,7 @@ function toFileURL(filePath) {
   return url.format({
     pathname: filePath,
     protocol: 'file:',
-    slashes: true
+    slashes: true,
   })
 }
 
@@ -94,7 +94,7 @@ function requireContext(directory, recursive, regExp) {
   const keys = dir
     .files(basepath, {
       sync: true,
-      recursive: recursive || false
+      recursive: recursive || false,
     })
     .filter(function(file) {
       return file.match(regExp || /\.(json|js)$/)
@@ -121,35 +121,24 @@ function requireContext(directory, recursive, regExp) {
 Module.prototype.require = function(moduleIdentifier) {
   if (['.yaml', '.yml'].some(ext => moduleIdentifier.endsWith(ext))) {
     const data = require('js-yaml').safeLoad(
-      fs.readFileSync(
-        path.resolve(path.dirname(this.filename + ''), moduleIdentifier),
-        'utf8'
-      )
+      fs.readFileSync(path.resolve(path.dirname(this.filename + ''), moduleIdentifier), 'utf8')
     )
     const result = Object.assign({}, data)
 
     result.default = result
     return result
   } else if (['.obj', '.png'].some(ext => moduleIdentifier.endsWith(ext))) {
-    const result = String(
-      toFileURL(path.resolve(path.dirname(this.filename), moduleIdentifier))
-    )
+    const result = String(toFileURL(path.resolve(path.dirname(this.filename), moduleIdentifier)))
 
     result.default = result
     return result
   } else if (moduleIdentifier.endsWith('.worker')) {
-    if (typeof window === 'undefined')
-      throw new Error('Workers may only be imported in a renderer process')
+    if (typeof window === 'undefined') throw new Error('Workers may only be imported in a renderer process')
 
-    const workerScriptFile = Module._resolveFilename(
-      moduleIdentifier,
-      this,
-      false
-    )
+    const workerScriptFile = Module._resolveFilename(moduleIdentifier, this, false)
     const ext = path.extname(workerScriptFile)
 
-    if (!(ext === '.ts' || ext === '.js'))
-      throw new Error('expected a TypeScript or JavaScript file')
+    if (!(ext === '.ts' || ext === '.js')) throw new Error('expected a TypeScript or JavaScript file')
 
     // let source = fs.readFileSync(workerScriptFile, 'utf8')
 
@@ -192,9 +181,7 @@ Module.prototype.require = function(moduleIdentifier) {
 				}
 			}
 		`
-    const sourceUrl = URL.createObjectURL(
-      new Blob([source], { type: 'text/javascript' })
-    )
+    const sourceUrl = URL.createObjectURL(new Blob([source], {type: 'text/javascript'}))
 
     class ModuleWorker {
       constructor() {

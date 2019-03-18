@@ -6,16 +6,12 @@
 import * as Url from 'url'
 import * as Path from 'path'
 import * as Electron from 'electron'
-import { windowStateKeeperOptions } from '../../util/WindowStateKeeperOptions'
-import { channel as ipcChannel } from '../../electron-ipc/Channel'
+import {windowStateKeeperOptions} from '../../util/WindowStateKeeperOptions'
+import {channel as ipcChannel} from '../../electron-ipc/Channel'
 import * as IPCMessages from './IPCMessages'
 import WindowCommunicator from '../../util/WindowCommunicator'
-import createPromise, { Resolve } from '../../util/createPromise'
-import {
-  KeyboardEventHighlights,
-  Events,
-  EventEmitter
-} from '@mapperai/mapper-annotated-scene'
+import createPromise, {Resolve} from '../../util/createPromise'
+import {KeyboardEventHighlights, Events, EventEmitter} from '@mapperai/mapper-annotated-scene'
 import windowStateKeeper from 'electron-window-state'
 import config from 'annotator-config'
 
@@ -36,7 +32,7 @@ export class LightboxWindowManager {
   constructor(private channel: EventEmitter) {
     this.settings = {
       backgroundColor: config['startup.background_color'] || '#000',
-      openDevTools: !!config['startup.show_dev_tools']
+      openDevTools: !!config['startup.show_dev_tools'],
     }
 
     this.loadingWindow = false
@@ -50,16 +46,8 @@ export class LightboxWindowManager {
     this.loadingWindow = true
 
     const windowName = 'imageLightbox'
-    const {
-      promise,
-      resolve
-    }: { promise: Promise<void>; resolve: Resolve<void> } = createPromise<
-      void,
-      void
-    >()
-    const savedState = windowStateKeeper(
-      await windowStateKeeperOptions(windowName)
-    )
+    const {promise, resolve}: {promise: Promise<void>; resolve: Resolve<void>} = createPromise<void, void>()
+    const savedState = windowStateKeeper(await windowStateKeeperOptions(windowName))
     const options = `${objectToFeatureString(savedState)},_blank`
     const lightboxWindow = window.open(
       'about:blank',
@@ -96,7 +84,7 @@ export class LightboxWindowManager {
       Url.format({
         pathname: Path.resolve(__dirname, `${windowName}.html`),
         protocol: 'file:',
-        slashes: true
+        slashes: true,
       })
     )
 
@@ -111,10 +99,7 @@ export class LightboxWindowManager {
   }
 
   openChannels(): void {
-    this.lightboxCommunicator.on(
-      ipcChannel.imageEditState,
-      this.handleOnImageEditState
-    )
+    this.lightboxCommunicator.on(ipcChannel.imageEditState, this.handleOnImageEditState)
 
     this.lightboxCommunicator.on(ipcChannel.imageClick, this.handleOnImageClick)
     this.lightboxCommunicator.on(ipcChannel.keyDownEvent, this.handleOnKeyDown)
@@ -122,15 +107,9 @@ export class LightboxWindowManager {
   }
 
   closeChannels(): void {
-    this.lightboxCommunicator.off(
-      ipcChannel.imageEditState,
-      this.handleOnImageEditState
-    )
+    this.lightboxCommunicator.off(ipcChannel.imageEditState, this.handleOnImageEditState)
 
-    this.lightboxCommunicator.off(
-      ipcChannel.imageClick,
-      this.handleOnImageClick
-    )
+    this.lightboxCommunicator.off(ipcChannel.imageClick, this.handleOnImageClick)
 
     this.lightboxCommunicator.off(ipcChannel.keyDownEvent, this.handleOnKeyDown)
     this.lightboxCommunicator.off(ipcChannel.keyUpEvent, this.handleOnKeyUp)
@@ -140,21 +119,17 @@ export class LightboxWindowManager {
     if (!state.images.length) return Promise.resolve()
 
     return this.createWindow().then(() => {
-      if (this.window)
-        this.lightboxCommunicator.send(ipcChannel.lightboxState, state)
+      if (this.window) this.lightboxCommunicator.send(ipcChannel.lightboxState, state)
       else console.warn('missing window')
     })
   }
 
   imageSetState(state: IPCMessages.ImageEditState): void {
-    if (this.window)
-      this.lightboxCommunicator.send(ipcChannel.imageEditState, state)
+    if (this.window) this.lightboxCommunicator.send(ipcChannel.imageEditState, state)
     else console.warn('missing window')
   }
 
-  private handleOnImageEditState = (
-    state: IPCMessages.ImageEditState
-  ): void => {
+  private handleOnImageEditState = (state: IPCMessages.ImageEditState): void => {
     this.channel.emit(Events.IMAGE_EDIT_STATE, state)
   }
 
@@ -189,14 +164,7 @@ function objectToFeatureString(obj: object): string {
     if (key === 'x') key = 'left'
     if (key === 'y') key = 'top'
 
-    val =
-      typeof val === 'string'
-        ? val === 'yes'
-          ? true
-          : val === 'no'
-          ? false
-          : val
-        : val
+    val = typeof val === 'string' ? (val === 'yes' ? true : val === 'no' ? false : val) : val
 
     val = typeof val === 'boolean' ? +!!val : val
 

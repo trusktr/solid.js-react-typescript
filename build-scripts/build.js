@@ -8,8 +8,7 @@ require('shelljs/global')
 
 function run(cmd) {
   const result = exec(cmd)
-  if (result.code !== 0)
-    throw Error(`Failed to exec: ${cmd}\n${result.stdout}\n${result.stderr}`)
+  if (result.code !== 0) throw Error(`Failed to exec: ${cmd}\n${result.stdout}\n${result.stderr}`)
 }
 
 //run("npm run lib:build")
@@ -23,13 +22,8 @@ cp('-R', 'dist/package', 'dist/container/dist')
 cd('dist/container')
 
 const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf-8')),
-  { version } = pkg,
-  pkgFilename = require('path').resolve(
-    __dirname,
-    '..',
-    'dist',
-    `mapper-annotator-${version}.zip`
-  )
+  {version} = pkg,
+  pkgFilename = require('path').resolve(__dirname, '..', 'dist', `mapper-annotator-${version}.zip`)
 
 run('npm install --production')
 
