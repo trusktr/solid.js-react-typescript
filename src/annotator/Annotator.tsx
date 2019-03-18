@@ -717,7 +717,7 @@ export default class Annotator extends React.Component<
     this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
     this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
     this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
-    //this.keyHeld('q', held => actions.setAddDeviceMode(held))
+    this.keyHeld('q', held => actions.setAddDeviceMode(held))
     this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
   }
 
