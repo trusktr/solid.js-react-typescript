@@ -18,92 +18,100 @@ import * as THREE from 'three'
  *  kml.saveToFile("MyOutputFilename.kml")
  */
 export class SimpleKML {
-  header: string
-  content: string
-  tail: string
+  template = (content: string) => `
+    <?xml version="1.0" encoding="UTF-8"?>
+    <kml xmlns="http://www.opengis.net/kml/2.2">
+      <Document>
+        <Style id="white">
+          <LineStyle>
+            <color>66ffffff</color>
+          </LineStyle>
+          <PolyStyle>
+            <color>66999999</color>
+          </PolyStyle>
+        </Style>
+        <Style id="green">
+          <LineStyle>
+            <color>6600ff00</color>
+          </LineStyle>
+          <PolyStyle>
+            <color>66009900</color>
+          </PolyStyle>
+        </Style>
 
-  constructor() {
-    this.header =
-      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-      "<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n" +
-      "  <Document>\n" +
-      "  <Style id=\"white\">\n" +
-      "    <LineStyle>\n" +
-      "      <color>66ffffff</color>\n" +
-      "    </LineStyle>\n" +
-      "    <PolyStyle>\n" +
-      "      <color>66999999</color>\n" +
-      "    </PolyStyle>\n" +
-      "  </Style>\n" +
-      "  <Style id=\"green\">\n" +
-      "    <LineStyle>\n" +
-      "      <color>6600ff00</color>\n" +
-      "    </LineStyle>\n" +
-      "    <PolyStyle>\n" +
-      "      <color>66009900</color>\n" +
-      "    </PolyStyle>\n" +
-      "  </Style>\n"
-    this.tail = "  </Document>\n</kml>\n"
-    this.content = ""
-  }
+        ${content}
 
-  addPoints(points: Array<THREE.Vector3>, style: String = "white"): void {
+      </Document>
+    </kml>
+  `
+
+  content = ''
+
+  addPoints(points: Array<THREE.Vector3>, style: String = 'white'): void {
     points.forEach(p => this.addPoint(p, style))
   }
 
-  addPoint(point: THREE.Vector3, style: String = "white"): void {
-    const path =
-      "    <Placemark>\n " +
-      "      <styleUrl>#" + style + "</styleUrl>\n" +
-      "      <Point>\n" +
-      "        <coordinates>\n" +
-      "            " + point.x.toString() + "," + point.y.toString() + "," + point.z.toString() + "\n" +
-      "        </coordinates>\n" +
-      "      </Point>\n" +
-      "    </Placemark>\n"
+  addPoint(point: THREE.Vector3, style: String = 'white'): void {
+    const path = `
+          <Placemark>
+            <styleUrl>#${style}</styleUrl>
+            <Point>
+              <coordinates>
+                ${point.x},${point.y},${point.z}
+              </coordinates>
+            </Point>
+          </Placemark>
+    `
     this.content += path
   }
 
-  addPath(points: Array<THREE.Vector3>, style: String = "white"): void {
-    let path =
-      "    <Placemark>\n " +
-      "      <styleUrl>#" + style + "</styleUrl>\n" +
-      "      <LineString>\n" +
-      "        <altitudeMode>clampToGround</altitudeMode>\n" +
-      "        <coordinates>\n"
-    points.forEach((point) => {
-      path += "          " + point.x.toString() + "," + point.y.toString() + "," + point.z.toString() + "\n"
+  addPath(points: Array<THREE.Vector3>, style: String = 'white'): void {
+    let path = `
+          <Placemark>
+            <styleUrl>#${style}</styleUrl>
+            <LineString>
+              <altitudeMode>clampToGround</altitudeMode>
+              <coordinates>\n`
+
+    points.forEach(point => {
+      path += `          ${point.x},${point.y},${point.z}\n`
     })
-    path +=
-      "        </coordinates>\n" + "" +
-      "      </LineString>\n" +
-      "    </Placemark>\n"
+
+    path += `
+              </coordinates>
+            </LineString>
+          </Placemark>
+    `
+
     this.content += path
   }
 
-  addPolygon(points: Array<THREE.Vector3>, style: String = "green"): void {
-    let path =
-      "    <Placemark>\n " +
-      "      <styleUrl>#" + style + "</styleUrl>\n" +
-      "      <Polygon>\n" +
-      "        <tessellate>1</tessellate>\n" +
-      "        <altitudeMode>clampToGround</altitudeMode>\n" +
-      "        <outerBoundaryIs>\n" +
-      "          <LinearRing>\n" +
-      "            <coordinates>\n"
-    points.concat(points[0]).forEach((point) => {
-      path += "          " + point.x.toString() + "," + point.y.toString() + "," + point.z.toString() + "\n"
+  addPolygon(points: Array<THREE.Vector3>, style: String = 'green'): void {
+    let path = `
+          <Placemark>
+            <styleUrl>#${style}</styleUrl>
+            <Polygon>
+              <tessellate>1</tessellate>
+              <altitudeMode>clampToGround</altitudeMode>
+              <outerBoundaryIs>
+                <LinearRing>
+                  <coordinates>\n`
+
+    points.concat(points[0]).forEach(point => {
+      path += `          ${point.x},${point.y},${point.z}\n`
     })
-    path +=
-      "            </coordinates>\n" +
-      "          </LinearRing>\n" +
-      "        </outerBoundaryIs>\n" +
-      "      </Polygon>\n" +
-      "    </Placemark>\n"
+
+    path += `
+                  </coordinates>
+                </LinearRing>
+              </outerBoundaryIs>
+            </Polygon>
+          </Placemark>
+    `
     this.content += path
   }
 
   toString() {
-    return this.header + this.content + this.tail
+    return this.template(this.content)
   }
 }
