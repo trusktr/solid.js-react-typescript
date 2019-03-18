@@ -91,7 +91,7 @@ export class App extends React.Component<AppProps, AppState> {
     }
 
     return {
-      numberOfAnnotations: annotationManager.allAnnotations().length
+      numberOfAnnotations: annotationManager.allAnnotations.length
     }
   }
 
