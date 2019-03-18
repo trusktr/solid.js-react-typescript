@@ -52,61 +52,40 @@ export default class AnnotatorMenuView extends React.Component<
             <LayerManager layerStatus={this.props.layerStatus} useCheckboxes={true} isDraggable={false} />
           )}
           <div id="tools" className="div_buttons_group">
-            <button
-              id="tools_add_lane"
-              className="ui-btn ui-icon-plus ui-btn-icon-left"
-            >
-              {' '}
-              New Lane{' '}
+            <button id="tools_add_lane" className="ui-btn ui-icon-plus ui-btn-icon-left">
+              New Lane
             </button>
-            <button
-              id="tools_add_traffic_device"
-              className="ui-btn ui-icon-plus ui-btn-icon-left"
-            >
-              {' '}
-              New Traffic Device{' '}
+            <button id="tools_add_traffic_device" className="ui-btn ui-icon-plus ui-btn-icon-left">
+              New Traffic Device
             </button>
-            <button
-              id="tools_delete"
-              className="ui-btn ui-icon-minus ui-btn-icon-left"
-            >
-              {' '}
-              Delete Annotation{' '}
+            <button id="tools_delete" className="ui-btn ui-icon-minus ui-btn-icon-left">
+              Delete Annotation
             </button>
             {/*
             <button
               id="tools_load_images"
               className="ui-btn ui-icon-camera ui-btn-icon-left"
             >
-              {' '}
-              Load Images{' '}
+              Load Images
             </button>
             <button
               id="tools_load_annotation"
               className="ui-btn ui-icon-edit ui-btn-icon-left"
             >
-              {' '}
-              Load Annotations{' '}
+              Load Annotations
             </button>
             */}
-            <button
-              onClick={this.props.onSaveAnnotationsKML}
-              className="ui-btn ui-icon-location ui-btn-icon-left"
-            >
+            <button onClick={this.props.onSaveAnnotationsKML} className="ui-btn ui-icon-location ui-btn-icon-left">
               Save Annotations as KML
             </button>
-            <button
-              onClick={this.props.onSaveAnnotationsJson}
-              className="ui-btn ui-icon-location ui-btn-icon-left"
-            >
+            <button onClick={this.props.onSaveAnnotationsJson} className="ui-btn ui-icon-location ui-btn-icon-left">
               Save Annotations as JSON
             </button>
           </div>
 
           <div id="menu_boundary" className="accordion">
             <h3 id="exp_head_1" className="dropdown_head">
-              {' '}
-              Boundary Properties{' '}
+              Boundary Properties
             </h3>
             <div id="exp_body_1" className="dropdown_body">
               <div id="boundary_prop" className="fieldset_content_style" />
@@ -115,42 +94,34 @@ export default class AnnotatorMenuView extends React.Component<
 
           <div id="menu_lane" className="accordion">
             <h3 id="exp_head_2" className="dropdown_head">
-              {' '}
-              Lane Properties{' '}
+              Lane Properties
             </h3>
             <div id="exp_body_2" className="dropdown_body">
               <div id="lane_prop" className="fieldset_content_style">
                 <div id="lane_prop_1" className="div_properties" />
                 <div id="lane_prop_2" className="div_glue">
-                  {' '}
-                  Add Neighbor:{' '}
+                  Add Neighbor:
                 </div>
                 <div id="lane_prop_3" className="div_buttons_group">
                   <button className="laneBtn" id="lp_add_forward">
-                    {' '}
-                    &uarr;{' '}
+                    &uarr;
                   </button>
                 </div>
                 <div id="lane_prop_4" className="div_buttons_group">
                   <button className="laneBtn" id="lp_add_left_opposite">
-                    {' '}
-                    &darr;{' '}
+                    &darr;
                   </button>
                   <button className="laneBtn" id="lp_add_left_same">
-                    {' '}
-                    &uarr;{' '}
+                    &uarr;
                   </button>
                   <button className="laneBtn" id="lp_current" disabled>
-                    {' '}
-                    C{' '}
+                    C
                   </button>
                   <button className="laneBtn" id="lp_add_right_same">
-                    {' '}
-                    &uarr;{' '}
+                    &uarr;
                   </button>
                   <button className="laneBtn" id="lp_add_right_opposite">
-                    {' '}
-                    &darr;{' '}
+                    &darr;
                   </button>
                 </div>
               </div>
@@ -158,8 +129,7 @@ export default class AnnotatorMenuView extends React.Component<
           </div>
           <div id="menu_connection" className="accordion">
             <h3 id="exp_head_3" className="dropdown_head">
-              {' '}
-              Connection Properties{' '}
+              Connection Properties
             </h3>
             <div id="exp_body_3" className="dropdown_body">
               <div id="connection_prop" className="fieldset_content_style" />
@@ -167,8 +137,7 @@ export default class AnnotatorMenuView extends React.Component<
           </div>
           <div id="menu_traffic_device" className="accordion">
             <h3 id="exp_head_4" className="dropdown_head">
-              {' '}
-              Traffic Device Properties{' '}
+              Traffic Device Properties
             </h3>
             <div id="exp_body_4" className="dropdown_body">
               <div
@@ -191,8 +160,7 @@ export default class AnnotatorMenuView extends React.Component<
           </div>
           <div id="menu_help" className="accordion">
             <h3 id="exp_head_6" className="dropdown_head">
-              {' '}
-              Help{' '}
+              Help
             </h3>
             <div id="exp_body_6" className="dropdown_body">
               <Help />
