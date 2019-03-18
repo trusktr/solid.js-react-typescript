@@ -1856,7 +1856,7 @@ export default class Annotator extends React.Component<
     channel!.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
     channel!.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
 
-    channel!.on(Events.TRANSFORM_DONE, this.snapMarker)
+    channel!.on(Events.TRANSFORM_UPDATE, this.snapMarker)
 
     // UI updates
     // TODO JOE move UI logic to React/JSX, and get state from Redux
