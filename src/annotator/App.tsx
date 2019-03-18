@@ -11,7 +11,7 @@ import {
   FillHeight,
   FillWidth,
   mergeStyles,
-  PositionAbsolute
+  PositionAbsolute,
 } from '@mapperai/mapper-themes'
 import {
   SessionPicker,
@@ -19,12 +19,12 @@ import {
   ISessionInfo,
   DataProviderFactory,
   AnnotationManager,
-  getLogger
+  getLogger,
 } from '@mapperai/mapper-annotated-scene'
-import { makeSaffronDataProviderFactory } from './SaffronDataProviderFactory'
+import {makeSaffronDataProviderFactory} from './SaffronDataProviderFactory'
 import Annotator from '../annotator/Annotator'
 import createStyles from '@material-ui/core/styles/createStyles'
-import { ActivityTracker } from './ActivityTracker'
+import {ActivityTracker} from './ActivityTracker'
 
 const log = getLogger(__filename)
 
@@ -46,9 +46,7 @@ export interface AppState {
 
 @withStatefulStyles(styles)
 export class App extends React.Component<AppProps, AppState> {
-  private static createDataProviderFactory(
-    sessionId: string | null = null
-  ): DataProviderFactory {
+  private static createDataProviderFactory(sessionId: string | null = null): DataProviderFactory {
     return makeSaffronDataProviderFactory(sessionId, false)
   }
 
@@ -65,7 +63,7 @@ export class App extends React.Component<AppProps, AppState> {
       env: 'prod',
       reset: false,
       isSaffron: window.isSaffron === true,
-      annotationManager: null
+      annotationManager: null,
     }
   }
 
@@ -75,12 +73,12 @@ export class App extends React.Component<AppProps, AppState> {
   private onSessionSelected = (factory: DataProviderFactory, session: ISessionInfo) =>
     this.setState({
       session,
-      dataProviderFactory: factory.forSessionId(session.id),//App.createDataProviderFactory(session.id),
-      reset: true
+      dataProviderFactory: factory.forSessionId(session.id), //App.createDataProviderFactory(session.id),
+      reset: true,
     })
 
   private getAnnotationManagerRef = (annotationManager: AnnotationManager | null) => {
-    this.setState({ annotationManager })
+    this.setState({annotationManager})
   }
 
   onTrackActivity = (): IActivityTrackingInfo => {
@@ -91,17 +89,13 @@ export class App extends React.Component<AppProps, AppState> {
     }
 
     return {
-      numberOfAnnotations: annotationManager.allAnnotations().length
+      numberOfAnnotations: annotationManager.allAnnotations.length,
     }
   }
 
-  componentDidUpdate(
-    _prevProps: Readonly<AppProps>,
-    prevState: Readonly<AppState>,
-    _snapshot?: any
-  ): void {
+  componentDidUpdate(_prevProps: Readonly<AppProps>, prevState: Readonly<AppState>, _snapshot?: any): void {
     if (this.state.reset) {
-      this.setState({ reset: false })
+      this.setState({reset: false})
     }
 
     if (this.state.session !== prevState.session) {
@@ -123,13 +117,8 @@ export class App extends React.Component<AppProps, AppState> {
   }
 
   render(): JSX.Element {
-    const { classes } = this.props,
-      {
-        reset,
-        session,
-        dataProviderFactory,
-        dataProviderFactories
-      } = this.state
+    const {classes} = this.props,
+      {reset, session, dataProviderFactory, dataProviderFactories} = this.state
 
     return (
       <div className={classes!.root}>
@@ -142,7 +131,10 @@ export class App extends React.Component<AppProps, AppState> {
             />
             <div className="annotatorPane">
               {!reset && dataProviderFactory && (
-                <Annotator getAnnotationManagerRef={this.getAnnotationManagerRef} dataProviderFactory={dataProviderFactory!} />
+                <Annotator
+                  getAnnotationManagerRef={this.getAnnotationManagerRef}
+                  dataProviderFactory={dataProviderFactory!}
+                />
               )}
             </div>
           </React.Fragment>
@@ -169,10 +161,10 @@ function styles(theme) {
               top: SessionPickerHeight,
               bottom: 0,
               left: 0,
-              right: 0
-            }
-          ]
-        }
+              right: 0,
+            },
+          ],
+        },
       ],
     })
   )
