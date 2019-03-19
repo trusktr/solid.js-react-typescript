@@ -68,8 +68,6 @@ function makeExternals() {
     'events',
     'child_process',
     'path',
-    'nconf',
-    'nconf-yaml',
     'electron',
     'react',
     'react-dom',
