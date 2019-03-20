@@ -126,7 +126,10 @@ interface AnnotatorProps extends IThemedProperties {
   rendererSize?: Electron.Size
   camera?: THREE.Camera
   dataProviderFactory: DataProviderFactory
-  isShiftKeyPressed?: boolean
+  isControlKeyPressed: boolean
+  isAltKeyPressed: boolean
+  isMetaKeyPressed: boolean
+  isShiftKeyPressed: boolean
   isAddMarkerMode?: boolean
   isAddConnectionMode?: boolean
   isConnectLeftNeighborMode?: boolean
@@ -150,6 +153,9 @@ interface AnnotatorProps extends IThemedProperties {
     'carPose',
     'rendererSize',
     'camera',
+    'isControlKeyPressed',
+    'isAltKeyPressed',
+    'isMetaKeyPressed',
     'isShiftKeyPressed',
     'isAddMarkerMode',
     'isAddConnectionMode',
