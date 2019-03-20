@@ -126,10 +126,10 @@ interface AnnotatorProps extends IThemedProperties {
   rendererSize?: Electron.Size
   camera?: THREE.Camera
   dataProviderFactory: DataProviderFactory
-  isControlKeyPressed: boolean
-  isAltKeyPressed: boolean
-  isMetaKeyPressed: boolean
-  isShiftKeyPressed: boolean
+  isControlKeyPressed?: boolean
+  isAltKeyPressed?: boolean
+  isMetaKeyPressed?: boolean
+  isShiftKeyPressed?: boolean
   isAddMarkerMode?: boolean
   isAddConnectionMode?: boolean
   isConnectLeftNeighborMode?: boolean
@@ -1773,7 +1773,7 @@ export default class Annotator extends React.Component<
   }
 
   private onPublishClick = () => {
-    this.state.annotationManager!.publish()
+    this.state.annotationManager!.publish().then()
   }
 
   private onStatusWindowClick = () => {
