@@ -1668,6 +1668,8 @@ export default class Annotator extends React.Component<
   // After a marker (or set of markers) has been moved in the UI, see if it is near another
   // marker and decide whether it should snap to the same position.
   private snapMarker = (transformedObjects: ReadonlyArray<THREE.Object3D>): void => {
+    if (this.props.isControlKeyPressed) return // Control disables the feature
+
     if (!(transformedObjects.length && transformedObjects[0] instanceof Marker)) return
 
     // Get the selected marker we just transformed.
