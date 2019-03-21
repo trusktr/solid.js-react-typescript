@@ -116,10 +116,12 @@ interface AnnotatorProps extends IThemedProperties {
   statusWindowState?: StatusWindowState
   uiMenuVisible?: boolean
   carPose?: MapperProtos.mapper.models.PoseMessage
-  isLiveMode?: boolean
   rendererSize?: Electron.Size
   camera?: THREE.Camera
   dataProviderFactory: DataProviderFactory
+  isControlKeyPressed?: boolean
+  isAltKeyPressed?: boolean
+  isMetaKeyPressed?: boolean
   isShiftKeyPressed?: boolean
   isAddMarkerMode?: boolean
   isAddConnectionMode?: boolean
@@ -142,9 +144,11 @@ interface AnnotatorProps extends IThemedProperties {
     'uiMenuVisible',
     'statusWindowState',
     'carPose',
-    'isLiveMode',
     'rendererSize',
     'camera',
+    'isControlKeyPressed',
+    'isAltKeyPressed',
+    'isMetaKeyPressed',
     'isShiftKeyPressed',
     'isAddMarkerMode',
     'isAddConnectionMode',
@@ -427,7 +431,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   }
 
   private checkForImageScreenSelection = (): void => {
-    if (this.props.isLiveMode) return
     if (!this.props.isShiftKeyPressed) return
     if (this.props.isMouseDown) return
     if (this.props.isAddMarkerMode) return
@@ -470,7 +473,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   }
 
   private clickImageScreenBox = (event: MouseEvent): void => {
-    if (this.props.isLiveMode) return
     if (this.props.isMouseDragging) return
     if (!this.state.isImageScreensVisible) return
 
@@ -535,7 +537,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
   // Draw the box with max opacity to indicate that it is active.
   private highlightImageScreenBox(imageScreenBox: THREE.Mesh): void {
-    if (this.props.isLiveMode) return
     if (!this.props.isShiftKeyPressed) return
 
     if (imageScreenBox === this.highlightedImageScreenBox) return
@@ -1537,6 +1538,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   // After a marker (or set of markers) has been moved in the UI, see if it is near another
   // marker and decide whether it should snap to the same position.
   private snapMarker = (transformedObjects: ReadonlyArray<THREE.Object3D>): void => {
+    if (this.props.isControlKeyPressed) return // Control disables the feature
+
     if (!(transformedObjects.length && transformedObjects[0] instanceof Marker)) return
 
     // Get the selected marker we just transformed.
@@ -1632,7 +1635,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   }
 
   private onPublishClick = () => {
-    this.state.annotationManager!.publish()
+    this.state.annotationManager!.publish().then()
   }
 
   private onStatusWindowClick = () => {
@@ -1712,7 +1715,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     channel!.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
     channel!.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
 
-    channel!.on(Events.TRANSFORM_DONE, this.snapMarker)
+    channel!.on(Events.TRANSFORM_UPDATE, this.snapMarker)
 
     // UI updates
     // TODO JOE move UI logic to React/JSX, and get state from Redux
