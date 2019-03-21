@@ -37,6 +37,6 @@ module.exports = {
   start: async () => {},
   stop: async () => {},
   metadata: {
-    awsCredentialsEndpoint: "annotator"
-  }
+    awsCredentialsEndpoint: 'annotator',
+  },
 }

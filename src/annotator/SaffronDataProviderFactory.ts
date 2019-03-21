@@ -23,8 +23,8 @@ export function makeSaffronDataProviderFactory(
    * @returns {Promise<IAWSCredentials>}
    */
   const credentialProvider = (): IAWSCredentials | null => {
-    const response = SaffronSDK.AWSManager.getAppAWSCredentials("Annotator")
-    if(response == null) throw new Error("AWS Credentials are null")
+    const response = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
+    if (response == null) throw new Error('AWS Credentials are null')
     return response.credentials
   }
 
@@ -41,7 +41,7 @@ export function makeSaffronDataProviderFactory(
    * @returns {string}
    */
   const bucketProvider = (_: string): string => {
-    const creds = SaffronSDK.AWSManager.getAppAWSCredentials("Annotator")
+    const creds = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
     if (!creds) throw new Error('no AWS credentials')
     return creds.sessionBucket
   }

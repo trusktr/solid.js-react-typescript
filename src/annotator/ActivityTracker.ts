@@ -1,6 +1,6 @@
-import { getValue } from 'typeguard'
-import { getS3Client, getLogger, } from '@mapperai/mapper-annotated-scene'
-import SaffronSDK, { getAccount, getOrganizationId } from '@mapperai/mapper-saffron-sdk'
+import {getValue} from 'typeguard'
+import {getS3Client, getLogger} from '@mapperai/mapper-annotated-scene'
+import SaffronSDK, {getAccount, getOrganizationId} from '@mapperai/mapper-saffron-sdk'
 
 const log = getLogger(__filename)
 
@@ -38,7 +38,7 @@ export class ActivityTracker<T extends Object | null> {
 
     this.userHasInteracted = false
 
-    const credentials = SaffronSDK.AWSManager.getAppAWSCredentials("Annotator")
+    const credentials = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
 
     if (!credentials) throw new Error('Unable to get AWS credentials')
 
@@ -67,7 +67,7 @@ export class ActivityTracker<T extends Object | null> {
           meta: metaData,
         }),
         Bucket,
-        Key
+        Key,
       })
       .promise()
   }
