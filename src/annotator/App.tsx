@@ -49,7 +49,7 @@ export class App extends React.Component<AppProps, AppState> {
   private static createDataProviderFactory(
     sessionId: string | null = null
   ): DataProviderFactory {
-    return makeSaffronDataProviderFactory(sessionId)
+    return makeSaffronDataProviderFactory(sessionId, false)
   }
 
   private activityTracker?: ActivityTracker<IActivityTrackingInfo>
@@ -91,7 +91,7 @@ export class App extends React.Component<AppProps, AppState> {
     }
 
     return {
-      numberOfAnnotations: annotationManager.allAnnotations().length
+      numberOfAnnotations: annotationManager.allAnnotations.length
     }
   }
 

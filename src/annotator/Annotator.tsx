@@ -11,7 +11,7 @@
 
 import config from 'annotator-config'
 import * as Electron from 'electron'
-import { flatten } from 'lodash'
+import { flatten, head, uniq } from 'lodash'
 import Button from '@material-ui/core/Button';
 import { SimpleKML } from '../util/KmlUtils'
 import * as Dat from 'dat.gui'
@@ -315,7 +315,7 @@ export default class Annotator extends React.Component<
       this.state.lockTrafficDevices
     )
 
-    const folderLock = gui.addFolder('Lock')
+    const folderLock = gui.addFolder('Lock Annotations')
 
     folderLock
       .add(this.state, 'lockBoundaries')
@@ -323,7 +323,7 @@ export default class Annotator extends React.Component<
       .onChange((value: boolean) => {
         if (
           value &&
-          this.state.annotationManager!.getActiveBoundaryAnnotation()
+          this.state.annotationManager!.activeBoundaryAnnotation
         ) {
           this.state.annotatedSceneController!.cleanTransformControls()
           this.uiEscapeSelection()
@@ -338,8 +338,8 @@ export default class Annotator extends React.Component<
       .onChange((value: boolean) => {
         if (
           value &&
-          (this.state.annotationManager!.getActiveLaneAnnotation() ||
-            this.state.annotationManager!.getActiveConnectionAnnotation())
+          (this.state.annotationManager!.activeLaneAnnotation ||
+            this.state.annotationManager!.activeConnectionAnnotation)
         ) {
           this.state.annotatedSceneController!.cleanTransformControls()
           this.uiEscapeSelection()
@@ -354,7 +354,7 @@ export default class Annotator extends React.Component<
       .onChange((value: boolean) => {
         if (
           value &&
-          this.state.annotationManager!.getActivePolygonAnnotation()
+          this.state.annotationManager!.activePolygonAnnotation
         ) {
           this.state.annotatedSceneController!.cleanTransformControls()
           this.uiEscapeSelection()
@@ -369,7 +369,7 @@ export default class Annotator extends React.Component<
       .onChange((value: boolean) => {
         if (
           value &&
-          this.state.annotationManager!.getActiveTrafficDeviceAnnotation()
+          this.state.annotationManager!.activeTrafficDeviceAnnotation
         ) {
           this.state.annotatedSceneController!.cleanTransformControls()
           this.uiEscapeSelection()
@@ -380,7 +380,7 @@ export default class Annotator extends React.Component<
 
     folderLock.open()
 
-    const folderConnection = gui.addFolder('Connection params')
+    const folderConnection = gui.addFolder('Connections')
 
     const bezierScaleFactor = this.state.bezierScaleFactor
 
@@ -394,7 +394,7 @@ export default class Annotator extends React.Component<
 
     folderConnection.open()
 
-    const tileFolder = gui.addFolder('Tile Settings')
+    const tileFolder = gui.addFolder('Point Cloud')
 
     tileFolder
       .add({ maxSuperTilesToLoad: this.state.maxSuperTilesToLoad }, 'maxSuperTilesToLoad', 1, 3000)
@@ -681,7 +681,6 @@ export default class Annotator extends React.Component<
     this.mapKey('Escape', () => this.uiEscapeSelection())
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
     this.mapKeyUp('Shift', () => this.onShiftKeyUp())
-    // this.mapKey('A', () => this.uiDeleteAllAnnotations()) // disable for now
     this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
 
     this.mapKey('C', () =>
@@ -691,7 +690,6 @@ export default class Annotator extends React.Component<
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
-    this.mapKey('P', () => this.state.annotationManager!.publish())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
 
     this.mapKey('R', () =>
@@ -917,7 +915,7 @@ export default class Annotator extends React.Component<
     lcType.on('change', () => {
       lcType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
       if (activeAnnotation === null) return
 
@@ -937,7 +935,7 @@ export default class Annotator extends React.Component<
     lcLeftType.on('change', () => {
       lcLeftType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
       if (activeAnnotation === null) return
 
@@ -950,7 +948,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.leftLineType = +lcLeftType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const lcLeftColor = $('#lp_select_left_color')
@@ -958,7 +955,7 @@ export default class Annotator extends React.Component<
     lcLeftColor.on('change', () => {
       lcLeftColor.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
       if (activeAnnotation === null) return
 
@@ -971,7 +968,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.leftLineColor = +lcLeftColor.val()
-      activeAnnotation.updateVisualization()
     })
 
     const lcRightType = $('#lp_select_right_type')
@@ -979,7 +975,7 @@ export default class Annotator extends React.Component<
     lcRightType.on('change', () => {
       lcRightType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
       if (activeAnnotation === null) return
 
@@ -992,7 +988,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.rightLineType = +lcRightType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const lcRightColor = $('#lp_select_right_color')
@@ -1000,7 +995,7 @@ export default class Annotator extends React.Component<
     lcRightColor.on('change', () => {
       lcRightColor.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1013,7 +1008,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.rightLineColor = +lcRightColor.val()
-      activeAnnotation.updateVisualization()
     })
   }
 
@@ -1071,7 +1065,7 @@ export default class Annotator extends React.Component<
     cpType.on('change', () => {
       cpType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1084,45 +1078,41 @@ export default class Annotator extends React.Component<
     const cpLeftType = $('#cp_select_left_type')
     cpLeftType.on('change', () => {
       cpLeftType.blur()
-      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
       if (activeAnnotation === null) return
       // prettier-ignore
       log.info("Adding left side type: " + cpLeftType.children("option").filter(":selected").text())
       activeAnnotation.leftLineType = +cpLeftType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const cpLeftColor = $('#cp_select_left_color')
     cpLeftColor.on('change', () => {
       cpLeftColor.blur()
-      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
       if (activeAnnotation === null) return
       // prettier-ignore
       log.info("Adding left side color: " + cpLeftColor.children("option").filter(":selected").text())
       activeAnnotation.leftLineColor = +cpLeftColor.val()
-      activeAnnotation.updateVisualization()
     })
 
     const cpRightType = $('#cp_select_right_type')
     cpRightType.on('change', () => {
       cpRightType.blur()
-      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
       if (activeAnnotation === null) return
       // prettier-ignore
       log.info("Adding right side type: " + cpRightType.children("option").filter(":selected").text())
       activeAnnotation.rightLineType = +cpRightType.val()
-      activeAnnotation.updateVisualization()
     })
 
     const cpRightColor = $('#cp_select_right_color')
     cpRightColor.on('change', () => {
       cpRightColor.blur()
-      const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
       if (activeAnnotation === null) return
       // prettier-ignore
       log.info("Adding left side color: " + cpRightColor.children("option").filter(":selected").text())
       activeAnnotation.rightLineColor = +cpRightColor.val()
-      activeAnnotation.updateVisualization()
     })
   }
 
@@ -1147,7 +1137,7 @@ export default class Annotator extends React.Component<
     tpType.on('change', () => {
       tpType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveTrafficDeviceAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeTrafficDeviceAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1160,7 +1150,6 @@ export default class Annotator extends React.Component<
       )
 
       activeAnnotation.type = +tpType.val()
-      activeAnnotation.updateVisualization()
       this.state.annotatedSceneController!.shouldRender()
     })
   }
@@ -1175,7 +1164,7 @@ export default class Annotator extends React.Component<
     bpType.on('change', () => {
       bpType.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveBoundaryAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeBoundaryAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1195,7 +1184,7 @@ export default class Annotator extends React.Component<
     bpColor.on('change', () => {
       bpColor.blur()
 
-      const activeAnnotation = this.state.annotationManager!.getActiveBoundaryAnnotation()
+      const activeAnnotation = this.state.annotationManager!.activeBoundaryAnnotation
 
       if (activeAnnotation === null) return
 
@@ -1328,7 +1317,7 @@ export default class Annotator extends React.Component<
    * Reset lane properties elements based on the current active lane
    */
   private resetLaneProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActiveLaneAnnotation()
+    const activeAnnotation = this.state.annotationManager!.activeLaneAnnotation
 
     if (!activeAnnotation) return
 
@@ -1376,7 +1365,7 @@ export default class Annotator extends React.Component<
    * Reset polygon properties elements based on the current active polygon
    */
   private resetPolygonProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActivePolygonAnnotation()
+    const activeAnnotation = this.state.annotationManager!.activePolygonAnnotation
 
     if (!activeAnnotation) return
 
@@ -1387,7 +1376,7 @@ export default class Annotator extends React.Component<
    * Reset traffic device properties elements based on the current active traffic device
    */
   private resetTrafficDeviceProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActiveTrafficDeviceAnnotation()
+    const activeAnnotation = this.state.annotationManager!.activeTrafficDeviceAnnotation
 
     if (!activeAnnotation) return
 
@@ -1403,7 +1392,7 @@ export default class Annotator extends React.Component<
    * Reset boundary properties elements based on the current active boundary
    */
   private resetBoundaryProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActiveBoundaryAnnotation()
+    const activeAnnotation = this.state.annotationManager!.activeBoundaryAnnotation
 
     if (!activeAnnotation) return
 
@@ -1424,7 +1413,7 @@ export default class Annotator extends React.Component<
    * Reset connection properties elements based on the current active connection
    */
   private resetConnectionProp(): void {
-    const activeAnnotation = this.state.annotationManager!.getActiveConnectionAnnotation()
+    const activeAnnotation = this.state.annotationManager!.activeConnectionAnnotation
 
     if (!activeAnnotation) return
 
@@ -1670,42 +1659,38 @@ export default class Annotator extends React.Component<
     this.setState({ layerGroupIndex })
   }
 
+  // After a marker (or set of markers) has been moved in the UI, see if it is near another
+  // marker and decide whether it should snap to the same position.
   private snapMarker = (transformedObjects: ReadonlyArray<THREE.Object3D>): void => {
-    if (!(transformedObjects[0] instanceof Marker)) return
+    if (!(transformedObjects.length && transformedObjects[0] instanceof Marker)) return
 
-    // get active annotation
-    const activeAnnotation = this.state.annotationManager!.getActiveAnnotation()
-
-    if (!activeAnnotation) {
-      throw new Error(`
-        It should not be possible to snap a point if an annotation is not
-        selected and therefore there are no markers visible to interact with.
-      `)
-    }
-
-    // get the selected marker we just transformed
-    // Here's we're relying on the fact that the first item in the array is the
-    // marker we explicitly transformed (see the `neighbors` array in
-    // AnnotationManager.checkForActiveMarker)
+    // Get the selected marker we just transformed.
+    // Here we're relying on the fact that the first item in the array is the
+    // marker we explicitly transformed (see the `moveableMarkers` array in
+    // AnnotationManager.checkForActiveMarker()), while the others will move along with it.
     const transformedMarkers = [...transformedObjects] as Marker[]
-    const transformedMarker = transformedMarkers.shift()!
+    const primaryMarker = head(transformedMarkers)!
 
-    // get all markers in view
+    const transformedAnnotations = uniq(transformedMarkers.map(m => m.annotation))
+
+    // Get all markers in view which are not part of the annotations being manipulated.
     const frustum = new THREE.Frustum
     const projScreenMatrix = new THREE.Matrix4
     const {camera} = this.props
     projScreenMatrix.multiplyMatrices( camera!.projectionMatrix, camera!.matrixWorldInverse )
 		frustum.setFromMatrix( projScreenMatrix )
+    const markersInView = this.getMarkersInFrustum(
+      frustum,
+      flatten(transformedAnnotations.map(a => a.markers))
+    )
 
-    const markersInView = this.getMarkersInFrustum(frustum, activeAnnotation.markers)
-
-    let closestMarker: Marker
+    let closestMarker: Marker | null = null
     let smallestDistance: number = Infinity
     const snapThreshold = 0.5
 
     // See if any markers are within the snap threshold
     markersInView.forEach(marker => {
-      const distance = transformedMarker.position.distanceTo(marker.position)
+      const distance = primaryMarker.position.distanceTo(marker.position)
 
       if (distance < smallestDistance) {
         smallestDistance = distance
@@ -1714,31 +1699,21 @@ export default class Annotator extends React.Component<
     })
 
     const shouldSnap = smallestDistance <= snapThreshold
-
-    // debugger
-
-    if (shouldSnap) {
+    if (shouldSnap && closestMarker) {
       const snapDirection = closestMarker!.position.clone()
-        .sub(transformedMarker.position)
+        .sub(primaryMarker.position)
 
-      // adjust position of selected marker to closest marker within threshold
-      transformedMarker.position.copy(closestMarker!.position)
+      // Apply the same offset to all selected markers.
+      transformedMarkers.forEach(m => m.position.add(snapDirection))
 
-      // apply the same movement to other selected markers
-      transformedMarkers.forEach(marker => {
-        marker.position.add(snapDirection)
-      })
-
-      activeAnnotation.updateVisualization()
-
+      transformedAnnotations.forEach(a => a.updateVisualization())
       this.state.annotatedSceneController!.updateTransformControls()
-
       this.state.annotatedSceneController!.shouldRender()
     }
   }
 
   getAnnotationsInFrustum(frustum: THREE.Frustum) {
-    return this.state.annotationManager!.allAnnotations()
+    return this.state.annotationManager!.allAnnotations
       .filter(annotation => {
         const object = annotation.renderingObject
 
@@ -1876,7 +1851,7 @@ export default class Annotator extends React.Component<
     channel!.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
     channel!.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
 
-    channel!.on(Events.TRANSFORM_DONE, this.snapMarker)
+    channel!.on(Events.TRANSFORM_UPDATE, this.snapMarker)
 
     // UI updates
     // TODO JOE move UI logic to React/JSX, and get state from Redux

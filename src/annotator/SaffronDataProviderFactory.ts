@@ -17,7 +17,8 @@ const log = getLogger(__filename)
  */
 export function makeSaffronDataProviderFactory(
   sessionId: string | null,
-  organizationId: string = getOrganizationId()!
+  useCache = true,
+  organizationId: string = getOrganizationId()!,
 ): DataProviderFactory {
   /**
    * Provide credentials promise
@@ -86,6 +87,7 @@ export function makeSaffronDataProviderFactory(
       }
     } as PusherConfig,
     null,
-    false
+    false,
+    useCache,
   )
 }
