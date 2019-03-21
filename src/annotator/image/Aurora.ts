@@ -5,14 +5,13 @@
 
 import * as AsyncFile from 'async-file'
 import * as sizeOf from 'image-size'
-import { AuroraCameraParameters } from './CameraParameters'
-import { UtmCoordinateSystem } from '@mapperai/mapper-annotated-scene'
+import {AuroraCameraParameters} from './CameraParameters'
+import {UtmCoordinateSystem} from '@mapperai/mapper-annotated-scene'
 import config from 'annotator-config'
 
 // Convenience functions for Aurora data
 
-const screenDistanceFromOrigin: number =
-  parseFloat(config['image_manager.image.distance_from_camera']) || 1.0
+const screenDistanceFromOrigin: number = parseFloat(config['image_manager.image.distance_from_camera']) || 1.0
 
 interface AuroraImageMetadata {
   tileId: string
@@ -36,10 +35,7 @@ export function readImageMetadataFile(
   const metadataPath = imagePathToCameraDataPath(imagePath)
 
   return new Promise(
-    (
-      resolve: (imageInfo: ImageInfo) => void,
-      reject: (reason?: Error) => void
-    ): void => {
+    (resolve: (imageInfo: ImageInfo) => void, reject: (reason?: Error) => void): void => {
       sizeOf(imagePath, function(err: Error, dimensions: ImageInfo): void {
         if (err) reject(err)
         else resolve(dimensions)

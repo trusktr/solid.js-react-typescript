@@ -10,5 +10,5 @@ export const channel = {
   imageEditState: 'imageEditStateChannel',
   keyDownEvent: 'keyDownEventChannel',
   keyUpEvent: 'keyUpEventChannel',
-  lightboxState: 'lightboxStateChannel'
+  lightboxState: 'lightboxStateChannel',
 }

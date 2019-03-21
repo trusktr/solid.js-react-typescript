@@ -4,10 +4,7 @@ import {
   DataProviderFactory,
   PusherConfig,
 } from '@mapperai/mapper-annotated-scene'
-import SaffronSDK, {
-  getPusherConnectionParams,
-  getOrganizationId
-} from '@mapperai/mapper-saffron-sdk'
+import SaffronSDK, {getPusherConnectionParams, getOrganizationId} from '@mapperai/mapper-saffron-sdk'
 import getLogger from 'util/Logger'
 
 const log = getLogger(__filename)
@@ -18,7 +15,7 @@ const log = getLogger(__filename)
 export function makeSaffronDataProviderFactory(
   sessionId: string | null,
   useCache = true,
-  organizationId: string = getOrganizationId()!,
+  organizationId: string = getOrganizationId()!
 ): DataProviderFactory {
   /**
    * Provide credentials promise
@@ -50,8 +47,8 @@ export function makeSaffronDataProviderFactory(
   }
 
   const pusherParams = getPusherConnectionParams(),
-    { CloudService, CloudConstants } = SaffronSDK,
-    { API, HttpMethod } = CloudConstants,
+    {CloudService, CloudConstants} = SaffronSDK,
+    {API, HttpMethod} = CloudConstants,
     cloudService = new CloudService.CloudService()
 
   return makeDataCloudProviderFactory(
@@ -63,31 +60,24 @@ export function makeSaffronDataProviderFactory(
     {
       key: pusherParams.key,
       cluster: pusherParams.cluster,
-      authEndpoint: CloudService.makeAPIURL(
-        API.Identity,
-        'identity/1/pusher/auth'
-      ),
-      authorizer: async (
-        channelName: string,
-        socketId: string,
-        _options: any
-      ): Promise<any> => {
+      authEndpoint: CloudService.makeAPIURL(API.Identity, 'identity/1/pusher/auth'),
+      authorizer: async (channelName: string, socketId: string, _options: any): Promise<any> => {
         try {
           return (await cloudService.makeAPIRequest(
             API.Identity,
             HttpMethod.POST,
             'identity/1/pusher/auth',
             'annotator',
-            { channelName, socketId }
+            {channelName, socketId}
           )).data
         } catch (err) {
           log.error('Unable to authenticate for pusher', err)
           throw err
         }
-      }
+      },
     } as PusherConfig,
     null,
     false,
-    useCache,
+    useCache
   )
 }

@@ -4,28 +4,28 @@
  */
 
 import * as THREE from 'three'
-import { lineGeometry } from '@mapperai/mapper-annotated-scene'
+import {lineGeometry} from '@mapperai/mapper-annotated-scene'
 
 // The tip of the pyramid will work with a default PlaneGeometry which hasn't been rotated
 // out of the XY plane.
 const tip = new THREE.Vector3(0, 0, 1)
 // Image screen materials
 const pyramidMaterial = new THREE.LineBasicMaterial({
-  color: new THREE.Color(0x66aa00)
+  color: new THREE.Color(0x66aa00),
 })
-const invisiblePyramidMaterial = new THREE.LineBasicMaterial({ visible: false })
+const invisiblePyramidMaterial = new THREE.LineBasicMaterial({visible: false})
 const borderMaterial = new THREE.LineBasicMaterial({
-  color: new THREE.Color(0xffffff)
+  color: new THREE.Color(0xffffff),
 })
 const unhighlightedBorderMaterial = new THREE.LineBasicMaterial({
-  color: new THREE.Color(0x999999)
+  color: new THREE.Color(0x999999),
 })
-const invisibleBorderMaterial = new THREE.LineBasicMaterial({ visible: false })
+const invisibleBorderMaterial = new THREE.LineBasicMaterial({visible: false})
 const inactiveMaterial = new THREE.MeshBasicMaterial({
   color: new THREE.Color('white'),
   side: THREE.FrontSide,
   transparent: true,
-  opacity: 0.5
+  opacity: 0.5,
 })
 // Image loader
 const textureLoader = new THREE.TextureLoader()
@@ -41,20 +41,14 @@ function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
 		tip, base[3],
 	]
 
-  return lineGeometry(
-    vertices,
-    visible ? pyramidMaterial : invisiblePyramidMaterial
-  )
+  return lineGeometry(vertices, visible ? pyramidMaterial : invisiblePyramidMaterial)
 }
 
 // Draw a line the four corners of the base.
 function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
   const vertices = [base[0], base[1], base[3], base[2], base[0]]
 
-  return lineGeometry(
-    vertices,
-    visible ? unhighlightedBorderMaterial : invisibleBorderMaterial
-  )
+  return lineGeometry(vertices, visible ? unhighlightedBorderMaterial : invisibleBorderMaterial)
 }
 
 // An object containing a 2D image, located in 3D space, plus a wireframe
@@ -70,12 +64,7 @@ export class ImageScreen extends THREE.Object3D {
   private highlighted: boolean
   private border: THREE.Line
 
-  constructor(
-    path: string,
-    width: number,
-    height: number,
-    visibleWireframe: boolean
-  ) {
+  constructor(path: string, width: number, height: number, visibleWireframe: boolean) {
     super()
 
     this.imageLoaded = false
@@ -85,10 +74,7 @@ export class ImageScreen extends THREE.Object3D {
 
     this.imageGeometry = new THREE.PlaneGeometry(width, height)
 
-    this.imageMesh = new THREE.Mesh(
-      this.imageGeometry,
-      inactiveMaterial.clone()
-    )
+    this.imageMesh = new THREE.Mesh(this.imageGeometry, inactiveMaterial.clone())
 
     this.add(this.imageMesh)
     this.add(pyramid(this.imageGeometry.vertices, visibleWireframe))
@@ -157,7 +143,7 @@ export class ImageScreen extends THREE.Object3D {
             const activeMaterial = new THREE.MeshBasicMaterial({
               side: THREE.FrontSide,
               transparent: true,
-              opacity: 1.0
+              opacity: 1.0,
             })
 
             activeMaterial.map = texture

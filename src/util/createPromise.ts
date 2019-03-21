@@ -29,5 +29,5 @@ export default function createPromise<A, B>(): PromiseReturn<A, B> {
     }
   )
 
-  return { promise, resolve: res, reject: rej }
+  return {promise, resolve: res, reject: rej}
 }

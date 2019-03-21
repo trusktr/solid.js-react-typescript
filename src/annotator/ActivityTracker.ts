@@ -8,10 +8,7 @@ export class ActivityTracker<T extends Object | null> {
   private userHasInteracted = false
   private activityInterval?: number
 
-  constructor(
-    private sessionId: string,
-    private onActivityTrack?: () => T
-  ) {}
+  constructor(private sessionId: string, private onActivityTrack?: () => T) {}
 
   start() {
     this.activityInterval = window.setInterval(this.checkActivity, 30000)
