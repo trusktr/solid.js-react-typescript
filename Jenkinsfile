@@ -43,7 +43,7 @@ try {
 
     def tag = sh(returnStdout: true, script: "git tag --contains | head -1").trim()
 
-    // if we have a tag, we'll publish the nwe version
+    // if we have a tag, we'll publish the new version
     if (tag) {
 
       /**
