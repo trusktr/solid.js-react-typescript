@@ -18,8 +18,7 @@ import * as THREE from 'three'
  *  kml.saveToFile("MyOutputFilename.kml")
  */
 export class SimpleKML {
-  template = (content: string) => `
-    <?xml version="1.0" encoding="UTF-8"?>
+  template = (content: string) => `<?xml version="1.0" encoding="UTF-8"?>
     <kml xmlns="http://www.opengis.net/kml/2.2">
       <Document>
         <Style id="white">
