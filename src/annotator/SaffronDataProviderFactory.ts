@@ -3,30 +3,25 @@ import {
   makeDataCloudProviderFactory,
   DataProviderFactory,
   PusherConfig,
-  Deferred
+  Deferred,
 } from '@mapperai/mapper-annotated-scene'
-import SaffronSDK, {
-  getPusherConnectionParams,
-  getOrganizationId
-} from '@mapperai/mapper-saffron-sdk'
+import SaffronSDK, {getPusherConnectionParams, getOrganizationId} from '@mapperai/mapper-saffron-sdk'
 import getLogger from 'util/Logger'
 
 const log = getLogger(__filename)
 
+// prettier-ignore
 const {
   promise: awsCredentials,
   resolve: resolveCredentials,
   reject: rejectCredentials,
 } = new Deferred<IAWSCredentials>()
 
-export { awsCredentials }
+export {awsCredentials}
 
-const {
-  promise: s3Bucket,
-  resolve: resolveBucket,
-} = new Deferred<string>()
+const {promise: s3Bucket, resolve: resolveBucket} = new Deferred<string>()
 
-export { s3Bucket }
+export {s3Bucket}
 
 /**
  * Tile service client factory for meridian
@@ -34,7 +29,7 @@ export { s3Bucket }
 export function makeSaffronDataProviderFactory(
   sessionId: string | null,
   useCache = true,
-  organizationId: string = getOrganizationId()!,
+  organizationId: string = getOrganizationId()!
 ): DataProviderFactory {
   /**
    * Holds the credentials that will be used
@@ -55,11 +50,7 @@ export function makeSaffronDataProviderFactory(
     if (credentialPromise) {
       const credentials = await credentialPromise
 
-      if (
-        credentials != null &&
-        sessionBucket &&
-        credentials.expiration! > Date.now()
-      ) {
+      if (credentials != null && sessionBucket && credentials.expiration! > Date.now()) {
         resolveCredentials(credentials)
         return credentials
       } else {
@@ -74,11 +65,11 @@ export function makeSaffronDataProviderFactory(
         if(response == null) {
           throw new Error("AWS Credentials are null")
         }
-        
+
         // SET THE BUCKET
         sessionBucket = response.sessionBucket
         resolveBucket(sessionBucket)
-        
+
         return response.credentials as IAWSCredentials
       } catch (err) {
         log.error('Unable to get credentials', err)
@@ -100,8 +91,8 @@ export function makeSaffronDataProviderFactory(
   }
 
   const pusherParams = getPusherConnectionParams(),
-    { CloudService, CloudConstants } = SaffronSDK,
-    { API, HttpMethod } = CloudConstants,
+    {CloudService, CloudConstants} = SaffronSDK,
+    {API, HttpMethod} = CloudConstants,
     cloudService = new CloudService.CloudService()
 
   return makeDataCloudProviderFactory(
@@ -113,31 +104,24 @@ export function makeSaffronDataProviderFactory(
     {
       key: pusherParams.key,
       cluster: pusherParams.cluster,
-      authEndpoint: CloudService.makeAPIURL(
-        API.Identity,
-        'identity/1/pusher/auth'
-      ),
-      authorizer: async (
-        channelName: string,
-        socketId: string,
-        _options: any
-      ): Promise<any> => {
+      authEndpoint: CloudService.makeAPIURL(API.Identity, 'identity/1/pusher/auth'),
+      authorizer: async (channelName: string, socketId: string, _options: any): Promise<any> => {
         try {
           return (await cloudService.makeAPIRequest(
             API.Identity,
             HttpMethod.POST,
             'identity/1/pusher/auth',
             'annotator',
-            { channelName, socketId }
+            {channelName, socketId}
           )).data
         } catch (err) {
           log.error('Unable to authenticate for pusher', err)
           throw err
         }
-      }
+      },
     } as PusherConfig,
     null,
     false,
-    useCache,
+    useCache
   )
 }

@@ -4,10 +4,7 @@
  */
 
 import * as THREE from 'three'
-import {
-  lineGeometry,
-  UtmCoordinateSystem
-} from '@mapperai/mapper-annotated-scene'
+import {lineGeometry, UtmCoordinateSystem} from '@mapperai/mapper-annotated-scene'
 
 // Mapping between a real-world camera and an image displayed as a 3D object
 
@@ -30,7 +27,7 @@ export class ImaginaryCameraParameters implements CameraParameters {
 }
 
 const clickRayMaterial = new THREE.LineBasicMaterial({
-  color: new THREE.Color(0xff6666)
+  color: new THREE.Color(0xff6666),
 })
 
 // Draw a ray from the camera origin through some point within the image
@@ -65,9 +62,7 @@ export class AuroraCameraParameters implements CameraParameters {
     this.rotation = rotation
 
     if (screenDistanceFromOrigin <= 0.0) {
-      throw Error(
-        'invalid screenDistanceFromOrigin: ' + screenDistanceFromOrigin
-      )
+      throw Error('invalid screenDistanceFromOrigin: ' + screenDistanceFromOrigin)
     }
 
     // https://en.wikipedia.org/wiki/Camera_resectioning
@@ -88,25 +83,13 @@ export class AuroraCameraParameters implements CameraParameters {
     screenPosition.applyMatrix4(screenRotation)
 
     // Note: Use camera origin as height to avoid floating images
-    this.screenPosition = utmCoordinateSystem.utmToThreeJs(
-      screenPosition.x,
-      screenPosition.y,
-      cameraOrigin.z
-    )
+    this.screenPosition = utmCoordinateSystem.utmToThreeJs(screenPosition.x, screenPosition.y, cameraOrigin.z)
 
-    this.cameraOrigin = utmCoordinateSystem.utmToThreeJs(
-      cameraOrigin.x,
-      cameraOrigin.y,
-      cameraOrigin.z
-    )
+    this.cameraOrigin = utmCoordinateSystem.utmToThreeJs(cameraOrigin.x, cameraOrigin.y, cameraOrigin.z)
   }
 
   // Draw a ray from the camera origin, through a point in the image which corresponds to a point in three.js space.
-  imageCoordinatesToRay(
-    xRatio: number,
-    yRatio: number,
-    length: number
-  ): THREE.Line {
+  imageCoordinatesToRay(xRatio: number, yRatio: number, length: number): THREE.Line {
     const imageX = this.imageWidth * xRatio
     const imageY = this.imageHeight * yRatio
     const cx = this.imageWidth * 0.5
@@ -114,12 +97,7 @@ export class AuroraCameraParameters implements CameraParameters {
     // TODO CLYDE read these from camera intrinsics file
     const fx = this.imageWidth * 0.508447051
     const fy = this.imageWidth * 0.513403773
-    const endPosition = new THREE.Vector4(
-      (length * (imageX - cx)) / fx,
-      (length * (imageY - cy)) / fy,
-      length,
-      1
-    )
+    const endPosition = new THREE.Vector4((length * (imageX - cx)) / fx, (length * (imageY - cy)) / fy, length, 1)
     const endRotation = new THREE.Matrix4()
 
     // prettier-ignore
@@ -132,11 +110,7 @@ export class AuroraCameraParameters implements CameraParameters {
 
     endPosition.applyMatrix4(endRotation)
 
-    const destination = this.utmCoordinateSystem.utmToThreeJs(
-      endPosition.x,
-      endPosition.y,
-      endPosition.z
-    )
+    const destination = this.utmCoordinateSystem.utmToThreeJs(endPosition.x, endPosition.y, endPosition.z)
 
     return ray(this.cameraOrigin, destination)
   }

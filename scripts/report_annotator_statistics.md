@@ -2,12 +2,12 @@
 
 We are gathering statistics on Annotator tool usage in a spreadsheet. To make some new stats you need:
 
- - write access to [the spreadsheet](https://docs.google.com/spreadsheets/d/1uy5BURyJAVCHQOTaOaqMHjXEB-loqlRccw501Fbyp8c/edit?usp=sharing)
- - a session ID which has been annotated and published
- - the organization ID for the session
- - [AWS CLI tools](https://docs.google.com/document/d/1x7yNMfRnDBJQt2FqrkDZyUa8a6w7KhgdqshYg4Au0sc/edit#)
- - a build of [mapper-semantic-conversion](https://github.com/Signafy/mapper-semantic-conversion)
- - `report_annotator_statistics.py`
+- write access to [the spreadsheet](https://docs.google.com/spreadsheets/d/1uy5BURyJAVCHQOTaOaqMHjXEB-loqlRccw501Fbyp8c/edit?usp=sharing)
+- a session ID which has been annotated and published
+- the organization ID for the session
+- [AWS CLI tools](https://docs.google.com/document/d/1x7yNMfRnDBJQt2FqrkDZyUa8a6w7KhgdqshYg4Au0sc/edit#)
+- a build of [mapper-semantic-conversion](https://github.com/Signafy/mapper-semantic-conversion)
+- `report_annotator_statistics.py`
 
 You will probably want another script to pull it all together, like this example:
 

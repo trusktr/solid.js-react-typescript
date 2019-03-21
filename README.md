@@ -81,7 +81,8 @@ publish minor and major versions.
 
 ### With IntelliJ IDEA
 
-*TODO* update this
+_TODO_ update this
+
 - Open the project in IntelliJ IDEA.
 - Under Run>Run…, select the Mapper Annotator configuration and run it.
 
@@ -104,4 +105,3 @@ For linting, typechecks, formatting etc, try
     npm run prettier
 
 See `package.json` for more options.
-

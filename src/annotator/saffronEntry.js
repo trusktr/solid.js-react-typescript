@@ -18,15 +18,15 @@ class Annotator extends React.Component {
       this.setState({
         componentPromise: entry.start(true).then(component => {
           return this.setState({
-            component
+            component,
           })
-        })
+        }),
       })
     }
   }
 
   render() {
-    const { component } = this.state
+    const {component} = this.state
 
     return component ? component : React.createElement('div', {}, 'loading4')
   }
