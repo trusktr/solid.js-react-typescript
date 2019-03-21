@@ -1,5 +1,5 @@
 /* eslint-disable typescript/no-explicit-any */
-import { isString } from 'typeguard'
+import {isString} from 'typeguard'
 import * as TypeLogger from 'typelogger'
 //import * as AWS from "aws-sdk"
 // import IUser, {IAWSTemporaryCredentials, IOrganization} from "models/User"
@@ -15,7 +15,7 @@ enum LogLevel {
   debug = 1,
   info,
   warn,
-  error
+  error,
 }
 
 const LogLevelNames = Object.keys(LogLevel).filter(isString)
@@ -227,7 +227,7 @@ export function getLogger(name: string): any {
     },
     /* eslint-disable typescript/no-explicit-any */
     {
-      isDebugEnabled
+      isDebugEnabled,
     } as any
   )
 }
