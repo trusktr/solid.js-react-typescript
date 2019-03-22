@@ -3,7 +3,7 @@ module.exports = {
   extends: ['prettier'],
   parser: 'babel-eslint',
   parserOptions: {
-    sourceType: 'module'
+    sourceType: 'module',
   },
 
   // TODO restore non-prettier stuff that we may still want.
@@ -11,30 +11,29 @@ module.exports = {
   env: {
     browser: true,
     node: true,
-    es6: true
+    es6: true,
   },
   // required to lint *.vue files
   plugins: [
     'json', // TODO JOE not working, doesn't seem to do anything with JSON files
     'promise', // https://github.com/xjamundx/eslint-plugin-promise
-    'html'
+    'html',
   ],
   // add your custom rules here
   rules: {
     // allow debugger during development
-    'no-debugger':
-      process.env.NODE_ENV && process.env.NODE_ENV.startsWith('dev') ? 0 : 2,
+    'no-debugger': process.env.NODE_ENV && process.env.NODE_ENV.startsWith('dev') ? 0 : 2,
 
     'prefer-const': 'error',
     'one-var': ['off'],
     'no-var': 'error',
     'no-return-assign': ['error', 'except-parens'],
-    'brace-style': ['error', '1tbs', { allowSingleLine: false }],
+    'brace-style': ['error', '1tbs', {allowSingleLine: false}],
     'quote-props': ['error', 'as-needed'],
     curly: ['off', 'multi-or-nest', 'consistent'],
 
     'padding-line-between-statements': [
-      'off'
+      'off',
       //
       // {
       //   blankLine: 'always',
@@ -81,7 +80,7 @@ module.exports = {
     'promise/param-names': 'error',
     'promise/catch-or-return': 'error',
     'promise/no-new-statics': 'error',
-    'promise/no-return-in-finally': 'error'
+    'promise/no-return-in-finally': 'error',
   },
 
   settings: {
@@ -109,8 +108,8 @@ module.exports = {
       parser: 'typescript-eslint-parser',
       parserOptions: {
         ecmaFeatures: {
-          jsx: true
-        }
+          jsx: true,
+        },
       },
 
       // TODO restore non-prettier stuff that we may still want.
@@ -128,8 +127,8 @@ module.exports = {
         'typescript/explicit-function-return-type': [
           'error',
           {
-            allowExpressions: true
-          }
+            allowExpressions: true,
+          },
         ], // — Require explicit return types on functions and class methods
         // 'typescript/explicit-member-accessibility': , // — Require explicit accessibility modifiers on class properties and methods (member-access from TSLint)
         // 'typescript/interface-name-prefix': , // — Require that interface names be prefixed with I (interface-name from TSLint)
@@ -139,8 +138,8 @@ module.exports = {
             // — Require a specific member delimiter style for interfaces and type literals
             delimiter: 'none',
             requireLast: true,
-            ignoreSingleLine: true
-          }
+            ignoreSingleLine: true,
+          },
         ],
         // 'typescript/member-naming': , // — Enforces naming conventions for class members by visibility.
         // 'typescript/member-ordering': , // — Require a consistent member declaration order (member-ordering from TSLint)
@@ -158,8 +157,8 @@ module.exports = {
         // 'typescript/no-use-before-define': , // — Disallow the use of variables before they are defined
         'typescript/no-var-requires': 'off', // — Disallows the use of require statements except in import statements (no-var-requires from TSLint)
         // 'typescript/prefer-namespace-keyword': , // — Require the use of the namespace keyword instead of the module keyword to declare custom TypeScript modules. (no-internal-module from TSLint)
-        'typescript/type-annotation-spacing': ['off', {}] // — Require consistent spacing around type annotations
-      }
-    }
-  ]
+        'typescript/type-annotation-spacing': ['off', {}], // — Require consistent spacing around type annotations
+      },
+    },
+  ],
 }

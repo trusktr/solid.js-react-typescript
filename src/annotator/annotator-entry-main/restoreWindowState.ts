@@ -3,20 +3,15 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import { BrowserWindow, BrowserWindowConstructorOptions } from 'electron'
-import { isNullOrUndefined } from 'util' // eslint-disable-line node/no-deprecated-api
-import { windowStateKeeperOptions } from '../../util/WindowStateKeeperOptions'
+import {BrowserWindow, BrowserWindowConstructorOptions} from 'electron'
+import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
+import {windowStateKeeperOptions} from '../../util/WindowStateKeeperOptions'
 import config from 'annotator-config'
 import windowStateKeeper = require('electron-window-state')
 
-export default async function restoreWindowState(
-  win: BrowserWindow,
-  windowName: string
-): Promise<void> {
+export default async function restoreWindowState(win: BrowserWindow, windowName: string): Promise<void> {
   // Load user's saved state.
-  const savedState = windowStateKeeper(
-    await windowStateKeeperOptions(windowName)
-  )
+  const savedState = windowStateKeeper(await windowStateKeeperOptions(windowName))
 
   savedState.manage(win)
 
@@ -29,19 +24,11 @@ export default async function restoreWindowState(
     Object.assign(options, savedState)
 
     // User's saved settings override config file settings.
-    const userHasSavedState = !(
-      isNullOrUndefined(savedState.x) || isNullOrUndefined(savedState.y)
-    )
+    const userHasSavedState = !(isNullOrUndefined(savedState.x) || isNullOrUndefined(savedState.y))
 
     if (!userHasSavedState) {
-      const width = parseInt(
-        config['startup.electron.window.default.width'],
-        10
-      )
-      const height = parseInt(
-        config['startup.electron.window.default.height'],
-        10
-      )
+      const width = parseInt(config['startup.electron.window.default.width'], 10)
+      const height = parseInt(config['startup.electron.window.default.height'], 10)
 
       if (width && height) {
         options.width = width
@@ -56,14 +43,13 @@ export default async function restoreWindowState(
   // though.
   // TODO JOE set CSS background color from config
   Object.assign(options, {
-    backgroundColor: config['startup.background_color'] || '#000'
+    backgroundColor: config['startup.background_color'] || '#000',
   })
 
   if (!(isNullOrUndefined(options.width) || isNullOrUndefined(options.height)))
     win.setSize(options.width, options.height)
 
-  if (!(isNullOrUndefined(options.x) || isNullOrUndefined(options.y)))
-    win.setPosition(options.x, options.y)
+  if (!(isNullOrUndefined(options.x) || isNullOrUndefined(options.y))) win.setPosition(options.x, options.y)
 
   // if (setFullScreen)
   // 	win.setFullScreen(false)

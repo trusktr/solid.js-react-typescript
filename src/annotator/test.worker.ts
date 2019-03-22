@@ -20,8 +20,7 @@ async function sleep(duration: number): Promise<void> {
 // We use `any` in the following to trick TypeScript, so we can ensure that
 // `class extends Worker` will not fail if Worker is otherwise undefined.
 /* eslint-disable typescript/no-explicit-any */
-if (typeof (global as any).Worker === 'undefined')
-  (global as any).Worker = class {}
+if (typeof (global as any).Worker === 'undefined') (global as any).Worker = class {}
 
 export default class extends Worker {
   constructor() {
