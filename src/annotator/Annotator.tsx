@@ -56,6 +56,7 @@ import {ReactUtil} from '@mapperai/mapper-saffron-sdk'
 import {IThemedProperties, withStatefulStyles, mergeStyles} from '@mapperai/mapper-themes'
 import {menuSpacing, panelBorderRadius} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
+import {PreviousAnnotations} from "./PreviousAnnotations"
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -174,6 +175,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   private gui?: dat.GUI
   private statusWindowActions = new StatusWindowActions()
   private sceneActions = new AnnotatedSceneActions()
+  private previouslySelectedAnnotations: PreviousAnnotations = new PreviousAnnotations()
 
   constructor(props: AnnotatorProps) {
     super(props)
@@ -618,23 +620,20 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
     this.mapKeyUp('Shift', () => this.onShiftKeyUp())
     this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
-
-    this.mapKey('C', () => this.state.annotatedSceneController!.focusOnPointCloud())
-
+    this.mapKey('B', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
+    // this.mapKey('', () => this.state.annotatedSceneController!.focusOnPointCloud()) // TODO fix https://github.com/Signafy/mapper-annotator-issues/issues/108
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
     this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
-
+    this.mapKey('N', () => this.uiAddAnnotation(AnnotationType.LANE))
     this.mapKey('R', () => this.state.annotatedSceneController!.resetTiltAndCompass())
-
     this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.POLYGON))
+    this.mapKey('P', () => this.uiAddAnnotation(AnnotationType.POLYGON))
     this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
-
+    this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
     this.mapKey('V', () => this.state.annotatedSceneController!.toggleCameraType())
-
     this.mapKey('X', () => this.state.annotationManager!.cycleTransformControlModes())
-
     this.keyHeld('a', held => actions.setAddMarkerMode(held))
     this.keyHeld('c', held => actions.setAddConnectionMode(held))
     this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
@@ -693,7 +692,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
   // Create an annotation, add it to the scene, and activate (highlight) it.
   private uiAddAnnotation(annotationType: AnnotationType): void {
-    if (this.state.annotationManager!.createAndAddAnnotation(annotationType, true)[0]) {
+    if (
+      this.state.annotationManager!.createAndAddAnnotation(
+        annotationType,
+        this.props.isShiftKeyPressed ? this.previouslySelectedAnnotations.getByType(annotationType) : null,
+        true
+      )[0]
+    ) {
       this.sceneActions.setLayerStatus(Layer.anot1, LayerStatus.Visible)
       log.info(`Added new ${AnnotationType[annotationType]} annotation`)
       this.deactivateAllAnnotationPropertiesMenus(annotationType)
@@ -1521,6 +1526,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
   // Toggle the visibility of data by cycling through the groups defined in layerGroups.
   private uiToggleLayerVisibility(): void {
+    if (this.props.isMetaKeyPressed) return
+
     let {layerGroupIndex} = this.state
 
     layerGroupIndex++
@@ -1675,7 +1682,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     // TODO JOE  - remove event listeners  - clean up child windows
   }
 
-  componentDidUpdate(_oldProps: AnnotatorProps, oldState: AnnotatorState): void {
+  componentDidUpdate(oldProps: AnnotatorProps, oldState: AnnotatorState): void {
     if (!oldState.annotationManager && this.state.annotationManager) {
       if (this.state.annotationManager) {
         this.createControlsGui()
@@ -1683,6 +1690,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
         this.destroyControlsGui()
       }
     }
+
+    if (this.props.activeAnnotation && oldProps.activeAnnotation !== this.props.activeAnnotation)
+      this.previouslySelectedAnnotations.setByType(this.props.activeAnnotation)
 
     if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
       if (this.state.isImageScreensVisible) this.imageManager.showImageScreens()
