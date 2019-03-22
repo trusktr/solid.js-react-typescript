@@ -1641,6 +1641,8 @@ export default class Annotator extends React.Component<
 
   // Toggle the visibility of data by cycling through the groups defined in layerGroups.
   private uiToggleLayerVisibility(): void {
+    if (this.props.isMetaKeyPressed) return
+
     let { layerGroupIndex } = this.state
 
     layerGroupIndex++
