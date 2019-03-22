@@ -3,25 +3,11 @@ import {
   makeDataCloudProviderFactory,
   DataProviderFactory,
   PusherConfig,
-  Deferred,
 } from '@mapperai/mapper-annotated-scene'
 import SaffronSDK, {getPusherConnectionParams, getOrganizationId} from '@mapperai/mapper-saffron-sdk'
 import getLogger from 'util/Logger'
 
 const log = getLogger(__filename)
-
-// prettier-ignore
-const {
-  promise: awsCredentials,
-  resolve: resolveCredentials,
-  reject: rejectCredentials,
-} = new Deferred<IAWSCredentials>()
-
-export {awsCredentials}
-
-const {promise: s3Bucket, resolve: resolveBucket} = new Deferred<string>()
-
-export {s3Bucket}
 
 /**
  * Tile service client factory for meridian
@@ -32,54 +18,22 @@ export function makeSaffronDataProviderFactory(
   organizationId: string = getOrganizationId()!
 ): DataProviderFactory {
   /**
-   * Holds the credentials that will be used
-   * to get tokens from S3
-   */
-  let credentialPromise: Promise<IAWSCredentials | null> | null = null
-  /**
-   * Session bucket name
-   */
-  let sessionBucket: string
-
-  /**
    * Provide credentials promise
    *
    * @returns {Promise<IAWSCredentials>}
    */
-  const credentialProvider = async (): Promise<IAWSCredentials | null> => {
-    if (credentialPromise) {
-      const credentials = await credentialPromise
-
-      if (credentials != null && sessionBucket && credentials.expiration! > Date.now()) {
-        resolveCredentials(credentials)
-        return credentials
-      } else {
-        rejectCredentials(new Error('invalid credentials'))
-      }
-    }
-
-    credentialPromise = (async () => {
-      try {
-        const response = SaffronSDK.AWSManager.getAppAWSCredentials("Annotator")
-        log.info("Got aws credentials from saffron", response)
-        if(response == null) {
-          throw new Error("AWS Credentials are null")
-        }
-
-        // SET THE BUCKET
-        sessionBucket = response.sessionBucket
-        resolveBucket(sessionBucket)
-
-        return response.credentials as IAWSCredentials
-      } catch (err) {
-        log.error('Unable to get credentials', err)
-        credentialPromise = null
-        return null
-      }
-    })()
-
-    return credentialPromise == null ? null : await credentialPromise
+  const credentialProvider = (): IAWSCredentials | null => {
+    const response = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
+    if (response == null) throw new Error('AWS Credentials are null')
+    return response.credentials
   }
+
+  // Use this if you want to dev/debug with local keys
+  //
+  // const credentialProvider = () => ({
+  // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+  // 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+  // })
 
   /**
    * Provide bucket information
@@ -87,7 +41,9 @@ export function makeSaffronDataProviderFactory(
    * @returns {string}
    */
   const bucketProvider = (_: string): string => {
-    return sessionBucket
+    const creds = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
+    if (!creds) throw new Error('no AWS credentials')
+    return creds.sessionBucket
   }
 
   const pusherParams = getPusherConnectionParams(),
