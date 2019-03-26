@@ -54,7 +54,7 @@ import {
 } from '@mapperai/mapper-annotated-scene'
 import {ReactUtil} from '@mapperai/mapper-saffron-sdk'
 import {IThemedProperties, withStatefulStyles, mergeStyles} from '@mapperai/mapper-themes'
-import {menuSpacing, panelBorderRadius} from './styleVars'
+import {menuSpacing, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from "./PreviousAnnotations"
 
@@ -226,6 +226,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       maxPointDensity,
       roadPointsIntensityScale,
     }
+  }
+
+  styleStats() {
+    $('.annotated-scene-container .performanceStats').css({
+      bottom: `${menuSpacing}px`,
+      left: `${statusWindowWidth + menuSpacing*2}px`,
+    })
   }
 
   private datContainer: JQuery
@@ -1686,6 +1693,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     if (!oldState.annotationManager && this.state.annotationManager) {
       if (this.state.annotationManager) {
         this.createControlsGui()
+        this.styleStats()
       } else {
         this.destroyControlsGui()
       }
@@ -1907,12 +1915,7 @@ function styles() {
         padding: '5px',
         zIndex: 3,
         borderRadius: panelBorderRadius,
-      },
-
-      '.performanceStats': {
-        // FIXME, if the status_window height gets taller because of
-        // annotated-scene, then it overlaps with the performance stats
-        bottom: '76px!important',
+        width: statusWindowWidth,
       },
     },
   })
