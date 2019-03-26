@@ -56,7 +56,7 @@ import {ReactUtil} from '@mapperai/mapper-saffron-sdk'
 import {IThemedProperties, withStatefulStyles, mergeStyles} from '@mapperai/mapper-themes'
 import {menuSpacing, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
-import {PreviousAnnotations} from "./PreviousAnnotations"
+import {PreviousAnnotations} from './PreviousAnnotations'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -231,7 +231,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   styleStats() {
     $('.annotated-scene-container .performanceStats').css({
       bottom: `${menuSpacing}px`,
-      left: `${statusWindowWidth + menuSpacing*2}px`,
+      left: `${statusWindowWidth + menuSpacing * 2}px`,
     })
   }
 

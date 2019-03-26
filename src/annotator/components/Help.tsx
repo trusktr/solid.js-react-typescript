@@ -13,11 +13,13 @@ export default class Help extends React.Component<{}, {}> {
         <br />R - Reset tilt and compass
         <br />V - Toggle perspective/orthographic view
         <br />h - Hide super tiles/point cloud/annotations
-        <br />Shift-click - load an image file
+        <br />
+        Shift-click - load an image file
         <br />
         <strong>Annotations</strong>
         <br />X - Cycle through available transformation modes (translate, rotate, scale) for the selected annotation
-        <br />Delete/Backspace - Delete active annotation
+        <br />
+        Delete/Backspace - Delete active annotation
         <br />c - Hold to add lane connection; click on the lane to connect
         <br />j - Hold to join two annotations; click on the annotation to join
         <br />f - Hold to add front lane neighbor; click on the front neighbor
@@ -37,11 +39,14 @@ export default class Help extends React.Component<{}, {}> {
         <br />P - Create new annotator polygon with same attributes as last polygon
         <br />a - Hold and click mouse to add annotation markers
         <br />d - Delete last marker
-        <br />1-9 - Hold when highlighting a marker to move its neighbors too
+        <br />
+        1-9 - Hold when highlighting a marker to move its neighbors too
         <br />
         <strong>Images</strong>
-        <br />Shift-LeftClick - load an image into a new window
-        <br />RightClick - unload image from clicked screen
+        <br />
+        Shift-LeftClick - load an image into a new window
+        <br />
+        RightClick - unload image from clicked screen
         <br />
       </p>
     )

@@ -44,17 +44,11 @@ export class PreviousAnnotations {
   }
 
   setByType(annotation: Annotation): void {
-    if (annotation instanceof Boundary)
-      this.boundary = annotation
-    else if (annotation instanceof Connection)
-      this.connection = annotation
-    else if (annotation instanceof Lane)
-      this.lane = annotation
-    else if (annotation instanceof Polygon)
-      this.polygon = annotation
-    else if (annotation instanceof TrafficDevice)
-      this.trafficDevice = annotation
-    else
-      log.error(`annotation with unknown type ${AnnotationType[annotation.annotationType]}`)
+    if (annotation instanceof Boundary) this.boundary = annotation
+    else if (annotation instanceof Connection) this.connection = annotation
+    else if (annotation instanceof Lane) this.lane = annotation
+    else if (annotation instanceof Polygon) this.polygon = annotation
+    else if (annotation instanceof TrafficDevice) this.trafficDevice = annotation
+    else log.error(`annotation with unknown type ${AnnotationType[annotation.annotationType]}`)
   }
 }
