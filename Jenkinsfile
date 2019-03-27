@@ -41,7 +41,9 @@ try {
       """
     }
 
-    def tag = sh(returnStdout: true, script: "git tag --contains | head -1").trim()
+    // Detect if a tag is the second commit (because we are only merging to
+    // develop or master, so the first commit will always be a merge commit)
+    def tag = sh(returnStdout: true, script: "git --no-pager tag -l `git log --oneline | sed -n 2p`").trim()
 
     // if we have a tag, we'll publish the new version
     if (tag) {
