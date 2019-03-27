@@ -47,7 +47,13 @@ try {
     def tagExists = sh(returnStdout: true, script: "git --no-pager tag -l $tag").trim()
 
     echo "Detected tag, if any: "
+    echo v
     echo tag
+    echo ^
+    echo "Detected tagExists, if any: "
+    echo v
+    echo tagExists
+    echo ^
 
     // if we have a tag, we'll publish the new version
     if (tagExists) {
