@@ -45,6 +45,9 @@ try {
     // develop or master, so the first commit will always be a merge commit)
     def tag = sh(returnStdout: true, script: "git --no-pager tag -l `git log --oneline | sed -n 2p`").trim()
 
+    echo "Detected tag, if any: "
+    echo tag
+
     // if we have a tag, we'll publish the new version
     if (tag) {
 
