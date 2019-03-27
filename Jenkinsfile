@@ -50,7 +50,7 @@ try {
     echo tag
 
     // if we have a tag, we'll publish the new version
-    if (tag) {
+    if (tagExists) {
 
       /**
        * For Master and Develop create builds and push to s3
