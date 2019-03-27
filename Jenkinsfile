@@ -43,7 +43,7 @@ try {
 
     // Detect if a tag is the second commit (because we are only merging to
     // develop or master, so the first commit will always be a merge commit)
-    def tag = sh(returnStdout: true, script: "git --no-pager tag -l `git log --oneline | sed -n 2p`").trim()
+    def tag = sh(returnStdout: true, script: "git --no-pager tag -l `git log --oneline | sed -n 4p`").trim()
 
     echo "Detected tag, if any: "
     echo tag
