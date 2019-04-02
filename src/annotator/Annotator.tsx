@@ -209,7 +209,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     // TODO, cleanup: we don't need to read DefaultConfig here, instead we should let scene handle default values.
     const showPerfStatsCached = localStorage.getItem(`annotated-scene-${this.constructor.name}-showPerfStats`)
-    const showPerfStats = showPerfStatsCached && JSON.parse(showPerfStatsCached) as boolean ||
+    const showPerfStats =
+      (showPerfStatsCached && (JSON.parse(showPerfStatsCached) as boolean)) ||
       DefaultConfig['startup.show_stats_module']
 
     this.state = {
