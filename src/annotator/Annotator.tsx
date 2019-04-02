@@ -111,6 +111,8 @@ interface AnnotatorState {
   maxSuperTilesToLoad: number
   maxPointDensity: number
   roadPointsIntensityScale: number
+
+  showPerfStats: boolean
 }
 
 interface AnnotatorProps extends IThemedProperties {
@@ -205,6 +207,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     )
     const roadPointsIntensityScale = parseInt(DefaultConfig['tile_manager.road_points_intensity_scale'].toString())
 
+    // TODO, cleanup: we don't need to read DefaultConfig here, instead we should let scene handle default values.
+    const showPerfStatsCached = localStorage.getItem(`annotated-scene-${this.constructor.name}-showPerfStats`)
+    const showPerfStats = showPerfStatsCached && JSON.parse(showPerfStatsCached) as boolean ||
+      DefaultConfig['startup.show_stats_module']
+
     this.state = {
       background: hexStringToHexadecimal(config['startup.background_color'] || '#1d232a'),
       layerGroupIndex: defaultLayerGroupIndex,
@@ -225,6 +232,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       maxSuperTilesToLoad,
       maxPointDensity,
       roadPointsIntensityScale,
+
+      showPerfStats,
     }
   }
 
@@ -401,6 +410,21 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       .onChange(roadPointsIntensityScale => this.setState({roadPointsIntensityScale}))
 
     tileFolder.open()
+
+    const sceneOptions = gui.addFolder('Scene')
+
+    sceneOptions
+      .add({showPerfStats: this.state.showPerfStats}, 'showPerfStats')
+      .name('Show stats')
+      .onChange(showPerfStats => {
+        // TODO cleanup: we don't need to keep our own state vars, just a config
+        // object that we pass to the scene.
+        this.setState({showPerfStats}, () => {
+          this.setState({annotatedSceneConfig: this.makeAnnotatedSceneConfig()})
+        })
+      })
+
+    sceneOptions.open()
   }
 
   private destroyControlsGui(): void {
@@ -1634,6 +1658,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   private makeAnnotatedSceneConfig = () => {
     return {
       'startup.camera_offset': [0, 200, 100],
+      'startup.show_stats_module': this.state.showPerfStats,
       'tile_manager.maximum_points_to_load': 20000000,
       'tile_manager.road_points_intensity_scale': this.state.roadPointsIntensityScale,
       'tile_manager.maximum_point_density': this.state.maxPointDensity,
@@ -1707,12 +1732,22 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       else this.imageManager.hideImageScreens()
     }
 
+    // TODO simplify: instead of storing individual properties in local storage,
+    // just store the config object that we'll be passing into the scene.
+
     if (oldState.maxSuperTilesToLoad !== this.state.maxSuperTilesToLoad) {
       localStorage.setItem('maxSuperTilesToLoad', this.state.maxSuperTilesToLoad.toString())
     }
 
     if (oldState.maxPointDensity !== this.state.maxPointDensity) {
       localStorage.setItem('maxPointDensity', this.state.maxPointDensity.toString())
+    }
+
+    if (oldState.showPerfStats !== this.state.showPerfStats) {
+      localStorage.setItem('showPerfStats', this.state.showPerfStats.toString())
+
+      // FIXME temporary hack, because we don't know when in the future the stats widget is ready.
+      setTimeout(() => this.styleStats())
     }
   }
 
