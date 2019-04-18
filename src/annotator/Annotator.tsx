@@ -752,37 +752,32 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   }
 
   private addFront(): void {
-    log.info('Adding connected annotation to the front')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME))
       Annotator.deactivateFrontSideNeighbours()
   }
 
   private addLeftSame(): void {
-    log.info('Adding connected annotation to the left - same direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME))
       Annotator.deactivateLeftSideNeighbours()
   }
 
   private addLeftReverse(): void {
-    log.info('Adding connected annotation to the left - reverse direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE))
       Annotator.deactivateLeftSideNeighbours()
   }
 
   private addRightSame(): void {
-    log.info('Adding connected annotation to the right - same direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME))
       Annotator.deactivateRightSideNeighbours()
   }
 
   private addRightReverse(): void {
-    log.info('Adding connected annotation to the right - reverse direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE))
       Annotator.deactivateRightSideNeighbours()
   }
 
