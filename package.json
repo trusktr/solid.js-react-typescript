@@ -2,7 +2,7 @@
   "name": "@mapperai/mapper-annotator",
   "appName": "Annotator",
   "appID": "Annotator",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "description": "Mapper.ai HD Map Editor",
   "main": "saffron.js",
   "license": "UNLICENSED",
@@ -51,15 +51,15 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "./scripts/typecheck-if-develop-or-master.sh"
+      "npm run typecheck"
     ],
     "*.{js,ts,tsx,json}": [
-      "./scripts/eslint-if-develop-or-master.sh",
-      "./scripts/prettier-if-develop-or-master.sh",
+      "npm run lint-fix -- $@",
+      "prettier --write $@",
       "git add"
     ],
     "*.{html}": [
-      "./scripts/eslint-if-develop-or-master.sh",
+      "npm run lint-fix -- $@",
       "git add"
     ]
   },
