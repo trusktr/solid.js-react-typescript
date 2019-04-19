@@ -81,12 +81,10 @@ export class App extends React.Component<AppProps, AppState> {
     this.setState({annotationManager})
   }
 
-  onTrackActivity = (): IActivityTrackingInfo => {
+  onTrackActivity = (): IActivityTrackingInfo | false => {
     const annotationManager = this.state.annotationManager
 
-    if (!annotationManager) {
-      throw new Error('scene not ready')
-    }
+    if (!annotationManager) return false
 
     return {
       numberOfAnnotations: annotationManager.allAnnotations.length,
