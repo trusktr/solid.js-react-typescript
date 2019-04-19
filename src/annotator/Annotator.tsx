@@ -693,7 +693,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       setTimeout(() => {
         this.state.annotatedSceneController!.cleanTransformControls()
       }, 0)
-    } else if (this.state.annotationManager!.state.activeAnnotation) {
+    } else if (this.state.annotationManager!.activeAnnotation) {
       this.state.annotationManager!.unsetActiveAnnotation()
       this.deactivateAllAnnotationPropertiesMenus()
     }
@@ -761,11 +761,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     // Get all the points and convert to lat lon
     const kml = new SimpleKML()
 
-    const annotations = this.state.annotationManager!.state
-    annotations.boundaryAnnotations.forEach(a => kml.addPath(annotationToGeoPoints(a)))
-    annotations.laneAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
-    annotations.connectionAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
-    annotations.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
+    this.state.annotationManager!.boundaryAnnotations.forEach(a => kml.addPath(annotationToGeoPoints(a)))
+    this.state.annotationManager!.laneAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    this.state.annotationManager!.connectionAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    this.state.annotationManager!.polygonAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    this.state.annotationManager!.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
 
     const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
 
