@@ -1241,13 +1241,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     this.expandAccordion('#menu_lane')
 
-    if (activeAnnotation.neighborsIds.left.length > 0) Annotator.deactivateLeftSideNeighbours()
+    if (activeAnnotation.neighborIdsAt(NeighborLocation.LEFT).length) Annotator.deactivateLeftSideNeighbours()
     else Annotator.activateLeftSideNeighbours()
 
-    if (activeAnnotation.neighborsIds.right.length > 0) Annotator.deactivateRightSideNeighbours()
+    if (activeAnnotation.neighborIdsAt(NeighborLocation.RIGHT).length) Annotator.deactivateRightSideNeighbours()
     else Annotator.activateRightSideNeighbours()
 
-    if (activeAnnotation.neighborsIds.front.length > 0) Annotator.deactivateFrontSideNeighbours()
+    if (activeAnnotation.neighborIdsAt(NeighborLocation.FRONT).length) Annotator.deactivateFrontSideNeighbours()
     else Annotator.activateFrontSideNeighbours()
 
     const lpSelectType = $('#lp_select_type')
