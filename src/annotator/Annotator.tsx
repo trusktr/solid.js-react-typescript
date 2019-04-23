@@ -746,7 +746,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
   private saveAnnotationsJson = () => {
     const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON())
-    const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
+    const sessionId = this.state.annotatedSceneController!.dataProvider.sessionId
 
     saveFileWithDialog(json, 'application/json', `annotations${sessionId ? '-' + sessionId : ''}.json`)
   }
@@ -770,7 +770,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     this.state.annotationManager!.polygonAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
     this.state.annotationManager!.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
 
-    const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
+    const sessionId = this.state.annotatedSceneController!.dataProvider.sessionId
 
     saveFileWithDialog(
       kml.toString(),
@@ -1752,7 +1752,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
   private attachScene = () => {
     const annotatedSceneController = this.state.annotatedSceneController!
-    const {utmCoordinateSystem, channel} = annotatedSceneController.state
+    const {utmCoordinateSystem} = annotatedSceneController.state
+    const {channel} = annotatedSceneController
 
     this.imageManager = new ImageManager(utmCoordinateSystem!, channel!)
 
