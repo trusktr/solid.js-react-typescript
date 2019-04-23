@@ -714,8 +714,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   }
 
   private uiDeleteActiveAnnotation(): void {
+    const activeAnnotation = this.state.annotationManager!.activeAnnotation
+    if (activeAnnotation === null) return
+
     // Delete annotation from scene
-    if (this.state.annotationManager!.deleteActiveAnnotation()) {
+    if (this.state.annotationManager!.deleteAnnotation(activeAnnotation)) {
       log.info('Deleted selected annotation')
       this.deactivateLanePropUI()
       this.state.annotationManager!.hideTransform()
