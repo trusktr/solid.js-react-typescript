@@ -1824,7 +1824,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     const {annotatedSceneConfig} = this.state
     const {dataProviderFactory, classes} = this.props
 
-    return !dataProviderFactory || !annotatedSceneConfig ? (
+    return !dataProviderFactory ? (
       <div />
     ) : (
       <React.Fragment>

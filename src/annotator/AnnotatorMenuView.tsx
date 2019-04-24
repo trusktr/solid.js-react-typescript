@@ -17,6 +17,27 @@ import Help from '../annotator/components/Help'
 import {Inspector} from './components/Inspector'
 import {IThemedProperties, withStatefulStyles, mergeStyles, mergeClasses} from '@mapperai/mapper-themes'
 import {menuSpacing, menuTopPosition, panelBorderRadius} from './styleVars'
+import Windowable from './components/Windowable'
+
+type FooProps = {
+  foo: string
+}
+
+const Foo = Windowable(
+  class Foo extends React.Component<FooProps, {}> {
+    onClick = () => {
+      console.log('Hello!!!')
+    }
+
+    render() {
+      return (
+        <div>
+          <h1 onClick={this.onClick}>{this.props.foo}</h1>
+        </div>
+      )
+    }
+  }
+)
 
 interface AnnotatorMenuViewProps extends IThemedProperties {
   uiMenuVisible: boolean
@@ -26,13 +47,21 @@ interface AnnotatorMenuViewProps extends IThemedProperties {
   onSaveAnnotationsKML(): void
 }
 
-interface AnnotatorMenuViewState {}
+interface AnnotatorMenuViewState {
+  windowOpen: boolean
+}
 
 @typedConnect(toProps(AnnotatedSceneState, 'layerStatus'))
 @withStatefulStyles(styles)
 export default class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
   constructor(props: AnnotatorMenuViewProps) {
     super(props)
+
+    this.state = {
+      windowOpen: false,
+    }
+
+    setInterval(() => this.setState({windowOpen: !this.state.windowOpen}), 4000)
   }
 
   render(): JSX.Element {
@@ -153,6 +182,8 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
             </div>
           </div>
           <Inspector selectedAnnotation={this.props.selectedAnnotation} />
+
+          <Foo foo="hello!" windowed={this.state.windowOpen} />
         </menu>
       </div>
     )
