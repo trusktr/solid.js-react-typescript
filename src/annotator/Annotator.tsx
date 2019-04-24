@@ -810,23 +810,18 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   }
 
   private uiReverseLaneDirection(): void {
+    const active = this.state.annotationManager!.activeAnnotation
+    if (!active) return
+
     log.info('Reverse lane direction.')
 
-    const {
-      result,
-      existLeftNeighbour,
-      existRightNeighbour,
-    }: {
-      result: boolean
-      existLeftNeighbour: boolean
-      existRightNeighbour: boolean
-    } = this.state.annotationManager!.reverseLaneDirection()
+    if (!active.reverseMarkers()) return
 
-    if (result) {
-      if (existLeftNeighbour) Annotator.deactivateLeftSideNeighbours()
+    if (active instanceof Lane) {
+      if (active.neighborsAt(NeighborLocation.LEFT).length) Annotator.deactivateLeftSideNeighbours()
       else Annotator.activateLeftSideNeighbours()
 
-      if (existRightNeighbour) Annotator.deactivateRightSideNeighbours()
+      if (active.neighborsAt(NeighborLocation.RIGHT).length) Annotator.deactivateRightSideNeighbours()
       else Annotator.activateRightSideNeighbours()
     }
   }
