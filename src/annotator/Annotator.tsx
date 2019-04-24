@@ -317,7 +317,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
     new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
     new AnnotatedSceneActions().setLockPolygons(this.state.lockPolygons)
-
     new AnnotatedSceneActions().setLockTrafficDevices(this.state.lockTrafficDevices)
 
     const folderLock = gui.addFolder('Lock Annotations')
@@ -437,20 +436,22 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
   // When ImageManager loads an image, add it to the scene.
   // IDEA JOE The UI can have check boxes for showing/hiding layers.
-  // private onImageScreenLoad = (): void => {
-  // 	this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
-  // }
+  private onImageScreenLoad = (): void => {
+    // todo lightbox fix
+    // this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
+  }
 
   // When a lightbox ray is created, add it to the scene.
   // On null, remove all rays.
-  // private onLightboxImageRay = (ray: THREE.Line): void => {
-  // 	// Accumulate rays while shift is pressed, otherwise clear old ones.
-  // 	if (!this.props.isShiftKeyPressed) this.clearLightboxImageRays()
-  //
-  // 	this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
-  // 	this.lightboxImageRays.push(ray)
-  // 	new AnnotatedSceneActions().addObjectToScene(ray)
-  // }
+  private onLightboxImageRay = (ray: THREE.Line): void => {
+    // Accumulate rays while shift is pressed, otherwise clear old ones.
+    if (!this.props.isShiftKeyPressed) this.clearLightboxImageRays()
+
+    // todo lightbox fix
+    // this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
+    this.lightboxImageRays.push(ray)
+    new AnnotatedSceneActions().addObjectToScene(ray)
+  }
 
   private clearLightboxImageRays = (): void => {
     if (!this.lightboxImageRays.length) return
@@ -1755,11 +1756,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     // events from ImageManager
     channel!.on(Events.KEYDOWN, annotatedSceneController.onKeyDown)
     channel!.on(Events.KEYUP, annotatedSceneController.onKeyUp)
-    //channel!.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
+    channel!.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
     channel!.on(Events.LIGHTBOX_CLOSE, this.clearLightboxImageRays)
 
     // IDEA JOE maybe we need a separate LightBoxRayManager? Or at least move to ImageManager
-    //channel!.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
+    channel!.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
     channel!.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
     channel!.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
 

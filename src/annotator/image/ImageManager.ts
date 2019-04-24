@@ -76,6 +76,51 @@ export class ImageManager {
 
   // Get a list of interesting images from the user.
   loadImagesFromOpenDialog(): Promise<void> {
+    // todo lightbox delete this
+    return this.loadImageFromPath(
+      '/Users/clyde/Documents/sample_data/Clients/aurora/ImagesAurora/0a8a35db6681d167ca04eaa61776a3fa_image.png'
+    )
+      .then(() =>
+        this.loadImageFromPath(
+          '/Users/clyde/Documents/sample_data/Clients/aurora/ImagesAurora/0a098fe28046430184854d3fade46a84_image.png'
+        )
+      )
+      .then(() =>
+        this.loadImageFromPath(
+          '/Users/clyde/Documents/sample_data/Clients/aurora/ImagesAurora/0a365dd18c2606f5cc5010fd1d90658b_image.png'
+        )
+      )
+      .then(() =>
+        this.loadImageFromPath(
+          '/Users/clyde/Documents/sample_data/Clients/aurora/ImagesAurora/0a882b4602e9be1e75d6283f46720bce_image.png'
+        )
+      )
+      .then(() =>
+        this.loadImageFromPath(
+          '/Users/clyde/Documents/sample_data/Clients/aurora/ImagesAurora/0aa0004e682ffd78233daaaf85f7ffee_image.png'
+        )
+      )
+      .then(() =>
+        this.loadImageFromPath(
+          '/Users/clyde/Documents/sample_data/Clients/aurora/ImagesAurora/0ab569f402c128465fa02bdc3b8dde5f_image.png'
+        )
+      )
+      .then(() =>
+        this.loadImageFromPath(
+          '/Users/clyde/Documents/sample_data/Clients/aurora/ImagesAurora/00ad5ad9f9a3f02a96612a6fc29ee53c_image.png'
+        )
+      )
+      .then(() =>
+        this.loadImageFromPath(
+          '/Users/clyde/Documents/sample_data/Clients/aurora/ImagesAurora/0b4ba8ea74a068160088dd97793be49f_image.png'
+        )
+      )
+      .then(() =>
+        this.loadImageFromPath(
+          '/Users/clyde/Documents/sample_data/Clients/aurora/ImagesAurora/0b06a65c940333a33cfa08fa1bc93de2_image.png'
+        )
+      )
+
     return new Promise(
       (resolve: () => void, reject: (reason?: Error) => void): void => {
         const options: Electron.OpenDialogOptions = {
