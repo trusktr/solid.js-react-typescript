@@ -128,10 +128,11 @@ export class ImageManager {
   private loadImageFromPath(path: string): Promise<void> {
     return readImageMetadataFile(path, this.utmCoordinateSystem)
       .then(cameraParameters => {
+        path = 'file:///Users/clyde/dev/mapper/mapper-saffron/' + path // todo lightbox delete
         this.setUpScreen({
           path: path,
           imageScreen: new ImageScreen(
-            'file:///Users/clyde/dev/mapper/mapper-saffron/' + path, // todo lightbox delete
+            path,
             this.settings.imageScreenWidth,
             this.settings.imageScreenHeight,
             this.settings.visibleWireframe
