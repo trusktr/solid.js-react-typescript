@@ -1795,6 +1795,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     this.bind()
     this.setKeys()
+    // todo lightbox delete this
+    this.imageManager
+      .loadImagesFromOpenDialog()
+      .catch(err => log.warn('loadImagesFromOpenDialog failed: ' + err.message))
   }
 
   /* eslint-disable typescript/no-explicit-any */
