@@ -305,15 +305,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       })
       */
 
-    /*
-    gui
-      .add(this.state, 'imageScreenOpacity', 0, 1)
-      .name('Image Opacity')
-      .onChange((value: number) => {
-        this.imageManager.setOpacity(value)
-      })
-      */
-
     new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
     new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
     new AnnotatedSceneActions().setLockPolygons(this.state.lockPolygons)
@@ -410,6 +401,17 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       .onChange(roadPointsIntensityScale => this.setState({roadPointsIntensityScale}))
 
     tileFolder.open()
+
+    const imagesFolder = gui.addFolder('Images')
+
+    imagesFolder
+      .add(this.state, 'imageScreenOpacity', 0, 1)
+      .name('Image Opacity')
+      .onChange((value: number) => {
+        this.imageManager.setOpacity(value)
+      })
+
+    imagesFolder.open()
 
     const sceneOptions = gui.addFolder('Scene')
 
