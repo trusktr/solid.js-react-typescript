@@ -4,7 +4,7 @@
  */
 
 import {channel} from '../../electron-ipc/Channel'
-import * as IPCMessages from './IPCMessages'
+import * as LightboxState from './LightboxState'
 import {getLogger as Logger, toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
 import WindowCommunicator from '../../util/WindowCommunicator'
 
@@ -52,7 +52,7 @@ class LightboxWindowUI {
   }
 
   // Throw away the old state. Rebuild the UI based on the new state.
-  private onLightboxState = (state: IPCMessages.LightboxState): void => {
+  private onLightboxState = (state: LightboxState.LightboxState): void => {
     const imageListElement = document.getElementById('image_list')
 
     if (imageListElement) {
@@ -71,7 +71,7 @@ class LightboxWindowUI {
   }
 
   // Update UI for one image.
-  private onImageEditState = (state: IPCMessages.ImageEditState): void => {
+  private onImageEditState = (state: LightboxState.ImageEditState): void => {
     this.imageChildren
       .filter(img => img.id === state.uuid)
       .forEach(img => {
@@ -83,7 +83,7 @@ class LightboxWindowUI {
     this.communicator.send(channel.imageEditState, {
       uuid: uuid,
       active: active,
-    } as IPCMessages.ImageEditState)
+    } as LightboxState.ImageEditState)
   }
 
   // Notify listeners when the pointer hovers over an image.
@@ -109,7 +109,7 @@ class LightboxWindowUI {
       uuid: img.id,
       ratioX: ratioX,
       ratioY: ratioY,
-    } as IPCMessages.ImageClick)
+    } as LightboxState.ImageClick)
   }
 
   // Scale it to fit the width of its parent.
@@ -128,7 +128,7 @@ class LightboxWindowUI {
     }
   }
 
-  private createLightboxImage(imageDescription: IPCMessages.LightboxImageDescription): HTMLImageElement {
+  private createLightboxImage(imageDescription: LightboxState.LightboxImageDescription): HTMLImageElement {
     const img = document.createElement('img')
 
     img.src = imageDescription.path

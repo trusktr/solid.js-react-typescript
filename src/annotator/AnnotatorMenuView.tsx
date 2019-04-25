@@ -12,11 +12,13 @@ import {
   toProps,
   AnnotatedSceneState,
   LayerStatusMap,
+  EventEmitter,
 } from '@mapperai/mapper-annotated-scene'
 import Help from '../annotator/components/Help'
 import {Inspector} from './components/Inspector'
 import {IThemedProperties, withStatefulStyles, mergeStyles, mergeClasses} from '@mapperai/mapper-themes'
 import {menuSpacing, menuTopPosition, panelBorderRadius} from './styleVars'
+import ImageLightbox from './annotator-image-lightbox/ImageLightbox'
 
 interface AnnotatorMenuViewProps extends IThemedProperties {
   uiMenuVisible: boolean
@@ -24,15 +26,23 @@ interface AnnotatorMenuViewProps extends IThemedProperties {
   selectedAnnotation?: Annotation | null
   onSaveAnnotationsJson(): void
   onSaveAnnotationsKML(): void
+  channel: EventEmitter
 }
 
-interface AnnotatorMenuViewState {}
+interface AnnotatorMenuViewState {
+  windowOpen: boolean
+}
 
 @typedConnect(toProps(AnnotatedSceneState, 'layerStatus'))
 @withStatefulStyles(styles)
 export default class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
   constructor(props: AnnotatorMenuViewProps) {
     super(props)
+
+    this.state = {
+      windowOpen: false,
+    }
+    ;(window as any).widget = this
   }
 
   render(): JSX.Element {
@@ -150,6 +160,8 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
             </div>
           </div>
           <Inspector selectedAnnotation={this.props.selectedAnnotation} />
+
+          <ImageLightbox channel={this.props.channel} windowed={false} />
         </menu>
       </div>
     )
