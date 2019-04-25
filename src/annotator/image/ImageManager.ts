@@ -7,7 +7,7 @@ import * as Electron from 'electron'
 import * as THREE from 'three'
 import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
-import {LightboxImage} from './CalibratedImage'
+import {LightboxImage} from './LightboxImage'
 import * as IPCMessages from '../annotator-image-lightbox/LightboxState'
 import {readImageMetadataFile} from './Aurora'
 import {
@@ -147,16 +147,16 @@ export class ImageManager {
   }
 
   // Manipulate an image object, using its metadata, so that it is located and oriented in a reasonable way in three.js space.
-  private setUpScreen(calibratedImage: LightboxImage): void {
-    const screen = calibratedImage.imageScreen
-    const position = calibratedImage.parameters.screenPosition
-    const origin = calibratedImage.parameters.cameraOrigin
+  private setUpScreen(lightboxImage: LightboxImage): void {
+    const screen = lightboxImage.imageScreen
+    const position = lightboxImage.parameters.screenPosition
+    const origin = lightboxImage.parameters.cameraOrigin
 
     screen.position.set(position.x, position.y, position.z)
     screen.scaleDistance(position.distanceTo(origin))
     screen.lookAt(origin)
     screen.setOpacity(this.opacity)
-    screen.imageMesh.userData = calibratedImage // makes it easier to pass the object through the Annotator UI and back
+    screen.imageMesh.userData = lightboxImage // makes it easier to pass the object through the Annotator UI and back
     this.imageScreens.push(screen)
     this.imageScreenMeshes.push(screen.imageMesh)
 

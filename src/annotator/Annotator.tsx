@@ -19,7 +19,7 @@ import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
 import {ImageManager} from './image/ImageManager'
-import {LightboxImage} from './image/CalibratedImage'
+import {LightboxImage} from './image/LightboxImage'
 import * as React from 'react'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import {hexStringToHexadecimal} from '../util/Color'
