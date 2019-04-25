@@ -7,9 +7,8 @@ import * as Electron from 'electron'
 import * as THREE from 'three'
 import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
-import {CalibratedImage} from './CalibratedImage'
-import {LightboxWindowManager} from '../annotator-image-lightbox/LightboxWindowManager'
-import * as IPCMessages from '../annotator-image-lightbox/IPCMessages'
+import {LightboxImage} from './CalibratedImage'
+import * as IPCMessages from '../annotator-image-lightbox/LightboxState'
 import {readImageMetadataFile} from './Aurora'
 import {
   getLogger as Logger,
@@ -38,10 +37,13 @@ export class ImageManager {
   private imageScreens: ImageScreen[]
   imageScreenMeshes: THREE.Mesh[]
   private opacity: number
-  private lightboxWindow: LightboxWindowManager | null // pop full-size 2D images into their own window
-  loadedImageDetails: OrderedSet<CalibratedImage>
+  loadedImageDetails: OrderedSet<LightboxImage>
 
-  constructor(private utmCoordinateSystem: UtmCoordinateSystem, private channel: EventEmitter) {
+  constructor(
+    private utmCoordinateSystem: UtmCoordinateSystem,
+    private channel: EventEmitter,
+    private onLightboxStateChange: (i: ImageManager) => void
+  ) {
     this.settings = {
       imageScreenWidth: config['image_manager.image_screen.width'],
       imageScreenHeight: config['image_manager.image_screen.height'],
@@ -52,8 +54,18 @@ export class ImageManager {
     this.imageScreens = []
     this.imageScreenMeshes = []
     this.opacity = parseFloat(config['image_manager.image.opacity']) || 0.5
-    this.lightboxWindow = null
     this.loadedImageDetails = OrderedSet()
+
+    this.channel.on(Events.IMAGE_EDIT_STATE, this.makeImageActive)
+    this.channel.on(Events.IMAGE_CLICK, this.onImageClick)
+    // TODO a button to clear images
+    this.channel.on(Events.LIGHTBOX_CLOSE, this.onLightboxWindowClose)
+  }
+
+  cleanup() {
+    this.channel.removeListener(Events.IMAGE_EDIT_STATE, this.makeImageActive)
+    this.channel.removeListener(Events.IMAGE_CLICK, this.onImageClick)
+    this.channel.removeListener(Events.LIGHTBOX_CLOSE, this.onLightboxWindowClose)
   }
 
   // Set opacity of all images.
@@ -114,7 +126,8 @@ export class ImageManager {
             this.settings.visibleWireframe
           ),
           parameters: cameraParameters,
-        } as CalibratedImage)
+          active: false,
+        } as LightboxImage)
       })
       .catch(err => {
         log.warn(`loadImageFromPath() failed on ${path}`)
@@ -123,7 +136,7 @@ export class ImageManager {
   }
 
   // Manipulate an image object, using its metadata, so that it is located and oriented in a reasonable way in three.js space.
-  private setUpScreen(calibratedImage: CalibratedImage): void {
+  private setUpScreen(calibratedImage: LightboxImage): void {
     const screen = calibratedImage.imageScreen
     const position = calibratedImage.parameters.screenPosition
     const origin = calibratedImage.parameters.cameraOrigin
@@ -141,33 +154,29 @@ export class ImageManager {
   }
 
   // When an image object is selected for closer inspection, push it over to the Lightbox for full-size, 2D display.
-  loadImageIntoWindow(image: CalibratedImage): void {
+  addImageToLightbox(image: LightboxImage): void {
     if (this.loadedImageDetails.has(image)) return
 
-    if (!this.lightboxWindow) this.lightboxWindow = new LightboxWindowManager(this.channel)
-
-    this.channel.on(Events.IMAGE_EDIT_STATE, this.onImageEditState)
-    this.channel.on(Events.IMAGE_CLICK, this.onImageClick)
-    this.channel.on(Events.LIGHTBOX_CLOSE, this.onLightboxWindowClose)
+    // active by default because if we just added it then it means we are
+    // shift-clicking on the image screen, therefore shift-hovering on it.
+    image.active = true
 
     this.loadedImageDetails = this.loadedImageDetails.add(image)
-
-    this.lightboxWindow
-      .windowSetState(this.toLightboxStateMessage())
-      .catch(err => console.warn('loadImageIntoWindow() failed:', err))
+    this.onLightboxStateChange(this)
   }
 
   private onLightboxWindowClose = (): void => {
     let updated = 0
 
     this.loadedImageDetails.forEach(i => i!.imageScreen.setHighlight(false) && updated++)
-
     this.loadedImageDetails = OrderedSet()
+
+    this.onLightboxStateChange(this)
 
     if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER)
   }
 
-  private toLightboxStateMessage(): IPCMessages.LightboxState {
+  get lightboxState() {
     return {
       images: this.loadedImageDetails
         .reverse()
@@ -176,17 +185,23 @@ export class ImageManager {
           return {
             uuid: i.imageScreen.uuid,
             path: i.path,
+            active: i.active,
           } as IPCMessages.LightboxImageDescription
         }),
     }
   }
 
-  private onImageEditState = (state: IPCMessages.ImageEditState): void => {
+  private makeImageActive = (state: IPCMessages.ImageEditState): void => {
     let updated = 0
 
     this.loadedImageDetails
-      .filter(i => i!.imageScreen.uuid === state.uuid)
-      .forEach(i => i!.imageScreen.setHighlight(state.active) && updated++)
+      .filter((i: LightboxImage) => i.imageScreen.uuid === state.uuid)
+      .forEach((i: LightboxImage) => {
+        i.imageScreen.setHighlight(state.active) && updated++
+        i.active = state.active
+      })
+
+    this.onLightboxStateChange(this)
 
     if (updated) this.channel.emit(Events.SCENE_SHOULD_RENDER)
   }
@@ -202,7 +217,7 @@ export class ImageManager {
 
           this.channel.emit(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, ray)
         } else {
-          log.error(`found CalibratedImage with unknown type of parameters: ${parameters}`)
+          log.error(`found LightboxImage with unknown type of parameters: ${parameters}`)
         }
       })
   }
@@ -217,27 +232,13 @@ export class ImageManager {
     return foundScreen
   }
 
-  highlightImageInLightbox(image: CalibratedImage): boolean {
-    return this.imageSetState(image, true)
+  highlightImageInLightbox(image: LightboxImage): boolean {
+    this.makeImageActive({uuid: image.imageScreen.uuid, active: true})
+    return true
   }
 
-  unhighlightImageInLightbox(image: CalibratedImage): boolean {
-    return this.imageSetState(image, false)
-  }
-
-  private imageSetState(image: CalibratedImage, active: boolean): boolean {
-    if (!this.loadedImageDetails.has(image)) return false
-
-    if (this.lightboxWindow) {
-      this.lightboxWindow.imageSetState({
-        uuid: image.imageScreen.uuid,
-        active: active,
-      } as IPCMessages.ImageEditState)
-
-      return true
-    } else {
-      log.warn('missing lightboxWindow')
-      return false
-    }
+  unhighlightImageInLightbox(image: LightboxImage): boolean {
+    this.makeImageActive({uuid: image.imageScreen.uuid, active: true})
+    return true
   }
 }

@@ -19,7 +19,7 @@ import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
 import {ImageManager} from './image/ImageManager'
-import {CalibratedImage} from './image/CalibratedImage'
+import {LightboxImage} from './image/CalibratedImage'
 import * as React from 'react'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import {hexStringToHexadecimal} from '../util/Color'
@@ -57,6 +57,8 @@ import {IThemedProperties, withStatefulStyles, mergeStyles} from '@mapperai/mapp
 import {menuSpacing, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
+import {LightboxImageDescription, ImageClick} from './annotator-image-lightbox/LightboxState'
+import {ImageContext} from './annotator-image-lightbox/ImageContext'
 
 // const credentialProvider = async () => ({
 // 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -113,6 +115,8 @@ interface AnnotatorState {
   roadPointsIntensityScale: number
 
   showPerfStats: boolean
+
+  lightboxImages: LightboxImageDescription[]
 }
 
 interface AnnotatorProps extends IThemedProperties {
@@ -172,7 +176,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
   private imageManager: ImageManager
   private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
-  private highlightedLightboxImage: CalibratedImage | null // image screen which is currently active in the Lightbox UI
+  private highlightedLightboxImage: LightboxImage | null // image screen which is currently active in the Lightbox UI
   private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
   private gui?: dat.GUI
   private statusWindowActions = new StatusWindowActions()
@@ -235,6 +239,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       roadPointsIntensityScale,
 
       showPerfStats,
+
+      lightboxImages: [],
     }
   }
 
@@ -492,7 +498,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     } else {
       // Get intersected screen
       const first = intersects[0].object as THREE.Mesh
-      const image = first.userData as CalibratedImage
+      const image = first.userData as LightboxImage
 
       // Unhighlight previous screen
       if (
@@ -522,10 +528,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
         const intersects = this.raycasterImageScreen.intersectObject(this.highlightedImageScreenBox)
 
         if (intersects.length) {
-          const image = this.highlightedImageScreenBox.userData as CalibratedImage
+          const image = this.highlightedImageScreenBox.userData as LightboxImage
 
           this.unHighlightImageScreenBox()
-          this.imageManager.loadImageIntoWindow(image)
+          this.imageManager.addImageToLightbox(image)
         }
 
         break
@@ -593,7 +599,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
         .catch(err => log.warn('getImageScreen() failed', err))
     }
 
-    const image = imageScreenBox.userData as CalibratedImage
+    const image = imageScreenBox.userData as LightboxImage
 
     // If it's already loaded in the lightbox, highlight it in the lightbox.
     // Don't allow it to be loaded a second time.
@@ -1713,6 +1719,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       log.error('annotatedSceneController.cleanup() failed', err)
     }
     // TODO JOE  - remove event listeners  - clean up child windows
+
+    this.imageManager && this.imageManager.cleanup()
   }
 
   componentDidUpdate(oldProps: AnnotatorProps, oldState: AnnotatorState): void {
@@ -1757,12 +1765,16 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     const {utmCoordinateSystem} = annotatedSceneController.state
     const {channel} = annotatedSceneController
 
-    this.imageManager = new ImageManager(utmCoordinateSystem!, channel!)
+    this.imageManager = new ImageManager(utmCoordinateSystem!, channel!, ({lightboxState}) => {
+      this.setState({lightboxImages: lightboxState.images})
+    })
 
     // events from ImageManager
     channel!.on(Events.KEYDOWN, annotatedSceneController.onKeyDown)
     channel!.on(Events.KEYUP, annotatedSceneController.onKeyUp)
     //channel!.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
+
+    // TODO instead of on window close, just add a button to the UI
     channel!.on(Events.LIGHTBOX_CLOSE, this.clearLightboxImageRays)
 
     // IDEA JOE maybe we need a separate LightBoxRayManager? Or at least move to ImageManager
@@ -1820,9 +1832,36 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef(ref)
   }
 
+  private onImageMouseEnter = (uuid: string) => {
+    this.state.annotatedSceneController!.channel.emit(Events.IMAGE_EDIT_STATE, {
+      uuid,
+      active: true,
+    })
+  }
+
+  private onImageMouseLeave = (uuid: string) => {
+    this.state.annotatedSceneController!.channel.emit(Events.IMAGE_EDIT_STATE, {
+      uuid,
+      active: false,
+    })
+  }
+
+  // Notify listeners of the coordinates of a click on an image.
+  private onImageMouseUp = (click: ImageClick): void => {
+    this.state.annotatedSceneController!.channel.emit(Events.IMAGE_CLICK, click)
+  }
+
   render(): JSX.Element {
     const {annotatedSceneConfig} = this.state
     const {dataProviderFactory, classes} = this.props
+    const {onImageMouseEnter, onImageMouseLeave, onImageMouseUp} = this
+
+    const imageContextValue = {
+      images: this.state.lightboxImages,
+      onImageMouseEnter,
+      onImageMouseLeave,
+      onImageMouseUp,
+    }
 
     return !dataProviderFactory ? (
       <div />
@@ -1844,12 +1883,18 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
             &#9776;
           </Button>
         </div>
-        <AnnotatorMenuView
-          uiMenuVisible={this.props.uiMenuVisible!}
-          selectedAnnotation={this.props.activeAnnotation}
-          onSaveAnnotationsJson={this.saveAnnotationsJson}
-          onSaveAnnotationsKML={this.saveAnnotationsKML}
-        />
+        <ImageContext.Provider value={imageContextValue}>
+          {this.state.annotatedSceneController ? (
+            // NOTE, The ImageLightbox is inside of the AnnotatorMenuView
+            <AnnotatorMenuView
+              channel={this.state.annotatedSceneController.channel}
+              uiMenuVisible={this.props.uiMenuVisible!}
+              selectedAnnotation={this.props.activeAnnotation}
+              onSaveAnnotationsJson={this.saveAnnotationsJson}
+              onSaveAnnotationsKML={this.saveAnnotationsKML}
+            />
+          ) : null}
+        </ImageContext.Provider>
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
