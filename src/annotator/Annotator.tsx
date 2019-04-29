@@ -111,6 +111,8 @@ interface AnnotatorState {
   maxSuperTilesToLoad: number
   maxPointDensity: number
   roadPointsIntensityScale: number
+
+  showPerfStats: boolean
 }
 
 interface AnnotatorProps extends IThemedProperties {
@@ -205,6 +207,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     )
     const roadPointsIntensityScale = parseInt(DefaultConfig['tile_manager.road_points_intensity_scale'].toString())
 
+    // TODO, cleanup: we don't need to read DefaultConfig here, instead we should let scene handle default values.
+    const showPerfStatsCached = localStorage.getItem(`annotated-scene-${this.constructor.name}-showPerfStats`)
+    const showPerfStats =
+      (showPerfStatsCached && (JSON.parse(showPerfStatsCached) as boolean)) ||
+      DefaultConfig['startup.show_stats_module']
+
     this.state = {
       background: hexStringToHexadecimal(config['startup.background_color'] || '#1d232a'),
       layerGroupIndex: defaultLayerGroupIndex,
@@ -225,6 +233,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       maxSuperTilesToLoad,
       maxPointDensity,
       roadPointsIntensityScale,
+
+      showPerfStats,
     }
   }
 
@@ -401,6 +411,21 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       .onChange(roadPointsIntensityScale => this.setState({roadPointsIntensityScale}))
 
     tileFolder.open()
+
+    const sceneOptions = gui.addFolder('Scene')
+
+    sceneOptions
+      .add({showPerfStats: this.state.showPerfStats}, 'showPerfStats')
+      .name('Show stats')
+      .onChange(showPerfStats => {
+        // TODO cleanup: we don't need to keep our own state vars, just a config
+        // object that we pass to the scene.
+        this.setState({showPerfStats}, () => {
+          this.setState({annotatedSceneConfig: this.makeAnnotatedSceneConfig()})
+        })
+      })
+
+    sceneOptions.open()
   }
 
   private destroyControlsGui(): void {
@@ -668,7 +693,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       setTimeout(() => {
         this.state.annotatedSceneController!.cleanTransformControls()
       }, 0)
-    } else if (this.state.annotationManager!.state.activeAnnotation) {
+    } else if (this.state.annotationManager!.activeAnnotation) {
       this.state.annotationManager!.unsetActiveAnnotation()
       this.deactivateAllAnnotationPropertiesMenus()
     }
@@ -689,8 +714,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   }
 
   private uiDeleteActiveAnnotation(): void {
+    const activeAnnotation = this.state.annotationManager!.activeAnnotation
+    if (activeAnnotation === null) return
+
     // Delete annotation from scene
-    if (this.state.annotationManager!.deleteActiveAnnotation()) {
+    if (this.state.annotationManager!.deleteAnnotation(activeAnnotation)) {
       log.info('Deleted selected annotation')
       this.deactivateLanePropUI()
       this.state.annotationManager!.hideTransform()
@@ -718,7 +746,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
   private saveAnnotationsJson = () => {
     const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON())
-    const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
+    const sessionId = this.state.annotatedSceneController!.dataProvider.sessionId
 
     saveFileWithDialog(json, 'application/json', `annotations${sessionId ? '-' + sessionId : ''}.json`)
   }
@@ -736,13 +764,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     // Get all the points and convert to lat lon
     const kml = new SimpleKML()
 
-    const annotations = this.state.annotationManager!.state
-    annotations.boundaryAnnotations.forEach(a => kml.addPath(annotationToGeoPoints(a)))
-    annotations.laneAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
-    annotations.connectionAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
-    annotations.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
+    this.state.annotationManager!.boundaryAnnotations.forEach(a => kml.addPath(annotationToGeoPoints(a)))
+    this.state.annotationManager!.laneAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    this.state.annotationManager!.connectionAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    this.state.annotationManager!.polygonAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    this.state.annotationManager!.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
 
-    const sessionId = this.state.annotatedSceneController!.dataProvider!.sessionId
+    const sessionId = this.state.annotatedSceneController!.dataProvider.sessionId
 
     saveFileWithDialog(
       kml.toString(),
@@ -752,58 +780,48 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   }
 
   private addFront(): void {
-    log.info('Adding connected annotation to the front')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME))
       Annotator.deactivateFrontSideNeighbours()
   }
 
   private addLeftSame(): void {
-    log.info('Adding connected annotation to the left - same direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME))
       Annotator.deactivateLeftSideNeighbours()
   }
 
   private addLeftReverse(): void {
-    log.info('Adding connected annotation to the left - reverse direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE))
       Annotator.deactivateLeftSideNeighbours()
   }
 
   private addRightSame(): void {
-    log.info('Adding connected annotation to the right - same direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME))
       Annotator.deactivateRightSideNeighbours()
   }
 
   private addRightReverse(): void {
-    log.info('Adding connected annotation to the right - reverse direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE))
       Annotator.deactivateRightSideNeighbours()
   }
 
   private uiReverseLaneDirection(): void {
+    const active = this.state.annotationManager!.activeAnnotation
+    if (!active) return
+
     log.info('Reverse lane direction.')
 
-    const {
-      result,
-      existLeftNeighbour,
-      existRightNeighbour,
-    }: {
-      result: boolean
-      existLeftNeighbour: boolean
-      existRightNeighbour: boolean
-    } = this.state.annotationManager!.reverseLaneDirection()
+    if (!active.reverseMarkers()) return
 
-    if (result) {
-      if (existLeftNeighbour) Annotator.deactivateLeftSideNeighbours()
+    if (active instanceof Lane) {
+      if (active.neighborsAt(NeighborLocation.LEFT).length) Annotator.deactivateLeftSideNeighbours()
       else Annotator.activateLeftSideNeighbours()
 
-      if (existRightNeighbour) Annotator.deactivateRightSideNeighbours()
+      if (active.neighborsAt(NeighborLocation.RIGHT).length) Annotator.deactivateRightSideNeighbours()
       else Annotator.activateRightSideNeighbours()
     }
   }
@@ -1221,13 +1239,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     this.expandAccordion('#menu_lane')
 
-    if (activeAnnotation.neighborsIds.left.length > 0) Annotator.deactivateLeftSideNeighbours()
+    if (activeAnnotation.neighborIdsAt(NeighborLocation.LEFT).length) Annotator.deactivateLeftSideNeighbours()
     else Annotator.activateLeftSideNeighbours()
 
-    if (activeAnnotation.neighborsIds.right.length > 0) Annotator.deactivateRightSideNeighbours()
+    if (activeAnnotation.neighborIdsAt(NeighborLocation.RIGHT).length) Annotator.deactivateRightSideNeighbours()
     else Annotator.activateRightSideNeighbours()
 
-    if (activeAnnotation.neighborsIds.front.length > 0) Annotator.deactivateFrontSideNeighbours()
+    if (activeAnnotation.neighborIdsAt(NeighborLocation.FRONT).length) Annotator.deactivateFrontSideNeighbours()
     else Annotator.activateFrontSideNeighbours()
 
     const lpSelectType = $('#lp_select_type')
@@ -1634,6 +1652,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   private makeAnnotatedSceneConfig = () => {
     return {
       'startup.camera_offset': [0, 200, 100],
+      'startup.show_stats_module': this.state.showPerfStats,
       'tile_manager.maximum_points_to_load': 20000000,
       'tile_manager.road_points_intensity_scale': this.state.roadPointsIntensityScale,
       'tile_manager.maximum_point_density': this.state.maxPointDensity,
@@ -1707,6 +1726,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       else this.imageManager.hideImageScreens()
     }
 
+    // TODO simplify: instead of storing individual properties in local storage,
+    // just store the config object that we'll be passing into the scene.
+
     if (oldState.maxSuperTilesToLoad !== this.state.maxSuperTilesToLoad) {
       localStorage.setItem('maxSuperTilesToLoad', this.state.maxSuperTilesToLoad.toString())
     }
@@ -1714,11 +1736,19 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     if (oldState.maxPointDensity !== this.state.maxPointDensity) {
       localStorage.setItem('maxPointDensity', this.state.maxPointDensity.toString())
     }
+
+    if (oldState.showPerfStats !== this.state.showPerfStats) {
+      localStorage.setItem('showPerfStats', this.state.showPerfStats.toString())
+
+      // FIXME temporary hack, because we don't know when in the future the stats widget is ready.
+      setTimeout(() => this.styleStats())
+    }
   }
 
   private attachScene = () => {
     const annotatedSceneController = this.state.annotatedSceneController!
-    const {utmCoordinateSystem, channel} = annotatedSceneController.state
+    const {utmCoordinateSystem} = annotatedSceneController.state
+    const {channel} = annotatedSceneController
 
     this.imageManager = new ImageManager(utmCoordinateSystem!, channel!)
 

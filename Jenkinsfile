@@ -93,14 +93,11 @@ try {
      */
     if (branchName == 'master') {
       stage("Sync Hotfix Branch") {
-        git branch: "hotfix", credentialsId: 'bd092093-19d1-4ed7-a4b9-4e2b24a3cc6f', url: 'git@github.com:Signafy/mapper-annotator.git'
+        syncFromTo('master', 'hotfix')
+      }
 
-        sh """
-          git fetch --all
-          git merge origin/master
-          git push --all
-          git push --tags
-        """
+      stage("Sync Develop Branch") {
+        syncFromTo('master', 'develop')
       }
     }
 
@@ -114,4 +111,15 @@ try {
   } else {
     throw err
   }
+}
+
+def syncFromTo(String sourceBranch, String targetBranch) {
+  git branch: targetBranch, credentialsId: 'bd092093-19d1-4ed7-a4b9-4e2b24a3cc6f', url: 'git@github.com:Signafy/mapper-annotator.git'
+
+  sh """
+    git fetch --all
+    git merge origin/${sourceBranch}
+    git push --all
+    git push --tags
+  """
 }
