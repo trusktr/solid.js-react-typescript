@@ -27,15 +27,15 @@ export class PreviousAnnotations {
 
   getByType(annotationType: AnnotationType): Annotation | null {
     switch (annotationType) {
-      case AnnotationType.BOUNDARY:
+      case AnnotationType.Boundary:
         return this.boundary
-      case AnnotationType.CONNECTION:
+      case AnnotationType.Connection:
         return this.connection
-      case AnnotationType.LANE:
+      case AnnotationType.Lane:
         return this.lane
-      case AnnotationType.POLYGON:
+      case AnnotationType.Polygon:
         return this.polygon
-      case AnnotationType.TRAFFIC_DEVICE:
+      case AnnotationType.TrafficDevice:
         return this.trafficDevice
       default:
         log.error(`unknown annotation type ${AnnotationType[annotationType]}`)

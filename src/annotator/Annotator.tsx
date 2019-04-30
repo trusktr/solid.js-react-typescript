@@ -651,19 +651,19 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     this.mapKey('Escape', () => this.uiEscapeSelection())
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
     this.mapKeyUp('Shift', () => this.onShiftKeyUp())
-    this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
-    this.mapKey('B', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
+    this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.Boundary))
+    this.mapKey('B', () => this.uiAddAnnotation(AnnotationType.Boundary))
     // this.mapKey('', () => this.state.annotatedSceneController!.focusOnPointCloud()) // TODO fix https://github.com/Signafy/mapper-annotator-issues/issues/108
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
-    this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
-    this.mapKey('N', () => this.uiAddAnnotation(AnnotationType.LANE))
+    this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.Lane))
+    this.mapKey('N', () => this.uiAddAnnotation(AnnotationType.Lane))
     this.mapKey('R', () => this.state.annotatedSceneController!.resetTiltAndCompass())
-    this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.POLYGON))
-    this.mapKey('P', () => this.uiAddAnnotation(AnnotationType.POLYGON))
-    this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
-    this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
+    this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.Polygon))
+    this.mapKey('P', () => this.uiAddAnnotation(AnnotationType.Polygon))
+    this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TrafficDevice))
+    this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TrafficDevice))
     this.mapKey('V', () => this.state.annotatedSceneController!.toggleCameraType())
     this.mapKey('X', () => this.state.annotationManager!.cycleTransformControlModes())
     this.keyHeld('a', held => actions.setAddMarkerMode(held))
@@ -1149,13 +1149,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     const toolsAddLane = $('#tools_add_lane')
 
     toolsAddLane.on('click', () => {
-      this.uiAddAnnotation(AnnotationType.LANE)
+      this.uiAddAnnotation(AnnotationType.Lane)
     })
 
     const toolsAddTrafficDevice = $('#tools_add_traffic_device')
 
     toolsAddTrafficDevice.on('click', () => {
-      this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
+      this.uiAddAnnotation(AnnotationType.TrafficDevice)
     })
 
     const toolsLoadImages = $('#tools_load_images')
@@ -1356,11 +1356,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
   private deactivateAllAnnotationPropertiesMenus = (exceptFor: AnnotationType = AnnotationType.UNKNOWN): void => {
     if (!this.props.uiMenuVisible) return
-    if (exceptFor !== AnnotationType.BOUNDARY) this.deactivateBoundaryProp()
-    if (exceptFor !== AnnotationType.LANE) this.deactivateLanePropUI()
-    if (exceptFor !== AnnotationType.CONNECTION) this.deactivateConnectionProp()
-    if (exceptFor !== AnnotationType.POLYGON) this.deactivatePolygonProp()
-    if (exceptFor !== AnnotationType.TRAFFIC_DEVICE) this.deactivateTrafficDeviceProp()
+    if (exceptFor !== AnnotationType.Boundary) this.deactivateBoundaryProp()
+    if (exceptFor !== AnnotationType.Connection) this.deactivateConnectionProp()
+    if (exceptFor !== AnnotationType.Lane) this.deactivateLanePropUI()
+    if (exceptFor !== AnnotationType.Polygon) this.deactivatePolygonProp()
+    if (exceptFor !== AnnotationType.TrafficDevice) this.deactivateTrafficDeviceProp()
   }
 
   /**
