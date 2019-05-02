@@ -39,11 +39,6 @@
     "publish-version-minor": "npm version minor && git push --follow-tags",
     "publish-version-major": "npm version major && git push --follow-tags"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "lint-staged": {
     "*.{ts,tsx}": [
       "./scripts/typecheck-if-develop-or-master.sh"
