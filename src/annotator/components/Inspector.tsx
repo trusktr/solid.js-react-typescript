@@ -4,13 +4,9 @@
 
 import * as React from 'react'
 import * as _ from 'lodash'
-import { Creatable } from 'react-select'
-import { Annotation, typedConnect, toProps, AnnotatedSceneState } from '@mapperai/mapper-annotated-scene'
-import {
-  IThemedProperties,
-  ITheme,
-  withStatefulStyles
-} from '@mapperai/mapper-themes'
+import {Creatable} from 'react-select'
+import {Annotation, typedConnect, toProps, AnnotatedSceneState} from '@mapperai/mapper-annotated-scene'
+import {IThemedProperties, ITheme, withStatefulStyles} from '@mapperai/mapper-themes'
 import Paper from '@material-ui/core/Paper/Paper'
 import { Typography } from '@material-ui/core'
 import getLogger from 'util/Logger'
@@ -33,7 +29,7 @@ const allTagOptions: SelectOptions = []
 defaultTags.forEach(tag =>
   allTagOptions.push({
     value: tag,
-    label: tag
+    label: tag,
   })
 )
 
@@ -42,26 +38,20 @@ export interface IInspectorProps extends IThemedProperties {
   allAnnotationTags?: string[]
 }
 
-type SelectOption = { value: string, label: string }
+type SelectOption = {value: string; label: string}
 
 export interface IInspectorState {
   availableTags: SelectOption[]
 }
 
 @withStatefulStyles(styles)
-@typedConnect(toProps(
-  AnnotatedSceneState,
-  'allAnnotationTags',
-))
-export class Inspector extends React.Component<
-  IInspectorProps,
-  IInspectorState
-> {
+@typedConnect(toProps(AnnotatedSceneState, 'allAnnotationTags'))
+export class Inspector extends React.Component<IInspectorProps, IInspectorState> {
   constructor(props: IInspectorProps) {
     super(props)
 
     this.state = {
-      availableTags: []
+      availableTags: [],
     }
   }
 
@@ -98,17 +88,17 @@ export class Inspector extends React.Component<
 
   componentDidUpdate(oldProps: IInspectorProps) {
     if (oldProps.allAnnotationTags !== this.props.allAnnotationTags) {
-      const availableTags = Array.from(new Set(defaultTags.concat(
-        (this.props.allAnnotationTags || [])
-      )))
-        .map(tag => ({ value: tag, label: tag }))
+      const availableTags = Array.from(new Set(defaultTags.concat(this.props.allAnnotationTags || []))).map(tag => ({
+        value: tag,
+        label: tag,
+      }))
 
-      this.setState({ availableTags })
+      this.setState({availableTags})
     }
   }
 
   render() {
-    const { classes, selectedAnnotation } = this.props
+    const {classes, selectedAnnotation} = this.props
 
     const currentTags: SelectOptions = []
 
@@ -116,15 +106,17 @@ export class Inspector extends React.Component<
       selectedAnnotation.tags.forEach(tag =>
         currentTags.push({
           value: tag,
-          label: tag
+          label: tag,
         })
       )
     }
 
     return (
       <Paper className={classes!.root}>
-        <Typography variant="h4" gutterBottom>Inspector</Typography>
-        <br/>
+        <Typography variant="h4" gutterBottom>
+          Inspector
+        </Typography>
+        <br />
         {!selectedAnnotation ? (
           <Typography variant="h5">Nothing is selected.</Typography>
         ) : (
@@ -153,8 +145,9 @@ export class Inspector extends React.Component<
 
 export default Inspector
 
+// eslint-disable-next-line typescript/explicit-function-return-type
 function styles(_theme: ITheme) {
-  const fullWidth = { width: '100%' }
+  const fullWidth = {width: '100%'}
 
   return {
     root: {
@@ -162,7 +155,7 @@ function styles(_theme: ITheme) {
       padding: '10px',
     },
     select: {
-      ...fullWidth
-    }
+      ...fullWidth,
+    },
   }
 }

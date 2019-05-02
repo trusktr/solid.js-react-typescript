@@ -3,11 +3,9 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import { channel } from '../../electron-ipc/Channel'
+import {channel} from '../../electron-ipc/Channel'
 import * as IPCMessages from './IPCMessages'
-import {
-  toKeyboardEventHighlights
-} from '@mapperai/mapper-annotated-scene'
+import {toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
 import WindowCommunicator from '../../util/WindowCommunicator'
 import getLogger from "util/Logger"
 
@@ -37,8 +35,7 @@ class LightboxWindowUI {
     this.communicator.on(channel.imageEditState, this.onImageEditState)
   }
 
-  private onResize = (): void =>
-    this.imageChildren.forEach(i => this.scaleLightboxImage(i)())
+  private onResize = (): void => this.imageChildren.forEach(i => this.scaleLightboxImage(i)())
 
   // Let Annotator handle all keyboard events.
   private onKeyDown = (event: KeyboardEvent): void => {
@@ -46,10 +43,7 @@ class LightboxWindowUI {
 
     // Annotator ignores repeating events, and streaming them through IPC probably wouldn't perform well.
     if (!event.repeat) {
-      this.communicator.send(
-        channel.keyDownEvent,
-        toKeyboardEventHighlights(event)
-      )
+      this.communicator.send(channel.keyDownEvent, toKeyboardEventHighlights(event))
     }
   }
 
@@ -89,20 +83,18 @@ class LightboxWindowUI {
   private imageSetState(uuid: string, active: boolean): void {
     this.communicator.send(channel.imageEditState, {
       uuid: uuid,
-      active: active
+      active: active,
     } as IPCMessages.ImageEditState)
   }
 
   // Notify listeners when the pointer hovers over an image.
   private onImageMouseEnter = (ev: MouseEvent): void => {
-    if ((ev.target as HTMLImageElement).id)
-      this.imageSetState((ev.target as HTMLImageElement).id, true)
+    if ((ev.target as HTMLImageElement).id) this.imageSetState((ev.target as HTMLImageElement).id, true)
   }
 
   // Notify listeners when the pointer stops hovering over an image.
   private onImageMouseLeave = (ev: MouseEvent): void => {
-    if ((ev.target as HTMLImageElement).id)
-      this.imageSetState((ev.target as HTMLImageElement).id, false)
+    if ((ev.target as HTMLImageElement).id) this.imageSetState((ev.target as HTMLImageElement).id, false)
   }
 
   // Notify listeners of the coordinates of a click on an image.
@@ -117,7 +109,7 @@ class LightboxWindowUI {
     this.communicator.send(channel.imageClick, {
       uuid: img.id,
       ratioX: ratioX,
-      ratioY: ratioY
+      ratioY: ratioY,
     } as IPCMessages.ImageClick)
   }
 
@@ -137,9 +129,7 @@ class LightboxWindowUI {
     }
   }
 
-  private createLightboxImage(
-    imageDescription: IPCMessages.LightboxImageDescription
-  ): HTMLImageElement {
+  private createLightboxImage(imageDescription: IPCMessages.LightboxImageDescription): HTMLImageElement {
     const img = document.createElement('img')
 
     img.src = imageDescription.path

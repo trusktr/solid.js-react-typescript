@@ -1,4 +1,5 @@
 /* eslint-disable typescript/no-explicit-any */
+import {isString} from 'typeguard'
 import * as TypeLogger from 'typelogger'
 //import * as AWS from "aws-sdk"
 // import IUser, {IAWSTemporaryCredentials, IOrganization} from "models/User"
@@ -14,7 +15,7 @@ enum LogLevel {
   debug = 1,
   info,
   warn,
-  error
+  error,
 }
 
 // const EnvLogThreshold = {

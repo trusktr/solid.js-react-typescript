@@ -2,7 +2,7 @@
   "name": "@mapperai/mapper-annotator",
   "appName": "Annotator",
   "appID": "Annotator",
-  "version": "1.6.0",
+  "version": "1.6.9",
   "description": "Mapper.ai HD Map Editor",
   "main": "saffron.js",
   "license": "UNLICENSED",
@@ -11,6 +11,7 @@
     "url": "https://github.com/Signafy/mapper-annotator"
   },
   "scripts": {
+    "test": "npm run lint-all && npm run prettier-check && npm run build && echo 'implement tests'",
     "dev": "cross-env NODE_ENV=development ./node_modules/.bin/webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.saffron.js --mode development --env development --watch",
     "build": "cross-env NODE_ENV=development ./node_modules/.bin/webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.saffron.js --mode development --env development",
     "package": "npm run build && ./build-scripts/build.js",
@@ -26,6 +27,10 @@
     "prettier-js-list": "prettier './**/*.{js,json}' --list-different || true",
     "prettier-ts-list": "prettier './**/*.{ts,tsx}' --list-different || true",
     "prettier-md-list": "prettier './**/*.md' --list-different || true",
+    "prettier-check": "npm run --silent prettier-js-check && npm run --silent prettier-ts-check && npm run --silent prettier-md-check",
+    "prettier-js-check": "prettier './**/*.{js,json}' --check",
+    "prettier-ts-check": "prettier './**/*.{ts,tsx}' --check",
+    "prettier-md-check": "prettier './**/*.md' --check",
     "lint": "esw --format codeframe --config ./.eslintrc.js",
     "lint-fix": "npm run lint -- --fix",
     "lint-all": "npm run lint-js && npm run lint-ts",
@@ -35,21 +40,21 @@
     "lint-ts": "npm run lint -- './**/*.{ts,tsx}'",
     "COMMENT about dev-or-master": "exits non-zero if we're not on develop or master branches",
     "dev-or-master": "git branch | grep \\* | cut -d ' ' -f2 | grep -E 'develop|master' > /dev/null",
-    "publish-version-patch": "npm version patch && git push --follow-tags",
-    "publish-version-minor": "npm version minor && git push --follow-tags",
-    "publish-version-major": "npm version major && git push --follow-tags"
+    "version-patch": "node scripts/version.js patch",
+    "version-minor": "node scripts/version.js minor",
+    "version-major": "node scripts/version.js major"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "./scripts/typecheck-if-develop-or-master.sh"
+      "npm run typecheck"
     ],
     "*.{js,ts,tsx,json}": [
-      "./scripts/eslint-if-develop-or-master.sh",
-      "./scripts/prettier-if-develop-or-master.sh",
+      "npm run lint-fix -- $@",
+      "prettier --write $@",
       "git add"
     ],
     "*.{html}": [
-      "./scripts/eslint-if-develop-or-master.sh",
+      "npm run lint-fix -- $@",
       "git add"
     ]
   },
@@ -93,6 +98,7 @@
     "sass-loader": "^7.1.0",
     "script-loader": "^0.7.2",
     "shelljs": "^0.8.3",
+    "simple-git": "^1.107.0",
     "source-map-loader": "^0.2.4",
     "style-loader": "^0.22.1",
     "ts-loader": "^4.4.2",
@@ -106,7 +112,7 @@
     "webpack-sources": "1.1.0"
   },
   "dependencies": {
-    "@mapperai/mapper-annotated-scene": "0.6.0",
+    "@mapperai/mapper-annotated-scene": "1.0.2",
     "@mapperai/mapper-models": "1.9.8",
     "@mapperai/mapper-saffron-sdk": "2.0.20",
     "@mapperai/mapper-themes": "^1.0.13",

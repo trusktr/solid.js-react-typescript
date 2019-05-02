@@ -81,7 +81,8 @@ publish minor and major versions.
 
 ### With IntelliJ IDEA
 
-*TODO* update this
+_TODO_ update this
+
 - Open the project in IntelliJ IDEA.
 - Under Run>Run…, select the Mapper Annotator configuration and run it.
 
@@ -105,3 +106,36 @@ For linting, typechecks, formatting etc, try
 
 See `package.json` for more options.
 
+## Deploy
+
+If you are deploying a version of Annotator which depends on updates in [mapper-annotated-scene](https://github.com/Signafy/mapper-annotated-scene)–which is usually the case–go deploy it first, and manually set the `@mapperai/mapper-annotated-scene` version in `package.json`.
+
+### Build and Deploy to Development Environment
+
+Decide how important you change is, then
+
+    npm run version-patch
+
+or
+
+    npm run version-minor
+
+or
+
+    npm run version-major
+
+That creates a release branch. Go to [mapper-annotator](https://github.com/Signafy/mapper-annotator) and make a pull request from the release branch to `develop`. Get it approved, and close it. That will kick off a build on [Jenkins](https://build.mapperai.net/job/mapper-annotator/job/develop/).
+
+If the build succeeds it will leave a [new application artifact](https://s3.console.aws.amazon.com/s3/buckets/mapper-dev-saffron-apps/uploads/?region=us-east-1&tab=overview#) for dev in S3.
+
+A dev version of [mapper-saffron](https://github.com/Signafy/mapper-saffron/) will find the artifact sooner or later so that you can download it and test it.
+
+### Build and Deploy to Production Environment
+
+Go to [mapper-annotator](https://github.com/Signafy/mapper-annotator) and make a pull request from the release branch to `master`. Get it approved, and close it. That will kick off a build on [Jenkins](httpshttps://build.mapperai.net/job/mapper-annotator/job/master/).
+
+If the build succeeds it will leave a [new application artifact](https://s3.console.aws.amazon.com/s3/buckets/mapper-prod-saffron-apps/uploads/?region=us-east-1&tab=overview#) for production in S3.
+
+### Publish Release Notes
+
+Write up release notes based on the PR to `master` (and the corresponding `mapper-annotated-scene` PR since that is where most of the action happens). Distribute the notes manually to whomever is interested.

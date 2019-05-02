@@ -10,7 +10,7 @@ declare global {
   const SaffronSDK: typeof SaffronSDKType
 }
 
-import { setGuardErrorHandler } from 'typeguard'
+import {setGuardErrorHandler} from 'typeguard'
 
 if (SaffronSDK.getEnv() !== 'prod') {
   setGuardErrorHandler(err => console.warn(`GUARD ERROR: `, err))
@@ -20,19 +20,15 @@ import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-l
 import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { App } from './App'
-import {
-  Deferred,
-  loadAnnotatedSceneStore,
-  getAnnotatedSceneReduxStore
-} from '@mapperai/mapper-annotated-scene'
-import { Provider } from 'react-redux'
-import { configReady } from 'annotator-config'
+import {App} from './App'
+import {Deferred, loadAnnotatedSceneStore, getAnnotatedSceneReduxStore} from '@mapperai/mapper-annotated-scene'
+import {Provider} from 'react-redux'
+import {configReady} from 'annotator-config'
 
 // This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {
   jQuery: $,
-  $: $
+  $: $,
 })
 
 require('jquery-ui-dist/jquery-ui')
@@ -75,5 +71,5 @@ async function stop(): Promise<void> {}
 
 module.exports = {
   start,
-  stop
+  stop,
 }
