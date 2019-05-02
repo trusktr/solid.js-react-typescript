@@ -4,11 +4,11 @@ import SaffronSDK, {getAccount, getOrganizationId} from '@mapperai/mapper-saffro
 
 const log = getLogger(__filename)
 
-export class ActivityTracker<T extends Object | null> {
+export class ActivityTracker<T extends Object> {
   private userHasInteracted = false
   private activityInterval?: number
 
-  constructor(private sessionId: string, private onActivityTrack?: () => T) {}
+  constructor(private sessionId: string, private onActivityTrack: () => T | false) {}
 
   start() {
     this.activityInterval = window.setInterval(this.checkActivity, 30000)
@@ -56,7 +56,12 @@ export class ActivityTracker<T extends Object | null> {
     const userId = account.user.id
     const timestamp = Date.now()
     const Key = `${organizationId}/stats/${sessionId}/${userId}--${timestamp}.json`
-    const metaData = (this.onActivityTrack && this.onActivityTrack()) || {}
+    const metaData = this.onActivityTrack()
+
+    if (!metaData) {
+      log.debug('annotated-scene not ready, skipping logging of user activity')
+      return
+    }
 
     await s3
       .putObject({
