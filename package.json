@@ -5,7 +5,6 @@
   "version": "1.6.9",
   "description": "Mapper.ai HD Map Editor",
   "appIcon": "https://s3.amazonaws.com/mapper-website-assets/saffron/icons/Annotator_Icon.svg",
-  "appID": "Annotator",
   "main": "saffron.js",
   "license": "UNLICENSED",
   "repository": {
@@ -45,6 +44,11 @@
     "version-patch": "node scripts/version.js patch",
     "version-minor": "node scripts/version.js minor",
     "version-major": "node scripts/version.js major"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
   },
   "lint-staged": {
     "*.{ts,tsx}": [
