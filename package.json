@@ -44,6 +44,11 @@
     "version-minor": "node scripts/version.js minor",
     "version-major": "node scripts/version.js major"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
   "lint-staged": {
     "*.{ts,tsx}": [
       "npm run typecheck"
