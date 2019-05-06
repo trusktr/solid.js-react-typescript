@@ -18,6 +18,8 @@ export function makeSaffronDataProviderFactory(
   organizationId: string = getOrganizationId()!
 ): DataProviderFactory {
   const credentialProvider = (): IAWSCredentials | null => {
+    // TODO, Saffron knows which app is running and can determine the app
+    // behind the scenes without us needing to specify it here.
     const response = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
     if (response == null) throw new Error('AWS Credentials are null')
     return response.credentials
@@ -31,6 +33,8 @@ export function makeSaffronDataProviderFactory(
   // })
 
   const bucketProvider = (_: string): string => {
+    // TODO, Saffron knows which app is running and can determine the app
+    // behind the scenes without us needing to specify it here.
     const creds = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
     if (!creds) throw new Error('no AWS credentials')
     return creds.sessionBucket
