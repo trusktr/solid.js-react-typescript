@@ -17,11 +17,6 @@ export function makeSaffronDataProviderFactory(
   useCache = true,
   organizationId: string = getOrganizationId()!
 ): DataProviderFactory {
-  /**
-   * Provide credentials promise
-   *
-   * @returns {Promise<IAWSCredentials>}
-   */
   const credentialProvider = (): IAWSCredentials | null => {
     const response = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
     if (response == null) throw new Error('AWS Credentials are null')
@@ -35,11 +30,6 @@ export function makeSaffronDataProviderFactory(
   // 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
   // })
 
-  /**
-   * Provide bucket information
-   *
-   * @returns {string}
-   */
   const bucketProvider = (_: string): string => {
     const creds = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
     if (!creds) throw new Error('no AWS credentials')
