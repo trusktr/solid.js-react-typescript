@@ -714,8 +714,11 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   }
 
   private uiDeleteActiveAnnotation(): void {
+    const activeAnnotation = this.state.annotationManager!.activeAnnotation
+    if (activeAnnotation === null) return
+
     // Delete annotation from scene
-    if (this.state.annotationManager!.deleteActiveAnnotation()) {
+    if (this.state.annotationManager!.deleteAnnotation(activeAnnotation)) {
       log.info('Deleted selected annotation')
       this.deactivateLanePropUI()
       this.state.annotationManager!.hideTransform()
@@ -777,58 +780,48 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   }
 
   private addFront(): void {
-    log.info('Adding connected annotation to the front')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.FRONT, NeighborDirection.SAME))
       Annotator.deactivateFrontSideNeighbours()
   }
 
   private addLeftSame(): void {
-    log.info('Adding connected annotation to the left - same direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.SAME))
       Annotator.deactivateLeftSideNeighbours()
   }
 
   private addLeftReverse(): void {
-    log.info('Adding connected annotation to the left - reverse direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.LEFT, NeighborDirection.REVERSE))
       Annotator.deactivateLeftSideNeighbours()
   }
 
   private addRightSame(): void {
-    log.info('Adding connected annotation to the right - same direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.SAME))
       Annotator.deactivateRightSideNeighbours()
   }
 
   private addRightReverse(): void {
-    log.info('Adding connected annotation to the right - reverse direction')
-
-    if (this.state.annotationManager!.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE))
+    const lane = this.state.annotationManager!.activeLaneAnnotation
+    if (lane && lane.addConnectedLaneAnnotation(NeighborLocation.RIGHT, NeighborDirection.REVERSE))
       Annotator.deactivateRightSideNeighbours()
   }
 
   private uiReverseLaneDirection(): void {
+    const active = this.state.annotationManager!.activeAnnotation
+    if (!active) return
+
     log.info('Reverse lane direction.')
 
-    const {
-      result,
-      existLeftNeighbour,
-      existRightNeighbour,
-    }: {
-      result: boolean
-      existLeftNeighbour: boolean
-      existRightNeighbour: boolean
-    } = this.state.annotationManager!.reverseLaneDirection()
+    if (!active.reverseMarkers()) return
 
-    if (result) {
-      if (existLeftNeighbour) Annotator.deactivateLeftSideNeighbours()
+    if (active instanceof Lane) {
+      if (active.neighborsAt(NeighborLocation.LEFT).length) Annotator.deactivateLeftSideNeighbours()
       else Annotator.activateLeftSideNeighbours()
 
-      if (existRightNeighbour) Annotator.deactivateRightSideNeighbours()
+      if (active.neighborsAt(NeighborLocation.RIGHT).length) Annotator.deactivateRightSideNeighbours()
       else Annotator.activateRightSideNeighbours()
     }
   }
@@ -1246,13 +1239,13 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     this.expandAccordion('#menu_lane')
 
-    if (activeAnnotation.neighborsIds.left.length > 0) Annotator.deactivateLeftSideNeighbours()
+    if (activeAnnotation.neighborIdsAt(NeighborLocation.LEFT).length) Annotator.deactivateLeftSideNeighbours()
     else Annotator.activateLeftSideNeighbours()
 
-    if (activeAnnotation.neighborsIds.right.length > 0) Annotator.deactivateRightSideNeighbours()
+    if (activeAnnotation.neighborIdsAt(NeighborLocation.RIGHT).length) Annotator.deactivateRightSideNeighbours()
     else Annotator.activateRightSideNeighbours()
 
-    if (activeAnnotation.neighborsIds.front.length > 0) Annotator.deactivateFrontSideNeighbours()
+    if (activeAnnotation.neighborIdsAt(NeighborLocation.FRONT).length) Annotator.deactivateFrontSideNeighbours()
     else Annotator.activateFrontSideNeighbours()
 
     const lpSelectType = $('#lp_select_type')
