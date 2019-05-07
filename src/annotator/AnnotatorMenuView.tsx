@@ -15,7 +15,7 @@ import {
   EventEmitter,
 } from '@mapperai/mapper-annotated-scene'
 import Help from '../annotator/components/Help'
-import {Inspector} from './components/Inspector'
+import Inspector from './components/Inspector'
 import {IThemedProperties, withStatefulStyles, mergeStyles, mergeClasses} from '@mapperai/mapper-themes'
 import {menuSpacing, menuTopPosition, panelBorderRadius} from './styleVars'
 import ImageLightbox from './annotator-image-lightbox/ImageLightbox'
@@ -162,7 +162,7 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
               <Help />
             </div>
           </div>
-          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
+          <Inspector selectedAnnotation={this.props.selectedAnnotation} windowed={false} />
 
           <ImageLightbox channel={this.props.channel} windowed={false} />
         </menu>
