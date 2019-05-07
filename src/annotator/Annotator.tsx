@@ -40,7 +40,6 @@ import {
   StatusWindowState,
   AnnotatedSceneController,
   THREEColorValue,
-  getLogger as Logger,
   toProps,
   Events,
   AnnotatedSceneActions,
@@ -57,13 +56,14 @@ import {IThemedProperties, withStatefulStyles, mergeStyles} from '@mapperai/mapp
 import {menuSpacing, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
+import getLogger from 'util/Logger'
 
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
 const dat: typeof Dat = (Dat as any).default as typeof Dat
 import $ = require('jquery')
 const dialog = Electron.remote.dialog
-const log = Logger(__filename)
+const log = getLogger(__filename)
 
 const allLayers: LayerId[] = ['base1', 'base1hi', 'anot1']
 

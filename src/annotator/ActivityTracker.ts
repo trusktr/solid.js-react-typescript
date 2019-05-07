@@ -1,6 +1,7 @@
 import {getValue} from 'typeguard'
-import {getS3Client, getLogger} from '@mapperai/mapper-annotated-scene'
+import {getS3Client} from '@mapperai/mapper-annotated-scene'
 import SaffronSDK, {getAccount, getOrganizationId} from '@mapperai/mapper-saffron-sdk'
+import getLogger from 'util/Logger'
 
 const log = getLogger(__filename)
 
