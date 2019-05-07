@@ -18,12 +18,12 @@ import {
   SessionPickerHeight,
   ISessionInfo,
   DataProviderFactory,
-  AnnotationManager
+  AnnotationManager,
 } from '@mapperai/mapper-annotated-scene'
 import {makeSaffronDataProviderFactory} from './SaffronDataProviderFactory'
 import Annotator from '../annotator/Annotator'
 import createStyles from '@material-ui/core/styles/createStyles'
-import { ActivityTracker } from './ActivityTracker'
+import {ActivityTracker} from './ActivityTracker'
 import getLogger from 'util/Logger'
 
 const log = getLogger(__filename)

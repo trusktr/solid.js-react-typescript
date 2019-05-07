@@ -7,7 +7,7 @@ import {channel} from '../../electron-ipc/Channel'
 import * as IPCMessages from './IPCMessages'
 import {toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
 import WindowCommunicator from '../../util/WindowCommunicator'
-import getLogger from "util/Logger"
+import getLogger from 'util/Logger'
 
 const log = getLogger(__filename)
 
