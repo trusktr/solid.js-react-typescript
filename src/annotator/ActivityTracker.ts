@@ -47,7 +47,7 @@ export class ActivityTracker<T extends Object> {
     const account = getAccount()
     const sessionId = this.sessionId
 
-    if (!(account && (account.user.id || (account.user as any).user_id))) {
+    if (!(account && (account.user as any).user_id)) {
       log.warn('No authenticated user, not logging activity.', account)
       return
     }
