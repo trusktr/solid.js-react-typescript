@@ -5,10 +5,11 @@
 
 import {channel} from '../../electron-ipc/Channel'
 import * as LightboxState from './LightboxState'
-import {getLogger as Logger, toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
+import {toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
 import WindowCommunicator from '../../util/WindowCommunicator'
+import getLogger from 'util/Logger'
 
-const log = Logger(__filename)
+const log = getLogger(__filename)
 
 // The main class responsible for rendering a Lightbox window, which contains a variable list of 2D images.
 class LightboxWindowUI {

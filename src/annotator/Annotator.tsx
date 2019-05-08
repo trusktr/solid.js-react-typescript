@@ -40,7 +40,6 @@ import {
   StatusWindowState,
   AnnotatedSceneController,
   THREEColorValue,
-  getLogger as Logger,
   toProps,
   Events,
   AnnotatedSceneActions,
@@ -59,18 +58,14 @@ import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
 import {LightboxImageDescription, ImageClick} from './annotator-image-lightbox/LightboxState'
 import {ImageContext} from './annotator-image-lightbox/ImageContext'
-
-// const credentialProvider = async () => ({
-// 	accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-// 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-// })
+import getLogger from 'util/Logger'
 
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
 const dat: typeof Dat = (Dat as any).default as typeof Dat
 import $ = require('jquery')
 const dialog = Electron.remote.dialog
-const log = Logger(__filename)
+const log = getLogger(__filename)
 
 const allLayers: LayerId[] = ['base1', 'base1hi', 'anot1']
 
