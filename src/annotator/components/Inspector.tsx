@@ -9,10 +9,7 @@ import {Annotation, typedConnect, toProps, AnnotatedSceneState} from '@mapperai/
 import {IThemedProperties, ITheme, withStatefulStyles} from '@mapperai/mapper-themes'
 import Paper from '@material-ui/core/Paper/Paper'
 import {Typography} from '@material-ui/core'
-import getLogger from 'util/Logger'
-
-const log = getLogger(__filename)
-log.info('Inspector module')
+import Windowable from '../components/Windowable'
 
 type SelectOptions = Array<{
   value: string
@@ -46,7 +43,7 @@ export interface IInspectorState {
 
 @withStatefulStyles(styles)
 @typedConnect(toProps(AnnotatedSceneState, 'allAnnotationTags'))
-export class Inspector extends React.Component<IInspectorProps, IInspectorState> {
+class Inspector extends React.Component<IInspectorProps, IInspectorState> {
   constructor(props: IInspectorProps) {
     super(props)
 
@@ -65,6 +62,7 @@ export class Inspector extends React.Component<IInspectorProps, IInspectorState>
       return option.value
     })
 
+    // TODO Perhaps checkDirty should be called by AnnotationBase, internally?
     annotation.checkDirty()
   }
 
@@ -143,7 +141,7 @@ export class Inspector extends React.Component<IInspectorProps, IInspectorState>
   }
 }
 
-export default Inspector
+export default Windowable(Inspector)
 
 // eslint-disable-next-line typescript/explicit-function-return-type
 function styles(_theme: ITheme) {
