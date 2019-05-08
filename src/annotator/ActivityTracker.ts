@@ -1,4 +1,3 @@
-import {getValue} from 'typeguard'
 import {getS3Client, getLogger} from '@mapperai/mapper-annotated-scene'
 import SaffronSDK, {getAccount, getOrganizationId} from '@mapperai/mapper-saffron-sdk'
 
@@ -48,12 +47,17 @@ export class ActivityTracker<T extends Object> {
     const account = getAccount()
     const sessionId = this.sessionId
 
-    if (!(account && getValue(() => account.user.id) && organizationId)) {
-      log.warn('user not authenticated, not logging activity yet')
+    if (!(account && (account.user as any).user_id)) {
+      log.warn('No authenticated user, not logging activity.', account)
       return
     }
 
-    const userId = account.user.id
+    if (!organizationId) {
+      log.warn('No organization ID for user, not logging activity.')
+      return
+    }
+
+    const userId: string = (account.user as any).user_id
     const timestamp = Date.now()
     const Key = `${organizationId}/stats/${sessionId}/${userId}--${timestamp}.json`
     const metaData = this.onActivityTrack()
