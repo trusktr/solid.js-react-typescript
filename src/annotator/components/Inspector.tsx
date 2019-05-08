@@ -9,7 +9,7 @@ import {Annotation, typedConnect, toProps, AnnotatedSceneState} from '@mapperai/
 import {IThemedProperties, ITheme, withStatefulStyles} from '@mapperai/mapper-themes'
 import Paper from '@material-ui/core/Paper/Paper'
 import {Typography} from '@material-ui/core'
-import getLogger from '../../util/Logger'
+import getLogger from 'util/Logger'
 
 const log = getLogger(__filename)
 log.info('Inspector module')
