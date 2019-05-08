@@ -19,7 +19,7 @@ import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
 import {ImageManager} from './image/ImageManager'
-import {LightboxImage} from './image/CalibratedImage'
+import {LightboxImage} from './image/LightboxImage'
 import * as React from 'react'
 import AnnotatorMenuView from './AnnotatorMenuView'
 import {hexStringToHexadecimal} from '../util/Color'
@@ -306,19 +306,9 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       })
       */
 
-    /*
-    gui
-      .add(this.state, 'imageScreenOpacity', 0, 1)
-      .name('Image Opacity')
-      .onChange((value: number) => {
-        this.imageManager.setOpacity(value)
-      })
-      */
-
     new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
     new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
     new AnnotatedSceneActions().setLockPolygons(this.state.lockPolygons)
-
     new AnnotatedSceneActions().setLockTrafficDevices(this.state.lockTrafficDevices)
 
     const folderLock = gui.addFolder('Lock Annotations')
@@ -413,6 +403,17 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     tileFolder.open()
 
+    const imagesFolder = gui.addFolder('Images')
+
+    imagesFolder
+      .add(this.state, 'imageScreenOpacity', 0, 1)
+      .name('Image Opacity')
+      .onChange((value: number) => {
+        this.imageManager.setOpacity(value)
+      })
+
+    imagesFolder.open()
+
     const sceneOptions = gui.addFolder('Scene')
 
     sceneOptions
@@ -438,20 +439,22 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
   // When ImageManager loads an image, add it to the scene.
   // IDEA JOE The UI can have check boxes for showing/hiding layers.
-  // private onImageScreenLoad = (): void => {
-  // 	this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
-  // }
+  private onImageScreenLoad = (): void => {
+    // todo lightbox fix
+    // this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
+  }
 
   // When a lightbox ray is created, add it to the scene.
   // On null, remove all rays.
-  // private onLightboxImageRay = (ray: THREE.Line): void => {
-  // 	// Accumulate rays while shift is pressed, otherwise clear old ones.
-  // 	if (!this.props.isShiftKeyPressed) this.clearLightboxImageRays()
-  //
-  // 	this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
-  // 	this.lightboxImageRays.push(ray)
-  // 	new AnnotatedSceneActions().addObjectToScene(ray)
-  // }
+  private onLightboxImageRay = (ray: THREE.Line): void => {
+    // Accumulate rays while shift is pressed, otherwise clear old ones.
+    if (!this.props.isShiftKeyPressed) this.clearLightboxImageRays()
+
+    // todo lightbox fix
+    // this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
+    this.lightboxImageRays.push(ray)
+    new AnnotatedSceneActions().addObjectToScene(ray)
+  }
 
   private clearLightboxImageRays = (): void => {
     if (!this.lightboxImageRays.length) return
@@ -1760,13 +1763,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     // events from ImageManager
     channel!.on(Events.KEYDOWN, annotatedSceneController.onKeyDown)
     channel!.on(Events.KEYUP, annotatedSceneController.onKeyUp)
-    //channel!.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
-
+    channel!.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
     // TODO instead of on window close, just add a button to the UI
     channel!.on(Events.LIGHTBOX_CLOSE, this.clearLightboxImageRays)
 
     // IDEA JOE maybe we need a separate LightBoxRayManager? Or at least move to ImageManager
-    //channel!.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
+    channel!.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
     channel!.on(Events.GET_LIGHTBOX_IMAGE_RAYS, this.getLightboxImageRays)
     channel!.on(Events.CLEAR_LIGHTBOX_IMAGE_RAYS, this.clearLightboxImageRays)
 
@@ -1801,6 +1803,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     this.bind()
     this.setKeys()
+    // todo lightbox delete this
+    this.imageManager
+      .loadImagesFromOpenDialog()
+      .catch(err => log.warn('loadImagesFromOpenDialog failed: ' + err.message))
   }
 
   /* eslint-disable typescript/no-explicit-any */

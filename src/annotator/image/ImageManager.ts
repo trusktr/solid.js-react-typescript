@@ -7,7 +7,7 @@ import * as Electron from 'electron'
 import * as THREE from 'three'
 import {OrderedSet} from 'immutable'
 import {ImageScreen} from './ImageScreen'
-import {LightboxImage} from './CalibratedImage'
+import {LightboxImage} from './LightboxImage'
 import * as IPCMessages from '../annotator-image-lightbox/LightboxState'
 import {readImageMetadataFile} from './Aurora'
 import {AnnotatedSceneActions, Events, UtmCoordinateSystem, EventEmitter} from '@mapperai/mapper-annotated-scene'
@@ -83,6 +83,17 @@ export class ImageManager {
 
   // Get a list of interesting images from the user.
   loadImagesFromOpenDialog(): Promise<void> {
+    // todo lightbox delete this
+    return this.loadImageFromPath('ImagesAurora/0a8a35db6681d167ca04eaa61776a3fa_image.png')
+      .then(() => this.loadImageFromPath('ImagesAurora/0a098fe28046430184854d3fade46a84_image.png'))
+      .then(() => this.loadImageFromPath('ImagesAurora/0a365dd18c2606f5cc5010fd1d90658b_image.png'))
+      .then(() => this.loadImageFromPath('ImagesAurora/0a882b4602e9be1e75d6283f46720bce_image.png'))
+      .then(() => this.loadImageFromPath('ImagesAurora/0aa0004e682ffd78233daaaf85f7ffee_image.png'))
+      .then(() => this.loadImageFromPath('ImagesAurora/0ab569f402c128465fa02bdc3b8dde5f_image.png'))
+      .then(() => this.loadImageFromPath('ImagesAurora/00ad5ad9f9a3f02a96612a6fc29ee53c_image.png'))
+      .then(() => this.loadImageFromPath('ImagesAurora/0b4ba8ea74a068160088dd97793be49f_image.png'))
+      .then(() => this.loadImageFromPath('ImagesAurora/0b06a65c940333a33cfa08fa1bc93de2_image.png'))
+
     return new Promise(
       (resolve: () => void, reject: (reason?: Error) => void): void => {
         const options: Electron.OpenDialogOptions = {
@@ -112,6 +123,7 @@ export class ImageManager {
   private loadImageFromPath(path: string): Promise<void> {
     return readImageMetadataFile(path, this.utmCoordinateSystem)
       .then(cameraParameters => {
+        path = 'file:///Users/clyde/dev/mapper/mapper-saffron/' + path // todo lightbox delete
         this.setUpScreen({
           path: path,
           imageScreen: new ImageScreen(
@@ -131,16 +143,16 @@ export class ImageManager {
   }
 
   // Manipulate an image object, using its metadata, so that it is located and oriented in a reasonable way in three.js space.
-  private setUpScreen(calibratedImage: LightboxImage): void {
-    const screen = calibratedImage.imageScreen
-    const position = calibratedImage.parameters.screenPosition
-    const origin = calibratedImage.parameters.cameraOrigin
+  private setUpScreen(lightboxImage: LightboxImage): void {
+    const screen = lightboxImage.imageScreen
+    const position = lightboxImage.parameters.screenPosition
+    const origin = lightboxImage.parameters.cameraOrigin
 
     screen.position.set(position.x, position.y, position.z)
     screen.scaleDistance(position.distanceTo(origin))
     screen.lookAt(origin)
     screen.setOpacity(this.opacity)
-    screen.imageMesh.userData = calibratedImage // makes it easier to pass the object through the Annotator UI and back
+    screen.imageMesh.userData = lightboxImage // makes it easier to pass the object through the Annotator UI and back
     this.imageScreens.push(screen)
     this.imageScreenMeshes.push(screen.imageMesh)
 
