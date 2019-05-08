@@ -164,4 +164,6 @@ export class ImageScreen extends THREE.Object3D {
       this.imageMesh.material = inactiveMaterial.clone()
     }
   }
+
+  // TODO cleanup/dispose
 }

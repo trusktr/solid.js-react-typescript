@@ -3,6 +3,7 @@
 export interface LightboxImageDescription {
   uuid: string
   path: string
+  active: boolean
 }
 // List images to display in the lightbox.
 export interface LightboxState {

@@ -6,8 +6,9 @@
 import {CameraParameters} from './CameraParameters'
 import {ImageScreen} from './ImageScreen'
 
-export interface CalibratedImage {
+export interface LightboxImage {
   path: string
   imageScreen: ImageScreen
   parameters: CameraParameters
+  active: boolean
 }

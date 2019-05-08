@@ -12,32 +12,13 @@ import {
   toProps,
   AnnotatedSceneState,
   LayerStatusMap,
+  EventEmitter,
 } from '@mapperai/mapper-annotated-scene'
 import Help from '../annotator/components/Help'
-import {Inspector} from './components/Inspector'
+import Inspector from './components/Inspector'
 import {IThemedProperties, withStatefulStyles, mergeStyles, mergeClasses} from '@mapperai/mapper-themes'
 import {menuSpacing, menuTopPosition, panelBorderRadius} from './styleVars'
-import Windowable from './components/Windowable'
-
-type FooProps = {
-  foo: string
-}
-
-const Foo = Windowable(
-  class Foo extends React.Component<FooProps, {}> {
-    onClick = () => {
-      console.log('Hello!!!')
-    }
-
-    render() {
-      return (
-        <div>
-          <h1 onClick={this.onClick}>{this.props.foo}</h1>
-        </div>
-      )
-    }
-  }
-)
+import ImageLightbox from './annotator-image-lightbox/ImageLightbox'
 
 interface AnnotatorMenuViewProps extends IThemedProperties {
   uiMenuVisible: boolean
@@ -45,6 +26,7 @@ interface AnnotatorMenuViewProps extends IThemedProperties {
   selectedAnnotation?: Annotation | null
   onSaveAnnotationsJson(): void
   onSaveAnnotationsKML(): void
+  channel: EventEmitter
 }
 
 interface AnnotatorMenuViewState {
@@ -60,8 +42,7 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
     this.state = {
       windowOpen: false,
     }
-
-    setInterval(() => this.setState({windowOpen: !this.state.windowOpen}), 4000)
+    ;(window as any).widget = this
   }
 
   render(): JSX.Element {
@@ -181,9 +162,9 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
               <Help />
             </div>
           </div>
-          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
+          <Inspector selectedAnnotation={this.props.selectedAnnotation} windowed={false} />
 
-          <Foo foo="hello!" windowed={this.state.windowOpen} />
+          <ImageLightbox channel={this.props.channel} windowed={false} />
         </menu>
       </div>
     )
