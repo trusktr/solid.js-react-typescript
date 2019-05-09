@@ -15,20 +15,14 @@ export interface IInspectorProps extends IThemedProperties {
 
 export interface IInspectorState {}
 
-// TODO, don't define this here?
-type PropertiesUIProps = {
-  annotation: Annotation
-}
-
 @withStatefulStyles(styles)
 export class Inspector extends React.Component<IInspectorProps, IInspectorState> {
   render() {
     const {classes, selectedAnnotation} = this.props
 
-    // TODO fix type
-    const PropertiesUI = (selectedAnnotation && (selectedAnnotation.constructor as any).PropertiesUI) as
-      | React.ComponentType<PropertiesUIProps>
-      | undefined
+    // The type cast is needed here because the following much wanted feature
+    // hasn't landed yet: https://github.com/microsoft/TypeScript/issues/3841
+    const PropertiesUI = selectedAnnotation && (selectedAnnotation.constructor as typeof Annotation).PropertiesUI
 
     return (
       <Paper className={classes!.root}>
@@ -43,7 +37,7 @@ export class Inspector extends React.Component<IInspectorProps, IInspectorState>
             {PropertiesUI ? (
               <PropertiesUI annotation={selectedAnnotation} />
             ) : (
-              <div>No properties for selected annotation</div>
+              <div>No properties for the selected annotation</div>
             )}
           </div>
         )}
