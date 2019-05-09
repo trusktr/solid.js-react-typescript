@@ -136,10 +136,7 @@ export class ImageManager {
           active: false,
         } as LightboxImage)
       })
-      .catch(err => {
-        log.warn(`loadImageFromPath() failed on ${path}`)
-        throw err
-      })
+      .catch(err => log.warn(`loadImageFromPath() failed on ${path}: `, err))
   }
 
   // Manipulate an image object, using its metadata, so that it is located and oriented in a reasonable way in three.js space.

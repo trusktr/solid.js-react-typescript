@@ -4,7 +4,6 @@
  */
 
 import * as AsyncFile from 'async-file'
-import * as sizeOf from 'image-size'
 import {AuroraCameraParameters} from './CameraParameters'
 import {UtmCoordinateSystem} from '@mapperai/mapper-annotated-scene'
 import config from 'annotator-config'
@@ -13,17 +12,14 @@ import config from 'annotator-config'
 
 const screenDistanceFromOrigin: number = parseFloat(config['image_manager.image.distance_from_camera']) || 1.0
 
+// todo export to json in ImageRegistration app? or just get on read from S3?
+const imageWidth = 1920
+const imageHeight = 1208
+
 interface AuroraImageMetadata {
   tileId: string
   translation: number[]
   rotation: number[]
-}
-
-interface ImageInfo {
-  // 'image-size' shamefully doesn't export this
-  width: number
-  height: number
-  type: string
 }
 
 // Assume we are looking for Aurora data in the form of images and metadata files, sitting
@@ -34,26 +30,17 @@ export function readImageMetadataFile(
 ): Promise<AuroraCameraParameters> {
   const metadataPath = imagePathToCameraDataPath(imagePath)
 
-  return new Promise(
-    (resolve: (imageInfo: ImageInfo) => void, reject: (reason?: Error) => void): void => {
-      sizeOf(imagePath, function(err: Error, dimensions: ImageInfo): void {
-        if (err) reject(err)
-        else resolve(dimensions)
-      })
-    }
-  ).then(imageInfo => {
-    return AsyncFile.readFile(metadataPath, 'ascii').then(text => {
-      const metadata = JSON.parse(text) as AuroraImageMetadata
+  return AsyncFile.readFile(metadataPath, 'ascii').then(text => {
+    const metadata = JSON.parse(text) as AuroraImageMetadata
 
-      return new AuroraCameraParameters(
-        utmCoordinateSystem,
-        screenDistanceFromOrigin,
-        imageInfo.width,
-        imageInfo.height,
-        metadata.translation,
-        metadata.rotation
-      )
-    })
+    return new AuroraCameraParameters(
+      utmCoordinateSystem,
+      screenDistanceFromOrigin,
+      imageWidth,
+      imageHeight,
+      metadata.translation,
+      metadata.rotation
+    )
   })
 }
 

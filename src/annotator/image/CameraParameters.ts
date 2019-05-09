@@ -15,6 +15,7 @@ export interface CameraParameters {
   screenPosition: THREE.Vector3
   cameraOrigin: THREE.Vector3
 }
+
 // GIGO parameters for testing
 export class ImaginaryCameraParameters implements CameraParameters {
   screenPosition: THREE.Vector3
@@ -67,7 +68,6 @@ export class AuroraCameraParameters implements CameraParameters {
 
     // https://en.wikipedia.org/wiki/Camera_resectioning
     // https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
-    // prettier-ignore
     const cameraOrigin = new THREE.Vector4(translation[0], translation[1], translation[2], 1)
     const screenPosition = new THREE.Vector4(0, 0, screenDistanceFromOrigin, 1)
     const screenRotation = new THREE.Matrix4()

@@ -44,7 +44,7 @@ function pyramid(base: THREE.Vector3[], visible: boolean): THREE.Line {
   return lineGeometry(vertices, visible ? pyramidMaterial : invisiblePyramidMaterial)
 }
 
-// Draw a line the four corners of the base.
+// Draw a line around the four corners of the base.
 function border(base: THREE.Vector3[], visible: boolean): THREE.Line {
   const vertices = [base[0], base[1], base[3], base[2], base[0]]
 
