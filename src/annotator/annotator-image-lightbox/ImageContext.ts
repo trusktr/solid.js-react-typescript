@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {LightboxImageDescription, ImageClick} from './LightboxState'
+import {ImageClick, LightboxImageDescription} from '@mapperai/mapper-annotated-scene'
 
 export type ImageContextState = {
   images: LightboxImageDescription[]

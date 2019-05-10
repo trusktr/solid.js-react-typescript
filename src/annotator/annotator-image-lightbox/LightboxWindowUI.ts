@@ -4,7 +4,7 @@
  */
 
 import {channel} from '../../electron-ipc/Channel'
-import * as LightboxState from './LightboxState'
+import * as LightboxState from '@mapperai/mapper-annotated-scene'
 import {toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
 import WindowCommunicator from '../../util/WindowCommunicator'
 import getLogger from 'util/Logger'
