@@ -1,15 +1,15 @@
 import * as React from 'react'
-import {ImageClick, LightboxImageDescription} from '@mapperai/mapper-annotated-scene'
+import {ImageClick, LightboxState} from '@mapperai/mapper-annotated-scene'
 
 export type ImageContextState = {
-  images: LightboxImageDescription[]
+  lightboxState: LightboxState
   onImageMouseEnter: (id: string) => void
   onImageMouseLeave: (id: string) => void
   onImageMouseUp: (i: ImageClick) => void
 }
 
 export const initialImageContextValue: ImageContextState = {
-  images: [],
+  lightboxState: {images: []},
   onImageMouseEnter: () => {},
   onImageMouseLeave: () => {},
   onImageMouseUp: () => {},

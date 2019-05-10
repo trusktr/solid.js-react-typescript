@@ -76,9 +76,9 @@ export default Windowable(
         const {classes} = this.props
         return (
           <ImageContext.Consumer>
-            {({images, onImageMouseEnter, onImageMouseLeave, onImageMouseUp}) => (
+            {({lightboxState, onImageMouseEnter, onImageMouseLeave, onImageMouseUp}) => (
               <div className={classes.imageList} id="image_list" ref={this.imageListRef}>
-                {images.map(i => (
+                {lightboxState.images.map(i => (
                   <img
                     key={i.uuid}
                     id={i.uuid}

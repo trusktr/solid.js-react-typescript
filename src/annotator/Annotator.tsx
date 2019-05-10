@@ -54,14 +54,15 @@ import {IThemedProperties, withStatefulStyles, mergeStyles} from '@mapperai/mapp
 import {menuSpacing, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
-import {ImageManager, ImageClick, LightboxImageDescription, LightboxImage} from '@mapperai/mapper-annotated-scene'
-import {ImageContext} from './annotator-image-lightbox/ImageContext'
+import {ImageManager, ImageClick, LightboxImage} from '@mapperai/mapper-annotated-scene'
+import {ImageContext, ImageContextState, initialImageContextValue} from './annotator-image-lightbox/ImageContext'
 import getLogger from 'util/Logger'
 
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
 const dat: typeof Dat = (Dat as any).default as typeof Dat
 import $ = require('jquery')
+import {RefObject} from 'react'
 const dialog = Electron.remote.dialog
 const log = getLogger(__filename)
 
@@ -93,7 +94,6 @@ interface AnnotatorState {
   imageScreenOpacity: number
 
   annotationManager: AnnotationManager | null
-  imageManager: ImageManager | null
   annotatedSceneController: AnnotatedSceneController | null
 
   lockBoundaries: boolean
@@ -109,8 +109,6 @@ interface AnnotatorState {
   roadPointsIntensityScale: number
 
   showPerfStats: boolean
-
-  lightboxImages: LightboxImageDescription[]
 }
 
 interface AnnotatorProps extends IThemedProperties {
@@ -167,6 +165,7 @@ interface AnnotatorProps extends IThemedProperties {
 )
 @withStatefulStyles(styles)
 export default class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
+  private imageManagerRef: RefObject<ImageManager>
   private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
   private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
   private highlightedLightboxImage: LightboxImage | null // image screen which is currently active in the Lightbox UI
@@ -190,6 +189,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       log.warn('Config option startup.animation.fps has been removed. Use startup.render.fps.')
     }
 
+    this.imageManagerRef = React.createRef<ImageManager>()
     this.raycasterImageScreen = new THREE.Raycaster()
     this.highlightedImageScreenBox = null
     this.highlightedLightboxImage = null
@@ -218,7 +218,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       imageScreenOpacity: parseFloat(config['image_manager.image.opacity']) || 0.5,
 
       annotationManager: null,
-      imageManager: null,
       annotatedSceneController: null,
 
       isImageScreensVisible: true,
@@ -233,8 +232,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       roadPointsIntensityScale,
 
       showPerfStats,
-
-      lightboxImages: [],
     }
   }
 
@@ -408,7 +405,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       .add(this.state, 'imageScreenOpacity', 0, 1)
       .name('Image Opacity')
       .onChange((value: number) => {
-        this.state.imageManager!.setOpacity(value)
+        this.imageManagerRef.current && this.imageManagerRef.current.setOpacity(value)
       })
 
     imagesFolder.open()
@@ -481,13 +478,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     if (this.props.isJoinAnnotationMode) return
     if (!this.state.isImageScreensVisible) return
 
-    if (!this.state.imageManager!.imageScreenMeshes.length) return this.unHighlightImageScreenBox()
+    const imageManager = this.imageManagerRef.current
+    if (!(imageManager && imageManager.imageScreenMeshes.length)) return this.unHighlightImageScreenBox()
 
     const mouse = mousePositionToGLSpace(this.props.mousePosition!, this.props.rendererSize!)
 
     this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 
-    const intersects = this.raycasterImageScreen.intersectObjects(this.state.imageManager!.imageScreenMeshes)
+    const intersects = this.raycasterImageScreen.intersectObjects(imageManager.imageScreenMeshes)
 
     // No screen intersected
     if (!intersects.length) {
@@ -512,6 +510,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   private clickImageScreenBox = (event: MouseEvent): void => {
     if (this.props.isMouseDragging) return
     if (!this.state.isImageScreensVisible) return
+    const imageManager = this.imageManagerRef.current
+    if (!imageManager) return
 
     switch (event.button) {
       // Left click released
@@ -528,7 +528,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
           const image = this.highlightedImageScreenBox.userData as LightboxImage
 
           this.unHighlightImageScreenBox()
-          this.state.imageManager!.addImageToLightbox(image)
+          imageManager.addImageToLightbox(image)
         }
 
         break
@@ -549,7 +549,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
         this.raycasterImageScreen.setFromCamera(mouse, this.props.camera!)
 
-        const intersects = this.raycasterImageScreen.intersectObjects(this.state.imageManager!.imageScreenMeshes)
+        const intersects = this.raycasterImageScreen.intersectObjects(imageManager.imageScreenMeshes)
 
         // Get intersected screen
         if (intersects.length) {
@@ -558,7 +558,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
           material.opacity = this.state.imageScreenOpacity
 
-          const screen = this.state.imageManager!.getImageScreen(first)
+          const screen = imageManager.getImageScreen(first)
 
           if (screen) screen.unloadImage()
 
@@ -576,12 +576,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   // Draw the box with max opacity to indicate that it is active.
   private highlightImageScreenBox(imageScreenBox: THREE.Mesh): void {
     if (!this.props.isShiftKeyPressed) return
-
     if (imageScreenBox === this.highlightedImageScreenBox) return
+
+    const imageManager = this.imageManagerRef.current
+    if (!imageManager) return
 
     this.highlightedImageScreenBox = imageScreenBox
 
-    const screen = this.state.imageManager!.getImageScreen(imageScreenBox)
+    const screen = imageManager.getImageScreen(imageScreenBox)
 
     if (screen) {
       screen
@@ -601,8 +603,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
     // If it's already loaded in the lightbox, highlight it in the lightbox.
     // Don't allow it to be loaded a second time.
-    if (this.state.imageManager!.loadedImageDetails.has(image)) {
-      if (this.state.imageManager!.highlightImageInLightbox(image)) this.highlightedLightboxImage = image
+    if (imageManager.loadedImageDetails.has(image)) {
+      if (imageManager.highlightImageInLightbox(image)) this.highlightedLightboxImage = image
       return
     }
 
@@ -615,7 +617,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
   // Draw the box with default opacity like all the other boxes.
   private unHighlightImageScreenBox(): void {
     if (this.highlightedLightboxImage) {
-      if (this.state.imageManager!.unhighlightImageInLightbox(this.highlightedLightboxImage))
+      if (
+        this.imageManagerRef.current &&
+        this.imageManagerRef.current.unhighlightImageInLightbox(this.highlightedLightboxImage)
+      )
         this.highlightedLightboxImage = null
     }
 
@@ -1702,8 +1707,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       log.error('annotatedSceneController.cleanup() failed', err)
     }
     // TODO JOE  - remove event listeners  - clean up child windows
-
-    this.state.imageManager! && this.state.imageManager!.cleanup()
   }
 
   componentDidUpdate(oldProps: AnnotatorProps, oldState: AnnotatorState): void {
@@ -1720,8 +1723,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       this.previouslySelectedAnnotations.setByType(this.props.activeAnnotation)
 
     if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
-      if (this.state.isImageScreensVisible) this.state.imageManager!.showImageScreens()
-      else this.state.imageManager!.hideImageScreens()
+      const imageManager = this.imageManagerRef.current
+      if (imageManager)
+        if (this.state.isImageScreensVisible) imageManager.showImageScreens()
+        else imageManager.hideImageScreens()
     }
 
     // TODO simplify: instead of storing individual properties in local storage,
@@ -1809,10 +1814,6 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef(ref)
   }
 
-  private setImageManagerRef = (ref: ImageManager) => {
-    ref && this.setState({imageManager: ref})
-  }
-
   private onImageMouseEnter = (uuid: string) => {
     this.state.annotatedSceneController!.channel.emit(Events.IMAGE_EDIT_STATE, {
       uuid,
@@ -1837,8 +1838,10 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
     const {dataProviderFactory, classes} = this.props
     const {onImageMouseEnter, onImageMouseLeave, onImageMouseUp} = this
 
-    const imageContextValue = {
-      images: this.state.lightboxImages,
+    const imageContextValue: ImageContextState = {
+      lightboxState: this.imageManagerRef.current
+        ? this.imageManagerRef.current.lightboxState
+        : initialImageContextValue.lightboxState,
       onImageMouseEnter,
       onImageMouseLeave,
       onImageMouseUp,
@@ -1882,11 +1885,23 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
           bezierScaleFactor={this.state.bezierScaleFactor}
           roadPointsIntensityScale={this.state.roadPointsIntensityScale}
           annotationManagerRef={this.setAnnotationManagerRef}
-          imageManagerRef={this.setImageManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
           classes={{root: classes!.annotatedScene}}
         />
+        {this.state.annotatedSceneController && this.state.annotatedSceneController.state.utmCoordinateSystem ? (
+          <ImageManager
+            ref={this.imageManagerRef}
+            config={{
+              ...DefaultConfig,
+              ...(annotatedSceneConfig || {}),
+            }}
+            utmCoordinateSystem={this.state.annotatedSceneController.state.utmCoordinateSystem!}
+            channel={this.state.annotatedSceneController.channel}
+          />
+        ) : (
+          <div />
+        )}
       </React.Fragment>
     )
   }
