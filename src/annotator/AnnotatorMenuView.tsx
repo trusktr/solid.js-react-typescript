@@ -4,7 +4,7 @@
  */
 
 import * as React from 'react'
-import initUIControl from './annotator-control-ui/UIControl'
+import * as Electron from 'electron'
 import {
   Annotation,
   LayerManager,
@@ -12,11 +12,18 @@ import {
   toProps,
   AnnotatedSceneState,
   LayerStatusMap,
+  AnnotationType,
 } from '@mapperai/mapper-annotated-scene'
 import Help from '../annotator/components/Help'
 import {Inspector} from './components/Inspector'
 import {IThemedProperties, withStatefulStyles, mergeStyles, mergeClasses} from '@mapperai/mapper-themes'
 import {menuSpacing, menuTopPosition, panelBorderRadius} from './styleVars'
+import loadAnnotations from '../util/loadAnnotations'
+import getLogger from 'util/Logger'
+type Annotator = import('./Annotator').default
+
+const log = getLogger(__filename)
+const dialog = Electron.remote.dialog
 
 interface AnnotatorMenuViewProps extends IThemedProperties {
   uiMenuVisible: boolean
@@ -24,6 +31,7 @@ interface AnnotatorMenuViewProps extends IThemedProperties {
   selectedAnnotation?: Annotation | null
   onSaveAnnotationsJson(): void
   onSaveAnnotationsKML(): void
+  annotator: Annotator
 }
 
 interface AnnotatorMenuViewState {}
@@ -33,6 +41,73 @@ interface AnnotatorMenuViewState {}
 export default class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
   constructor(props: AnnotatorMenuViewProps) {
     super(props)
+  }
+
+  componentDidMount() {
+    $('#menu_help').accordion({
+      active: false,
+      collapsible: true,
+    })
+
+    const toolsDelete = $('#tools_delete')
+
+    toolsDelete.on('click', () => {
+      this.props.annotator.uiDeleteActiveAnnotation()
+    })
+
+    const toolsAddLane = $('#tools_add_lane')
+
+    toolsAddLane.on('click', () => {
+      this.props.annotator.uiAddAnnotation(AnnotationType.LANE)
+    })
+
+    const toolsAddTrafficDevice = $('#tools_add_traffic_device')
+
+    toolsAddTrafficDevice.on('click', () => {
+      this.props.annotator.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
+    })
+
+    const toolsLoadImages = $('#tools_load_images')
+
+    toolsLoadImages.on('click', () => {
+      this.props.annotator.imageManager
+        .loadImagesFromOpenDialog()
+        .catch(err => log.warn('loadImagesFromOpenDialog failed: ' + err.message))
+    })
+
+    const toolsLoadAnnotation = $('#tools_load_annotation')
+
+    toolsLoadAnnotation.on('click', () => {
+      const options: Electron.OpenDialogOptions = {
+        message: 'Load Annotations File',
+        properties: ['openFile'],
+        filters: [{name: 'json', extensions: ['json']}],
+      }
+
+      const handler = async (paths: string[]): Promise<void> => {
+        if (paths && paths.length) {
+          try {
+            await loadAnnotations.call(
+              this.props.annotator,
+              paths[0],
+              this.props.annotator.state.annotatedSceneController!
+            )
+          } catch (err) {
+            log.warn('loadAnnotations failed: ' + err.message)
+          }
+        }
+      }
+
+      dialog.showOpenDialog(options, handler)
+    })
+  }
+
+  componentWillUnmount() {
+    $('#menu_help').accordion('destroy')
+    $('#tools_add_lane').off()
+    $('#tools_add_traffic_device').off()
+    $('#tools_load_images').off()
+    $('#tools_load_annotation').off()
   }
 
   render(): JSX.Element {
@@ -75,75 +150,8 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
             </button>
           </div>
 
-          <div id="menu_boundary" className="accordion">
-            <h3 id="exp_head_1" className="dropdown_head">
-              Boundary Properties
-            </h3>
-            <div id="exp_body_1" className="dropdown_body">
-              <div id="boundary_prop" className="fieldset_content_style" />
-            </div>
-          </div>
+          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
 
-          <div id="menu_lane" className="accordion">
-            <h3 id="exp_head_2" className="dropdown_head">
-              Lane Properties
-            </h3>
-            <div id="exp_body_2" className="dropdown_body">
-              <div id="lane_prop" className="fieldset_content_style">
-                <div id="lane_prop_1" className="div_properties" />
-                <div id="lane_prop_2" className="div_glue">
-                  Add Neighbor:
-                </div>
-                <div id="lane_prop_3" className="div_buttons_group">
-                  <button className="laneBtn" id="lp_add_forward">
-                    &uarr;
-                  </button>
-                </div>
-                <div id="lane_prop_4" className="div_buttons_group">
-                  <button className="laneBtn" id="lp_add_left_opposite">
-                    &darr;
-                  </button>
-                  <button className="laneBtn" id="lp_add_left_same">
-                    &uarr;
-                  </button>
-                  <button className="laneBtn" id="lp_current" disabled>
-                    C
-                  </button>
-                  <button className="laneBtn" id="lp_add_right_same">
-                    &uarr;
-                  </button>
-                  <button className="laneBtn" id="lp_add_right_opposite">
-                    &darr;
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div id="menu_connection" className="accordion">
-            <h3 id="exp_head_3" className="dropdown_head">
-              Connection Properties
-            </h3>
-            <div id="exp_body_3" className="dropdown_body">
-              <div id="connection_prop" className="fieldset_content_style" />
-            </div>
-          </div>
-          <div id="menu_traffic_device" className="accordion">
-            <h3 id="exp_head_4" className="dropdown_head">
-              Traffic Device Properties
-            </h3>
-            <div id="exp_body_4" className="dropdown_body">
-              <div id="traffic_device_prop_1" className="fieldset_content_style" />
-              <div id="traffic_device_prop_2" className="fieldset_content_style" />
-            </div>
-          </div>
-          <div id="menu_polygon" className="accordion">
-            <h3 id="menu_head_polygon" className="dropdown_head">
-              Polygon Properties
-            </h3>
-            <div id="menu_body_polygon" className="dropdown_body">
-              {/* nothing in the panel at the moment */}
-            </div>
-          </div>
           <div id="menu_help" className="accordion">
             <h3 id="exp_head_6" className="dropdown_head">
               Help
@@ -152,14 +160,9 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
               <Help />
             </div>
           </div>
-          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
         </menu>
       </div>
     )
-  }
-
-  componentDidMount(): void {
-    initUIControl()
   }
 }
 
@@ -213,9 +216,6 @@ function styles() {
         backgroundColor: '#4caf50',
         border: 0,
         borderRadius: '15px',
-        '&.laneBtn': {
-          width: '30px',
-        },
         '&:active': {
           backgroundColor: '#3e8e41',
           transform: 'translateY(4px)',
@@ -248,21 +248,6 @@ function styles() {
       },
       '& .ui-btn': {
         fontSize: '12px',
-      },
-      '& .label_style, & .select_style': {
-        textAlign: 'left',
-        padding: 0,
-        margin: 0,
-        float: 'left',
-        fontSize: 'x-small',
-      },
-      '& .label_style': {
-        border: 0,
-        backgroundColor: 'transparent',
-        width: '60%',
-      },
-      '& .select_style': {
-        width: '40%',
       },
       '& .accordion': {
         outline: 0,

@@ -27,7 +27,7 @@ export class Inspector extends React.Component<IInspectorProps, IInspectorState>
     return (
       <Paper className={classes!.root}>
         <Typography variant="h4" gutterBottom>
-          Inspector
+          {(selectedAnnotation && selectedAnnotation.constructor.name) || 'Inspector'}
         </Typography>
         <br />
         {!selectedAnnotation ? (
