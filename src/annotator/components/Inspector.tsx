@@ -19,10 +19,7 @@ export interface IInspectorState {}
 export class Inspector extends React.Component<IInspectorProps, IInspectorState> {
   render() {
     const {classes, selectedAnnotation} = this.props
-
-    // The type cast is needed here because the following much wanted feature
-    // hasn't landed yet: https://github.com/microsoft/TypeScript/issues/3841
-    const PropertiesUI = selectedAnnotation && (selectedAnnotation.constructor as typeof Annotation).PropertiesUI
+    const PropertiesUI = selectedAnnotation && selectedAnnotation.PropertiesUI
 
     return (
       <Paper className={classes!.root}>
