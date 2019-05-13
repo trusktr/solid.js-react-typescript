@@ -13,6 +13,7 @@ import config from 'annotator-config'
 import * as Electron from 'electron'
 import {flatten, head, uniq} from 'lodash'
 import Button from '@material-ui/core/Button'
+import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import {SimpleKML} from '../util/KmlUtils'
 import * as Dat from 'dat.gui'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
@@ -49,8 +50,7 @@ import {
   StatusWindowActions,
 } from '@mapperai/mapper-annotated-scene'
 import {ReactUtil} from '@mapperai/mapper-saffron-sdk'
-import {IThemedProperties, withStatefulStyles, mergeStyles} from '@mapperai/mapper-themes'
-import {menuSpacing, panelBorderRadius, statusWindowWidth} from './styleVars'
+import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
 import getLogger from 'util/Logger'
@@ -106,7 +106,7 @@ interface AnnotatorState {
   showPerfStats: boolean
 }
 
-interface AnnotatorProps extends IThemedProperties {
+interface AnnotatorProps extends WithStyles<typeof styles> {
   statusWindowState?: StatusWindowState
   uiMenuVisible?: boolean
   carPose?: MapperProtos.mapper.models.PoseMessage
@@ -158,8 +158,7 @@ interface AnnotatorProps extends IThemedProperties {
     'isTransformControlsAttached'
   )
 )
-@withStatefulStyles(styles)
-export default class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
+export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
   imageManager: ImageManager
   private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
@@ -231,8 +230,8 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
 
   styleStats() {
     $('.annotated-scene-container .performanceStats').css({
-      bottom: `${menuSpacing}px`,
-      left: `${statusWindowWidth + menuSpacing * 2}px`,
+      bottom: `${menuMargin}px`,
+      left: `${statusWindowWidth + menuMargin * 2}px`,
     })
   }
 
@@ -1050,12 +1049,12 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
       <div />
     ) : (
       <React.Fragment>
-        <div id="menu_control" className={classes!.menuControl}>
+        <div id="menu_control" className={classes.menuControl}>
           <Button
             variant="contained"
             color="primary"
             onClick={this.onPublishClick}
-            classes={{root: classes!.publishButton!}}
+            classes={{root: classes.publishButton!}}
           >
             Publish
           </Button>
@@ -1081,12 +1080,14 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
           annotationManagerRef={this.setAnnotationManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
-          classes={{root: classes!.annotatedScene}}
+          classes={{root: classes.annotatedScene}}
         />
       </React.Fragment>
     )
   }
 }
+
+export default withStyles(styles)(Annotator)
 
 // TODO replace with the new helpers from the cleanup PRs
 function hasGeometry(n: THREE.Object3D): boolean {
@@ -1107,8 +1108,8 @@ function hasGeometry(n: THREE.Object3D): boolean {
 const numberOfButtons = 3
 
 // eslint-disable-next-line typescript/explicit-function-return-type
-function styles() {
-  return mergeStyles({
+function styles(_theme: Theme) {
+  return createStyles({
     annotatedScene: {
       height: '100%',
       maxHeight: '100%',
@@ -1141,15 +1142,15 @@ function styles() {
       backgroundColor: 'transparent',
       position: 'absolute',
       zIndex: 1,
-      top: menuSpacing,
-      right: menuSpacing,
+      top: menuMargin,
+      right: menuMargin,
       visibility: 'hidden',
       height: '32px',
       display: 'flex',
       justifyContent: 'space-between',
 
       '& > *': {
-        width: `calc(${100 / numberOfButtons}% - ${menuSpacing / 2}px)`,
+        width: `calc(${100 / numberOfButtons}% - ${menuMargin / 2}px)`,
         '& span': {
           fontSize: '1.5rem',
           lineHeight: '1.5rem',
@@ -1169,8 +1170,8 @@ function styles() {
       // this is inside of AnnotatedSceneController
       '#status_window': {
         position: 'absolute',
-        left: menuSpacing,
-        bottom: menuSpacing,
+        left: menuMargin,
+        bottom: menuMargin,
         backgroundColor: 'rgba(255, 255, 255, 0.5)',
         padding: '5px',
         zIndex: 3,

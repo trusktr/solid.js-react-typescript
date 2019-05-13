@@ -5,30 +5,29 @@
 import * as React from 'react'
 import * as _ from 'lodash'
 import {Annotation} from '@mapperai/mapper-annotated-scene'
-import {IThemedProperties, ITheme, withStatefulStyles} from '@mapperai/mapper-themes'
+import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import Paper from '@material-ui/core/Paper/Paper'
 import {Typography} from '@material-ui/core'
+import {menuItemSpacing} from '../styleVars'
 
-export interface IInspectorProps extends IThemedProperties {
+export interface IInspectorProps extends WithStyles<typeof styles> {
   selectedAnnotation?: Annotation | null
 }
 
 export interface IInspectorState {}
 
-@withStatefulStyles(styles)
-export class Inspector extends React.Component<IInspectorProps, IInspectorState> {
+class Inspector extends React.Component<IInspectorProps, IInspectorState> {
   render() {
     const {classes, selectedAnnotation} = this.props
     const PropertiesUI = selectedAnnotation && selectedAnnotation.PropertiesUI
 
     return (
-      <Paper className={classes!.root}>
-        <Typography variant="h4" gutterBottom>
+      <Paper className={classes.root}>
+        <Typography variant="h5" gutterBottom>
           {(selectedAnnotation && selectedAnnotation.constructor.name) || 'Inspector'}
         </Typography>
-        <br />
         {!selectedAnnotation ? (
-          <Typography variant="h5">Nothing is selected.</Typography>
+          <Typography variant="body1">Nothing is selected.</Typography>
         ) : (
           <div>
             {PropertiesUI ? (
@@ -43,16 +42,19 @@ export class Inspector extends React.Component<IInspectorProps, IInspectorState>
   }
 }
 
-export default Inspector
+const _Inspector = withStyles(styles)(Inspector)
+export default _Inspector
+export {_Inspector as Inspector}
 
 // eslint-disable-next-line typescript/explicit-function-return-type
-function styles(_theme: ITheme) {
+function styles(_theme: Theme) {
   const fullWidth = {width: '100%'}
 
-  return {
+  return createStyles({
     root: {
       ...fullWidth,
       padding: '10px',
+      marginTop: menuItemSpacing,
     },
-  }
+  })
 }
