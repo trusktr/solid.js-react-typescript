@@ -1897,6 +1897,7 @@ export default class Annotator extends React.Component<AnnotatorProps, Annotator
               ...(annotatedSceneConfig || {}),
             }}
             utmCoordinateSystem={this.state.annotatedSceneController.state.utmCoordinateSystem!}
+            dataProvider={this.state.annotatedSceneController.dataProvider}
             channel={this.state.annotatedSceneController.channel}
           />
         ) : (
