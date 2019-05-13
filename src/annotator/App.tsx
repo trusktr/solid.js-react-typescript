@@ -115,8 +115,8 @@ export class App extends React.Component<AppProps, AppState> {
   }
 
   render(): JSX.Element {
-    const {classes} = this.props,
-      {reset, session, dataProviderFactory, dataProviderFactories} = this.state
+    const {classes} = this.props
+    const {reset, session, dataProviderFactory, dataProviderFactories} = this.state
 
     return (
       <div className={classes!.root}>
