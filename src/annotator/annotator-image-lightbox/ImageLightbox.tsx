@@ -13,7 +13,7 @@ export default Windowable(
   withStyles(styles)(
     class ImageLightbox extends React.Component<ImageLightboxProps, {}> {
       // tells react which context type to read from
-      contextType = ImageContext
+      static contextType = ImageContext
 
       private imageListRef = React.createRef<HTMLDivElement>()
 

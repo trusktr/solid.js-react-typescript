@@ -91,8 +91,8 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
             </button>
           </div>
           <Inspector selectedAnnotation={this.props.selectedAnnotation} />
-          <Help />
           <ImageLightbox windowed={false} />
+          <Help />
         </menu>
       </div>
     )

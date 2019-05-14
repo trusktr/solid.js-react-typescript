@@ -1012,7 +1012,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     channel!.on(Events.KEYDOWN, annotatedSceneController.onKeyDown)
     channel!.on(Events.KEYUP, annotatedSceneController.onKeyUp)
     channel!.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
-    // TODO instead of on window close, just add a button to the UI
 
     // IDEA JOE maybe we need a separate LightBoxRayManager? Or at least move to ImageManager
     channel!.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
