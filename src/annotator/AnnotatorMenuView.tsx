@@ -63,9 +63,6 @@ export default class AnnotatorMenuView extends React.Component<AnnotatorMenuView
             <button id="tools_delete" className="ui-btn ui-icon-minus ui-btn-icon-left">
               Delete Annotation
             </button>
-            <button id="tools_load_images" className="ui-btn ui-icon-camera ui-btn-icon-left">
-              Load Images
-            </button>
             {/*
             <button
               id="tools_load_annotation"

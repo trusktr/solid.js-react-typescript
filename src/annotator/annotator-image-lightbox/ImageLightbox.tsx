@@ -3,9 +3,9 @@ import Windowable from '../components/Windowable'
 import {Events, EventEmitter} from '@mapperai/mapper-annotated-scene'
 import {withStyles, createStyles, WithStyles} from '@material-ui/core/styles'
 import config from 'annotator-config'
-import * as LightboxState from './LightboxState'
+import * as LightboxState from '@mapperai/mapper-annotated-scene'
 import {ImageContext} from './ImageContext'
-import {toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
+import {LightboxImageDescription, toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
 
 type ImageLightboxProps = WithStyles & {
   channel: EventEmitter
@@ -76,13 +76,13 @@ export default Windowable(
         const {classes} = this.props
         return (
           <ImageContext.Consumer>
-            {({images, onImageMouseEnter, onImageMouseLeave, onImageMouseUp}) => (
+            {({lightboxState, onImageMouseEnter, onImageMouseLeave, onImageMouseUp}) => (
               <div className={classes.imageList} id="image_list" ref={this.imageListRef}>
-                {images.map(i => (
+                {lightboxState.images.map((i: LightboxImageDescription) => (
                   <img
                     key={i.uuid}
                     id={i.uuid}
-                    src={i.path}
+                    src={i.url}
                     className={i.active ? 'highlighted' : ''}
                     onMouseEnter={() => onImageMouseEnter(i.uuid)}
                     onMouseLeave={() => onImageMouseLeave(i.uuid)}
