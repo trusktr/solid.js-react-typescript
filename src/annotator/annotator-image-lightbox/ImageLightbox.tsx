@@ -1,19 +1,20 @@
 import * as React from 'react'
 import Windowable from '../components/Windowable'
-import {Events, EventEmitter} from '@mapperai/mapper-annotated-scene'
+import {Events} from '@mapperai/mapper-annotated-scene'
 import {withStyles, createStyles, WithStyles} from '@material-ui/core/styles'
 import config from 'annotator-config'
 import * as LightboxState from '@mapperai/mapper-annotated-scene'
 import {ImageContext} from './ImageContext'
 import {LightboxImageDescription, toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
 
-type ImageLightboxProps = WithStyles & {
-  channel: EventEmitter
-}
+type ImageLightboxProps = WithStyles<typeof styles> & {}
 
 export default Windowable(
   withStyles(styles)(
     class ImageLightbox extends React.Component<ImageLightboxProps, {}> {
+      // tells react which context type to read from
+      contextType = ImageContext
+
       private imageListRef = React.createRef<HTMLDivElement>()
 
       // Let Annotator handle all keyboard events.
@@ -22,13 +23,13 @@ export default Windowable(
 
         // Annotator ignores repeating events, and streaming them through IPC probably wouldn't perform well.
         if (!event.repeat) {
-          this.props.channel.emit(Events.KEYDOWN, toKeyboardEventHighlights(event))
+          this.context.channel.emit(Events.KEYDOWN, toKeyboardEventHighlights(event))
         }
       }
 
       private onKeyUp = (event: KeyboardEvent): void => {
         if (event.defaultPrevented) return
-        this.props.channel.emit(Events.KEYUP, toKeyboardEventHighlights(event))
+        this.context.channel.emit(Events.KEYUP, toKeyboardEventHighlights(event))
       }
 
       private makeOnImageMouseUp(onImageMouseUp: (data: LightboxState.ImageClick) => void) {
