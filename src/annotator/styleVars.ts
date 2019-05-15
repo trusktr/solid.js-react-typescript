@@ -1,12 +1,14 @@
 import Color = require('tinycolor2')
 import {createStyles} from '@material-ui/core'
 
+// the app header at the very top
+export const headerHeight = 60
 export const menuMargin = 10
-// export const menuTopPosition = 50
-export const menuTopPosition = menuMargin
 export const menuItemSpacing = 2
 export const panelBorderRadius = 4
 export const statusWindowWidth = 400
+// default height of the material-ui tab bar
+export const tabBarHeight = 48
 
 export const btnColor = Color('#555555')
 export const btnTextColor = btnColor.clone().lighten(50)

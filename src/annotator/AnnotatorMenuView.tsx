@@ -23,12 +23,13 @@ import {withStyles, createStyles, Theme, WithStyles, Button, AppBar, Tabs, Tab} 
 import {
   menuItemSpacing,
   menuMargin,
-  menuTopPosition,
   panelBorderRadius,
   btnColor,
   btnTextColor,
   colors,
   jQueryAccordionItemHeight,
+  tabBarHeight,
+  headerHeight,
 } from './styleVars'
 type Annotator = import('./Annotator').Annotator
 
@@ -103,7 +104,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
             >
               <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Properties" />
               <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Layers" />
-              <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Info" />
+              <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Actions" />
             </Tabs>
           </AppBar>
           <Button variant="contained" color="primary" onClick={this.onMenuClick} className={c.menuToggle}>
@@ -162,19 +163,21 @@ function styles(_theme: Theme) {
     menu: {
       position: 'absolute',
       right: menuMargin,
-      maxHeight: `calc(100% - ${menuTopPosition}px - ${menuMargin}px)`,
+      maxHeight: `calc(100vh - ${headerHeight}px - ${menuMargin * 2}px)`,
       width: '250px',
       zIndex: 1,
-      top: menuTopPosition,
+      top: menuMargin,
       backgroundColor: 'transparent',
-      overflowX: 'visible', // visible, but don't scroll
-      overflowY: 'auto', // scroll if necessary
+      overflow: 'hidden',
       paddingTop: 0,
       borderRadius: panelBorderRadius,
 
       '& menu': {
         padding: 0,
         margin: 0,
+        maxHeight: `calc(100vh - ${headerHeight}px - ${menuMargin * 2}px - ${tabBarHeight}px)`,
+        overflowX: 'visible', // visible, but don't scroll
+        overflowY: 'auto', // scroll if necessary
       },
 
       '& *': {
