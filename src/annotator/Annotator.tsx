@@ -14,7 +14,6 @@ import * as Electron from 'electron'
 import {flatten, head, uniq} from 'lodash'
 import $ = require('jquery')
 import {RefObject} from 'react'
-import Button from '@material-ui/core/Button'
 import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import {SimpleKML} from '../util/KmlUtils'
 import * as Dat from 'dat.gui'
@@ -47,7 +46,6 @@ import {
   Marker,
   Annotation,
   DefaultConfig,
-  StatusWindowActions,
   SceneEmitter,
 } from '@mapperai/mapper-annotated-scene'
 import {ReactUtil} from '@mapperai/mapper-saffron-sdk'
@@ -167,7 +165,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   private highlightedLightboxImage: LightboxImage | null // image screen which is currently active in the Lightbox UI
   private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
   private gui?: dat.GUI
-  private statusWindowActions = new StatusWindowActions()
   private sceneActions = new AnnotatedSceneActions()
   private previouslySelectedAnnotations: PreviousAnnotations = new PreviousAnnotations()
 
@@ -789,21 +786,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     active.reverseMarkers()
   }
 
-  // TODO JOE handle DOM events the React way {{
-
-  private bind(): void {
-    const menuControlElement = $('#menu_control')
-
-    if (menuControlElement.length) menuControlElement[0].style.visibility = 'visible'
-    else log.warn('missing element menu_control')
-  }
-
-  unbind() {
-    $('#menu_control').off()
-  }
-
-  // }}
-
   // TODO JOE this all will be controlled by React state + markup  at some point {{
 
   // Toggle the visibility of data by cycling through the groups defined in layerGroups.
@@ -924,18 +906,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     } as IAnnotatedSceneConfig
   }
 
-  private onPublishClick = () => {
-    this.state.annotationManager!.publish().then()
-  }
-
-  private onStatusWindowClick = () => {
-    this.statusWindowActions.toggleEnabled()
-  }
-
-  private onMenuClick = () => {
-    this.sceneActions.toggleUIMenuVisible()
-  }
-
   componentDidMount(): void {
     document.addEventListener('mousemove', this.checkForImageScreenSelection)
     document.addEventListener('mouseup', this.clickImageScreenBox)
@@ -946,8 +916,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   }
 
   componentWillUnmount(): void {
-    this.unbind()
-
     document.removeEventListener('mousemove', this.checkForImageScreenSelection)
     document.removeEventListener('mouseup', this.clickImageScreenBox)
 
@@ -1033,7 +1001,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       }
     })
 
-    this.bind()
     this.setKeys()
   }
 
@@ -1094,34 +1061,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       <div />
     ) : (
       <React.Fragment>
-        <div id="menu_control" className={classes.menuControl}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={this.onPublishClick}
-            classes={{root: classes.publishButton!}}
-          >
-            Publish
-          </Button>
-          <Button variant="contained" color="primary" onClick={this.onStatusWindowClick}>
-            &#x2139;
-          </Button>
-          <Button variant="contained" color="primary" onClick={this.onMenuClick}>
-            &#9776;
-          </Button>
-        </div>
-        <ImageContext.Provider value={imageContextValue}>
-          {this.state.annotatedSceneController ? (
-            // NOTE, The ImageLightbox is inside of the AnnotatorMenuView
-            <AnnotatorMenuView
-              uiMenuVisible={this.props.uiMenuVisible!}
-              selectedAnnotation={this.props.activeAnnotation}
-              onSaveAnnotationsJson={this.saveAnnotationsJson}
-              onSaveAnnotationsKML={this.saveAnnotationsKML}
-              annotator={this}
-            />
-          ) : null}
-        </ImageContext.Provider>
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
@@ -1133,19 +1072,29 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
           classes={{root: classes.annotatedScene}}
         />
         {this.state.annotatedSceneController && this.state.annotatedSceneController.state.utmCoordinateSystem ? (
-          <ImageManager
-            ref={this.imageManagerRef}
-            config={{
-              ...DefaultConfig,
-              ...(annotatedSceneConfig || {}),
-            }}
-            utmCoordinateSystem={this.state.annotatedSceneController.state.utmCoordinateSystem!}
-            dataProvider={this.state.annotatedSceneController.dataProvider}
-            channel={this.state.annotatedSceneController.channel}
-          />
-        ) : (
-          <div />
-        )}
+          <>
+            <ImageContext.Provider value={imageContextValue}>
+              // NOTE, The ImageLightbox is inside of the AnnotatorMenuView
+              <AnnotatorMenuView
+                uiMenuVisible={this.props.uiMenuVisible!}
+                selectedAnnotation={this.props.activeAnnotation}
+                onSaveAnnotationsJson={this.saveAnnotationsJson}
+                onSaveAnnotationsKML={this.saveAnnotationsKML}
+                annotator={this}
+              />
+            </ImageContext.Provider>
+            <ImageManager
+              ref={this.imageManagerRef}
+              config={{
+                ...DefaultConfig,
+                ...(annotatedSceneConfig || {}),
+              }}
+              utmCoordinateSystem={this.state.annotatedSceneController.state.utmCoordinateSystem!}
+              dataProvider={this.state.annotatedSceneController.dataProvider}
+              channel={this.state.annotatedSceneController.channel}
+            />
+          </>
+        ) : null}
       </React.Fragment>
     )
   }
@@ -1169,8 +1118,6 @@ function hasGeometry(n: THREE.Object3D): boolean {
   // )
 }
 
-const numberOfButtons = 3
-
 // eslint-disable-next-line typescript/explicit-function-return-type
 function styles(_theme: Theme) {
   return createStyles({
@@ -1193,42 +1140,10 @@ function styles(_theme: Theme) {
         height: '100%',
       },
 
-      '& .hidden': {
-        display: 'none',
-      },
-
       '&, & *, & *::after, & *::before': {
         boxSizing: 'border-box',
       },
     },
-
-    menuControl: {
-      backgroundColor: 'transparent',
-      position: 'absolute',
-      zIndex: 1,
-      top: menuMargin,
-      right: menuMargin,
-      visibility: 'hidden',
-      height: '32px',
-      display: 'flex',
-      justifyContent: 'space-between',
-
-      '& > *': {
-        width: `calc(${100 / numberOfButtons}% - ${menuMargin / 2}px)`,
-        '& span': {
-          fontSize: '1.5rem',
-          lineHeight: '1.5rem',
-        },
-        '&$publishButton': {
-          '& span': {
-            fontSize: '1rem',
-            lineHeight: '1rem',
-          },
-        },
-      },
-    },
-
-    publishButton: {},
 
     '@global': {
       // this is inside of AnnotatedSceneController

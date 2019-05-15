@@ -12,12 +12,14 @@ import {
   AnnotatedSceneState,
   LayerStatusMap,
   AnnotationType,
+  StatusWindowActions,
+  AnnotatedSceneActions,
 } from '@mapperai/mapper-annotated-scene'
 import ImageLightbox from './annotator-image-lightbox/ImageLightbox'
 import Help from '../annotator/components/Help'
 import {Inspector} from './components/Inspector'
 import {mergeClasses} from '@mapperai/mapper-themes'
-import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
+import {withStyles, createStyles, Theme, WithStyles, Button} from '@material-ui/core'
 import {
   menuItemSpacing,
   menuMargin,
@@ -48,6 +50,9 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     windowOpen: false,
   }
 
+  private statusWindowActions = new StatusWindowActions()
+  private sceneActions = new AnnotatedSceneActions()
+
   private onClickDeleteAnnotation = () => {
     this.props.annotator.uiDeleteActiveAnnotation()
   }
@@ -60,41 +65,73 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     this.props.annotator.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
   }
 
+  private onPublishClick = () => {
+    this.props.annotator.state.annotationManager!.publish().then()
+  }
+
+  private onStatusWindowClick = () => {
+    this.statusWindowActions.toggleEnabled()
+  }
+
+  private onMenuClick = () => {
+    this.sceneActions.toggleUIMenuVisible()
+  }
+
   render(): JSX.Element {
     const {classes} = this.props
     return (
-      <div id="menu" className={mergeClasses(classes.menu, this.props.uiMenuVisible ? '' : 'hidden')}>
-        <menu id="annotationMenu" className="menu">
-          {this.props.layerStatus && (
-            <LayerManager layerStatus={this.props.layerStatus} useCheckboxes={true} isDraggable={false} />
-          )}
-          <div id="tools" className={classes.btnGroup}>
-            <button className={classes.btn} onClick={this.onClickAddLane}>
-              New Lane
-            </button>
-            <button className={classes.btn} onClick={this.onClickAddTrafficDevice}>
-              New Traffic Device
-            </button>
-            <button className={classes.btn} onClick={this.onClickDeleteAnnotation}>
-              Delete Annotation
-            </button>
-            <button className={classes.btn} onClick={this.props.onSaveAnnotationsKML}>
-              Save Annotations as KML
-            </button>
-            <button className={classes.btn} onClick={this.props.onSaveAnnotationsJson}>
-              Save Annotations as JSON
-            </button>
-          </div>
-          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
-          <ImageLightbox windowed={false} />
-          <Help />
-        </menu>
-      </div>
+      <>
+        <div className={classes.menuControl}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={this.onPublishClick}
+            classes={{root: classes.publishButton!}}
+          >
+            Publish
+          </Button>
+          <Button variant="contained" color="primary" onClick={this.onStatusWindowClick}>
+            &#x2139;
+          </Button>
+          <Button variant="contained" color="primary" onClick={this.onMenuClick}>
+            &#9776;
+          </Button>
+        </div>
+        <div id="menu" className={mergeClasses(classes.menu, this.props.uiMenuVisible ? '' : 'hidden')}>
+          <menu id="annotationMenu" className="menu">
+            {this.props.layerStatus && (
+              <LayerManager layerStatus={this.props.layerStatus} useCheckboxes={true} isDraggable={false} />
+            )}
+            <div id="tools" className={classes.btnGroup}>
+              <button className={classes.btn} onClick={this.onClickAddLane}>
+                New Lane
+              </button>
+              <button className={classes.btn} onClick={this.onClickAddTrafficDevice}>
+                New Traffic Device
+              </button>
+              <button className={classes.btn} onClick={this.onClickDeleteAnnotation}>
+                Delete Annotation
+              </button>
+              <button className={classes.btn} onClick={this.props.onSaveAnnotationsKML}>
+                Save Annotations as KML
+              </button>
+              <button className={classes.btn} onClick={this.props.onSaveAnnotationsJson}>
+                Save Annotations as JSON
+              </button>
+            </div>
+            <Inspector selectedAnnotation={this.props.selectedAnnotation} />
+            <ImageLightbox windowed={false} />
+            <Help />
+          </menu>
+        </div>
+      </>
     )
   }
 }
 
 export default withStyles(styles)(AnnotatorMenuView)
+
+const numberOfButtons = 3
 
 // eslint-disable-next-line typescript/explicit-function-return-type
 function styles(_theme: Theme) {
@@ -165,7 +202,34 @@ function styles(_theme: Theme) {
         textAlign: 'center',
       },
     },
+
+    menuControl: {
+      backgroundColor: 'transparent',
+      position: 'absolute',
+      zIndex: 1,
+      top: menuMargin,
+      right: menuMargin,
+      height: '32px',
+      display: 'flex',
+      justifyContent: 'space-between',
+
+      '& > *': {
+        width: `calc(${100 / numberOfButtons}% - ${menuMargin / 2}px)`,
+        '& span': {
+          fontSize: '1.5rem',
+          lineHeight: '1.5rem',
+        },
+        '&$publishButton': {
+          '& span': {
+            fontSize: '1rem',
+            lineHeight: '1rem',
+          },
+        },
+      },
+    },
+
     btn: {},
     btnGroup: {},
+    publishButton: {},
   })
 }
