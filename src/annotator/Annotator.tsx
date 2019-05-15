@@ -16,7 +16,6 @@ import $ = require('jquery')
 import {RefObject} from 'react'
 import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import {SimpleKML} from '../util/KmlUtils'
-import * as Dat from 'dat.gui'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
@@ -55,10 +54,10 @@ import {PreviousAnnotations} from './PreviousAnnotations'
 import {ImageManager, ImageClick, LightboxImage} from '@mapperai/mapper-annotated-scene'
 import {ImageContext, ImageContextState, initialImageContextValue} from './annotator-image-lightbox/ImageContext'
 import getLogger from 'util/Logger'
+import DatGui, {GuiState} from './components/DatGui'
 
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
-const dat: typeof Dat = (Dat as any).default as typeof Dat
 const log = getLogger(__filename)
 
 const allLayers: LayerId[] = ['base1', 'base1hi', 'anot1']
@@ -84,26 +83,12 @@ const defaultLayerGroupIndex = 0
 interface AnnotatorState {
   background: THREEColorValue
   layerGroupIndex: number
-  bezierScaleFactor: number
-
-  imageScreenOpacity: number
 
   annotationManager: AnnotationManager | null
   annotatedSceneController: AnnotatedSceneController | null
-
-  lockBoundaries: boolean
-  lockLanes: boolean
-  lockPolygons: boolean
-  lockTrafficDevices: boolean
   isImageScreensVisible: boolean
 
   annotatedSceneConfig?: IAnnotatedSceneConfig
-
-  maxSuperTilesToLoad: number
-  maxPointDensity: number
-  roadPointsIntensityScale: number
-
-  showPerfStats: boolean
 }
 
 interface AnnotatorProps extends WithStyles<typeof styles> {
@@ -164,9 +149,9 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
   private highlightedLightboxImage: LightboxImage | null // image screen which is currently active in the Lightbox UI
   private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
-  private gui?: dat.GUI
   private sceneActions = new AnnotatedSceneActions()
   private previouslySelectedAnnotations: PreviousAnnotations = new PreviousAnnotations()
+  private guiState: GuiState
 
   constructor(props: AnnotatorProps) {
     super(props)
@@ -206,24 +191,23 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.state = {
       background: hexStringToHexadecimal(config['startup.background_color'] || '#1d232a'),
       layerGroupIndex: defaultLayerGroupIndex,
-      bezierScaleFactor: 6,
-
-      imageScreenOpacity: parseFloat(config['image_manager.image.opacity']) || 0.5,
 
       annotationManager: null,
       annotatedSceneController: null,
 
       isImageScreensVisible: true,
+    }
 
+    this.guiState = {
       lockBoundaries: false,
       lockLanes: false,
       lockPolygons: false,
       lockTrafficDevices: false,
-
+      bezierScaleFactor: 6,
       maxSuperTilesToLoad,
       maxPointDensity,
       roadPointsIntensityScale,
-
+      imageScreenOpacity: parseFloat(config['image_manager.image.opacity']) || 0.5,
       showPerfStats,
     }
   }
@@ -233,197 +217,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       bottom: `${menuMargin}px`,
       left: `${statusWindowWidth + menuMargin * 2}px`,
     })
-  }
-
-  private datContainer: JQuery
-
-  // Create a UI widget to adjust application settings on the fly.
-  createControlsGui(): void {
-    if (!isNullOrUndefined(config['startup.show_color_picker'])) {
-      log.warn('config option startup.show_color_picker has been renamed to startup.show_control_panel')
-    }
-    if (!config['startup.show_control_panel']) return
-
-    const gui = (this.gui = new dat.GUI({
-      hideable: false,
-      closeOnTop: true,
-      autoPlace: false,
-    }))
-    this.datContainer = $('<div class="dg ac"></div>')
-
-    this.datContainer.append(gui.domElement)
-    $('.annotated-scene-container').append(this.datContainer)
-
-    this.datContainer.css({
-      position: 'absolute',
-      top: 0,
-      left: 0,
-    })
-
-    gui.domElement.className = 'threeJs_gui'
-
-    gui.domElement.setAttribute(
-      'style',
-      `
-			width: 245px;
-			position: absolute;
-			top: 13px;
-			left: 13px;
-			right: initial;
-			bottom: initial;
-			background: rgba(0,0,0,0.5);
-			padding: 10px;
-		`
-    )
-
-    const closeButton = gui.domElement.querySelector('.close-button')
-
-    closeButton!.setAttribute(
-      'style',
-      `
-			padding-bottom: 5px;
-			cursor: pointer;
-		`
-    )
-
-    /*
-    gui
-      .addColor(this.state, 'background')
-      .name('Background')
-      .onChange(() => {
-        this.forceUpdate()
-      })
-      */
-
-    new AnnotatedSceneActions().setLockBoundaries(this.state.lockBoundaries)
-    new AnnotatedSceneActions().setLockLanes(this.state.lockLanes)
-    new AnnotatedSceneActions().setLockPolygons(this.state.lockPolygons)
-    new AnnotatedSceneActions().setLockTrafficDevices(this.state.lockTrafficDevices)
-
-    const folderLock = gui.addFolder('Lock Annotations')
-
-    folderLock
-      .add(this.state, 'lockBoundaries')
-      .name('Boundaries')
-      .onChange((value: boolean) => {
-        if (value && this.state.annotationManager!.activeBoundaryAnnotation) {
-          this.state.annotatedSceneController!.cleanTransformControls()
-          this.uiEscapeSelection()
-        }
-
-        new AnnotatedSceneActions().setLockBoundaries(value)
-      })
-
-    folderLock
-      .add(this.state, 'lockLanes')
-      .name('Lanes')
-      .onChange((value: boolean) => {
-        if (
-          value &&
-          (this.state.annotationManager!.activeLaneAnnotation ||
-            this.state.annotationManager!.activeConnectionAnnotation)
-        ) {
-          this.state.annotatedSceneController!.cleanTransformControls()
-          this.uiEscapeSelection()
-        }
-
-        new AnnotatedSceneActions().setLockLanes(value)
-      })
-
-    folderLock
-      .add(this.state, 'lockPolygons')
-      .name('Polygons')
-      .onChange((value: boolean) => {
-        if (value && this.state.annotationManager!.activePolygonAnnotation) {
-          this.state.annotatedSceneController!.cleanTransformControls()
-          this.uiEscapeSelection()
-        }
-
-        new AnnotatedSceneActions().setLockPolygons(value)
-      })
-
-    folderLock
-      .add(this.state, 'lockTrafficDevices')
-      .name('Traffic Devices')
-      .onChange((value: boolean) => {
-        if (value && this.state.annotationManager!.activeTrafficDeviceAnnotation) {
-          this.state.annotatedSceneController!.cleanTransformControls()
-          this.uiEscapeSelection()
-        }
-
-        new AnnotatedSceneActions().setLockTrafficDevices(value)
-      })
-
-    folderLock.open()
-
-    const folderConnection = gui.addFolder('Connections')
-
-    const bezierScaleFactor = this.state.bezierScaleFactor
-
-    folderConnection
-      .add({bezierScaleFactor}, 'bezierScaleFactor', 1, 50)
-      .step(1)
-      .name('Curvature')
-      .onChange(bezierScaleFactor => {
-        this.setState({bezierScaleFactor})
-      })
-
-    folderConnection.open()
-
-    const tileFolder = gui.addFolder('Point Cloud')
-
-    tileFolder
-      .add({maxSuperTilesToLoad: this.state.maxSuperTilesToLoad}, 'maxSuperTilesToLoad', 1, 3000)
-      .step(1)
-      .name('Max tiles')
-      .onChange(maxSuperTilesToLoad => this.setState({maxSuperTilesToLoad}))
-
-    tileFolder
-      .add({maxPointDensity: this.state.maxPointDensity}, 'maxPointDensity', 1, 1000)
-      .step(1)
-      .name('Max density')
-      .onChange(maxPointDensity => this.setState({maxPointDensity}))
-
-    tileFolder
-      .add({roadPointsIntensityScale: this.state.roadPointsIntensityScale}, 'roadPointsIntensityScale', 1, 50)
-      .step(1)
-      .name('Road contrast')
-      .onChange(roadPointsIntensityScale => this.setState({roadPointsIntensityScale}))
-
-    tileFolder.open()
-
-    const imagesFolder = gui.addFolder('Images')
-
-    imagesFolder
-      .add(this.state, 'imageScreenOpacity', 0, 1)
-      .name('Image Opacity')
-      .onChange((value: number) => {
-        this.imageManagerRef.current && this.imageManagerRef.current.setOpacity(value)
-      })
-
-    imagesFolder.open()
-
-    const sceneOptions = gui.addFolder('Scene')
-
-    sceneOptions
-      .add({showPerfStats: this.state.showPerfStats}, 'showPerfStats')
-      .name('Show stats')
-      .onChange(showPerfStats => {
-        // TODO cleanup: we don't need to keep our own state vars, just a config
-        // object that we pass to the scene.
-        this.setState({showPerfStats}, () => {
-          this.setState({annotatedSceneConfig: this.makeAnnotatedSceneConfig()})
-        })
-      })
-
-    sceneOptions.open()
-  }
-
-  private destroyControlsGui(): void {
-    if (!this.gui) return
-    this.gui.destroy()
-    this.gui.domElement.remove()
-    this.datContainer.remove()
   }
 
   // When ImageManager loads an image, add it to the scene.
@@ -549,7 +342,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
           const first = intersects[0].object as THREE.Mesh
           const material = first.material as THREE.MeshBasicMaterial
 
-          material.opacity = this.state.imageScreenOpacity
+          material.opacity = this.guiState.imageScreenOpacity || 0.8
 
           const screen = imageManager.getImageScreen(first)
 
@@ -621,7 +414,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
     const material = this.highlightedImageScreenBox.material as THREE.MeshBasicMaterial
 
-    material.opacity = this.state.imageScreenOpacity
+    material.opacity = this.guiState.imageScreenOpacity || 0.8
     this.highlightedImageScreenBox = null
     this.state.annotatedSceneController!.shouldRender()
   }
@@ -891,11 +684,11 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   private makeAnnotatedSceneConfig = () => {
     return {
       'startup.camera_offset': [0, 200, 100],
-      'startup.show_stats_module': this.state.showPerfStats,
+      'startup.show_stats_module': this.guiState.showPerfStats,
       'tile_manager.maximum_points_to_load': 20000000,
-      'tile_manager.road_points_intensity_scale': this.state.roadPointsIntensityScale,
-      'tile_manager.maximum_point_density': this.state.maxPointDensity,
-      'tile_manager.maximum_super_tiles_to_load': this.state.maxSuperTilesToLoad,
+      'tile_manager.road_points_intensity_scale': this.guiState.roadPointsIntensityScale,
+      'tile_manager.maximum_point_density': this.guiState.maxPointDensity,
+      'tile_manager.maximum_super_tiles_to_load': this.guiState.maxSuperTilesToLoad,
       'tile_manager.initial_super_tiles_to_load': 1,
       'tile_manager.super_tile_scale': [24, 24, 24],
       'annotator.area_of_interest.size': [60, 20, 60],
@@ -904,72 +697,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       'annotator.draw_bounding_box': false,
       'annotator.area_of_interest.enable': true,
     } as IAnnotatedSceneConfig
-  }
-
-  componentDidMount(): void {
-    document.addEventListener('mousemove', this.checkForImageScreenSelection)
-    document.addEventListener('mouseup', this.clickImageScreenBox)
-
-    this.setState({
-      annotatedSceneConfig: this.makeAnnotatedSceneConfig(),
-    })
-  }
-
-  componentWillUnmount(): void {
-    document.removeEventListener('mousemove', this.checkForImageScreenSelection)
-    document.removeEventListener('mouseup', this.clickImageScreenBox)
-
-    try {
-      this.destroyControlsGui()
-    } catch (err) {
-      log.error('destroyControlsGui() failed', err)
-    }
-
-    try {
-      this.state.annotatedSceneController && this.state.annotatedSceneController.cleanup()
-    } catch (err) {
-      log.error('annotatedSceneController.cleanup() failed', err)
-    }
-    // TODO JOE  - remove event listeners  - clean up child windows
-  }
-
-  componentDidUpdate(oldProps: AnnotatorProps, oldState: AnnotatorState): void {
-    if (!oldState.annotationManager && this.state.annotationManager) {
-      if (this.state.annotationManager) {
-        this.createControlsGui()
-        this.styleStats()
-      } else {
-        this.destroyControlsGui()
-      }
-    }
-
-    if (this.props.activeAnnotation && oldProps.activeAnnotation !== this.props.activeAnnotation)
-      this.previouslySelectedAnnotations.setByType(this.props.activeAnnotation)
-
-    if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
-      const imageManager = this.imageManagerRef.current
-      if (imageManager)
-        if (this.state.isImageScreensVisible) imageManager.showImageScreens()
-        else imageManager.hideImageScreens()
-    }
-
-    // TODO simplify: instead of storing individual properties in local storage,
-    // just store the config object that we'll be passing into the scene.
-
-    if (oldState.maxSuperTilesToLoad !== this.state.maxSuperTilesToLoad) {
-      localStorage.setItem('maxSuperTilesToLoad', this.state.maxSuperTilesToLoad.toString())
-    }
-
-    if (oldState.maxPointDensity !== this.state.maxPointDensity) {
-      localStorage.setItem('maxPointDensity', this.state.maxPointDensity.toString())
-    }
-
-    if (oldState.showPerfStats !== this.state.showPerfStats) {
-      localStorage.setItem('showPerfStats', this.state.showPerfStats.toString())
-
-      // FIXME temporary hack, because we don't know when in the future the stats widget is ready.
-      setTimeout(() => this.styleStats())
-    }
   }
 
   private attachScene = () => {
@@ -1040,6 +767,134 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.state.annotatedSceneController!.channel.emit(Events.IMAGE_CLICK, click)
   }
 
+  private lockLanes = () => {
+    if (
+      this.guiState.lockLanes &&
+      (this.state.annotationManager!.activeLaneAnnotation || this.state.annotationManager!.activeConnectionAnnotation)
+    ) {
+      this.state.annotatedSceneController!.cleanTransformControls()
+      this.uiEscapeSelection()
+    }
+
+    new AnnotatedSceneActions().setLockLanes(this.guiState.lockLanes)
+  }
+
+  private lockBoundaries = () => {
+    if (this.guiState.lockBoundaries && this.state.annotationManager!.activeBoundaryAnnotation) {
+      this.state.annotatedSceneController!.cleanTransformControls()
+      this.uiEscapeSelection()
+    }
+
+    new AnnotatedSceneActions().setLockBoundaries(this.guiState.lockBoundaries)
+  }
+
+  private lockPolygons = () => {
+    if (this.guiState.lockPolygons && this.state.annotationManager!.activePolygonAnnotation) {
+      this.state.annotatedSceneController!.cleanTransformControls()
+      this.uiEscapeSelection()
+    }
+
+    new AnnotatedSceneActions().setLockPolygons(this.guiState.lockPolygons)
+  }
+
+  private lockTrafficDevices = () => {
+    if (this.guiState.lockTrafficDevices && this.state.annotationManager!.activeTrafficDeviceAnnotation) {
+      this.state.annotatedSceneController!.cleanTransformControls()
+      this.uiEscapeSelection()
+    }
+
+    new AnnotatedSceneActions().setLockTrafficDevices(this.guiState.lockTrafficDevices)
+  }
+
+  // TODO simplify: instead of storing individual properties in local storage,
+  // just store the config object that we'll be passing into the scene.
+
+  private updateMaxSuperTilesToLoad = () => {
+    localStorage.setItem('maxSuperTilesToLoad', this.guiState.maxSuperTilesToLoad.toString())
+  }
+
+  private updateMaxPointDensity = () => {
+    localStorage.setItem('maxPointDensity', this.guiState.maxPointDensity.toString())
+  }
+
+  private setImageScreenOpacity = () => {
+    this.imageManagerRef.current && this.imageManagerRef.current.setOpacity(this.guiState.imageScreenOpacity)
+    this.forceUpdate()
+  }
+
+  // TODO cleanup: we don't need to keep our own showPerfStats state var, just a
+  // config object that we update and pass to the scene.
+  private showPerfStats = () => {
+    localStorage.setItem('showPerfStats', this.guiState.showPerfStats.toString())
+
+    this.setState({annotatedSceneConfig: this.makeAnnotatedSceneConfig()}, () => {
+      // FIXME temporary hack, because we don't know when in the future the
+      // stats widget is ready.
+      setTimeout(() => this.styleStats())
+    })
+  }
+
+  private guiHandlers = new Map<keyof GuiState, () => void>([
+    ['lockBoundaries', this.lockBoundaries],
+    ['lockLanes', this.lockLanes],
+    ['lockPolygons', this.lockPolygons],
+    ['lockTrafficDevices', this.lockTrafficDevices],
+    ['bezierScaleFactor', () => this.forceUpdate()],
+    ['maxSuperTilesToLoad', this.updateMaxSuperTilesToLoad], // TODO update scene config
+    ['maxPointDensity', this.updateMaxPointDensity], // TODO update scene config
+    ['roadPointsIntensityScale', () => this.forceUpdate()], // TODO update scene config
+    ['imageScreenOpacity', this.setImageScreenOpacity],
+    ['showPerfStats', this.showPerfStats],
+  ])
+
+  private onDatGuiUpdate = (prop: keyof GuiState, guiState: GuiState) => {
+    this.guiState = guiState
+    this.guiHandlers.get(prop)!()
+  }
+
+  private configWithDefaults() {
+    return {
+      ...DefaultConfig,
+      ...(this.state.annotatedSceneConfig || {}),
+    }
+  }
+
+  componentDidMount(): void {
+    document.addEventListener('mousemove', this.checkForImageScreenSelection)
+    document.addEventListener('mouseup', this.clickImageScreenBox)
+
+    this.setState({
+      annotatedSceneConfig: this.makeAnnotatedSceneConfig(),
+    })
+  }
+
+  componentWillUnmount(): void {
+    document.removeEventListener('mousemove', this.checkForImageScreenSelection)
+    document.removeEventListener('mouseup', this.clickImageScreenBox)
+
+    try {
+      this.state.annotatedSceneController && this.state.annotatedSceneController.cleanup()
+    } catch (err) {
+      log.error('annotatedSceneController.cleanup() failed', err)
+    }
+  }
+
+  componentDidUpdate(oldProps: AnnotatorProps, oldState: AnnotatorState): void {
+    if (!oldState.annotationManager && this.state.annotationManager && this.state.annotationManager) {
+      this.styleStats()
+    }
+
+    if (this.props.activeAnnotation && oldProps.activeAnnotation !== this.props.activeAnnotation)
+      this.previouslySelectedAnnotations.setByType(this.props.activeAnnotation)
+
+    if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
+      const imageManager = this.imageManagerRef.current
+      if (imageManager)
+        if (this.state.isImageScreensVisible) imageManager.showImageScreens()
+        else imageManager.hideImageScreens()
+    }
+  }
+
   render(): JSX.Element {
     const {annotatedSceneConfig} = this.state
     const {dataProviderFactory, classes} = this.props
@@ -1064,14 +919,17 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
         <AnnotatedSceneController
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
-          bezierScaleFactor={this.state.bezierScaleFactor}
-          roadPointsIntensityScale={this.state.roadPointsIntensityScale}
+          bezierScaleFactor={this.guiState.bezierScaleFactor}
+          roadPointsIntensityScale={this.guiState.roadPointsIntensityScale}
           annotationManagerRef={this.setAnnotationManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
           classes={{root: classes.annotatedScene}}
         />
-        {this.state.annotatedSceneController && this.state.annotatedSceneController.state.utmCoordinateSystem ? (
+        {this.state.annotationManager && (
+          <DatGui initialState={this.guiState} onUpdate={this.onDatGuiUpdate} config={this.configWithDefaults()} />
+        )}
+        {this.state.annotatedSceneController && this.state.annotatedSceneController.state.utmCoordinateSystem && (
           <>
             <ImageContext.Provider value={imageContextValue}>
               {/*NOTE, The ImageLightbox is inside of the AnnotatorMenuView*/}
@@ -1085,16 +943,13 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
             </ImageContext.Provider>
             <ImageManager
               ref={this.imageManagerRef}
-              config={{
-                ...DefaultConfig,
-                ...(annotatedSceneConfig || {}),
-              }}
+              config={this.configWithDefaults()}
               utmCoordinateSystem={this.state.annotatedSceneController.state.utmCoordinateSystem!}
               dataProvider={this.state.annotatedSceneController.dataProvider}
               channel={this.state.annotatedSceneController.channel}
             />
           </>
-        ) : null}
+        )}
       </React.Fragment>
     )
   }

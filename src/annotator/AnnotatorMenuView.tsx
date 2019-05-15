@@ -16,6 +16,7 @@ import {
   StatusWindowActions,
   AnnotatedSceneActions,
 } from '@mapperai/mapper-annotated-scene'
+import {mergeClasses as classNames} from '@mapperai/mapper-themes'
 import ImageLightbox from './annotator-image-lightbox/ImageLightbox'
 import Help from '../annotator/components/Help'
 import {Inspector} from './components/Inspector'
@@ -89,7 +90,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     const {classes: c} = this.props
     const {tab} = this.state
     return (
-      <div id="menu" className={c.menu}>
+      <div className={c.menu}>
         <div className={c.tabBar}>
           <AppBar color="default" className={c.tabs}>
             <Tabs
@@ -111,7 +112,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
             &#9776;
           </Button>
         </div>
-        <menu className={this.props.uiMenuVisible ? '' : c.hidden}>
+        <div className={classNames(this.props.uiMenuVisible && c.hidden, c.menuContent)}>
           {tab === 0 && (
             <>
               <Inspector selectedAnnotation={this.props.selectedAnnotation} />
@@ -149,7 +150,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
               <Help />
             </>
           )}
-        </menu>
+        </div>
       </div>
     )
   }
@@ -172,7 +173,7 @@ function styles(_theme: Theme) {
       paddingTop: 0,
       borderRadius: panelBorderRadius,
 
-      '& menu': {
+      '& $menuContent': {
         padding: 0,
         margin: 0,
         maxHeight: `calc(100vh - ${headerHeight}px - ${menuMargin * 2}px - ${tabBarHeight}px)`,
@@ -268,6 +269,7 @@ function styles(_theme: Theme) {
       display: 'none',
     },
 
+    menuContent: {},
     menuToggle: {},
     tabs: {},
     tab: {},
