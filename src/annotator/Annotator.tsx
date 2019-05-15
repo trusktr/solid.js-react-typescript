@@ -1074,7 +1074,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
         {this.state.annotatedSceneController && this.state.annotatedSceneController.state.utmCoordinateSystem ? (
           <>
             <ImageContext.Provider value={imageContextValue}>
-              // NOTE, The ImageLightbox is inside of the AnnotatorMenuView
+              {/*NOTE, The ImageLightbox is inside of the AnnotatorMenuView*/}
               <AnnotatorMenuView
                 uiMenuVisible={this.props.uiMenuVisible!}
                 selectedAnnotation={this.props.activeAnnotation}
