@@ -82,17 +82,6 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     return (
       <>
         <div className={classes.menuControl}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={this.onPublishClick}
-            classes={{root: classes.publishButton!}}
-          >
-            Publish
-          </Button>
-          <Button variant="contained" color="primary" onClick={this.onStatusWindowClick}>
-            &#x2139;
-          </Button>
           <Button variant="contained" color="primary" onClick={this.onMenuClick}>
             &#9776;
           </Button>
@@ -118,6 +107,12 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
               <button className={classes.btn} onClick={this.props.onSaveAnnotationsJson}>
                 Save Annotations as JSON
               </button>
+              <button className={classes.btn} onClick={this.onPublishClick}>
+                Publish
+              </button>
+              <button className={classes.btn} onClick={this.onStatusWindowClick}>
+                Toggle Info Panel
+              </button>
             </div>
             <Inspector selectedAnnotation={this.props.selectedAnnotation} />
             <ImageLightbox windowed={false} />
@@ -131,7 +126,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
 
 export default withStyles(styles)(AnnotatorMenuView)
 
-const numberOfButtons = 3
+const numberOfButtons = 1
 
 // eslint-disable-next-line typescript/explicit-function-return-type
 function styles(_theme: Theme) {
@@ -219,17 +214,10 @@ function styles(_theme: Theme) {
           fontSize: '1.5rem',
           lineHeight: '1.5rem',
         },
-        '&$publishButton': {
-          '& span': {
-            fontSize: '1rem',
-            lineHeight: '1rem',
-          },
-        },
       },
     },
 
     btn: {},
     btnGroup: {},
-    publishButton: {},
   })
 }
