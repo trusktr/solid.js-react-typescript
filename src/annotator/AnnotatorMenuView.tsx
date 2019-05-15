@@ -44,13 +44,8 @@ interface AnnotatorMenuViewState {
 
 @typedConnect(toProps(AnnotatedSceneState, 'layerStatus'))
 class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
-  constructor(props: AnnotatorMenuViewProps) {
-    super(props)
-
-    this.state = {
-      windowOpen: false,
-    }
-    ;(window as any).widget = this
+  state = {
+    windowOpen: false,
   }
 
   private onClickDeleteAnnotation = () => {
