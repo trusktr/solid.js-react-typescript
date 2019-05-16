@@ -82,8 +82,7 @@ export default Windowable(
               <Paper className={classes.imageList} id="image_list">
                 <div ref={this.imageListRef}>
                   <Typography variant="h5" gutterBottom>
-                    {' '}
-                    Images{' '}
+                    Images
                   </Typography>
 
                   {!lightboxState.images.length ? (
