@@ -183,9 +183,6 @@ export class DatGui extends React.Component<Props, State> {
   }
 }
 
-// const _DatGui = withStyles(styles)(DatGui)
-// export type _DatGui = typeof _DatGui & DatGui
-// export default _DatGui as _DatGui
 export default withStyles(styles)(DatGui)
 
 // eslint-disable-next-line typescript/explicit-function-return-type
