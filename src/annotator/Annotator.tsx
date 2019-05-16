@@ -54,7 +54,8 @@ import {PreviousAnnotations} from './PreviousAnnotations'
 import {ImageManager, ImageClick, LightboxImage} from '@mapperai/mapper-annotated-scene'
 import {ImageContext, ImageContextState, initialImageContextValue} from './annotator-image-lightbox/ImageContext'
 import getLogger from 'util/Logger'
-import DatGui, {GuiState} from './components/DatGui'
+import {GuiState} from './components/DatGui'
+import DatGuiContext, {ContextState as GuiContextState} from './components/DatGuiContext'
 
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
@@ -912,6 +913,12 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       channel: (this.state.annotatedSceneController && this.state.annotatedSceneController.channel) as SceneEmitter,
     }
 
+    const guiProps: GuiContextState = {
+      initialState: this.guiState,
+      onUpdate: this.onDatGuiUpdate,
+      config: this.configWithDefaults(),
+    }
+
     return !dataProviderFactory ? (
       <div />
     ) : (
@@ -926,21 +933,20 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
           config={annotatedSceneConfig}
           classes={{root: classes.annotatedScene}}
         />
-        {this.state.annotationManager && (
-          <DatGui initialState={this.guiState} onUpdate={this.onDatGuiUpdate} config={this.configWithDefaults()} />
-        )}
         {this.state.annotatedSceneController && this.state.annotatedSceneController.state.utmCoordinateSystem && (
           <>
-            <ImageContext.Provider value={imageContextValue}>
-              {/*NOTE, The ImageLightbox is inside of the AnnotatorMenuView*/}
-              <AnnotatorMenuView
-                uiMenuVisible={this.props.uiMenuVisible!}
-                selectedAnnotation={this.props.activeAnnotation}
-                onSaveAnnotationsJson={this.saveAnnotationsJson}
-                onSaveAnnotationsKML={this.saveAnnotationsKML}
-                annotator={this}
-              />
-            </ImageContext.Provider>
+            <DatGuiContext.Provider value={guiProps}>
+              <ImageContext.Provider value={imageContextValue}>
+                {/*NOTE, The ImageLightbox is inside of the AnnotatorMenuView*/}
+                <AnnotatorMenuView
+                  uiMenuVisible={this.props.uiMenuVisible!}
+                  selectedAnnotation={this.props.activeAnnotation}
+                  onSaveAnnotationsJson={this.saveAnnotationsJson}
+                  onSaveAnnotationsKML={this.saveAnnotationsKML}
+                  annotator={this}
+                />
+              </ImageContext.Provider>
+            </DatGuiContext.Provider>
             <ImageManager
               ref={this.imageManagerRef}
               config={this.configWithDefaults()}

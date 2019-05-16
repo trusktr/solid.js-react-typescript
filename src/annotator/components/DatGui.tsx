@@ -3,8 +3,8 @@ import {AnnotatedSceneActions, AnnotatedSceneConfig} from '@mapperai/mapper-anno
 import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import Paper from '@material-ui/core/Paper/Paper'
 import {Typography} from '@material-ui/core'
-import {menuMargin} from '../styleVars'
 import * as Dat from 'dat.gui'
+import DatGuiContext from './DatGuiContext'
 
 const dat: typeof Dat = (Dat as any).default as typeof Dat
 
@@ -22,14 +22,16 @@ export type GuiState = {
 }
 
 export interface Props extends WithStyles<typeof styles> {
-  initialState?: Partial<GuiState>
-  config: AnnotatedSceneConfig
-  onUpdate: (prop: string, guiState: GuiState) => void
+  initialState?: GuiState
+  config?: AnnotatedSceneConfig
+  onUpdate?: (prop: string, guiState: GuiState) => void
 }
 
 export interface State {}
 
 export class DatGui extends React.Component<Props, State> {
+  static contextType = DatGuiContext
+
   private datContainer = React.createRef<HTMLDivElement>()
   private sceneActions = new AnnotatedSceneActions()
   private gui?: dat.GUI
@@ -37,11 +39,16 @@ export class DatGui extends React.Component<Props, State> {
   // This is readonly, but because we pass it to dat.GUI, it can get written
   // there, and users of this class can only read values (which is what we want
   // to allow).
-  readonly guiState: GuiState = {...this.props.initialState} as GuiState
+  readonly guiState: GuiState = {...(this.props.initialState || this.context.initialState)} as GuiState
 
   // Create a UI widget to adjust application settings on the fly.
   private createControlsGui(): void {
-    if (!this.props.config['startup.show_control_panel']) {
+    if (
+      // FIXME, this option is missing.
+      (this.props.config && !this.props.config['startup.show_control_panel']) ||
+      !this.context.config['startup.show_control_panel']
+    ) {
+      // ...
     }
 
     const gui = (this.gui = new dat.GUI({
@@ -149,7 +156,8 @@ export class DatGui extends React.Component<Props, State> {
   }
 
   private guiUpdate(prop: string) {
-    this.props.onUpdate(prop, this.guiState)
+    if (this.props.onUpdate) this.props.onUpdate(prop, this.guiState)
+    else if (this.context.onUpdate) this.context.onUpdate(prop, this.guiState)
   }
 
   componentDidMount() {
@@ -185,12 +193,6 @@ function styles(_theme: Theme) {
   return createStyles({
     root: {
       padding: '10px',
-      position: 'absolute',
-      top: menuMargin,
-      left: menuMargin,
-      width: 300,
-      height: 'auto',
-      overflow: 'auto',
 
       '& .dg.main': {
         width: 'auto!important',

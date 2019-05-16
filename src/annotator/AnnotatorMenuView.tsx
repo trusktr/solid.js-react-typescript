@@ -32,6 +32,7 @@ import {
   tabBarHeight,
   headerHeight,
 } from './styleVars'
+import DatGui from './components/DatGui'
 type Annotator = import('./Annotator').Annotator
 
 interface AnnotatorMenuViewProps extends WithStyles<typeof styles> {
@@ -120,7 +121,15 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
             </>
           )}
           {tab === 1 && this.props.layerStatus && (
-            <LayerManager layerStatus={this.props.layerStatus} useCheckboxes={true} isDraggable={false} />
+            <>
+              <LayerManager
+                classes={{root: c.layerManager}}
+                layerStatus={this.props.layerStatus}
+                useCheckboxes={true}
+                isDraggable={false}
+              />
+              <DatGui classes={{root: c.datGui}} />
+            </>
           )}
           {tab === 2 && (
             <>
@@ -263,6 +272,14 @@ function styles(_theme: Theme) {
         minWidth: 40,
         borderRadius: 0,
       },
+    },
+
+    layerManager: {
+      marginTop: menuItemSpacing,
+    },
+
+    datGui: {
+      marginTop: menuItemSpacing,
     },
 
     hidden: {
