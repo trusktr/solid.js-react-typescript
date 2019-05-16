@@ -79,17 +79,21 @@ export default Windowable(
           <ImageContext.Consumer>
             {({lightboxState, onImageMouseEnter, onImageMouseLeave, onImageMouseUp}) => (
               <div className={classes.imageList} id="image_list" ref={this.imageListRef}>
-                {lightboxState.images.map((i: LightboxImageDescription) => (
-                  <img
-                    key={i.uuid}
-                    id={i.uuid}
-                    src={i.url}
-                    className={i.active ? 'highlighted' : ''}
-                    onMouseEnter={() => onImageMouseEnter(i.uuid)}
-                    onMouseLeave={() => onImageMouseLeave(i.uuid)}
-                    onMouseUp={this.makeOnImageMouseUp(onImageMouseUp)}
-                  />
-                ))}
+                {lightboxState && lightboxState.images ? (
+                  lightboxState.images.map((i: LightboxImageDescription) => (
+                    <img
+                      key={i.uuid}
+                      id={i.uuid}
+                      src={i.url}
+                      className={i.active ? 'highlighted' : ''}
+                      onMouseEnter={() => onImageMouseEnter(i.uuid)}
+                      onMouseLeave={() => onImageMouseLeave(i.uuid)}
+                      onMouseUp={this.makeOnImageMouseUp(onImageMouseUp)}
+                    />
+                  ))
+                ) : (
+                  <div />
+                )}
               </div>
             )}
           </ImageContext.Consumer>
