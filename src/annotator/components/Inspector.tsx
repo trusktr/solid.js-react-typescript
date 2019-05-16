@@ -46,6 +46,7 @@ class Inspector extends React.Component<IInspectorProps, IInspectorState> {
         <Typography variant="h5" gutterBottom>
           {(selectedAnnotation && selectedAnnotation.constructor.name) || 'Inspector'}
         </Typography>
+
         {!selectedAnnotation ? (
           <Typography variant="body1">Nothing is selected.</Typography>
         ) : (

@@ -2,10 +2,11 @@ import * as React from 'react'
 import Windowable from '../components/Windowable'
 import {Events} from '@mapperai/mapper-annotated-scene'
 import {withStyles, createStyles, WithStyles} from '@material-ui/core/styles'
-import config from 'annotator-config'
+import {Typography, Paper} from '@material-ui/core'
 import * as LightboxState from '@mapperai/mapper-annotated-scene'
 import {ImageContext} from './ImageContext'
 import {LightboxImageDescription, toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
+import {panelBorderRadius, btnTextColor, menuItemSpacing} from '../styleVars'
 
 type ImageLightboxProps = WithStyles<typeof styles> & {}
 
@@ -78,23 +79,30 @@ export default Windowable(
         return (
           <ImageContext.Consumer>
             {({lightboxState, onImageMouseEnter, onImageMouseLeave, onImageMouseUp}) => (
-              <div className={classes.imageList} id="image_list" ref={this.imageListRef}>
-                {lightboxState && lightboxState.images ? (
-                  lightboxState.images.map((i: LightboxImageDescription) => (
-                    <img
-                      key={i.uuid}
-                      id={i.uuid}
-                      src={i.url}
-                      className={i.active ? 'highlighted' : ''}
-                      onMouseEnter={() => onImageMouseEnter(i.uuid)}
-                      onMouseLeave={() => onImageMouseLeave(i.uuid)}
-                      onMouseUp={this.makeOnImageMouseUp(onImageMouseUp)}
-                    />
-                  ))
-                ) : (
-                  <div />
-                )}
-              </div>
+              <Paper className={classes.imageList} id="image_list">
+                <div ref={this.imageListRef}>
+                  <Typography variant="h5" gutterBottom>
+                    {' '}
+                    Images{' '}
+                  </Typography>
+
+                  {!lightboxState.images.length ? (
+                    <Typography variant="body1">No images loaded. Click an image in the scene.</Typography>
+                  ) : (
+                    lightboxState.images.map((i: LightboxImageDescription) => (
+                      <img
+                        key={i.uuid}
+                        id={i.uuid}
+                        src={i.url}
+                        className={i.active ? 'highlighted' : ''}
+                        onMouseEnter={() => onImageMouseEnter(i.uuid)}
+                        onMouseLeave={() => onImageMouseLeave(i.uuid)}
+                        onMouseUp={this.makeOnImageMouseUp(onImageMouseUp)}
+                      />
+                    ))
+                  )}
+                </div>
+              </Paper>
             )}
           </ImageContext.Consumer>
         )
@@ -107,8 +115,11 @@ export default Windowable(
 function styles() {
   return createStyles({
     imageList: {
-      padding: 5,
-      background: config['startup.background_color'] || '#000',
+      padding: 10,
+      borderRadius: panelBorderRadius,
+      color: btnTextColor.toHexString(),
+      marginTop: menuItemSpacing,
+      marginBottom: menuItemSpacing,
 
       '& img': {
         width: '100%',
