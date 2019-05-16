@@ -13,7 +13,6 @@ import config from 'annotator-config'
 import * as Electron from 'electron'
 import {flatten, head, uniq} from 'lodash'
 import $ = require('jquery')
-import {RefObject} from 'react'
 import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import {SimpleKML} from '../util/KmlUtils'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
@@ -87,7 +86,6 @@ interface AnnotatorState {
 
   annotationManager: AnnotationManager | null
   annotatedSceneController: AnnotatedSceneController | null
-  isImageScreensVisible: boolean
 
   annotatedSceneConfig?: IAnnotatedSceneConfig
 }
@@ -145,7 +143,7 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
   )
 )
 export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
-  private imageManagerRef: RefObject<ImageManager>
+  private imageManagerRef = React.createRef<ImageManager>()
   private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
   private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
   private highlightedLightboxImage: LightboxImage | null // image screen which is currently active in the Lightbox UI
@@ -168,7 +166,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       log.warn('Config option startup.animation.fps has been removed. Use startup.render.fps.')
     }
 
-    this.imageManagerRef = React.createRef<ImageManager>()
     this.raycasterImageScreen = new THREE.Raycaster()
     this.highlightedImageScreenBox = null
     this.highlightedLightboxImage = null
@@ -195,8 +192,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
       annotationManager: null,
       annotatedSceneController: null,
-
-      isImageScreensVisible: true,
     }
 
     this.guiState = {
@@ -220,11 +215,11 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     })
   }
 
-  // When ImageManager loads an image, add it to the scene.
-  // IDEA JOE The UI can have check boxes for showing/hiding layers.
-  private onImageScreenLoad = (): void => {
-    // todo lightbox fix
-    // this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
+  private get imageManager(): ImageManager | null {
+    // It's wrapped by the @typedConnect annotation on ImageManager.
+    // TODO Find a way to not do this.
+    const wrapped = this.imageManagerRef.current
+    return wrapped ? ((wrapped as any).getWrappedInstance() as ImageManager) : null
   }
 
   // When a lightbox ray is created, add it to the scene.
@@ -233,8 +228,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     // Accumulate rays while shift is pressed, otherwise clear old ones.
     if (!this.props.isShiftKeyPressed) this.clearLightboxImageRays()
 
-    // todo lightbox fix
-    // this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
     this.lightboxImageRays.push(ray)
     new AnnotatedSceneActions().addObjectToScene(ray)
   }
@@ -263,10 +256,10 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     )
       return
     if (this.props.isJoinAnnotationMode) return
-    if (!this.state.isImageScreensVisible) return
 
-    const imageManager = this.imageManagerRef.current
-    if (!(imageManager && imageManager.imageScreenMeshes.length)) return this.unHighlightImageScreenBox()
+    const imageManager = this.imageManager
+    if (!(imageManager && imageManager.isVisible && imageManager.imageScreenMeshes.length))
+      return this.unHighlightImageScreenBox()
 
     const mouse = mousePositionToGLSpace(this.props.mousePosition!, this.props.rendererSize!)
 
@@ -296,9 +289,8 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
   private clickImageScreenBox = (event: MouseEvent): void => {
     if (this.props.isMouseDragging) return
-    if (!this.state.isImageScreensVisible) return
-    const imageManager = this.imageManagerRef.current
-    if (!imageManager) return
+    const imageManager = this.imageManager
+    if (!(imageManager && imageManager.isVisible)) return
 
     switch (event.button) {
       // Left click released
@@ -365,7 +357,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     if (!this.props.isShiftKeyPressed) return
     if (imageScreenBox === this.highlightedImageScreenBox) return
 
-    const imageManager = this.imageManagerRef.current
+    const imageManager = this.imageManager
     if (!imageManager) return
 
     this.highlightedImageScreenBox = imageScreenBox
@@ -404,10 +396,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   // Draw the box with default opacity like all the other boxes.
   private unHighlightImageScreenBox(): void {
     if (this.highlightedLightboxImage) {
-      if (
-        this.imageManagerRef.current &&
-        this.imageManagerRef.current.unhighlightImageInLightbox(this.highlightedLightboxImage)
-      )
+      if (this.imageManager && this.imageManager.unhighlightImageInLightbox(this.highlightedLightboxImage))
         this.highlightedLightboxImage = null
     }
 
@@ -469,13 +458,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
     this.keyHeld('q', held => actions.setAddDeviceMode(held))
     this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
-  }
-
-  addImageScreenLayer(): void {
-    // const imagesToggle = (visible: boolean): void => {
-    // 	this.setState({isImageScreensVisible: visible})
-    // }
-    //this.state.annotatedSceneController!.addLayer(Layers.IMAGE_SCREENS, imagesToggle)
   }
 
   /**
@@ -707,7 +689,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     // events from ImageManager
     channel!.on(Events.KEYDOWN, annotatedSceneController.onKeyDown)
     channel!.on(Events.KEYUP, annotatedSceneController.onKeyUp)
-    channel!.on(Events.IMAGE_SCREEN_LOAD_UPDATE, this.onImageScreenLoad)
 
     // IDEA JOE maybe we need a separate LightBoxRayManager? Or at least move to ImageManager
     channel!.on(Events.LIGHT_BOX_IMAGE_RAY_UPDATE, this.onLightboxImageRay)
@@ -720,8 +701,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     // TODO JOE move UI logic to React/JSX, and get state from Redux
 
     channel!.once(Events.ANNOTATED_SCENE_READY, async () => {
-      this.addImageScreenLayer()
-
       const annotationsPath = config['startup.annotations_path']
 
       if (annotationsPath) {
@@ -819,7 +798,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   }
 
   private setImageScreenOpacity = () => {
-    this.imageManagerRef.current && this.imageManagerRef.current.setOpacity(this.guiState.imageScreenOpacity)
+    this.imageManager && this.imageManager.setOpacity(this.guiState.imageScreenOpacity)
     this.forceUpdate()
   }
 
@@ -887,13 +866,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
     if (this.props.activeAnnotation && oldProps.activeAnnotation !== this.props.activeAnnotation)
       this.previouslySelectedAnnotations.setByType(this.props.activeAnnotation)
-
-    if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
-      const imageManager = this.imageManagerRef.current
-      if (imageManager)
-        if (this.state.isImageScreensVisible) imageManager.showImageScreens()
-        else imageManager.hideImageScreens()
-    }
   }
 
   render(): JSX.Element {
@@ -902,9 +874,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     const {onImageMouseEnter, onImageMouseLeave, onImageMouseUp} = this
 
     const imageContextValue: ImageContextState = {
-      lightboxState: this.imageManagerRef.current
-        ? this.imageManagerRef.current.lightboxState
-        : initialImageContextValue.lightboxState,
+      lightboxState: this.imageManager ? this.imageManager.lightboxState : initialImageContextValue.lightboxState,
       onImageMouseEnter,
       onImageMouseLeave,
       onImageMouseUp,
