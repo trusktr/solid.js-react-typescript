@@ -19,12 +19,12 @@ import {
   ISessionInfo,
   DataProviderFactory,
   AnnotationManager,
-  getLogger,
 } from '@mapperai/mapper-annotated-scene'
 import {makeSaffronDataProviderFactory} from './SaffronDataProviderFactory'
 import Annotator from '../annotator/Annotator'
 import createStyles from '@material-ui/core/styles/createStyles'
 import {ActivityTracker} from './ActivityTracker'
+import getLogger from 'util/Logger'
 
 const log = getLogger(__filename)
 
@@ -73,7 +73,7 @@ export class App extends React.Component<AppProps, AppState> {
   private onSessionSelected = (factory: DataProviderFactory, session: ISessionInfo) =>
     this.setState({
       session,
-      dataProviderFactory: factory.forSessionId(session.id), //App.createDataProviderFactory(session.id),
+      dataProviderFactory: factory.forSessionId(session.id),
       reset: true,
     })
 
@@ -115,8 +115,8 @@ export class App extends React.Component<AppProps, AppState> {
   }
 
   render(): JSX.Element {
-    const {classes} = this.props,
-      {reset, session, dataProviderFactory, dataProviderFactories} = this.state
+    const {classes} = this.props
+    const {reset, session, dataProviderFactory, dataProviderFactories} = this.state
 
     return (
       <div className={classes!.root}>

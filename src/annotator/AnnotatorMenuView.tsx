@@ -4,7 +4,7 @@
  */
 
 import * as React from 'react'
-import initUIControl from './annotator-control-ui/UIControl'
+import {pick} from 'lodash'
 import {
   Annotation,
   LayerManager,
@@ -12,180 +12,182 @@ import {
   toProps,
   AnnotatedSceneState,
   LayerStatusMap,
+  AnnotationType,
+  StatusWindowActions,
+  AnnotatedSceneActions,
 } from '@mapperai/mapper-annotated-scene'
+import {mergeClasses as classNames} from '@mapperai/mapper-themes'
+import ImageLightbox from './annotator-image-lightbox/ImageLightbox'
 import Help from '../annotator/components/Help'
 import {Inspector} from './components/Inspector'
-import {IThemedProperties, withStatefulStyles, mergeStyles, mergeClasses} from '@mapperai/mapper-themes'
-import {menuSpacing, menuTopPosition, panelBorderRadius} from './styleVars'
+import {withStyles, createStyles, Theme, WithStyles, Button, AppBar, Tabs, Tab} from '@material-ui/core'
+import {
+  menuItemSpacing,
+  menuMargin,
+  panelBorderRadius,
+  btnColor,
+  btnTextColor,
+  colors,
+  jQueryAccordionItemHeight,
+  tabBarHeight,
+  headerHeight,
+} from './styleVars'
+import DatGui from './components/DatGui'
+type Annotator = import('./Annotator').Annotator
 
-interface AnnotatorMenuViewProps extends IThemedProperties {
+interface AnnotatorMenuViewProps extends WithStyles<typeof styles> {
   uiMenuVisible: boolean
   layerStatus?: LayerStatusMap
   selectedAnnotation?: Annotation | null
   onSaveAnnotationsJson(): void
   onSaveAnnotationsKML(): void
+  annotator: Annotator
 }
 
-interface AnnotatorMenuViewState {}
+interface AnnotatorMenuViewState {
+  windowOpen: boolean
+  tab: number
+}
 
 @typedConnect(toProps(AnnotatedSceneState, 'layerStatus'))
-@withStatefulStyles(styles)
-export default class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
-  constructor(props: AnnotatorMenuViewProps) {
-    super(props)
+class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
+  state = {
+    windowOpen: false,
+    tab: 1, // Layers
+  }
+
+  private statusWindowActions = new StatusWindowActions()
+  private sceneActions = new AnnotatedSceneActions()
+
+  private onClickDeleteAnnotation = () => {
+    this.props.annotator.uiDeleteActiveAnnotation()
+  }
+
+  private onClickAddLane = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.Lane)
+  }
+
+  private onClickAddTrafficDevice = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.TrafficDevice)
+  }
+
+  private onPublishClick = () => {
+    this.props.annotator.state.annotationManager!.publish().then()
+  }
+
+  private onStatusWindowClick = () => {
+    this.statusWindowActions.toggleEnabled()
+  }
+
+  private onMenuClick = () => {
+    this.sceneActions.toggleUIMenuVisible()
+  }
+
+  private onTabChange = (_event, tab: number) => {
+    this.setState({tab})
   }
 
   render(): JSX.Element {
-    const {classes} = this.props
+    const {classes: c} = this.props
+    const {tab} = this.state
     return (
-      <div id="menu" className={mergeClasses(classes!.menu!, this.props.uiMenuVisible ? '' : 'hidden')}>
-        <menu id="annotationMenu" className="menu">
-          {this.props.layerStatus && (
-            <LayerManager layerStatus={this.props.layerStatus} useCheckboxes={true} isDraggable={false} />
+      <div className={c.menu}>
+        <div className={c.tabBar}>
+          <AppBar color="default" className={c.tabs}>
+            <Tabs
+              value={tab}
+              onChange={this.onTabChange}
+              indicatorColor="primary"
+              textColor="primary"
+              variant="fullWidth"
+              // scrollable={true}
+              scrollButtons="on"
+              classes={{...pick(c, 'indicator')}}
+            >
+              <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Properties" />
+              <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Layers" />
+              <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Actions" />
+            </Tabs>
+          </AppBar>
+          <Button variant="contained" color="primary" onClick={this.onMenuClick} className={c.menuToggle}>
+            &#9776;
+          </Button>
+        </div>
+        <div className={classNames(this.props.uiMenuVisible && c.hidden, c.menuContent)}>
+          {tab === 0 && (
+            <>
+              <Inspector selectedAnnotation={this.props.selectedAnnotation} />
+              <ImageLightbox windowed={false} />
+            </>
           )}
-          <div id="tools" className="div_buttons_group">
-            <button id="tools_add_lane" className="ui-btn ui-icon-plus ui-btn-icon-left">
-              New Lane
-            </button>
-            <button id="tools_add_traffic_device" className="ui-btn ui-icon-plus ui-btn-icon-left">
-              New Traffic Device
-            </button>
-            <button id="tools_delete" className="ui-btn ui-icon-minus ui-btn-icon-left">
-              Delete Annotation
-            </button>
-            {/*
-            <button
-              id="tools_load_images"
-              className="ui-btn ui-icon-camera ui-btn-icon-left"
-            >
-              Load Images
-            </button>
-            <button
-              id="tools_load_annotation"
-              className="ui-btn ui-icon-edit ui-btn-icon-left"
-            >
-              Load Annotations
-            </button>
-            */}
-            <button onClick={this.props.onSaveAnnotationsKML} className="ui-btn ui-icon-location ui-btn-icon-left">
-              Save Annotations as KML
-            </button>
-            <button onClick={this.props.onSaveAnnotationsJson} className="ui-btn ui-icon-location ui-btn-icon-left">
-              Save Annotations as JSON
-            </button>
-          </div>
-
-          <div id="menu_boundary" className="accordion">
-            <h3 id="exp_head_1" className="dropdown_head">
-              Boundary Properties
-            </h3>
-            <div id="exp_body_1" className="dropdown_body">
-              <div id="boundary_prop" className="fieldset_content_style" />
-            </div>
-          </div>
-
-          <div id="menu_lane" className="accordion">
-            <h3 id="exp_head_2" className="dropdown_head">
-              Lane Properties
-            </h3>
-            <div id="exp_body_2" className="dropdown_body">
-              <div id="lane_prop" className="fieldset_content_style">
-                <div id="lane_prop_1" className="div_properties" />
-                <div id="lane_prop_2" className="div_glue">
-                  Add Neighbor:
-                </div>
-                <div id="lane_prop_3" className="div_buttons_group">
-                  <button className="laneBtn" id="lp_add_forward">
-                    &uarr;
-                  </button>
-                </div>
-                <div id="lane_prop_4" className="div_buttons_group">
-                  <button className="laneBtn" id="lp_add_left_opposite">
-                    &darr;
-                  </button>
-                  <button className="laneBtn" id="lp_add_left_same">
-                    &uarr;
-                  </button>
-                  <button className="laneBtn" id="lp_current" disabled>
-                    C
-                  </button>
-                  <button className="laneBtn" id="lp_add_right_same">
-                    &uarr;
-                  </button>
-                  <button className="laneBtn" id="lp_add_right_opposite">
-                    &darr;
-                  </button>
-                </div>
+          {tab === 1 && this.props.layerStatus && (
+            <>
+              <LayerManager
+                classes={{root: c.layerManager}}
+                layerStatus={this.props.layerStatus}
+                useCheckboxes={true}
+                isDraggable={false}
+              />
+              <DatGui classes={{root: c.datGui}} />
+            </>
+          )}
+          {tab === 2 && (
+            <>
+              <div id="tools" className={c.btnGroup}>
+                <button className={c.btn} onClick={this.onClickAddLane}>
+                  New Lane
+                </button>
+                <button className={c.btn} onClick={this.onClickAddTrafficDevice}>
+                  New Traffic Device
+                </button>
+                <button className={c.btn} onClick={this.onClickDeleteAnnotation}>
+                  Delete Annotation
+                </button>
+                <button className={c.btn} onClick={this.props.onSaveAnnotationsKML}>
+                  Save Annotations as KML
+                </button>
+                <button className={c.btn} onClick={this.props.onSaveAnnotationsJson}>
+                  Save Annotations as JSON
+                </button>
+                <button className={c.btn} onClick={this.onPublishClick}>
+                  Publish
+                </button>
+                <button className={c.btn} onClick={this.onStatusWindowClick}>
+                  Toggle Info Panel
+                </button>
               </div>
-            </div>
-          </div>
-          <div id="menu_connection" className="accordion">
-            <h3 id="exp_head_3" className="dropdown_head">
-              Connection Properties
-            </h3>
-            <div id="exp_body_3" className="dropdown_body">
-              <div id="connection_prop" className="fieldset_content_style" />
-            </div>
-          </div>
-          <div id="menu_traffic_device" className="accordion">
-            <h3 id="exp_head_4" className="dropdown_head">
-              Traffic Device Properties
-            </h3>
-            <div id="exp_body_4" className="dropdown_body">
-              <div id="traffic_device_prop_1" className="fieldset_content_style" />
-              <div id="traffic_device_prop_2" className="fieldset_content_style" />
-            </div>
-          </div>
-          <div id="menu_polygon" className="accordion">
-            <h3 id="menu_head_polygon" className="dropdown_head">
-              Polygon Properties
-            </h3>
-            <div id="menu_body_polygon" className="dropdown_body">
-              {/* nothing in the panel at the moment */}
-            </div>
-          </div>
-          <div id="menu_help" className="accordion">
-            <h3 id="exp_head_6" className="dropdown_head">
-              Help
-            </h3>
-            <div id="exp_body_6" className="dropdown_body">
               <Help />
-            </div>
-          </div>
-          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
-        </menu>
+            </>
+          )}
+        </div>
       </div>
     )
   }
-
-  componentDidMount(): void {
-    initUIControl()
-  }
 }
 
+export default withStyles(styles)(AnnotatorMenuView)
+
 // eslint-disable-next-line typescript/explicit-function-return-type
-function styles() {
-  return mergeStyles({
+function styles(_theme: Theme) {
+  return createStyles({
     menu: {
       position: 'absolute',
-      right: menuSpacing,
-      height: `calc(100% - ${menuTopPosition}px - ${menuSpacing}px)`,
+      right: menuMargin,
+      maxHeight: `calc(100vh - ${headerHeight}px - ${menuMargin * 2}px)`,
       width: '250px',
       zIndex: 1,
-      top: menuTopPosition,
+      top: menuMargin,
       backgroundColor: 'transparent',
-      overflowX: 'visible', // visible, but don't scroll
-      overflowY: 'auto', // scroll if necessary
+      overflow: 'hidden',
       paddingTop: 0,
       borderRadius: panelBorderRadius,
 
-      '&.hidden': {
-        display: 'none',
-      },
-
-      '& menu': {
+      '& $menuContent': {
         padding: 0,
         margin: 0,
+        maxHeight: `calc(100vh - ${headerHeight}px - ${menuMargin * 2}px - ${tabBarHeight}px)`,
+        overflowX: 'visible', // visible, but don't scroll
+        overflowY: 'auto', // scroll if necessary
       },
 
       '& *': {
@@ -196,113 +198,102 @@ function styles() {
         boxSizing: 'border-box',
       },
 
-      '& .statusOk': {
-        color: '#0a0',
-      },
-      '& .statusWarning': {
-        color: '#ffd260',
-      },
-      '& .statusError': {
-        color: '#a00',
-      },
-      '& button': {
+      '& $btn': {
         width: '100%',
+        marginTop: menuItemSpacing,
+        height: jQueryAccordionItemHeight,
         textDecoration: 'none',
         outline: 0,
-        color: '#fff',
-        backgroundColor: '#4caf50',
+        color: btnTextColor.toHexString(),
+        backgroundColor: btnColor.toHexString(),
         border: 0,
-        borderRadius: '15px',
-        '&.laneBtn': {
-          width: '30px',
-        },
+        borderRadius: panelBorderRadius,
+        fontSize: '12px',
         '&:active': {
-          backgroundColor: '#3e8e41',
-          transform: 'translateY(4px)',
+          backgroundColor: btnColor
+            .clone()
+            .darken(5)
+            .toHexString(),
+          borderColor: btnColor
+            .clone()
+            .lighten(20)
+            .toHexString(),
         },
         '&:hover': {
-          backgroundColor: '#3e8e41',
+          backgroundColor: btnColor
+            .clone()
+            .lighten(5)
+            .toHexString(),
+          borderColor: btnColor
+            .clone()
+            .lighten(20)
+            .toHexString(),
         },
       },
-      '& .fieldset_content_style': {
-        width: '100%',
-        height: '100%',
-        marginTop: '2px',
+      '& $btnGroup': {
         textAlign: 'center',
-      },
-      '& .div_buttons_group': {
-        marginTop: '2px',
-        textAlign: 'center',
-      },
-      '& .div_properties': {
-        marginTop: '2px',
-        textAlign: 'center',
-      },
-      '& .div_glue, & .div_help': {
-        marginTop: '2px',
-        textAlign: 'left',
-        fontSize: 'x-small',
-      },
-      '& .div_help': {
-        marginTop: 0,
-      },
-      '& .ui-btn': {
-        fontSize: '12px',
-      },
-      '& .label_style, & .select_style': {
-        textAlign: 'left',
-        padding: 0,
-        margin: 0,
-        float: 'left',
-        fontSize: 'x-small',
-      },
-      '& .label_style': {
-        border: 0,
-        backgroundColor: 'transparent',
-        width: '60%',
-      },
-      '& .select_style': {
-        width: '40%',
-      },
-      '& .accordion': {
-        outline: 0,
-        borderRadius: '10px',
-        marginBottom: '2px',
-        backgroundColor: '#f4511e',
-        border: 0,
-        color: '#fff',
-        textAlign: 'left',
-        fontSize: '15px',
-        padding: 0,
-        width: 'auto',
-        cursor: 'pointer',
-      },
-      '& .dropdown_head': {
-        margin: '3px',
-        padding: '2px',
-        fontSize: '12px',
-        '&:after': {
-          content: "'\\02795'", // TODO? it was '\02795' in the CSS
-          fontSize: '10px',
-          paddingRight: '5px',
-          paddingTop: '2px',
-          float: 'right',
-        },
-        '&:active': {
-          '&:after': {
-            content: "'-'",
-          },
-        },
-      },
-      '& .dropdown_body': {
-        height: 'auto',
-        padding: '5px',
-        borderRadius: '5px',
-        backgroundColor: '#faebd7',
-        color: '#000',
-        display: 'none',
-        overflow: 'auto',
       },
     },
+
+    tabBar: {
+      display: 'flex',
+
+      '& $tabs': {
+        width: 'calc(100% - 40px)',
+        position: 'static',
+
+        '& $tab': {
+          // make tabs smaller than they are designed to be.
+          minWidth: 40,
+          color: btnTextColor
+            .clone()
+            .darken(50)
+            .toHexString(),
+
+          '&$selected': {
+            color: btnTextColor.toHexString(),
+          },
+
+          '& $label': {
+            // center the tab text in the smaller tabs.
+            display: 'inline-block',
+            marginLeft: '50%',
+            transform: 'translateX(-50%)',
+          },
+        },
+
+        '& $indicator': {
+          backgroundColor: colors.saffron.toHexString(),
+        },
+      },
+
+      '& $menuToggle': {
+        width: 40,
+        minWidth: 40,
+        borderRadius: 0,
+      },
+    },
+
+    layerManager: {
+      marginTop: menuItemSpacing,
+    },
+
+    datGui: {
+      marginTop: menuItemSpacing,
+    },
+
+    hidden: {
+      display: 'none',
+    },
+
+    menuContent: {},
+    menuToggle: {},
+    tabs: {},
+    tab: {},
+    selected: {},
+    label: {},
+    indicator: {},
+    btn: {},
+    btnGroup: {},
   })
 }
