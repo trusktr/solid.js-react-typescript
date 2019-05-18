@@ -45,14 +45,14 @@ import {
   Annotation,
   DefaultConfig,
   SceneEmitter,
+  typedConnect,
 } from '@mapperai/mapper-annotated-scene'
-import {ReactUtil} from '@mapperai/mapper-saffron-sdk'
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
 import {ImageManager, ImageClick, LightboxImage} from '@mapperai/mapper-annotated-scene'
 import {ImageContext, ImageContextState, initialImageContextValue} from './annotator-image-lightbox/ImageContext'
-import getLogger from 'util/Logger'
+import getLogger from '../util/Logger'
 import {GuiState} from './components/DatGui'
 import DatGuiContext, {ContextState as GuiContextState} from './components/DatGuiContext'
 
@@ -117,7 +117,7 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
   activeAnnotation?: Annotation | null
 }
 
-@ReactUtil.typedConnect(
+@typedConnect(
   toProps(
     AnnotatedSceneState,
     'uiMenuVisible',
@@ -895,7 +895,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     const {dataProviderFactory, classes} = this.props
     const {onImageMouseEnter, onImageMouseLeave, onImageMouseUp} = this
 
-    let manager = this.imageManager
+    const manager = this.imageManager
 
     const imageContextValue: ImageContextState = {
       lightboxState: manager ? manager.lightboxState : initialImageContextValue.lightboxState,

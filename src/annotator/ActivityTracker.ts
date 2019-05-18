@@ -1,6 +1,6 @@
 import {getS3Client} from '@mapperai/mapper-annotated-scene'
-import SaffronSDK, {getAccount, getOrganizationId} from '@mapperai/mapper-saffron-sdk'
-import getLogger from 'util/Logger'
+import getLogger from '../util/Logger'
+import {getAppAWSCredentials, getOrganizationId, getAccount} from './ipc'
 
 const log = getLogger(__filename)
 
@@ -38,14 +38,14 @@ export class ActivityTracker<T extends Object> {
 
     this.userHasInteracted = false
 
-    const credentials = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
+    const credentials = await getAppAWSCredentials()
 
     if (!credentials) throw new Error('Unable to get AWS credentials')
 
     const Bucket = credentials.sessionBucket
     const s3 = getS3Client(credentials.credentials)
-    const organizationId = getOrganizationId()
-    const account = getAccount()
+    const organizationId = await getOrganizationId()
+    const account = await getAccount()
     const sessionId = this.sessionId
 
     if (!(account && (account.user as any).user_id)) {

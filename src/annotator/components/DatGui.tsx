@@ -3,10 +3,8 @@ import {AnnotatedSceneActions, AnnotatedSceneConfig} from '@mapperai/mapper-anno
 import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import Paper from '@material-ui/core/Paper/Paper'
 import {Typography} from '@material-ui/core'
-import * as Dat from 'dat.gui'
+import dat = require('dat.gui')
 import DatGuiContext from './DatGuiContext'
-
-const dat: typeof Dat = (Dat as any).default as typeof Dat
 
 export type GuiState = {
   lockBoundaries: boolean

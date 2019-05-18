@@ -3,7 +3,6 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-//import SaffronSessionDataPersistenceProvider from './SaffronSessionDataPersistenceProvider'
 import * as React from 'react'
 import {
   IThemedProperties,
@@ -24,7 +23,7 @@ import {makeSaffronDataProviderFactory} from './SaffronDataProviderFactory'
 import Annotator from '../annotator/Annotator'
 import createStyles from '@material-ui/core/styles/createStyles'
 import {ActivityTracker} from './ActivityTracker'
-import getLogger from 'util/Logger'
+import getLogger from '../util/Logger'
 
 const log = getLogger(__filename)
 
@@ -46,8 +45,8 @@ export interface AppState {
 
 @withStatefulStyles(styles)
 export class App extends React.Component<AppProps, AppState> {
-  private static createDataProviderFactory(sessionId: string | null = null): DataProviderFactory {
-    return makeSaffronDataProviderFactory(sessionId, false)
+  private static async createDataProviderFactory(sessionId: string | null = null): Promise<DataProviderFactory> {
+    return await makeSaffronDataProviderFactory(sessionId, false)
   }
 
   private activityTracker?: ActivityTracker<IActivityTrackingInfo>
@@ -57,7 +56,7 @@ export class App extends React.Component<AppProps, AppState> {
 
     // noinspection PointlessBooleanExpressionJS
     this.state = {
-      dataProviderFactories: [App.createDataProviderFactory()],
+      dataProviderFactories: [],
       dataProviderFactory: null,
       session: null,
       env: 'prod',
@@ -65,6 +64,12 @@ export class App extends React.Component<AppProps, AppState> {
       isSaffron: window.isSaffron === true,
       annotationManager: null,
     }
+
+    ~(async () => {
+      this.setState({
+        dataProviderFactories: [await App.createDataProviderFactory()],
+      })
+    })()
   }
 
   /**
@@ -120,7 +125,7 @@ export class App extends React.Component<AppProps, AppState> {
 
     return (
       <div className={classes!.root}>
-        {dataProviderFactories && (
+        {dataProviderFactories.length && (
           <React.Fragment>
             <SessionPicker
               onSessionSelected={this.onSessionSelected}

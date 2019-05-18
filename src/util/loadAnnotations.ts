@@ -2,7 +2,7 @@ import * as AsyncFile from 'async-file'
 import * as Electron from 'electron'
 import * as THREE from 'three'
 import {LayerStatus, AnnotatedSceneController} from '@mapperai/mapper-annotated-scene'
-import getLogger from 'util/Logger'
+import getLogger from './Logger'
 const log = getLogger(__filename)
 const dialog = Electron.remote.dialog
 
