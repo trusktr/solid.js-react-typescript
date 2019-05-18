@@ -33,6 +33,7 @@ import {
   headerHeight,
 } from './styleVars'
 import DatGui from './components/DatGui'
+import {DragDropContext, Draggable, Droppable} from 'react-beautiful-dnd'
 type Annotator = import('./Annotator').Annotator
 
 interface AnnotatorMenuViewProps extends WithStyles<typeof styles> {
@@ -87,9 +88,12 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     this.setState({tab})
   }
 
+  private onDragEnd = () => {}
+
   render(): JSX.Element {
     const {classes: c} = this.props
     const {tab} = this.state
+
     return (
       <div className={c.menu}>
         <div className={c.tabBar}>
@@ -113,53 +117,73 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
             &#9776;
           </Button>
         </div>
-        <div className={classNames(this.props.uiMenuVisible && c.hidden, c.menuContent)}>
-          {tab === 0 && (
-            <>
-              <Inspector selectedAnnotation={this.props.selectedAnnotation} />
-              <ImageLightbox windowed={false} />
-            </>
-          )}
-          {tab === 1 && this.props.layerStatus && (
-            <>
-              <LayerManager
-                classes={{root: c.layerManager}}
-                layerStatus={this.props.layerStatus}
-                useCheckboxes={true}
-                isDraggable={false}
-              />
-              <DatGui classes={{root: c.datGui}} />
-            </>
-          )}
-          {tab === 2 && (
-            <>
-              <div id="tools" className={c.btnGroup}>
-                <button className={c.btn} onClick={this.onClickAddLane}>
-                  New Lane
-                </button>
-                <button className={c.btn} onClick={this.onClickAddTrafficDevice}>
-                  New Traffic Device
-                </button>
-                <button className={c.btn} onClick={this.onClickDeleteAnnotation}>
-                  Delete Annotation
-                </button>
-                <button className={c.btn} onClick={this.props.onSaveAnnotationsKML}>
-                  Save Annotations as KML
-                </button>
-                <button className={c.btn} onClick={this.props.onSaveAnnotationsJson}>
-                  Save Annotations as JSON
-                </button>
-                <button className={c.btn} onClick={this.onPublishClick}>
-                  Publish
-                </button>
-                <button className={c.btn} onClick={this.onStatusWindowClick}>
-                  Toggle Info Panel
-                </button>
-              </div>
-              <Help />
-            </>
-          )}
-        </div>
+
+        <DragDropContext onDragStart={() => {}} onDragEnd={this.onDragEnd} onDragUpdate={() => {}}>
+          <div className={classNames(this.props.uiMenuVisible && c.hidden, c.menuContent)}>
+            {tab === 0 && (
+              <Droppable droppableId={'0'}>
+                {provided => (
+                  <div {...provided.droppableProps} ref={provided.innerRef}>
+                    <Draggable draggableId={'inspector'} index={0}>
+                      {provided => (
+                        <div {...provided.draggableProps} {...provided.dragHandleProps} ref={provided.innerRef}>
+                          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
+                        </div>
+                      )}
+                    </Draggable>
+                    <Draggable draggableId={'lightbox'} index={1}>
+                      {provided => (
+                        <div {...provided.draggableProps} {...provided.dragHandleProps} ref={provided.innerRef}>
+                          <ImageLightbox windowed={false} />
+                        </div>
+                      )}
+                    </Draggable>
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            )}
+            {tab === 1 && this.props.layerStatus && (
+              <>
+                <LayerManager
+                  classes={{root: c.layerManager}}
+                  layerStatus={this.props.layerStatus}
+                  useCheckboxes={true}
+                  isDraggable={false}
+                />
+                <DatGui classes={{root: c.datGui}} />
+              </>
+            )}
+            {tab === 2 && (
+              <>
+                <div id="tools" className={c.btnGroup}>
+                  <button className={c.btn} onClick={this.onClickAddLane}>
+                    New Lane
+                  </button>
+                  <button className={c.btn} onClick={this.onClickAddTrafficDevice}>
+                    New Traffic Device
+                  </button>
+                  <button className={c.btn} onClick={this.onClickDeleteAnnotation}>
+                    Delete Annotation
+                  </button>
+                  <button className={c.btn} onClick={this.props.onSaveAnnotationsKML}>
+                    Save Annotations as KML
+                  </button>
+                  <button className={c.btn} onClick={this.props.onSaveAnnotationsJson}>
+                    Save Annotations as JSON
+                  </button>
+                  <button className={c.btn} onClick={this.onPublishClick}>
+                    Publish
+                  </button>
+                  <button className={c.btn} onClick={this.onStatusWindowClick}>
+                    Toggle Info Panel
+                  </button>
+                </div>
+                <Help />
+              </>
+            )}
+          </div>
+        </DragDropContext>
       </div>
     )
   }
