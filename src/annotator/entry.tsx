@@ -2,7 +2,6 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
-import {setGuardErrorHandler} from 'typeguard'
 import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
 import * as $ from 'jquery'
 import * as React from 'react'
@@ -12,7 +11,7 @@ import * as tinycolor from 'tinycolor2'
 import {Deferred, loadAnnotatedSceneStore, getAnnotatedSceneReduxStore} from '@mapperai/mapper-annotated-scene'
 import {App} from './App'
 import {configReady} from 'annotator-config'
-import {getEnv, goAhead} from './ipc'
+import {goAhead} from './ipc'
 import {MuiThemeProvider, createMuiTheme} from '@material-ui/core'
 
 type ElementOrComponent = JSX.Element | React.Component
@@ -24,10 +23,6 @@ async function start(isInsideSaffronBrowsingContext = false): Promise<ElementOrC
   deferred = new Deferred<ElementOrComponent>()
 
   await goAhead()
-
-  if ((await getEnv()) !== 'prod') {
-    setGuardErrorHandler(err => console.warn(`GUARD ERROR: `, err))
-  }
 
   // This is needed because jQuery-ui depends on the globals existing.
   Object.assign(global, {
