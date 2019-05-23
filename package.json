@@ -118,10 +118,10 @@
     "webpack-sources": "1.1.0"
   },
   "dependencies": {
-    "@mapperai/mapper-annotated-scene": "Signafy/mapper-annotated-scene#8b74fadd0156cf2c7f796193feaa37c0afa1c8e5",
+    "@mapperai/mapper-annotated-scene": "Signafy/mapper-annotated-scene#4ee893c95edfa5d5d3c3b2a670ec8dc10b7c1475",
     "@mapperai/mapper-models": "1.9.8",
     "@mapperai/mapper-saffron-sdk": "2.1.9",
-    "@mapperai/mapper-themes": "Signafy/mapper-themes#79a86434b7297256fc0bf9dc4a61e597ab4d4246",
+    "@mapperai/mapper-themes": "Signafy/mapper-themes#32291be22fadb6c621ba2d329a7449f7e3d5811a",
     "@material-ui/core": "^3.9.3",
     "@types/react-beautiful-dnd": "^11.0.2",
     "animation-loop": "1.4.0",
