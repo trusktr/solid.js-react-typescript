@@ -4,7 +4,7 @@ import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import Paper from '@material-ui/core/Paper/Paper'
 import {Typography} from '@material-ui/core'
 import dat = require('dat.gui')
-import DatGuiContext from './DatGuiContext'
+import DatGuiContext, {ContextState} from './DatGuiContext'
 
 export type GuiState = {
   lockBoundaries: boolean
@@ -28,7 +28,13 @@ export interface Props extends WithStyles<typeof styles> {
 export interface State {}
 
 export class DatGui extends React.Component<Props, State> {
-  static contextType = DatGuiContext
+  // FIXME 'as any' fixes a React type error.
+  static contextType = DatGuiContext as any
+
+  // FIXME this is a workaround for the above React contextType problem
+  private get ctx() {
+    return this.context as ContextState
+  }
 
   private datContainer = React.createRef<HTMLDivElement>()
   private sceneActions = new AnnotatedSceneActions()
@@ -37,14 +43,14 @@ export class DatGui extends React.Component<Props, State> {
   // This is readonly, but because we pass it to dat.GUI, it can get written
   // there, and users of this class can only read values (which is what we want
   // to allow).
-  readonly guiState: GuiState = {...(this.props.initialState || this.context.initialState)} as GuiState
+  readonly guiState: GuiState = {...(this.props.initialState || this.ctx.initialState)} as GuiState
 
   // Create a UI widget to adjust application settings on the fly.
   private createControlsGui(): void {
     if (
       // FIXME, this option is missing.
       (this.props.config && !this.props.config['startup.show_control_panel']) ||
-      !this.context.config['startup.show_control_panel']
+      !this.ctx.config['startup.show_control_panel']
     ) {
       // ...
     }
@@ -155,7 +161,7 @@ export class DatGui extends React.Component<Props, State> {
 
   private guiUpdate(prop: string) {
     if (this.props.onUpdate) this.props.onUpdate(prop, this.guiState)
-    else if (this.context.onUpdate) this.context.onUpdate(prop, this.guiState)
+    else if (this.ctx.onUpdate) this.ctx.onUpdate(prop, this.guiState)
   }
 
   componentDidMount() {

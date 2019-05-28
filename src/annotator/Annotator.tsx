@@ -34,6 +34,7 @@ import {
   Layer,
   StatusWindowState,
   AnnotatedSceneController,
+  AnnotatedSceneControllerInner,
   THREEColorValue,
   toProps,
   Events,
@@ -51,7 +52,11 @@ import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
 import {ImageManager, ImageClick, LightboxImage} from '@mapperai/mapper-annotated-scene'
-import {ImageContext, ImageContextState, initialImageContextValue} from './annotator-image-lightbox/ImageContext'
+import {
+  ImageContext,
+  ContextState as ImageContextState,
+  initialImageContextValue,
+} from './annotator-image-lightbox/ImageContext'
 import getLogger from '../util/Logger'
 import {GuiState} from './components/DatGui'
 import DatGuiContext, {ContextState as GuiContextState} from './components/DatGuiContext'
@@ -85,7 +90,7 @@ interface AnnotatorState {
   layerGroupIndex: number
 
   annotationManager: AnnotationManager | null
-  annotatedSceneController: AnnotatedSceneController | null
+  annotatedSceneController: AnnotatedSceneControllerInner | null
   isImageScreensVisible: boolean
 
   annotatedSceneConfig?: IAnnotatedSceneConfig
@@ -716,13 +721,8 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   }
 
   /* eslint-disable typescript/no-explicit-any */
-  private setAnnotatedSceneRef = (ref: any) => {
-    this.setState(
-      {
-        annotatedSceneController: ref as AnnotatedSceneController,
-      },
-      this.attachScene
-    )
+  private setAnnotatedSceneRef = (ref: AnnotatedSceneControllerInner) => {
+    this.setState({annotatedSceneController: ref}, this.attachScene)
   }
   /* eslint-enable typescript/no-explicit-any */
 

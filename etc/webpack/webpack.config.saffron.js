@@ -196,10 +196,17 @@ module.exports = {
     // supplied by Node
     'electron',
     'source-map-support',
+    'require-context',
 
     // supplied by Saffron
     'react',
     '@mapperai/mapper-saffron-sdk',
+    // function(context, request, callback) {
+    //   if (/^@mapperai\/mapper-themes\/dist\/fonts/.test(request)) {
+    //     return callback(null, 'commonjs ' + request)
+    //   }
+    //   callback()
+    // },
   ],
 
   devServer: {

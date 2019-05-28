@@ -6,13 +6,14 @@ import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-l
 import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import {Provider} from 'react-redux'
+import {Provider as ReduxProvider} from 'react-redux'
 import * as tinycolor from 'tinycolor2'
+import {MuiThemeProvider, createMuiTheme} from '@material-ui/core'
+// import {MapperCssBaseline} from '@mapperai/mapper-themes'
 import {Deferred, loadAnnotatedSceneStore, getAnnotatedSceneReduxStore} from '@mapperai/mapper-annotated-scene'
 import {App} from './App'
 import {configReady} from 'annotator-config'
 import {goAhead} from './ipc'
-import {MuiThemeProvider, createMuiTheme} from '@material-ui/core'
 
 type ElementOrComponent = JSX.Element | React.Component
 
@@ -43,9 +44,12 @@ async function start(isInsideSaffronBrowsingContext = false): Promise<ElementOrC
   const doRender = (): void => {
     const component = (
       <MuiThemeProvider theme={createMuiTheme(makeMapperPalette())}>
-        <Provider store={getAnnotatedSceneReduxStore()}>
+        <ReduxProvider store={getAnnotatedSceneReduxStore()}>
+          {/* TODO
+          <MapperCssBaseline />
+          */}
           <App />
-        </Provider>
+        </ReduxProvider>
       </MuiThemeProvider>
     )
 
@@ -61,7 +65,7 @@ async function start(isInsideSaffronBrowsingContext = false): Promise<ElementOrC
 
 async function stop(): Promise<void> {}
 
-// TODO get all the theme stuff from mapper-themes
+// TODO get all the following theme stuff from mapper-themes
 
 type Contrast = 'light' | 'dark' | 'brown'
 

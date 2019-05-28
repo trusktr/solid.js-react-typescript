@@ -1,7 +1,7 @@
 import * as AsyncFile from 'async-file'
 import * as Electron from 'electron'
 import * as THREE from 'three'
-import {LayerStatus, AnnotatedSceneController} from '@mapperai/mapper-annotated-scene'
+import {LayerStatus, AnnotatedSceneControllerInner} from '@mapperai/mapper-annotated-scene'
 import getLogger from './Logger'
 const log = getLogger(__filename)
 const dialog = Electron.remote.dialog
@@ -13,7 +13,10 @@ const dialog = Electron.remote.dialog
  * and to the scene.
  * Center the stage and the camera on the annotations model.
  */
-export default function loadAnnotations(fileName: string, sceneController: AnnotatedSceneController): Promise<void> {
+export default function loadAnnotations(
+  fileName: string,
+  sceneController: AnnotatedSceneControllerInner
+): Promise<void> {
   log.info('Loading annotations from ' + fileName)
 
   return loadAnnotationsFromFile
@@ -34,7 +37,7 @@ export default function loadAnnotations(fileName: string, sceneController: Annot
  */
 function loadAnnotationsFromFile(
   fileName: string,
-  sceneController: AnnotatedSceneController
+  sceneController: AnnotatedSceneControllerInner
 ): Promise<THREE.Vector3 | null> {
   return AsyncFile.readFile(fileName, 'ascii').then((text: string) => {
     const annotations = sceneController.objectToAnnotations(JSON.parse(text))

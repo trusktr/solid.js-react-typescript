@@ -1,0 +1,124 @@
+@import "compass/css3";
+
+@mixin noselect() {
+  user-select: none;
+}
+
+// Custom styles
+*, *:before, *:after {
+  box-sizing: border-box;
+}
+
+body {
+  background: #666;
+}
+
+$toggle-background: #222;
+$toggle-background-active: lighten($toggle-background, 8);
+.accordion {
+  color: #FFF;
+  width: 100%;
+  .section {
+    width: 100%;
+    input[type='checkbox'] {
+      display: none;
+      &:checked {
+        & + label {
+          background: $toggle-background-active;
+          &:before {
+            content: " ";
+            position: absolute;
+            border-left: 3px solid #21CCFC;
+            height: 100%;
+            left: 0;
+          }
+        }
+        & ~ .content {
+          max-height: 300px;
+          opacity: 1;
+          z-index: 10;
+          overflow-y: auto;
+        }
+      }
+    }
+    label {
+      position: relative;
+      cursor: pointer;
+      padding: 10px 20px;
+      display: table;
+      background: $toggle-background;
+      width: 100%;
+      transition: background 0.3s ease-in-out;
+      @include noselect();
+      &:before {
+        content: " ";
+        width: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 1px;
+        border-top: 1px solid $toggle-background-active;
+      }
+      &:hover {
+        background: $toggle-background-active;
+      }
+      span {
+        display: table-cell;
+        vertical-align: middle;
+      }
+    }
+    &:last-of-type {
+      border-bottom: 1px solid $toggle-background-active;
+    }
+    .content {
+      max-height: 0;
+      transition: all 0.4s;
+      opacity: 0;
+      position: relative;
+      overflow-y: hidden;
+    }
+  }
+}
+.left-menu {
+  background: #222;
+  width: 200px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.accordion {
+  font-size: 14px;
+  .section {
+    .content {
+      padding: 0 15px;
+    }
+    input[type='checkbox'] {
+      display: none;
+      &:checked {
+        & ~ .content {
+          padding: 15px;
+        }
+      }
+    }
+  }
+}
+ul {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  li {
+    padding: 10px;
+    i {
+      font-size: 13px;
+      width: 15px;
+      margin-right: 15px;
+    }
+    &:hover {
+      cursor: pointer;
+      i {
+        color: #21CCFC;
+      }
+    }
+  }
+}

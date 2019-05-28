@@ -134,7 +134,9 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
                     <Draggable draggableId={'lightbox'} index={1}>
                       {provided => (
                         <div {...provided.draggableProps} {...provided.dragHandleProps} ref={provided.innerRef}>
-                          <ImageLightbox windowed={false} />
+                          <ImageLightbox
+                          // windowed={false}
+                          />
                         </div>
                       )}
                     </Draggable>
