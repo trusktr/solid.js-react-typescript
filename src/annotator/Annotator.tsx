@@ -657,6 +657,8 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.mapKey('V', () => this.state.annotatedSceneController!.toggleCameraType())
     this.mapKey('X', () => this.state.annotationManager!.cycleTransformControlModes())
     this.keyHeld('a', held => actions.setAddMarkerMode(held))
+    this.keyHeld('A', held => actions.setAddMarkerMode(held)) // shift-a
+    this.keyHeld('å', held => actions.setAddMarkerMode(held)) // alt-a
     this.keyHeld('c', held => actions.setAddConnectionMode(held))
     this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
     this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
