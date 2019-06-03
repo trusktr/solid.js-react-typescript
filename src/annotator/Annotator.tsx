@@ -123,6 +123,7 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
   isConnectRightNeighborMode?: boolean
   isConnectFrontNeighborMode?: boolean
   isJoinAnnotationMode?: boolean
+  isCutAnnotationMode?: boolean
   isAddDeviceMode?: boolean
   isMouseDown?: boolean
   isMouseDragging?: boolean
@@ -150,6 +151,7 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
     'isConnectRightNeighborMode',
     'isConnectFrontNeighborMode',
     'isJoinAnnotationMode',
+    'isCutAnnotationMode',
     'isAddDeviceMode',
     'isMouseDown',
     'isMouseDragging',
@@ -466,6 +468,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     )
       return
     if (this.props.isJoinAnnotationMode) return
+    if (this.props.isCutAnnotationMode) return
     if (!this.state.isImageScreensVisible) return
 
     if (!this.imageManager.imageScreenMeshes.length) return this.unHighlightImageScreenBox()
@@ -662,6 +665,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.keyHeld('c', held => actions.setAddConnectionMode(held))
     this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
     this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
+    this.keyHeld('x', held => actions.setCutAnnotationMode(held))
     this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
     this.keyHeld('q', held => actions.setAddDeviceMode(held))
     this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
