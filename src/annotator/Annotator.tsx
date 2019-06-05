@@ -197,7 +197,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
     this.guiState = {
       lockBoundaries: false,
-      lockLanes: false,
+      lockLaneSegments: false,
       lockPolygons: false,
       lockTrafficDevices: false,
       bezierScaleFactor: 6,
@@ -443,8 +443,8 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
-    this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.Lane))
-    this.mapKey('N', () => this.uiAddAnnotation(AnnotationType.Lane))
+    this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LaneSegment))
+    this.mapKey('N', () => this.uiAddAnnotation(AnnotationType.LaneSegment))
     this.mapKey('R', () => this.state.annotatedSceneController!.resetTiltAndCompass())
     this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.Polygon))
     this.mapKey('P', () => this.uiAddAnnotation(AnnotationType.Polygon))
@@ -532,9 +532,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     )
   }
 
-  /**
-   * 	Save lane waypoints (only) to KML.
-   */
+  // Low-fidelity export as KML.
   private saveAnnotationsKML = () => {
     const {utmCoordinateSystem} = this.state.annotatedSceneController!.state
 
@@ -546,7 +544,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     const kml = new SimpleKML()
 
     this.state.annotationManager!.boundaryAnnotations.forEach(a => kml.addPath(annotationToGeoPoints(a)))
-    this.state.annotationManager!.laneAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    this.state.annotationManager!.laneSegmentAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
     this.state.annotationManager!.connectionAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
     this.state.annotationManager!.polygonAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
     this.state.annotationManager!.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
@@ -754,16 +752,17 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.state.annotatedSceneController!.channel.emit(Events.IMAGE_CLICK, click)
   }
 
-  private lockLanes = () => {
+  private lockLaneSegments = () => {
     if (
-      this.guiState.lockLanes &&
-      (this.state.annotationManager!.activeLaneAnnotation || this.state.annotationManager!.activeConnectionAnnotation)
+      this.guiState.lockLaneSegments &&
+      (this.state.annotationManager!.activeLaneSegmentAnnotation ||
+        this.state.annotationManager!.activeConnectionAnnotation)
     ) {
       this.state.annotatedSceneController!.cleanTransformControls()
       this.uiEscapeSelection()
     }
 
-    new AnnotatedSceneActions().setLockLanes(this.guiState.lockLanes)
+    new AnnotatedSceneActions().setLockLaneSegments(this.guiState.lockLaneSegments)
   }
 
   private lockBoundaries = () => {
@@ -823,7 +822,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
   private guiHandlers = new Map<keyof GuiState, () => void>([
     ['lockBoundaries', this.lockBoundaries],
-    ['lockLanes', this.lockLanes],
+    ['lockLaneSegments', this.lockLaneSegments],
     ['lockPolygons', this.lockPolygons],
     ['lockTrafficDevices', this.lockTrafficDevices],
     ['bezierScaleFactor', () => this.forceUpdate()],
