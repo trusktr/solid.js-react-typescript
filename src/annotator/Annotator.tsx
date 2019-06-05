@@ -45,6 +45,7 @@ import {
   Annotation,
   DefaultConfig,
   SceneEmitter,
+  OutputFormat,
 } from '@mapperai/mapper-annotated-scene'
 import {ReactUtil} from '@mapperai/mapper-saffron-sdk'
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
@@ -518,11 +519,17 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     }
   }
 
-  private saveAnnotationsJson = () => {
-    const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON())
-    const sessionId = this.state.annotatedSceneController!.dataProvider.sessionId
+  private saveAnnotationsJson = () => this.saveAnnotations(OutputFormat.UTM)
+  private saveAnnotationsGeoJSON = () => this.saveAnnotations(OutputFormat.LLA)
 
-    saveFileWithDialog(json, 'application/json', `annotations${sessionId ? '-' + sessionId : ''}.json`)
+  private saveAnnotations(format: OutputFormat): void {
+    const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON(format))
+    const sessionId = this.state.annotatedSceneController!.dataProvider.sessionId
+    saveFileWithDialog(
+      json,
+      'application/json',
+      `annotations${sessionId ? '-' + sessionId : ''}-${OutputFormat[format]}.json`
+    )
   }
 
   /**
@@ -912,6 +919,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
                   uiMenuVisible={this.props.uiMenuVisible!}
                   selectedAnnotation={this.props.activeAnnotation}
                   onSaveAnnotationsJson={this.saveAnnotationsJson}
+                  onSaveAnnotationsGeoJSON={this.saveAnnotationsGeoJSON}
                   onSaveAnnotationsKML={this.saveAnnotationsKML}
                   annotator={this}
                 />
