@@ -79,7 +79,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     this.statusWindowActions.toggleEnabled()
   }
 
-  private onMenuClick = () => {
+  private onMenuToggle = () => {
     this.sceneActions.toggleUIMenuVisible()
   }
 
@@ -104,23 +104,17 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
               scrollButtons="on"
               classes={{...pick(c, 'indicator')}}
             >
-              <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Properties" />
               <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Layers" />
+              <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Properties" />
               <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Actions" />
             </Tabs>
           </AppBar>
-          <Button variant="contained" color="primary" onClick={this.onMenuClick} className={c.menuToggle}>
+          <Button variant="contained" color="primary" onClick={this.onMenuToggle} className={c.menuToggle}>
             &#9776;
           </Button>
         </div>
-        <div className={classNames(this.props.uiMenuVisible && c.hidden, c.menuContent)}>
-          {tab === 0 && (
-            <>
-              <Inspector selectedAnnotation={this.props.selectedAnnotation} />
-              <ImageLightbox windowed={false} />
-            </>
-          )}
-          {tab === 1 && this.props.layerStatus && (
+        <div className={classNames(!this.props.uiMenuVisible && c.hidden, c.menuContent)}>
+          {tab === 0 && this.props.layerStatus && (
             <>
               <LayerManager
                 classes={{root: c.layerManager}}
@@ -129,6 +123,12 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
                 isDraggable={false}
               />
               <DatGui classes={{root: c.datGui}} />
+            </>
+          )}
+          {tab === 1 && (
+            <>
+              <Inspector selectedAnnotation={this.props.selectedAnnotation} />
+              <ImageLightbox windowed={false} />
             </>
           )}
           {tab === 2 && (

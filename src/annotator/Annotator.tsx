@@ -909,7 +909,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
               <ImageContext.Provider value={imageContextValue}>
                 {/*NOTE, The ImageLightbox is inside of the AnnotatorMenuView*/}
                 <AnnotatorMenuView
-                  uiMenuVisible={this.props.uiMenuVisible!}
+                  uiMenuVisible={!!this.props.uiMenuVisible}
                   selectedAnnotation={this.props.activeAnnotation}
                   onSaveAnnotationsJson={this.saveAnnotationsJson}
                   onSaveAnnotationsKML={this.saveAnnotationsKML}
