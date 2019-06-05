@@ -66,6 +66,10 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     selectedTab: AvailableTabs.indexOf('Layers'), // Layers tab open by default
   }
 
+  setTab(tabName: TabName) {
+    this.setState({selectedTab: AvailableTabs.indexOf(tabName)})
+  }
+
   private statusWindowActions = new StatusWindowActions()
   private sceneActions = new AnnotatedSceneActions()
 
@@ -93,7 +97,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     this.sceneActions.toggleUIMenuVisible()
   }
 
-  private onTabChange = (_event, selectedTab: number) => {
+  private onTabChange = (_, selectedTab: number) => {
     this.setState({selectedTab})
   }
 
@@ -174,6 +178,8 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     )
   }
 }
+
+export type AnnotatorMenuViewInner = AnnotatorMenuView
 
 export default withStyles(styles)(AnnotatorMenuView)
 
