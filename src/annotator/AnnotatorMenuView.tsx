@@ -40,6 +40,7 @@ interface AnnotatorMenuViewProps extends WithStyles<typeof styles> {
   layerStatus?: LayerStatusMap
   selectedAnnotation?: Annotation | null
   onSaveAnnotationsJson(): void
+  onSaveAnnotationsGeoJSON(): void
   onSaveAnnotationsKML(): void
   annotator: Annotator
 }
@@ -64,11 +65,11 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
   }
 
   private onClickAddLane = () => {
-    this.props.annotator.uiAddAnnotation(AnnotationType.LANE)
+    this.props.annotator.uiAddAnnotation(AnnotationType.Lane)
   }
 
   private onClickAddTrafficDevice = () => {
-    this.props.annotator.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE)
+    this.props.annotator.uiAddAnnotation(AnnotationType.TrafficDevice)
   }
 
   private onPublishClick = () => {
@@ -143,11 +144,14 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
                 <button className={c.btn} onClick={this.onClickDeleteAnnotation}>
                   Delete Annotation
                 </button>
-                <button className={c.btn} onClick={this.props.onSaveAnnotationsKML}>
-                  Save Annotations as KML
-                </button>
                 <button className={c.btn} onClick={this.props.onSaveAnnotationsJson}>
-                  Save Annotations as JSON
+                  Export Annotations as JSON (UTM)
+                </button>
+                <button className={c.btn} onClick={this.props.onSaveAnnotationsGeoJSON}>
+                  Export Annotations as GeoJSON (LLA)
+                </button>
+                <button className={c.btn} onClick={this.props.onSaveAnnotationsKML}>
+                  Export Annotations as KML
                 </button>
                 <button className={c.btn} onClick={this.onPublishClick}>
                   Publish

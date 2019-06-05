@@ -45,6 +45,7 @@ import {
   Annotation,
   DefaultConfig,
   SceneEmitter,
+  OutputFormat,
 } from '@mapperai/mapper-annotated-scene'
 import {ReactUtil} from '@mapperai/mapper-saffron-sdk'
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
@@ -436,19 +437,19 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.mapKey('Escape', () => this.uiEscapeSelection())
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
     this.mapKeyUp('Shift', () => this.onShiftKeyUp())
-    this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
-    this.mapKey('B', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
+    this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.Boundary))
+    this.mapKey('B', () => this.uiAddAnnotation(AnnotationType.Boundary))
     // this.mapKey('', () => this.state.annotatedSceneController!.focusOnPointCloud()) // TODO fix https://github.com/Signafy/mapper-annotator-issues/issues/108
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
-    this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
-    this.mapKey('N', () => this.uiAddAnnotation(AnnotationType.LANE))
+    this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.Lane))
+    this.mapKey('N', () => this.uiAddAnnotation(AnnotationType.Lane))
     this.mapKey('R', () => this.state.annotatedSceneController!.resetTiltAndCompass())
-    this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.POLYGON))
-    this.mapKey('P', () => this.uiAddAnnotation(AnnotationType.POLYGON))
-    this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
-    this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
+    this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.Polygon))
+    this.mapKey('P', () => this.uiAddAnnotation(AnnotationType.Polygon))
+    this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TrafficDevice))
+    this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TrafficDevice))
     this.mapKey('V', () => this.state.annotatedSceneController!.toggleCameraType())
     this.mapKey('X', () => this.state.annotationManager!.cycleTransformControlModes())
     this.keyHeld('a', held => actions.setAddMarkerMode(held))
@@ -518,11 +519,17 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     }
   }
 
-  private saveAnnotationsJson = () => {
-    const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON())
-    const sessionId = this.state.annotatedSceneController!.dataProvider.sessionId
+  private saveAnnotationsJson = () => this.saveAnnotations(OutputFormat.UTM)
+  private saveAnnotationsGeoJSON = () => this.saveAnnotations(OutputFormat.LLA)
 
-    saveFileWithDialog(json, 'application/json', `annotations${sessionId ? '-' + sessionId : ''}.json`)
+  private saveAnnotations(format: OutputFormat): void {
+    const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON(format))
+    const sessionId = this.state.annotatedSceneController!.dataProvider.sessionId
+    saveFileWithDialog(
+      json,
+      'application/json',
+      `annotations${sessionId ? '-' + sessionId : ''}-${OutputFormat[format]}.json`
+    )
   }
 
   /**
@@ -912,6 +919,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
                   uiMenuVisible={this.props.uiMenuVisible!}
                   selectedAnnotation={this.props.activeAnnotation}
                   onSaveAnnotationsJson={this.saveAnnotationsJson}
+                  onSaveAnnotationsGeoJSON={this.saveAnnotationsGeoJSON}
                   onSaveAnnotationsKML={this.saveAnnotationsKML}
                   annotator={this}
                 />
