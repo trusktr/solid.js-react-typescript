@@ -72,7 +72,7 @@ class App extends React.Component<AppProps, AppState> {
   private onSessionSelected = (factory: DataProviderFactory, session: ISessionInfo) =>
     this.setState({
       session,
-      dataProviderFactory: factory.forSessionId(session.id), //App.createDataProviderFactory(session.id),
+      dataProviderFactory: factory.forSessionId(session.id),
       reset: true,
     })
 

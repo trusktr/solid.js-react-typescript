@@ -91,7 +91,6 @@ interface AnnotatorState {
 
   annotationManager: AnnotationManager | null
   annotatedSceneController: AnnotatedSceneControllerInner | null
-  isImageScreensVisible: boolean
 
   annotatedSceneConfig?: IAnnotatedSceneConfig
 }
@@ -193,8 +192,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
       annotationManager: null,
       annotatedSceneController: null,
-
-      isImageScreensVisible: true,
     }
 
     this.guiState = {
@@ -224,8 +221,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     // Accumulate rays while shift is pressed, otherwise clear old ones.
     if (!this.props.isShiftKeyPressed) this.clearLightboxImageRays()
 
-    // todo lightbox fix
-    // this.state.annotatedSceneController!.setLayerVisibility([Layers.IMAGE_SCREENS])
     this.lightboxImageRays.push(ray)
     new AnnotatedSceneActions().addObjectToScene(ray)
   }
@@ -254,11 +249,10 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     )
       return
     if (this.props.isJoinAnnotationMode) return
-    if (!this.state.isImageScreensVisible) return
 
-    let imageManager = this.imageManager
-
-    if (!(imageManager && imageManager.imageScreenMeshes.length)) return this.unHighlightImageScreenBox()
+    const imageManager = this.imageManager
+    if (!(imageManager && imageManager.isVisible && imageManager.imageScreenMeshes.length))
+      return this.unHighlightImageScreenBox()
 
     const mouse = mousePositionToGLSpace(this.props.mousePosition!, this.props.rendererSize!)
 
@@ -288,9 +282,8 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
   private clickImageScreenBox = (event: MouseEvent): void => {
     if (this.props.isMouseDragging) return
-    if (!this.state.isImageScreensVisible) return
     const imageManager = this.imageManager
-    if (!imageManager) return
+    if (!(imageManager && imageManager.isVisible)) return
 
     switch (event.button) {
       // Left click released
@@ -458,13 +451,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
     this.keyHeld('q', held => actions.setAddDeviceMode(held))
     this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
-  }
-
-  addImageScreenLayer(): void {
-    // const imagesToggle = (visible: boolean): void => {
-    // 	this.setState({isImageScreensVisible: visible})
-    // }
-    //this.state.annotatedSceneController!.addLayer(Layers.IMAGE_SCREENS, imagesToggle)
   }
 
   /**
@@ -708,8 +694,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     // TODO JOE move UI logic to React/JSX, and get state from Redux
 
     channel!.once(Events.ANNOTATED_SCENE_READY, async () => {
-      this.addImageScreenLayer()
-
       const annotationsPath = config['startup.annotations_path']
 
       if (annotationsPath) {
@@ -870,13 +854,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
     if (this.props.activeAnnotation && oldProps.activeAnnotation !== this.props.activeAnnotation)
       this.previouslySelectedAnnotations.setByType(this.props.activeAnnotation)
-
-    if (oldState.isImageScreensVisible !== this.state.isImageScreensVisible) {
-      const imageManager = this.imageManager
-      if (imageManager)
-        if (this.state.isImageScreensVisible) imageManager.showImageScreens()
-        else imageManager.hideImageScreens()
-    }
   }
 
   private get imageManager() {
