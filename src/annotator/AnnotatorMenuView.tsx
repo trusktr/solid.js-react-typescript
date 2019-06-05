@@ -35,6 +35,16 @@ import {
 import DatGui from './components/DatGui'
 type Annotator = import('./Annotator').Annotator
 
+type TabName = 'Layers' | 'Properties' | 'Actions'
+
+// this controls the order of the tabs
+// prettier-ignore
+const AvailableTabs: TabName[] = [
+  'Layers',
+  'Properties',
+  'Actions'
+]
+
 interface AnnotatorMenuViewProps extends WithStyles<typeof styles> {
   uiMenuVisible: boolean
   layerStatus?: LayerStatusMap
@@ -46,14 +56,14 @@ interface AnnotatorMenuViewProps extends WithStyles<typeof styles> {
 
 interface AnnotatorMenuViewState {
   windowOpen: boolean
-  tab: number
+  selectedTab: number
 }
 
 @typedConnect(toProps(AnnotatedSceneState, 'layerStatus'))
 class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
   state = {
     windowOpen: false,
-    tab: 0, // Layers tab open by default
+    selectedTab: AvailableTabs.indexOf('Layers'), // Layers tab open by default
   }
 
   private statusWindowActions = new StatusWindowActions()
@@ -83,19 +93,19 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     this.sceneActions.toggleUIMenuVisible()
   }
 
-  private onTabChange = (_event, tab: number) => {
-    this.setState({tab})
+  private onTabChange = (_event, selectedTab: number) => {
+    this.setState({selectedTab})
   }
 
   render(): JSX.Element {
     const {classes: c} = this.props
-    const {tab} = this.state
+    const {selectedTab} = this.state
     return (
       <div className={c.menu}>
         <div className={c.tabBar}>
           <AppBar color="default" className={c.tabs}>
             <Tabs
-              value={tab}
+              value={selectedTab}
               onChange={this.onTabChange}
               indicatorColor="primary"
               textColor="primary"
@@ -104,9 +114,9 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
               scrollButtons="on"
               classes={{...pick(c, 'indicator')}}
             >
-              <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Layers" />
-              <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Properties" />
-              <Tab classes={{...pick(c, 'label', 'selected')}} className={c.tab} label="Actions" />
+              {AvailableTabs.map(tabName => (
+                <Tab key={tabName} classes={{...pick(c, 'label', 'selected')}} className={c.tab} label={tabName} />
+              ))}
             </Tabs>
           </AppBar>
           <Button variant="contained" color="primary" onClick={this.onMenuToggle} className={c.menuToggle}>
@@ -114,7 +124,13 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
           </Button>
         </div>
         <div className={classNames(!this.props.uiMenuVisible && c.hidden, c.menuContent)}>
-          {tab === 0 && this.props.layerStatus && (
+          {AvailableTabs[selectedTab] === 'Properties' ? (
+            <>
+              <Inspector selectedAnnotation={this.props.selectedAnnotation} />
+              <ImageLightbox windowed={false} />
+            </>
+          ) : null}
+          {AvailableTabs[selectedTab] === 'Layers' && this.props.layerStatus ? (
             <>
               <LayerManager
                 classes={{root: c.layerManager}}
@@ -124,14 +140,8 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
               />
               <DatGui classes={{root: c.datGui}} />
             </>
-          )}
-          {tab === 1 && (
-            <>
-              <Inspector selectedAnnotation={this.props.selectedAnnotation} />
-              <ImageLightbox windowed={false} />
-            </>
-          )}
-          {tab === 2 && (
+          ) : null}
+          {AvailableTabs[selectedTab] === 'Actions' ? (
             <>
               <div id="tools" className={c.btnGroup}>
                 <button className={c.btn} onClick={this.onClickAddLane}>
@@ -158,7 +168,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
               </div>
               <Help />
             </>
-          )}
+          ) : null}
         </div>
       </div>
     )
