@@ -19,7 +19,7 @@ type ElementOrComponent = JSX.Element | React.Component
 
 let deferred: Deferred<ElementOrComponent>
 
-async function start(isInsideSaffronBrowsingContext = false): Promise<ElementOrComponent> {
+export async function start(isInsideSaffronBrowsingContext = false): Promise<ElementOrComponent> {
   if (deferred) return deferred.promise
   deferred = new Deferred<ElementOrComponent>()
 
@@ -63,7 +63,7 @@ async function start(isInsideSaffronBrowsingContext = false): Promise<ElementOrC
   return deferred.promise
 }
 
-async function stop(): Promise<void> {}
+export async function stop(): Promise<void> {}
 
 // TODO get all the following theme stuff from mapper-themes
 
@@ -226,9 +226,4 @@ function makeMapperPalette() {
       fontWeightMedium: 500,
     },
   } as any
-}
-
-module.exports = {
-  start,
-  stop,
 }
