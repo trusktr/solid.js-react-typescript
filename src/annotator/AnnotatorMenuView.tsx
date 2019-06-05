@@ -53,7 +53,7 @@ interface AnnotatorMenuViewState {
 class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
   state = {
     windowOpen: false,
-    tab: 1, // Layers
+    tab: 0, // Layers tab open by default
   }
 
   private statusWindowActions = new StatusWindowActions()
