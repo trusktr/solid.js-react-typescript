@@ -19,7 +19,7 @@ import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated
 import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
 import * as React from 'react'
-import AnnotatorMenuView from './AnnotatorMenuView'
+import AnnotatorMenuView, {AnnotatorMenuViewInner} from './AnnotatorMenuView'
 import {hexStringToHexadecimal} from '../util/Color'
 import loadAnnotations from '../util/loadAnnotations'
 import {
@@ -152,6 +152,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   private sceneActions = new AnnotatedSceneActions()
   private previouslySelectedAnnotations: PreviousAnnotations = new PreviousAnnotations()
   private guiState: GuiState
+  private menuRef = React.createRef<any>()
 
   constructor(props: AnnotatorProps) {
     super(props)
@@ -207,6 +208,11 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       imageScreenOpacity: parseFloat(config['image_manager.image.opacity']) || 0.5,
       showPerfStats,
     }
+  }
+
+  private get menu() {
+    if (!this.menuRef.current) return null
+    return (this.menuRef.current as any).getWrappedInstance() as AnnotatorMenuViewInner
   }
 
   styleStats() {
@@ -514,6 +520,8 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       this.sceneActions.setLayerStatus(Layer.anot1, LayerStatus.Visible)
       log.info(`Added new ${AnnotationType[annotationType]} annotation`)
       this.state.annotationManager!.hideTransform()
+      // switch to the properties tab when we've added a new annotation
+      this.menu && this.menu.setTab('Properties')
     } else {
       throw new Error('unable to add annotation of type ' + AnnotationType[annotationType])
     }
@@ -916,7 +924,8 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
               <ImageContext.Provider value={imageContextValue}>
                 {/*NOTE, The ImageLightbox is inside of the AnnotatorMenuView*/}
                 <AnnotatorMenuView
-                  uiMenuVisible={this.props.uiMenuVisible!}
+                  innerRef={this.menuRef}
+                  uiMenuVisible={!!this.props.uiMenuVisible}
                   selectedAnnotation={this.props.activeAnnotation}
                   onSaveAnnotationsJson={this.saveAnnotationsJson}
                   onSaveAnnotationsGeoJSON={this.saveAnnotationsGeoJSON}
