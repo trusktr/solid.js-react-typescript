@@ -50,7 +50,7 @@ class Help extends React.Component<Props, {}> {
             <br />f - Hold to add front lane neighbor; click on the front neighbor
             <br />l - Hold to add left lane neighbor; click on the left neighbor
             <br />r - Hold to add right lane neighbor; click on the right neighbor
-            <br />F - Flip/Reverse current lane segment or boundary direction
+            <br />F - Flip/Reverse current lane segment, polygon, or boundary direction
             <br />q - Hold and click to add/remove a traffic device to/from a connection
             <br />
             <strong>Annotation Markers</strong>
