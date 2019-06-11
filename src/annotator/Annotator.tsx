@@ -553,7 +553,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
     this.state.annotationManager!.boundaryAnnotations.forEach(a => kml.addPath(annotationToGeoPoints(a)))
     this.state.annotationManager!.laneSegmentAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
-    this.state.annotationManager!.connectionAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
     this.state.annotationManager!.polygonAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
     this.state.annotationManager!.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
 
@@ -761,11 +760,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   }
 
   private lockLaneSegments = () => {
-    if (
-      this.guiState.lockLaneSegments &&
-      (this.state.annotationManager!.activeLaneSegmentAnnotation ||
-        this.state.annotationManager!.activeConnectionAnnotation)
-    ) {
+    if (this.guiState.lockLaneSegments && this.state.annotationManager!.activeLaneSegmentAnnotation) {
       this.state.annotatedSceneController!.cleanTransformControls()
       this.uiEscapeSelection()
     }

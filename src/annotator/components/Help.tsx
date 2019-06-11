@@ -47,11 +47,11 @@ class Help extends React.Component<Props, {}> {
             Delete/Backspace - Delete active annotation
             <br />c - Hold to add a connecting lane segment; click on the lane segment to connect
             <br />j - Hold to join two annotations; click on the annotation to join
-            <br />f - Hold to add front lane neighbor; click on the front neighbor
+            <br />f - Hold to add forward lane neighbor; click on the forward neighbor
             <br />l - Hold to add left lane neighbor; click on the left neighbor
             <br />r - Hold to add right lane neighbor; click on the right neighbor
             <br />F - Flip/Reverse current lane segment, polygon, or boundary direction
-            <br />q - Hold and click to add/remove a traffic device to/from a connection
+            <br />q - Hold and click to add/remove a traffic device to/from a lane segment
             <br />
             <strong>Annotation Markers</strong>
             <br />n - Create new lane segment

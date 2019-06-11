@@ -7,7 +7,6 @@ import {
   Annotation,
   AnnotationType,
   Boundary,
-  Connection,
   LaneSegment,
   Polygon,
   TrafficDevice,
@@ -20,7 +19,6 @@ const log = Logger(__filename)
 // recently-selected annotations of each type.
 export class PreviousAnnotations {
   private boundary: Boundary | null
-  private connection: Connection | null
   private laneSegment: LaneSegment | null
   private polygon: Polygon | null
   private trafficDevice: TrafficDevice | null
@@ -29,8 +27,6 @@ export class PreviousAnnotations {
     switch (annotationType) {
       case AnnotationType.Boundary:
         return this.boundary
-      case AnnotationType.Connection:
-        return this.connection
       case AnnotationType.LaneSegment:
         return this.laneSegment
       case AnnotationType.Polygon:
@@ -45,7 +41,6 @@ export class PreviousAnnotations {
 
   setByType(annotation: Annotation): void {
     if (annotation instanceof Boundary) this.boundary = annotation
-    else if (annotation instanceof Connection) this.connection = annotation
     else if (annotation instanceof LaneSegment) this.laneSegment = annotation
     else if (annotation instanceof Polygon) this.polygon = annotation
     else if (annotation instanceof TrafficDevice) this.trafficDevice = annotation
