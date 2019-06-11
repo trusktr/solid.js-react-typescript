@@ -8,7 +8,7 @@ import {
   AnnotationType,
   Boundary,
   Connection,
-  Lane,
+  LaneSegment,
   Polygon,
   TrafficDevice,
   getLogger as Logger,
@@ -21,7 +21,7 @@ const log = Logger(__filename)
 export class PreviousAnnotations {
   private boundary: Boundary | null
   private connection: Connection | null
-  private lane: Lane | null
+  private laneSegment: LaneSegment | null
   private polygon: Polygon | null
   private trafficDevice: TrafficDevice | null
 
@@ -31,8 +31,8 @@ export class PreviousAnnotations {
         return this.boundary
       case AnnotationType.Connection:
         return this.connection
-      case AnnotationType.Lane:
-        return this.lane
+      case AnnotationType.LaneSegment:
+        return this.laneSegment
       case AnnotationType.Polygon:
         return this.polygon
       case AnnotationType.TrafficDevice:
@@ -46,7 +46,7 @@ export class PreviousAnnotations {
   setByType(annotation: Annotation): void {
     if (annotation instanceof Boundary) this.boundary = annotation
     else if (annotation instanceof Connection) this.connection = annotation
-    else if (annotation instanceof Lane) this.lane = annotation
+    else if (annotation instanceof LaneSegment) this.laneSegment = annotation
     else if (annotation instanceof Polygon) this.polygon = annotation
     else if (annotation instanceof TrafficDevice) this.trafficDevice = annotation
     else log.error(`annotation with unknown type ${AnnotationType[annotation.annotationType]}`)

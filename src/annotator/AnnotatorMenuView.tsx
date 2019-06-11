@@ -78,8 +78,8 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     this.props.annotator.uiDeleteActiveAnnotation()
   }
 
-  private onClickAddLane = () => {
-    this.props.annotator.uiAddAnnotation(AnnotationType.Lane)
+  private onClickAddLaneSegment = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.LaneSegment)
   }
 
   private onClickAddTrafficDevice = () => {
@@ -149,8 +149,8 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
           {AvailableTabs[selectedTab] === 'Actions' ? (
             <>
               <div id="tools" className={c.btnGroup}>
-                <button className={c.btn} onClick={this.onClickAddLane}>
-                  New Lane
+                <button className={c.btn} onClick={this.onClickAddLaneSegment}>
+                  New Lane Segment
                 </button>
                 <button className={c.btn} onClick={this.onClickAddTrafficDevice}>
                   New Traffic Device
