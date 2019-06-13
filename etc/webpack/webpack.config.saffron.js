@@ -186,9 +186,6 @@ function makeModuleConfig() {
  * @returns {*}
  */
 function makeHotEntry(entry, devEntries) {
-  // HMR ENTRY ADDITION
-  //if (isDev) entry.unshift('react-hot-loader/patch')
-
   if (devEntries) entry.unshift(...devEntries)
 
   return entry

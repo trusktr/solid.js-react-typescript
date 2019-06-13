@@ -1,7 +1,3 @@
-// TODO
-// - Split TagSelector to separate module.
-// - Place inspector widgets in here (from outside modules) based on annotation selection
-
 import * as React from 'react'
 import * as _ from 'lodash'
 import {Annotation} from '@mapperai/mapper-annotated-scene'
@@ -9,6 +5,7 @@ import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import Paper from '@material-ui/core/Paper/Paper'
 import {Typography} from '@material-ui/core'
 import {menuItemSpacing} from '../styleVars'
+import Windowable from '../components/Windowable'
 
 export interface IInspectorProps extends WithStyles<typeof styles> {
   selectedAnnotation?: Annotation | null
@@ -26,6 +23,7 @@ class Inspector extends React.Component<IInspectorProps, IInspectorState> {
         <Typography variant="h5" gutterBottom>
           {(selectedAnnotation && selectedAnnotation.constructor.name) || 'Inspector'}
         </Typography>
+
         {!selectedAnnotation ? (
           <Typography variant="body1">Nothing is selected.</Typography>
         ) : (
@@ -42,7 +40,7 @@ class Inspector extends React.Component<IInspectorProps, IInspectorState> {
   }
 }
 
-const _Inspector = withStyles(styles)(Inspector)
+const _Inspector = Windowable(withStyles(styles)(Inspector))
 export default _Inspector
 export {_Inspector as Inspector}
 
