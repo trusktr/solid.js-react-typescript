@@ -34,44 +34,69 @@ class Help extends React.Component<Props, {}> {
         <div id="exp_body_6" className={classes.dropdownBody}>
           <p className={classes.help}>
             <strong>Point cloud</strong>
-            <br />R - Reset tilt and compass
-            <br />V - Toggle perspective/orthographic view
-            <br />h - Hide super tiles/point cloud/annotations
             <br />
-            Shift-click - load an image file
+            <code>R</code> - Reset tilt and compass
+            <br />
+            <code>V</code> - Toggle perspective and orthographic view
+            <br />
+            <code>h</code> - Alternately hide the point cloud and annotations
             <br />
             <strong>Annotations</strong>
-            <br />X - Cycle through available transformation modes (translate, rotate, scale) for the selected
-            annotation
             <br />
-            Delete/Backspace - Delete active annotation
-            <br />c - Hold to add a connecting lane segment; click on the lane segment to connect
-            <br />j - Hold to join two annotations; click on the annotation to join
-            <br />f - Hold to add forward lane neighbor; click on the forward neighbor
-            <br />l - Hold to add left lane neighbor; click on the left neighbor
-            <br />r - Hold to add right lane neighbor; click on the right neighbor
-            <br />F - Flip/Reverse current lane segment, polygon, or boundary direction
-            <br />q - Hold and click to add/remove a traffic device to/from a lane segment
+            <code>X</code> - Cycle through available transformation modes (translate, rotate, scale) for the selected
+            traffic device
+            <br />
+            <code>delete/backspace</code> - Delete active annotation
+            <br />
+            <code>c</code> - Hold to add a connecting lane segment; click on the lane segment to connect
+            <br />
+            <code>j</code> - Hold to join two annotations; click on the annotation to join
+            <br />
+            <code>x</code> - Hold and click a marker on a lane segment or boundary to cut it in two
+            <br />
+            <code>f</code> - Hold to add forward lane neighbor; click on the forward neighbor
+            <br />
+            <code>l</code> - Hold to add left lane neighbor; click on the left neighbor
+            <br />
+            <code>r</code> - Hold to add right lane neighbor; click on the right neighbor
+            <br />
+            <code>F</code> - Flip/Reverse direction of current lane segment, polygon, or boundary
+            <br />
+            <code>q</code> - Hold and click to add/remove a traffic device to/from a lane segment
             <br />
             <strong>Annotation Markers</strong>
-            <br />n - Create new lane segment
-            <br />N - Create new lane segment with same attributes as last lane segment
-            <br />b - Create new boundary
-            <br />B - Create new boundary with same attributes as last boundary
-            <br />t - Create new traffic device
-            <br />T - Create new traffic device with same attributes as last traffic device
-            <br />p - Create new annotator polygon
-            <br />P - Create new annotator polygon with same attributes as last polygon
-            <br />a - Hold and click mouse to add annotation markers
-            <br />d - Delete last marker
             <br />
-            1-9 - Hold when highlighting a marker to move its neighbors too
+            <code>n</code> - Create new lane segment
+            <br />
+            <code>N</code> - Create new lane segment with same attributes as last lane segment
+            <br />
+            <code>b</code> - Create new boundary
+            <br />
+            <code>B</code> - Create new boundary with same attributes as last boundary
+            <br />
+            <code>t</code> - Create new traffic device
+            <br />
+            <code>T</code> - Create new traffic device with same attributes as last traffic device
+            <br />
+            <code>p</code> - Create new polygon
+            <br />
+            <code>P</code> - Create new polygon with same attributes as last polygon
+            <br />
+            <code>a</code> - Hold and click to add annotation markers to the end of an annotation
+            <br />
+            <code>shift-a</code> - Hold and click the edge of a lane segment or boundary to add a marker at that point
+            <br />
+            <code>alt-a</code> - Hold and click a marker to delete the marker
+            <br />
+            <code>d</code> - Delete the marker at the end of an annotation
+            <br />
+            <code>1-9</code> - Hold when highlighting a marker to move its neighbors too
             <br />
             <strong>Images</strong>
             <br />
-            Shift-LeftClick - load an image into a new window
+            <code>shift-click</code> - load an image into a new window
             <br />
-            RightClick - unload image from clicked screen
+            <code>right-click</code> - unload image from clicked screen
             <br />
           </p>
         </div>

@@ -168,7 +168,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
                   Export Annotations as KML
                 </button>
                 <button className={c.btn} onClick={this.onPublishClick}>
-                  Publish
+                  Publish to Meridian
                 </button>
                 <button className={c.btn} onClick={this.onStatusWindowClick}>
                   Toggle Info Panel

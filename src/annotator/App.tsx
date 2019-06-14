@@ -70,12 +70,14 @@ export class App extends React.Component<AppProps, AppState> {
   /**
    * Update session
    */
-  private onSessionSelected = (factory: DataProviderFactory, session: ISessionInfo) =>
+  private onSessionSelected = (factory: DataProviderFactory, session: ISessionInfo) => {
+    log.info(`loading session ${session.id}`)
     this.setState({
       session,
       dataProviderFactory: factory.forSessionId(session.id),
       reset: true,
     })
+  }
 
   private getAnnotationManagerRef = (annotationManager: AnnotationManager | null) => {
     this.setState({annotationManager})
