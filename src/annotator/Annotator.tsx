@@ -47,6 +47,7 @@ import {
   DefaultConfig,
   SceneEmitter,
   typedConnect,
+  OutputFormat,
 } from '@mapperai/mapper-annotated-scene'
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
@@ -197,7 +198,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
     this.guiState = {
       lockBoundaries: false,
-      lockLanes: false,
+      lockLaneSegments: false,
       lockPolygons: false,
       lockTrafficDevices: false,
       bezierScaleFactor: 6,
@@ -435,19 +436,19 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.mapKey('Escape', () => this.uiEscapeSelection())
     this.mapKeyDown('Shift', () => this.onShiftKeyDown())
     this.mapKeyUp('Shift', () => this.onShiftKeyUp())
-    this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
-    this.mapKey('B', () => this.uiAddAnnotation(AnnotationType.BOUNDARY))
+    this.mapKey('b', () => this.uiAddAnnotation(AnnotationType.Boundary))
+    this.mapKey('B', () => this.uiAddAnnotation(AnnotationType.Boundary))
     // this.mapKey('', () => this.state.annotatedSceneController!.focusOnPointCloud()) // TODO fix https://github.com/Signafy/mapper-annotator-issues/issues/108
     this.mapKey('d', () => this.state.annotationManager!.deleteLastMarker())
     this.mapKey('F', () => this.uiReverseLaneDirection())
     this.mapKey('h', () => this.uiToggleLayerVisibility())
-    this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LANE))
-    this.mapKey('N', () => this.uiAddAnnotation(AnnotationType.LANE))
+    this.mapKey('n', () => this.uiAddAnnotation(AnnotationType.LaneSegment))
+    this.mapKey('N', () => this.uiAddAnnotation(AnnotationType.LaneSegment))
     this.mapKey('R', () => this.state.annotatedSceneController!.resetTiltAndCompass())
-    this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.POLYGON))
-    this.mapKey('P', () => this.uiAddAnnotation(AnnotationType.POLYGON))
-    this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
-    this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TRAFFIC_DEVICE))
+    this.mapKey('p', () => this.uiAddAnnotation(AnnotationType.Polygon))
+    this.mapKey('P', () => this.uiAddAnnotation(AnnotationType.Polygon))
+    this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TrafficDevice))
+    this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TrafficDevice))
     this.mapKey('V', () => this.state.annotatedSceneController!.toggleCameraType())
     this.mapKey('X', () => this.state.annotationManager!.cycleTransformControlModes())
     this.keyHeld('a', held => actions.setAddMarkerMode(held))
@@ -519,16 +520,20 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     }
   }
 
-  private saveAnnotationsJson = () => {
-    const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON())
-    const sessionId = this.state.annotatedSceneController!.dataProvider.sessionId
+  private saveAnnotationsJson = () => this.saveAnnotations(OutputFormat.UTM)
+  private saveAnnotationsGeoJSON = () => this.saveAnnotations(OutputFormat.LLA)
 
-    saveFileWithDialog(json, 'application/json', `annotations${sessionId ? '-' + sessionId : ''}.json`)
+  private saveAnnotations(format: OutputFormat): void {
+    const json = JSON.stringify(this.state.annotationManager!.annotationsToJSON(format))
+    const sessionId = this.state.annotatedSceneController!.dataProvider.sessionId
+    saveFileWithDialog(
+      json,
+      'application/json',
+      `annotations${sessionId ? '-' + sessionId : ''}-${OutputFormat[format]}.json`
+    )
   }
 
-  /**
-   * 	Save lane waypoints (only) to KML.
-   */
+  // Low-fidelity export as KML.
   private saveAnnotationsKML = () => {
     const {utmCoordinateSystem} = this.state.annotatedSceneController!.state
 
@@ -540,8 +545,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     const kml = new SimpleKML()
 
     this.state.annotationManager!.boundaryAnnotations.forEach(a => kml.addPath(annotationToGeoPoints(a)))
-    this.state.annotationManager!.laneAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
-    this.state.annotationManager!.connectionAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
+    this.state.annotationManager!.laneSegmentAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
     this.state.annotationManager!.polygonAnnotations.forEach(a => kml.addPolygon(annotationToGeoPoints(a)))
     this.state.annotationManager!.trafficDeviceAnnotations.forEach(a => kml.addPoints(annotationToGeoPoints(a)))
 
@@ -743,16 +747,13 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.state.annotatedSceneController!.channel.emit(Events.IMAGE_CLICK, click)
   }
 
-  private lockLanes = () => {
-    if (
-      this.guiState.lockLanes &&
-      (this.state.annotationManager!.activeLaneAnnotation || this.state.annotationManager!.activeConnectionAnnotation)
-    ) {
+  private lockLaneSegments = () => {
+    if (this.guiState.lockLaneSegments && this.state.annotationManager!.activeLaneSegmentAnnotation) {
       this.state.annotatedSceneController!.cleanTransformControls()
       this.uiEscapeSelection()
     }
 
-    new AnnotatedSceneActions().setLockLanes(this.guiState.lockLanes)
+    new AnnotatedSceneActions().setLockLaneSegments(this.guiState.lockLaneSegments)
   }
 
   private lockBoundaries = () => {
@@ -812,7 +813,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
   private guiHandlers = new Map<keyof GuiState, () => void>([
     ['lockBoundaries', this.lockBoundaries],
-    ['lockLanes', this.lockLanes],
+    ['lockLaneSegments', this.lockLaneSegments],
     ['lockPolygons', this.lockPolygons],
     ['lockTrafficDevices', this.lockTrafficDevices],
     ['bezierScaleFactor', () => this.forceUpdate()],
@@ -922,6 +923,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
                   uiMenuVisible={!!this.props.uiMenuVisible}
                   selectedAnnotation={this.props.activeAnnotation}
                   onSaveAnnotationsJson={this.saveAnnotationsJson}
+                  onSaveAnnotationsGeoJSON={this.saveAnnotationsGeoJSON}
                   onSaveAnnotationsKML={this.saveAnnotationsKML}
                   annotator={this}
                 />
