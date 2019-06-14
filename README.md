@@ -36,10 +36,6 @@ You can now successfully install project dependencies, including private depende
 npm install
 ```
 
-## Configure
-
-See [the docs](documentation/configuration.md) for advice on configuration files.
-
 ## Run the app
 
 ### With NPM

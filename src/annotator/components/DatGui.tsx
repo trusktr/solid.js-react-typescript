@@ -114,13 +114,13 @@ export class DatGui extends React.Component<Props, State> {
     const tileFolder = gui.addFolder('Point Cloud')
 
     tileFolder
-      .add(this.guiState, 'maxSuperTilesToLoad', 1, 3000)
+      .add(this.guiState, 'maxSuperTilesToLoad', 1, 1000)
       .step(1)
       .name('Max tiles')
       .onChange(() => this.guiUpdate('maxSuperTilesToLoad'))
 
     tileFolder
-      .add(this.guiState, 'maxPointDensity', 1, 1000)
+      .add(this.guiState, 'maxPointDensity', 1, 500)
       .step(1)
       .name('Max density')
       .onChange(() => this.guiUpdate('maxPointDensity'))
