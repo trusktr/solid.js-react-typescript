@@ -10,7 +10,7 @@ const dat: typeof Dat = (Dat as any).default as typeof Dat
 
 export type GuiState = {
   lockBoundaries: boolean
-  lockLanes: boolean
+  lockLaneSegments: boolean
   lockPolygons: boolean
   lockTrafficDevices: boolean
   bezierScaleFactor: number
@@ -69,7 +69,7 @@ export class DatGui extends React.Component<Props, State> {
       */
 
     this.sceneActions.setLockBoundaries(this.guiState.lockBoundaries)
-    this.sceneActions.setLockLanes(this.guiState.lockLanes)
+    this.sceneActions.setLockLaneSegments(this.guiState.lockLaneSegments)
     this.sceneActions.setLockPolygons(this.guiState.lockPolygons)
     this.sceneActions.setLockTrafficDevices(this.guiState.lockTrafficDevices)
 
@@ -81,9 +81,9 @@ export class DatGui extends React.Component<Props, State> {
       .onChange(() => this.guiUpdate('lockBoundaries'))
 
     folderLock
-      .add(this.guiState, 'lockLanes')
-      .name('Lanes')
-      .onChange(() => this.guiUpdate('lockLanes'))
+      .add(this.guiState, 'lockLaneSegments')
+      .name('Lane Segments')
+      .onChange(() => this.guiUpdate('lockLaneSegments'))
 
     folderLock
       .add(this.guiState, 'lockPolygons')
