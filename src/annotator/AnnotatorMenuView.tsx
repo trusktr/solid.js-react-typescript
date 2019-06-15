@@ -134,7 +134,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
         </div>
 
         <DragDropContext onDragStart={() => {}} onDragEnd={this.onDragEnd} onDragUpdate={() => {}}>
-          <div className={classNames(this.props.uiMenuVisible && c.hidden, c.menuContent)}>
+          <div className={classNames(!this.props.uiMenuVisible && c.hidden, c.menuContent)}>
             {AvailableTabs[selectedTab] === 'Properties' ? (
               <Droppable droppableId={'0'}>
                 {provided => (
