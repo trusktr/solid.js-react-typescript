@@ -120,7 +120,7 @@ or
 
     npm run version-major
 
-That creates a release branch. Go to [mapper-annotator](https://github.com/Signafy/mapper-annotator) and make a pull request from the release branch to `develop`. Get it approved, and close it. That will kick off a build on [Jenkins](https://build.mapperai.net/job/mapper-annotator/job/develop/).
+That creates a release branch. Go to [mapper-annotator](https://github.com/Signafy/mapper-annotator) and make a pull request from the release branch to `develop`. Get it approved, and close it. That will kick off a build on [Jenkins](https://build.mapperai.net/job/mapper-annotator%20releases/job/develop/).
 
 If the build succeeds it will leave a [new application artifact](https://s3.console.aws.amazon.com/s3/buckets/mapper-dev-saffron-apps/uploads/?region=us-east-1&tab=overview#) for dev in S3.
 
