@@ -128,7 +128,7 @@ A dev version of [mapper-saffron](https://github.com/Signafy/mapper-saffron/) wi
 
 ### Build and Deploy to Production Environment
 
-Go to [mapper-annotator](https://github.com/Signafy/mapper-annotator) and make a pull request from the release branch to `master`. Get it approved, and close it. That will kick off a build on [Jenkins](httpshttps://build.mapperai.net/job/mapper-annotator/job/master/).
+Go to [mapper-annotator](https://github.com/Signafy/mapper-annotator) and make a pull request from the release branch to `master`. Get it approved, and close it. That will kick off a build on [Jenkins](https://build.mapperai.net/job/mapper-annotator/job/master/).
 
 If the build succeeds it will leave a [new application artifact](https://s3.console.aws.amazon.com/s3/buckets/mapper-prod-saffron-apps/uploads/?region=us-east-1&tab=overview#) for production in S3.
 
