@@ -32,7 +32,7 @@ export class ActivityTracker<T extends Object> {
 
   private checkActivity = async () => {
     if (!this.userHasInteracted) {
-      log.info('no user interaction in the last interval, not logging activity')
+      log.debug('no user interaction in the last interval, not logging activity')
       return
     }
 

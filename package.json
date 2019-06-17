@@ -2,7 +2,7 @@
   "name": "@mapperai/mapper-annotator",
   "appName": "Annotator",
   "appID": "Annotator",
-  "version": "1.6.12",
+  "version": "1.7.1",
   "description": "Mapper.ai HD Map Editor",
   "appIcon": "https://s3.amazonaws.com/mapper-website-assets/saffron/icons/Annotator_Icon.svg",
   "main": "saffron.js",
@@ -67,7 +67,6 @@
   "devDependencies": {
     "@types/dat.gui": "0.7.1",
     "@types/electron-window-state": "2.0.33",
-    "@types/image-size": "0.0.29",
     "@types/jquery": "2.0.33",
     "@types/lodash": "4.14.106",
     "@types/mkdirp": "0.5.2",
@@ -100,7 +99,6 @@
     "node-sass": "^4.9.3",
     "prettier": "^1.14.3",
     "pug-loader": "^2.4.0",
-    "react-hot-loader": "^4.3.4",
     "sass-loader": "^7.1.0",
     "script-loader": "^0.7.2",
     "shelljs": "^0.8.3",
@@ -118,7 +116,7 @@
     "webpack-sources": "1.1.0"
   },
   "dependencies": {
-    "@mapperai/mapper-annotated-scene": "2.0.0",
+    "@mapperai/mapper-annotated-scene": "2.2.0",
     "@mapperai/mapper-models": "1.9.8",
     "@mapperai/mapper-saffron-sdk": "2.1.9",
     "@mapperai/mapper-themes": "^1.0.13",
@@ -132,7 +130,6 @@
     "electron-window-state": "5.0.2",
     "events": "^3.0.0",
     "executable": "4.1.1",
-    "image-size": "0.6.2",
     "immutable": "3.8.2",
     "jquery": "3.2.1",
     "jquery-ui-dist": "1.12.1",

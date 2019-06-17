@@ -11,12 +11,9 @@ export default class WindowCommunicator {
   constructor(win?: Window) {
     this.window = win || window.opener
 
-    addEventListener(
-      'message',
-      (event): void => {
-        this.receive(event.data.channel, event.data.msg)
-      }
-    )
+    addEventListener('message', (event): void => {
+      this.receive(event.data.channel, event.data.msg)
+    })
   }
 
   // eslint-disable-next-line typescript/no-explicit-any
