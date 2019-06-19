@@ -9,7 +9,7 @@ import * as ReactDOM from 'react-dom'
 import {Provider as ReduxProvider} from 'react-redux'
 import * as tinycolor from 'tinycolor2'
 import {MuiThemeProvider, createMuiTheme} from '@material-ui/core'
-// import {MapperCssBaseline} from '@mapperai/mapper-themes'
+import {MapperCssBaseline} from '@mapperai/mapper-themes'
 import {Deferred, loadAnnotatedSceneStore, getAnnotatedSceneReduxStore} from '@mapperai/mapper-annotated-scene'
 import {App} from './App'
 import {configReady} from 'annotator-config'
@@ -44,10 +44,8 @@ export async function start(isInsideSaffronBrowsingContext = false): Promise<Ele
   const doRender = (): void => {
     const component = (
       <MuiThemeProvider theme={createMuiTheme(makeMapperPalette())}>
+        <MapperCssBaseline />
         <ReduxProvider store={getAnnotatedSceneReduxStore()}>
-          {/* TODO
-          <MapperCssBaseline />
-          */}
           <App />
         </ReduxProvider>
       </MuiThemeProvider>
