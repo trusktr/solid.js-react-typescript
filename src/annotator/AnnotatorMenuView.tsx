@@ -18,6 +18,7 @@ import {
 } from '@mapperai/mapper-annotated-scene'
 import {mergeClasses as classNames} from '@mapperai/mapper-themes'
 import ImageLightbox from './annotator-image-lightbox/ImageLightbox'
+import About from './components/About'
 import Help from '../annotator/components/Help'
 import {Inspector} from './components/Inspector'
 import {withStyles, createStyles, Theme, WithStyles, Button, AppBar, Tabs, Tab} from '@material-ui/core'
@@ -149,6 +150,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
           {AvailableTabs[selectedTab] === 'Actions' ? (
             <>
               <div id="tools" className={c.btnGroup}>
+                <About />
                 <button className={c.btn} onClick={this.onClickAddLaneSegment}>
                   New Lane Segment
                 </button>
