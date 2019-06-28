@@ -269,6 +269,7 @@ function getDevTool() {
 
 // Webpack Config
 function makeConfig(name, dependencies, entry, configFn) {
+  const packageJson = require('../../package.json')
   const config = {
     name,
     dependencies,
@@ -311,6 +312,10 @@ function makeConfig(name, dependencies, entry, configFn) {
     plugins: [
       new DefinePlugin({
         'process.env.WEBPACK': true,
+        'process.env.isDev': isDev,
+        'process.env.APP_VERSION': JSON.stringify(packageJson.version),
+        'process.env.APP_NAME': JSON.stringify(packageJson.appName),
+        'process.env.APP_DESCRIPTION': JSON.stringify(packageJson.description),
       }),
       new ForkTsCheckerWebpackPlugin({
         tsconfig: Path.resolve(baseDir, 'tsconfig.json'),
