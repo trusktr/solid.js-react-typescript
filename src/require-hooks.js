@@ -30,12 +30,16 @@ require('ts-node').register({
   typeCheck: false,
   transpileOnly: true,
   files: true,
-  ignore: [/node_modules\/(?!@mapperai\/mapper-annotated-scene)/],
+  ignore: [/node_modules\/(?!@mapperai\/mapper-annotated-scene|tinyqueue)/],
 
   // manually supply our own compilerOptions, otherwise if we run this file
   // from another project's location (f.e. from Saffron) then ts-node will use
   // the compilerOptions from that other location, which may not work.
-  compilerOptions: require('./tsconfig.json').compilerOptions,
+  compilerOptions: {
+    ...require('./tsconfig.json').compilerOptions,
+    allowJs: true,
+    checkJs: false,
+  },
 })
 
 // css files straight to document head (assumes that the browser `document` API
