@@ -19,7 +19,7 @@ export default function loadAnnotations(fileName: string, sceneController: Annot
   return loadAnnotationsFromFile
     .call(this, fileName, sceneController)
     .then(focalPoint => {
-      if (focalPoint) sceneController.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
+      if (focalPoint) sceneController.setStage(focalPoint)
       sceneController.setLayerStatus('anot1', LayerStatus.Visible)
     })
     .catch(err => {
