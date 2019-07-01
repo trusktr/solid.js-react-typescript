@@ -4,6 +4,7 @@
  */
 
 import * as React from 'react'
+import * as ReactDOM from 'react-dom'
 import $ = require('jquery')
 import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import {panelBorderRadius, btnColor, btnTextColor, triangle} from '../styleVars'
@@ -14,14 +15,14 @@ interface Props extends WithStyles<typeof styles> {
 
 class About extends React.Component<Props, {}> {
   componentDidMount() {
-    $('.' + this.props.classes.accordion).accordion({
+    $(ReactDOM.findDOMNode(this)!).accordion({
       active: false,
       collapsible: true,
     })
   }
 
   componentWillUnmount() {
-    $('.' + this.props.classes.accordion).accordion('destroy')
+    $(ReactDOM.findDOMNode(this)!).accordion('destroy')
   }
 
   render(): JSX.Element {
