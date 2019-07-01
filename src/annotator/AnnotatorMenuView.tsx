@@ -111,7 +111,7 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     this.setState({selectedTab})
   }
 
-  private jumpToLocationHelpText = 'Jump to an annotation by ID'
+  private jumpToLocationHelpText = 'Jump to a coordinate or annotation'
 
   private onJumpToLocationFocus = (event: React.FocusEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement
@@ -129,15 +129,15 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     if (event.key !== 'Enter') return
 
     const target = event.target as HTMLInputElement
-    const uuid = target.value
-    if (!uuid) return
+    const location = target.value
+    if (!location) return
 
-    if (this.props.annotator.jumpTo(uuid)) {
+    if (this.props.annotator.jumpTo(location)) {
       // On success, reset the <input> field to its default state.
       target.value = this.jumpToLocationHelpText
       target.blur()
     } else {
-      log.info(`can't jump to "${uuid}"`)
+      log.info(`can't jump to "${location}"`)
     }
   }
 
