@@ -117,7 +117,7 @@
     "webpack-sources": "1.1.0"
   },
   "dependencies": {
-    "@mapperai/mapper-annotated-scene": "Signafy/mapper-annotated-scene#1afcfea5d9a7c10eb349b02386b57fc0e25decfb",
+    "@mapperai/mapper-annotated-scene": "^2.3.0",
     "@mapperai/mapper-models": "1.9.8",
     "@mapperai/mapper-saffron-sdk": "2.1.9",
     "@mapperai/mapper-themes": "^2.1.0",
