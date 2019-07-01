@@ -207,12 +207,6 @@ module.exports = {
     // supplied by Saffron
     'react',
     '@mapperai/mapper-saffron-sdk',
-    // function(context, request, callback) {
-    //   if (/^@mapperai\/mapper-themes\/dist\/fonts/.test(request)) {
-    //     return callback(null, 'commonjs ' + request)
-    //   }
-    //   callback()
-    // },
   ],
 
   devServer: {
