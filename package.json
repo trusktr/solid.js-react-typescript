@@ -18,7 +18,7 @@
     "package": "npm run build && ./build-scripts/build.js",
     "COMMENT about typecheck:": " the '&& :' makes it so specific files are not passed to typecheck in the below lint-staged invocation, otherwise it will have an error.",
     "typecheck": "tsc -p ./tsconfig.json --noEmit && :",
-    "typecheck-watch": "npm run typecheck -- -w",
+    "typecheck-watch": "tsc -p ./tsconfig.json --noEmit --watch",
     "electron-rebuild": "electron-rebuild",
     "prettier": "npm run prettier-js -- --write && npm run prettier-ts -- --write && npm run prettier-md -- --write",
     "prettier-list": "npm run --silent prettier-js-list && npm run --silent prettier-ts-list && npm run --silent prettier-md-list",
