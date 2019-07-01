@@ -144,6 +144,8 @@ function getDevTool() {
   return DevTools[process.env.NODE_ENV] || DevTools.development
 }
 
+const packageJson = require('../../package.json')
+
 const name = 'mapper-annotator'
 
 module.exports = {
@@ -163,6 +165,10 @@ module.exports = {
   plugins: [
     new DefinePlugin({
       'process.env.WEBPACK': true,
+      'process.env.isDev': isDev,
+      'process.env.APP_VERSION': JSON.stringify(packageJson.version),
+      'process.env.APP_NAME': JSON.stringify(packageJson.appName),
+      'process.env.APP_DESCRIPTION': JSON.stringify(packageJson.description),
     }),
     new ForkTsCheckerWebpackPlugin({
       tsconfig: Path.resolve(baseDir, 'tsconfig.json'),

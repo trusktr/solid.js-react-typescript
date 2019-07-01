@@ -113,6 +113,7 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
   isConnectRightNeighborMode?: boolean
   isConnectFrontNeighborMode?: boolean
   isJoinAnnotationMode?: boolean
+  isCutAnnotationMode?: boolean
   isAddDeviceMode?: boolean
   isMouseDown?: boolean
   isMouseDragging?: boolean
@@ -140,6 +141,7 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
     'isConnectRightNeighborMode',
     'isConnectFrontNeighborMode',
     'isJoinAnnotationMode',
+    'isCutAnnotationMode',
     'isAddDeviceMode',
     'isMouseDown',
     'isMouseDragging',
@@ -256,6 +258,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     )
       return
     if (this.props.isJoinAnnotationMode) return
+    if (this.props.isCutAnnotationMode) return
 
     const imageManager = this.imageManager
     if (!(imageManager && imageManager.isVisible && imageManager.imageScreenMeshes.length))
@@ -452,9 +455,12 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.mapKey('V', () => this.state.annotatedSceneController!.toggleCameraType())
     this.mapKey('X', () => this.state.annotationManager!.cycleTransformControlModes())
     this.keyHeld('a', held => actions.setAddMarkerMode(held))
+    this.keyHeld('A', held => actions.setAddMarkerMode(held)) // shift-a
+    this.keyHeld('å', held => actions.setAddMarkerMode(held)) // alt-a
     this.keyHeld('c', held => actions.setAddConnectionMode(held))
     this.keyHeld('f', held => actions.setConnectFrontNeighborMode(held))
     this.keyHeld('j', held => actions.setJoinAnnotationMode(held))
+    this.keyHeld('x', held => actions.setCutAnnotationMode(held))
     this.keyHeld('l', held => actions.setConnectLeftNeighborMode(held))
     this.keyHeld('q', held => actions.setAddDeviceMode(held))
     this.keyHeld('r', held => actions.setConnectRightNeighborMode(held))
