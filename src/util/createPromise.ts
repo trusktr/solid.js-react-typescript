@@ -22,12 +22,10 @@ export default function createPromise<A, B>(): PromiseReturn<A, B> {
   let res: Resolve<A> = (): void => {} // tslint:disable-line:no-empty
   let rej: Reject<B> = (): void => {} // tslint:disable-line:no-empty
 
-  const promise = new Promise<A>(
-    (resolve, reject): void => {
-      res = resolve
-      rej = reject
-    }
-  )
+  const promise = new Promise<A>((resolve, reject): void => {
+    res = resolve
+    rej = reject
+  })
 
   return {promise, resolve: res, reject: rej}
 }
