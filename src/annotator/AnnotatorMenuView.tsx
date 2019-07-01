@@ -34,6 +34,10 @@ import {
   headerHeight,
 } from './styleVars'
 import DatGui from './components/DatGui'
+import getLogger from '../util/Logger'
+
+const log = getLogger(__filename)
+
 type Annotator = import('./Annotator').Annotator
 
 type TabName = 'Layers' | 'Properties' | 'Actions'
@@ -107,6 +111,36 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     this.setState({selectedTab})
   }
 
+  private jumpToLocationHelpText = 'Jump to an annotation by ID'
+
+  private onJumpToLocationFocus = (event: React.FocusEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement
+    if (target.value === this.jumpToLocationHelpText) target.value = ''
+  }
+
+  private onJumpToLocationBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement
+    if (!target.value) target.value = this.jumpToLocationHelpText
+  }
+
+  private onJumpToLocation = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // TODO This event has already been handled by Annotator.setKeys() which we don't want. Figure out how push this handler to the front of the queue; and don't propagate to others.
+
+    if (event.key !== 'Enter') return
+
+    const target = event.target as HTMLInputElement
+    const uuid = target.value
+    if (!uuid) return
+
+    if (this.props.annotator.jumpTo(uuid)) {
+      // On success, reset the <input> field to its default state.
+      target.value = this.jumpToLocationHelpText
+      target.blur()
+    } else {
+      log.info(`can't jump to "${uuid}"`)
+    }
+  }
+
   render(): JSX.Element {
     const {classes: c} = this.props
     const {selectedTab} = this.state
@@ -167,6 +201,14 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
                 <button className={c.btn} onClick={this.onClickAddPolygon}>
                   New Polygon
                 </button>
+                <input
+                  className={c.input}
+                  size={36}
+                  defaultValue={this.jumpToLocationHelpText}
+                  onFocus={this.onJumpToLocationFocus}
+                  onBlur={this.onJumpToLocationBlur}
+                  onKeyUp={this.onJumpToLocation}
+                />
                 <button className={c.btn} onClick={this.props.onSaveAnnotationsJson}>
                   Export Annotations as JSON (UTM)
                 </button>
@@ -324,5 +366,6 @@ function styles(_theme: Theme) {
     indicator: {},
     btn: {},
     btnGroup: {},
+    input: {},
   })
 }

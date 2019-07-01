@@ -23,6 +23,7 @@ import AnnotatorMenuView, {AnnotatorMenuViewInner} from './AnnotatorMenuView'
 import {hexStringToHexadecimal} from '../util/Color'
 import loadAnnotations from '../util/loadAnnotations'
 import {
+  AnnotationUuid,
   AnnotatedSceneState,
   MousePosition,
   mousePositionToGLSpace,
@@ -569,6 +570,10 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       'application/vnd.google-earth.kml+xml',
       `annotations${sessionId ? '-' + sessionId : ''}.kml`
     )
+  }
+
+  jumpTo(uuid: AnnotationUuid): boolean {
+    return this.state.annotatedSceneController!.jumpTo(uuid)
   }
 
   private uiReverseLaneDirection(): void {
