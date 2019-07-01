@@ -75,12 +75,16 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
   private statusWindowActions = new StatusWindowActions()
   private sceneActions = new AnnotatedSceneActions()
 
-  private onClickDeleteAnnotation = () => {
-    this.props.annotator.uiDeleteActiveAnnotation()
+  private onClickAddBoundary = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.Boundary)
   }
 
   private onClickAddLaneSegment = () => {
     this.props.annotator.uiAddAnnotation(AnnotationType.LaneSegment)
+  }
+
+  private onClickAddPolygon = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.Polygon)
   }
 
   private onClickAddTrafficDevice = () => {
@@ -157,8 +161,11 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
                 <button className={c.btn} onClick={this.onClickAddTrafficDevice}>
                   New Traffic Device
                 </button>
-                <button className={c.btn} onClick={this.onClickDeleteAnnotation}>
-                  Delete Annotation
+                <button className={c.btn} onClick={this.onClickAddBoundary}>
+                  New Boundary
+                </button>
+                <button className={c.btn} onClick={this.onClickAddPolygon}>
+                  New Polygon
                 </button>
                 <button className={c.btn} onClick={this.props.onSaveAnnotationsJson}>
                   Export Annotations as JSON (UTM)
