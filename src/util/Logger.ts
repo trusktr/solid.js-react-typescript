@@ -1,32 +1,16 @@
 /* eslint-disable typescript/no-explicit-any */
-import * as TypeLogger from 'typelogger'
+import {log} from '../annotator/ipc'
 
-TypeLogger.setLogThreshold(TypeLogger.LogLevel.INFO)
-
-enum LogLevel {
-  debug = 1,
-  info,
-  warn,
-  error,
-}
-
-let Threshold = LogLevel.info
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 /* eslint-disable typescript/no-explicit-any */
 export function getLogger(name: string): any {
-  return SaffronSDK.LogManager.log(name, 'annotator')
-}
-
-export function setThreshold(threshold: LogLevel): void {
-  Threshold = threshold
-}
-
-export function enableDebug(): void {
-  setThreshold(LogLevel.debug)
-}
-
-export function isDebugEnabled(): boolean {
-  return LogLevel.debug >= Threshold
+  return {
+    debug: (...args: any[]) => log(name, 'debug', ...args),
+    info: (...args: any[]) => log(name, 'info', ...args),
+    warn: (...args: any[]) => log(name, 'warn', ...args),
+    error: (...args: any[]) => log(name, 'error', ...args),
+  }
 }
 
 export default getLogger

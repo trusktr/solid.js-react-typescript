@@ -40,3 +40,6 @@ data
 local*.yaml
 test*.yaml
 /.idea/MapperAnnotatorApp.iml
+
+# VS Code stuff
+.vscode

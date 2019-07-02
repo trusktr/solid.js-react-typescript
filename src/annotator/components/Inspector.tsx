@@ -5,7 +5,7 @@ import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import Paper from '@material-ui/core/Paper/Paper'
 import {Typography} from '@material-ui/core'
 import {menuItemSpacing} from '../styleVars'
-import Windowable from '../components/Windowable'
+// import Windowable from '../components/Windowable'
 
 export interface IInspectorProps extends WithStyles<typeof styles> {
   selectedAnnotation?: Annotation | null
@@ -40,7 +40,10 @@ class Inspector extends React.Component<IInspectorProps, IInspectorState> {
   }
 }
 
-const _Inspector = Windowable(withStyles(styles)(Inspector))
+// TODO fix Windowable types, it should pass all props, and expose a ref
+// const _Inspector = Windowable(withStyles(styles)(Inspector))
+const _Inspector = withStyles(styles)(Inspector)
+
 export default _Inspector
 export {_Inspector as Inspector}
 

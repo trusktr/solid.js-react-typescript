@@ -4,6 +4,7 @@
 import * as _ from 'lodash'
 import createPromise from '../util/createPromise'
 import {IAnnotatedSceneConfig} from '@mapperai/mapper-annotated-scene'
+import * as requireContext from 'require-context'
 
 const config = {}
 const envInput = (process.env.NODE_ENV || '').toLowerCase()
@@ -29,7 +30,7 @@ function configReady(): typeof configPromise {
 
 function setupConfig(): void {
   try {
-    const confMods = require.context('.', true, /yaml$/)
+    const confMods = requireContext('.', true, /yaml$/)
     const confKeys = confMods.keys()
     const envFilename = `${deployEnv}.yaml`
 

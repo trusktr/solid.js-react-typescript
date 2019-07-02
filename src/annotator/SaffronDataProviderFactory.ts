@@ -4,23 +4,37 @@ import {
   DataProviderFactory,
   PusherConfig,
 } from '@mapperai/mapper-annotated-scene'
-import SaffronSDK, {getPusherConnectionParams, getOrganizationId} from '@mapperai/mapper-saffron-sdk'
-import getLogger from 'util/Logger'
+import getLogger from '../util/Logger'
+import {
+  getAppAWSCredentials,
+  getPusherConnectionParams,
+  getPusherAuthorization,
+  getPusherAuthEndpoint,
+  getOrganizationId,
+  goAhead,
+} from './ipc'
 
 const log = getLogger(__filename)
+
+let defaultOrgId: string
+
+~(async () => {
+  await goAhead()
+  defaultOrgId = await getOrganizationId()
+})()
 
 /**
  * Tile service client factory for meridian
  */
-export function makeSaffronDataProviderFactory(
+export async function makeSaffronDataProviderFactory(
   sessionId: string | null,
   useCache = true,
-  organizationId: string = getOrganizationId()!
-): DataProviderFactory {
-  const credentialProvider = (): IAWSCredentials | null => {
+  organizationId: string = defaultOrgId
+): Promise<DataProviderFactory> {
+  const credentialProvider = async (): Promise<IAWSCredentials> => {
     // TODO, Saffron knows which app is running and can determine the app
     // behind the scenes without us needing to specify it here.
-    const response = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
+    const response = await getAppAWSCredentials()
     if (response == null) throw new Error('AWS Credentials are null')
     return response.credentials
   }
@@ -32,18 +46,15 @@ export function makeSaffronDataProviderFactory(
   // 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
   // })
 
-  const bucketProvider = (_: string): string => {
+  const bucketProvider = async (_: string): Promise<string> => {
     // TODO, Saffron knows which app is running and can determine the app
     // behind the scenes without us needing to specify it here.
-    const creds = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
+    const creds = await getAppAWSCredentials()
     if (!creds) throw new Error('no AWS credentials')
     return creds.sessionBucket
   }
 
-  const pusherParams = getPusherConnectionParams(),
-    {CloudService, CloudConstants} = SaffronSDK,
-    {API, HttpMethod} = CloudConstants,
-    cloudService = new CloudService.CloudService()
+  const pusherParams = await getPusherConnectionParams()
 
   return makeDataCloudProviderFactory(
     credentialProvider,
@@ -54,16 +65,10 @@ export function makeSaffronDataProviderFactory(
     {
       key: pusherParams.key,
       cluster: pusherParams.cluster,
-      authEndpoint: CloudService.makeAPIURL(API.Identity, 'identity/1/pusher/auth'),
+      authEndpoint: await getPusherAuthEndpoint(),
       authorizer: async (channelName: string, socketId: string, _options: any): Promise<any> => {
         try {
-          return (await cloudService.makeAPIRequest(
-            API.Identity,
-            HttpMethod.POST,
-            'identity/1/pusher/auth',
-            'annotator',
-            {channelName, socketId}
-          )).data
+          return await getPusherAuthorization(channelName, socketId)
         } catch (err) {
           log.error('Unable to authenticate for pusher', err)
           throw err
