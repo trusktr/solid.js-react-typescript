@@ -1,14 +1,17 @@
 import * as React from 'react'
 // import Windowable from '../components/Windowable'
 import {Events} from '@mapperai/mapper-annotated-scene'
-import {withStyles, createStyles, WithStyles, Theme} from '@material-ui/core/styles'
+import {withStyles, createStyles, WithStyles, Theme, StyleRulesCallback} from '@material-ui/core/styles'
 import {Typography, Paper} from '@material-ui/core'
 import * as LightboxState from '@mapperai/mapper-annotated-scene'
 import {ImageContext, ContextState} from './ImageContext'
 import {LightboxImageDescription, toKeyboardEventHighlights} from '@mapperai/mapper-annotated-scene'
 import {panelBorderRadius, btnTextColor, menuItemSpacing} from '../styleVars'
+import {CSSProperties} from '@material-ui/core/styles/withStyles'
 
-type ImageLightboxProps = WithStyles<typeof styles> & {}
+// TODO "WithStyles<typeof styles>" is not working here like normal, so using a
+// manual "StyleRulesCallback<'images'>" for now.
+type ImageLightboxProps = WithStyles<StyleRulesCallback<'images'>> & {}
 
 class ImageLightbox extends React.Component<ImageLightboxProps, {}> {
   // tells react which context type to read from
@@ -112,7 +115,9 @@ class ImageLightbox extends React.Component<ImageLightboxProps, {}> {
   }
 }
 
-const _LightBox = withStyles(styles)(ImageLightbox)
+// TODO manual cast to "as StyleRulesCallback<'images'>" is not normally needed
+// here. But something is funky in this particular file.
+const _LightBox = withStyles(styles as StyleRulesCallback<'images'>)(ImageLightbox)
 
 // TODO fix some Windowable typings. It should forward all props, and expose a forwardRef prop.
 // export default Windowable(_LightBox)
@@ -137,6 +142,6 @@ function styles(_theme: Theme) {
           border: '1px solid #fff',
         },
       },
-    },
+    } as CSSProperties, // TODO This type cast is not normally needed, but in this file there's currently some new type issue.
   })
 }

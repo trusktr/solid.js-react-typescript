@@ -2,28 +2,28 @@
  *  Copyright 2017 Mapper Inc. Part of the mapper-annotator project.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
-import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
-import * as $ from 'jquery'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
+import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
+import * as $ from 'jquery'
 import {Provider as ReduxProvider} from 'react-redux'
 import * as tinycolor from 'tinycolor2'
 import {MuiThemeProvider, createMuiTheme} from '@material-ui/core'
 import {MapperCssBaseline} from '@mapperai/mapper-themes'
 import {Deferred, loadAnnotatedSceneStore, getAnnotatedSceneReduxStore} from '@mapperai/mapper-annotated-scene'
 import {App} from './App'
-import {configReady} from 'annotator-config'
-import {goAhead} from './ipc'
+import {configReady} from '../annotator-config'
+import {ready} from './SaffronDataProviderFactory'
 
 type ElementOrComponent = JSX.Element | React.Component
 
 let deferred: Deferred<ElementOrComponent>
 
-export async function start(isInsideSaffronBrowsingContext = false): Promise<ElementOrComponent> {
+export async function startAnnotator(isInsideSaffronBrowsingContext = false): Promise<ElementOrComponent> {
   if (deferred) return deferred.promise
   deferred = new Deferred<ElementOrComponent>()
 
-  await goAhead()
+  await ready
 
   // This is needed because jQuery-ui depends on the globals existing.
   Object.assign(global, {
@@ -60,8 +60,6 @@ export async function start(isInsideSaffronBrowsingContext = false): Promise<Ele
 
   return deferred.promise
 }
-
-export async function stop(): Promise<void> {}
 
 // TODO get all the following theme stuff from mapper-themes
 
