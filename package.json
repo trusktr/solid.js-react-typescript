@@ -13,7 +13,7 @@
   },
   "scripts": {
     "test": "npm run lint-all && npm run prettier-check && npm run build && echo 'implement tests'",
-    "dev": "npm run build:dev:watch",
+    "dev": "rm -rf dist && npm run build:dev:watch",
     "build": "rm -rf dist && npm run build:dev",
     "build:prod": "npm run build:saffron:prod && npm run build:annotator:prod",
     "build:dev": "npm run build:saffron:dev && npm run build:annotator:dev",
