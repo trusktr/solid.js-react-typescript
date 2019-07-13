@@ -13,10 +13,11 @@
   },
   "scripts": {
     "test": "npm run lint-all && npm run prettier-check && npm run build && echo 'implement tests'",
-    "dev": "npm run build:dev -- --watch --progress",
+    "dev": "npm run build:dev:watch",
     "build": "rm -rf dist && npm run build:dev",
     "build:prod": "npm run build:saffron:prod && npm run build:annotator:prod",
     "build:dev": "npm run build:saffron:dev && npm run build:annotator:dev",
+    "build:dev:watch": "npm run build:saffron:dev -- --watch --progress & p1=$!; npm run build:annotator:dev -- --watch --progress & p2=$!; wait $p1 $p2",
     "build:saffron:prod": "cross-env NODE_ENV=production ./node_modules/.bin/webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.saffron.js --mode production",
     "build:annotator:prod": "cross-env NODE_ENV=production ./node_modules/.bin/webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.annotator.js --mode production",
     "build:saffron:dev": "cross-env NODE_ENV=development ./node_modules/.bin/webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.saffron.js --mode development",
