@@ -125,7 +125,7 @@
     "worker-loader": "^2.0.0"
   },
   "dependencies": {
-    "@mapperai/mapper-annotated-scene": "Signafy/mapper-annotated-scene#f2734eb695e6a95664721b8308381cd7760fbc96",
+    "@mapperai/mapper-annotated-scene": "^3.0.0",
     "@mapperai/mapper-models": "1.9.8",
     "@mapperai/mapper-saffron-sdk": "2.1.9",
     "@mapperai/mapper-themes": "^2.1.0",
