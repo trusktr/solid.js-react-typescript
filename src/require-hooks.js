@@ -3,16 +3,18 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-const ts = require('typescript')
+// const ts = require('typescript')
 const path = require('path')
 const Module = require('module')
 const url = require('url')
 const fs = require('fs')
 
+// require('require-context/register')
+
 // creates import aliases, f.e. import config from '@src/config'
 require('module-alias').addAliases({
-  '@src': path.resolve(__dirname, 'src'),
-  'annotator-config': path.resolve(__dirname, 'src', 'annotator-config'),
+  '@src': path.resolve(__dirname),
+  'annotator-config': path.resolve(__dirname, 'annotator-config'),
 
   // typescript imports typescript instead of JS in Annotator Standalone mode
   // (annotated-scene's package.json main field points to the .js compiled
@@ -28,11 +30,16 @@ require('ts-node').register({
   typeCheck: false,
   transpileOnly: true,
   files: true,
+  ignore: [/node_modules\/(?!@mapperai\/mapper-annotated-scene|tinyqueue)/],
 
   // manually supply our own compilerOptions, otherwise if we run this file
   // from another project's location (f.e. from Saffron) then ts-node will use
   // the compilerOptions from that other location, which may not work.
-  compilerOptions: require('./tsconfig.json').compilerOptions,
+  compilerOptions: {
+    ...require('./tsconfig.json').compilerOptions,
+    allowJs: true,
+    checkJs: false,
+  },
 })
 
 // css files straight to document head (assumes that the browser `document` API
@@ -74,50 +81,6 @@ function toFileURL(filePath) {
 
 const oldRequire = Module.prototype.require
 
-function requireContext(directory, recursive, regExp) {
-  const dir = require('node-dir')
-  const path = require('path')
-
-  // Assume absolute path by default
-  let basepath = directory
-
-  if (!directory) return null
-
-  if (directory[0] === '.') {
-    // Relative path
-    basepath = path.join(__dirname, directory)
-  } else if (!path.isAbsolute(directory)) {
-    // Module path
-    basepath = require.resolve(directory)
-  }
-
-  const keys = dir
-    .files(basepath, {
-      sync: true,
-      recursive: recursive || false,
-    })
-    .filter(function(file) {
-      return file.match(regExp || /\.(json|js)$/)
-    })
-    .map(function(file) {
-      return path.join('.', file.slice(basepath.length + 1))
-    })
-
-  const context = function(key) {
-    return require(context.resolve(key))
-  }
-
-  context.resolve = function(key) {
-    return path.join(directory, key)
-  }
-
-  context.keys = function() {
-    return keys
-  }
-
-  return context
-}
-
 Module.prototype.require = function(moduleIdentifier) {
   if (['.yaml', '.yml'].some(ext => moduleIdentifier.endsWith(ext))) {
     const data = require('js-yaml').safeLoad(
@@ -127,7 +90,7 @@ Module.prototype.require = function(moduleIdentifier) {
 
     result.default = result
     return result
-  } else if (['.obj', '.png'].some(ext => moduleIdentifier.endsWith(ext))) {
+  } else if (['.obj', '.png', '.svg', '.jpg'].some(ext => moduleIdentifier.endsWith(ext))) {
     const result = String(toFileURL(path.resolve(path.dirname(this.filename), moduleIdentifier)))
 
     result.default = result
@@ -195,8 +158,3 @@ Module.prototype.require = function(moduleIdentifier) {
     return oldRequire.call(this, moduleIdentifier)
   }
 }
-
-Module.prototype.require.context = requireContext
-process.mainModule.require.context = requireContext
-oldRequire.context = requireContext
-require.context = requireContext

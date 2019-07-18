@@ -3,5 +3,6 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-require('../../require-hooks')
+require('source-map-support').install()
+require('../require-hooks')
 module.exports = require('./entry')

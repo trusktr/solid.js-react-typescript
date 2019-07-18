@@ -34,6 +34,7 @@ import {
   Layer,
   StatusWindowState,
   AnnotatedSceneController,
+  AnnotatedSceneControllerInner,
   THREEColorValue,
   toProps,
   Events,
@@ -45,15 +46,19 @@ import {
   Annotation,
   DefaultConfig,
   SceneEmitter,
+  typedConnect,
   OutputFormat,
 } from '@mapperai/mapper-annotated-scene'
-import {ReactUtil} from '@mapperai/mapper-saffron-sdk'
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
 import {ImageManager, ImageClick, LightboxImage} from '@mapperai/mapper-annotated-scene'
-import {ImageContext, ImageContextState, initialImageContextValue} from './annotator-image-lightbox/ImageContext'
-import getLogger from 'util/Logger'
+import {
+  ImageContext,
+  ContextState as ImageContextState,
+  initialImageContextValue,
+} from './annotator-image-lightbox/ImageContext'
+import getLogger from '../util/Logger'
 import {GuiState} from './components/DatGui'
 import DatGuiContext, {ContextState as GuiContextState} from './components/DatGuiContext'
 import {isUuid} from '../util/uuid'
@@ -88,7 +93,7 @@ interface AnnotatorState {
   layerGroupIndex: number
 
   annotationManager: AnnotationManager | null
-  annotatedSceneController: AnnotatedSceneController | null
+  annotatedSceneController: AnnotatedSceneControllerInner | null
 
   annotatedSceneConfig?: IAnnotatedSceneConfig
 }
@@ -120,7 +125,7 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
   activeAnnotation?: Annotation | null
 }
 
-@ReactUtil.typedConnect(
+@typedConnect(
   toProps(
     AnnotatedSceneState,
     'uiMenuVisible',
@@ -149,10 +154,10 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
 )
 export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   private imageManagerRef = React.createRef<ImageManager>()
-  private raycasterImageScreen: THREE.Raycaster // used to highlight ImageScreens for selection
-  private highlightedImageScreenBox: THREE.Mesh | null // image screen which is currently active in the Annotator UI
-  private highlightedLightboxImage: LightboxImage | null // image screen which is currently active in the Lightbox UI
-  private lightboxImageRays: THREE.Line[] // rays that have been formed in 3D by clicking images in the lightbox
+  private raycasterImageScreen = new THREE.Raycaster() // used to highlight ImageScreens for selection
+  private highlightedImageScreenBox: THREE.Mesh | null = null // image screen which is currently active in the Annotator UI
+  private highlightedLightboxImage: LightboxImage | null = null // image screen which is currently active in the Lightbox UI
+  private lightboxImageRays: THREE.Line[] = [] // rays that have been formed in 3D by clicking images in the lightbox
   private sceneActions = new AnnotatedSceneActions()
   private previouslySelectedAnnotations: PreviousAnnotations = new PreviousAnnotations()
   private guiState: GuiState
@@ -171,11 +176,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     if (config['startup.animation.fps']) {
       log.warn('Config option startup.animation.fps has been removed. Use startup.render.fps.')
     }
-
-    this.raycasterImageScreen = new THREE.Raycaster()
-    this.highlightedImageScreenBox = null
-    this.highlightedLightboxImage = null
-    this.lightboxImageRays = []
 
     const maxSuperTilesToLoad = parseInt(
       localStorage.getItem('maxSuperTilesToLoad') ||
@@ -224,13 +224,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       bottom: `${menuMargin}px`,
       left: `${statusWindowWidth + menuMargin * 2}px`,
     })
-  }
-
-  private get imageManager(): ImageManager | null {
-    // It's wrapped by the @typedConnect annotation on ImageManager.
-    // TODO Find a way to not do this.
-    const wrapped = this.imageManagerRef.current
-    return wrapped ? ((wrapped as any).getWrappedInstance() as ImageManager) : null
   }
 
   // When a lightbox ray is created, add it to the scene.
@@ -742,13 +735,8 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   }
 
   /* eslint-disable typescript/no-explicit-any */
-  private setAnnotatedSceneRef = (ref: any) => {
-    this.setState(
-      {
-        annotatedSceneController: ref as AnnotatedSceneController,
-      },
-      this.attachScene
-    )
+  private setAnnotatedSceneRef = (ref: AnnotatedSceneControllerInner) => {
+    this.setState({annotatedSceneController: ref}, this.attachScene)
   }
   /* eslint-enable typescript/no-explicit-any */
 
@@ -895,13 +883,26 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       this.previouslySelectedAnnotations.setByType(this.props.activeAnnotation)
   }
 
+  private get imageManager() {
+    let manager = this.imageManagerRef.current
+
+    // in case it is wrapped by a decorator component.
+    if (manager && (manager as any).getWrappedInstance) {
+      manager = (manager as any).getWrappedInstance() as ImageManager
+    }
+
+    return manager
+  }
+
   render(): JSX.Element {
     const {annotatedSceneConfig} = this.state
     const {dataProviderFactory, classes} = this.props
     const {onImageMouseEnter, onImageMouseLeave, onImageMouseUp} = this
 
+    const manager = this.imageManager
+
     const imageContextValue: ImageContextState = {
-      lightboxState: this.imageManager ? this.imageManager.lightboxState : initialImageContextValue.lightboxState,
+      lightboxState: manager ? manager.lightboxState : initialImageContextValue.lightboxState,
       onImageMouseEnter,
       onImageMouseLeave,
       onImageMouseUp,

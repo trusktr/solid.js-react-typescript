@@ -1,7 +1,7 @@
 import * as React from 'react'
 import {ImageClick, LightboxState, SceneEmitter} from '@mapperai/mapper-annotated-scene'
 
-export type ImageContextState = {
+export type ContextState = {
   lightboxState: LightboxState
   onImageMouseEnter: (id: string) => void
   onImageMouseLeave: (id: string) => void
@@ -9,7 +9,7 @@ export type ImageContextState = {
   channel: SceneEmitter
 }
 
-export const initialImageContextValue: ImageContextState = {
+export const initialImageContextValue: ContextState = {
   lightboxState: {images: []},
   onImageMouseEnter: () => {},
   onImageMouseLeave: () => {},
@@ -18,5 +18,5 @@ export const initialImageContextValue: ImageContextState = {
   channel: ({} as unknown) as SceneEmitter,
 }
 
-export const ImageContext = React.createContext<ImageContextState>(initialImageContextValue)
+export const ImageContext = React.createContext<ContextState>(initialImageContextValue)
 export default ImageContext
