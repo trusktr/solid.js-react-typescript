@@ -7,8 +7,7 @@ import * as React from 'react'
 import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 import Accordion from './Accordion'
 
-// relative to dist/package/src/annotator/components/About.tsx
-import pkgJson = require('../../../../../package.json')
+import pkgJson = require('../../../package.json')
 
 const isDev = process.env.NODE_ENV !== 'production'
 

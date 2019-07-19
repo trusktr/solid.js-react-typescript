@@ -1,4 +1,3 @@
-import {ipcRenderer} from 'electron'
 type IAppAWSCredentials = import('@mapperai/mapper-saffron-sdk').AWSManager.IAppAWSCredentials
 type IAccount = import('@mapperai/mapper-saffron-sdk/models/User').IAccount
 type IPusherConnectionParams = import('@mapperai/mapper-saffron-sdk').IPusherConnectionParams
@@ -58,8 +57,26 @@ export function log(fileName: string, level: LogLevel, ...args: any[]) {
 
 // TODO add timeout to cancel promises that don't receive a response in time.
 function rpc<T>(channel: string, ...args: any[]) {
-  ipcRenderer.sendToHost(channel, ...args)
-  return new Promise<T>(resolve => ipcRenderer.once(channel, (_sender, result) => resolve(result)))
+  // get the parent (if this context is loaded as an iframe) or the opener (if
+  // this context is laoded as a new OS window)
+  ;(window.parent || window.opener).postMessage(
+    {
+      channel,
+      args,
+    },
+    '*'
+  )
+
+  return new Promise<T>(resolve =>
+    window.addEventListener('message', function messageHandler(event) {
+      // skip other channel's messages
+      if (event.data.channel !== channel) return
+
+      const result = event.data.args[0]
+      resolve(result)
+      window.removeEventListener('message', messageHandler)
+    })
+  )
 }
 
 /* eslint-enable typescript/explicit-function-return-type */

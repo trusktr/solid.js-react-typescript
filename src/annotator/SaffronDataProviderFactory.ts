@@ -1,9 +1,7 @@
-import {
-  IAWSCredentials,
-  makeDataCloudProviderFactory,
-  DataProviderFactory,
-  PusherConfig,
-} from '@mapperai/mapper-annotated-scene'
+import {IAWSCredentials} from '@mapperai/mapper-annotated-scene'
+import {DataProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataProvider'
+import {makeDataCloudProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataCloudProvider'
+import {PusherConfig} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataCloudProviderPusherClient'
 import getLogger from '../util/Logger'
 import {
   getAppAWSCredentials,
@@ -18,10 +16,11 @@ const log = getLogger(__filename)
 
 let defaultOrgId: string
 
-~(async () => {
+export const ready = new Promise(async resolve => {
   await goAhead()
   defaultOrgId = await getOrganizationId()
-})()
+  resolve()
+})
 
 /**
  * Tile service client factory for meridian

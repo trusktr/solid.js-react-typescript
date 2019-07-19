@@ -5,7 +5,7 @@ import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 
 function getFileUrl(pathRelativeToSrc): string {
   return Url.format({
-    pathname: Path.resolve(__dirname, `src/${pathRelativeToSrc}`),
+    pathname: Path.resolve(__dirname, `${pathRelativeToSrc}`),
     protocol: 'file:',
     slashes: true,
   })
@@ -17,31 +17,36 @@ interface Props extends WithStyles<typeof styles> {}
  * Annotator root component mounted in Saffron
  */
 class AnnotatorSaffronEntry extends React.Component<Props> {
-  webviewRef = React.createRef<Electron.WebviewTag>()
+  iframeRef = React.createRef<HTMLIFrameElement>()
 
-  onIpcMessage = async event => {
-    const {args, channel} = event
+  onMessage = async (event: MessageEvent) => {
+    const channel = event.data.channel as string
+    const args = event.data.args as any[]
+    const iframe = this.iframeRef.current!
+    const frameWindow = iframe.contentWindow
 
-    // const contents = this.webviewRef.current!.getWebContents()
-    const contents = this.webviewRef.current!
+    // if the iframe's window isn't ready, return. The iframe's repeated "begin"
+    // calls will continue triggering this message handler, and eventually the
+    // window will be ready.
+    if (!frameWindow) return
 
     if (channel === 'begin') {
-      contents.send('begin')
+      frameWindow.postMessage({channel: 'begin', args: []}, '*')
     } else if (channel === 'getAppAWSCredentials') {
       const result = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
-      contents.send('getAppAWSCredentials', result)
+      frameWindow.postMessage({channel: 'getAppAWSCredentials', args: [result]}, '*')
     } else if (channel === 'getAccount') {
       const result = SaffronSDK.getAccount()
-      contents.send('getAccount', result)
+      frameWindow.postMessage({channel: 'getAccount', args: [result]}, '*')
     } else if (channel === 'getOrganizationId') {
       const result = SaffronSDK.getOrganizationId()
-      contents.send('getOrganizationId', result)
+      frameWindow.postMessage({channel: 'getOrganizationId', args: [result]}, '*')
     } else if (channel === 'getEnv') {
       const result = SaffronSDK.getEnv()
-      contents.send('getEnv', result)
+      frameWindow.postMessage({channel: 'getEnv', args: [result]}, '*')
     } else if (channel === 'getPusherConnectionParams') {
       const result = SaffronSDK.getPusherConnectionParams()
-      contents.send('getPusherConnectionParams', result)
+      frameWindow.postMessage({channel: 'getPusherConnectionParams', args: [result]}, '*')
     } else if (channel === 'getPusherAuthorization') {
       const {CloudService, CloudConstants} = SaffronSDK
       const {API, HttpMethod} = CloudConstants
@@ -53,44 +58,33 @@ class AnnotatorSaffronEntry extends React.Component<Props> {
         'annotator',
         {channelName: args[0], socketId: args[1]}
       )).data
-      contents.send('getPusherAuthorization', result)
+      frameWindow.postMessage({channel: 'getPusherAuthorization', args: [result]}, '*')
     } else if (channel === 'getPusherAuthEndpoint') {
       const {CloudService, CloudConstants} = SaffronSDK
       const {API} = CloudConstants
       const result = CloudService.makeAPIURL(API.Identity, 'identity/1/pusher/auth')
-      contents.send('getPusherAuthEndpoint', result)
+      frameWindow.postMessage({channel: 'getPusherAuthEndpoint', args: [result]}, '*')
     } else if (channel === 'log') {
       const fileName = args.shift()
       const level = args.shift()
       const log = SaffronSDK.LogManager.log(fileName, 'annotator')
       log[level](...args)
-      contents.send('log')
+      frameWindow.postMessage({channel: 'log', args: []}, '*')
     }
   }
 
   componentDidMount() {
-    const contents = this.webviewRef.current!
-    contents.addEventListener('ipc-message' as any, this.onIpcMessage)
+    window.addEventListener('message', this.onMessage)
   }
 
   componentWillUnmount() {
-    const contents = this.webviewRef.current!
-    contents.removeEventListener('ipc-message' as any, this.onIpcMessage)
+    window.removeEventListener('message', this.onMessage)
   }
 
   render() {
     const {classes: c} = this.props
 
-    return React.createElement('webview', {
-      ref: this.webviewRef,
-      className: c.webview,
-      src: getFileUrl('annotator/StandaloneEntry.html'),
-      nodeintegration: 'true',
-      nodeintegrationinsubframes: 'true',
-      webpreferences: 'nodeIntegrationInWorker',
-      disablewebsecurity: 'true', // does 'false' stille work?
-      allowpopups: 'true',
-    })
+    return <iframe ref={this.iframeRef} className={c.iframe} src={getFileUrl('./StandaloneEntry.html')} />
   }
 }
 
@@ -106,7 +100,7 @@ module.exports = {
 // eslint-disable-next-line typescript/explicit-function-return-type
 function styles(_theme: Theme) {
   return createStyles({
-    webview: {
+    iframe: {
       width: '100%',
       height: '100%',
     },
