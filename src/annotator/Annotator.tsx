@@ -10,7 +10,6 @@
 // - [ ] fix window state keeper
 
 import config from 'annotator-config'
-import * as Electron from 'electron'
 import {flatten, head, uniq} from 'lodash'
 import $ = require('jquery')
 import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
@@ -21,7 +20,6 @@ import * as THREE from 'three'
 import * as React from 'react'
 import AnnotatorMenuView, {AnnotatorMenuViewInner} from './AnnotatorMenuView'
 import {hexStringToHexadecimal} from '../util/Color'
-import loadAnnotations from '../util/loadAnnotations'
 import {
   AnnotatedSceneState,
   MousePosition,
@@ -39,7 +37,6 @@ import {
   toProps,
   Events,
   AnnotatedSceneActions,
-  DataProviderFactory,
   KeyboardEventHighlights,
   IAnnotatedSceneConfig,
   Marker,
@@ -49,6 +46,7 @@ import {
   typedConnect,
   OutputFormat,
 } from '@mapperai/mapper-annotated-scene'
+import {DataProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataProvider'
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
@@ -82,6 +80,11 @@ const layerGroups: LayerId[][] = [
 
 const defaultLayerGroupIndex = 0
 
+interface Size {
+  height: number
+  width: number
+}
+
 /**
  * The Annotator class is in charge of rendering the 3d Scene that includes the point clouds
  * and the annotations. It also handles the mouse and keyboard events needed to select
@@ -102,7 +105,7 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
   statusWindowState?: StatusWindowState
   uiMenuVisible?: boolean
   carPose?: MapperProtos.mapper.models.PoseMessage
-  rendererSize?: Electron.Size
+  rendererSize?: Size
   camera?: THREE.Camera
   dataProviderFactory: DataProviderFactory
   isControlKeyPressed?: boolean
@@ -727,7 +730,15 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       const annotationsPath = config['startup.annotations_path']
 
       if (annotationsPath) {
-        await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
+        if (isElectron()) {
+          // TODO ./loadAnnotations needs to be compiled as a separate bundle
+          // called "loadAnnotations" placed next to the annotator-ui bundle for
+          // this to work in Electron, if we want it.
+          const loadAnnotations = require(['./loadAnnotations'][0])
+          await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
+        } else {
+          console.error('Loading annotations from a file only works in Electron')
+        }
       }
     })
 
@@ -1020,4 +1031,8 @@ function styles(_theme: Theme) {
       },
     },
   })
+}
+
+function isElectron(): boolean {
+  return typeof process !== 'undefined' && process.versions && 'electron' in process.versions
 }
