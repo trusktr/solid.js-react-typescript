@@ -35,6 +35,11 @@ import {
 } from './styleVars'
 import DatGui from './components/DatGui'
 import {DragDropContext, Draggable, Droppable} from 'react-beautiful-dnd'
+
+import getLogger from '../util/Logger'
+
+const log = getLogger(__filename)
+
 type Annotator = import('./Annotator').Annotator
 
 type TabName = 'Layers' | 'Properties' | 'Actions'
@@ -76,12 +81,16 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
   private statusWindowActions = new StatusWindowActions()
   private sceneActions = new AnnotatedSceneActions()
 
-  private onClickDeleteAnnotation = () => {
-    this.props.annotator.uiDeleteActiveAnnotation()
+  private onClickAddBoundary = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.Boundary)
   }
 
   private onClickAddLaneSegment = () => {
     this.props.annotator.uiAddAnnotation(AnnotationType.LaneSegment)
+  }
+
+  private onClickAddPolygon = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.Polygon)
   }
 
   private onClickAddTrafficDevice = () => {
@@ -102,6 +111,36 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
 
   private onTabChange = (_, selectedTab: number) => {
     this.setState({selectedTab})
+  }
+
+  private jumpToLocationHelpText = 'Jump to a coordinate or annotation'
+
+  private onJumpToLocationFocus = (event: React.FocusEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement
+    if (target.value === this.jumpToLocationHelpText) target.value = ''
+  }
+
+  private onJumpToLocationBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement
+    if (!target.value) target.value = this.jumpToLocationHelpText
+  }
+
+  private onJumpToLocation = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // TODO This event has already been handled by Annotator.setKeys() which we don't want. Figure out how push this handler to the front of the queue; and don't propagate to others.
+
+    if (event.key !== 'Enter') return
+
+    const target = event.target as HTMLInputElement
+    const location = target.value
+    if (!location) return
+
+    if (this.props.annotator.jumpTo(location)) {
+      // On success, reset the <input> field to its default state.
+      target.value = this.jumpToLocationHelpText
+      target.blur()
+    } else {
+      log.info(`can't jump to "${location}"`)
+    }
   }
 
   private onDragEnd = () => {}
@@ -133,7 +172,6 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
             &#9776;
           </Button>
         </div>
-
         <DragDropContext onDragStart={() => {}} onDragEnd={this.onDragEnd} onDragUpdate={() => {}}>
           <div className={classNames(!this.props.uiMenuVisible && c.hidden, c.menuContent)}>
             {AvailableTabs[selectedTab] === 'Properties' ? (
@@ -184,9 +222,20 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
                   <button className={c.btn} onClick={this.onClickAddTrafficDevice}>
                     New Traffic Device
                   </button>
-                  <button className={c.btn} onClick={this.onClickDeleteAnnotation}>
-                    Delete Annotation
+                  <button className={c.btn} onClick={this.onClickAddBoundary}>
+                    New Boundary
                   </button>
+                  <button className={c.btn} onClick={this.onClickAddPolygon}>
+                    New Polygon
+                  </button>
+                  <input
+                    className={c.input}
+                    size={36}
+                    defaultValue={this.jumpToLocationHelpText}
+                    onFocus={this.onJumpToLocationFocus}
+                    onBlur={this.onJumpToLocationBlur}
+                    onKeyUp={this.onJumpToLocation}
+                  />
                   <button className={c.btn} onClick={this.props.onSaveAnnotationsJson}>
                     Export Annotations as JSON (UTM)
                   </button>
@@ -345,5 +394,6 @@ function styles(_theme: Theme) {
     indicator: {},
     btn: {},
     btnGroup: {},
+    input: {},
   })
 }

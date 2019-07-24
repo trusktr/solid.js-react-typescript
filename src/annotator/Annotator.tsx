@@ -59,6 +59,8 @@ import {
 import getLogger from '../util/Logger'
 import {GuiState} from './components/DatGui'
 import DatGuiContext, {ContextState as GuiContextState} from './components/DatGuiContext'
+import {isUuid} from '../util/uuid'
+import {parseLocationString} from '../util/coordinate'
 
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
@@ -565,6 +567,16 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       'application/vnd.google-earth.kml+xml',
       `annotations${sessionId ? '-' + sessionId : ''}.kml`
     )
+  }
+
+  // Move the camera to the specified location, either an annotation or a global coordinate.
+  jumpTo(location: string): boolean {
+    if (isUuid(location)) return this.state.annotatedSceneController!.jumpToAnnotation(location)
+
+    const locationVector = parseLocationString(location)
+    if (locationVector) return this.state.annotatedSceneController!.jumpToLocation(locationVector)
+
+    return false
   }
 
   private uiReverseLaneDirection(): void {
