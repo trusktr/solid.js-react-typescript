@@ -18,10 +18,11 @@ module.exports = {
   plugins: [
     ...baseConfig.plugins,
 
-    // NOTE:
-    // "from" paths are relative to the srcRootDir
-    // "to" paths are relative to the output destination.
     new CopyPlugin([
+      // NOTE:
+      // "from" paths are relative to the srcRootDir
+      // "to" paths are relative to the output destination.
+
       // Copy the HTML entry point file that launches Annotator UI.
       {from: 'annotator/StandaloneEntry.html', to: './'},
     ]),

@@ -85,6 +85,7 @@ module.exports = {
             },
           ],
         },
+
         {
           test: /\.worker\.(ts|js)$/,
           loader: 'worker-loader',
@@ -96,10 +97,6 @@ module.exports = {
     resolve: {
       modules: [Path.join(baseDir, 'src'), 'node_modules'],
       extensions: ['.ts', '.tsx', '.js', '.jsx'],
-      // alias: {
-      //   'animation-loop': 'animation-loop/src',
-      //   lowclass: 'lowclass/src',
-      // },
     },
 
     plugins: [
