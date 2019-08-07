@@ -45,6 +45,7 @@ import {
   SceneEmitter,
   typedConnect,
   OutputFormat,
+  AnnotatedSceneConfig,
 } from '@mapperai/mapper-annotated-scene'
 import {DataProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataProvider'
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
@@ -820,15 +821,17 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
   private updateMaxSuperTilesToLoad = () => {
     localStorage.setItem('maxSuperTilesToLoad', this.guiState.maxSuperTilesToLoad.toString())
+    this.setState({annotatedSceneConfig: this.makeAnnotatedSceneConfig()})
   }
 
   private updateMaxPointDensity = () => {
     localStorage.setItem('maxPointDensity', this.guiState.maxPointDensity.toString())
+    this.setState({annotatedSceneConfig: this.makeAnnotatedSceneConfig()})
   }
 
   private updateRoadPointsIntensityScale = () => {
     localStorage.setItem('roadPointsIntensityScale', this.guiState.roadPointsIntensityScale.toString())
-    this.forceUpdate()
+    this.setState({annotatedSceneConfig: this.makeAnnotatedSceneConfig()})
   }
 
   private setImageScreenOpacity = () => {
@@ -866,7 +869,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.guiHandlers.get(prop)!()
   }
 
-  private configWithDefaults() {
+  private configWithDefaults(): AnnotatedSceneConfig {
     return {
       ...DefaultConfig,
       ...(this.state.annotatedSceneConfig || {}),
