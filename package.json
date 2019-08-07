@@ -2,7 +2,7 @@
   "name": "@mapperai/mapper-annotator",
   "appName": "Annotator",
   "appID": "Annotator",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "description": "Mapper.ai HD Map Editor",
   "appIcon": "https://s3.amazonaws.com/mapper-website-assets/saffron/icons/Annotator_Icon.svg",
   "main": "dist/package/saffron.js",
