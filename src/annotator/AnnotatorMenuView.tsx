@@ -4,341 +4,396 @@
  */
 
 import * as React from 'react'
-import initUIControl from './annotator-control-ui/UIControl'
-import {Annotation, LayerManager, typedConnect, toProps, AnnotatedSceneState, LayerStatusMap} from '@mapperai/mapper-annotated-scene'
+import {pick} from 'lodash'
+import {
+  Annotation,
+  LayerManager,
+  typedConnect,
+  toProps,
+  AnnotatedSceneState,
+  LayerStatusMap,
+  AnnotationType,
+  StatusWindowActions,
+  AnnotatedSceneActions,
+} from '@mapperai/mapper-annotated-scene'
+import {mergeClasses as classNames} from '@mapperai/mapper-themes'
+import ImageLightbox from './annotator-image-lightbox/ImageLightbox'
+import About from './components/About'
 import Help from '../annotator/components/Help'
-import { Inspector } from './components/Inspector'
+import {Inspector} from './components/Inspector'
+import {withStyles, createStyles, Theme, WithStyles, Button, AppBar, Tabs, Tab} from '@material-ui/core'
 import {
-  IThemedProperties,
-  withStatefulStyles,
-  mergeStyles,
-  mergeClasses,
-} from '@mapperai/mapper-themes'
-import {
-  menuSpacing,
-  menuTopPosition,
+  menuItemSpacing,
+  menuMargin,
   panelBorderRadius,
+  btnColor,
+  btnTextColor,
+  colors,
+  jQueryAccordionItemHeight,
+  tabBarHeight,
+  headerHeight,
 } from './styleVars'
+import DatGui from './components/DatGui'
+import {DragDropContext, Draggable, Droppable} from 'react-beautiful-dnd'
 
-interface AnnotatorMenuViewProps extends IThemedProperties {
+import getLogger from '../util/Logger'
+
+const log = getLogger(__filename)
+
+type Annotator = import('./Annotator').Annotator
+
+type TabName = 'Layers' | 'Properties' | 'Actions'
+
+// this controls the order of the tabs
+// prettier-ignore
+const AvailableTabs: TabName[] = [
+  'Layers',
+  'Properties',
+  'Actions'
+]
+
+interface AnnotatorMenuViewProps extends WithStyles<typeof styles> {
   uiMenuVisible: boolean
   layerStatus?: LayerStatusMap
   selectedAnnotation?: Annotation | null
+  onSaveAnnotationsJson(): void
+  onSaveAnnotationsGeoJSON(): void
+  onSaveAnnotationsKML(): void
+  annotator: Annotator
 }
 
-interface AnnotatorMenuViewState {}
+interface AnnotatorMenuViewState {
+  windowOpen: boolean
+  selectedTab: number
+}
 
-@typedConnect(toProps(
-  AnnotatedSceneState,
-  'layerStatus'
-))
-@withStatefulStyles(styles)
-export default class AnnotatorMenuView extends React.Component<
-  AnnotatorMenuViewProps,
-  AnnotatorMenuViewState
-> {
-  constructor(props: AnnotatorMenuViewProps) {
-    super(props)
+@typedConnect(toProps(AnnotatedSceneState, 'layerStatus'))
+class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, AnnotatorMenuViewState> {
+  state = {
+    windowOpen: false,
+    selectedTab: AvailableTabs.indexOf('Layers'), // Layers tab open by default
   }
 
+  setTab(tabName: TabName) {
+    this.setState({selectedTab: AvailableTabs.indexOf(tabName)})
+  }
+
+  private statusWindowActions = new StatusWindowActions()
+  private sceneActions = new AnnotatedSceneActions()
+
+  private onClickAddBoundary = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.Boundary)
+  }
+
+  private onClickAddLaneSegment = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.LaneSegment)
+  }
+
+  private onClickAddPolygon = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.Polygon)
+  }
+
+  private onClickAddTrafficDevice = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.TrafficDevice)
+  }
+
+  private onPublishClick = () => {
+    this.props.annotator.state.annotationManager!.publish().then()
+  }
+
+  private onStatusWindowClick = () => {
+    this.statusWindowActions.toggleEnabled()
+  }
+
+  private onMenuToggle = () => {
+    this.sceneActions.toggleUIMenuVisible()
+  }
+
+  private onTabChange = (_, selectedTab: number) => {
+    this.setState({selectedTab})
+  }
+
+  private jumpToLocationHelpText = 'Jump to a coordinate or annotation'
+
+  private onJumpToLocationFocus = (event: React.FocusEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement
+    if (target.value === this.jumpToLocationHelpText) target.value = ''
+  }
+
+  private onJumpToLocationBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    const target = event.target as HTMLInputElement
+    if (!target.value) target.value = this.jumpToLocationHelpText
+  }
+
+  private onJumpToLocation = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // TODO This event has already been handled by Annotator.setKeys() which we don't want. Figure out how push this handler to the front of the queue; and don't propagate to others.
+
+    if (event.key !== 'Enter') return
+
+    const target = event.target as HTMLInputElement
+    const location = target.value
+    if (!location) return
+
+    if (this.props.annotator.jumpTo(location)) {
+      // On success, reset the <input> field to its default state.
+      target.value = this.jumpToLocationHelpText
+      target.blur()
+    } else {
+      log.info(`can't jump to "${location}"`)
+    }
+  }
+
+  private onDragEnd = () => {}
+
   render(): JSX.Element {
-    const {classes} = this.props
+    const {classes: c} = this.props
+    const {selectedTab} = this.state
+
     return (
-      <div id="menu" className={mergeClasses(classes!.menu!, this.props.uiMenuVisible ? '' : 'hidden')}>
-        <menu id="annotationMenu" className="menu">
-          {this.props.layerStatus && (
-            <LayerManager layerStatus={this.props.layerStatus} useCheckboxes={true} isDraggable={false} />
-          )}
-          <div id="tools" className="div_buttons_group">
-            <button
-              id="tools_add_lane"
-              className="ui-btn ui-icon-plus ui-btn-icon-left"
+      <div className={c.menu}>
+        <div className={c.tabBar}>
+          <AppBar color="default" className={c.tabs}>
+            <Tabs
+              value={selectedTab}
+              onChange={this.onTabChange}
+              indicatorColor="primary"
+              textColor="primary"
+              variant="fullWidth"
+              // scrollable={true}
+              scrollButtons="on"
+              classes={{...pick(c, 'indicator')}}
             >
-              {' '}
-              New Lane{' '}
-            </button>
-            <button
-              id="tools_add_traffic_device"
-              className="ui-btn ui-icon-plus ui-btn-icon-left"
-            >
-              {' '}
-              New Traffic Device{' '}
-            </button>
-            <button
-              id="tools_delete"
-              className="ui-btn ui-icon-minus ui-btn-icon-left"
-            >
-              {' '}
-              Delete Annotation{' '}
-            </button>
-            <button
-              id="tools_load_images"
-              className="ui-btn ui-icon-camera ui-btn-icon-left"
-            >
-              {' '}
-              Load Images{' '}
-            </button>
-            <button
-              id="tools_load_annotation"
-              className="ui-btn ui-icon-edit ui-btn-icon-left"
-            >
-              {' '}
-              Load Annotations{' '}
-            </button>
-            <button
-              id="tools_export_kml"
-              className="ui-btn ui-icon-location ui-btn-icon-left"
-            >
-              {' '}
-              Export Annotations KML{' '}
-            </button>
-          </div>
+              {AvailableTabs.map(tabName => (
+                <Tab key={tabName} classes={{...pick(c, 'label', 'selected')}} className={c.tab} label={tabName} />
+              ))}
+            </Tabs>
+          </AppBar>
+          <Button variant="contained" color="primary" onClick={this.onMenuToggle} className={c.menuToggle}>
+            &#9776;
+          </Button>
+        </div>
+        <DragDropContext onDragStart={() => {}} onDragEnd={this.onDragEnd} onDragUpdate={() => {}}>
+          <div className={classNames(!this.props.uiMenuVisible && c.hidden, c.menuContent)}>
+            {AvailableTabs[selectedTab] === 'Properties' ? (
+              <Droppable droppableId={'0'}>
+                {provided => (
+                  <div {...provided.droppableProps} ref={provided.innerRef}>
+                    <Draggable draggableId={'inspector'} index={0}>
+                      {provided => (
+                        <div {...provided.draggableProps} {...provided.dragHandleProps} ref={provided.innerRef}>
+                          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
+                        </div>
+                      )}
+                    </Draggable>
+                    <Draggable draggableId={'lightbox'} index={1}>
+                      {provided => (
+                        <div {...provided.draggableProps} {...provided.dragHandleProps} ref={provided.innerRef}>
+                          <ImageLightbox
+                          // windowed={false}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            ) : null}
 
-          <div id="menu_boundary" className="accordion">
-            <h3 id="exp_head_1" className="dropdown_head">
-              {' '}
-              Boundary Properties{' '}
-            </h3>
-            <div id="exp_body_1" className="dropdown_body">
-              <div id="boundary_prop" className="fieldset_content_style" />
-            </div>
-          </div>
+            {AvailableTabs[selectedTab] === 'Layers' && this.props.layerStatus ? (
+              <>
+                <LayerManager
+                  classes={{root: c.layerManager}}
+                  layerStatus={this.props.layerStatus}
+                  useCheckboxes={true}
+                  isDraggable={false}
+                />
+                <DatGui classes={{root: c.datGui}} />
+              </>
+            ) : null}
 
-          <div id="menu_lane" className="accordion">
-            <h3 id="exp_head_2" className="dropdown_head">
-              {' '}
-              Lane Properties{' '}
-            </h3>
-            <div id="exp_body_2" className="dropdown_body">
-              <div id="lane_prop" className="fieldset_content_style">
-                <div id="lane_prop_1" className="div_properties" />
-                <div id="lane_prop_2" className="div_glue">
-                  {' '}
-                  Add Neighbor:{' '}
-                </div>
-                <div id="lane_prop_3" className="div_buttons_group">
-                  <button className="laneBtn" id="lp_add_forward">
-                    {' '}
-                    &uarr;{' '}
+            {AvailableTabs[selectedTab] === 'Actions' ? (
+              <>
+                <div id="tools" className={c.btnGroup}>
+                  <About />
+                  <button className={c.btn} onClick={this.onClickAddLaneSegment}>
+                    New Lane Segment
+                  </button>
+                  <button className={c.btn} onClick={this.onClickAddTrafficDevice}>
+                    New Traffic Device
+                  </button>
+                  <button className={c.btn} onClick={this.onClickAddBoundary}>
+                    New Boundary
+                  </button>
+                  <button className={c.btn} onClick={this.onClickAddPolygon}>
+                    New Polygon
+                  </button>
+                  <input
+                    className={c.input}
+                    size={36}
+                    defaultValue={this.jumpToLocationHelpText}
+                    onFocus={this.onJumpToLocationFocus}
+                    onBlur={this.onJumpToLocationBlur}
+                    onKeyUp={this.onJumpToLocation}
+                  />
+                  <button className={c.btn} onClick={this.props.onSaveAnnotationsJson}>
+                    Export Annotations as JSON (UTM)
+                  </button>
+                  <button className={c.btn} onClick={this.props.onSaveAnnotationsGeoJSON}>
+                    Export Annotations as GeoJSON (LLA)
+                  </button>
+                  <button className={c.btn} onClick={this.props.onSaveAnnotationsKML}>
+                    Export Annotations as KML
+                  </button>
+                  <button className={c.btn} onClick={this.onPublishClick}>
+                    Publish to Meridian
+                  </button>
+                  <button className={c.btn} onClick={this.onStatusWindowClick}>
+                    Toggle Info Panel
                   </button>
                 </div>
-                <div id="lane_prop_4" className="div_buttons_group">
-                  <button className="laneBtn" id="lp_add_left_opposite">
-                    {' '}
-                    &darr;{' '}
-                  </button>
-                  <button className="laneBtn" id="lp_add_left_same">
-                    {' '}
-                    &uarr;{' '}
-                  </button>
-                  <button className="laneBtn" id="lp_current" disabled>
-                    {' '}
-                    C{' '}
-                  </button>
-                  <button className="laneBtn" id="lp_add_right_same">
-                    {' '}
-                    &uarr;{' '}
-                  </button>
-                  <button className="laneBtn" id="lp_add_right_opposite">
-                    {' '}
-                    &darr;{' '}
-                  </button>
-                </div>
-              </div>
-            </div>
+                <Help />
+              </>
+            ) : null}
           </div>
-          <div id="menu_connection" className="accordion">
-            <h3 id="exp_head_3" className="dropdown_head">
-              {' '}
-              Connection Properties{' '}
-            </h3>
-            <div id="exp_body_3" className="dropdown_body">
-              <div id="connection_prop" className="fieldset_content_style" />
-            </div>
-          </div>
-          <div id="menu_traffic_device" className="accordion">
-            <h3 id="exp_head_4" className="dropdown_head">
-              {' '}
-              Traffic Device Properties{' '}
-            </h3>
-            <div id="exp_body_4" className="dropdown_body">
-              <div
-                id="traffic_device_prop_1"
-                className="fieldset_content_style"
-              />
-              <div
-                id="traffic_device_prop_2"
-                className="fieldset_content_style"
-              />
-            </div>
-          </div>
-          <div id="menu_polygon" className="accordion">
-            <h3 id="menu_head_polygon" className="dropdown_head">
-              Polygon Properties
-            </h3>
-            <div id="menu_body_polygon" className="dropdown_body">
-              {/* nothing in the panel at the moment */}
-            </div>
-          </div>
-          <div id="menu_help" className="accordion">
-            <h3 id="exp_head_6" className="dropdown_head">
-              {' '}
-              Help{' '}
-            </h3>
-            <div id="exp_body_6" className="dropdown_body">
-              <Help />
-            </div>
-          </div>
-          <Inspector selectedAnnotation={this.props.selectedAnnotation} />
-        </menu>
+        </DragDropContext>
       </div>
     )
   }
-
-  componentDidMount(): void {
-    initUIControl()
-  }
 }
 
-function styles() {
-  return mergeStyles({
+export type AnnotatorMenuViewInner = AnnotatorMenuView
+
+export default withStyles(styles)(AnnotatorMenuView)
+
+// eslint-disable-next-line typescript/explicit-function-return-type
+function styles(_theme: Theme) {
+  return createStyles({
     menu: {
       position: 'absolute',
-      right: menuSpacing,
-      height: `calc(100% - ${menuTopPosition}px - ${menuSpacing}px)`,
+      right: menuMargin,
+      maxHeight: `calc(100vh - ${headerHeight}px - ${menuMargin * 2}px)`,
       width: '250px',
       zIndex: 1,
-      top: menuTopPosition,
+      top: menuMargin,
       backgroundColor: 'transparent',
-      overflowX: 'visible', // visible, but don't scroll
-      overflowY: 'auto', // scroll if necessary
+      overflow: 'hidden',
       paddingTop: 0,
       borderRadius: panelBorderRadius,
 
-      '&.hidden': {
-        display: 'none'
-      },
-
-      '& menu': {
+      '& $menuContent': {
         padding: 0,
         margin: 0,
+        maxHeight: `calc(100vh - ${headerHeight}px - ${menuMargin * 2}px - ${tabBarHeight}px)`,
+        overflowX: 'visible', // visible, but don't scroll
+        overflowY: 'auto', // scroll if necessary
       },
 
       '& *': {
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
       },
 
       '&, & *, & *::after, & *::before': {
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
       },
 
-      '& .statusOk': {
-        color: '#0a0'
-      },
-      '& .statusWarning': {
-        color: '#ffd260'
-      },
-      '& .statusError': {
-        color: '#a00'
-      },
-      '& button': {
+      '& $btn': {
         width: '100%',
+        marginTop: menuItemSpacing,
+        height: jQueryAccordionItemHeight,
         textDecoration: 'none',
         outline: 0,
-        color: '#fff',
-        backgroundColor: '#4caf50',
+        color: btnTextColor.toHexString(),
+        backgroundColor: btnColor.toHexString(),
         border: 0,
-        borderRadius: '15px',
-        '&.laneBtn': {
-          width: '30px'
-        },
+        borderRadius: panelBorderRadius,
+        fontSize: '12px',
         '&:active': {
-          backgroundColor: '#3e8e41',
-          transform: 'translateY(4px)'
+          backgroundColor: btnColor
+            .clone()
+            .darken(5)
+            .toHexString(),
+          borderColor: btnColor
+            .clone()
+            .lighten(20)
+            .toHexString(),
         },
         '&:hover': {
-          backgroundColor: '#3e8e41'
-        }
-      },
-      '& .fieldset_content_style': {
-        width: '100%',
-        height: '100%',
-        marginTop: '2px',
-        textAlign: 'center'
-      },
-      '& .div_buttons_group': {
-        marginTop: '2px',
-        textAlign: 'center'
-      },
-      '& .div_properties': {
-        marginTop: '2px',
-        textAlign: 'center'
-      },
-      '& .div_glue, & .div_help': {
-        marginTop: '2px',
-        textAlign: 'left',
-        fontSize: 'x-small'
-      },
-      '& .div_help': {
-        marginTop: 0
-      },
-      '& .ui-btn': {
-        fontSize: '12px'
-      },
-      '& .label_style, & .select_style': {
-        textAlign: 'left',
-        padding: 0,
-        margin: 0,
-        float: 'left',
-        fontSize: 'x-small'
-      },
-      '& .label_style': {
-        border: 0,
-        backgroundColor: 'transparent',
-        width: '60%'
-      },
-      '& .select_style': {
-        width: '40%'
-      },
-      '& .accordion': {
-        outline: 0,
-        borderRadius: '10px',
-        marginBottom: '2px',
-        backgroundColor: '#f4511e',
-        border: 0,
-        color: '#fff',
-        textAlign: 'left',
-        fontSize: '15px',
-        padding: 0,
-        width: 'auto',
-        cursor: 'pointer'
-      },
-      '& .dropdown_head': {
-        margin: '3px',
-        padding: '2px',
-        fontSize: '12px',
-        '&:after': {
-          content: "'\\02795'", // TODO? it was '\02795' in the CSS
-          fontSize: '10px',
-          paddingRight: '5px',
-          paddingTop: '2px',
-          float: 'right'
+          backgroundColor: btnColor
+            .clone()
+            .lighten(5)
+            .toHexString(),
+          borderColor: btnColor
+            .clone()
+            .lighten(20)
+            .toHexString(),
         },
-        '&:active': {
-          '&:after': {
-            content: "'-'"
-          }
-        }
       },
-      '& .dropdown_body': {
-        height: 'auto',
-        padding: '5px',
-        borderRadius: '5px',
-        backgroundColor: '#faebd7',
-        color: '#000',
-        display: 'none',
-        overflow: 'auto'
+      '& $btnGroup': {
+        textAlign: 'center',
       },
     },
+
+    tabBar: {
+      display: 'flex',
+
+      '& $tabs': {
+        width: 'calc(100% - 40px)',
+        position: 'static',
+
+        '& $tab': {
+          // make tabs smaller than they are designed to be.
+          minWidth: 40,
+          color: btnTextColor
+            .clone()
+            .darken(50)
+            .toHexString(),
+
+          '&$selected': {
+            color: btnTextColor.toHexString(),
+          },
+
+          '& $label': {
+            // center the tab text in the smaller tabs.
+            display: 'inline-block',
+            marginLeft: '50%',
+            transform: 'translateX(-50%)',
+          },
+        },
+
+        '& $indicator': {
+          backgroundColor: colors.saffron.toHexString(),
+        },
+      },
+
+      '& $menuToggle': {
+        width: 40,
+        minWidth: 40,
+        borderRadius: 0,
+      },
+    },
+
+    layerManager: {
+      marginTop: menuItemSpacing,
+    },
+
+    datGui: {
+      marginTop: menuItemSpacing,
+    },
+
+    hidden: {
+      display: 'none',
+    },
+
+    menuContent: {},
+    menuToggle: {},
+    tabs: {},
+    tab: {},
+    selected: {},
+    label: {},
+    indicator: {},
+    btn: {},
+    btnGroup: {},
+    input: {},
   })
 }

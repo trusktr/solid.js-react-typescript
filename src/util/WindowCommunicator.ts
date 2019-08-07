@@ -11,12 +11,9 @@ export default class WindowCommunicator {
   constructor(win?: Window) {
     this.window = win || window.opener
 
-    addEventListener(
-      'message',
-      (event): void => {
-        this.receive(event.data.channel, event.data.msg)
-      }
-    )
+    addEventListener('message', (event): void => {
+      this.receive(event.data.channel, event.data.msg)
+    })
   }
 
   // eslint-disable-next-line typescript/no-explicit-any
@@ -43,7 +40,7 @@ export default class WindowCommunicator {
   // eslint-disable-next-line typescript/no-explicit-any
   send(channel: string, msg: any): void {
     // eslint-disable-line typescript/no-explicit-any
-    this.window.postMessage({ channel, msg }, '*')
+    this.window.postMessage({channel, msg}, '*')
   }
 
   on(eventName: string, callback: Function, context?: Object): void {
@@ -57,9 +54,7 @@ export default class WindowCommunicator {
       // save callback associated with context
       callbacks.push([callback, context])
     } else {
-      throw new Error(
-        'Expected a function in callback argument of MessageEmitter#on.'
-      )
+      throw new Error('Expected a function in callback argument of MessageEmitter#on.')
     }
   }
 

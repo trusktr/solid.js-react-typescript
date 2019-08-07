@@ -1,21 +1,14 @@
-import { S3 } from 'aws-sdk'
-import { getValue } from 'typeguard'
-import { getS3Client, getLogger, } from '@mapperai/mapper-annotated-scene'
-import { getAccount, getOrganizationId } from '@mapperai/mapper-saffron-sdk'
-import { awsCredentials, s3Bucket } from './SaffronDataProviderFactory'
+import {getS3Client} from '@mapperai/mapper-annotated-scene'
+import getLogger from '../util/Logger'
+import {getAppAWSCredentials, getOrganizationId, getAccount} from './ipc'
 
 const log = getLogger(__filename)
 
-export class ActivityTracker<T extends Object | null> {
+export class ActivityTracker<T extends Object> {
   private userHasInteracted = false
   private activityInterval?: number
-  private bucket?: string
-  private s3?: S3
 
-  constructor(
-    private sessionId: string,
-    private onActivityTrack?: () => T
-  ) {}
+  constructor(private sessionId: string, private onActivityTrack: () => T | false) {}
 
   start() {
     this.activityInterval = window.setInterval(this.checkActivity, 30000)
@@ -39,39 +32,43 @@ export class ActivityTracker<T extends Object | null> {
 
   private checkActivity = async () => {
     if (!this.userHasInteracted) {
-      log.info('no user interaction in the last interval, not logging activity')
+      log.debug('no user interaction in the last interval, not logging activity')
       return
     }
 
     this.userHasInteracted = false
 
-    if (!this.s3) {
-      await Promise.all([
-        s3Bucket.then((bucket) => this.bucket = bucket),
-        awsCredentials.then(async (creds) => {
-          return this.s3 = await getS3Client(creds)
-        }),
-      ])
-    }
+    const credentials = await getAppAWSCredentials()
 
-    if (!this.bucket || !this.s3)
-      throw new Error('unable to get s3 client')
+    if (!credentials) throw new Error('Unable to get AWS credentials')
 
-    const organizationId = getOrganizationId()
-    const account = getAccount()
+    const Bucket = credentials.sessionBucket
+    const s3 = getS3Client(credentials.credentials)
+    const organizationId = await getOrganizationId()
+    const account = await getAccount()
     const sessionId = this.sessionId
 
-    if (!(account && getValue(() => account.user.id) && organizationId)) {
-      log.warn('user not authenticated, not logging activity yet')
+    if (!(account && (account.user as any).user_id)) {
+      log.warn('No authenticated user, not logging activity.', account)
       return
     }
 
-    const userId = account.user.id
+    if (!organizationId) {
+      log.warn('No organization ID for user, not logging activity.')
+      return
+    }
+
+    const userId: string = (account.user as any).user_id
     const timestamp = Date.now()
     const Key = `${organizationId}/stats/${sessionId}/${userId}--${timestamp}.json`
-    const metaData = (this.onActivityTrack && this.onActivityTrack()) || {}
+    const metaData = this.onActivityTrack()
 
-    await this.s3
+    if (!metaData) {
+      log.debug('annotated-scene not ready, skipping logging of user activity')
+      return
+    }
+
+    await s3
       .putObject({
         Body: JSON.stringify({
           userId,
@@ -79,8 +76,8 @@ export class ActivityTracker<T extends Object | null> {
           intervalSeconds: 30,
           meta: metaData,
         }),
-        Bucket: this.bucket,
-        Key
+        Bucket,
+        Key,
       })
       .promise()
   }

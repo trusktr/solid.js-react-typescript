@@ -1,13 +1,9 @@
 import * as AsyncFile from 'async-file'
 import * as Electron from 'electron'
 import * as THREE from 'three'
-import {
-  LayerStatus,
-  AnnotatedSceneController,
-  getLogger as Logger
-} from '@mapperai/mapper-annotated-scene'
-
-const log = Logger(__filename)
+import {LayerStatus, AnnotatedSceneControllerInner} from '@mapperai/mapper-annotated-scene'
+import getLogger from './Logger'
+const log = getLogger(__filename)
 const dialog = Electron.remote.dialog
 
 // TODO JOE make this a class mixin, it is cleaner.
@@ -19,15 +15,14 @@ const dialog = Electron.remote.dialog
  */
 export default function loadAnnotations(
   fileName: string,
-  sceneController: AnnotatedSceneController
+  sceneController: AnnotatedSceneControllerInner
 ): Promise<void> {
   log.info('Loading annotations from ' + fileName)
 
   return loadAnnotationsFromFile
     .call(this, fileName, sceneController)
     .then(focalPoint => {
-      if (focalPoint)
-        sceneController.setStage(focalPoint.x, focalPoint.y, focalPoint.z)
+      if (focalPoint) sceneController.setStage(focalPoint)
       sceneController.setLayerStatus('anot1', LayerStatus.Visible)
     })
     .catch(err => {
@@ -42,13 +37,12 @@ export default function loadAnnotations(
  */
 function loadAnnotationsFromFile(
   fileName: string,
-  sceneController: AnnotatedSceneController
+  sceneController: AnnotatedSceneControllerInner
 ): Promise<THREE.Vector3 | null> {
   return AsyncFile.readFile(fileName, 'ascii').then((text: string) => {
     const annotations = sceneController.objectToAnnotations(JSON.parse(text))
 
-    if (!annotations)
-      throw Error(`annotation file ${fileName} has no annotations`)
+    if (!annotations) throw Error(`annotation file ${fileName} has no annotations`)
 
     return sceneController.addAnnotations(annotations)
   })

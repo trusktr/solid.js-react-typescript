@@ -3,28 +3,16 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-//import SaffronSessionDataPersistenceProvider from './SaffronSessionDataPersistenceProvider'
 import * as React from 'react'
-import {
-  IThemedProperties,
-  withStatefulStyles,
-  FillHeight,
-  FillWidth,
-  mergeStyles,
-  PositionAbsolute
-} from '@mapperai/mapper-themes'
-import {
-  SessionPicker,
-  SessionPickerHeight,
-  ISessionInfo,
-  DataProviderFactory,
-  AnnotationManager,
-  getLogger
-} from '@mapperai/mapper-annotated-scene'
-import { makeSaffronDataProviderFactory } from './SaffronDataProviderFactory'
+import {FillHeight, FillWidth, PositionAbsolute /*, makeFontWithDefaultWeights*/} from '@mapperai/mapper-themes'
+import {SessionPicker, SessionPickerHeight, ISessionInfo, AnnotationManager} from '@mapperai/mapper-annotated-scene'
+import {DataProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataProvider'
+import {makeSaffronDataProviderFactory} from './SaffronDataProviderFactory'
 import Annotator from '../annotator/Annotator'
-import createStyles from '@material-ui/core/styles/createStyles'
-import { ActivityTracker } from './ActivityTracker'
+import {createStyles, withStyles, WithStyles, Theme} from '@material-ui/core'
+// import {CSSProperties} from '@material-ui/core/styles/withStyles'
+import {ActivityTracker} from './ActivityTracker'
+import getLogger from '../util/Logger'
 
 const log = getLogger(__filename)
 
@@ -32,7 +20,7 @@ interface IActivityTrackingInfo {
   numberOfAnnotations: number
 }
 
-export interface AppProps extends IThemedProperties {}
+export interface AppProps extends WithStyles<typeof styles> {}
 
 export interface AppState {
   dataProviderFactories: Array<DataProviderFactory>
@@ -44,12 +32,9 @@ export interface AppState {
   annotationManager: AnnotationManager | null
 }
 
-@withStatefulStyles(styles)
-export class App extends React.Component<AppProps, AppState> {
-  private static createDataProviderFactory(
-    sessionId: string | null = null
-  ): DataProviderFactory {
-    return makeSaffronDataProviderFactory(sessionId)
+class App extends React.Component<AppProps, AppState> {
+  private static async createDataProviderFactory(sessionId: string | null = null): Promise<DataProviderFactory> {
+    return await makeSaffronDataProviderFactory(sessionId, false)
   }
 
   private activityTracker?: ActivityTracker<IActivityTrackingInfo>
@@ -59,49 +44,51 @@ export class App extends React.Component<AppProps, AppState> {
 
     // noinspection PointlessBooleanExpressionJS
     this.state = {
-      dataProviderFactories: [App.createDataProviderFactory()],
+      dataProviderFactories: [],
       dataProviderFactory: null,
       session: null,
       env: 'prod',
       reset: false,
       isSaffron: window.isSaffron === true,
-      annotationManager: null
+      annotationManager: null,
     }
+
+    ~(async () => {
+      this.setState({
+        dataProviderFactories: [await App.createDataProviderFactory()],
+      })
+    })()
   }
 
   /**
    * Update session
    */
-  private onSessionSelected = (factory: DataProviderFactory, session: ISessionInfo) =>
+  private onSessionSelected = (factory: DataProviderFactory, session: ISessionInfo) => {
+    log.info(`loading session ${session.id}`)
     this.setState({
       session,
-      dataProviderFactory: factory.forSessionId(session.id),//App.createDataProviderFactory(session.id),
-      reset: true
+      dataProviderFactory: factory.forSessionId(session.id),
+      reset: true,
     })
+  }
 
   private getAnnotationManagerRef = (annotationManager: AnnotationManager | null) => {
-    this.setState({ annotationManager })
+    this.setState({annotationManager})
   }
 
-  onTrackActivity = (): IActivityTrackingInfo => {
+  onTrackActivity = (): IActivityTrackingInfo | false => {
     const annotationManager = this.state.annotationManager
 
-    if (!annotationManager) {
-      throw new Error('scene not ready')
-    }
+    if (!annotationManager) return false
 
     return {
-      numberOfAnnotations: annotationManager.allAnnotations().length
+      numberOfAnnotations: annotationManager.allAnnotations.length,
     }
   }
 
-  componentDidUpdate(
-    _prevProps: Readonly<AppProps>,
-    prevState: Readonly<AppState>,
-    _snapshot?: any
-  ): void {
+  componentDidUpdate(_prevProps: Readonly<AppProps>, prevState: Readonly<AppState>, _snapshot?: any): void {
     if (this.state.reset) {
-      this.setState({ reset: false })
+      this.setState({reset: false})
     }
 
     if (this.state.session !== prevState.session) {
@@ -123,17 +110,12 @@ export class App extends React.Component<AppProps, AppState> {
   }
 
   render(): JSX.Element {
-    const { classes } = this.props,
-      {
-        reset,
-        session,
-        dataProviderFactory,
-        dataProviderFactories
-      } = this.state
+    const {classes} = this.props
+    const {reset, session, dataProviderFactory, dataProviderFactories} = this.state
 
     return (
       <div className={classes!.root}>
-        {dataProviderFactories && (
+        {dataProviderFactories.length && (
           <React.Fragment>
             <SessionPicker
               onSessionSelected={this.onSessionSelected}
@@ -142,7 +124,10 @@ export class App extends React.Component<AppProps, AppState> {
             />
             <div className="annotatorPane">
               {!reset && dataProviderFactory && (
-                <Annotator getAnnotationManagerRef={this.getAnnotationManagerRef} dataProviderFactory={dataProviderFactory!} />
+                <Annotator
+                  getAnnotationManagerRef={this.getAnnotationManagerRef}
+                  dataProviderFactory={dataProviderFactory!}
+                />
               )}
             </div>
           </React.Fragment>
@@ -152,28 +137,39 @@ export class App extends React.Component<AppProps, AppState> {
   }
 }
 
+const _App = withStyles(styles)(App)
+export {_App as App}
+
+// TODO JOE restore the Font style
+// function getAbsolutePackagePath(packageName: string): string {
+//   // Based on https://stackoverflow.com/a/49455609/454780
+//   return path.dirname(require.resolve(`${packageName}/package.json`))
+// }
+
+// const fontPath = path.resolve(getAbsolutePackagePath('@mapperai/mapper-themes'), 'dist', 'assets', 'fonts')
+// const avenirFont = makeFontWithDefaultWeights(fontPath, 'AvenirNext')
+
 // return type disabled here because it is dynamically generated by the call to createStyles.
 // SO in this case we must hover on `styles` to see the return type.
 // eslint-disable-next-line typescript/explicit-function-return-type
-function styles(theme) {
-  return createStyles(
-    mergeStyles({
-      root: [
-        FillWidth,
-        FillHeight,
-        {
-          '& > .annotatorPane': [
-            PositionAbsolute,
-            {
-              backgroundColor: theme.palette.primary['800'],
-              top: SessionPickerHeight,
-              bottom: 0,
-              left: 0,
-              right: 0
-            }
-          ]
-        }
-      ],
-    })
-  )
+function styles(theme: Theme) {
+  return createStyles({
+    '@global': {
+      // NOTE The array-variant of @font-face isn't typed by material-ui yet.
+      // The array format is supported by the underlying JSS implementation.
+      // '@font-face': ([...avenirFont] as unknown) as CSSProperties,
+    },
+    root: {
+      ...FillWidth,
+      ...FillHeight,
+      '& > .annotatorPane': {
+        ...PositionAbsolute,
+        backgroundColor: theme.palette.primary['800'],
+        top: SessionPickerHeight,
+        bottom: 0,
+        left: 0,
+        right: 0,
+      },
+    },
+  })
 }

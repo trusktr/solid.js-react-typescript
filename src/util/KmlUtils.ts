@@ -4,7 +4,6 @@
  */
 
 import * as THREE from 'three'
-import * as AsyncFile from 'async-file'
 
 /**
  * This class is used to facilitate the creation KML files. At the moment just Paths
@@ -19,47 +18,99 @@ import * as AsyncFile from 'async-file'
  *  kml.saveToFile("MyOutputFilename.kml")
  */
 export class SimpleKML {
-  header: string
-  content: string
-  tail: string
+  template = (content: string) => `<?xml version="1.0" encoding="UTF-8"?>
+    <kml xmlns="http://www.opengis.net/kml/2.2">
+      <Document>
+        <Style id="white">
+          <LineStyle>
+            <color>66ffffff</color>
+          </LineStyle>
+          <PolyStyle>
+            <color>66999999</color>
+          </PolyStyle>
+        </Style>
+        <Style id="green">
+          <LineStyle>
+            <color>6600ff00</color>
+          </LineStyle>
+          <PolyStyle>
+            <color>66009900</color>
+          </PolyStyle>
+        </Style>
 
-  constructor() {
-    this.header =
-      '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<kml xmlns="http://www.opengis.net/kml/2.2">\n' +
-      '  <Document>\n'
+        ${content}
 
-    this.tail = '  </Document>\n</kml>\n'
-    this.content = ''
+      </Document>
+    </kml>
+  `
+
+  content = ''
+
+  addPoints(points: Array<THREE.Vector3>, style: String = 'white'): void {
+    points.forEach(p => this.addPoint(p, style))
   }
 
-  addPath(points: Array<THREE.Vector3>): void {
-    let path =
-      '	<Placemark>\n ' +
-      '	  <LineString>\n' +
-      '		<altitudeMode>clampToGround</altitudeMode>\n' +
-      '		<coordinates>\n'
+  addPoint(point: THREE.Vector3, style: String = 'white'): void {
+    const path = `
+          <Placemark>
+            <styleUrl>#${style}</styleUrl>
+            <Point>
+              <coordinates>
+                ${point.x},${point.y},${point.z}
+              </coordinates>
+            </Point>
+          </Placemark>
+    `
+    this.content += path
+  }
+
+  addPath(points: Array<THREE.Vector3>, style: String = 'white'): void {
+    let path = `
+          <Placemark>
+            <styleUrl>#${style}</styleUrl>
+            <LineString>
+              <altitudeMode>clampToGround</altitudeMode>
+              <coordinates>\n`
 
     points.forEach(point => {
-      path +=
-        '		  ' +
-        point.x.toString() +
-        ',' +
-        point.y.toString() +
-        ',' +
-        point.z.toString() +
-        '\n'
+      path += `          ${point.x},${point.y},${point.z}\n`
     })
 
-    path += '		</coordinates>\n' + '' + '	  </LineString>\n' + '	</Placemark>\n'
+    path += `
+              </coordinates>
+            </LineString>
+          </Placemark>
+    `
 
     this.content += path
   }
 
-  saveToFile(fileName: string): Promise<void> {
-    return AsyncFile.writeTextFile(
-      fileName,
-      this.header + this.content + this.tail
-    )
+  addPolygon(points: Array<THREE.Vector3>, style: String = 'green'): void {
+    let path = `
+          <Placemark>
+            <styleUrl>#${style}</styleUrl>
+            <Polygon>
+              <tessellate>1</tessellate>
+              <altitudeMode>clampToGround</altitudeMode>
+              <outerBoundaryIs>
+                <LinearRing>
+                  <coordinates>\n`
+
+    points.concat(points[0]).forEach(point => {
+      path += `          ${point.x},${point.y},${point.z}\n`
+    })
+
+    path += `
+                  </coordinates>
+                </LinearRing>
+              </outerBoundaryIs>
+            </Polygon>
+          </Placemark>
+    `
+    this.content += path
+  }
+
+  toString() {
+    return this.template(this.content)
   }
 }

@@ -9,17 +9,7 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react",
-    "lib": [
-      "es2017.object",
-      "es5",
-      "es6",
-      "es7",
-      "es2015",
-      "es2016",
-      "es2017",
-      "es2018",
-      "dom"
-    ],
+    "lib": ["es2018", "dom"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
@@ -32,7 +22,7 @@
     "pretty": true,
     "sourceMap": true,
     "strictNullChecks": true,
-    "target": "es6",
+    "target": "es2018",
     "skipLibCheck": true,
     "paths": {
       "*": ["*"]

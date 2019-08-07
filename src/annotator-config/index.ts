@@ -3,7 +3,7 @@
 
 import * as _ from 'lodash'
 import createPromise from '../util/createPromise'
-import { IAnnotatedSceneConfig } from '@mapperai/mapper-annotated-scene'
+import {IAnnotatedSceneConfig} from '@mapperai/mapper-annotated-scene'
 
 const config = {}
 const envInput = (process.env.NODE_ENV || '').toLowerCase()
@@ -11,11 +11,11 @@ const envInput = (process.env.NODE_ENV || '').toLowerCase()
 let deployEnv
 
 if (envInput === 'prod' || envInput === 'production') deployEnv = 'prod'
-else if (envInput === 'dev' || envInput === 'development' || envInput === '')
-  deployEnv = 'dev'
+else if (envInput === 'dev' || envInput === 'development' || envInput === '') deployEnv = 'dev'
 else if (envInput === 'test') deployEnv = 'test'
 else throw new Error('Unknown environment name: NODE_ENV=' + envInput)
 
+// prettier-ignore
 const {
   promise: configPromise,
   reject: rejectConfig,
@@ -28,98 +28,32 @@ function configReady(): typeof configPromise {
 }
 
 function setupConfig(): void {
-  if (process.env.WEBPACK) {
-    try {
-      const confMods = require.context('.', true, /yaml$/)
-      const confKeys = confMods.keys()
-      const envFilename = `${deployEnv}.yaml`
+  try {
+    const confMods = require.context('.', true, /yaml$/) // require.context is Webpack-specific
+    const confKeys = confMods.keys()
+    const envFilename = `${deployEnv}.yaml`
 
-      console.log('Available env configs', confKeys, 'desired', envFilename)
+    const testConfKeys = [envFilename, 'local.yaml']
+    const conf = testConfKeys.reduce((conf, nextKey) => {
+      const key = confKeys.find(key => key.includes(nextKey))
 
-      const testConfKeys = [envFilename, 'local.yaml']
-      const conf = testConfKeys.reduce((conf, nextKey) => {
-        const key = confKeys.find(key => key.includes(nextKey))
+      if (key) _.merge(conf, confMods(key))
 
-        if (key) {
-          const confMod = confMods(key)
+      return conf
+    }, {})
 
-          _.merge(conf, confMod)
-        }
+    // prettier-ignore
+    console.log('Available env configs', confKeys, 'desired', envFilename, 'final config', conf)
 
-        return conf
-      }, {})
-
-      console.log(
-        'Available env configs',
-        confKeys,
-        'desired',
-        envFilename,
-        'final config',
-        conf
-      )
-
-      const required = [
-        // 'tile_manager.utm_tile_scale',
-        // 'tile_manager.super_tile_scale',
-        'output.annotations.json.path',
-        'output.annotations.kml.path'
-      ]
-
-      required.forEach(key => {
-        if (!conf[key])
-          throw new Error(`missing required configuration key: ${key}`)
-      })
-
-      Object.assign(config, conf)
-      resolveConfig(config)
-    } catch (err) {
-      console.error('Failed to load config', err)
-      rejectConfig(err)
-    }
-  } else {
-    ~(async function() {
-      const modules = [
-        import('path'),
-        import('fs'),
-        import('nconf'),
-        import('nconf-yaml')
-      ]
-      const [path, fs, nconf, yaml] = await Promise.all(modules)
-      const envFile = path.resolve(__dirname, deployEnv + '.yaml')
-
-      if (!fs.existsSync(envFile)) {
-        throw new Error(
-          `Bad environment variable NODE_ENV=${deployEnv}. Missing required config file ${envFile}.`
-        )
-      }
-
-      const required = [
-        // 'tile_manager.utm_tile_scale',
-        // 'tile_manager.super_tile_scale',
-        'output.annotations.json.path',
-        'output.annotations.kml.path'
-      ]
-      const localFile = path.resolve(__dirname, 'local.yaml')
-
-      nconf
-        .argv()
-        .env(required)
-        .file('local_config', { file: localFile, format: yaml })
-        .file('shared_config', { file: envFile, format: yaml })
-        .defaults({})
-
-      required.forEach(key => {
-        if (!nconf.get(key))
-          throw new Error(`missing required configuration key: ${key}`)
-      })
-
-      Object.assign(config, nconf.get())
-      resolveConfig(config)
-    })()
+    Object.assign(config, conf)
+    resolveConfig(config)
+  } catch (err) {
+    console.error('Failed to load config', err)
+    rejectConfig(err)
   }
 }
 
 setupConfig()
 
 export default config
-export { configReady }
+export {configReady}
