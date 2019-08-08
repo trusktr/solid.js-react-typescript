@@ -126,6 +126,7 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
   isTransformControlsAttached?: boolean
   getAnnotationManagerRef?: (annotationManager: AnnotationManager | null) => void
   activeAnnotation?: Annotation | null
+  transformedObjects?: THREE.Object3D[]
 }
 
 @typedConnect(
@@ -152,7 +153,8 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
     'isMouseDragging',
     'mousePosition',
     'activeAnnotation',
-    'isTransformControlsAttached'
+    'isTransformControlsAttached',
+    'transformedObjects'
   )
 )
 export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
@@ -610,7 +612,9 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
   // After a marker (or set of markers) has been moved in the UI, see if it is near another
   // marker and decide whether it should snap to the same position.
-  private snapMarker = (transformedObjects: ReadonlyArray<THREE.Object3D>): void => {
+  private snapMarker = (): void => {
+    const transformedObjects = this.props.transformedObjects!
+
     if (this.props.isControlKeyPressed) return // Control disables the feature
 
     if (!(transformedObjects.length && transformedObjects[0] instanceof Marker)) return
