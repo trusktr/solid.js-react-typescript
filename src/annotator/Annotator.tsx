@@ -45,6 +45,7 @@ import {
   SceneEmitter,
   typedConnect,
   OutputFormat,
+  AnnotatedSceneConfig,
 } from '@mapperai/mapper-annotated-scene'
 import {DataProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataProvider'
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
@@ -187,7 +188,10 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     const maxPointDensity = parseInt(
       localStorage.getItem('maxPointDensity') || DefaultConfig['tile_manager.maximum_point_density'].toString()
     )
-    const roadPointsIntensityScale = parseInt(DefaultConfig['tile_manager.road_points_intensity_scale'].toString())
+    const roadPointsIntensityScale = parseInt(
+      localStorage.getItem('roadPointsIntensityScale') ||
+        DefaultConfig['tile_manager.road_points_intensity_scale'].toString()
+    )
 
     // TODO, cleanup: we don't need to read DefaultConfig here, instead we should let scene handle default values.
     const showPerfStatsCached = localStorage.getItem(`annotated-scene-${this.constructor.name}-showPerfStats`)
@@ -817,10 +821,17 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
   private updateMaxSuperTilesToLoad = () => {
     localStorage.setItem('maxSuperTilesToLoad', this.guiState.maxSuperTilesToLoad.toString())
+    this.setState({annotatedSceneConfig: this.makeAnnotatedSceneConfig()})
   }
 
   private updateMaxPointDensity = () => {
     localStorage.setItem('maxPointDensity', this.guiState.maxPointDensity.toString())
+    this.setState({annotatedSceneConfig: this.makeAnnotatedSceneConfig()})
+  }
+
+  private updateRoadPointsIntensityScale = () => {
+    localStorage.setItem('roadPointsIntensityScale', this.guiState.roadPointsIntensityScale.toString())
+    this.setState({annotatedSceneConfig: this.makeAnnotatedSceneConfig()})
   }
 
   private setImageScreenOpacity = () => {
@@ -845,10 +856,10 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     ['lockLaneSegments', this.lockLaneSegments],
     ['lockPolygons', this.lockPolygons],
     ['lockTrafficDevices', this.lockTrafficDevices],
-    ['bezierScaleFactor', () => this.forceUpdate()],
+    ['bezierScaleFactor', () => this.forceUpdate()], // TODO bezier factor will be moved to Inspector
     ['maxSuperTilesToLoad', this.updateMaxSuperTilesToLoad], // TODO update scene config
     ['maxPointDensity', this.updateMaxPointDensity], // TODO update scene config
-    ['roadPointsIntensityScale', () => this.forceUpdate()], // TODO update scene config
+    ['roadPointsIntensityScale', this.updateRoadPointsIntensityScale], // TODO update scene config
     ['imageScreenOpacity', this.setImageScreenOpacity],
     ['showPerfStats', this.showPerfStats],
   ])
@@ -858,7 +869,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.guiHandlers.get(prop)!()
   }
 
-  private configWithDefaults() {
+  private configWithDefaults(): AnnotatedSceneConfig {
     return {
       ...DefaultConfig,
       ...(this.state.annotatedSceneConfig || {}),
@@ -936,7 +947,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
           sceneRef={this.setAnnotatedSceneRef}
           backgroundColor={this.state.background}
           bezierScaleFactor={this.guiState.bezierScaleFactor}
-          roadPointsIntensityScale={this.guiState.roadPointsIntensityScale}
           annotationManagerRef={this.setAnnotationManagerRef}
           dataProviderFactory={dataProviderFactory}
           config={annotatedSceneConfig}
