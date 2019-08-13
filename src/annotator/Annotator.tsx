@@ -51,7 +51,7 @@ import {DataProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
-import {ImageManager, ImageClick, LightboxImage} from '@mapperai/mapper-annotated-scene'
+import {ImageManager, ImageClick, LightboxImage, SequentialAnnotation} from '@mapperai/mapper-annotated-scene'
 import {
   ImageContext,
   ContextState as ImageContextState,
@@ -555,7 +555,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     const {utmCoordinateSystem} = this.state.annotatedSceneController!.state
 
     function annotationToGeoPoints(a: Annotation): Array<THREE.Vector3> {
-      return a.outline.map(m => utmCoordinateSystem!.threeJsToLngLatAlt(m.position))
+      return a.outline.map(m => utmCoordinateSystem!.threeJsToLngLatAlt(m))
     }
 
     // Get all the points and convert to lat lon
@@ -587,7 +587,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
   private uiReverseLaneDirection(): void {
     const active = this.state.annotationManager!.activeAnnotation
-    if (!active) return
+    if (!(active && active instanceof SequentialAnnotation)) return
 
     log.info('Reverse lane direction.')
 
