@@ -97,6 +97,10 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
     this.props.annotator.uiAddAnnotation(AnnotationType.TrafficDevice)
   }
 
+  private onClickAddBox = () => {
+    this.props.annotator.uiAddAnnotation(AnnotationType.Box)
+  }
+
   private onPublishClick = () => {
     this.props.annotator.state.annotationManager!.publish().then()
   }
@@ -227,6 +231,9 @@ class AnnotatorMenuView extends React.Component<AnnotatorMenuViewProps, Annotato
                   </button>
                   <button className={c.btn} onClick={this.onClickAddPolygon}>
                     New Polygon
+                  </button>
+                  <button className={c.btn} onClick={this.onClickAddBox}>
+                    New Box
                   </button>
                   <input
                     className={c.input}

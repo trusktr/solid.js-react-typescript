@@ -10,6 +10,7 @@ import {
   LaneSegment,
   Polygon,
   TrafficDevice,
+  Box,
   getLogger as Logger,
 } from '@mapperai/mapper-annotated-scene'
 
@@ -22,6 +23,7 @@ export class PreviousAnnotations {
   private laneSegment: LaneSegment | null
   private polygon: Polygon | null
   private trafficDevice: TrafficDevice | null
+  private box: Box | null
 
   getByType(annotationType: AnnotationType): Annotation | null {
     switch (annotationType) {
@@ -33,9 +35,8 @@ export class PreviousAnnotations {
         return this.polygon
       case AnnotationType.TrafficDevice:
         return this.trafficDevice
-      default:
-        log.error(`unknown annotation type ${AnnotationType[annotationType]}`)
-        return null
+      case AnnotationType.Box:
+        return this.box
     }
   }
 
@@ -44,6 +45,7 @@ export class PreviousAnnotations {
     else if (annotation instanceof LaneSegment) this.laneSegment = annotation
     else if (annotation instanceof Polygon) this.polygon = annotation
     else if (annotation instanceof TrafficDevice) this.trafficDevice = annotation
+    else if (annotation instanceof Box) this.box = annotation
     else log.error(`annotation with unknown type ${AnnotationType[annotation.annotationType]}`)
   }
 }
