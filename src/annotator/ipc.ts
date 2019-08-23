@@ -19,53 +19,58 @@ export async function goAhead() {
   }
 }
 
-export function begin() {
+export async function begin() {
   return rpc<void>('begin')
 }
 
-export function getAccount() {
+export async function getAccount() {
   return rpc<IAccount>('getAccount')
 }
 
-export function getOrganizationId() {
+export async function getOrganizationId() {
   return rpc<string>('getOrganizationId')
 }
 
-export function getAppAWSCredentials() {
+export async function getAppAWSCredentials() {
   return rpc<IAppAWSCredentials>('getAppAWSCredentials')
 }
 
-export function getEnv() {
+export async function getEnv() {
   return rpc<string>('getEnv')
 }
 
-export function getPusherConnectionParams() {
+export async function getPusherConnectionParams() {
   return rpc<IPusherConnectionParams>('getPusherConnectionParams')
 }
 
-export function getPusherAuthorization(channelName: string, socketId: string) {
+export async function getPusherAuthorization(channelName: string, socketId: string) {
   return rpc<IPusherConnectionParams>('getPusherAuthorization', channelName, socketId)
 }
 
-export function getPusherAuthEndpoint() {
+export async function getPusherAuthEndpoint() {
   return rpc<string>('getPusherAuthEndpoint')
 }
 
-export function log(fileName: string, level: LogLevel, ...args: any[]) {
+export async function log(fileName: string, level: LogLevel, ...args: any[]) {
   return rpc<void>('log', fileName, level, ...args)
 }
 
 // TODO add timeout to cancel promises that don't receive a response in time.
-function rpc<T>(channel: string, ...args: any[]) {
+function rpc<T>(channel: string, ...args: any[]): Promise<T> {
   // get the parent (if this context is loaded as an iframe) or the opener (if
-  // this context is laoded as a new OS window)
-  ;(window.parent || window.opener).postMessage(
-    {
-      channel,
-      args,
-    },
-    '*'
-  )
+  // this context is loaded as a new OS window)
+  try {
+    ;(window.parent || window.opener).postMessage(
+      {
+        channel,
+        args,
+      },
+      '*'
+    )
+  } catch (err) {
+    console.error(`window.postMessage failed on args: ${args}`)
+    throw err
+  }
 
   return new Promise<T>(resolve =>
     window.addEventListener('message', function messageHandler(event) {
