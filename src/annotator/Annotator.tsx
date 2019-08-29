@@ -565,13 +565,10 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
         return [utmCoordinateSystem!.threeJsToLngLatAlt(contour)]
       } else if (isArrayArray(contour)) {
         log.error('Vector3[][]: This case is not yet supported, and we have not used it in practice yet.')
+        return [new THREE.Vector3()]
       } else {
-        contour.map(v => utmCoordinateSystem!.threeJsToLngLatAlt(v))
+        return contour.map(v => utmCoordinateSystem!.threeJsToLngLatAlt(v))
       }
-
-      // otherwise TypeScript complains that we aren't returning in all possible
-      // cases.
-      throw new Error('This should never happen.')
     }
 
     // Get all the points and convert to lat lon
