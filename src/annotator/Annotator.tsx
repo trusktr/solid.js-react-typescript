@@ -554,8 +554,24 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   private saveAnnotationsKML = () => {
     const {utmCoordinateSystem} = this.state.annotatedSceneController!.state
 
+    function isArrayArray(a: any): a is THREE.Vector3[][] {
+      return Array.isArray(a) && a[0] && Array.isArray(a[0])
+    }
+
     function annotationToGeoPoints(a: Annotation): Array<THREE.Vector3> {
-      return a.outline.map(m => utmCoordinateSystem!.threeJsToLngLatAlt(m))
+      const contour = a.geojsonContour
+
+      if (!Array.isArray(contour)) {
+        return [utmCoordinateSystem!.threeJsToLngLatAlt(contour)]
+      } else if (isArrayArray(contour)) {
+        log.error('Vector3[][]: This case is not yet supported, and we have not used it in practice yet.')
+      } else {
+        contour.map(v => utmCoordinateSystem!.threeJsToLngLatAlt(v))
+      }
+
+      // otherwise TypeScript complains that we aren't returning in all possible
+      // cases.
+      throw new Error('This should never happen.')
     }
 
     // Get all the points and convert to lat lon
