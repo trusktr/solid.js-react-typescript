@@ -51,7 +51,7 @@ import {DataProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
-import {ImageManager, ImageClick, LightboxImage, SequentialAnnotation} from '@mapperai/mapper-annotated-scene'
+import {ImageManager, ImageClick, LightboxImage} from '@mapperai/mapper-annotated-scene'
 import {
   ImageContext,
   ContextState as ImageContextState,
@@ -565,7 +565,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
         return [utmCoordinateSystem!.threeJsToLngLatAlt(contour)]
       } else if (isArrayArray(contour)) {
         log.error('Vector3[][]: This case is not yet supported, and we have not used it in practice yet.')
-        return [new THREE.Vector3()]
+        return []
       } else {
         return contour.map(v => utmCoordinateSystem!.threeJsToLngLatAlt(v))
       }
@@ -600,7 +600,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
 
   private uiReverseLaneDirection(): void {
     const active = this.state.annotationManager!.activeAnnotation
-    if (!(active && active instanceof SequentialAnnotation)) return
+    if (!active) return
 
     log.info('Reverse lane direction.')
 
