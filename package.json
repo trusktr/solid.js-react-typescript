@@ -125,7 +125,7 @@
     "worker-loader": "^2.0.0"
   },
   "dependencies": {
-    "@mapperai/mapper-annotated-scene": "^3.0.1",
+    "@mapperai/mapper-annotated-scene": "4.0.0",
     "@mapperai/mapper-models": "1.9.8",
     "@mapperai/mapper-saffron-sdk": "2.1.9",
     "@mapperai/mapper-themes": "^2.1.0",
