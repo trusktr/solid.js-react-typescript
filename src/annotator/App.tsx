@@ -20,7 +20,9 @@ interface IActivityTrackingInfo {
   numberOfAnnotations: number
 }
 
-export interface AppProps extends WithStyles<typeof styles> {}
+export interface AppProps extends WithStyles<typeof styles> {
+  orgId: string
+}
 
 export interface AppState {
   dataProviderFactories: Array<DataProviderFactory>
@@ -33,8 +35,11 @@ export interface AppState {
 }
 
 class App extends React.Component<AppProps, AppState> {
-  private static async createDataProviderFactory(sessionId: string | null = null): Promise<DataProviderFactory> {
-    return await makeSaffronDataProviderFactory(sessionId, false)
+  private static async createDataProviderFactory(
+    orgId: string,
+    sessionId: string | null = null
+  ): Promise<DataProviderFactory> {
+    return await makeSaffronDataProviderFactory(sessionId, false, orgId)
   }
 
   private activityTracker?: ActivityTracker<IActivityTrackingInfo>
@@ -55,7 +60,7 @@ class App extends React.Component<AppProps, AppState> {
 
     ~(async () => {
       this.setState({
-        dataProviderFactories: [await App.createDataProviderFactory()],
+        dataProviderFactories: [await App.createDataProviderFactory(props.orgId)],
       })
     })()
   }

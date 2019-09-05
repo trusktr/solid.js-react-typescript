@@ -21,6 +21,10 @@ module.exports = {
   externals: [
     // supplied by Node
     'electron',
+    'fs',
+    'path',
+    'url',
+    'http',
 
     // supplied by Saffron
     'react',

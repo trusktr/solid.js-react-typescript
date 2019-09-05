@@ -29,7 +29,16 @@ function configReady(): typeof configPromise {
 
 function setupConfig(): void {
   try {
-    const confMods = require.context('.', true, /yaml$/) // require.context is Webpack-specific
+    let confMods: __WebpackModuleApi.RequireContext
+
+    if (process.env.WEBPACK) {
+      confMods = require.context('.', true, /yaml$/)
+    } else {
+      // if not in a Webpack build, then we're in Node.js
+      const requireContext = require('require-context')
+      confMods = requireContext('.', true, /yaml$/)
+    }
+
     const confKeys = confMods.keys()
     const envFilename = `${deployEnv}.yaml`
 

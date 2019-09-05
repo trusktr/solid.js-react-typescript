@@ -13,7 +13,8 @@
   },
   "scripts": {
     "test": "npm run lint-all && npm run prettier-check && npm run build && echo 'implement tests'",
-    "dev": "rm -rf dist && npm run build:dev:watch",
+    "dev": "(rm -rf dist; npm run build:dev:watch & devProc=$!; npm run standalone & standaloneProc=$!; wait $devProc $standaloneProc)",
+    "standalone": "electron ./src/annotator/annotator-entry-main/index.js",
     "build": "rm -rf dist && npm run build:dev",
     "build:prod": "npm run build:saffron:prod && npm run build:annotator:prod",
     "build:dev": "npm run build:saffron:dev && npm run build:annotator:dev",
@@ -52,7 +53,7 @@
     "version-minor": "node scripts/version.js minor",
     "version-major": "node scripts/version.js major"
   },
-  "husky": {
+  "X-husky": {
     "hooks": {
       "pre-commit": "lint-staged"
     }
@@ -72,9 +73,11 @@
     ]
   },
   "devDependencies": {
+    "@types/auth0-lock": "^11.4.12",
     "@types/dat.gui": "0.7.1",
     "@types/electron-window-state": "2.0.33",
     "@types/jquery": "2.0.33",
+    "@types/jwt-decode": "^2.2.1",
     "@types/lodash": "4.14.106",
     "@types/mkdirp": "0.5.2",
     "@types/node": "8.0.54",
@@ -82,6 +85,7 @@
     "@types/react-dom": "16.0.9",
     "@types/react-modal": "3.1.2",
     "@types/react-redux": "^5.0.7",
+    "@types/serve-handler": "^6.1.0",
     "@types/sprintf-js": "1.1.1",
     "@types/uuid": "3.4.3",
     "@types/webpack-env": "^1.13.6",
@@ -133,6 +137,7 @@
     "@types/react-beautiful-dnd": "^11.0.2",
     "animation-loop": "1.4.0",
     "async-file": "2.0.2",
+    "auth0-lock": "^11.17.2",
     "core-js": "^2.6.5",
     "css-modules-require-hook": "4.2.3",
     "dat.gui": "0.7.1",
@@ -140,11 +145,13 @@
     "electron-unhandled": "1.1.0",
     "electron-window-state": "5.0.2",
     "events": "^3.0.0",
+    "events-typed": "^2.0.0",
     "executable": "4.1.1",
     "immutable": "3.8.2",
     "jquery": "3.2.1",
     "jquery-ui-dist": "1.12.1",
     "js-yaml": "^3.12.0",
+    "jwt-decode": "^2.2.0",
     "lodash": "4.17.4",
     "mkdirp": "0.5.1",
     "module-alias": "^2.1.0",
@@ -158,6 +165,8 @@
     "react-select": "^2.2.0",
     "react-tiny-virtual-list": "2.1.4",
     "redux": "3.7.2",
+    "require-context": "^1.1.0",
+    "serve-handler": "^6.1.1",
     "sprintf-js": "1.0.3",
     "three": "0.107.0",
     "tinycolor2": "^1.4.1",

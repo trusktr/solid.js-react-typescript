@@ -1,90 +1,74 @@
-import Url = require('url')
-import Path = require('path')
+import path = require('path')
 import * as React from 'react'
+import * as http from 'http'
+import serveStatic = require('serve-handler')
 import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
 
-function getFileUrl(pathRelativeToSrc): string {
-  return Url.format({
-    pathname: Path.resolve(__dirname, `${pathRelativeToSrc}`),
-    protocol: 'file:',
-    slashes: true,
-  })
-}
-
 interface Props extends WithStyles<typeof styles> {}
+
+interface State {
+  serverStarted: boolean
+}
 
 /**
  * Annotator root component mounted in Saffron
  */
-class AnnotatorSaffronEntry extends React.Component<Props> {
+class AnnotatorSaffronEntry extends React.Component<Props, State> {
   iframeRef = React.createRef<HTMLIFrameElement>()
+  port = 23456
 
-  onMessage = async (event: MessageEvent) => {
-    const channel = event.data.channel as string
-    const args = event.data.args as any[]
-    const iframe = this.iframeRef.current!
-    const frameWindow = iframe.contentWindow
-
-    // if the iframe's window isn't ready, return. The iframe's repeated "begin"
-    // calls will continue triggering this message handler, and eventually the
-    // window will be ready.
-    if (!frameWindow) return
-
-    if (channel === 'begin') {
-      frameWindow.postMessage({channel: 'begin', args: []}, '*')
-    } else if (channel === 'getAppAWSCredentials') {
-      const result = SaffronSDK.AWSManager.getAppAWSCredentials('Annotator')
-      frameWindow.postMessage({channel: 'getAppAWSCredentials', args: [result]}, '*')
-    } else if (channel === 'getAccount') {
-      const result = SaffronSDK.getAccount()
-      frameWindow.postMessage({channel: 'getAccount', args: [result]}, '*')
-    } else if (channel === 'getOrganizationId') {
-      const result = SaffronSDK.getOrganizationId()
-      frameWindow.postMessage({channel: 'getOrganizationId', args: [result]}, '*')
-    } else if (channel === 'getEnv') {
-      const result = SaffronSDK.getEnv()
-      frameWindow.postMessage({channel: 'getEnv', args: [result]}, '*')
-    } else if (channel === 'getPusherConnectionParams') {
-      const result = SaffronSDK.getPusherConnectionParams()
-      frameWindow.postMessage({channel: 'getPusherConnectionParams', args: [result]}, '*')
-    } else if (channel === 'getPusherAuthorization') {
-      const {CloudService, CloudConstants} = SaffronSDK
-      const {API, HttpMethod} = CloudConstants
-      const cloudService = new CloudService.CloudService()
-      const result = (await cloudService.makeAPIRequest(
-        API.Identity,
-        HttpMethod.POST,
-        'identity/1/pusher/auth',
-        'annotator',
-        {channelName: args[0], socketId: args[1]}
-      )).data
-      frameWindow.postMessage({channel: 'getPusherAuthorization', args: [result]}, '*')
-    } else if (channel === 'getPusherAuthEndpoint') {
-      const {CloudService, CloudConstants} = SaffronSDK
-      const {API} = CloudConstants
-      const result = CloudService.makeAPIURL(API.Identity, 'identity/1/pusher/auth')
-      frameWindow.postMessage({channel: 'getPusherAuthEndpoint', args: [result]}, '*')
-    } else if (channel === 'log') {
-      const fileName = args.shift()
-      const level = args.shift()
-      const log = SaffronSDK.LogManager.log(fileName, 'annotator')
-      log[level](...args)
-      frameWindow.postMessage({channel: 'log', args: []}, '*')
-    }
+  state = {
+    serverStarted: false,
   }
 
   componentDidMount() {
-    window.addEventListener('message', this.onMessage)
+    this.createServer()
   }
 
-  componentWillUnmount() {
-    window.removeEventListener('message', this.onMessage)
+  createServer() {
+    const server = http.createServer((request, response) => {
+      // regarding serveStatic, see: https://github.com/zeit/serve-handler#options
+      return serveStatic(request, response, {
+        public: path.resolve(__dirname),
+        symlinks: true,
+      })
+    })
+
+    this.listen(server)
+  }
+
+  onListen = (e: NodeJS.ErrnoException | undefined) => {
+    if (e) throw e
+    console.log(' ---- UI server running on http://localhost:' + this.port + ' ----')
+    this.setState({serverStarted: true})
+  }
+
+  listen(server: http.Server) {
+    server.on('error', (e: NodeJS.ErrnoException) => {
+      // if the current port is taken, keep trying the next port until we get one that is free
+      if (e.code && e.code === 'EADDRINUSE') {
+        this.port++
+
+        // this doesn't need the onListen arg, the first call already registered it.
+        server.listen(this.port)
+
+        return
+      }
+
+      throw e
+    })
+
+    server.listen(this.port, this.onListen)
   }
 
   render() {
     const {classes: c} = this.props
 
-    return <iframe ref={this.iframeRef} className={c.iframe} src={getFileUrl('./StandaloneEntry.html')} />
+    return this.state.serverStarted ? (
+      <iframe ref={this.iframeRef} className={c.iframe} src={'http://localhost:' + this.port} />
+    ) : (
+      <div>Loading...</div>
+    )
   }
 }
 
@@ -101,8 +85,10 @@ module.exports = {
 function styles(_theme: Theme) {
   return createStyles({
     iframe: {
+      display: 'block',
       width: '100%',
       height: '100%',
+      border: 'none',
     },
   })
 }

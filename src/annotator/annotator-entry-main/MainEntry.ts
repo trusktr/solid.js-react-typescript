@@ -3,9 +3,13 @@
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
 
-import getFileUrl from '../../util/getFileUrl'
 import * as Electron from 'electron'
+import * as http from 'http'
+import * as path from 'path'
+import serveStatic = require('serve-handler')
 import restoreWindowState from './restoreWindowState'
+
+let port = 23456
 
 const app = Electron.app
 
@@ -25,7 +29,7 @@ app.on('second-instance', () => {
 if (!isFirstInstance) app.quit()
 
 function createWindow(): void {
-  const windowName = 'annotator/BrowserEntry'
+  const windowName = 'Annotator'
 
   win = new Electron.BrowserWindow({
     show: false,
@@ -43,7 +47,7 @@ function createWindow(): void {
   })
 
   // and load the index.html of the app.
-  win.loadURL(getFileUrl(`${windowName}.html`))
+  win.loadURL('http://localhost:' + port)
 
   // Emitted when the window is closed.
   win.on('closed', () => {
@@ -54,10 +58,46 @@ function createWindow(): void {
   })
 }
 
+function createServer() {
+  const server = http.createServer((request, response) => {
+    // regarding serveStatic, see: https://github.com/zeit/serve-handler#options
+    return serveStatic(request, response, {
+      public: path.resolve(__dirname, '../../../dist/package'.replace('/', path.sep)),
+      symlinks: true,
+    })
+  })
+
+  listen(server)
+}
+
+function listen(server: http.Server) {
+  server.on('error', (e: NodeJS.ErrnoException) => {
+    // if the current port is taken, keep trying the next port until we get one that is free
+    if (e.code && e.code === 'EADDRINUSE') {
+      port++
+
+      // this doesn't need the onListen arg, the first call already registered it.
+      server.listen(port)
+
+      return
+    }
+
+    throw e
+  })
+
+  server.listen(port, onListen)
+}
+
+function onListen(e: NodeJS.ErrnoException | undefined) {
+  if (e) throw e
+  console.log(' ---- UI server running on http://localhost:' + port + ' ----')
+  createWindow()
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow)
+app.on('ready', createServer)
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
