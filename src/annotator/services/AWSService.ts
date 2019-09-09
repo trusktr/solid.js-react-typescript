@@ -1,5 +1,8 @@
 import {CloudService, HttpMethod, API} from './CloudService'
 import {AuthService, IAWSTemporaryCredentials, currentTimeInSeconds} from './AuthService'
+import {getLogger} from '../../util/Logger'
+
+const log = getLogger(__filename)
 
 const AWS_TOKEN_EXPIRATION_INTERVAL = 60 * 10
 
@@ -44,7 +47,7 @@ export class AWSService {
           const newCredentials = await this.getAppCredentials(appEndpoint, true)
 
           if (!newCredentials) {
-            console.error(`Unable to get AWS credentials for app endpoint "${appEndpoint}"`)
+            log.error(`Unable to get AWS credentials for app endpoint "${appEndpoint}"`)
             return
           }
 

@@ -1,4 +1,7 @@
 import {IAWSTemporaryCredentials, IOrganizationUserInfo, AuthService} from './AuthService'
+import {getLogger} from '../../util/Logger'
+
+const log = getLogger(__filename)
 
 // TODO get this from somewhere outside of the application (f.e. from the build
 // step, or set by CLI env vars).
@@ -64,34 +67,34 @@ export class CloudService {
 
     if (!idToken) throw new TypeError('idToken must not be null in order to get the user profile.')
 
-    console.info(`Requesting user profile from Cloud Services`)
+    log.info(`Requesting user profile from Cloud Services`)
     try {
       const result = await this.makeAPIRequest(api, method, uri, 'saffron-platform', null, undefined, {
           Authorization: `Bearer ${idToken}`,
         }),
         {data} = result
 
-      console.info('User profile obtained ', result)
+      log.info('User profile obtained ', result)
 
       return data as IProfileResponse
     } catch (err) {
-      console.error('Error occurred while requesting cloud service user profile ', err)
+      log.error('Error occurred while requesting cloud service user profile ', err)
       throw err
     }
   }
 
   async health() {
-    console.debug(`Requesting health endpoint`)
+    log.debug(`Requesting health endpoint`)
     const method = HttpMethod.GET,
       uri = CloudService.healthEndpoint,
       api = API.Saffron
 
     try {
       const content = await this.makeAPIRequest(api, method, uri, 'saffron-platform', null, undefined)
-      console.info('Health endpoint response - ', content)
+      log.info('Health endpoint response - ', content)
       return content
     } catch (err) {
-      console.error('Error occurred while checking health endpoint ', err)
+      log.error('Error occurred while checking health endpoint ', err)
     }
   }
 
@@ -135,7 +138,7 @@ export class CloudService {
         request.body = typeof body === 'string' ? body : JSON.stringify(body)
         headers['Content-Type'] = typeof body === 'string' ? 'plain/text' : 'application/json'
       } catch (err) {
-        console.error('Unable to set body', body, err)
+        log.error('Unable to set body', body, err)
         throw err
       }
     }
@@ -148,7 +151,7 @@ export class CloudService {
 
     headers['mapper-client-name'] = clientName
 
-    console.debug('Body request', request.body)
+    log.debug('Body request', request.body)
 
     let url = (this.constructor as typeof CloudService).makeAPIURL(api, uri)
 
@@ -156,12 +159,12 @@ export class CloudService {
       url = url.concat(`?query=${query}`)
     }
 
-    console.info('Saffron requesting from', url)
+    log.info('Saffron requesting from', url)
 
     try {
       const response = await fetch(url, request)
       if (response.status >= 400) {
-        console.error(`Request for ${url} failed (${response.status}): ${response.statusText}`, response)
+        log.error(`Request for ${url} failed (${response.status}): ${response.statusText}`, response)
         // noinspection ExceptionCaughtLocallyJS
         const contentType = response.headers.get(Headers.ContentType)
 
@@ -173,7 +176,7 @@ export class CloudService {
             responseData = await response.text()
           }
         } catch (ex) {
-          console.warn('Failed to get error response data', ex)
+          log.warn('Failed to get error response data', ex)
         }
 
         throw new APIError(url, responseData, response.status, response.statusText)
@@ -191,17 +194,17 @@ export class CloudService {
 
       // Determine if the request should be retried
       if (retries === 0) {
-        console.debug('Request failed, and no more retries remaining - throwing error')
+        log.debug('Request failed, and no more retries remaining - throwing error')
         throw err
       }
 
       if (err.statusCode >= 500) {
         // exponential backoff
         await sleep(delay)
-        console.info('Finished exponential backoff')
+        log.info('Finished exponential backoff')
 
         // an error occurred and we should retry it
-        console.debug(`Retrying request for ${uri} -- retries left ${retries - 1} -- current error`, err)
+        log.debug(`Retrying request for ${uri} -- retries left ${retries - 1} -- current error`, err)
         return await this.makeAPIRequest(
           api,
           method,
@@ -217,7 +220,7 @@ export class CloudService {
       }
 
       // an error occurred and the status was less than 500 (most likely a 400 which we shouldn't retry on)
-      console.error(`Error occurred -- status: ${err.statusCode || 'unknown status'} -- error:`, err)
+      log.error(`Error occurred -- status: ${err.statusCode || 'unknown status'} -- error:`, err)
       throw err
     }
   }

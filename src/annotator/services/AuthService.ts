@@ -3,6 +3,9 @@ import * as jwt_decode from 'jwt-decode'
 import {makeEventEmitterClass} from 'events-typed'
 import {CloudService} from './CloudService'
 import {AWSService} from './AWSService'
+import {getLogger} from '../../util/Logger'
+
+const log = getLogger(__filename)
 
 // TODO store creds in a local storage mechanism so that we don't have to log in
 // every time we restart the app.
@@ -131,7 +134,7 @@ export class AuthService extends AuthServiceEmitter {
 
       await AWSService.singleton(this).checkAppAWSCredentials()
     } catch (err) {
-      console.error('Error setting up authentication checks', err)
+      log.error('Error setting up authentication checks', err)
       await this.logout()
     }
   }
@@ -155,7 +158,7 @@ export class AuthService extends AuthServiceEmitter {
      * Authenticated event
      */
     this.lock.on('authenticated', async authResult => {
-      console.info('auth result', authResult)
+      log.info('auth result', authResult)
 
       authResult['expiresAt'] = decodeJWTToken(authResult['idToken'], 'exp')
       await this.setUserProfile((authResult as unknown) as Auth0Credentials) // TODO fix type
@@ -180,10 +183,10 @@ export class AuthService extends AuthServiceEmitter {
     } as Auth0Credentials
 
     if (idToken) {
-      console.info(`ID token found. Starts with: ${idToken.substring(0, 15)}...`)
+      log.info(`ID token found. Starts with: ${idToken.substring(0, 15)}...`)
       event.preventDefault()
       event.stopImmediatePropagation()
-      this.setUserProfile(auth0Credentials).catch(err => console.error('Unable to set user profile', err))
+      this.setUserProfile(auth0Credentials).catch(err => log.error('Unable to set user profile', err))
     }
   }
 
@@ -192,7 +195,7 @@ export class AuthService extends AuthServiceEmitter {
     let idToken = credentials.idToken
 
     if (!idToken) {
-      console.warn('Id token not set, unable to fetch aws credentials', idToken)
+      log.warn('Id token not set, unable to fetch aws credentials', idToken)
       return
     }
 
@@ -216,7 +219,7 @@ export class AuthService extends AuthServiceEmitter {
         location.replace('/')
       }
     } catch (err) {
-      console.error('Unable to get AWS credentials', err)
+      log.error('Unable to get AWS credentials', err)
     }
   }
 
@@ -225,7 +228,7 @@ export class AuthService extends AuthServiceEmitter {
    */
   protected async checkUserAWSTokenExpiration() {
     if (!this.account) {
-      console.error('can not get AWS tokens while user is not logged in.')
+      log.error('can not get AWS tokens while user is not logged in.')
       return
     }
 
@@ -245,11 +248,11 @@ export class AuthService extends AuthServiceEmitter {
   protected async checkAuth0TokenExpiration() {
     const expiresAt = (this.account && this.account.authCredentials.expiresAt) || 0
     const tokenValidNow = expiresAt > currentTimeInSeconds()
-    console.info(`Checking to refresh user auth tokens. Id token expires on ${printDate(expiresAt)}, raw=${expiresAt}.`)
+    log.info(`Checking to refresh user auth tokens. Id token expires on ${printDate(expiresAt)}, raw=${expiresAt}.`)
 
     if (!tokenValidNow || !this.authToken) {
       // Logout user
-      console.warn('User has an invalid auth token. Logging user out.')
+      log.warn('User has an invalid auth token. Logging user out.')
       await this.logout()
       return
     }
@@ -257,21 +260,21 @@ export class AuthService extends AuthServiceEmitter {
     // Get the current Auth0 idToken and check if it will expire in next 45 minutes
     // AUTH0_TOKEN_EXPIRATION_INTERVAL * 1.5 is used as a buffer across interval checks
     if (this.authToken && !this.isAuthTokenValid(minutesToSeconds(this.AUTH0_TOKEN_EXPIRATION_INTERVAL * 1.5))) {
-      console.info('Auth token is about to expire. Refreshing now')
+      log.info('Auth token is about to expire. Refreshing now')
       this.lock.checkSession({}, async (err, authResult) => {
-        console.info('Result from refreshing auth token', err, authResult)
+        log.info('Result from refreshing auth token', err, authResult)
 
         if (!err && authResult) {
           authResult['expiresAt'] = decodeJWTToken(authResult['idToken'], 'exp')
           await this.setUserProfile((authResult as unknown) as Auth0Credentials) // TODO fix type
         } else {
-          console.error('Error refreshing user auth tokens', err)
+          log.error('Error refreshing user auth tokens', err)
         }
       })
     } else if (!this.authToken) {
-      console.warn('No auth token found, unable to attempt refresh.')
+      log.warn('No auth token found, unable to attempt refresh.')
     } else {
-      console.info('Auth token valid. No need to refresh.')
+      log.info('Auth token valid. No need to refresh.')
     }
   }
 
@@ -446,11 +449,11 @@ function getHashParams(url: string): {[key: string]: string} {
         const [key, value] = pair.split('=')
         result[key] = value
       } catch (ex) {
-        console.warn('Unable to parse', pair)
+        log.warn('Unable to parse', pair)
       }
     })
   } catch (ex) {
-    console.warn('Unable to parse pairs', ex)
+    log.warn('Unable to parse pairs', ex)
   }
 
   return result
