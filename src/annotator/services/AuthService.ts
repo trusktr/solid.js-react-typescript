@@ -40,6 +40,7 @@ export class AuthService extends AuthServiceEmitter {
   account: IAccount | null = null
 
   static singleton() {
+    if (instance) return instance
     return new AuthService()
   }
 
