@@ -13,9 +13,9 @@
   },
   "scripts": {
     "test": "npm run lint-all && npm run prettier-check && npm run build && echo 'implement tests'",
-    "dev": "(rm -rf dist; npm run build:dev:watch & p1=$!; npm run serve & p2=$!; wait $p1 $p2)",
+    "dev": "(rm -rf dist; npm run build:dev:watch & p1=$!; npm run electron & p2=$!; wait $p1 $p2)",
     "electron": "electron ./src/annotator/annotator-entry-main/index.js",
-    "serve": "./scripts/serve.js",
+    "browser": "./scripts/serve.js",
     "build": "rm -rf dist && npm run build:dev",
     "build:prod": "npm run build:saffron:prod && npm run build:annotator:prod",
     "build:dev": "npm run build:saffron:dev && npm run build:annotator:dev",
