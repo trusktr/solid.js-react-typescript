@@ -82,7 +82,6 @@ export class AuthService extends AuthServiceEmitter {
   }
 
   async logout() {
-    debugger
     // appActions.setAccount(account)
     this.account = null
     this.emit(AuthEvents.UPDATED, this.account)
@@ -92,7 +91,6 @@ export class AuthService extends AuthServiceEmitter {
    * Start the login process
    */
   showLogin(): void {
-    debugger
     this.lock.show()
   }
 
@@ -100,7 +98,6 @@ export class AuthService extends AuthServiceEmitter {
    * Hide the login window
    */
   hideLogin(): void {
-    debugger
     this.lock.hide()
   }
 
@@ -108,7 +105,6 @@ export class AuthService extends AuthServiceEmitter {
    * Setup listeners and periodic checks pertaining to authentication and app manifest syncs
    */
   async setupAuthenticationCheck() {
-    debugger
     try {
       // Check every 30 minutes that the user's auth token has not expired
       this.tokenCheckerTimer = window.setInterval(
@@ -150,7 +146,6 @@ export class AuthService extends AuthServiceEmitter {
   protected MANIFEST_CHECK_INTERVAL = 60 * 15 // 15 minutes
 
   protected init() {
-    debugger
     // Hash change event handler
     window.addEventListener('hashchange', this.onHashChange)
 
@@ -166,7 +161,6 @@ export class AuthService extends AuthServiceEmitter {
   }
 
   protected onHashChange = (event: any): any => {
-    debugger
     if (this.isAuthenticated) return
 
     const params = getHashParams(event.newURL),
@@ -191,7 +185,6 @@ export class AuthService extends AuthServiceEmitter {
   }
 
   protected async setUserProfile(credentials: Auth0Credentials) {
-    debugger
     let idToken = credentials.idToken
 
     if (!idToken) {
@@ -213,9 +206,7 @@ export class AuthService extends AuthServiceEmitter {
 
       this.emit(AuthEvents.UPDATED, this.account)
 
-      debugger
       if (location.pathname.startsWith('/access_token')) {
-        debugger
         location.replace('/')
       }
     } catch (err) {
@@ -316,7 +307,6 @@ export class AuthService extends AuthServiceEmitter {
  * @param key - The key whose value you want
  */
 function decodeJWTToken(token: string, key: string): string | number | null {
-  debugger
   if (!token) return null
   const decoded = jwt_decode(token) as any
   return decoded[key] || null
@@ -434,7 +424,6 @@ export interface IRole {
  * @returns {{[p:string]:string}}
  */
 function getHashParams(url: string): {[key: string]: string} {
-  debugger
   const result = {}
 
   if (url.indexOf('#') === -1) {
