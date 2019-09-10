@@ -4,6 +4,13 @@ import {makeEventEmitterClass} from 'events-typed'
 import {CloudService} from './CloudService'
 import {AWSService} from './AWSService'
 import {getLogger} from '../../util/Logger'
+import {create as createJSS} from 'jss'
+import jssPresetDefault from 'jss-preset-default'
+
+const jss = createJSS(jssPresetDefault())
+
+// TODO move logos, etc, to mapper-themes (rename mapper-themes)
+import * as logo from './VelodyneLidar_Logo.svg'
 
 const log = getLogger(__filename)
 
@@ -162,6 +169,19 @@ export class AuthService extends AuthServiceEmitter {
 
       this.emit(AuthEvents.UPDATED, this.account)
     })
+
+    const sheet = jss.createStyleSheet(
+      {
+        '@global': {
+          '.auth0-lock-close-button': {
+            display: 'none',
+          },
+        },
+      } as any,
+      {}
+    )
+
+    sheet.attach()
   }
 
   protected async setUserProfile(credentials: Auth0Credentials, emit = true) {
@@ -258,11 +278,11 @@ export class AuthService extends AuthServiceEmitter {
     },
 
     languageDictionary: {
-      title: 'mapper',
+      title: '',
     },
 
     theme: {
-      logo: 'https://s3.amazonaws.com/mapper-website-assets/prod/images/mapper_mark.png',
+      logo: logo,
       primaryColor: '#0E0E0E',
     },
   })

@@ -123,6 +123,7 @@ class App extends React.Component<AppProps, AppState> {
         {dataProviderFactories.length && (
           <React.Fragment>
             <SessionPicker
+              icon="https://s3.amazonaws.com/mapper-website-assets/saffron/icons/Annotator_Icon.svg"
               onSessionSelected={this.onSessionSelected}
               session={session}
               dataProviderFactories={dataProviderFactories}
