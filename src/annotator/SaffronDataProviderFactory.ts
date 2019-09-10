@@ -6,13 +6,9 @@ import getLogger from '../util/Logger'
 import {AuthService} from './services/AuthService'
 import {AWSService} from './services/AWSService'
 import {CloudService, HttpMethod} from './services/CloudService'
-import {defaultMakeAPIRequestParameters as defaults, MakeAPIRequestParameters} from './services/Models'
 
 const log = getLogger(__filename)
 
-/**
- * Tile service client factory for meridian
- */
 export async function makeSaffronDataProviderFactory(
   sessionId: string | null,
   useCache = true,
@@ -45,10 +41,9 @@ export async function makeSaffronDataProviderFactory(
     return creds.sessionBucket
   }
 
-  const pusherParams = {
+  const pusherInfo = {
     key: process.env.PUSHER_KEY!,
     cluster: process.env.PUSHER_CLUSTER!,
-    appId: process.env.PUSHER_APP_ID!,
   }
 
   return makeDataCloudProviderFactory(
@@ -58,14 +53,13 @@ export async function makeSaffronDataProviderFactory(
     sessionId,
     true,
     {
-      key: pusherParams.key,
-      cluster: pusherParams.cluster,
+      key: pusherInfo.key,
+      cluster: pusherInfo.cluster,
       authEndpoint: CloudService.makeAPIURL('identity/1/pusher/auth'),
       authorizer: async (channelName: string, socketId: string, _options: any): Promise<any> => {
         try {
           const cloudService = new CloudService(AuthService.singleton())
           return (await cloudService.makeAPIRequest({
-            ...defaults(),
             method: HttpMethod.POST,
             uri: 'identity/1/pusher/auth',
             clientName: 'annotator',
@@ -73,7 +67,7 @@ export async function makeSaffronDataProviderFactory(
               channelName,
               socketId,
             },
-          } as MakeAPIRequestParameters)).data
+          })).data
         } catch (err) {
           log.error('Unable to authenticate for pusher', err)
           throw err

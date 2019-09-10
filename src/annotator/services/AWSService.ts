@@ -1,6 +1,5 @@
 import {CloudService, HttpMethod, saffronClientName} from './CloudService'
 import {AuthService, IAWSTemporaryCredentials, currentTimeInSeconds} from './AuthService'
-import {defaultMakeAPIRequestParameters as defaults, MakeAPIRequestParameters} from './Models'
 import {getLogger} from '../../util/Logger'
 
 const log = getLogger(__filename)
@@ -75,11 +74,10 @@ export class AWSService {
 
     this.fetchPromise = cloudService
       .makeAPIRequest({
-        ...defaults(),
         method: HttpMethod.GET,
         uri: uri,
         clientName: saffronClientName,
-      } as MakeAPIRequestParameters)
+      })
       .then(response => response.data as IAppAWSCredentials)
 
     return this.fetchPromise

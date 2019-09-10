@@ -2,10 +2,10 @@ import {AuthService} from './AuthService'
 import {getLogger} from '../../util/Logger'
 import {
   ApiResponseHeaders,
-  defaultMakeAPIRequestParameters as defaults,
+  DEFAULT_API_REQUEST_OPTIONS,
   IProfileResponse,
-  MakeAPIRequestParameters,
-  MakeAPIRequestResponse,
+  APIRequestOptions,
+  APIResponse,
 } from './Models'
 
 const log = getLogger(__filename)
@@ -59,12 +59,11 @@ export class CloudService {
     try {
       const headers = {Authorization: `Bearer ${idToken}`}
       const result = await this.makeAPIRequest({
-        ...defaults(),
         method,
         uri,
         clientName: saffronClientName,
         headers,
-      } as MakeAPIRequestParameters)
+      })
       const {data} = result
 
       log.info('User profile obtained ', result)
@@ -76,26 +75,28 @@ export class CloudService {
     }
   }
 
-  async health(): Promise<MakeAPIRequestResponse> {
+  async health(): Promise<APIResponse> {
     log.debug(`Requesting health endpoint`)
     const method = HttpMethod.GET
     const uri = CloudService.healthEndpoint
 
-    return this.makeAPIRequest({...defaults(), method, uri, clientName: saffronClientName} as MakeAPIRequestParameters)
+    return this.makeAPIRequest({method, uri, clientName: saffronClientName})
   }
 
   /**
    * Make an API request to cloud services
    */
-  makeAPIRequest = async (params: MakeAPIRequestParameters): Promise<MakeAPIRequestResponse> => {
-    const {method, uri, clientName, body, query, headers, retries, isJsonResponse, delay, parseResponse} = params
+  makeAPIRequest = async (options: APIRequestOptions): Promise<APIResponse> => {
+    let appliedOptions = Object.assign({}, DEFAULT_API_REQUEST_OPTIONS, options) as Required<APIRequestOptions>
+    // prettier-ignore
+    const {method, uri, clientName, body, cors, query, headers, retries, isJsonResponse, delay, parseResponse} = appliedOptions
 
-    const request = {
+    const request: any = {
       method: HttpMethod[method],
       cache: 'no-cache',
-      mode: 'cors',
+      mode: cors,
       headers,
-    } as any
+    }
 
     if (body) {
       try {
@@ -125,18 +126,14 @@ export class CloudService {
         throw new APIError(response)
       }
 
-      if (!parseResponse)
+      if (!parseResponse) {
         return {
           success: true,
           response,
-        } as MakeAPIRequestResponse
-
-      let formattedResponse: any
-      try {
-        formattedResponse = await (isJsonResponse ? response.json() : response.text())
-      } catch (err) {
-        log.warn('response err', err)
+        }
       }
+
+      const formattedResponse: any = await (isJsonResponse ? response.json() : response.text())
 
       const headers: ApiResponseHeaders = {
         totalItems: parseInt(response.headers.get('total-items') || '', 10),
@@ -149,7 +146,7 @@ export class CloudService {
         headers: headers,
         data: formattedResponse,
         response,
-      } as MakeAPIRequestResponse
+      }
     } catch (err) {
       if (err instanceof APIError) {
         if (err.response.status >= 500) {
@@ -164,24 +161,15 @@ export class CloudService {
 
           // an error occurred and we should retry it
           log.debug(`Retrying request for ${uri} -- retries left ${retries - 1} -- current error`, err)
-          return await this.makeAPIRequest({
-            method,
-            uri,
-            clientName,
-            body,
-            query,
-            headers,
-            isJsonResponse,
-            parseResponse,
-            retries: retries - 1,
-            delay: delay * 2,
-          })
+
+          appliedOptions = {...appliedOptions, retries: appliedOptions.retries - 1, delay: appliedOptions.delay * 2}
+          return await this.makeAPIRequest(appliedOptions)
         } else {
           // Some kind of client error
           return {
             success: false,
             response: err.response,
-          } as MakeAPIRequestResponse
+          }
         }
       }
 
