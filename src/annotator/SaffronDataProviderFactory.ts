@@ -5,7 +5,8 @@ import {PusherConfig} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/
 import getLogger from '../util/Logger'
 import {AuthService} from './services/AuthService'
 import {AWSService} from './services/AWSService'
-import {CloudService, API, HttpMethod} from './services/CloudService'
+import {CloudService, HttpMethod} from './services/CloudService'
+import {defaultMakeAPIRequestParameters as defaults, MakeAPIRequestParameters} from './services/Models'
 
 const log = getLogger(__filename)
 
@@ -59,20 +60,20 @@ export async function makeSaffronDataProviderFactory(
     {
       key: pusherParams.key,
       cluster: pusherParams.cluster,
-      authEndpoint: CloudService.makeAPIURL(API.Identity, 'identity/1/pusher/auth'),
+      authEndpoint: CloudService.makeAPIURL('identity/1/pusher/auth'),
       authorizer: async (channelName: string, socketId: string, _options: any): Promise<any> => {
         try {
           const cloudService = new CloudService(AuthService.singleton())
-          return (await cloudService.makeAPIRequest(
-            API.Identity,
-            HttpMethod.POST,
-            'identity/1/pusher/auth',
-            'annotator',
-            {
+          return (await cloudService.makeAPIRequest({
+            ...defaults(),
+            method: HttpMethod.POST,
+            uri: 'identity/1/pusher/auth',
+            clientName: 'annotator',
+            body: {
               channelName,
               socketId,
-            }
-          )).data
+            },
+          } as MakeAPIRequestParameters)).data
         } catch (err) {
           log.error('Unable to authenticate for pusher', err)
           throw err
