@@ -16,6 +16,16 @@ let instance: AWSService | null = null
 // so far "annotator" is the only app with app credentials
 type KnownApp = 'annotator'
 
+/**
+ * @class AWSService - This class is coupled with the `AuthService` class in an
+ * important way: after the user has logged in, `AuthService` sets up a
+ * `setInterval` that repeatedly calls `AWSService.checkAppAWSCredentials` in
+ * order to ensure that the credentials are always refreshed before they
+ * expire. If `AuthService` does not do this, then the
+ * `AWSService.getAppCredentials` may not work as expected. This (current)
+ * coupling prevents from having to hit the network many times each time
+ * credentials are needed.
+ */
 export class AWSService {
   static singleton(auth: AuthService) {
     return new AWSService(auth)
@@ -30,9 +40,23 @@ export class AWSService {
   appCreds: Partial<Record<KnownApp, IAppAWSCredentials>> = {}
 
   /**
-   * Periodically check if App AWS credentials are valid (this is different from a user's AWS credentials)
+   * Check if App AWS credentials are valid (this is different from a user's AWS credentials)
+   *
+   * This is called periodically by AuthService.setupAuthenticationChecks after
+   * the user has logged in, to ensure that the creds are always fresh.
+   *
+   * TODO: we need to handle the case when the user's laptop was closed for a
+   * longer period of time, which makes the creds seem to be instantaneously
+   * expire from perspective of this code. The creds won't be refreshed until
+   * the next time that this runs, so any network request between laptop open
+   * and auth refresh will fail.
    */
   async checkAppAWSCredentials(): Promise<void> {
+    if (!this.auth.account) {
+      log.error('can not get AWS app credentials while user is not logged in.')
+      return
+    }
+
     const promises: Promise<any>[] = []
     const keysValues = Object.entries(this.appCreds) as [KnownApp, IAppAWSCredentials | undefined][]
 
@@ -44,14 +68,7 @@ export class AWSService {
 
           if (areCredentialsValid) return
 
-          const newCredentials = await this.getAppCredentials(appEndpoint, true)
-
-          if (!newCredentials) {
-            log.error(`Unable to get AWS credentials for app endpoint "${appEndpoint}"`)
-            return
-          }
-
-          this.appCreds[appEndpoint] = newCredentials
+          await this.getAppCredentials(appEndpoint, false)
         })()
       )
     }
@@ -59,27 +76,31 @@ export class AWSService {
     await Promise.all(promises)
   }
 
-  private fetchPromise: Promise<IAppAWSCredentials> | null = null
+  /**
+   * On initial login, this will be called once by checkAppAWSCredentials,
+   * before the AuthService's initial UPDATED event is fired to let us know the
+   * user is logged in. Once the UPDATED event is fired, then we can call this
+   * method freely to get the cached credentials.
+   */
+  async getAppCredentials(appEndpoint: KnownApp, useCache = true): Promise<IAppAWSCredentials> {
+    if (!this.auth.account) throw new Error('can not get AWS app credentials while user is not logged in.')
 
-  // TODO, if creds are not expired, return them, instead of getting new ones each time, and rename to `getAppAWSCredentials`.
-  async getAppCredentials(appEndpoint: KnownApp, skipCache = false): Promise<IAppAWSCredentials> {
     const creds = this.appCreds[appEndpoint]
 
-    if (!skipCache && creds) return creds
+    if (useCache && creds) return creds
 
-    if (this.fetchPromise) return this.fetchPromise
+    log.debug(
+      ' ----------------- fetch app credentials (this should only happen once on initial login, and once in a while on refresh of the credentials).'
+    )
 
     const cloudService = new CloudService(this.auth)
     const uri = `identity/1/credentials/${this.auth.orgId}/${appEndpoint}`
+    const response = await cloudService.makeAPIRequest({
+      method: HttpMethod.GET,
+      uri: uri,
+      clientName: saffronClientName,
+    })
 
-    this.fetchPromise = cloudService
-      .makeAPIRequest({
-        method: HttpMethod.GET,
-        uri: uri,
-        clientName: saffronClientName,
-      })
-      .then(response => response.data as IAppAWSCredentials)
-
-    return this.fetchPromise
+    return (this.appCreds[appEndpoint] = response.data)
   }
 }

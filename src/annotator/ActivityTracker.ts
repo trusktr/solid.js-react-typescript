@@ -46,7 +46,6 @@ export class ActivityTracker<T extends Object> {
 
     const Bucket = credentials.sessionBucket
     const s3 = getS3Client(credentials.credentials)
-    // TODO get orgId from the AuthService. Listen to AuthEvents.UPDATED
     const organizationId = auth.orgId
     const account = auth.account
     const sessionId = this.sessionId

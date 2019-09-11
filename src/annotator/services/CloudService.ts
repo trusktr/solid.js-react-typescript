@@ -116,7 +116,6 @@ export class CloudService {
 
     let url = CloudService.makeAPIURL(uri)
     if (query) url = url.concat(`?query=${query}`)
-    log.info('saffron fetch:', request.method, url)
 
     try {
       const response = await fetch(url, request)

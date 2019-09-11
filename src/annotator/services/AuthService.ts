@@ -59,7 +59,7 @@ export class AuthService extends AuthServiceEmitter {
     this.init()
   }
 
-  destroy() {
+  cleanup() {
     window.clearInterval(this.tokenCheckerTimer)
     window.clearInterval(this.awsCredentialsTimer)
     window.clearInterval(this.appAWSCredentialsTimer)
@@ -85,6 +85,7 @@ export class AuthService extends AuthServiceEmitter {
     // appActions.setAccount(account)
     this.account = null
     this.emit(AuthEvents.UPDATED, this.account)
+    this.cleanup()
   }
 
   /**
@@ -104,7 +105,7 @@ export class AuthService extends AuthServiceEmitter {
   /**
    * Setup listeners and periodic checks pertaining to authentication and app manifest syncs
    */
-  async setupAuthenticationCheck() {
+  private async setupAuthenticationChecks() {
     try {
       // Check every 30 minutes that the user's auth token has not expired
       this.tokenCheckerTimer = window.setInterval(
@@ -156,7 +157,11 @@ export class AuthService extends AuthServiceEmitter {
       log.info('auth result', authResult)
 
       authResult['expiresAt'] = decodeJWTToken(authResult['idToken'], 'exp')
-      await this.setUserProfile((authResult as unknown) as Auth0Credentials) // TODO fix type
+      await this.setUserProfile((authResult as unknown) as Auth0Credentials, false) // TODO fix authResult type
+
+      await this.setupAuthenticationChecks()
+
+      this.emit(AuthEvents.UPDATED, this.account)
     })
   }
 
@@ -184,7 +189,7 @@ export class AuthService extends AuthServiceEmitter {
     }
   }
 
-  protected async setUserProfile(credentials: Auth0Credentials) {
+  protected async setUserProfile(credentials: Auth0Credentials, emit = true) {
     let idToken = credentials.idToken
 
     if (!idToken) {
@@ -204,7 +209,7 @@ export class AuthService extends AuthServiceEmitter {
         organizationUser: orgUserInfo.organizationUser,
       }
 
-      this.emit(AuthEvents.UPDATED, this.account)
+      if (emit) this.emit(AuthEvents.UPDATED, this.account)
 
       if (location.pathname.startsWith('/access_token')) {
         location.replace('/')
