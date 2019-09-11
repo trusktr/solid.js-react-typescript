@@ -195,7 +195,7 @@ export class AuthService extends AuthServiceEmitter {
   }
 
   protected async setUserProfile(credentials: Auth0Credentials, emit = true) {
-    let idToken = credentials.idToken
+    const idToken = credentials.idToken
 
     if (!idToken) {
       log.warn('Id token not set, unable to fetch aws credentials', idToken)

@@ -58,7 +58,7 @@ function createWindow(): void {
   })
 }
 
-function createServer() {
+function createServer(): void {
   const server = http.createServer((request, response) => {
     // regarding serveStatic, see: https://github.com/zeit/serve-handler#options
     return serveStatic(request, response, {
@@ -70,7 +70,7 @@ function createServer() {
   listen(server)
 }
 
-function listen(server: http.Server) {
+function listen(server: http.Server): void {
   server.on('error', (e: NodeJS.ErrnoException) => {
     // if the current port is taken, keep trying the next port until we get one that is free
     if (e.code && e.code === 'EADDRINUSE') {
@@ -88,7 +88,7 @@ function listen(server: http.Server) {
   server.listen(port, onListen)
 }
 
-function onListen(e: NodeJS.ErrnoException | undefined) {
+function onListen(e: NodeJS.ErrnoException | undefined): void {
   if (e) throw e
   console.log(' ---- UI server running on http://localhost:' + port + ' ----')
   createWindow()

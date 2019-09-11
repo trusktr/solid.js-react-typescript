@@ -37,7 +37,7 @@ export function startAnnotator(): void {
   })
 }
 
-async function render(org: string) {
+async function render(org: string): Promise<void> {
   // import jQuery-UI after setting up the jQuery global
   require('jquery-ui-dist/jquery-ui')
 

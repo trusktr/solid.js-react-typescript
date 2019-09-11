@@ -185,4 +185,4 @@ export class APIError extends Error {
   }
 }
 
-const sleep = (t: number) => new Promise(r => setTimeout(r, t))
+const sleep = (t: number): Promise<void> => new Promise(resolve => setTimeout(resolve, t))
