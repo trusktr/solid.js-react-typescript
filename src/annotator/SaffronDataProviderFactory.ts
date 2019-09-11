@@ -41,10 +41,14 @@ export async function makeSaffronDataProviderFactory(
     return creds.sessionBucket
   }
 
-  const pusherInfo = {
-    key: process.env.PUSHER_KEY!,
-    cluster: process.env.PUSHER_CLUSTER!,
-  }
+  // TODO (joe) get the pusher keys from cloud services
+  const pusherInfo = JSON.parse(
+    (await new CloudService(AuthService.singleton()).makeAPIRequest({
+      method: HttpMethod.GET,
+      uri: 'common/1/secrets?name=pusher',
+      clientName: 'annotator',
+    })).data
+  )
 
   return makeDataCloudProviderFactory(
     credentialProvider,
