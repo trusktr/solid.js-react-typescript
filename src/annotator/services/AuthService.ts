@@ -88,10 +88,13 @@ export class AuthService extends AuthServiceEmitter {
     this.cleanup()
   }
 
+  private autoHideOnLogin: boolean = false
+
   /**
    * Start the login process
    */
-  showLogin(): void {
+  showLogin(autoHideOnLogin: boolean = false): void {
+    this.autoHideOnLogin = autoHideOnLogin
     this.lock.show()
   }
 
@@ -155,6 +158,8 @@ export class AuthService extends AuthServiceEmitter {
      */
     this.lock.on('authenticated', async authResult => {
       log.info('auth result', authResult)
+
+      if (this.autoHideOnLogin) this.hideLogin()
 
       authResult['expiresAt'] = decodeJWTToken(authResult['idToken'], 'exp')
       await this.setUserProfile((authResult as unknown) as Auth0Credentials, false) // TODO fix authResult type

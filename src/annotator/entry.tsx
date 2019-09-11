@@ -24,14 +24,14 @@ Object.assign(global, {
 export function startAnnotator(): void {
   const auth = AuthService.singleton()
 
-  auth.showLogin()
+  auth.showLogin(true)
 
   auth.on(AuthEvents.UPDATED, function listener(account) {
     if (!(account && auth.orgId))
       throw new Error('Something went wrong. A user account belonging to an organization should exist.')
 
     auth.removeListener(AuthEvents.UPDATED, listener)
-    auth.hideLogin()
+    // auth.hideLogin()
 
     render(auth.orgId)
   })
