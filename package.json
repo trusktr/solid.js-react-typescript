@@ -31,16 +31,16 @@
     "electron-rebuild": "electron-rebuild",
     "prettier": "npm run prettier-js -- --write && npm run prettier-ts -- --write && npm run prettier-md -- --write",
     "prettier-list": "npm run --silent prettier-js-list && npm run --silent prettier-ts-list && npm run --silent prettier-md-list",
-    "prettier-js": "prettier './**/*.{js,json}'",
-    "prettier-ts": "prettier './**/*.{ts,tsx}'",
-    "prettier-md": "prettier './**/*.md'",
-    "prettier-js-list": "prettier './**/*.{js,json}' --list-different || true",
-    "prettier-ts-list": "prettier './**/*.{ts,tsx}' --list-different || true",
-    "prettier-md-list": "prettier './**/*.md' --list-different || true",
+    "prettier-js": "prettier '{,!(node_modules)/**/}*.{js,json}'",
+    "prettier-ts": "prettier '{,!(node_modules)/**/}*.{ts,tsx}'",
+    "prettier-md": "prettier '{,!(node_modules)/**/}*.md'",
+    "prettier-js-list": "npm run prettier-js -- --list-different || true",
+    "prettier-ts-list": "npm run prettier-ts -- --list-different || true",
+    "prettier-md-list": "npm run prettier-md -- --list-different || true",
     "prettier-check": "npm run --silent prettier-js-check && npm run --silent prettier-ts-check && npm run --silent prettier-md-check",
-    "prettier-js-check": "prettier './**/*.{js,json}' --check",
-    "prettier-ts-check": "prettier './**/*.{ts,tsx}' --check",
-    "prettier-md-check": "prettier './**/*.md' --check",
+    "prettier-js-check": "npm run prettier-js -- --check",
+    "prettier-ts-check": "npm run prettier-ts -- --check",
+    "prettier-md-check": "npm run prettier-md -- --check",
     "lint": "esw --format codeframe --config ./.eslintrc.js",
     "lint-fix": "npm run lint -- --fix",
     "lint-all": "npm run lint-js && npm run lint-ts",
@@ -54,7 +54,7 @@
     "version-minor": "node scripts/version.js minor",
     "version-major": "node scripts/version.js major"
   },
-  "X-husky": {
+  "husky": {
     "hooks": {
       "pre-commit": "lint-staged"
     }
