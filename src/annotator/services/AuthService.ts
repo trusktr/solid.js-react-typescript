@@ -150,12 +150,6 @@ export class AuthService extends AuthServiceEmitter {
   protected MANIFEST_CHECK_INTERVAL = 60 * 15 // 15 minutes
 
   protected init() {
-    // Hash change event handler
-    window.addEventListener('hashchange', this.onHashChange)
-
-    /**
-     * Authenticated event
-     */
     this.lock.on('authenticated', async authResult => {
       log.info('auth result', authResult)
 
@@ -170,35 +164,11 @@ export class AuthService extends AuthServiceEmitter {
     })
   }
 
-  protected onHashChange = (event: any): any => {
-    if (this.isAuthenticated) return
-
-    const params = getHashParams(event.newURL),
-      idToken = params['id_token'] || params['/id_token'],
-      accessToken = params['access_token'] || params['/access_token'],
-      scope = params['scope'] || params['/scope']
-
-    const expiresAt = decodeJWTToken(idToken, 'exp')
-    const auth0Credentials = {
-      accessToken,
-      expiresAt,
-      idToken,
-      scope,
-    } as Auth0Credentials
-
-    if (idToken) {
-      log.info(`ID token found. Starts with: ${idToken.substring(0, 15)}...`)
-      event.preventDefault()
-      event.stopImmediatePropagation()
-      this.setUserProfile(auth0Credentials).catch(err => log.error('Unable to set user profile', err))
-    }
-  }
-
   protected async setUserProfile(credentials: Auth0Credentials, emit = true) {
     const idToken = credentials.idToken
 
     if (!idToken) {
-      log.warn('Id token not set, unable to fetch aws credentials', idToken)
+      log.error('Id token not set, unable to fetch aws credentials', idToken)
       return
     }
 
@@ -281,12 +251,9 @@ export class AuthService extends AuthServiceEmitter {
 
   private lock = new Auth0Lock(this.authClientId, this.authDomain, {
     auth: {
-      sso: false,
       responseType: 'token id_token',
-      redirectUrl: 'http://localhost:23456',
-      redirect: false,
       params: {
-        scope: 'openid email profile offline_access',
+        scope: 'openid email profile',
       },
     },
 
@@ -425,37 +392,6 @@ export interface IRole {
   createdBy: string
   updatedAt: number
   updatedBy: string
-}
-
-/**
- * Get all the hash params from a url
- *
- * @param {string} url
- * @returns {{[p:string]:string}}
- */
-function getHashParams(url: string): {[key: string]: string} {
-  const result = {}
-
-  if (url.indexOf('#') === -1) {
-    return result
-  }
-
-  try {
-    const pairs = (url && url.split('#')[1].split('&')) || []
-
-    pairs.forEach(pair => {
-      try {
-        const [key, value] = pair.split('=')
-        result[key] = value
-      } catch (ex) {
-        log.warn('Unable to parse', pair)
-      }
-    })
-  } catch (ex) {
-    log.warn('Unable to parse pairs', ex)
-  }
-
-  return result
 }
 
 function makeEnumFromClass<T>(Class: new (...args: unknown[]) => T): {[key in keyof T]: key} {

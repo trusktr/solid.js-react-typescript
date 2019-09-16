@@ -64,6 +64,7 @@ export class CloudService {
         clientName: saffronClientName,
         headers,
       })
+
       const {data} = result
 
       log.info('User profile obtained ', result)
@@ -120,7 +121,7 @@ export class CloudService {
     try {
       const response = await fetch(url, request)
       if (response.status >= 400) {
-        log.warn(`Request for ${url} failed (${response.status}): ${response.statusText}`, response)
+        log.error(`Request for ${url} failed (${response.status}): ${response.statusText}`, response)
         // noinspection ExceptionCaughtLocallyJS
         throw new APIError(response)
       }
