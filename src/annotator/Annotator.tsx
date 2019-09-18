@@ -9,18 +9,33 @@
 // - [ ] move app actions out of shared lib actions
 // - [ ] fix window state keeper
 
-import config from 'annotator-config'
+//////////////////////////////////////////////////////////////////////////////////////
+/////// In order to prevent circular-dependency problems, it is good practice to
+/////// import 3rd-party external dependencies first...
 import {flatten, head, uniq} from 'lodash'
 import $ = require('jquery')
-import {withStyles, createStyles, Theme, WithStyles} from '@material-ui/core'
-import {SimpleKML} from '../util/KmlUtils'
+import {withStyles, createStyles, Theme, WithStyles, MuiThemeProvider, createMuiTheme} from '@material-ui/core'
+import {Provider as ReduxProvider} from 'react-redux'
+// TODO re-enable or remove when we get the design-guide's font working again (Beam design system)
+// import {CSSProperties} from '@material-ui/core/styles/withStyles'
 import {isNullOrUndefined} from 'util' // eslint-disable-line node/no-deprecated-api
-import * as MapperProtos from '@mapperai/mapper-models'
 import * as THREE from 'three'
 import * as React from 'react'
-import AnnotatorMenuView, {AnnotatorMenuViewInner} from './AnnotatorMenuView'
-import {hexStringToHexadecimal} from '../util/Color'
+import * as tinycolor from 'tinycolor2'
+
+//////////////////////////////////////////////////////////////////////////////////////
+/////// ...followed by your own external dependencies...
+import * as MapperProtos from '@mapperai/mapper-models'
 import {
+  MapperCssBaseline,
+  FillHeight,
+  FillWidth,
+  PositionAbsolute /*, makeFontWithDefaultWeights*/,
+} from '@mapperai/mapper-themes'
+import {
+  SessionPicker,
+  SessionPickerHeight,
+  ISessionInfo,
   AnnotatedSceneState,
   MousePosition,
   mousePositionToGLSpace,
@@ -46,12 +61,24 @@ import {
   typedConnect,
   OutputFormat,
   AnnotatedSceneConfig,
+  ImageManager,
+  ImageClick,
+  LightboxImage,
+  getAnnotatedSceneReduxStore,
 } from '@mapperai/mapper-annotated-scene'
 import {DataProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataProvider'
+
+//////////////////////////////////////////////////////////////////////////////////////
+/////// ...followed finally by your local modules.
+import config from '../annotator-config'
+import {SimpleKML} from '../util/KmlUtils'
+import AnnotatorMenuView, {AnnotatorMenuViewInner} from './AnnotatorMenuView'
+import {hexStringToHexadecimal} from '../util/Color'
+import {makeSaffronDataProviderFactory} from './SaffronDataProviderFactory'
+import {ActivityTracker} from './ActivityTracker'
 import {menuMargin, panelBorderRadius, statusWindowWidth} from './styleVars'
 import {saveFileWithDialog} from '../util/file'
 import {PreviousAnnotations} from './PreviousAnnotations'
-import {ImageManager, ImageClick, LightboxImage} from '@mapperai/mapper-annotated-scene'
 import {
   ImageContext,
   ContextState as ImageContextState,
@@ -62,6 +89,23 @@ import {GuiState} from './components/DatGui'
 import DatGuiContext, {ContextState as GuiContextState} from './components/DatGuiContext'
 import {isUuid} from '../util/uuid'
 import {parseLocationString} from '../util/coordinate'
+
+export default class AnnotatorBootstrap extends React.Component<any> {
+  render() {
+    return (
+      <MuiThemeProvider theme={createMuiTheme(makeMapperPalette())}>
+        <MapperCssBaseline />
+        <ReduxProvider store={getAnnotatedSceneReduxStore()}>
+          <_Annotator orgId={this.props.orgId} />
+        </ReduxProvider>
+      </MuiThemeProvider>
+    )
+  }
+}
+
+interface IActivityTrackingInfo {
+  numberOfAnnotations: number
+}
 
 // TODO FIXME JOE tell webpack not to do synthetic default exports
 // eslint-disable-next-line typescript/no-explicit-any
@@ -93,6 +137,13 @@ interface Size {
  */
 
 interface AnnotatorState {
+  dataProviderFactories: Array<DataProviderFactory>
+  dataProviderFactory: DataProviderFactory | null
+  session: ISessionInfo | null
+  env: string
+  reset: boolean
+  isSaffron: boolean
+
   background: THREEColorValue
   layerGroupIndex: number
 
@@ -103,12 +154,13 @@ interface AnnotatorState {
 }
 
 interface AnnotatorProps extends WithStyles<typeof styles> {
+  orgId: string
+
   statusWindowState?: StatusWindowState
   uiMenuVisible?: boolean
   carPose?: MapperProtos.mapper.models.PoseMessage
   rendererSize?: Size
   camera?: THREE.Camera
-  dataProviderFactory: DataProviderFactory
   isControlKeyPressed?: boolean
   isAltKeyPressed?: boolean
   isMetaKeyPressed?: boolean
@@ -125,7 +177,6 @@ interface AnnotatorProps extends WithStyles<typeof styles> {
   isMouseDragging?: boolean
   mousePosition?: MousePosition
   isTransformControlsAttached?: boolean
-  getAnnotationManagerRef?: (annotationManager: AnnotationManager | null) => void
   activeAnnotation?: Annotation | null
   transformedObjects?: THREE.Object3D[]
 }
@@ -169,6 +220,15 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   private guiState: GuiState
   private menuRef = React.createRef<any>()
 
+  private static async createDataProviderFactory(
+    orgId: string,
+    sessionId: string | null = null
+  ): Promise<DataProviderFactory> {
+    return await makeSaffronDataProviderFactory(sessionId, false, orgId)
+  }
+
+  private activityTracker?: ActivityTracker<IActivityTrackingInfo>
+
   constructor(props: AnnotatorProps) {
     super(props)
 
@@ -201,7 +261,15 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       (showPerfStatsCached && (JSON.parse(showPerfStatsCached) as boolean)) ||
       DefaultConfig['startup.show_stats_module']
 
+    // noinspection PointlessBooleanExpressionJS
     this.state = {
+      dataProviderFactories: [],
+      dataProviderFactory: null,
+      session: null,
+      env: 'prod',
+      reset: false,
+      isSaffron: window.isSaffron === true,
+
       background: hexStringToHexadecimal(config['startup.background_color'] || '#1d232a'),
       layerGroupIndex: defaultLayerGroupIndex,
 
@@ -220,6 +288,34 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       roadPointsIntensityScale,
       imageScreenOpacity: parseFloat(config['image_manager.image.opacity']) || 0.5,
       showPerfStats,
+    }
+
+    ~(async () => {
+      this.setState({
+        dataProviderFactories: [await Annotator.createDataProviderFactory(props.orgId)],
+      })
+    })()
+  }
+
+  /**
+   * Update session
+   */
+  private onSessionSelected = (factory: DataProviderFactory, session: ISessionInfo) => {
+    log.info(`loading session ${session.id}`)
+    this.setState({
+      session,
+      dataProviderFactory: factory.forSessionId(session.id),
+      reset: true,
+    })
+  }
+
+  onTrackActivity = (): IActivityTrackingInfo | false => {
+    const annotationManager = this.state.annotationManager
+
+    if (!annotationManager) return false
+
+    return {
+      numberOfAnnotations: annotationManager.allAnnotations.length,
     }
   }
 
@@ -607,8 +703,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     active.reverseMarkers()
   }
 
-  // TODO JOE this all will be controlled by React state + markup  at some point {{
-
   // Toggle the visibility of data by cycling through the groups defined in layerGroups.
   private uiToggleLayerVisibility(): void {
     if (this.props.isMetaKeyPressed) return
@@ -759,6 +853,8 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
           await loadAnnotations.call(this, annotationsPath, this.state.annotatedSceneController)
         } else {
           console.error('Loading annotations from a file only works in Electron')
+          // TODO replace this with DataLocalFileProvider?
+          console.error('TODO replace this with DataLocalFileProvider?')
         }
       }
     })
@@ -775,7 +871,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   // TODO JOE don't get refs directly, proxy functionality through AnnotatedSceneController
   private setAnnotationManagerRef = (ref: AnnotationManager) => {
     ref && this.setState({annotationManager: ref})
-    this.props.getAnnotationManagerRef && this.props.getAnnotationManagerRef(ref)
   }
 
   private onImageMouseEnter = (uuid: string) => {
@@ -911,9 +1006,28 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     } catch (err) {
       log.error('annotatedSceneController.cleanup() failed', err)
     }
+
+    this.activityTracker && this.activityTracker.stop()
+    delete this.activityTracker
   }
 
   componentDidUpdate(oldProps: AnnotatorProps, oldState: AnnotatorState): void {
+    if (this.state.reset) {
+      this.setState({reset: false})
+    }
+
+    if (this.state.session !== oldState.session) {
+      this.activityTracker && this.activityTracker.stop()
+      delete this.activityTracker
+
+      if (this.state.session && this.state.session.id) {
+        this.activityTracker = new ActivityTracker(this.state.session.id, this.onTrackActivity)
+        this.activityTracker.start()
+      } else {
+        log.info('no session, not tracking activity')
+      }
+    }
+
     if (!oldState.annotationManager && this.state.annotationManager && this.state.annotationManager) {
       this.styleStats()
     }
@@ -934,8 +1048,9 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
   }
 
   render(): JSX.Element {
+    const {classes} = this.props
+    const {reset, session, dataProviderFactory, dataProviderFactories} = this.state
     const {annotatedSceneConfig} = this.state
-    const {dataProviderFactory, classes} = this.props
     const {onImageMouseEnter, onImageMouseLeave, onImageMouseUp} = this
 
     const manager = this.imageManager
@@ -956,50 +1071,65 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       config: this.configWithDefaults(),
     }
 
-    return !dataProviderFactory ? (
-      <div />
-    ) : (
-      <React.Fragment>
-        <AnnotatedSceneController
-          sceneRef={this.setAnnotatedSceneRef}
-          backgroundColor={this.state.background}
-          bezierScaleFactor={this.guiState.bezierScaleFactor}
-          annotationManagerRef={this.setAnnotationManagerRef}
-          dataProviderFactory={dataProviderFactory}
-          config={annotatedSceneConfig}
-          classes={{root: classes.annotatedScene}}
-        />
-        {this.state.annotatedSceneController && this.state.annotatedSceneController.state.utmCoordinateSystem && (
-          <>
-            <DatGuiContext.Provider value={guiProps}>
-              <ImageContext.Provider value={imageContextValue}>
-                {/*NOTE, The ImageLightbox is inside of the AnnotatorMenuView*/}
-                <AnnotatorMenuView
-                  innerRef={this.menuRef}
-                  uiMenuVisible={!!this.props.uiMenuVisible}
-                  selectedAnnotation={this.props.activeAnnotation}
-                  onSaveAnnotationsJson={this.saveAnnotationsJson}
-                  onSaveAnnotationsGeoJSON={this.saveAnnotationsGeoJSON}
-                  onSaveAnnotationsKML={this.saveAnnotationsKML}
-                  annotator={this}
-                />
-              </ImageContext.Provider>
-            </DatGuiContext.Provider>
-            <ImageManager
-              ref={this.imageManagerRef}
-              config={this.configWithDefaults()}
-              utmCoordinateSystem={this.state.annotatedSceneController.state.utmCoordinateSystem!}
-              dataProvider={this.state.annotatedSceneController.dataProvider}
-              channel={this.state.annotatedSceneController.channel}
+    !dataProviderFactory && console.warn('NOTHING!!!')
+    dataProviderFactory && console.warn('SOMETHING!!!')
+
+    return (
+      <div className={classes!.annotator}>
+        {dataProviderFactories.length && (
+          <React.Fragment>
+            <SessionPicker
+              icon="https://s3.amazonaws.com/mapper-website-assets/saffron/icons/Annotator_Icon.svg"
+              onSessionSelected={this.onSessionSelected}
+              session={session}
+              dataProviderFactories={dataProviderFactories}
             />
-          </>
+            {!reset && dataProviderFactory && (
+              <div className="annotatorPane">
+                <AnnotatedSceneController
+                  sceneRef={this.setAnnotatedSceneRef}
+                  backgroundColor={this.state.background}
+                  bezierScaleFactor={this.guiState.bezierScaleFactor}
+                  annotationManagerRef={this.setAnnotationManagerRef}
+                  dataProviderFactory={dataProviderFactory}
+                  config={annotatedSceneConfig}
+                  classes={{root: classes.annotatedScene}}
+                />
+                {this.state.annotatedSceneController && this.state.annotatedSceneController.state.utmCoordinateSystem && (
+                  <>
+                    <DatGuiContext.Provider value={guiProps}>
+                      <ImageContext.Provider value={imageContextValue}>
+                        {/*NOTE, The ImageLightbox is inside of the AnnotatorMenuView*/}
+                        <AnnotatorMenuView
+                          innerRef={this.menuRef}
+                          uiMenuVisible={!!this.props.uiMenuVisible}
+                          selectedAnnotation={this.props.activeAnnotation}
+                          onSaveAnnotationsJson={this.saveAnnotationsJson}
+                          onSaveAnnotationsGeoJSON={this.saveAnnotationsGeoJSON}
+                          onSaveAnnotationsKML={this.saveAnnotationsKML}
+                          annotator={this}
+                        />
+                      </ImageContext.Provider>
+                    </DatGuiContext.Provider>
+                    <ImageManager
+                      ref={this.imageManagerRef}
+                      config={this.configWithDefaults()}
+                      utmCoordinateSystem={this.state.annotatedSceneController.state.utmCoordinateSystem!}
+                      dataProvider={this.state.annotatedSceneController.dataProvider}
+                      channel={this.state.annotatedSceneController.channel}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+          </React.Fragment>
         )}
-      </React.Fragment>
+      </div>
     )
   }
 }
 
-export default withStyles(styles)(Annotator)
+const _Annotator = withStyles(styles)(Annotator)
 
 // TODO replace with the new helpers from the cleanup PRs
 function hasGeometry(n: THREE.Object3D): boolean {
@@ -1017,9 +1147,32 @@ function hasGeometry(n: THREE.Object3D): boolean {
   // )
 }
 
+// TODO FONTS (joe) font should be inherited from mapper-themes (needs to be renamed
+// to @velodyne/beam)
+
+// function getAbsolutePackagePath(packageName: string): string {
+//   // Based on https://stackoverflow.com/a/49455609/454780
+//   return path.dirname(require.resolve(`${packageName}/package.json`))
+// }
+
+// const fontPath = path.resolve(getAbsolutePackagePath('@mapperai/mapper-themes'), 'dist', 'assets', 'fonts')
+// const avenirFont = makeFontWithDefaultWeights(fontPath, 'AvenirNext')
+
 // eslint-disable-next-line typescript/explicit-function-return-type
-function styles(_theme: Theme) {
+function styles(theme: Theme) {
   return createStyles({
+    annotator: {
+      ...FillWidth,
+      ...FillHeight,
+      '& > .annotatorPane': {
+        ...PositionAbsolute,
+        backgroundColor: theme.palette.primary['800'],
+        top: SessionPickerHeight,
+        bottom: 0,
+        left: 0,
+        right: 0,
+      },
+    },
     annotatedScene: {
       height: '100%',
       maxHeight: '100%',
@@ -1045,6 +1198,11 @@ function styles(_theme: Theme) {
     },
 
     '@global': {
+      // NOTE The array-variant of @font-face isn't typed by material-ui yet.
+      // The array format is supported by the underlying JSS implementation.
+      // TODO FONTS re-enable the font, see TODO FONTS above.
+      // '@font-face': ([...avenirFont] as unknown) as CSSProperties,
+
       // this is inside of AnnotatedSceneController
       '#status_window': {
         position: 'absolute',
@@ -1062,4 +1220,167 @@ function styles(_theme: Theme) {
 
 function isElectron(): boolean {
   return typeof process !== 'undefined' && process.versions && 'electron' in process.versions
+}
+
+// TODO get all the following theme stuff from mapper-themes
+
+// eslint-disable-next-line typescript/explicit-function-return-type
+function makeMapperPalette() {
+  const theme = {
+    palette: {
+      primary: makeMaterialPalette('#555555'), // app icons and text
+      accent: makeMaterialPalette('#F8C632'),
+      background: makeMaterialPalette('#F0F0F0'),
+      text: makeMaterialPalette('#00000070'),
+      textNight: makeMaterialPalette('#FFFFFF'),
+      contrastText: '#dedede',
+      accentBlack: '#242930',
+    } as IThemePalette,
+  }
+  const {palette} = theme
+
+  return {
+    palette: {
+      primary: {
+        light: palette.primary.A200,
+        main: palette.primary.A400,
+        dark: palette.primary.A700,
+      },
+      secondary: {
+        light: palette.accent.A200,
+        main: palette.accent.A400,
+        dark: palette.accent.A700,
+      },
+      type: 'dark',
+    },
+    typography: {
+      useNextVariants: true,
+      fontFamily: 'AvenirNext',
+      fontWeightLight: 300,
+      fontWeightRegular: 400,
+      fontWeightMedium: 500,
+    },
+  } as any
+}
+
+export function makeMaterialPalette(hex: string): Color {
+  const colors = [
+    {
+      hex: tinycolor(hex)
+        .lighten(52)
+        .toHexString(),
+      name: '50',
+    },
+    {
+      hex: tinycolor(hex)
+        .lighten(37)
+        .toHexString(),
+      name: '100',
+    },
+    {
+      hex: tinycolor(hex)
+        .lighten(26)
+        .toHexString(),
+      name: '200',
+    },
+    {
+      hex: tinycolor(hex)
+        .lighten(12)
+        .toHexString(),
+      name: '300',
+    },
+    {
+      hex: tinycolor(hex)
+        .lighten(6)
+        .toHexString(),
+      name: '400',
+    },
+    {
+      hex: hex,
+      name: '500',
+    },
+    {
+      hex: tinycolor(hex)
+        .darken(6)
+        .toHexString(),
+      name: '600',
+    },
+    {
+      hex: tinycolor(hex)
+        .darken(12)
+        .toHexString(),
+      name: '700',
+    },
+    {
+      hex: tinycolor(hex)
+        .darken(18)
+        .toHexString(),
+      name: '800',
+    },
+    {
+      hex: tinycolor(hex)
+        .darken(24)
+        .toHexString(),
+      name: '900',
+    },
+    {
+      hex: tinycolor(hex)
+        .lighten(52)
+        .toHexString(),
+      name: 'A100',
+    },
+    {
+      hex: tinycolor(hex)
+        .lighten(37)
+        .toHexString(),
+      name: 'A200',
+    },
+    {
+      hex: tinycolor(hex)
+        .lighten(6)
+        .toHexString(),
+      name: 'A400',
+    },
+    {
+      hex: tinycolor(hex)
+        .darken(12)
+        .toHexString(),
+      name: 'A700',
+    },
+  ]
+
+  return colors.reduce((palette, nextColor) => {
+    palette[nextColor.name] = nextColor.hex
+    return palette
+  }, {}) as Color
+}
+
+type Contrast = 'light' | 'dark' | 'brown'
+
+interface Color {
+  50: string
+  100: string
+  200: string
+  300: string
+  400: string
+  500: string
+  600: string
+  700: string
+  800: string
+  900: string
+  A100: string
+  A200: string
+  A400: string
+  A700: string
+  contrastDefaultColor: Contrast
+}
+
+export interface IThemePalette {
+  primary: Color
+  accent: Color
+  background: Color
+  text: Color
+  textNight: Color
+  contrastText: string
+  accentBlack: string
 }
