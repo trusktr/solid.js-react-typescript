@@ -559,6 +559,7 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
     this.mapKey('P', () => this.uiAddAnnotation(AnnotationType.Polygon))
     this.mapKey('t', () => this.uiAddAnnotation(AnnotationType.TrafficDevice))
     this.mapKey('T', () => this.uiAddAnnotation(AnnotationType.TrafficDevice))
+    this.mapKey('m', () => this.uiAddAnnotation(AnnotationType.Box))
     this.mapKey('V', () => this.state.annotatedSceneController!.toggleCameraType())
     this.mapKey('X', () => this.state.annotationManager!.cycleTransformControlModes())
     this.keyHeld('a', held => actions.setAddMarkerMode(held))
