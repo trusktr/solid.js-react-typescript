@@ -1071,9 +1071,6 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
       config: this.configWithDefaults(),
     }
 
-    !dataProviderFactory && console.warn('NOTHING!!!')
-    dataProviderFactory && console.warn('SOMETHING!!!')
-
     return (
       <div className={classes!.annotator}>
         {dataProviderFactories.length && (
