@@ -106,6 +106,7 @@ module.exports = {
         'process.env.APP_VERSION': JSON.stringify(packageJson.version),
         'process.env.APP_NAME': JSON.stringify(packageJson.appName),
         'process.env.APP_DESCRIPTION': JSON.stringify(packageJson.description),
+        'process.env.CLOUD_ENV': JSON.stringify(process.env.CLOUD_ENV),
 
         // This is needed because annotated-scene's web worker imports xmldom,
         // which trie to use `window.DOMParser`, but `window` is not defined

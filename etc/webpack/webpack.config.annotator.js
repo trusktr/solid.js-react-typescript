@@ -24,7 +24,7 @@ module.exports = {
       // "to" paths are relative to the output destination.
 
       // Copy the HTML entry point file that launches Annotator UI.
-      {from: 'annotator/StandaloneEntry.html', to: './'},
+      {from: 'annotator/index.html', to: './'},
     ]),
   ],
 }

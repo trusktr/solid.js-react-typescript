@@ -3,37 +3,23 @@ import {DataProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules
 import {makeDataCloudProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataCloudProvider'
 import {PusherConfig} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataCloudProviderPusherClient'
 import getLogger from '../util/Logger'
-import {
-  getAppAWSCredentials,
-  getPusherConnectionParams,
-  getPusherAuthorization,
-  getPusherAuthEndpoint,
-  getOrganizationId,
-  goAhead,
-} from './ipc'
+import {AuthService} from './services/AuthService'
+import {AWSService} from './services/AWSService'
+import {CloudService, HttpMethod} from './services/CloudService'
 
 const log = getLogger(__filename)
 
-let defaultOrgId: string
-
-export const ready = new Promise(async resolve => {
-  await goAhead()
-  defaultOrgId = await getOrganizationId()
-  resolve()
-})
-
-/**
- * Tile service client factory for meridian
- */
 export async function makeSaffronDataProviderFactory(
   sessionId: string | null,
   useCache = true,
-  organizationId: string = defaultOrgId
+  organizationId: string
 ): Promise<DataProviderFactory> {
   const credentialProvider = async (): Promise<IAWSCredentials> => {
     // TODO, Saffron knows which app is running and can determine the app
     // behind the scenes without us needing to specify it here.
-    const response = await getAppAWSCredentials()
+    const auth = AuthService.singleton()
+    const aws = AWSService.singleton(auth)
+    const response = await aws.getAppCredentials('annotator')
     if (response == null) throw new Error('AWS Credentials are null')
     return response.credentials
   }
@@ -48,12 +34,21 @@ export async function makeSaffronDataProviderFactory(
   const bucketProvider = async (_: string): Promise<string> => {
     // TODO, Saffron knows which app is running and can determine the app
     // behind the scenes without us needing to specify it here.
-    const creds = await getAppAWSCredentials()
+    const auth = AuthService.singleton()
+    const aws = AWSService.singleton(auth)
+    const creds = await aws.getAppCredentials('annotator')
     if (!creds) throw new Error('no AWS credentials')
     return creds.sessionBucket
   }
 
-  const pusherParams = await getPusherConnectionParams()
+  // TODO (joe) get the pusher keys from cloud services
+  const pusherInfo = JSON.parse(
+    (await new CloudService(AuthService.singleton()).makeAPIRequest({
+      method: HttpMethod.GET,
+      uri: 'common/1/secrets?name=pusher',
+      clientName: 'annotator',
+    })).data
+  )
 
   return makeDataCloudProviderFactory(
     credentialProvider,
@@ -62,12 +57,21 @@ export async function makeSaffronDataProviderFactory(
     sessionId,
     true,
     {
-      key: pusherParams.key,
-      cluster: pusherParams.cluster,
-      authEndpoint: await getPusherAuthEndpoint(),
+      key: pusherInfo.key,
+      cluster: pusherInfo.cluster,
+      authEndpoint: CloudService.makeAPIURL('identity/1/pusher/auth'),
       authorizer: async (channelName: string, socketId: string, _options: any): Promise<any> => {
         try {
-          return await getPusherAuthorization(channelName, socketId)
+          const cloudService = new CloudService(AuthService.singleton())
+          return (await cloudService.makeAPIRequest({
+            method: HttpMethod.POST,
+            uri: 'identity/1/pusher/auth',
+            clientName: 'annotator',
+            body: {
+              channelName,
+              socketId,
+            },
+          })).data
         } catch (err) {
           log.error('Unable to authenticate for pusher', err)
           throw err

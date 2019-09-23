@@ -36,6 +36,30 @@ You can now successfully install project dependencies, including private depende
 npm install
 ```
 
+### Auth0 Settings
+
+Most likely you don't need to do anything with regards to Auth0, and this
+section is only informational:
+
+For authentication to work in production, the Auth0 settings must include the
+domains that we publish Annotator to. During development we use
+localhost:23456 (and increment the port by 1 when running multiple instances
+of Annotator (f.e. one instance in a browser tab, another instance in
+Saffron, in which case both ports 23456 and 23457 will be used), so we've
+listed localhost:23456, localhost:23457, and localhost:23458 in our Auth0's
+allowed URLs to allow for this use case. Most likely we won't have more than
+one instance running.
+
+If you see an error mentioning `allowed callback URLs` when you attempt to
+log in, then likely the current URL origin of the application is not added to
+Auth0 settings.
+
+To access Auth0 settings usd by Annotator (and other apps), see
+https://manage.auth0.com/dashboard/us/mapperai/applications/r2L3AkvLNfWN6e357HYQoKpSKVAFbPXi/settings
+(it is safe to include this URL here, which includes the client ID, but not
+the client secret, which is similar to showing your publish SSH key but not
+your private key).
+
 ## Run the app
 
 ### With NPM

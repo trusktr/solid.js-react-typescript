@@ -1,5 +1,9 @@
 /* eslint-disable typescript/no-explicit-any */
-import {log} from '../annotator/ipc'
+
+async function log(fileName: string, level: LogLevel, ...args: any[]): Promise<void> {
+  // TODO hook this back up to the network logger, if needed.
+  console[level](fileName, '--', ...args)
+}
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 

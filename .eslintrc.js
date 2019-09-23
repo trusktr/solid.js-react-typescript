@@ -22,7 +22,7 @@ module.exports = {
   // add your custom rules here
   rules: {
     // allow debugger during development
-    'no-debugger': process.env.NODE_ENV && process.env.NODE_ENV.startsWith('dev') ? 0 : 2,
+    'no-debugger': 'error',
 
     'prefer-const': 'error',
     'one-var': ['off'],

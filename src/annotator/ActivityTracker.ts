@@ -1,6 +1,7 @@
 import {getS3Client} from '@mapperai/mapper-annotated-scene'
 import getLogger from '../util/Logger'
-import {getAppAWSCredentials, getOrganizationId, getAccount} from './ipc'
+import {AuthService} from './services/AuthService'
+import {AWSService} from './services/AWSService'
 
 const log = getLogger(__filename)
 
@@ -38,14 +39,15 @@ export class ActivityTracker<T extends Object> {
 
     this.userHasInteracted = false
 
-    const credentials = await getAppAWSCredentials()
+    const auth = AuthService.singleton()
+    const credentials = await AWSService.singleton(auth).getAppCredentials('annotator')
 
     if (!credentials) throw new Error('Unable to get AWS credentials')
 
     const Bucket = credentials.sessionBucket
     const s3 = getS3Client(credentials.credentials)
-    const organizationId = await getOrganizationId()
-    const account = await getAccount()
+    const organizationId = auth.orgId
+    const account = auth.account
     const sessionId = this.sessionId
 
     if (!(account && (account.user as any).user_id)) {

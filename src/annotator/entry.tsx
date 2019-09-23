@@ -10,27 +10,34 @@ import {Provider as ReduxProvider} from 'react-redux'
 import * as tinycolor from 'tinycolor2'
 import {MuiThemeProvider, createMuiTheme} from '@material-ui/core'
 import {MapperCssBaseline} from '@mapperai/mapper-themes'
-import {Deferred, loadAnnotatedSceneStore, getAnnotatedSceneReduxStore} from '@mapperai/mapper-annotated-scene'
+import {loadAnnotatedSceneStore, getAnnotatedSceneReduxStore} from '@mapperai/mapper-annotated-scene'
 import {App} from './App'
 import {configReady} from '../annotator-config'
-import {ready} from './SaffronDataProviderFactory'
+import {AuthService, AuthEvents} from './services/AuthService'
 
-type ElementOrComponent = JSX.Element | React.Component
+// This is needed because jQuery-ui depends on the globals existing.
+Object.assign(global, {
+  jQuery: $,
+  $: $,
+})
 
-let deferred: Deferred<ElementOrComponent>
+export function startAnnotator(): void {
+  const auth = AuthService.singleton()
 
-export async function startAnnotator(isInsideSaffronBrowsingContext = false): Promise<ElementOrComponent> {
-  if (deferred) return deferred.promise
-  deferred = new Deferred<ElementOrComponent>()
+  auth.showLogin(true)
 
-  await ready
+  auth.on(AuthEvents.UPDATED, function listener(account) {
+    if (!(account && auth.orgId))
+      throw new Error('Something went wrong. A user account belonging to an organization should exist.')
 
-  // This is needed because jQuery-ui depends on the globals existing.
-  Object.assign(global, {
-    jQuery: $,
-    $: $,
+    auth.removeListener(AuthEvents.UPDATED, listener)
+    // auth.hideLogin()
+
+    render(auth.orgId)
   })
+}
 
+async function render(org: string): Promise<void> {
   // import jQuery-UI after setting up the jQuery global
   require('jquery-ui-dist/jquery-ui')
 
@@ -41,24 +48,15 @@ export async function startAnnotator(isInsideSaffronBrowsingContext = false): Pr
 
   const root = $('#root')[0]
 
-  const doRender = (): void => {
-    const component = (
-      <MuiThemeProvider theme={createMuiTheme(makeMapperPalette())}>
-        <MapperCssBaseline />
-        <ReduxProvider store={getAnnotatedSceneReduxStore()}>
-          <App />
-        </ReduxProvider>
-      </MuiThemeProvider>
-    )
-
-    if (!isInsideSaffronBrowsingContext) ReactDOM.render(component, root)
-
-    deferred.resolve(component)
-  }
-
-  $(doRender)
-
-  return deferred.promise
+  ReactDOM.render(
+    <MuiThemeProvider theme={createMuiTheme(makeMapperPalette())}>
+      <MapperCssBaseline />
+      <ReduxProvider store={getAnnotatedSceneReduxStore()}>
+        <App orgId={org} />
+      </ReduxProvider>
+    </MuiThemeProvider>,
+    root
+  )
 }
 
 // TODO get all the following theme stuff from mapper-themes

@@ -2,8 +2,7 @@
  *  Copyright 2018 Mapper Inc.
  *  CONFIDENTIAL. AUTHORIZED USE ONLY. DO NOT REDISTRIBUTE.
  */
-
-import config, {configReady} from 'annotator-config'
+import config, {configReady} from '../annotator-config'
 
 const windowStateDirectory = 'window-state'
 
