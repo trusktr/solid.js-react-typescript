@@ -12,7 +12,7 @@ const log = getLogger(__filename)
 
 // TODO get this from somewhere outside of the application (f.e. from the build
 // step, or set by CLI env vars).
-const MAPPER_ENV = 'dev'
+const CLOUD_ENV = process.env.CLOUD_ENV
 
 // todo change to something appropriate with this class moves to a standalone lib
 export const saffronClientName = 'saffron-platform'
@@ -40,7 +40,7 @@ export class CloudService {
 
   static makeAPIURL(uri: string): string {
     const api = uri.split('/')[0]
-    const baseUrl = `https://${MAPPER_ENV}-${api}-api.mapperai.net`.toLowerCase()
+    const baseUrl = `https://${CLOUD_ENV}-${api}-api.mapperai.net`.toLowerCase()
     return `${baseUrl}/${uri}`
   }
 
