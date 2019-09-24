@@ -65,6 +65,7 @@ import {
   ImageClick,
   LightboxImage,
   getAnnotatedSceneReduxStore,
+  Timeline,
 } from '@mapperai/mapper-annotated-scene'
 import {DataProviderFactory} from '@mapperai/mapper-annotated-scene/dist/modules/tiles/DataProvider'
 
@@ -1116,6 +1117,9 @@ export class Annotator extends React.Component<AnnotatorProps, AnnotatorState> {
                       dataProvider={this.state.annotatedSceneController.dataProvider}
                       channel={this.state.annotatedSceneController.channel}
                     />
+                    <div className={classes.timelineContainer}>
+                      <Timeline />
+                    </div>
                   </>
                 )}
               </div>
@@ -1212,6 +1216,14 @@ function styles(theme: Theme) {
         borderRadius: panelBorderRadius,
         width: statusWindowWidth,
       },
+    },
+
+    timelineContainer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      width: '100%',
+      height: 150,
     },
   })
 }
