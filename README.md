@@ -77,10 +77,10 @@ publish that to S3 (see Jenkinsfile). To make a new version and push the tag,
 run:
 
 ```bash
-npm run publish-version-patch
+npm run release:patch
 ```
 
-There are also `publish-version-minor` and `publish-version-major` scripts for
+There are also `release:minor` and `release:major` scripts for
 publish minor and major versions.
 
 #### Running within Saffron, with local Annotated Scene library
@@ -132,17 +132,17 @@ If you are deploying a version of Annotator which depends on updates in [mapper-
 
 ### Build and Deploy to Development Environment
 
-Decide how important you change is, then
+Decide how important your change is, then
 
-    npm run version-patch
-
-or
-
-    npm run version-minor
+    npm run release:patch
 
 or
 
-    npm run version-major
+    npm run release:minor
+
+or
+
+    npm run release:major
 
 That creates a release branch. Go to [mapper-annotator](https://github.com/Signafy/mapper-annotator) and make a pull request from the release branch to `develop`. Get it approved, and close it. That will kick off a build on [Jenkins](https://build.mapperai.net/job/mapper-annotator%20releases/job/develop/).
 
