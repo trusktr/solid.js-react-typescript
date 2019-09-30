@@ -2,7 +2,7 @@
   "name": "@mapperai/mapper-annotator",
   "appName": "Annotator",
   "appID": "Annotator",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "description": "Mapper.ai HD Map Editor",
   "appIcon": "https://s3.amazonaws.com/mapper-website-assets/saffron/icons/Annotator_Icon.svg",
   "main": "dist/package/saffron.js",
@@ -50,9 +50,9 @@
     "lint-ts": "npm run lint -- './**/*.{ts,tsx}'",
     "COMMENT about dev-or-master": "exits non-zero if we're not on develop or master branches",
     "dev-or-master": "git branch | grep \\* | cut -d ' ' -f2 | grep -E 'develop|master' > /dev/null",
-    "version-patch": "node scripts/version.js patch",
-    "version-minor": "node scripts/version.js minor",
-    "version-major": "node scripts/version.js major"
+    "release:patch": "node scripts/release.js patch",
+    "release:minor": "node scripts/release.js minor",
+    "release:major": "node scripts/release.js major"
   },
   "husky": {
     "hooks": {
@@ -130,7 +130,7 @@
     "worker-loader": "^2.0.0"
   },
   "dependencies": {
-    "@mapperai/mapper-annotated-scene": "4.0.2",
+    "@mapperai/mapper-annotated-scene": "4.1.0",
     "@mapperai/mapper-models": "1.9.8",
     "@mapperai/mapper-saffron-sdk": "2.1.9",
     "@mapperai/mapper-themes": "^2.1.0",
