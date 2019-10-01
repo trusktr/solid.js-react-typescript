@@ -7,9 +7,10 @@ import * as ReactDOM from 'react-dom'
 import 'jquery-ui-dist/jquery-ui.css' // eslint-disable-line import/no-webpack-loader-syntax
 import * as $ from 'jquery'
 import {loadAnnotatedSceneStore} from '@mapperai/mapper-annotated-scene'
-import Annotator from './Annotator'
+// import Annotator from './Annotator'
+import {TimelineTest} from './Annotator'
 import {configReady} from '../annotator-config'
-import {AuthService, AuthEvents} from './services/AuthService'
+// import {AuthService, AuthEvents} from './services/AuthService'
 
 // This is needed because jQuery-ui depends on the globals existing.
 Object.assign(global, {
@@ -18,22 +19,23 @@ Object.assign(global, {
 })
 
 export function startAnnotator(): void {
-  const auth = AuthService.singleton()
+  // const auth = AuthService.singleton()
 
-  auth.showLogin(true)
+  // auth.showLogin(true)
 
-  auth.on(AuthEvents.UPDATED, function listener(account) {
-    if (!(account && auth.orgId))
-      throw new Error('Something went wrong. A user account belonging to an organization should exist.')
+  // auth.on(AuthEvents.UPDATED, function listener(account) {
+  //   if (!(account && auth.orgId))
+  //     throw new Error('Something went wrong. A user account belonging to an organization should exist.')
 
-    auth.removeListener(AuthEvents.UPDATED, listener)
-    // auth.hideLogin()
+  //   auth.removeListener(AuthEvents.UPDATED, listener)
 
-    render(auth.orgId)
-  })
+  //   render(auth.orgId)
+  // })
+
+  render('asdf')
 }
 
-async function render(org: string): Promise<void> {
+async function render(_org: string): Promise<void> {
   // import jQuery-UI after setting up the jQuery global
   require('jquery-ui-dist/jquery-ui')
 
@@ -43,5 +45,6 @@ async function render(org: string): Promise<void> {
 
   const root = $('#root')[0]
 
-  ReactDOM.render(<Annotator orgId={org} />, root)
+  // ReactDOM.render(<Annotator orgId={_org} />, root)
+  ReactDOM.render(<TimelineTest />, root)
 }
