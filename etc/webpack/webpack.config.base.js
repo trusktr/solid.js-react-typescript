@@ -29,7 +29,7 @@ module.exports = {
         // SOURCE MAPS
         {
           test: /\.js$/,
-          exclude: /(typelogger|async-file|node_modules)/,
+          exclude: /node_modules/,
           use: ['source-map-loader'],
           enforce: 'pre',
         },
@@ -99,25 +99,7 @@ module.exports = {
       extensions: ['.ts', '.tsx', '.js', '.jsx'],
     },
 
-    plugins: [
-      new DefinePlugin({
-        'process.env.WEBPACK': true,
-        'process.env.isDev': isDev,
-        'process.env.APP_VERSION': JSON.stringify(packageJson.version),
-        'process.env.APP_NAME': JSON.stringify(packageJson.appName),
-        'process.env.APP_DESCRIPTION': JSON.stringify(packageJson.description),
-        'process.env.CLOUD_ENV': JSON.stringify(process.env.CLOUD_ENV),
-
-        // This is needed because annotated-scene's web worker imports xmldom,
-        // which trie to use `window.DOMParser`, but `window` is not defined
-        // inside of web workers, so annotated-scene imports DOMParser from
-        // xmldom and assigns it onto the global inside the web worker, and this
-        // particular line of Webpack config replaces calls to
-        // `window.DOMParser` with `DOMParser` which will cause the worker code
-        // to load the DOMParser patched onto the web worker global.
-        'window.DOMParser': 'DOMParser',
-      }),
-    ].concat(
+    plugins: [].concat(
       isProd
         ? []
         : [

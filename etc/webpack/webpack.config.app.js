@@ -5,13 +5,13 @@ module.exports = {
   ...baseConfig,
 
   entry: {
-    'annotator-ui': './annotator/entry',
+    app: './entry',
   },
 
   output: {
     ...baseConfig.output,
 
-    // libraryTarget of annotator's entry is "umd", so that we can load it as a script tag.
+    // output as a UMD module so that we can load it as a <script> tag.
     libraryTarget: 'umd',
   },
 
@@ -24,7 +24,7 @@ module.exports = {
       // "to" paths are relative to the output destination.
 
       // Copy the HTML entry point file that launches Annotator UI.
-      {from: 'annotator/index.html', to: './'},
+      {from: 'index.html', to: './'},
     ]),
   ],
 }
