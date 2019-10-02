@@ -96,7 +96,7 @@
   },
   "dependencies": {
     "core-js": "^2.6.5",
-    "jquery": "3.2.1",
+    "jquery": "3.4.1",
     "postcss": "6.0.23",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
