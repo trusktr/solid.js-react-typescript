@@ -1,0 +1,108 @@
+{
+  "name": "solid-test",
+  "version": "1.9.2",
+  "description": "Get solid working in an app that already uses React",
+  "main": "dist/package/.js",
+  "scripts": {
+    "test": "npm run lint-all && npm run prettier-check && npm run build && echo 'implement tests'",
+    "dev": "(rm -rf dist; npm run build:dev:watch & p1=$!; npm run browser & p2=$!; wait $p1 $p2)",
+    "browser": "./scripts/serve.js",
+    "build": "npm run build:dev",
+    "build:prod": "rm -rf dist && npm run build:app:prod",
+    "build:dev": "rm -rf dist && npm run build:app:dev",
+    "build:dev:watch": "npm run build:app:dev -- --watch --progress & p2=$!; wait $p2",
+    "build:app:prod": "CLOUD_ENV=prod NODE_ENV=production webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.app.js --mode production",
+    "build:app:dev": "CLOUD_ENV=dev NODE_ENV=development webpack --max_old_space_size=4096 --config etc/webpack/webpack.config.app.js --mode development",
+    "typecheck": "tsc -p ./tsconfig.json --noEmit && :",
+    "typecheck-watch": "tsc -p ./tsconfig.json --noEmit --watch",
+    "prettier": "npm run prettier-js -- --write && npm run prettier-ts -- --write && npm run prettier-md -- --write",
+    "prettier-list": "npm run --silent prettier-js-list && npm run --silent prettier-ts-list && npm run --silent prettier-md-list",
+    "prettier-js": "prettier '{,!(node_modules)/**/}*.{js,json}'",
+    "prettier-ts": "prettier '{,!(node_modules)/**/}*.{ts,tsx}'",
+    "prettier-md": "prettier '{,!(node_modules)/**/}*.md'",
+    "prettier-js-list": "npm run prettier-js -- --list-different || true",
+    "prettier-ts-list": "npm run prettier-ts -- --list-different || true",
+    "prettier-md-list": "npm run prettier-md -- --list-different || true",
+    "prettier-check": "npm run --silent prettier-js-check && npm run --silent prettier-ts-check && npm run --silent prettier-md-check",
+    "prettier-js-check": "npm run prettier-js -- --check",
+    "prettier-ts-check": "npm run prettier-ts -- --check",
+    "prettier-md-check": "npm run prettier-md -- --check",
+    "lint": "esw --format codeframe --config ./.eslintrc.js",
+    "lint-fix": "npm run lint -- --fix",
+    "lint-all": "npm run lint-js && npm run lint-ts",
+    "lint-fix-all": "npm run lint-js -- --fix && npm run lint-ts -- --fix",
+    "lint-watch": "npm run lint-js -- --watch & $p5=$!; npm run lint-ts -- --watch & p6=$!; wait $p5 $p6",
+    "lint-js": "npm run lint -- './**/{.,}*.{js,json,html}'",
+    "lint-ts": "npm run lint -- './**/*.{ts,tsx}'"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "npm run typecheck"
+    ],
+    "*.{js,ts,tsx,json}": [
+      "npm run lint-fix -- $@",
+      "prettier --write $@",
+      "git add"
+    ],
+    "*.{html}": [
+      "npm run lint-fix -- $@",
+      "git add"
+    ]
+  },
+  "devDependencies": {
+    "@types/jquery": "2.0.33",
+    "@types/node": "8.0.54",
+    "@types/react": "16.4.18",
+    "@types/react-dom": "16.0.9",
+    "@types/serve-handler": "^6.1.0",
+    "babel-eslint": "8.2.6",
+    "copy-webpack-plugin": "^5.0.3",
+    "css-loader": "^1.0.0",
+    "eslint": "5.2.0",
+    "eslint-config-prettier": "^3.1.0",
+    "eslint-friendly-formatter": "4.0.1",
+    "eslint-loader": "2.1.0",
+    "eslint-plugin-html": "4.0.5",
+    "eslint-plugin-json": "1.2.0",
+    "eslint-plugin-promise": "4.0.1",
+    "eslint-plugin-typescript": "0.12.0",
+    "eslint-watch": "4.0.2",
+    "file-loader": "^1.1.11",
+    "fork-ts-checker-webpack-plugin": "^0.4.3",
+    "husky": "^1.0.0-rc.13",
+    "json-loader": "^0.5.7",
+    "lint-staged": "^8.0.0-beta.2",
+    "node-sass": "^4.9.3",
+    "prettier": "^1.14.3",
+    "pug-loader": "^2.4.0",
+    "sass-loader": "^7.1.0",
+    "script-loader": "^0.7.2",
+    "source-map-loader": "^0.2.4",
+    "style-loader": "^0.22.1",
+    "ts-loader": "^4.4.2",
+    "typescript-eslint-parser": "20.1.1",
+    "url-loader": "^1.0.1",
+    "webpack": "4.16.4",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5",
+    "webpack-node-externals": "^1.7.2",
+    "webpack-sources": "1.1.0",
+    "worker-loader": "^2.0.0"
+  },
+  "dependencies": {
+    "core-js": "^2.6.5",
+    "jquery": "3.2.1",
+    "postcss": "6.0.23",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6",
+    "serve-handler": "^6.1.1",
+    "solid-js": "^0.11.1",
+    "ts-node": "7.0.0",
+    "typescript": "3.1.6"
+  }
+}
