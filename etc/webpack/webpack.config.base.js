@@ -56,13 +56,37 @@ module.exports = {
         // TYPESCRIPT
         {
           test: /\.tsx?$/,
-          // exclude: [/node_modules(?!\/(animation-loop|lowclass))/],
           exclude: [/node_modules/],
-          loader: 'ts-loader',
-          options: {
-            transpileOnly: true,
-            //experimentalWatchApi: true,
-          },
+          oneOf: [
+            // for files using Solid.js
+            {
+              /**
+               * @param {string} value
+               */
+              test: value => {
+                if (value.match(/\.solid\.tsx?$/)) console.log(' ------------- found solid file:', value)
+                return !!value.match(/\.solid\.tsx?$/)
+              },
+              loader: require.resolve('babel-loader'),
+              options: {
+                babelrc: false,
+                configFile: false,
+                presets: ['@babel/preset-env', 'solid', '@babel/preset-typescript'],
+                plugins: ['@babel/proposal-class-properties'],
+                cacheDirectory: true,
+                cacheCompression: !isDev,
+                compact: !isDev,
+              },
+            },
+            // for files using React
+            {
+              loader: 'ts-loader',
+              options: {
+                transpileOnly: true,
+                experimentalWatchApi: true,
+              },
+            },
+          ],
         },
 
         // JADE
