@@ -25,7 +25,7 @@ const test = ((
   <div>
     // @ts-ignore
     <h1>The count is:</h1>
-    {count()}
+    {count}
   </div>
 ) as any) as HTMLDivElement
 
